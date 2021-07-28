@@ -50,8 +50,7 @@ func init() {
 
 const (
 	defaultURL         = "http://localhost:9200"
-	tagline            = "You Know, for Search"
-	unknownProduct     = "the client noticed that the server is not Elasticsearch and we do not support this unknown product"
+	openSearch         = "openserach"
 	unsupportedProduct = "the client noticed that the server is not a supported distribution of Elasticsearch"
 )
 
@@ -117,6 +116,7 @@ type Client struct {
 type esVersion struct {
 	Number      string `json:"number"`
 	BuildFlavor string `json:"build_flavor"`
+	Distribution string `json:"distribution"`
 }
 
 type info struct {
@@ -232,41 +232,19 @@ func NewClient(cfg Config) (*Client, error) {
 	return client, err
 }
 
-// genuineCheckHeader validates the presence of the X-Elastic-Product header
+// checkCompatibleInfo validates the informations given by Elasticsearch
 //
-func genuineCheckHeader(header http.Header) error {
-	if header.Get("X-Elastic-Product") != "Elasticsearch" {
-		return errors.New(unknownProduct)
-	}
-	return nil
-}
-
-// genuineCheckInfo validates the informations given by Elasticsearch
-//
-func genuineCheckInfo(info info) error {
-	major, minor, _, err := ParseElasticsearchVersion(info.Version.Number)
+func checkCompatibleInfo(info info) error {
+	major, _, _, err := ParseElasticsearchVersion(info.Version.Number)
 	if err != nil {
 		return err
 	}
-
-	if major < 6 {
-		return errors.New(unknownProduct)
+	if info.Version.Distribution == openSearch {
+		return nil
 	}
-	if major < 7 {
-		if info.Tagline != tagline {
-			return errors.New(unknownProduct)
-		}
+	if major != 7 {
+		return errors.New(unsupportedProduct)
 	}
-	if major >= 7 {
-		if minor < 14 {
-			if info.Tagline != tagline {
-				return errors.New(unknownProduct)
-			} else if info.Version.BuildFlavor != "default" {
-				return errors.New(unsupportedProduct)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -298,17 +276,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	}
 
 	// Retrieve the original request.
-	res, err := c.Transport.Perform(req)
-
-	// ResponseCheck path continues, we run the header check on the first answer from ES.
-	if err == nil {
-		checkHeader := func() error { return genuineCheckHeader(res.Header) }
-		if err := c.doProductCheck(checkHeader); err != nil {
-			res.Body.Close()
-			return nil, err
-		}
-	}
-	return res, err
+	return c.Transport.Perform(req)
 }
 
 // doProductCheck calls f if there as not been a prior successful call to doProductCheck,
@@ -363,27 +331,18 @@ func (c *Client) productCheck() error {
 		}
 	}
 
-	err = genuineCheckHeader(res.Header)
-
-	if err != nil {
-		var info info
-		contentType := res.Header.Get("Content-Type")
-		if strings.Contains(contentType, "json") {
-			err = json.NewDecoder(res.Body).Decode(&info)
-			if err != nil {
-				return fmt.Errorf("error decoding Elasticsearch informations: %s", err)
-			}
-		}
-
-		if info.Version.Number != "" {
-			err = genuineCheckInfo(info)
+	var info info
+	contentType := res.Header.Get("Content-Type")
+	if strings.Contains(contentType, "json") {
+		err = json.NewDecoder(res.Body).Decode(&info)
+		if err != nil {
+			return fmt.Errorf("error decoding Elasticsearch informations: %s", err)
 		}
 	}
 
-	if err != nil {
-		return err
+	if info.Version.Number != "" {
+		return checkCompatibleInfo(info)
 	}
-
 	return nil
 }
 

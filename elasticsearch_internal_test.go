@@ -474,19 +474,29 @@ func TestGenuineCheckInfo(t *testing.T) {
 		err 	error
 	}{
 		{
-			name: "Genuine Elasticsearch 7.14.0",
+			name: "Supported OpenSearch 1.0.0",
 			info: info{
 				Version: esVersion{
-					Number:      "7.14.0",
-					BuildFlavor: "default",
+					Number:      "1.0.0",
+					Distribution: openSearch,
 				},
-				Tagline: "You Know, for Search",
 			},
 			wantErr: false,
 			err: nil,
 		},
 		{
-			name: "Genuine Elasticsearch 6.15.1",
+			name: "Supported Elasticsearch 7.10.0",
+			info: info{
+				Version: esVersion{
+					Number:      "7.10.0",
+					BuildFlavor: "anything",
+				},
+			},
+			wantErr: false,
+			err: nil,
+		},
+		{
+			name: "Unsupported Elasticsearch Version 6.15.1",
 			info: info{
 				Version: esVersion{
 					Number:      "6.15.1",
@@ -494,44 +504,8 @@ func TestGenuineCheckInfo(t *testing.T) {
 				},
 				Tagline: "You Know, for Search",
 			},
-			wantErr: false,
-			err: nil,
-		},
-		{
-			name: "Not so genuine Elasticsearch 7 major",
-			info: info{
-				Version: esVersion{
-					Number:      "7.12.0",
-					BuildFlavor: "newer",
-				},
-				Tagline: "You Know, for Search",
-			},
 			wantErr: true,
-			err: errors.New(unknownProduct),
-		},
-		{
-			name: "Not so genuine Elasticsearch 6 major",
-			info: info{
-				Version: esVersion{
-					Number:      "6.12.0",
-					BuildFlavor: "default",
-				},
-				Tagline: "You Know, for Fun",
-			},
-			wantErr: true,
-			err: errors.New(unknownProduct),
-		},
-		{
-			name: "Way older Elasticsearch major",
-			info: info{
-				Version: esVersion{
-					Number:      "5.12.0",
-					BuildFlavor: "default",
-				},
-				Tagline: "You Know, for Fun",
-			},
-			wantErr: true,
-			err: errors.New(unknownProduct),
+			err: errors.New(unsupportedProduct),
 		},
 		{
 			name: "Elasticsearch oss",
@@ -542,49 +516,14 @@ func TestGenuineCheckInfo(t *testing.T) {
 				},
 				Tagline: "You Know, for Search",
 			},
-			wantErr: true,
-			err: errors.New(unsupportedProduct),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := genuineCheckInfo(tt.info); (err != nil) != tt.wantErr && err != tt.err {
-				t.Errorf("genuineCheckInfo() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestGenuineCheckHeader(t *testing.T) {
-	tests := []struct {
-		name    string
-		headers http.Header
-		wantErr bool
-	}{
-		{
-			name: "Available and good product header",
-			headers: http.Header{
-				"X-Elastic-Product": []string{"Elasticsearch"},
-			},
 			wantErr: false,
-		},
-		{
-			name: "Available and bad product header",
-			headers: http.Header{
-				"X-Elastic-Product": []string{"Elasticmerch"},
-			},
-			wantErr: true,
-		},
-		{
-			name:    "Unavailable product header",
-			headers: http.Header{},
-			wantErr: true,
+			err: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := genuineCheckHeader(tt.headers); (err != nil) != tt.wantErr {
-				t.Errorf("genuineCheckHeader() error = %v, wantErr %v", err, tt.wantErr)
+			if err := checkCompatibleInfo(tt.info); (err != nil) != tt.wantErr && err != tt.err {
+				t.Errorf("checkCompatibleInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -599,38 +538,20 @@ func TestResponseCheckOnly(t *testing.T) {
 		wantErr              bool
 	}{
 		{
-			name:                 "Valid answer with header",
-			useResponseCheckOnly: false,
-			response: &http.Response{
-				Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
-				Body:   ioutil.NopCloser(strings.NewReader("{}")),
-			},
-			wantErr: false,
-		},
-		{
 			name:                 "Valid answer without header",
 			useResponseCheckOnly: false,
 			response: &http.Response{
 				Body: ioutil.NopCloser(strings.NewReader("{}")),
 			},
-			wantErr: true,
-		},
-		{
-			name:                 "Valid answer with header and response check",
-			useResponseCheckOnly: true,
-			response: &http.Response{
-				Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
-				Body:   ioutil.NopCloser(strings.NewReader("{}")),
-			},
 			wantErr: false,
 		},
 		{
-			name:                 "Valid answer without header and response check",
+			name:                 "Valid answer and response check",
 			useResponseCheckOnly: true,
 			response: &http.Response{
 				Body: ioutil.NopCloser(strings.NewReader("{}")),
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name:                 "Request failed",
