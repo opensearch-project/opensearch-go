@@ -1,8 +1,12 @@
 name: Unit (tip)
 
 on:
-  schedule:
-    - cron: '0 1 * * *'
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
 
 env:
   GITHUB_ACTIONS: true

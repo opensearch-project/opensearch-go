@@ -1,23 +1,16 @@
 name: Integration
 
 on:
-  schedule:
-    - cron: '0 1 * * *'
   push:
     branches:
-      - github-actions
-      - master
-      - 7.x
-      - 6.x
+      - "*"
   pull_request:
     branches:
-      - master
-      - 7.x
-      - 6.x
+      - "*"
 
 env:
   GITHUB_ACTIONS: true
-  ELASTICSEARCH_VERSION: elasticsearch:7.x-SNAPSHOT
+  ELASTICSEARCH_VERSION: elasticsearch-oss:7.10.2
 
 jobs:
   test:
