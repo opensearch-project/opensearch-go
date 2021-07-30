@@ -48,7 +48,6 @@ func newClusterPostVotingConfigExclusionsFunc(t Transport) ClusterPostVotingConf
 
 // ClusterPostVotingConfigExclusions updates the cluster voting config exclusions by node ids or node names.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/voting-config-exclusions.html.
 //
 type ClusterPostVotingConfigExclusions func(o ...func(*ClusterPostVotingConfigExclusionsRequest)) (*Response, error)
 

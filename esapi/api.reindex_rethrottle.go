@@ -48,7 +48,6 @@ func newReindexRethrottleFunc(t Transport) ReindexRethrottle {
 
 // ReindexRethrottle changes the number of requests per second for a particular Reindex operation.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-reindex.html.
 //
 type ReindexRethrottle func(task_id string, requests_per_second *int, o ...func(*ReindexRethrottleRequest)) (*Response, error)
 

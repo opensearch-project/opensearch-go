@@ -49,7 +49,6 @@ func newShutdownGetNodeFunc(t Transport) ShutdownGetNode {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/current.
 //
 type ShutdownGetNode func(o ...func(*ShutdownGetNodeRequest)) (*Response, error)
 

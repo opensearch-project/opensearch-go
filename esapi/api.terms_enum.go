@@ -50,7 +50,6 @@ func newTermsEnumFunc(t Transport) TermsEnum {
 //
 // This API is beta.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/current/search-terms-enum.html.
 //
 type TermsEnum func(index []string, o ...func(*TermsEnumRequest)) (*Response, error)
 

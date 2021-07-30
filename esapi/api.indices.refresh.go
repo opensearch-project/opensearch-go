@@ -48,7 +48,6 @@ func newIndicesRefreshFunc(t Transport) IndicesRefresh {
 
 // IndicesRefresh performs the refresh operation in one or more indices.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-refresh.html.
 //
 type IndicesRefresh func(o ...func(*IndicesRefreshRequest)) (*Response, error)
 

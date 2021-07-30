@@ -49,7 +49,6 @@ func newSnapshotCloneFunc(t Transport) SnapshotClone {
 
 // SnapshotClone clones indices from one snapshot into another snapshot in the same repository.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-snapshots.html.
 //
 type SnapshotClone func(repository string, snapshot string, body io.Reader, target_snapshot string, o ...func(*SnapshotCloneRequest)) (*Response, error)
 

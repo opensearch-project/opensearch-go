@@ -48,7 +48,6 @@ func newDeleteByQueryRethrottleFunc(t Transport) DeleteByQueryRethrottle {
 
 // DeleteByQueryRethrottle changes the number of requests per second for a particular Delete By Query operation.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/current/docs-delete-by-query.html.
 //
 type DeleteByQueryRethrottle func(task_id string, requests_per_second *int, o ...func(*DeleteByQueryRethrottleRequest)) (*Response, error)
 

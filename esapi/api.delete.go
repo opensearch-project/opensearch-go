@@ -49,7 +49,6 @@ func newDeleteFunc(t Transport) Delete {
 
 // Delete removes a document from the index.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-delete.html.
 //
 type Delete func(index string, id string, o ...func(*DeleteRequest)) (*Response, error)
 

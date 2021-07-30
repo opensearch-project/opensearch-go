@@ -48,7 +48,6 @@ func newCatSnapshotsFunc(t Transport) CatSnapshots {
 
 // CatSnapshots returns all snapshots in a specific repository.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-snapshots.html.
 //
 type CatSnapshots func(o ...func(*CatSnapshotsRequest)) (*Response, error)
 

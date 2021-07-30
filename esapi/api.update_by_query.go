@@ -52,7 +52,6 @@ func newUpdateByQueryFunc(t Transport) UpdateByQuery {
 // UpdateByQuery performs an update on every document in the index without changing the source,
 // for example to pick up a mapping change.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-update-by-query.html.
 //
 type UpdateByQuery func(index []string, o ...func(*UpdateByQueryRequest)) (*Response, error)
 

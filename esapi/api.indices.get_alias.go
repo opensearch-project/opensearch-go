@@ -48,7 +48,6 @@ func newIndicesGetAliasFunc(t Transport) IndicesGetAlias {
 
 // IndicesGetAlias returns an alias.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-aliases.html.
 //
 type IndicesGetAlias func(o ...func(*IndicesGetAliasRequest)) (*Response, error)
 

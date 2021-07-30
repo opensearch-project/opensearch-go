@@ -48,7 +48,6 @@ func newIndicesGetUpgradeFunc(t Transport) IndicesGetUpgrade {
 
 // IndicesGetUpgrade deprecated Returns a progress status of current upgrade.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-upgrade.html.
 //
 type IndicesGetUpgrade func(o ...func(*IndicesGetUpgradeRequest)) (*Response, error)
 

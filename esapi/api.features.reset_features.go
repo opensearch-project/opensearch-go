@@ -49,7 +49,6 @@ func newFeaturesResetFeaturesFunc(t Transport) FeaturesResetFeatures {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-snapshots.html.
 //
 type FeaturesResetFeatures func(o ...func(*FeaturesResetFeaturesRequest)) (*Response, error)
 

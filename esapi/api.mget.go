@@ -49,7 +49,6 @@ func newMgetFunc(t Transport) Mget {
 
 // Mget allows to get multiple documents in one request.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-multi-get.html.
 //
 type Mget func(body io.Reader, o ...func(*MgetRequest)) (*Response, error)
 

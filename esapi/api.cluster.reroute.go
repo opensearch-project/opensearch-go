@@ -50,7 +50,6 @@ func newClusterRerouteFunc(t Transport) ClusterReroute {
 
 // ClusterReroute allows to manually change the allocation of individual shards in the cluster.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cluster-reroute.html.
 //
 type ClusterReroute func(o ...func(*ClusterRerouteRequest)) (*Response, error)
 

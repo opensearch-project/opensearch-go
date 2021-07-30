@@ -49,7 +49,6 @@ func newIndicesCloneFunc(t Transport) IndicesClone {
 
 // IndicesClone clones an index
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-clone-index.html.
 //
 type IndicesClone func(index string, target string, o ...func(*IndicesCloneRequest)) (*Response, error)
 

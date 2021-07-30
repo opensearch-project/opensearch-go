@@ -48,7 +48,6 @@ func newIndicesShardStoresFunc(t Transport) IndicesShardStores {
 
 // IndicesShardStores provides store information for shard copies of indices.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-shards-stores.html.
 //
 type IndicesShardStores func(o ...func(*IndicesShardStoresRequest)) (*Response, error)
 

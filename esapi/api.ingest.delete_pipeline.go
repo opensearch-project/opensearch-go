@@ -48,7 +48,6 @@ func newIngestDeletePipelineFunc(t Transport) IngestDeletePipeline {
 
 // IngestDeletePipeline deletes a pipeline.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/delete-pipeline-api.html.
 //
 type IngestDeletePipeline func(id string, o ...func(*IngestDeletePipelineRequest)) (*Response, error)
 

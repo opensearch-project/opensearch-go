@@ -49,7 +49,6 @@ func newSnapshotRepositoryAnalyzeFunc(t Transport) SnapshotRepositoryAnalyze {
 
 // SnapshotRepositoryAnalyze analyzes a repository for correctness and performance
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-snapshots.html.
 //
 type SnapshotRepositoryAnalyze func(repository string, o ...func(*SnapshotRepositoryAnalyzeRequest)) (*Response, error)
 

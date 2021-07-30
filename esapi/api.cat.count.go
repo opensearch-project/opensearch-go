@@ -48,7 +48,6 @@ func newCatCountFunc(t Transport) CatCount {
 
 // CatCount provides quick access to the document count of the entire cluster, or individual indices.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-count.html.
 //
 type CatCount func(o ...func(*CatCountRequest)) (*Response, error)
 

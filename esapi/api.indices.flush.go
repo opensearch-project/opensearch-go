@@ -48,7 +48,6 @@ func newIndicesFlushFunc(t Transport) IndicesFlush {
 
 // IndicesFlush performs the flush operation on one or more indices.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-flush.html.
 //
 type IndicesFlush func(o ...func(*IndicesFlushRequest)) (*Response, error)
 

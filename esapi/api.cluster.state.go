@@ -49,7 +49,6 @@ func newClusterStateFunc(t Transport) ClusterState {
 
 // ClusterState returns a comprehensive information about the state of the cluster.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cluster-state.html.
 //
 type ClusterState func(o ...func(*ClusterStateRequest)) (*Response, error)
 

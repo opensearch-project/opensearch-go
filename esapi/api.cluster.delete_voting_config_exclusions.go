@@ -48,7 +48,6 @@ func newClusterDeleteVotingConfigExclusionsFunc(t Transport) ClusterDeleteVoting
 
 // ClusterDeleteVotingConfigExclusions clears cluster voting config exclusions.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/voting-config-exclusions.html.
 //
 type ClusterDeleteVotingConfigExclusions func(o ...func(*ClusterDeleteVotingConfigExclusionsRequest)) (*Response, error)
 

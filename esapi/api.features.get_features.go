@@ -48,7 +48,6 @@ func newFeaturesGetFeaturesFunc(t Transport) FeaturesGetFeatures {
 
 // FeaturesGetFeatures gets a list of features which can be included in snapshots using the feature_states field when creating a snapshot
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/get-features-api.html.
 //
 type FeaturesGetFeatures func(o ...func(*FeaturesGetFeaturesRequest)) (*Response, error)
 

@@ -48,7 +48,6 @@ func newCatNodesFunc(t Transport) CatNodes {
 
 // CatNodes returns basic statistics about performance of cluster nodes.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-nodes.html.
 //
 type CatNodes func(o ...func(*CatNodesRequest)) (*Response, error)
 

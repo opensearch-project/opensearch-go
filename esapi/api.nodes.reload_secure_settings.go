@@ -49,7 +49,6 @@ func newNodesReloadSecureSettingsFunc(t Transport) NodesReloadSecureSettings {
 
 // NodesReloadSecureSettings reloads secure settings.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/secure-settings.html#reloadable-secure-settings.
 //
 type NodesReloadSecureSettings func(o ...func(*NodesReloadSecureSettingsRequest)) (*Response, error)
 

@@ -49,7 +49,6 @@ func newPutScriptFunc(t Transport) PutScript {
 
 // PutScript creates or updates a script.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-scripting.html.
 //
 type PutScript func(id string, body io.Reader, o ...func(*PutScriptRequest)) (*Response, error)
 

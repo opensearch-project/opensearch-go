@@ -48,7 +48,6 @@ func newSnapshotDeleteFunc(t Transport) SnapshotDelete {
 
 // SnapshotDelete deletes a snapshot.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-snapshots.html.
 //
 type SnapshotDelete func(repository string, snapshot string, o ...func(*SnapshotDeleteRequest)) (*Response, error)
 

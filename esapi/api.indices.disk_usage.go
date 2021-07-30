@@ -50,7 +50,6 @@ func newIndicesDiskUsageFunc(t Transport) IndicesDiskUsage {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-disk-usage.html.
 //
 type IndicesDiskUsage func(index string, o ...func(*IndicesDiskUsageRequest)) (*Response, error)
 
