@@ -48,7 +48,6 @@ func newCatPluginsFunc(t Transport) CatPlugins {
 
 // CatPlugins returns information about installed plugins across nodes node.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-plugins.html.
 //
 type CatPlugins func(o ...func(*CatPluginsRequest)) (*Response, error)
 

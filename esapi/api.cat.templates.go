@@ -49,7 +49,6 @@ func newCatTemplatesFunc(t Transport) CatTemplates {
 
 // CatTemplates returns information about existing templates.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-templates.html.
 //
 type CatTemplates func(o ...func(*CatTemplatesRequest)) (*Response, error)
 

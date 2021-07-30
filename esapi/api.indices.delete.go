@@ -49,7 +49,6 @@ func newIndicesDeleteFunc(t Transport) IndicesDelete {
 
 // IndicesDelete deletes an index.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-delete-index.html.
 //
 type IndicesDelete func(index []string, o ...func(*IndicesDeleteRequest)) (*Response, error)
 

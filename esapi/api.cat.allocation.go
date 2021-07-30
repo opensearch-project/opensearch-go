@@ -49,7 +49,6 @@ func newCatAllocationFunc(t Transport) CatAllocation {
 
 // CatAllocation provides a snapshot of how many shards are allocated to each data node and how much disk space they are using.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-allocation.html.
 //
 type CatAllocation func(o ...func(*CatAllocationRequest)) (*Response, error)
 

@@ -47,7 +47,6 @@ func newCatAliasesFunc(t Transport) CatAliases {
 
 // CatAliases shows information about currently configured aliases to indices including filter and routing infos.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-alias.html.
 //
 type CatAliases func(o ...func(*CatAliasesRequest)) (*Response, error)
 

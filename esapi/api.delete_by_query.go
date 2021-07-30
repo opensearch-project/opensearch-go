@@ -51,7 +51,6 @@ func newDeleteByQueryFunc(t Transport) DeleteByQuery {
 
 // DeleteByQuery deletes documents matching the provided query.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-delete-by-query.html.
 //
 type DeleteByQuery func(index []string, body io.Reader, o ...func(*DeleteByQueryRequest)) (*Response, error)
 

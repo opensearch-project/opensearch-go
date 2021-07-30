@@ -50,7 +50,6 @@ func newIndicesSimulateTemplateFunc(t Transport) IndicesSimulateTemplate {
 
 // IndicesSimulateTemplate simulate resolving the given template name or body
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-templates.html.
 //
 type IndicesSimulateTemplate func(o ...func(*IndicesSimulateTemplateRequest)) (*Response, error)
 

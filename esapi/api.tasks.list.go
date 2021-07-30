@@ -51,7 +51,6 @@ func newTasksListFunc(t Transport) TasksList {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/tasks.html.
 //
 type TasksList func(o ...func(*TasksListRequest)) (*Response, error)
 

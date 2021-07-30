@@ -49,7 +49,6 @@ func newIndicesGetMappingFunc(t Transport) IndicesGetMapping {
 
 // IndicesGetMapping returns mappings for one or more indices.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-get-mapping.html.
 //
 type IndicesGetMapping func(o ...func(*IndicesGetMappingRequest)) (*Response, error)
 

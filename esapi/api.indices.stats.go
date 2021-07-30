@@ -48,7 +48,6 @@ func newIndicesStatsFunc(t Transport) IndicesStats {
 
 // IndicesStats provides statistics on operations happening in an index.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-stats.html.
 //
 type IndicesStats func(o ...func(*IndicesStatsRequest)) (*Response, error)
 

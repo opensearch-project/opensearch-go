@@ -49,7 +49,6 @@ func newIndicesValidateQueryFunc(t Transport) IndicesValidateQuery {
 
 // IndicesValidateQuery allows a user to validate a potentially expensive query without executing it.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/search-validate.html.
 //
 type IndicesValidateQuery func(o ...func(*IndicesValidateQueryRequest)) (*Response, error)
 

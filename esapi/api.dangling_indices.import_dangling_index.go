@@ -49,7 +49,6 @@ func newDanglingIndicesImportDanglingIndexFunc(t Transport) DanglingIndicesImpor
 
 // DanglingIndicesImportDanglingIndex imports the specified dangling index
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-gateway-dangling-indices.html.
 //
 type DanglingIndicesImportDanglingIndex func(index_uuid string, o ...func(*DanglingIndicesImportDanglingIndexRequest)) (*Response, error)
 

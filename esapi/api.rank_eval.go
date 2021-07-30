@@ -51,7 +51,6 @@ func newRankEvalFunc(t Transport) RankEval {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/search-rank-eval.html.
 //
 type RankEval func(body io.Reader, o ...func(*RankEvalRequest)) (*Response, error)
 

@@ -51,7 +51,6 @@ func newTasksGetFunc(t Transport) TasksGet {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/tasks.html.
 //
 type TasksGet func(task_id string, o ...func(*TasksGetRequest)) (*Response, error)
 

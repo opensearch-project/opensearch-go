@@ -47,7 +47,6 @@ func newDanglingIndicesListDanglingIndicesFunc(t Transport) DanglingIndicesListD
 
 // DanglingIndicesListDanglingIndices returns all dangling indices.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-gateway-dangling-indices.html.
 //
 type DanglingIndicesListDanglingIndices func(o ...func(*DanglingIndicesListDanglingIndicesRequest)) (*Response, error)
 

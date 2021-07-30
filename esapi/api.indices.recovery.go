@@ -48,7 +48,6 @@ func newIndicesRecoveryFunc(t Transport) IndicesRecovery {
 
 // IndicesRecovery returns information about ongoing index shard recoveries.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-recovery.html.
 //
 type IndicesRecovery func(o ...func(*IndicesRecoveryRequest)) (*Response, error)
 

@@ -49,7 +49,6 @@ func newShutdownDeleteNodeFunc(t Transport) ShutdownDeleteNode {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/current.
 //
 type ShutdownDeleteNode func(node_id string, o ...func(*ShutdownDeleteNodeRequest)) (*Response, error)
 

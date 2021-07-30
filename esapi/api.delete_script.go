@@ -48,7 +48,6 @@ func newDeleteScriptFunc(t Transport) DeleteScript {
 
 // DeleteScript deletes a script.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-scripting.html.
 //
 type DeleteScript func(id string, o ...func(*DeleteScriptRequest)) (*Response, error)
 

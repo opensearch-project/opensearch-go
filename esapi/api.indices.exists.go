@@ -48,7 +48,6 @@ func newIndicesExistsFunc(t Transport) IndicesExists {
 
 // IndicesExists returns information about whether a particular index exists.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-exists.html.
 //
 type IndicesExists func(index []string, o ...func(*IndicesExistsRequest)) (*Response, error)
 

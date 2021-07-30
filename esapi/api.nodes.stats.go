@@ -49,7 +49,6 @@ func newNodesStatsFunc(t Transport) NodesStats {
 
 // NodesStats returns statistical information about nodes in the cluster.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cluster-nodes-stats.html.
 //
 type NodesStats func(o ...func(*NodesStatsRequest)) (*Response, error)
 

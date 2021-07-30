@@ -50,7 +50,6 @@ func newSnapshotRestoreFunc(t Transport) SnapshotRestore {
 
 // SnapshotRestore restores a snapshot.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-snapshots.html.
 //
 type SnapshotRestore func(repository string, snapshot string, o ...func(*SnapshotRestoreRequest)) (*Response, error)
 

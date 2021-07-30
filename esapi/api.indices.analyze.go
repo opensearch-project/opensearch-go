@@ -48,7 +48,6 @@ func newIndicesAnalyzeFunc(t Transport) IndicesAnalyze {
 
 // IndicesAnalyze performs the analysis process on a text and return the tokens breakdown of the text.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-analyze.html.
 //
 type IndicesAnalyze func(o ...func(*IndicesAnalyzeRequest)) (*Response, error)
 

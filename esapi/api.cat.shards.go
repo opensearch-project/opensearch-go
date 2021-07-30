@@ -48,7 +48,6 @@ func newCatShardsFunc(t Transport) CatShards {
 
 // CatShards provides a detailed view of shard allocation on nodes.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/cat-shards.html.
 //
 type CatShards func(o ...func(*CatShardsRequest)) (*Response, error)
 

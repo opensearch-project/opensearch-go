@@ -53,7 +53,6 @@ func newReindexFunc(t Transport) Reindex {
 // documents by a query, changing the destination index settings, or fetching the
 // documents from a remote cluster.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/docs-reindex.html.
 //
 type Reindex func(body io.Reader, o ...func(*ReindexRequest)) (*Response, error)
 

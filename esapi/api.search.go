@@ -51,7 +51,6 @@ func newSearchFunc(t Transport) Search {
 
 // Search returns results matching a query.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/search-search.html.
 //
 type Search func(o ...func(*SearchRequest)) (*Response, error)
 

@@ -50,7 +50,6 @@ func newShutdownPutNodeFunc(t Transport) ShutdownPutNode {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/current.
 //
 type ShutdownPutNode func(body io.Reader, node_id string, o ...func(*ShutdownPutNodeRequest)) (*Response, error)
 

@@ -50,7 +50,6 @@ func newSnapshotCreateFunc(t Transport) SnapshotCreate {
 
 // SnapshotCreate creates a snapshot in a repository.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-snapshots.html.
 //
 type SnapshotCreate func(repository string, snapshot string, o ...func(*SnapshotCreateRequest)) (*Response, error)
 

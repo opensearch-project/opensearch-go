@@ -47,7 +47,6 @@ func newIngestGeoIPStatsFunc(t Transport) IngestGeoIPStats {
 
 // IngestGeoIPStats returns statistical information about geoip databases
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/geoip-stats-api.html.
 //
 type IngestGeoIPStats func(o ...func(*IngestGeoIPStatsRequest)) (*Response, error)
 

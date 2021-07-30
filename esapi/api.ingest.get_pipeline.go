@@ -49,7 +49,6 @@ func newIngestGetPipelineFunc(t Transport) IngestGetPipeline {
 
 // IngestGetPipeline returns a pipeline.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/get-pipeline-api.html.
 //
 type IngestGetPipeline func(o ...func(*IngestGetPipelineRequest)) (*Response, error)
 

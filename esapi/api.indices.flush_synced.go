@@ -48,7 +48,6 @@ func newIndicesFlushSyncedFunc(t Transport) IndicesFlushSynced {
 
 // IndicesFlushSynced performs a synced flush operation on one or more indices. Synced flush is deprecated and will be removed in 8.0. Use flush instead
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/indices-synced-flush-api.html.
 //
 type IndicesFlushSynced func(o ...func(*IndicesFlushSyncedRequest)) (*Response, error)
 

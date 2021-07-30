@@ -49,7 +49,6 @@ func newGetScriptLanguagesFunc(t Transport) GetScriptLanguages {
 //
 // This API is experimental.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/modules-scripting.html.
 //
 type GetScriptLanguages func(o ...func(*GetScriptLanguagesRequest)) (*Response, error)
 

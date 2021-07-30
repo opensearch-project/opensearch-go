@@ -47,7 +47,6 @@ func newPingFunc(t Transport) Ping {
 
 // Ping returns whether the cluster is running.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html.
 //
 type Ping func(o ...func(*PingRequest)) (*Response, error)
 

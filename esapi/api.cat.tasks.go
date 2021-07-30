@@ -47,7 +47,6 @@ func newCatTasksFunc(t Transport) CatTasks {
 
 // CatTasks returns information about the tasks currently executing on one or more nodes in the cluster.
 //
-// See full documentation at https://www.elastic.co/guide/en/elasticsearch/reference/master/tasks.html.
 //
 type CatTasks func(o ...func(*CatTasksRequest)) (*Response, error)
 
