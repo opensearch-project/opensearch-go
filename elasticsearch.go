@@ -59,7 +59,7 @@ func init() {
 
 const (
 	defaultURL         = "http://localhost:9200"
-	openSearch         = "openserach"
+	openSearch         = "opensearch"
 	unsupportedProduct = "the client noticed that the server is not a supported distribution of Elasticsearch"
 )
 
