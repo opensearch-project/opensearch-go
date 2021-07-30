@@ -31,7 +31,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/elastic/go-elasticsearch/v7/internal/build/cmd"
+	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
 	"io"
 	"io/ioutil"
 	"os"
@@ -43,7 +43,7 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/tools/imports"
 
-	"github.com/elastic/go-elasticsearch/v7/internal/build/utils"
+	"github.com/opensearch-project/opensearch-go/internal/build/utils"
 )
 
 var (

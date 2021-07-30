@@ -29,9 +29,9 @@ package main
 import (
 	"log"
 
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esapi"
-	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
 func init() {

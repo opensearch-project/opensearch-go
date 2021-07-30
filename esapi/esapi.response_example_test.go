@@ -29,7 +29,7 @@ package esapi_test
 import (
 	"log"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/opensearch-project/opensearch-go"
 )
 
 func ExampleResponse_IsError() {

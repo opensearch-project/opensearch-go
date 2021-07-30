@@ -35,7 +35,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v7/estransport"
+	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
 var (

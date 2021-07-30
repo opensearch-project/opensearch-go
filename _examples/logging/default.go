@@ -40,8 +40,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/estransport"
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
 func main() {

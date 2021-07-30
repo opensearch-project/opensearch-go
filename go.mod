@@ -1,3 +1,3 @@
-module github.com/elastic/go-elasticsearch/v7
+module github.com/opensearch-project/opensearch-go
 
 go 1.11

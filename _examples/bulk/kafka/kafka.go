@@ -43,10 +43,10 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/opensearch-project/opensearch-go/esutil"
 
-	"github.com/elastic/go-elasticsearch/v7/_examples/bulk/kafka/consumer"
-	"github.com/elastic/go-elasticsearch/v7/_examples/bulk/kafka/producer"
+	"github.com/opensearch-project/opensearch-go/_examples/bulk/kafka/consumer"
+	"github.com/opensearch-project/opensearch-go/_examples/bulk/kafka/producer"
 )
 
 var (

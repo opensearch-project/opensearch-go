@@ -34,9 +34,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/opensearch-project/opensearch-go"
 
-	"github.com/elastic/go-elasticsearch/v7/_examples/clusterstatus"
+	"github.com/opensearch-project/opensearch-go/_examples/clusterstatus"
 )
 
 // Mock transport replaces the HTTP transport for tests

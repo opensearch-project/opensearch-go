@@ -1,11 +1,11 @@
-module github.com/elastic/go-elasticsearch/v7/_examples/encoding
+module github.com/opensearch-project/opensearch-go/_examples/encoding
 
 go 1.11
 
-replace github.com/elastic/go-elasticsearch/v7 => ../..
+replace github.com/opensearch-project/opensearch-go => ../..
 
 require (
-	github.com/elastic/go-elasticsearch/v7 v7.0.0-20190407092644-3fb2a278216b
+	github.com/opensearch-project/opensearch-go v0.0.0
 	github.com/fatih/color v1.7.0
 	github.com/mailru/easyjson v0.7.7
 	github.com/mattn/go-colorable v0.1.1 // indirect

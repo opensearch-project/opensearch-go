@@ -84,7 +84,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/opensearchproject/opensearch-go"
 )
 
 var (

@@ -35,7 +35,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
 type Consumer struct {
