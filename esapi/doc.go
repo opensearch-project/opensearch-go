@@ -28,7 +28,7 @@
 Package esapi provides the Go API for Elasticsearch.
 
 It is automatically included in the client provided by the
-github.com/elastic/go-elasticsearch package:
+github.com/opensearch-project/opensearch-go package:
 
 	es, _ := elasticsearch.NewDefaultClient()
 	res, _ := es.Info()
@@ -82,11 +82,11 @@ It has a minor overhead compared to using a struct directly;
 refer to the esapi_benchmark_test.go suite for concrete numbers.
 
 See the documentation for each API function or struct at
-https://godoc.org/github.com/elastic/go-elasticsearch,
+https://godoc.org/github.com/opensearch-project/opensearch-go,
 or locally by:
 
-	go doc github.com/elastic/go-elasticsearch/v7/esapi Index
-	go doc github.com/elastic/go-elasticsearch/v7/esapi IndexRequest
+	go doc github.com/opensearch-project/opensearch-go/esapi Index
+	go doc github.com/opensearch-project/opensearch-go/esapi IndexRequest
 
 Response
 

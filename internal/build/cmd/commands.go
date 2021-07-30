@@ -31,7 +31,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/elastic/go-elasticsearch/v7/internal/build/utils"
+	"github.com/opensearch-project/opensearch-go/internal/build/utils"
 )
 
 var rootCmd = &cobra.Command{

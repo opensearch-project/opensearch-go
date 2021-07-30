@@ -40,9 +40,9 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/opensearch-project/opensearch-go"
 
-	"github.com/elastic/go-elasticsearch/v7/_examples/xkcdsearch"
+	"github.com/opensearch-project/opensearch-go/_examples/xkcdsearch"
 )
 
 var (

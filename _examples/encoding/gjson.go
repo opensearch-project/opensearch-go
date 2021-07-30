@@ -33,7 +33,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/elastic/go-elasticsearch/v7"
+	"github.com/opensearch-project/opensearch-go"
 	"github.com/fatih/color"
 	"github.com/tidwall/gjson"
 )

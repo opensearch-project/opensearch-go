@@ -1,11 +1,10 @@
-module github.com/elastic/go-elasticsearch/v7/_examples/bulk/kafka
+module github.com/opensearch-project/opensearch-go/_examples/bulk/kafka
 
 go 1.11
 
-replace github.com/elastic/go-elasticsearch/v7 => ../../..
+replace github.com/opensearch-project/opensearch-go => ../../..
 
 require (
-	github.com/dustin/go-humanize v1.0.0
-	github.com/elastic/go-elasticsearch/v7 7.x
+	github.com/opensearch-project/opensearch-go v0.0.0
 	github.com/segmentio/kafka-go v0.3.5
 )

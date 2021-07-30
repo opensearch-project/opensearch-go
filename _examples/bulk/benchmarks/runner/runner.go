@@ -41,8 +41,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/montanaflynn/stats"
 
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
 // NewRunner returns new BulkIndexer benchmarking runner.

@@ -35,8 +35,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v7"
-	"github.com/elastic/go-elasticsearch/v7/esutil"
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
 func ExampleNewBulkIndexer() {
@@ -130,8 +130,4 @@ func ExampleNewBulkIndexer() {
 	}
 
 	// For optimal performance, consider using a third-party package for JSON decoding and HTTP transport.
-	//
-	// For more information, examples and benchmarks, see:
-	//
-	// --> https://github.com/elastic/go-elasticsearch/tree/master/_examples/bulk
 }

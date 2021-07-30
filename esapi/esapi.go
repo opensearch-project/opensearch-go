@@ -31,7 +31,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v7/internal/version"
+	"github.com/opensearch-project/opensearch-go/internal/version"
 )
 
 // Version returns the package version as a string.

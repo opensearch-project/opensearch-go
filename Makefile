@@ -44,7 +44,7 @@ test-api:  ## Run generated API integration tests
 ifdef race
 	$(eval testapiargs += "-race")
 endif
-	$(eval testapiargs += "-cover" "-coverpkg=github.com/elastic/go-elasticsearch/v7/esapi" "-coverprofile=$(PWD)/tmp/integration-api.cov" "-tags='integration'" "-timeout=1h")
+	$(eval testapiargs += "-cover" "-coverpkg=github.com/opensearch-project/opensearch-go/esapi" "-coverprofile=$(PWD)/tmp/integration-api.cov" "-tags='integration'" "-timeout=1h")
 ifdef flavor
 else
 	$(eval flavor='free')
@@ -146,8 +146,8 @@ test-coverage:  ## Generate test coverage report
 ##@ Development
 lint:  ## Run lint on the package
 	@printf "\033[2m→ Running lint...\033[0m\n"
-	go vet github.com/elastic/go-elasticsearch/...
-	go list github.com/elastic/go-elasticsearch/... | 'grep' -v internal | xargs golint -set_exit_status
+	go vet github.com/opensearch-project/opensearch-go/...
+	go list github.com/opensearch-project/opensearch-go/... | 'grep' -v internal | xargs golint -set_exit_status
 	@{ \
 		set -e ; \
 		trap "test -d ../../../.git && git checkout --quiet go.mod" INT TERM EXIT; \
@@ -259,10 +259,10 @@ endif
 
 godoc: ## Display documentation for the package
 	@printf "\033[2m→ Generating documentation...\033[0m\n"
-	@echo "* http://localhost:6060/pkg/github.com/elastic/go-elasticsearch/v7"
-	@echo "* http://localhost:6060/pkg/github.com/elastic/go-elasticsearch/v7/esapi"
-	@echo "* http://localhost:6060/pkg/github.com/elastic/go-elasticsearch/v7/estransport"
-	@echo "* http://localhost:6060/pkg/github.com/elastic/go-elasticsearch/v7/esutil"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/esapi"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/estransport"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/esutil"
 	@printf "\n"
 	godoc --http=localhost:6060 --play
 
