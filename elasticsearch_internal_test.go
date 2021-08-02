@@ -29,7 +29,6 @@
 package elasticsearch
 
 import (
-	"encoding/base64"
 	"errors"
 	"io/ioutil"
 	"net/http"
@@ -135,66 +134,6 @@ func TestClientConfiguration(t *testing.T) {
 
 		if u != "http://localhost:8080" {
 			t.Errorf("Unexpected URL, want=http://localhost:8080, got=%s", u)
-		}
-	})
-
-	t.Run("With URL from environment and cfg.CloudID", func(t *testing.T) {
-		os.Setenv("ELASTICSEARCH_URL", "http://example.com")
-		defer func() { os.Setenv("ELASTICSEARCH_URL", "") }()
-
-		c, err := NewClient(Config{CloudID: "foo:YmFyLmNsb3VkLmVzLmlvJGFiYzEyMyRkZWY0NTY=", Transport: &mockTransp{}})
-		if err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
-
-		u := c.Transport.(*estransport.Client).URLs()[0].String()
-
-		if u != "https://abc123.bar.cloud.es.io" {
-			t.Errorf("Unexpected URL, want=https://abc123.bar.cloud.es.io, got=%s", u)
-		}
-	})
-
-	t.Run("With cfg.Addresses and cfg.CloudID", func(t *testing.T) {
-		_, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, CloudID: "foo:ABC="})
-		if err == nil {
-			t.Fatalf("Expected error, got: %v", err)
-		}
-		match, _ := regexp.MatchString("both .* are set", err.Error())
-		if !match {
-			t.Errorf("Expected error when addresses from environment and configuration are used together, got: %v", err)
-		}
-	})
-
-	t.Run("With CloudID", func(t *testing.T) {
-		// bar.cloud.es.io$abc123$def456
-		c, err := NewClient(Config{CloudID: "foo:YmFyLmNsb3VkLmVzLmlvJGFiYzEyMyRkZWY0NTY=", Transport: &mockTransp{}})
-		if err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
-
-		u := c.Transport.(*estransport.Client).URLs()[0].String()
-
-		if u != "https://abc123.bar.cloud.es.io" {
-			t.Errorf("Unexpected URL, want=https://abc123.bar.cloud.es.io, got=%s", u)
-		}
-	})
-
-	t.Run("With invalid CloudID", func(t *testing.T) {
-		var err error
-
-		_, err = NewClient(Config{CloudID: "foo:ZZZ==="})
-		if err == nil {
-			t.Errorf("Expected error for CloudID, got: %v", err)
-		}
-
-		_, err = NewClient(Config{CloudID: "foo:Zm9v"})
-		if err == nil {
-			t.Errorf("Expected error for CloudID, got: %v", err)
-		}
-
-		_, err = NewClient(Config{CloudID: "foo:"})
-		if err == nil {
-			t.Errorf("Expected error for CloudID, got: %v", err)
 		}
 	})
 
@@ -331,67 +270,6 @@ func TestAddrsToURLs(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestCloudID(t *testing.T) {
-	t.Run("Parse", func(t *testing.T) {
-		var testdata = []struct {
-			in  string
-			out string
-		}{
-			{
-				in:  "name:" + base64.StdEncoding.EncodeToString([]byte("host$es_uuid$kibana_uuid")),
-				out: "https://es_uuid.host",
-			},
-			{
-				in:  "name:" + base64.StdEncoding.EncodeToString([]byte("host:9243$es_uuid$kibana_uuid")),
-				out: "https://es_uuid.host:9243",
-			},
-			{
-				in:  "name:" + base64.StdEncoding.EncodeToString([]byte("host$es_uuid$")),
-				out: "https://es_uuid.host",
-			},
-			{
-				in:  "name:" + base64.StdEncoding.EncodeToString([]byte("host$es_uuid")),
-				out: "https://es_uuid.host",
-			},
-		}
-
-		for _, tt := range testdata {
-			actual, err := addrFromCloudID(tt.in)
-			if err != nil {
-				t.Errorf("Unexpected error: %s", err)
-			}
-			if actual != tt.out {
-				t.Errorf("Unexpected output, want=%q, got=%q", tt.out, actual)
-			}
-		}
-
-	})
-
-	t.Run("Invalid format", func(t *testing.T) {
-		input := "foobar"
-		_, err := addrFromCloudID(input)
-		if err == nil {
-			t.Errorf("Expected error for input %q, got %v", input, err)
-		}
-		match, _ := regexp.MatchString("unexpected format", err.Error())
-		if !match {
-			t.Errorf("Unexpected error string: %s", err)
-		}
-	})
-
-	t.Run("Invalid base64 value", func(t *testing.T) {
-		input := "foobar:xxxxx"
-		_, err := addrFromCloudID(input)
-		if err == nil {
-			t.Errorf("Expected error for input %q, got %v", input, err)
-		}
-		match, _ := regexp.MatchString("illegal base64 data", err.Error())
-		if !match {
-			t.Errorf("Unexpected error string: %s", err)
-		}
-	})
 }
 
 func TestVersion(t *testing.T) {
