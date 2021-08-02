@@ -86,8 +86,6 @@ type Config struct {
 	URLs         []*url.URL
 	Username     string
 	Password     string
-	APIKey       string
-	ServiceToken string
 
 	Header http.Header
 	CACert []byte
@@ -122,8 +120,6 @@ type Client struct {
 	urls         []*url.URL
 	username     string
 	password     string
-	apikey       string
-	servicetoken string
 	header       http.Header
 
 	retryOnStatus         []int
@@ -188,8 +184,6 @@ func New(cfg Config) (*Client, error) {
 		urls:         cfg.URLs,
 		username:     cfg.Username,
 		password:     cfg.Password,
-		apikey:       cfg.APIKey,
-		servicetoken: cfg.ServiceToken,
 		header:       cfg.Header,
 
 		retryOnStatus:         cfg.RetryOnStatus,
@@ -440,24 +434,6 @@ func (c *Client) setReqAuth(u *url.URL, req *http.Request) *http.Request {
 		if u.User != nil {
 			password, _ := u.User.Password()
 			req.SetBasicAuth(u.User.Username(), password)
-			return req
-		}
-
-		if c.apikey != "" {
-			var b bytes.Buffer
-			b.Grow(len("APIKey ") + len(c.apikey))
-			b.WriteString("APIKey ")
-			b.WriteString(c.apikey)
-			req.Header.Set("Authorization", b.String())
-			return req
-		}
-
-		if c.servicetoken != "" {
-			var b bytes.Buffer
-			b.Grow(len("Bearer ") + len(c.servicetoken))
-			b.WriteString("Bearer ")
-			b.WriteString(c.servicetoken)
-			req.Header.Set("Authorization", b.String())
 			return req
 		}
 

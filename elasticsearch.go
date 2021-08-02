@@ -28,7 +28,6 @@ package elasticsearch
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,10 +72,6 @@ type Config struct {
 	Addresses []string // A list of Elasticsearch nodes to use.
 	Username  string   // Username for HTTP Basic Authentication.
 	Password  string   // Password for HTTP Basic Authentication.
-
-	CloudID      string // Endpoint for the Elastic Service (https://elastic.co/cloud).
-	APIKey       string // Base64-encoded token for authorization; if set, overrides username/password and service token.
-	ServiceToken string // Service token for authorization; if set, overrides username/password.
 
 	Header http.Header // Global HTTP request header.
 
@@ -160,24 +155,10 @@ func NewDefaultClient() (*Client, error) {
 func NewClient(cfg Config) (*Client, error) {
 	var addrs []string
 
-	if len(cfg.Addresses) == 0 && cfg.CloudID == "" {
+	if len(cfg.Addresses) == 0 {
 		addrs = addrsFromEnvironment()
 	} else {
-		if len(cfg.Addresses) > 0 && cfg.CloudID != "" {
-			return nil, errors.New("cannot create client: both Addresses and CloudID are set")
-		}
-
-		if cfg.CloudID != "" {
-			cloudAddr, err := addrFromCloudID(cfg.CloudID)
-			if err != nil {
-				return nil, fmt.Errorf("cannot create client: cannot parse CloudID: %s", err)
-			}
-			addrs = append(addrs, cloudAddr)
-		}
-
-		if len(cfg.Addresses) > 0 {
-			addrs = append(addrs, cfg.Addresses...)
-		}
+		addrs = append(addrs, cfg.Addresses...)
 	}
 
 	urls, err := addrsToURLs(addrs)
@@ -201,8 +182,6 @@ func NewClient(cfg Config) (*Client, error) {
 		URLs:         urls,
 		Username:     cfg.Username,
 		Password:     cfg.Password,
-		APIKey:       cfg.APIKey,
-		ServiceToken: cfg.ServiceToken,
 
 		Header: cfg.Header,
 		CACert: cfg.CACert,
@@ -402,27 +381,4 @@ func addrsToURLs(addrs []string) ([]*url.URL, error) {
 		urls = append(urls, u)
 	}
 	return urls, nil
-}
-
-// addrFromCloudID extracts the Elasticsearch URL from CloudID.
-// See: https://www.elastic.co/guide/en/cloud/current/ec-cloud-id.html
-//
-func addrFromCloudID(input string) (string, error) {
-	var scheme = "https://"
-
-	values := strings.Split(input, ":")
-	if len(values) != 2 {
-		return "", fmt.Errorf("unexpected format: %q", input)
-	}
-	data, err := base64.StdEncoding.DecodeString(values[1])
-	if err != nil {
-		return "", err
-	}
-	parts := strings.Split(string(data), "$")
-
-	if len(parts) < 2 {
-		return "", fmt.Errorf("invalid encoded value: %s", parts)
-	}
-
-	return fmt.Sprintf("%s%s.%s", scheme, parts[1], parts[0]), nil
 }
