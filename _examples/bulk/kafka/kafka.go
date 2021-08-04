@@ -43,13 +43,7 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/dustin/go-humanize"
-
-	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esutil"
-
-	"go.elastic.co/apm"
-	"go.elastic.co/apm/module/apmelasticsearch"
 
 	"github.com/elastic/go-elasticsearch/v7/_examples/bulk/kafka/consumer"
 	"github.com/elastic/go-elasticsearch/v7/_examples/bulk/kafka/producer"
@@ -135,7 +129,6 @@ func main() {
 		RetryBackoff:  func(i int) time.Duration { return time.Duration(i) * 100 * time.Millisecond },
 		MaxRetries:    5,
 		EnableMetrics: true,
-		Transport:     apmelasticsearch.WrapRoundTripper(http.DefaultTransport),
 	})
 	if err != nil {
 		log.Fatalf("Error: NewClient(): %s", err)
@@ -172,18 +165,6 @@ func main() {
 			Client:     es,
 			NumWorkers: numWorkers,
 			FlushBytes: int(flushBytes),
-			// Elastic APM: Instrument the flush operations and capture errors
-			OnFlushStart: func(ctx context.Context) context.Context {
-				txn := apm.DefaultTracer.StartTransaction("Bulk", "indexing")
-				return apm.ContextWithTransaction(ctx, txn)
-			},
-			OnFlushEnd: func(ctx context.Context) {
-				apm.TransactionFromContext(ctx).End()
-			},
-			OnError: func(ctx context.Context, err error) {
-				indexerError = err
-				apm.CaptureError(ctx, err).Send()
-			},
 		})
 		if err != nil {
 			log.Fatalf("ERROR: NewBulkIndexer(): %s", err)

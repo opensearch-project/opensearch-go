@@ -12,7 +12,6 @@ services:
     depends_on:
       - elasticsearch
       - kibana
-      - apm-server
 
   # --- Elasticsearch ---------------------------------------------------------
   elasticsearch:
@@ -49,21 +48,6 @@ services:
     depends_on: ['elasticsearch']
     healthcheck:
       test: curl --max-time 60 --retry 60 --retry-delay 1 --retry-connrefused --show-error --silent http://localhost:5601
-
-  # --- APM Server ------------------------------------------------------------
-  apm-server:
-    image: docker.elastic.co/apm/apm-server:${VERSION:-7.0.0}
-    container_name: apm_server
-    networks: ['elasticstack']
-    command: >
-      ./apm-server run -e \
-        -E output.elasticsearch.hosts=http://elasticsearch:9200 \
-        -E setup.kibana.host=http://kibana:5601
-    expose:
-      - "8200"
-    depends_on: ['elasticsearch', 'kibana']
-    healthcheck:
-      test: curl --max-time 60 --retry 60 --retry-delay 1 --retry-connrefused --show-error --silent http://localhost:8200/healthcheck
 
 networks:
   elasticstack:
