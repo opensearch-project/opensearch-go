@@ -30,11 +30,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/segmentio/kafka-go"
-
-	"go.elastic.co/apm"
 
 	"github.com/elastic/go-elasticsearch/v7/esutil"
 )
@@ -84,20 +83,17 @@ func (c *Consumer) Run(ctx context.Context) (err error) {
 				},
 				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
 					if err != nil {
-						apm.CaptureError(ctx, err).Send()
+						log.Println(err)
 					} else {
 						if res.Error.Type != "" {
 							// log.Printf("%s:%s", res.Error.Type, res.Error.Reason)
-							// apm.CaptureError(ctx, fmt.Errorf("%s:%s", res.Error.Type, res.Error.Reason)).Send()
 						} else {
 							// log.Printf("%s/%s %s (%d)", res.Index, res.DocumentID, res.Result, res.Status)
-							// apm.CaptureError(ctx, fmt.Errorf("%s/%s %s (%d)", res.Index, res.DocumentID, res.Result, res.Status)).Send()
 						}
 
 					}
 				},
 			}); err != nil {
-			apm.DefaultTracer.NewError(err).Send()
 			return fmt.Errorf("indexer: %s", err)
 		}
 	}
