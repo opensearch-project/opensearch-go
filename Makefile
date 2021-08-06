@@ -1,7 +1,5 @@
 SHELL := /bin/bash
 
-ELASTICSEARCH_DEFAULT_BUILD_VERSION = "7.x-SNAPSHOT"
-
 ##@ Test
 test-unit:  ## Run unit tests
 	@printf "\033[2m→ Running unit tests...\033[0m\n"
@@ -266,103 +264,21 @@ godoc: ## Display documentation for the package
 	@printf "\n"
 	godoc --http=localhost:6060 --play
 
-cluster: ## Launch an Elasticsearch cluster with Docker
-	$(eval version ?= "elasticsearch:7.x-SNAPSHOT")
-	$(eval flavor ?= "core")
-	$(eval elasticsearch_url = "http://es1:9200")
+cluster.opendistro.build:
+	docker-compose --project-directory .ci/opendistro build;
 
-ifdef ELASTICSEARCH_BUILD_VERSION
-	$(eval version ?= "elasticsearch:"${ELASTICSEARCH_BUILD_VERSION})
-else
-	$(eval version ?= "elasticsearch:"${ELASTICSEARCH_DEFAULT_BUILD_VERSION})
-endif
+cluster.opendistro.start:
+	docker-compose --project-directory .ci/opendistro up -d ;
+	sleep 20;
 
-ifeq ($(origin nodes), undefined)
-	$(eval nodes = 1)
-endif
-	@printf "\033[2m→ Launching %d node(s) of %s...\033[0m\n" $(nodes) $(version)
-ifeq ($(shell test $(nodes) && test $(nodes) -gt 1; echo $$?),0)
-	$(eval detach ?= "true")
-else
-	$(eval detach ?= "false")
-endif
+cluster.opendistro.stop:
+	docker-compose --project-directory .ci/opendistro down ;
 
-ifeq ($(flavor), platinum)
-	$(eval elasticsearch_url = "https://elastic:elastic@es1:9200")
-	$(eval xpack_env += --env "ELASTIC_PASSWORD=elastic")
-	$(eval xpack_env += --env "xpack.license.self_generated.type=trial")
-	$(eval xpack_env += --env "xpack.security.enabled=true")
-	$(eval xpack_env += --env "xpack.security.http.ssl.enabled=true")
-	$(eval xpack_env += --env "xpack.security.http.ssl.key=certs/testnode.key")
-	$(eval xpack_env += --env "xpack.security.http.ssl.certificate=certs/testnode.crt")
-	$(eval xpack_env += --env "xpack.security.http.ssl.certificate_authorities=certs/ca.crt")
-	$(eval xpack_env += --env "xpack.security.transport.ssl.enabled=true")
-	$(eval xpack_env += --env "xpack.security.transport.ssl.verification_mode=certificate")
-	$(eval xpack_env += --env "xpack.security.transport.ssl.key=certs/testnode.key")
-	$(eval xpack_env += --env "xpack.security.transport.ssl.certificate=certs/testnode.crt")
-	$(eval xpack_env += --env "xpack.security.transport.ssl.certificate_authorities=certs/ca.crt")
-	$(eval xpack_volumes += --volume "$(PWD)/.ci/certs/testnode.crt:/usr/share/elasticsearch/config/certs/testnode.crt")
-	$(eval xpack_volumes += --volume "$(PWD)/.ci/certs/testnode.key:/usr/share/elasticsearch/config/certs/testnode.key")
-	$(eval xpack_volumes += --volume "$(PWD)/.ci/certs/ca.crt:/usr/share/elasticsearch/config/certs/ca.crt")
-endif
-	@docker network inspect elasticsearch > /dev/null 2>&1 || docker network create elasticsearch;
-	@{ \
-		for n in `seq 1 $(nodes)`; do \
-			if [[ -z "$$port" ]]; then \
-				hostport=$$((9199+$$n)); \
-			else \
-				hostport=$$port; \
-			fi; \
-			docker run \
-				--name "es$$n" \
-				--network elasticsearch \
-				--env "node.name=es$$n" \
-				--env "cluster.name=go-elasticsearch" \
-				--env "cluster.initial_master_nodes=es1" \
-				--env "discovery.seed_hosts=es1" \
-				--env "cluster.routing.allocation.disk.threshold_enabled=false" \
-				--env "bootstrap.memory_lock=true" \
-				--env "node.attr.testattr=test" \
-				--env "path.repo=/tmp" \
-				--env "repositories.url.allowed_urls=http://snapshot.test*" \
-				--env ES_JAVA_OPTS="-Xms1g -Xmx1g" \
-				$(xpack_env) \
-				--volume `echo $(version) | tr -C "[:alnum:]" '-'`-node-$$n-data:/usr/share/elasticsearch/data \
-				$(xpack_volumes) \
-				--publish $$hostport:9200 \
-				--ulimit nofile=65536:65536 \
-				--ulimit memlock=-1:-1 \
-				--detach=$(detach) \
-				--rm \
-				docker.elastic.co/elasticsearch/$(version); \
-		done \
-	}
-ifdef detach
-	@{ \
-		printf "\033[2m→ Waiting for the cluster on $(elasticsearch_url)...\033[0m\n"; \
-		docker run --network elasticsearch --rm appropriate/curl --max-time 120 --retry 120 --retry-delay 1 --retry-connrefused --show-error --silent --insecure $(elasticsearch_url); \
-		output="\033[2m→ Cluster ready; to remove containers:"; \
-		output="$$output docker rm -f"; \
-		for n in `seq 1 $(nodes)`; do \
-			output="$$output es$$n"; \
-		done; \
-		printf "$$output\033[0m\n"; \
-	}
-endif
-
-cluster-update: ## Update the Docker image
-ifdef ELASTICSEARCH_BUILD_VERSION
-	$(eval version ?= "elasticsearch:"${ELASTICSEARCH_BUILD_VERSION})
-else
-	$(eval version ?= "elasticsearch:"${ELASTICSEARCH_DEFAULT_BUILD_VERSION})
-endif
-	@printf "\033[2m→ Updating the Docker image...\033[0m\n"
-	@docker pull docker.elastic.co/elasticsearch/$(version);
-
-cluster-clean: ## Remove unused Docker volumes and networks
+cluster.clean: ## Remove unused Docker volumes and networks
 	@printf "\033[2m→ Cleaning up Docker assets...\033[0m\n"
 	docker volume prune --force
 	docker network prune --force
+	docker system prune --volumes --force
 
 docker: ## Build the Docker image and run it
 	docker build --file .ci/Dockerfile --tag elastic/go-elasticsearch .
@@ -477,4 +393,4 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help apidiff backport cluster cluster-clean cluster-update coverage docker examples gen-api gen-tests godoc lint release test test-api test-bench test-integ test-unit
+.PHONY: help apidiff backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage docker examples gen-api gen-tests godoc lint release test test-api test-bench test-integ test-unit
