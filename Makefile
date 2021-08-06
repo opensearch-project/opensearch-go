@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 
+
 ##@ Test
 test-unit:  ## Run unit tests
 	@printf "\033[2m→ Running unit tests...\033[0m\n"
@@ -273,6 +274,17 @@ cluster.opendistro.start:
 
 cluster.opendistro.stop:
 	docker-compose --project-directory .ci/opendistro down ;
+
+cluster.opensearch.build:
+	docker-compose --project-directory .ci/opensearch build;
+
+cluster.opensearch.start:
+	docker-compose --project-directory .ci/opensearch up -d ;
+	sleep 20;
+
+cluster.opensearch.stop:
+	docker-compose --project-directory .ci/opensearch down ;
+
 
 cluster.clean: ## Remove unused Docker volumes and networks
 	@printf "\033[2m→ Cleaning up Docker assets...\033[0m\n"
