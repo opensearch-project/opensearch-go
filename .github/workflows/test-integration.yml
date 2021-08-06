@@ -10,7 +10,6 @@ on:
 
 env:
   GITHUB_ACTIONS: true
-  ELASTICSEARCH_VERSION: elasticsearch-oss:7.10.2
 
 jobs:
   test:
@@ -28,11 +27,9 @@ jobs:
           sudo sysctl -w vm.swappiness=1
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
-      - name: Launch Elasticsearch
+      - name: Launch OpenDistro cluster
         run: |
-          docker pull --quiet docker.elastic.co/elasticsearch/${{ env.ELASTICSEARCH_VERSION }}
-          docker pull --quiet appropriate/curl
-          make cluster-clean cluster-update cluster detach=true version="${{ env.ELASTICSEARCH_VERSION }}"
+          make cluster.clean cluster.opendistro.build cluster.opendistro.start
       - run: make test-integ race=true
       - uses: codecov/codecov-action@v1
         with:
@@ -54,11 +51,9 @@ jobs:
           sudo sysctl -w vm.swappiness=1
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
-      - name: Launch Elasticsearch
+      - name: Launch OpenDistro cluster
         run: |
-          docker pull --quiet docker.elastic.co/elasticsearch/${{ env.ELASTICSEARCH_VERSION }}
-          docker pull --quiet appropriate/curl
-          make cluster-clean cluster-update cluster detach=true version="${{ env.ELASTICSEARCH_VERSION }}"
+          make cluster.clean cluster.opendistro.build cluster.opendistro.start
       - name: Run setup
         run: |
           cd _examples/encoding && make setup
