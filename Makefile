@@ -31,10 +31,10 @@ endif
 	@if which gotestsum > /dev/null 2>&1 ; then \
 		echo "gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml --" $(testintegargs); \
 		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "."; \
-		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "./estransport" "./esapi" "./esutil"; \
+		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "./estransport" "./opensearchapi" "./esutil"; \
 	else \
 		echo "go test -v" $(testintegargs) "."; \
-		go test -v $(testintegargs) "./estransport" "./esapi" "./esutil"; \
+		go test -v $(testintegargs) "./estransport" "./opensearchapi" "./esutil"; \
 	fi;
 
 test-api:  ## Run generated API integration tests
@@ -42,7 +42,7 @@ test-api:  ## Run generated API integration tests
 ifdef race
 	$(eval testapiargs += "-race")
 endif
-	$(eval testapiargs += "-cover" "-coverpkg=github.com/opensearch-project/opensearch-go/esapi" "-coverprofile=$(PWD)/tmp/integration-api.cov" "-tags='integration'" "-timeout=1h")
+	$(eval testapiargs += "-cover" "-coverpkg=github.com/opensearch-project/opensearch-go/opensearchapi" "-coverprofile=$(PWD)/tmp/integration-api.cov" "-tags='integration'" "-timeout=1h")
 ifdef flavor
 else
 	$(eval flavor='free')
@@ -51,35 +51,35 @@ endif
 ifeq ($(flavor), platinum)
 	@{ \
 		set -e ; \
-		trap "test -d .git && git checkout --quiet $(PWD)/esapi/test/go.mod" INT TERM EXIT; \
+		trap "test -d .git && git checkout --quiet $(PWD)/opensearchapi/test/go.mod" INT TERM EXIT; \
 		export ELASTICSEARCH_URL='https://elastic:elastic@localhost:9200' && \
 		if which gotestsum > /dev/null 2>&1 ; then \
-			cd esapi/test && \
+			cd opensearchapi/test && \
 			go mod download && \
-				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/esapi/test/xpack/*_test.go && \
-				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/esapi/test/xpack/ml/*_test.go && \
-				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/esapi/test/xpack/ml-crud/*_test.go; \
+				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/opensearchapi/test/xpack/*_test.go && \
+				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml/*_test.go && \
+				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml-crud/*_test.go; \
 		else \
 			echo "go test -v" $(testapiargs); \
-			cd esapi/test && \
+			cd opensearchapi/test && \
 			go mod download && \
-				go test -v $(testapiargs) $(PWD)/esapi/test/xpack/*_test.go && \
-				go test -v $(testapiargs) $(PWD)/esapi/test/xpack/ml/*_test.go && \
-				go test -v $(testapiargs) $(PWD)/esapi/test/xpack/ml-crud/*_test.go;  \
+				go test -v $(testapiargs) $(PWD)/opensearchapi/test/xpack/*_test.go && \
+				go test -v $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml/*_test.go && \
+				go test -v $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml-crud/*_test.go;  \
 		fi; \
 	}
 else
-	$(eval testapiargs += $(PWD)/esapi/test/*_test.go)
+	$(eval testapiargs += $(PWD)/opensearchapi/test/*_test.go)
 	@{ \
 		set -e ; \
-		trap "test -d .git && git checkout --quiet $(PWD)/esapi/test/go.mod" INT TERM EXIT; \
+		trap "test -d .git && git checkout --quiet $(PWD)/opensearchapi/test/go.mod" INT TERM EXIT; \
 		if which gotestsum > /dev/null 2>&1 ; then \
-			cd esapi/test && \
+			cd opensearchapi/test && \
 			go mod download && \
 			gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs); \
 		else \
 			echo "go test -v" $(testapiargs); \
-			cd esapi/test && \
+			cd opensearchapi/test && \
 			go mod download && \
 			go test -v $(testapiargs); \
 		fi; \
@@ -138,7 +138,7 @@ test-examples: ## Execute the _examples
 test-coverage:  ## Generate test coverage report
 	@printf "\033[2m→ Generating test coverage report...\033[0m\n"
 	@go tool cover -html=tmp/unit.cov -o tmp/coverage.html
-	@go tool cover -func=tmp/unit.cov | 'grep' -v 'esapi/api\.' | sed 's/github.com\/elastic\/go-elasticsearch\///g'
+	@go tool cover -func=tmp/unit.cov | 'grep' -v 'opensearchapi/api\.' | sed 's/github.com\/elastic\/go-elasticsearch\///g'
 	@printf "\033[0m--------------------------------------------------------------------------------\nopen tmp/coverage.html\n\n\033[0m"
 
 ##@ Development
@@ -166,10 +166,10 @@ apidiff: ## Display API incompabilities
 	@mkdir -p tmp/apidiff-NEW
 	@tar -c --exclude .git --exclude tmp --exclude cmd . | tar -x -C tmp/apidiff-NEW
 	@printf "\033[2m→ Running apidiff...\033[0m\n"
-	@pritnf "tmp/apidiff-OLD/esapi tmp/apidiff-NEW/esapi\n"
+	@pritnf "tmp/apidiff-OLD/opensearchapi tmp/apidiff-NEW/opensearchapi\n"
 	@{ \
 		set -e ; \
-		output=$$(apidiff tmp/apidiff-OLD/esapi tmp/apidiff-NEW/esapi); \
+		output=$$(apidiff tmp/apidiff-OLD/opensearchapi tmp/apidiff-NEW/opensearchapi); \
 		printf "\n$$output\n\n"; \
 		if echo $$output | grep -i -e 'incompatible' - > /dev/null 2>&1; then \
 			printf "\n\033[31;1mFAILURE\033[0m\n\n"; \
@@ -258,7 +258,7 @@ endif
 godoc: ## Display documentation for the package
 	@printf "\033[2m→ Generating documentation...\033[0m\n"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
-	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/esapi"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchapi"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/estransport"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/esutil"
 	@printf "\n"
@@ -287,7 +287,7 @@ docker: ## Build the Docker image and run it
 ##@ Generator
 gen-api:  ## Generate the API package from the JSON specification
 	$(eval input  ?= tmp/rest-api-spec)
-	$(eval output ?= esapi)
+	$(eval output ?= opensearchapi)
 ifdef debug
 	$(eval args += --debug)
 endif
@@ -314,7 +314,7 @@ endif
 
 gen-tests:  ## Generate the API tests from the YAML specification
 	$(eval input  ?= tmp/rest-api-spec)
-	$(eval output ?= esapi/test)
+	$(eval output ?= opensearchapi/test)
 ifdef debug
 	$(eval args += --debug)
 endif
@@ -341,10 +341,10 @@ endif
 		go generate ./... && \
 		go run main.go apitests --input '$(PWD)/$(input)/test/free/**/*.y*ml' --output '$(PWD)/$(output)' $(args) && \
 		go run main.go apitests --input '$(PWD)/$(input)/test/platinum/**/*.yml' --output '$(PWD)/$(output)/xpack' $(args) && \
-		mkdir -p '$(PWD)/esapi/test/xpack/ml' && \
-		mkdir -p '$(PWD)/esapi/test/xpack/ml-crud' && \
-		mv $(PWD)/esapi/test/xpack/xpack_ml* $(PWD)/esapi/test/xpack/ml/ && \
-		mv $(PWD)/esapi/test/xpack/ml/xpack_ml__jobs_crud_test.go $(PWD)/esapi/test/xpack/ml-crud/; \
+		mkdir -p '$(PWD)/opensearchapi/test/xpack/ml' && \
+		mkdir -p '$(PWD)/opensearchapi/test/xpack/ml-crud' && \
+		mv $(PWD)/opensearchapi/test/xpack/xpack_ml* $(PWD)/opensearchapi/test/xpack/ml/ && \
+		mv $(PWD)/opensearchapi/test/xpack/ml/xpack_ml__jobs_crud_test.go $(PWD)/opensearchapi/test/xpack/ml-crud/; \
 	}
 
 gen-docs:  ## Generate the skeleton of documentation examples

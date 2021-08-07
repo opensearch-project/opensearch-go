@@ -51,7 +51,7 @@ func init() {
 		pkgNames = strings.Split(pkgNamesEnv, ",")
 	} else {
 		pkgNames = []string{
-			"github.com/opensearch-project/opensearch-go/esapi",
+			"github.com/opensearch-project/opensearch-go/opensearchapi",
 		}
 	}
 

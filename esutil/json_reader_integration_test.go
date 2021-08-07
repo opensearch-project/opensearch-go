@@ -33,14 +33,14 @@ import (
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
 func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
 		var (
-			res *esapi.Response
+			res *opensearchapi.Response
 			err error
 		)
 

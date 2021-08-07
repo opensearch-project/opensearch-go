@@ -65,7 +65,7 @@ func init() {
 		pkgNames = strings.Split(pkgNamesEnv, ",")
 	} else {
 		pkgNames = []string{
-			"github.com/opensearch-project/opensearch-go/esapi",
+			"github.com/opensearch-project/opensearch-go/opensearchapi",
 		}
 	}
 
@@ -242,7 +242,7 @@ func (cmd *Command) processAPIConstructor() (err error) {
 	b.WriteString(": DO NOT EDIT\n")
 	b.WriteString("\n")
 
-	b.WriteString(`package esapi
+	b.WriteString(`package opensearchapi
 
 // API contains the Elasticsearch APIs
 //
@@ -332,7 +332,7 @@ func New(t Transport) *API {
 
 	if cmd.Gofmt {
 		out, err := imports.Process(
-			"esapi/api._.go",
+			"opensearchapi/api._.go",
 			b.Bytes(),
 			&imports.Options{
 				AllErrors:  true,

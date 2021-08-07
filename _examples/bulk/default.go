@@ -55,7 +55,7 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 type Article struct {
@@ -109,7 +109,7 @@ func main() {
 
 	var (
 		buf bytes.Buffer
-		res *esapi.Response
+		res *opensearchapi.Response
 		err error
 		raw map[string]interface{}
 		blk *bulkResponse

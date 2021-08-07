@@ -42,7 +42,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/estransport"
 	"github.com/opensearch-project/opensearch-go/internal/version"
 )
@@ -109,7 +109,7 @@ type Config struct {
 // Client represents the Elasticsearch client.
 //
 type Client struct {
-	*esapi.API           // Embeds the API methods
+	*opensearchapi.API   // Embeds the API methods
 	Transport            estransport.Interface
 	useResponseCheckOnly bool
 
@@ -211,7 +211,7 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	client := &Client{Transport: tp, useResponseCheckOnly: cfg.UseResponseCheckOnly}
-	client.API = esapi.New(client)
+	client.API = opensearchapi.New(client)
 
 	if cfg.DiscoverNodesOnStart {
 		go client.DiscoverNodes()
@@ -294,10 +294,10 @@ func (c *Client) doProductCheck(f func() error) error {
 	return nil
 }
 
-// productCheck runs an esapi.Info query to retrieve informations of the current cluster
+// productCheck runs an opensearchapi.Info query to retrieve informations of the current cluster
 // decodes the response and decides if the cluster is a genuine Elasticsearch product.
 func (c *Client) productCheck() error {
-	req := esapi.InfoRequest{}
+	req := opensearchapi.InfoRequest{}
 	res, err := req.Do(context.Background(), c.Transport)
 	if err != nil {
 		return err

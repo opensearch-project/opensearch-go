@@ -43,7 +43,7 @@ import (
 	"sync"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 func main() {
@@ -97,7 +97,7 @@ func main() {
 			b.WriteString(`"}`)
 
 			// Set up the request object.
-			req := esapi.IndexRequest{
+			req := opensearchapi.IndexRequest{
 				Index:      "test",
 				DocumentID: strconv.Itoa(i + 1),
 				Body:       strings.NewReader(b.String()),

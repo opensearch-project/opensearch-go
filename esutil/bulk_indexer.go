@@ -41,7 +41,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
@@ -497,7 +497,7 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	atomic.AddUint64(&w.bi.stats.numRequests, 1)
-	req := esapi.BulkRequest{
+	req := opensearchapi.BulkRequest{
 		Index: w.bi.config.Index,
 		Body:  w.buf,
 

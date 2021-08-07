@@ -216,7 +216,7 @@ func (g *Generator) genFileHeader() {
 	}
 	g.w(" -- DO NOT EDIT\n")
 	g.w("\n")
-	g.w("package esapi_test\n")
+	g.w("package opensearchapi_test\n")
 	g.w(`
 import (
 	encjson "encoding/json"
@@ -230,7 +230,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
@@ -295,7 +295,7 @@ _ = recoverPanic
 ` + "\n")
 
 	g.w(`
-	handleResponseError := func(t *testing.T, res *esapi.Response) {
+	handleResponseError := func(t *testing.T, res *opensearchapi.Response) {
 		if res.IsError() {
 			reLocation := regexp.MustCompile("(.*_test.go:\\d+).*")
 			var loc string
@@ -320,7 +320,7 @@ func (g *Generator) genCommonSetup() {
 	g.w(`
 	// ----- Common Setup -------------------------------------------------------------
 	commonSetup := func() {
-		var res *esapi.Response
+		var res *opensearchapi.Response
 
 		{
 			res, _ = es.Cluster.Health(es.Cluster.Health.WithWaitForNoInitializingShards(true))
@@ -424,7 +424,7 @@ func (g *Generator) genXPackSetup() {
 	g.w(`
 		// ----- XPack Setup -------------------------------------------------------------
 		xpackSetup := func() {
-			var res *esapi.Response
+			var res *opensearchapi.Response
 
 			{
 				res, _ = es.Indices.DeleteDataStream([]string{"*"})
@@ -797,8 +797,8 @@ func (g *Generator) genSteps(t Test) {
 
 func (g *Generator) genVarSection(t Test, skipBody ...bool) {
 	g.w("\t\tvar (\n")
-	g.w("\t\t\treq esapi.Request\n")
-	g.w("\t\t\tres *esapi.Response\n")
+	g.w("\t\t\treq opensearchapi.Request\n")
+	g.w("\t\t\tres *opensearchapi.Response\n")
 	g.w("\t\t\terr error\n\n")
 
 	g.w("\t\t\tstash = make(map[string]interface{}, 0)\n\n")
@@ -833,7 +833,7 @@ func (g *Generator) genVarSection(t Test, skipBody ...bool) {
 		g.w("\t\t_ = mapi\n")
 		g.w("\t\t_ = slic\n")
 		g.w("\n")
-		g.w(`handleResponseBody := func(t *testing.T, res *esapi.Response) {
+		g.w(`handleResponseBody := func(t *testing.T, res *opensearchapi.Response) {
 			// Reset deserialized structures
 			mapi = make(map[string]interface{})
 			slic = make([]interface{}, 0)
@@ -909,7 +909,7 @@ func (g *Generator) genVarSection(t Test, skipBody ...bool) {
 
 func (g *Generator) genAction(a Action, skipBody ...bool) {
 	// Initialize the request
-	g.w("\t\treq = esapi." + a.Request() + "{\n")
+	g.w("\t\treq = opensearchapi." + a.Request() + "{\n")
 
 	// Pass the parameters
 	for k, v := range a.Params() {
@@ -932,7 +932,7 @@ func (g *Generator) genAction(a Action, skipBody ...bool) {
 			case "bool":
 				g.w(strconv.FormatBool(v.(bool)))
 			case "*bool":
-				g.w(`esapi.BoolPtr(` + strconv.FormatBool(v.(bool)) + `)`)
+				g.w(`opensearchapi.BoolPtr(` + strconv.FormatBool(v.(bool)) + `)`)
 			case "string":
 				g.w(`"` + strconv.FormatBool(v.(bool)) + `"`)
 			case "[]string":
@@ -1063,10 +1063,10 @@ func (g *Generator) genAction(a Action, skipBody ...bool) {
 			case "*int":
 				switch v.(type) {
 				case int:
-					g.w(`esapi.IntPtr(` + fmt.Sprintf("%d", v) + `)`)
+					g.w(`opensearchapi.IntPtr(` + fmt.Sprintf("%d", v) + `)`)
 				case float64:
 					if vv, ok := v.(float64); ok {
-						g.w(`esapi.IntPtr(` + fmt.Sprintf("%d", int(vv)) + `)`)
+						g.w(`opensearchapi.IntPtr(` + fmt.Sprintf("%d", int(vv)) + `)`)
 					}
 				default:
 					panic(fmt.Sprintf("Unexpected type [%T] for [%s]", v, k))

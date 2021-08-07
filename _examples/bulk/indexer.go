@@ -51,7 +51,7 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
@@ -92,7 +92,7 @@ func main() {
 		articles        []*Article
 		countSuccessful uint64
 
-		res *esapi.Response
+		res *opensearchapi.Response
 		err error
 	)
 
