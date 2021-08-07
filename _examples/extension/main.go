@@ -40,7 +40,7 @@ import (
 	"os"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
@@ -61,7 +61,7 @@ type ExtendedAPI struct {
 
 // Example calls a custom REST API, "/_cat/example".
 //
-func (c *ExtendedAPI) Example() (*esapi.Response, error) {
+func (c *ExtendedAPI) Example() (*opensearchapi.Response, error) {
 	req, _ := http.NewRequest("GET", "/_cat/example", nil) // errcheck exclude
 
 	res, err := c.Perform(req)
@@ -69,7 +69,7 @@ func (c *ExtendedAPI) Example() (*esapi.Response, error) {
 		return nil, err
 	}
 
-	return &esapi.Response{StatusCode: res.StatusCode, Body: res.Body, Header: res.Header}, nil
+	return &opensearchapi.Response{StatusCode: res.StatusCode, Body: res.Body, Header: res.Header}, nil
 }
 
 func main() {

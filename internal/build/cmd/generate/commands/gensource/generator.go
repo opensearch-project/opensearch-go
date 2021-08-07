@@ -74,7 +74,7 @@ func (g *Generator) OutputFormatted() (io.Reader, error) {
 	}
 
 	fout, err := imports.Process(
-		"esapi/api."+g.Endpoint.Name+".go",
+		"opensearchapi/api."+g.Endpoint.Name+".go",
 		g.b.Bytes(),
 		&imports.Options{
 			AllErrors:  true,
@@ -120,7 +120,7 @@ func (g *Generator) genHeader() {
 	}
 	g.w(": DO NOT EDIT\n")
 	g.w("\n")
-	g.w("package esapi\n")
+	g.w("package opensearchapi\n")
 }
 
 func (g *Generator) genConstructor() {

@@ -30,7 +30,7 @@ import (
 	"log"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
@@ -40,7 +40,7 @@ func init() {
 
 func main() {
 	var (
-		res *esapi.Response
+		res *opensearchapi.Response
 		err error
 	)
 

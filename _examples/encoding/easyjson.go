@@ -36,7 +36,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/fatih/color"
 	"github.com/mailru/easyjson"
 
@@ -170,7 +170,7 @@ func main() {
 // printErrorResponse decodes the response from Elasticsearch
 // and prints it formatted to STDOUT.
 //
-func printErrorResponse(res *esapi.Response) {
+func printErrorResponse(res *opensearchapi.Response) {
 	bold.Printf("[%s] ", res.Status())
 
 	var e model.ErrorResponse

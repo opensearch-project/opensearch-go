@@ -271,7 +271,7 @@ var ConsoleToGo = []TranslateRule{
 						delete(params, key)
 					}
 				}
-				fmt.Fprintf(&src, "esapi.IntPtr(%v),\n", strings.Join(requestsPerSecond, ""))
+				fmt.Fprintf(&src, "opensearchapi.IntPtr(%v),\n", strings.Join(requestsPerSecond, ""))
 
 				args, err := paramsToArguments("UpdateByQueryRethrottle", params)
 				if err != nil {
@@ -1216,7 +1216,7 @@ var ConsoleToGo = []TranslateRule{
 						delete(params, key)
 					}
 				}
-				fmt.Fprintf(&src, "esapi.IntPtr(%v),\n", strings.Join(requestsPerSecond, ""))
+				fmt.Fprintf(&src, "opensearchapi.IntPtr(%v),\n", strings.Join(requestsPerSecond, ""))
 
 				args, err := paramsToArguments("DeleteByQueryRethrottle", params)
 				if err != nil {
@@ -1299,7 +1299,7 @@ var ConsoleToGo = []TranslateRule{
 						delete(params, key)
 					}
 				}
-				fmt.Fprintf(&src, "esapi.IntPtr(%v),\n", strings.Join(requestsPerSecond, ""))
+				fmt.Fprintf(&src, "opensearchapi.IntPtr(%v),\n", strings.Join(requestsPerSecond, ""))
 
 				args, err := paramsToArguments("ReindexRethrottle", params)
 				if err != nil {

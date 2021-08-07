@@ -37,7 +37,7 @@ import (
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 var defaultResponse = http.Response{
@@ -121,7 +121,7 @@ func BenchmarkClientAPI(b *testing.B) {
 	b.Run("InfoRequest{}.Do()", func(b *testing.B) {
 		b.ResetTimer()
 
-		req := esapi.InfoRequest{}
+		req := opensearchapi.InfoRequest{}
 
 		for i := 0; i < b.N; i++ {
 			if _, err := req.Do(ctx, client); err != nil {
@@ -142,7 +142,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			body.WriteString(docID)
 			body.WriteString(`	" }`)
 
-			req := esapi.IndexRequest{
+			req := opensearchapi.IndexRequest{
 				Index:      "test",
 				DocumentID: docID,
 				Body:       strings.NewReader(body.String()),
@@ -190,10 +190,10 @@ func BenchmarkClientAPI(b *testing.B) {
 		indx := []string{"test"}
 
 		for i := 0; i < b.N; i++ {
-			req := esapi.SearchRequest{
+			req := opensearchapi.SearchRequest{
 				Index:   indx,
 				Body:    strings.NewReader(body),
-				Size:    esapi.IntPtr(25),
+				Size:    opensearchapi.IntPtr(25),
 				Pretty:  true,
 				Timeout: 100,
 			}
@@ -237,7 +237,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			body.WriteString(docID)
 			body.WriteString(`	" }`)
 
-			req := esapi.BulkRequest{
+			req := opensearchapi.BulkRequest{
 				Body:    strings.NewReader(body.String()),
 				Refresh: "true",
 				Pretty:  true,

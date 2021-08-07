@@ -43,7 +43,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
@@ -210,7 +210,7 @@ func TestClientCustomTransport(t *testing.T) {
 		})
 
 		es := elasticsearch.Client{
-			Transport: tp, API: esapi.New(tp),
+			Transport: tp, API: opensearchapi.New(tp),
 		}
 
 		for i := 0; i < 10; i++ {
@@ -244,7 +244,7 @@ func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
 		tr := &ReplacedTransport{}
 		es := elasticsearch.Client{
-			Transport: tr, API: esapi.New(tr),
+			Transport: tr, API: opensearchapi.New(tr),
 		}
 
 		for i := 0; i < 10; i++ {

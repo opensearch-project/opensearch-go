@@ -35,7 +35,7 @@ import (
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esapi"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 // SearchResults wraps the Elasticsearch search response.
@@ -106,7 +106,7 @@ func (s *Store) Create(item *Document) error {
 	}
 
 	ctx := context.Background()
-	res, err := esapi.CreateRequest{
+	res, err := opensearchapi.CreateRequest{
 		Index:      s.indexName,
 		DocumentID: item.ID,
 		Body:       bytes.NewReader(payload),

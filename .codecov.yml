@@ -5,4 +5,4 @@ coverage:
     patch: off
 
 ignore:
-  - "esapi/api.*.go"
+  - "opensearchapi/api.*.go"
