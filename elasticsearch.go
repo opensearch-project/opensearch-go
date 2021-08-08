@@ -93,7 +93,6 @@ type Config struct {
 	EnableMetrics     bool // Enable the metrics collection.
 	EnableDebugLogger bool // Enable the debug logging.
 
-	DisableMetaHeader    bool // Disable the additional "X-Elastic-Client-Meta" HTTP header.
 	UseResponseCheckOnly bool
 
 	RetryBackoff func(attempt int) time.Duration // Optional backoff duration. Default: nil.
@@ -196,8 +195,6 @@ func NewClient(cfg Config) (*Client, error) {
 
 		EnableMetrics:     cfg.EnableMetrics,
 		EnableDebugLogger: cfg.EnableDebugLogger,
-
-		DisableMetaHeader: cfg.DisableMetaHeader,
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
 

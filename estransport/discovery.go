@@ -151,10 +151,6 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	c.setReqAuth(conn.URL, req)
 	c.setReqUserAgent(req)
 
-	if c.disableMetaHeader == false {
-		c.setMetaHeader(req)
-	}
-
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
 		return out, err

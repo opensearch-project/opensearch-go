@@ -42,7 +42,6 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/estransport"
 )
 
 // BulkIndexer represents a parallel, asynchronous, efficient indexer for Elasticsearch.
@@ -516,12 +515,6 @@ func (w *worker) flush(ctx context.Context) error {
 		FilterPath: w.bi.config.FilterPath,
 		Header:     w.bi.config.Header,
 	}
-
-	// Add Header and MetaHeader to config if not already set
-	if req.Header == nil {
-		req.Header = http.Header{}
-	}
-	req.Header.Set(estransport.HeaderClientMeta, "h=bp")
 
 	res, err := req.Do(ctx, w.bi.config.Client)
 	if err != nil {
