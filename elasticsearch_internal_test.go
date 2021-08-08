@@ -48,17 +48,15 @@ var called bool
 type mockTransp struct {
 	RoundTripFunc func(*http.Request) (*http.Response, error)
 }
-
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}}}
 
 	if req.URL.Path == "/" {
 		response.Body = ioutil.NopCloser(strings.NewReader(`{
 		  "version" : {
-			"number" : "7.14.0-SNAPSHOT",
-			"build_flavor" : "default"
-		  },
-		  "tagline" : "You Know, for Search"
+			"number" : "1.0.0",
+			"distribution" : "opensearch"
+		  }
 		}`))
 		response.Header.Add("Content-Type", "application/json")
 	} else {
@@ -310,9 +308,9 @@ func TestParseElasticsearchVersion(t *testing.T) {
 		},
 		{
 			name:    "Snapshot version parsing",
-			version: "7.14.0-SNAPSHOT",
-			major:   7,
-			minor:   14,
+			version: "1.0.0-SNAPSHOT",
+			major:   1,
+			minor:   0,
 			patch:   0,
 			wantErr: false,
 		},

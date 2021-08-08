@@ -32,7 +32,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -43,8 +42,8 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
 func TestClientTransport(t *testing.T) {
@@ -279,7 +278,5 @@ func TestClientAPI(t *testing.T) {
 		if err != nil {
 			log.Fatalf("Error parsing the response: %s\n", err)
 		}
-
-		fmt.Println(d["tagline"])
 	})
 }
