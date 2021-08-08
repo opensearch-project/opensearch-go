@@ -261,7 +261,6 @@ func TestTransportLogger(t *testing.T) {
 			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
 			Transport:         newRoundTripper(),
 			Logger:            &CurlLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
-			DisableMetaHeader: true,
 		})
 
 		req, _ := http.NewRequest("GET", "/abc?q=a,b", nil)
