@@ -67,8 +67,8 @@ func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		  "cluster_name" : "go-elasticsearch",
 		  "cluster_uuid" : "clusteruuid",
 		  "version" : {
-			"number" : "7.14.0-SNAPSHOT",
-			"build_flavor" : "default",
+			"number" : "1.0.0",
+			"distribution" : "opensearch",
 			"build_type" : "docker",
 			"build_hash" : "somehash",
 			"build_date" : "2021-06-09T06:34:20.411011746Z",
@@ -76,8 +76,7 @@ func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 			"lucene_version" : "8.9.0",
 			"minimum_wire_compatibility_version" : "6.8.0",
 			"minimum_index_compatibility_version" : "6.0.0-beta1"
-		  },
-		  "tagline" : "You Know, for Search"
+		  }
 		}`))
 		return t.InfoResponse, nil
 	}

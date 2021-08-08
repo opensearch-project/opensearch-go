@@ -52,10 +52,9 @@ import (
 
 var infoBody = `{
   "version" : {
-	"number" : "7.14.0-SNAPSHOT",
-	"build_flavor" : "default"
-  },
-  "tagline" : "You Know, for Search"
+	"number" : "1.0.0",
+	"distribution" : "opensearch"
+  }
 }`
 
 var defaultRoundTripFunc = func(*http.Request) (*http.Response, error) {
@@ -288,13 +287,7 @@ func TestBulkIndexer(t *testing.T) {
 					return &http.Response{
 						StatusCode: http.StatusOK,
 						Status:     "200 OK",
-						Body:       ioutil.NopCloser(strings.NewReader(`{
-						  "version" : {
-							"number" : "7.14.0-SNAPSHOT",
-							"build_flavor" : "default"
-						  },
-						  "tagline" : "You Know, for Search"
-						}`)),
+						Body:       ioutil.NopCloser(strings.NewReader(infoBody)),
 						Header: http.Header{"Content-Type": []string{"application/json"}},
 					}, nil
 				}
@@ -467,13 +460,7 @@ func TestBulkIndexer(t *testing.T) {
 					return &http.Response{
 						StatusCode: http.StatusOK,
 						Status:     "200 OK",
-						Body:       ioutil.NopCloser(strings.NewReader(`{
-						  "version" : {
-							"number" : "7.14.0-SNAPSHOT",
-							"build_flavor" : "default"
-						  },
-						  "tagline" : "You Know, for Search"
-						}`)),
+						Body:       ioutil.NopCloser(strings.NewReader(infoBody)),
 						Header: http.Header{"Content-Type": []string{"application/json"}},
 					}, nil
 				}
@@ -541,13 +528,7 @@ func TestBulkIndexer(t *testing.T) {
 						return &http.Response{
 							StatusCode: http.StatusOK,
 							Status:     "200 OK",
-							Body:       ioutil.NopCloser(strings.NewReader(`{
-						  "version" : {
-							"number" : "7.14.0-SNAPSHOT",
-							"build_flavor" : "default"
-						  },
-						  "tagline" : "You Know, for Search"
-						}`)),
+							Body:       ioutil.NopCloser(strings.NewReader(infoBody)),
 							Header: http.Header{"Content-Type": []string{"application/json"}},
 						}, nil
 					}
