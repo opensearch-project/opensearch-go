@@ -26,7 +26,7 @@
 
 // +build ignore
 
-// This examples demonstrates how to implement the "estransport.Logger" interface with a custom type,
+// This examples demonstrates how to implement the "opensearchtransport.Logger" interface with a custom type,
 // and use it with the client for structured logging via the "rs/zerolog" package.
 
 package main
@@ -44,7 +44,7 @@ import (
 	"github.com/opensearch-project/opensearch-go"
 )
 
-// CustomLogger implements the estransport.Logger interface.
+// CustomLogger implements the opensearchtransport.Logger interface.
 //
 type CustomLogger struct {
 	zerolog.Logger

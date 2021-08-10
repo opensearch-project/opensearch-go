@@ -41,7 +41,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 const port = "9209"
@@ -83,7 +83,7 @@ func main() {
 
 	esclient, err := elasticsearch.NewClient(elasticsearch.Config{
 		Addresses: []string{"http://localhost:" + port},
-		Logger:    &estransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
+		Logger:    &opensearchtransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
 	})
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)

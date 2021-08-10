@@ -26,7 +26,7 @@
 
 // +build integration,multinode
 
-package estransport_test
+package opensearchtransport_test
 
 import (
 	"encoding/json"
@@ -35,7 +35,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 var (
@@ -43,7 +43,7 @@ var (
 )
 
 func TestTransportSelector(t *testing.T) {
-	NodeName := func(t *testing.T, transport estransport.Interface) string {
+	NodeName := func(t *testing.T, transport opensearchtransport.Interface) string {
 		req, err := http.NewRequest("GET", "/", nil)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
@@ -71,7 +71,7 @@ func TestTransportSelector(t *testing.T) {
 		var (
 			node string
 		)
-		transport, _ := estransport.New(estransport.Config{URLs: []*url.URL{
+		transport, _ := opensearchtransport.New(opensearchtransport.Config{URLs: []*url.URL{
 			{Scheme: "http", Host: "localhost:9200"},
 			{Scheme: "http", Host: "localhost:9201"},
 		}})

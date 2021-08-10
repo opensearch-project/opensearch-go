@@ -4,10 +4,10 @@
 
 The [`default.go`](default.go) example demonstrates how to use the loggers included with the package.
 
-* `estransport.TextLogger`
-* `estransport.ColorLogger`
-* `estransport.CurlLogger`
-* `estransport.JSONLogger`
+* `opensearchtransport.TextLogger`
+* `opensearchtransport.ColorLogger`
+* `opensearchtransport.CurlLogger`
+* `opensearchtransport.JSONLogger`
 
 ```bash
 go run default.go

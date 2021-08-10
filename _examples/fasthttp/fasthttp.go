@@ -34,7 +34,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// Transport implements the estransport interface with
+// Transport implements the opensearchtransport interface with
 // the github.com/valyala/fasthttp HTTP client.
 //
 type Transport struct{}

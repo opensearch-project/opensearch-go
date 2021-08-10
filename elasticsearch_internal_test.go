@@ -40,7 +40,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 var called bool
@@ -83,7 +83,7 @@ func TestClientConfiguration(t *testing.T) {
 			t.Errorf("Unexpected error: %s", err)
 		}
 
-		u := c.Transport.(*estransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
 
 		if u != defaultURL {
 			t.Errorf("Unexpected URL, want=%s, got=%s", defaultURL, u)
@@ -96,7 +96,7 @@ func TestClientConfiguration(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		u := c.Transport.(*estransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
 
 		if u != "http://localhost:8080" {
 			t.Errorf("Unexpected URL, want=http://localhost:8080, got=%s", u)
@@ -112,7 +112,7 @@ func TestClientConfiguration(t *testing.T) {
 			t.Errorf("Unexpected error: %s", err)
 		}
 
-		u := c.Transport.(*estransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
 
 		if u != "http://example.com" {
 			t.Errorf("Unexpected URL, want=http://example.com, got=%s", u)
@@ -128,7 +128,7 @@ func TestClientConfiguration(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		u := c.Transport.(*estransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
 
 		if u != "http://localhost:8080" {
 			t.Errorf("Unexpected URL, want=http://localhost:8080, got=%s", u)

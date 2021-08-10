@@ -231,7 +231,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 var (
@@ -260,7 +260,7 @@ func (g *Generator) genInitializeClient() {
 
 	g.w(`
 			if os.Getenv("DEBUG") != "" {
-				cfg.Logger = &estransport.ColorLogger{
+				cfg.Logger = &opensearchtransport.ColorLogger{
 					Output: os.Stdout,
 					// EnableRequestBody:  true,
 					EnableResponseBody: true,

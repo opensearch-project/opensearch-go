@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package estransport
+package opensearchtransport
 
 import (
 	"bytes"

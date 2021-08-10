@@ -25,7 +25,7 @@
 // under the License.
 
 /*
-Package estransport provides the transport layer for the Elasticsearch client.
+Package opensearchtransport provides the transport layer for the Elasticsearch client.
 
 It is automatically included in the client provided by the github.com/opensearchproject/opensearch-go package
 and is not intended for direct use: to configure the client, use the elasticsearch.Config struct.
@@ -57,4 +57,4 @@ Use the EnableDebugLogger option to enable the debugging logger for connection m
 
 Use the EnableMetrics option to enable metric collection and export.
 */
-package estransport
+package opensearchtransport

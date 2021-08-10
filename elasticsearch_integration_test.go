@@ -42,7 +42,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
@@ -201,7 +201,7 @@ func TestClientCustomTransport(t *testing.T) {
 	})
 
 	t.Run("Manual", func(t *testing.T) {
-		tp, _ := estransport.New(estransport.Config{
+		tp, _ := opensearchtransport.New(opensearchtransport.Config{
 			URLs: []*url.URL{
 				{Scheme: "http", Host: "localhost:9200"},
 			},

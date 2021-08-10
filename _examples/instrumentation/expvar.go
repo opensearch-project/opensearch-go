@@ -46,7 +46,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 var (
@@ -101,7 +101,7 @@ func main() {
 				"http://localhost:10003",
 			},
 
-			Logger:            &estransport.ColorLogger{Output: os.Stdout},
+			Logger:            &opensearchtransport.ColorLogger{Output: os.Stdout},
 			DisableRetry:      true,
 			EnableDebugLogger: true,
 
