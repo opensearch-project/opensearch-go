@@ -51,7 +51,7 @@ import (
 	"github.com/valyala/fasthttp"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/esutil"
 
 	"github.com/opensearch-project/opensearch-go/_examples/bulk/benchmarks/model"
@@ -117,7 +117,7 @@ func main() {
 	}
 
 	if debug {
-		clientCfg.Logger = &estransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true}
+		clientCfg.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true}
 	}
 
 	es, _ := elasticsearch.NewClient(clientCfg)

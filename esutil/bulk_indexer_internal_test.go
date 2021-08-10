@@ -47,7 +47,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 var infoBody = `{
@@ -234,7 +234,7 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		}
 		if os.Getenv("DEBUG") != "" {
-			esCfg.Logger = &estransport.ColorLogger{
+			esCfg.Logger = &opensearchtransport.ColorLogger{
 				Output:             os.Stdout,
 				EnableRequestBody:  true,
 				EnableResponseBody: true,
@@ -559,7 +559,7 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		}
 		if os.Getenv("DEBUG") != "" {
-			esCfg.Logger = &estransport.ColorLogger{Output: os.Stdout}
+			esCfg.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 		}
 		es, _ := elasticsearch.NewClient(esCfg)
 

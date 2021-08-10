@@ -30,7 +30,7 @@
 //
 // To enable logging, pass a logger implementation to the "Logger" option in the client configuration.
 //
-// You can use one of the bundled loggers, or a custom "estransport.Logger" interface implementation.
+// You can use one of the bundled loggers, or a custom "opensearchtransport.Logger" interface implementation.
 
 package main
 
@@ -41,7 +41,7 @@ import (
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 	// "TextLogger" writes basic information about the request and response as plain text to the output.
 	//
 	es, _ = elasticsearch.NewClient(elasticsearch.Config{
-		Logger: &estransport.TextLogger{Output: os.Stdout},
+		Logger: &opensearchtransport.TextLogger{Output: os.Stdout},
 	})
 	run(es, "Text")
 
@@ -63,7 +63,7 @@ func main() {
 	// "ColorLogger" is optimized for displaying information in the terminal during development.
 	//
 	es, _ = elasticsearch.NewClient(elasticsearch.Config{
-		Logger: &estransport.ColorLogger{Output: os.Stdout},
+		Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
 	})
 	run(es, "Color")
 
@@ -72,7 +72,7 @@ func main() {
 	// To log the request and response bodies, use the respective configuration options.
 	//
 	es, _ = elasticsearch.NewClient(elasticsearch.Config{
-		Logger: &estransport.ColorLogger{
+		Logger: &opensearchtransport.ColorLogger{
 			Output:             os.Stdout,
 			EnableRequestBody:  true,
 			EnableResponseBody: true,
@@ -86,7 +86,7 @@ func main() {
 	// pretty-printing the response body (when enabled), useful eg. for sharing.
 	//
 	es, _ = elasticsearch.NewClient(elasticsearch.Config{
-		Logger: &estransport.CurlLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
+		Logger: &opensearchtransport.CurlLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
 	})
 	run(es, "Curl")
 
@@ -95,7 +95,7 @@ func main() {
 	// "JSONLogger" writes the information as JSON and is suitable for production logging.
 	//
 	es, _ = elasticsearch.NewClient(elasticsearch.Config{
-		Logger: &estransport.JSONLogger{Output: os.Stdout},
+		Logger: &opensearchtransport.JSONLogger{Output: os.Stdout},
 	})
 	run(es, "JSON")
 }

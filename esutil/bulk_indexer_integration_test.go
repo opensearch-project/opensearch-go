@@ -39,7 +39,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
@@ -68,7 +68,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 				es, _ := elasticsearch.NewClient(elasticsearch.Config{
 					CompressRequestBody: tt.CompressRequestBodyEnabled,
-					Logger:              &estransport.ColorLogger{Output: os.Stdout},
+					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})
 
 				es.Indices.Delete([]string{indexName}, es.Indices.Delete.WithIgnoreUnavailable(true))
@@ -134,7 +134,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			t.Run("Multiple indices", func(t *testing.T) {
 				es, _ := elasticsearch.NewClient(elasticsearch.Config{
 					CompressRequestBody: tt.CompressRequestBodyEnabled,
-					Logger:              &estransport.ColorLogger{Output: os.Stdout},
+					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})
 
 				bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{

@@ -26,7 +26,7 @@
 
 // +build integration
 
-package estransport_test
+package opensearchtransport_test
 
 import (
 	"bytes"
@@ -39,7 +39,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/esutil"
 )
 
@@ -60,7 +60,7 @@ func TestTransportRetries(t *testing.T) {
 	}))
 	serverURL, _ := url.Parse(server.URL)
 
-	transport, _ := estransport.New(estransport.Config{URLs: []*url.URL{serverURL}})
+	transport, _ := opensearchtransport.New(opensearchtransport.Config{URLs: []*url.URL{serverURL}})
 
 	bodies := []io.Reader{
 		strings.NewReader(`FAKE`),
@@ -99,7 +99,7 @@ func TestTransportHeaders(t *testing.T) {
 	hdr := http.Header{}
 	hdr.Set("Accept", "application/yaml")
 
-	tp, _ := estransport.New(estransport.Config{
+	tp, _ := opensearchtransport.New(opensearchtransport.Config{
 		URLs:   []*url.URL{u},
 		Header: hdr,
 	})
@@ -128,7 +128,7 @@ func TestTransportCompression(t *testing.T) {
 
 	u, _ := url.Parse("http://localhost:9200")
 
-	transport, _ := estransport.New(estransport.Config{
+	transport, _ := opensearchtransport.New(opensearchtransport.Config{
 		URLs: []*url.URL{u},
 		CompressRequestBody: true,
 	})

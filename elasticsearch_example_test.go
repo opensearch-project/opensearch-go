@@ -37,7 +37,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 func init() {
@@ -56,7 +56,7 @@ func ExampleNewDefaultClient() {
 	}
 	defer res.Body.Close()
 
-	log.Print(es.Transport.(*estransport.Client).URLs())
+	log.Print(es.Transport.(*opensearchtransport.Client).URLs())
 }
 
 func ExampleNewClient() {
@@ -77,21 +77,21 @@ func ExampleNewClient() {
 	}
 
 	es, _ := elasticsearch.NewClient(cfg)
-	log.Print(es.Transport.(*estransport.Client).URLs())
+	log.Print(es.Transport.(*opensearchtransport.Client).URLs())
 }
 
 func ExampleNewClient_logger() {
-	// import "github.com/opensearch-project/opensearch-go/estransport"
+	// import "github.com/opensearch-project/opensearch-go/opensearchtransport"
 
 	// Use one of the bundled loggers:
 	//
-	// * estransport.TextLogger
-	// * estransport.ColorLogger
-	// * estransport.CurlLogger
-	// * estransport.JSONLogger
+	// * opensearchtransport.TextLogger
+	// * opensearchtransport.ColorLogger
+	// * opensearchtransport.CurlLogger
+	// * opensearchtransport.JSONLogger
 
 	cfg := elasticsearch.Config{
-		Logger: &estransport.ColorLogger{Output: os.Stdout},
+		Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
 	}
 
 	elasticsearch.NewClient(cfg)

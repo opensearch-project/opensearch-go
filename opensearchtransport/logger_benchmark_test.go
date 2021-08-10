@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package estransport_test
+package opensearchtransport_test
 
 import (
 	"bytes"
@@ -35,7 +35,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 func BenchmarkTransportLogger(b *testing.B) {
@@ -43,10 +43,10 @@ func BenchmarkTransportLogger(b *testing.B) {
 
 	b.Run("Text", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			tp, _ := estransport.New(estransport.Config{
+			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &estransport.TextLogger{Output: ioutil.Discard},
+				Logger:    &opensearchtransport.TextLogger{Output: ioutil.Discard},
 			})
 
 			req, _ := http.NewRequest("GET", "/abc", nil)
@@ -59,10 +59,10 @@ func BenchmarkTransportLogger(b *testing.B) {
 
 	b.Run("Text-Body", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			tp, _ := estransport.New(estransport.Config{
+			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &estransport.TextLogger{Output: ioutil.Discard, EnableRequestBody: true, EnableResponseBody: true},
+				Logger:    &opensearchtransport.TextLogger{Output: ioutil.Discard, EnableRequestBody: true, EnableResponseBody: true},
 			})
 
 			req, _ := http.NewRequest("GET", "/abc", nil)
@@ -84,10 +84,10 @@ func BenchmarkTransportLogger(b *testing.B) {
 
 	b.Run("JSON", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			tp, _ := estransport.New(estransport.Config{
+			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &estransport.JSONLogger{Output: ioutil.Discard},
+				Logger:    &opensearchtransport.JSONLogger{Output: ioutil.Discard},
 			})
 
 			req, _ := http.NewRequest("GET", "/abc", nil)
@@ -100,10 +100,10 @@ func BenchmarkTransportLogger(b *testing.B) {
 
 	b.Run("JSON-Body", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			tp, _ := estransport.New(estransport.Config{
+			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &estransport.JSONLogger{Output: ioutil.Discard, EnableRequestBody: true, EnableResponseBody: true},
+				Logger:    &opensearchtransport.JSONLogger{Output: ioutil.Discard, EnableRequestBody: true, EnableResponseBody: true},
 			})
 
 			req, _ := http.NewRequest("GET", "/abc", nil)

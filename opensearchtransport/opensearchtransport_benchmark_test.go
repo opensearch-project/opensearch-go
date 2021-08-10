@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package estransport_test
+package opensearchtransport_test
 
 import (
 	"io/ioutil"
@@ -35,7 +35,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
 var defaultResponse = http.Response{
@@ -63,7 +63,7 @@ func BenchmarkTransport(b *testing.B) {
 
 	b.Run("Defaults", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			tp, _ := estransport.New(estransport.Config{
+			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
 			})
@@ -81,7 +81,7 @@ func BenchmarkTransport(b *testing.B) {
 		hdr.Set("Accept", "application/yaml")
 
 		for i := 0; i < b.N; i++ {
-			tp, _ := estransport.New(estransport.Config{
+			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Header:    hdr,
 				Transport: newFakeTransport(b),

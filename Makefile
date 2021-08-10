@@ -32,10 +32,10 @@ endif
 	@if which gotestsum > /dev/null 2>&1 ; then \
 		echo "gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml --" $(testintegargs); \
 		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "."; \
-		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "./estransport" "./opensearchapi" "./esutil"; \
+		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "./opensearchtransport" "./opensearchapi" "./esutil"; \
 	else \
 		echo "go test -v" $(testintegargs) "."; \
-		go test -v $(testintegargs) "./estransport" "./opensearchapi" "./esutil"; \
+		go test -v $(testintegargs) "./opensearchtransport" "./opensearchapi" "./esutil"; \
 	fi;
 
 test-api:  ## Run generated API integration tests
@@ -260,7 +260,7 @@ godoc: ## Display documentation for the package
 	@printf "\033[2m→ Generating documentation...\033[0m\n"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchapi"
-	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/estransport"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchtransport"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/esutil"
 	@printf "\n"
 	godoc --http=localhost:6060 --play

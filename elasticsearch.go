@@ -43,7 +43,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/estransport"
+	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/internal/version"
 )
 
@@ -97,19 +97,19 @@ type Config struct {
 
 	RetryBackoff func(attempt int) time.Duration // Optional backoff duration. Default: nil.
 
-	Transport http.RoundTripper    // The HTTP transport object.
-	Logger    estransport.Logger   // The logger object.
-	Selector  estransport.Selector // The selector object.
+	Transport http.RoundTripper            // The HTTP transport object.
+	Logger    opensearchtransport.Logger   // The logger object.
+	Selector  opensearchtransport.Selector // The selector object.
 
 	// Optional constructor function for a custom ConnectionPool. Default: nil.
-	ConnectionPoolFunc func([]*estransport.Connection, estransport.Selector) estransport.ConnectionPool
+	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
 }
 
 // Client represents the Elasticsearch client.
 //
 type Client struct {
-	*opensearchapi.API   // Embeds the API methods
-	Transport            estransport.Interface
+	*opensearchapi.API      // Embeds the API methods
+	Transport            opensearchtransport.Interface
 	useResponseCheckOnly bool
 
 	productCheckMu      sync.RWMutex
@@ -177,7 +177,7 @@ func NewClient(cfg Config) (*Client, error) {
 		cfg.Password = pw
 	}
 
-	tp, err := estransport.New(estransport.Config{
+	tp, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs:         urls,
 		Username:     cfg.Username,
 		Password:     cfg.Password,
@@ -333,17 +333,17 @@ func (c *Client) productCheck() error {
 
 // Metrics returns the client metrics.
 //
-func (c *Client) Metrics() (estransport.Metrics, error) {
-	if mt, ok := c.Transport.(estransport.Measurable); ok {
+func (c *Client) Metrics() (opensearchtransport.Metrics, error) {
+	if mt, ok := c.Transport.(opensearchtransport.Measurable); ok {
 		return mt.Metrics()
 	}
-	return estransport.Metrics{}, errors.New("transport is missing method Metrics()")
+	return opensearchtransport.Metrics{}, errors.New("transport is missing method Metrics()")
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
 //
 func (c *Client) DiscoverNodes() error {
-	if dt, ok := c.Transport.(estransport.Discoverable); ok {
+	if dt, ok := c.Transport.(opensearchtransport.Discoverable); ok {
 		return dt.DiscoverNodes()
 	}
 	return errors.New("transport is missing method DiscoverNodes()")
