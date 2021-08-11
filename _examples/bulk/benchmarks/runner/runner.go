@@ -42,7 +42,7 @@ import (
 	"github.com/montanaflynn/stats"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 // NewRunner returns new BulkIndexer benchmarking runner.
@@ -69,7 +69,7 @@ type Config struct {
 	IndexName   string
 	DatasetName string
 	Client      *elasticsearch.Client
-	Decoder     esutil.BulkResponseJSONDecoder
+	Decoder     opensearchutil.BulkResponseJSONDecoder
 
 	NumShards     int
 	NumReplicas   int
@@ -204,7 +204,7 @@ func (r *Runner) run(n int, measure bool) error {
 		return fmt.Errorf("run: %s", err)
 	}
 
-	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+	bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 		Index:         r.config.IndexName,
 		Client:        r.config.Client,
 		Decoder:       r.config.Decoder,
@@ -218,10 +218,10 @@ func (r *Runner) run(n int, measure bool) error {
 
 	start := time.Now().UTC()
 	for i := 1; i <= r.config.NumItems; i++ {
-		err := bi.Add(context.Background(), esutil.BulkIndexerItem{
+		err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 			Action: "index",
 			Body:   bytes.NewReader(r.doc),
-			OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+			OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, res opensearchutil.BulkIndexerResponseItem, err error) {
 				if err != nil {
 					log.Printf("ERROR: %s", err)
 				} else {

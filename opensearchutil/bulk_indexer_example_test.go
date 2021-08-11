@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package esutil_test
+package opensearchutil_test
 
 import (
 	"context"
@@ -36,7 +36,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 func ExampleNewBulkIndexer() {
@@ -63,7 +63,7 @@ func ExampleNewBulkIndexer() {
 
 	// Create the indexer
 	//
-	indexer, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+	indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 		Client:     es,     // The Elasticsearch client
 		Index:      "test", // The default index name
 		NumWorkers: 4,      // The number of worker goroutines (default: number of CPUs)
@@ -77,7 +77,7 @@ func ExampleNewBulkIndexer() {
 	//
 	err = indexer.Add(
 		context.Background(),
-		esutil.BulkIndexerItem{
+		opensearchutil.BulkIndexerItem{
 			// Action field configures the operation to perform (index, create, delete, update)
 			Action: "index",
 
@@ -90,8 +90,8 @@ func ExampleNewBulkIndexer() {
 			// OnSuccess is the optional callback for each successful operation
 			OnSuccess: func(
 				ctx context.Context,
-				item esutil.BulkIndexerItem,
-				res esutil.BulkIndexerResponseItem,
+				item opensearchutil.BulkIndexerItem,
+				res opensearchutil.BulkIndexerResponseItem,
 			) {
 				fmt.Printf("[%d] %s test/%s", res.Status, res.Result, item.DocumentID)
 			},
@@ -99,8 +99,8 @@ func ExampleNewBulkIndexer() {
 			// OnFailure is the optional callback for each failed operation
 			OnFailure: func(
 				ctx context.Context,
-				item esutil.BulkIndexerItem,
-				res esutil.BulkIndexerResponseItem, err error,
+				item opensearchutil.BulkIndexerItem,
+				res opensearchutil.BulkIndexerResponseItem, err error,
 			) {
 				if err != nil {
 					log.Printf("ERROR: %s", err)

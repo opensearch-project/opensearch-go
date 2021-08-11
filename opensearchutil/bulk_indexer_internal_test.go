@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package esutil
+package opensearchutil
 
 import (
 	"bytes"

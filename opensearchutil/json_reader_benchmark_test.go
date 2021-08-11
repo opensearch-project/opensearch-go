@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package esutil_test
+package opensearchutil_test
 
 import (
 	"bytes"
@@ -37,7 +37,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 var _ = fmt.Print
@@ -79,7 +79,7 @@ func BenchmarkJSONReader(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			out, _ := ioutil.ReadAll(esutil.NewJSONReader(map[string]string{"foo": "bar"}))
+			out, _ := ioutil.ReadAll(opensearchutil.NewJSONReader(map[string]string{"foo": "bar"}))
 			if string(out) != `{"foo":"bar"}`+"\n" {
 				b.Fatalf("Unexpected output: %q", out)
 			}
@@ -91,7 +91,7 @@ func BenchmarkJSONReader(b *testing.B) {
 
 		var buf bytes.Buffer
 		for i := 0; i < b.N; i++ {
-			io.Copy(&buf, esutil.NewJSONReader(map[string]string{"foo": "bar"}))
+			io.Copy(&buf, opensearchutil.NewJSONReader(map[string]string{"foo": "bar"}))
 			if buf.String() != `{"foo":"bar"}`+"\n" {
 				b.Fatalf("Unexpected output: %q", buf.String())
 			}
@@ -103,7 +103,7 @@ func BenchmarkJSONReader(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			out, _ := ioutil.ReadAll(esutil.NewJSONReader(Foo{Bar: "baz"}))
+			out, _ := ioutil.ReadAll(opensearchutil.NewJSONReader(Foo{Bar: "baz"}))
 			if string(out) != `{"bar":"BAZ"}`+"\n" {
 				b.Fatalf("Unexpected output: %q", out)
 			}

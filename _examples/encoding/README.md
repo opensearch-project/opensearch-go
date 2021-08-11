@@ -36,16 +36,16 @@ make clean setup
 go run easyjson.go
 ```
 
-## `esutil.JSONReader()`
+## `opensearchutil.JSONReader()`
 
-The [`esutil.JSONReader()`](../../esutil/json_reader.go) helper method takes a struct, a map,
+The [`opensearchutil.JSONReader()`](../../opensearchutil/json_reader.go) helper method takes a struct, a map,
 or any other serializable object, and converts it to JSON wrapped in a reader, for convenient
 passing to the `WithBody()` methods:
 
 ```golang
 type Document struct{ Title string }
 doc := Document{Title: "Test"}
-es.Search(es.Search.WithBody(esutil.NewJSONReader(&doc)))
+es.Search(es.Search.WithBody(opensearchutil.NewJSONReader(&doc)))
 ```
 
 -----

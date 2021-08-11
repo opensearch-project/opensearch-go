@@ -26,7 +26,7 @@
 
 // +build ignore
 
-// This example demonstrates indexing documents using the esutil.BulkIndexer helper.
+// This example demonstrates indexing documents using the opensearchutil.BulkIndexer helper.
 //
 // You can configure the settings with command line flags:
 //
@@ -52,7 +52,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 type Article struct {
@@ -145,7 +145,7 @@ func main() {
 	// NOTE: For optimal performance, consider using a third-party JSON decoding package.
 	//       See an example in the "benchmarks" folder.
 	//
-	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+	bi, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 		Index:         indexName,        // The default index name
 		Client:        es,               // The Elasticsearch client
 		NumWorkers:    numWorkers,       // The number of worker goroutines
@@ -207,7 +207,7 @@ func main() {
 		//
 		err = bi.Add(
 			context.Background(),
-			esutil.BulkIndexerItem{
+			opensearchutil.BulkIndexerItem{
 				// Action field configures the operation to perform (index, create, delete, update)
 				Action: "index",
 
@@ -218,12 +218,12 @@ func main() {
 				Body: bytes.NewReader(data),
 
 				// OnSuccess is called for each successful operation
-				OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+				OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, res opensearchutil.BulkIndexerResponseItem) {
 					atomic.AddUint64(&countSuccessful, 1)
 				},
 
 				// OnFailure is called for each failed operation
-				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+				OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, res opensearchutil.BulkIndexerResponseItem, err error) {
 					if err != nil {
 						log.Printf("ERROR: %s", err)
 					} else {
