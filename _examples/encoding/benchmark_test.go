@@ -39,7 +39,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/opensearch-project/opensearch-go/_examples/encoding/model"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 func BenchmarkEncode(b *testing.B) {
@@ -80,7 +80,7 @@ func BenchmarkEncode(b *testing.B) {
 
 	b.Run("Article - JSONReader", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, err := io.Copy(&buf, esutil.NewJSONReader(article))
+			_, err := io.Copy(&buf, opensearchutil.NewJSONReader(article))
 			if err != nil {
 				b.Error(err)
 			}
@@ -110,7 +110,7 @@ func BenchmarkEncode(b *testing.B) {
 
 	b.Run("map - JSONReader", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, err := io.Copy(&buf, esutil.NewJSONReader(query))
+			_, err := io.Copy(&buf, opensearchutil.NewJSONReader(query))
 			if err != nil {
 				b.Error(err)
 			}

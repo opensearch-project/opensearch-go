@@ -26,7 +26,7 @@
 
 // +build ignore
 
-// This example demonstrates indexing documents using the esutil.BulkIndexer helper.
+// This example demonstrates indexing documents using the opensearchutil.BulkIndexer helper.
 //
 // You can configure the settings with command line flags:
 //
@@ -52,7 +52,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 
 	"github.com/opensearch-project/opensearch-go/_examples/bulk/benchmarks/model"
 	"github.com/opensearch-project/opensearch-go/_examples/bulk/benchmarks/runner"
@@ -186,7 +186,7 @@ func main() {
 
 type easyjsonDecoder struct{}
 
-func (d easyjsonDecoder) UnmarshalFromReader(r io.Reader, blk *esutil.BulkIndexerResponse) error {
+func (d easyjsonDecoder) UnmarshalFromReader(r io.Reader, blk *opensearchutil.BulkIndexerResponse) error {
 	var v model.BulkIndexerResponse
 	if err := easyjson.UnmarshalFromReader(r, &v); err != nil {
 		return err

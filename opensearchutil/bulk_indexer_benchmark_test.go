@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package esutil_test
+package opensearchutil_test
 
 import (
 	"bytes"
@@ -38,7 +38,7 @@ import (
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 var mockResponseBody = `{
@@ -73,7 +73,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 		b.ResetTimer()
 
 		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransp{}})
-		bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:     es,
 			FlushBytes: 1024,
 		})
@@ -86,7 +86,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			docID = strconv.AppendInt(docID, int64(i), 10)
 			docIDBuf.Write(docID)
-			bi.Add(context.Background(), esutil.BulkIndexerItem{
+			bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 				Action:     "index",
 				DocumentID: docIDBuf.String(),                  // 1x alloc
 				Body:       strings.NewReader(`{"foo":"bar"}`), // 1x alloc

@@ -35,14 +35,14 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 type Consumer struct {
 	BrokerURL string
 	TopicName string
 
-	Indexer esutil.BulkIndexer
+	Indexer opensearchutil.BulkIndexer
 	reader  *kafka.Reader
 
 	startTime     time.Time
@@ -75,13 +75,13 @@ func (c *Consumer) Run(ctx context.Context) (err error) {
 		// log.Printf("%v/%v/%v:%s\n", msg.Topic, msg.Partition, msg.Offset, string(msg.Value))
 
 		if err := c.Indexer.Add(ctx,
-			esutil.BulkIndexerItem{
+			opensearchutil.BulkIndexerItem{
 				Action: "create",
 				Body:   bytes.NewReader(msg.Value),
-				OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+				OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, res opensearchutil.BulkIndexerResponseItem) {
 					// log.Printf("Indexed %s/%s", res.Index, res.DocumentID)
 				},
-				OnFailure: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem, err error) {
+				OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, res opensearchutil.BulkIndexerResponseItem, err error) {
 					if err != nil {
 						log.Println(err)
 					} else {

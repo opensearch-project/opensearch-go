@@ -25,7 +25,7 @@
 // under the License.
 
 /*
-Package esutil provides helper utilities to the Go client for Elasticsearch.
+Package opensearchutil provides helper utilities to the Go client for Elasticsearch.
 
 */
-package esutil
+package opensearchutil

@@ -26,7 +26,7 @@
 
 // +build integration
 
-package esutil_test
+package opensearchutil_test
 
 import (
 	"strings"
@@ -34,7 +34,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 func TestJSONReaderIntegration(t *testing.T) {
@@ -55,7 +55,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 			Title string `json:"title"`
 		}{Title: "Foo Bar"}
 
-		res, err = es.Index("test", esutil.NewJSONReader(&doc), es.Index.WithRefresh("true"))
+		res, err = es.Index("test", opensearchutil.NewJSONReader(&doc), es.Index.WithRefresh("true"))
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
@@ -75,7 +75,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 
 		res, err = es.Search(
 			es.Search.WithIndex("test"),
-			es.Search.WithBody(esutil.NewJSONReader(&query)),
+			es.Search.WithBody(opensearchutil.NewJSONReader(&query)),
 			es.Search.WithPretty(),
 		)
 		if err != nil {

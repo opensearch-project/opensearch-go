@@ -26,7 +26,7 @@
 
 // +build integration
 
-package esutil_test
+package opensearchutil_test
 
 import (
 	"context"
@@ -40,7 +40,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 func TestBulkIndexerIntegration(t *testing.T) {
@@ -77,7 +77,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					es.Indices.Create.WithBody(strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`)),
 					es.Indices.Create.WithWaitForActiveShards("1"))
 
-				bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+				bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 					Index:  indexName,
 					Client: es,
 					// FlushBytes: 3e+6,
@@ -87,11 +87,11 @@ func TestBulkIndexerIntegration(t *testing.T) {
 				start := time.Now().UTC()
 
 				for i := 1; i <= numItems; i++ {
-					err := bi.Add(context.Background(), esutil.BulkIndexerItem{
+					err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 						Action:     "index",
 						DocumentID: strconv.Itoa(i),
 						Body:       strings.NewReader(body),
-						OnSuccess: func(ctx context.Context, item esutil.BulkIndexerItem, res esutil.BulkIndexerResponseItem) {
+						OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, res opensearchutil.BulkIndexerResponseItem) {
 							atomic.AddUint64(&countSuccessful, 1)
 						},
 					})
@@ -137,14 +137,14 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})
 
-				bi, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+				bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 					Index:  "test-index-a",
 					Client: es,
 				})
 
 				// Default index
 				for i := 1; i <= 10; i++ {
-					err := bi.Add(context.Background(), esutil.BulkIndexerItem{
+					err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 						Action:     "index",
 						DocumentID: strconv.Itoa(i),
 						Body:       strings.NewReader(body),
@@ -156,7 +156,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 				// Index 1
 				for i := 1; i <= 10; i++ {
-					err := bi.Add(context.Background(), esutil.BulkIndexerItem{
+					err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 						Action: "index",
 						Index:  "test-index-b",
 						Body:   strings.NewReader(body),
@@ -168,7 +168,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 				// Index 2
 				for i := 1; i <= 10; i++ {
-					err := bi.Add(context.Background(), esutil.BulkIndexerItem{
+					err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 						Action: "index",
 						Index:  "test-index-c",
 						Body:   strings.NewReader(body),

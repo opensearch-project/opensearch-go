@@ -29,15 +29,15 @@
 package model
 
 import (
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
-// BulkIndexerResponse wraps the esutil.BulkIndexerResponse,
-// and implements the esutil.UnmarshalFromReader() method,
+// BulkIndexerResponse wraps the opensearchutil.BulkIndexerResponse,
+// and implements the opensearchutil.UnmarshalFromReader() method,
 // in order to demonstrate usage of a third-party JSON decoder,
 // such as "mailru/easyjson".
 //
 // easyjson:json
 type BulkIndexerResponse struct {
-	esutil.BulkIndexerResponse
+	opensearchutil.BulkIndexerResponse
 }

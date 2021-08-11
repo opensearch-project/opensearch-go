@@ -40,7 +40,7 @@ import (
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 var (
@@ -64,7 +64,7 @@ func TestTransportRetries(t *testing.T) {
 
 	bodies := []io.Reader{
 		strings.NewReader(`FAKE`),
-		esutil.NewJSONReader(`FAKE`),
+		opensearchutil.NewJSONReader(`FAKE`),
 	}
 
 	for _, body := range bodies {

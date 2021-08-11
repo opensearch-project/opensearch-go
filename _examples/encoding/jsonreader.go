@@ -31,7 +31,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 )
 
 func init() {
@@ -53,7 +53,7 @@ func main() {
 		Title string `json:"title"`
 	}{Title: "Test"}
 
-	res, err = es.Index("test", esutil.NewJSONReader(&doc), es.Index.WithRefresh("true"))
+	res, err = es.Index("test", opensearchutil.NewJSONReader(&doc), es.Index.WithRefresh("true"))
 	if err != nil {
 		log.Fatalf("Error getting response: %s", err)
 	}
@@ -70,7 +70,7 @@ func main() {
 
 	res, err = es.Search(
 		es.Search.WithIndex("test"),
-		es.Search.WithBody(esutil.NewJSONReader(&query)),
+		es.Search.WithBody(opensearchutil.NewJSONReader(&query)),
 		es.Search.WithPretty(),
 	)
 	if err != nil {

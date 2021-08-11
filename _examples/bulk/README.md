@@ -29,7 +29,7 @@ go run default.go -count=100000 -batch=25000
 
 ## `indexer.go`
 
-The [`indexer.go`](indexer.go) example demonstrates how to use the [`esutil.BulkIndexer`](../esutil/bulk_indexer.go) helper for efficient indexing in parallel.
+The [`indexer.go`](indexer.go) example demonstrates how to use the [`opensearchutil.BulkIndexer`](../opensearchutil/bulk_indexer.go) helper for efficient indexing in parallel.
 
 ```bash
 go run indexer.go -count=100000 -flush=1000000
@@ -44,10 +44,10 @@ go run indexer.go -count=100000 -flush=1000000
 The helper allows you to `Add()` bulk indexer items, and flushes each batch based on the configured threshold.
 
 ```golang
-indexer, _ := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{})
+indexer, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{})
 indexer.Add(
 	context.Background(),
-	esutil.BulkIndexerItem{
+	opensearchutil.BulkIndexerItem{
 		Action: "index",
 		Body:   strings.NewReader(`{"title":"Test"}`),
 	})

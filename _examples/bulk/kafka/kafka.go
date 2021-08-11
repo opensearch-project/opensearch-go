@@ -43,7 +43,7 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/opensearch-project/opensearch-go/esutil"
+	"github.com/opensearch-project/opensearch-go/opensearchutil"
 
 	"github.com/opensearch-project/opensearch-go/_examples/bulk/kafka/consumer"
 	"github.com/opensearch-project/opensearch-go/_examples/bulk/kafka/producer"
@@ -104,7 +104,7 @@ func main() {
 
 		producers []*producer.Producer
 		consumers []*consumer.Consumer
-		indexers  []esutil.BulkIndexer
+		indexers  []opensearchutil.BulkIndexer
 	)
 
 	done := make(chan os.Signal)
@@ -160,7 +160,7 @@ func main() {
 	// Set up indexers
 	//
 	for i := 1; i <= numIndexers; i++ {
-		idx, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		idx, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Index:      indexName,
 			Client:     es,
 			NumWorkers: numWorkers,
@@ -247,7 +247,7 @@ func main() {
 func report(
 	producers []*producer.Producer,
 	consumers []*consumer.Consumer,
-	indexers []esutil.BulkIndexer,
+	indexers []opensearchutil.BulkIndexer,
 ) string {
 	var (
 		b strings.Builder
