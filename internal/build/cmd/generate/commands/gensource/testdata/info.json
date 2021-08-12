@@ -2,7 +2,7 @@
   "info": {
     "stability": "stable",
     "documentation": {
-      "url": "http://www.elastic.co/guide/",
+      "url": "https://opensearch.org/docs",
       "description": "Returns basic information about the cluster."
     },
     "url": {
