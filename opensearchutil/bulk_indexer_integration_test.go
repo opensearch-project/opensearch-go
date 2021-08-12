@@ -66,7 +66,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 				var countSuccessful uint64
 				indexName := "test-bulk-integration"
 
-				es, _ := elasticsearch.NewClient(elasticsearch.Config{
+				es, _ := opensearch.NewClient(opensearch.Config{
 					CompressRequestBody: tt.CompressRequestBodyEnabled,
 					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})
@@ -132,7 +132,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			})
 
 			t.Run("Multiple indices", func(t *testing.T) {
-				es, _ := elasticsearch.NewClient(elasticsearch.Config{
+				es, _ := opensearch.NewClient(opensearch.Config{
 					CompressRequestBody: tt.CompressRequestBodyEnabled,
 					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})

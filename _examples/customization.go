@@ -89,8 +89,8 @@ func main() {
 
 	// Pass the custom transport to the client.
 	//
-	es, _ := elasticsearch.NewClient(
-		elasticsearch.Config{Transport: &tp},
+	es, _ := opensearch.NewClient(
+		opensearch.Config{Transport: &tp},
 	)
 
 	for i := 0; i < 25; i++ {

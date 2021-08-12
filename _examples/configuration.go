@@ -46,7 +46,7 @@ func main() {
 	// NOTE: These values are for illustrative purposes only, and not suitable
 	//       for any production use. The default transport is sufficient.
 	//
-	cfg := elasticsearch.Config{
+	cfg := opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost:   10,
@@ -59,7 +59,7 @@ func main() {
 		},
 	}
 
-	es, err := elasticsearch.NewClient(cfg)
+	es, err := opensearch.NewClient(cfg)
 	if err != nil {
 		log.Printf("Error creating the client: %s", err)
 	} else {

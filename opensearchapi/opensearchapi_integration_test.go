@@ -42,7 +42,7 @@ import (
 
 func TestAPI(t *testing.T) {
 	t.Run("Search", func(t *testing.T) {
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
@@ -67,7 +67,7 @@ func TestAPI(t *testing.T) {
 	})
 
 	t.Run("Headers", func(t *testing.T) {
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
@@ -97,7 +97,7 @@ func TestAPI(t *testing.T) {
 			requestID = "reindex-123"
 		)
 
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}

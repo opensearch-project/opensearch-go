@@ -77,7 +77,7 @@ func (g SrcGenerator) Output() (io.Reader, error) {
 // under the License.
 // Code generated, DO NOT EDIT
 
-package elasticsearch_test
+package opensearch_test
 
 import (
 	"fmt"
@@ -90,7 +90,7 @@ import (
 var (
 	_ = fmt.Printf
 	_ = os.Stdout
-	_ = elasticsearch.NewDefaultClient
+	_ = opensearch.NewDefaultClient
 )
 
 `)
@@ -107,7 +107,7 @@ var (
 	if !g.Example.IsTranslated() {
 		out.WriteString("// ")
 	}
-	out.WriteString(`es, _ := elasticsearch.NewDefaultClient()` + "\n")
+	out.WriteString(`es, _ := opensearch.NewDefaultClient()` + "\n")
 
 	if !g.Example.IsTranslated() {
 		out.WriteString("\n\tt.Error(`Missing implementation for: ")

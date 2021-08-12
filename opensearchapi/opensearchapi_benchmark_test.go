@@ -87,9 +87,9 @@ func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.RoundTripFn(req)
 }
 
-func newFakeClient(b *testing.B) *elasticsearch.Client {
-	cfg := elasticsearch.Config{Transport: &FakeTransport{RoundTripFn: defaultRoundTripFn}}
-	es, err := elasticsearch.NewClient(cfg)
+func newFakeClient(b *testing.B) *opensearch.Client {
+	cfg := opensearch.Config{Transport: &FakeTransport{RoundTripFn: defaultRoundTripFn}}
+	es, err := opensearch.NewClient(cfg)
 
 	if err != nil {
 		b.Fatalf("Unexpected error when creating a client: %s", err)
@@ -98,9 +98,9 @@ func newFakeClient(b *testing.B) *elasticsearch.Client {
 	return es
 }
 
-func newFakeClientWithError(b *testing.B) *elasticsearch.Client {
-	cfg := elasticsearch.Config{Transport: &FakeTransport{RoundTripFn: errorRoundTripFn}}
-	es, err := elasticsearch.NewClient(cfg)
+func newFakeClientWithError(b *testing.B) *opensearch.Client {
+	cfg := opensearch.Config{Transport: &FakeTransport{RoundTripFn: errorRoundTripFn}}
+	es, err := opensearch.NewClient(cfg)
 
 	if err != nil {
 		b.Fatalf("Unexpected error when creating a client: %s", err)

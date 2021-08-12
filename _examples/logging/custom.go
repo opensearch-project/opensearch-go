@@ -123,7 +123,7 @@ func main() {
 	//
 	// Pass the logger to the client
 	//
-	es, _ := elasticsearch.NewClient(elasticsearch.Config{
+	es, _ := opensearch.NewClient(opensearch.Config{
 		Logger: &CustomLogger{log},
 	})
 

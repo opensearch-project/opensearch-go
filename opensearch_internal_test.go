@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package elasticsearch
+package opensearch
 
 import (
 	"errors"

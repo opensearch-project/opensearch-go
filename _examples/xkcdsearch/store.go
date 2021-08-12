@@ -61,14 +61,14 @@ type Hit struct {
 // StoreConfig configures the store.
 //
 type StoreConfig struct {
-	Client    *elasticsearch.Client
+	Client    *opensearch.Client
 	IndexName string
 }
 
 // Store allows to index and search documents.
 //
 type Store struct {
-	es        *elasticsearch.Client
+	es        *opensearch.Client
 	indexName string
 }
 

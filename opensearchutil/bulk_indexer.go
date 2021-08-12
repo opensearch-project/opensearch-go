@@ -70,7 +70,7 @@ type BulkIndexerConfig struct {
 	FlushBytes    int           // The flush threshold in bytes. Defaults to 5MB.
 	FlushInterval time.Duration // The flush threshold as duration. Defaults to 30sec.
 
-	Client      *elasticsearch.Client   // The Elasticsearch client.
+	Client      *opensearch.Client      // The Elasticsearch client.
 	Decoder     BulkResponseJSONDecoder // A custom JSON decoder.
 	DebugLogger BulkIndexerDebugLogger  // An optional logger for debugging.
 
@@ -194,7 +194,7 @@ type bulkIndexerStats struct {
 //
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	if cfg.Client == nil {
-		cfg.Client, _ = elasticsearch.NewDefaultClient()
+		cfg.Client, _ = opensearch.NewDefaultClient()
 	}
 
 	if cfg.Decoder == nil {

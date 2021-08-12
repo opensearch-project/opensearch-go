@@ -110,7 +110,7 @@ func main() {
 		flushBytes = humanBytes(3e+6)
 	}
 
-	clientCfg := elasticsearch.Config{}
+	clientCfg := opensearch.Config{}
 
 	if useFasthttp {
 		clientCfg.Transport = &fasthttpTransport{}
@@ -120,7 +120,7 @@ func main() {
 		clientCfg.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true}
 	}
 
-	es, _ := elasticsearch.NewClient(clientCfg)
+	es, _ := opensearch.NewClient(clientCfg)
 
 	runnerCfg := runner.Config{
 		Client: es,

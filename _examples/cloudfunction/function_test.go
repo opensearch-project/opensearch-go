@@ -51,7 +51,7 @@ func (t *MockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestHealth(t *testing.T) {
-	clusterstatus.ES, _ = elasticsearch.NewClient(elasticsearch.Config{Transport: &MockTransport{}})
+	clusterstatus.ES, _ = opensearch.NewClient(opensearch.Config{Transport: &MockTransport{}})
 
 	w := httptest.NewRecorder()
 	clusterstatus.Health(w, &http.Request{})

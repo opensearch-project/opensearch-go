@@ -82,7 +82,7 @@ func TestBulkIndexer(t *testing.T) {
 			numItems  = 6
 		)
 
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
 					return &http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}, Body: ioutil.NopCloser(strings.NewReader(infoBody))}, nil
@@ -177,7 +177,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Add() Timeout", func(t *testing.T) {
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{}})
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: es})
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
@@ -203,7 +203,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Close() Cancel", func(t *testing.T) {
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{}})
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{
 			NumWorkers: 1,
 			FlushBytes: 1,
@@ -222,7 +222,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Indexer Callback", func(t *testing.T) {
-		esCfg := elasticsearch.Config{
+		esCfg := opensearch.Config{
 			Transport: &mockTransport{
 				RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 					if request.URL.Path == "/" {
@@ -241,7 +241,7 @@ func TestBulkIndexer(t *testing.T) {
 			}
 		}
 
-		es, _ := elasticsearch.NewClient(esCfg)
+		es, _ := opensearch.NewClient(esCfg)
 
 		var indexerError error
 		biCfg := BulkIndexerConfig{
@@ -281,7 +281,7 @@ func TestBulkIndexer(t *testing.T) {
 			bodyContent, _ = ioutil.ReadFile("testdata/bulk_response_2.json")
 		)
 
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
 					return &http.Response{
@@ -417,7 +417,7 @@ func TestBulkIndexer(t *testing.T) {
 
 	t.Run("OnFlush callbacks", func(t *testing.T) {
 		type contextKey string
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{}})
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{
 			Client: es,
 			Index:  "foo",
@@ -454,7 +454,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Automatic flush", func(t *testing.T) {
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
 					return &http.Response{
@@ -521,7 +521,7 @@ func TestBulkIndexer(t *testing.T) {
 			numItems  = 2
 		)
 
-		esCfg := elasticsearch.Config{
+		esCfg := opensearch.Config{
 			Transport: &mockTransport{
 				RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 					if request.URL.Path == "/" {
@@ -561,7 +561,7 @@ func TestBulkIndexer(t *testing.T) {
 		if os.Getenv("DEBUG") != "" {
 			esCfg.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 		}
-		es, _ := elasticsearch.NewClient(esCfg)
+		es, _ := opensearch.NewClient(esCfg)
 
 		biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: es}
 		if os.Getenv("DEBUG") != "" {
@@ -611,7 +611,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Custom JSON Decoder", func(t *testing.T) {
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransport{}})
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{Client: es, Decoder: customJSONDecoder{}})
 
 		err := bi.Add(context.Background(), BulkIndexerItem{

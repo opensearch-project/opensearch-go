@@ -68,7 +68,7 @@ type Runner struct {
 type Config struct {
 	IndexName   string
 	DatasetName string
-	Client      *elasticsearch.Client
+	Client      *opensearch.Client
 	Decoder     opensearchutil.BulkResponseJSONDecoder
 
 	NumShards     int

@@ -30,7 +30,7 @@ Package opensearchapi provides the Go API for Elasticsearch.
 It is automatically included in the client provided by the
 github.com/opensearch-project/opensearch-go package:
 
-	es, _ := elasticsearch.NewDefaultClient()
+	es, _ := opensearch.NewDefaultClient()
 	res, _ := es.Info()
 	log.Println(res)
 

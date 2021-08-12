@@ -72,7 +72,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 	b.Run("Basic", func(b *testing.B) {
 		b.ResetTimer()
 
-		es, _ := elasticsearch.NewClient(elasticsearch.Config{Transport: &mockTransp{}})
+		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransp{}})
 		bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:     es,
 			FlushBytes: 1024,

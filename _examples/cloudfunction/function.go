@@ -55,13 +55,13 @@ import (
 //
 // See: https://cloud.google.com/functions/docs/concepts/go-runtime#one-time_initialization
 //
-var ES *elasticsearch.Client
+var ES *opensearch.Client
 
 func init() {
 	log.SetFlags(0)
 
 	var err error
-	ES, err = elasticsearch.NewDefaultClient()
+	ES, err = opensearch.NewDefaultClient()
 	if err != nil {
 		log.Fatalf("Error: %s", err)
 	}
