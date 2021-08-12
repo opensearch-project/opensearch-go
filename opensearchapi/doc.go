@@ -111,7 +111,7 @@ about the API endpoints and parameters.
 The Go API is generated from the Elasticsearch JSON specification at
 https://github.com/elastic/elasticsearch/tree/master/rest-api-spec/src/main/resources/rest-api-spec/api
 by the internal package available at
-https://github.com/elastic/go-elasticsearch/tree/master/internal/cmd/generate/commands/gensource.
+https://github.com/opensearch-project/opensearch-go/tree/main/internal/build/cmd/generate/commands/gensource.
 
 The API is tested by integration tests common to all Elasticsearch official clients, generated from the
 source at https://github.com/elastic/elasticsearch/tree/master/rest-api-spec/src/main/resources/rest-api-spec/test.
