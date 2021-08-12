@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package elasticsearch_test
+package opensearch_test
 
 import (
 	"context"
@@ -95,7 +95,7 @@ func BenchmarkClient(b *testing.B) {
 
 	b.Run("Create client with defaults", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, err := elasticsearch.NewClient(elasticsearch.Config{Transport: newFakeTransport(b)})
+			_, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b)})
 
 			if err != nil {
 				b.Fatalf("Unexpected error when creating a client: %s", err)
@@ -109,7 +109,7 @@ func BenchmarkClientAPI(b *testing.B) {
 
 	ctx := context.Background()
 
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 		Transport: newFakeTransport(b),
 	})

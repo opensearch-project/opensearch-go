@@ -140,8 +140,8 @@ func main() {
 
 	// Create new elasticsearch client ...
 	//
-	es, err := elasticsearch.NewClient(
-		elasticsearch.Config{
+	es, err := opensearch.NewClient(
+		opensearch.Config{
 			// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			// ... using the "ochttp" wrapper for instrumentation
 			Transport: &ochttp.Transport{},

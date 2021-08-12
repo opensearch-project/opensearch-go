@@ -44,7 +44,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 			err error
 		)
 
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}

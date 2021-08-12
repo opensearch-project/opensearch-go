@@ -87,7 +87,7 @@ var indexCmd = &cobra.Command{
 			StartURL: "https://xkcd.com/info.0.json",
 		}
 
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			crawler.log.Fatal().Err(err).Msg("Error creating Elasticsearch client")
 		}

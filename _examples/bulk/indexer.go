@@ -115,7 +115,7 @@ func main() {
 	// NOTE: For optimal performance, consider using a third-party HTTP transport package.
 	//       See an example in the "benchmarks" folder.
 	//
-	es, err := elasticsearch.NewClient(elasticsearch.Config{
+	es, err := opensearch.NewClient(opensearch.Config{
 		// Retry on 429 TooManyRequests statuses
 		//
 		RetryOnStatus: []int{502, 503, 504, 429},

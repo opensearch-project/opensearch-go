@@ -33,7 +33,7 @@ import (
 )
 
 func ExampleResponse_IsError() {
-	es, _ := elasticsearch.NewDefaultClient()
+	es, _ := opensearch.NewDefaultClient()
 
 	res, err := es.Info()
 
@@ -56,7 +56,7 @@ func ExampleResponse_IsError() {
 }
 
 func ExampleResponse_Status() {
-	es, _ := elasticsearch.NewDefaultClient()
+	es, _ := opensearch.NewDefaultClient()
 
 	res, _ := es.Info()
 	log.Println(res.Status())
@@ -65,7 +65,7 @@ func ExampleResponse_Status() {
 }
 
 func ExampleResponse_String() {
-	es, _ := elasticsearch.NewDefaultClient()
+	es, _ := opensearch.NewDefaultClient()
 
 	res, _ := es.Info()
 	log.Println(res.String())

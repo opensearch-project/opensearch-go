@@ -47,13 +47,13 @@ import (
 func main() {
 	log.SetFlags(0)
 
-	var es *elasticsearch.Client
+	var es *opensearch.Client
 
 	// ==============================================================================================
 	//
 	// "TextLogger" writes basic information about the request and response as plain text to the output.
 	//
-	es, _ = elasticsearch.NewClient(elasticsearch.Config{
+	es, _ = opensearch.NewClient(opensearch.Config{
 		Logger: &opensearchtransport.TextLogger{Output: os.Stdout},
 	})
 	run(es, "Text")
@@ -62,7 +62,7 @@ func main() {
 	//
 	// "ColorLogger" is optimized for displaying information in the terminal during development.
 	//
-	es, _ = elasticsearch.NewClient(elasticsearch.Config{
+	es, _ = opensearch.NewClient(opensearch.Config{
 		Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
 	})
 	run(es, "Color")
@@ -71,7 +71,7 @@ func main() {
 	//
 	// To log the request and response bodies, use the respective configuration options.
 	//
-	es, _ = elasticsearch.NewClient(elasticsearch.Config{
+	es, _ = opensearch.NewClient(opensearch.Config{
 		Logger: &opensearchtransport.ColorLogger{
 			Output:             os.Stdout,
 			EnableRequestBody:  true,
@@ -85,7 +85,7 @@ func main() {
 	// "CurlLogger" writes the information formatted as runnable curl commands,
 	// pretty-printing the response body (when enabled), useful eg. for sharing.
 	//
-	es, _ = elasticsearch.NewClient(elasticsearch.Config{
+	es, _ = opensearch.NewClient(opensearch.Config{
 		Logger: &opensearchtransport.CurlLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
 	})
 	run(es, "Curl")
@@ -94,7 +94,7 @@ func main() {
 	//
 	// "JSONLogger" writes the information as JSON and is suitable for production logging.
 	//
-	es, _ = elasticsearch.NewClient(elasticsearch.Config{
+	es, _ = opensearch.NewClient(opensearch.Config{
 		Logger: &opensearchtransport.JSONLogger{Output: os.Stdout},
 	})
 	run(es, "JSON")
@@ -102,7 +102,7 @@ func main() {
 
 // ------------------------------------------------------------------------------------------------
 
-func run(es *elasticsearch.Client, name string) {
+func run(es *opensearch.Client, name string) {
 	log.Println("███", fmt.Sprintf("\x1b[1m%s\x1b[0m", name), strings.Repeat("█", 75-len(name)))
 
 	es.Delete("test", "1")

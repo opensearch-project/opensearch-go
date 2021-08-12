@@ -131,7 +131,7 @@ func main() {
 
 	// Create the Elasticsearch client
 	//
-	es, err := elasticsearch.NewDefaultClient()
+	es, err := opensearch.NewDefaultClient()
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
 	}

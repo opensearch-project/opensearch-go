@@ -49,14 +49,14 @@ const port = "9209"
 // ExtendedClient allows to call regular and custom APIs.
 //
 type ExtendedClient struct {
-	*elasticsearch.Client
+	*opensearch.Client
 	Custom *ExtendedAPI
 }
 
 // ExtendedAPI contains custom APIs.
 //
 type ExtendedAPI struct {
-	*elasticsearch.Client
+	*opensearch.Client
 }
 
 // Example calls a custom REST API, "/_cat/example".
@@ -81,7 +81,7 @@ func main() {
 	//
 	go startServer(started)
 
-	esclient, err := elasticsearch.NewClient(elasticsearch.Config{
+	esclient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:" + port},
 		Logger:    &opensearchtransport.ColorLogger{Output: os.Stdout, EnableRequestBody: true, EnableResponseBody: true},
 	})

@@ -95,7 +95,7 @@ func TestStore(t *testing.T) {
 	}
 	mocktrans.RoundTripFn = func(req *http.Request) (*http.Response, error) { return mocktrans.Response, nil }
 
-	client, err := elasticsearch.NewClient(elasticsearch.Config{
+	client, err := opensearch.NewClient(opensearch.Config{
 		Transport: &mocktrans,
 	})
 	if err != nil {

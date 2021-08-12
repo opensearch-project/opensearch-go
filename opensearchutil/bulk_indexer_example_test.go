@@ -44,7 +44,7 @@ func ExampleNewBulkIndexer() {
 
 	// Create the Elasticsearch client
 	//
-	es, err := elasticsearch.NewClient(elasticsearch.Config{
+	es, err := opensearch.NewClient(opensearch.Config{
 		// Retry on 429 TooManyRequests statuses
 		//
 		RetryOnStatus: []int{502, 503, 504, 429},

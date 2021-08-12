@@ -124,7 +124,7 @@ func main() {
 
 	// Create an Elasticsearch client
 	//
-	es, err := elasticsearch.NewClient(elasticsearch.Config{
+	es, err := opensearch.NewClient(opensearch.Config{
 		RetryOnStatus: []int{502, 503, 504, 429}, // Add 429 to the list of retryable statuses
 		RetryBackoff:  func(i int) time.Duration { return time.Duration(i) * 100 * time.Millisecond },
 		MaxRetries:    5,
@@ -134,7 +134,7 @@ func main() {
 		log.Fatalf("Error: NewClient(): %s", err)
 	}
 	// Export client metrics to the "expvar" package
-	expvar.Publish("go-elasticsearch", expvar.Func(func() interface{} { m, _ := es.Metrics(); return m }))
+	expvar.Publish("opensearch-go", expvar.Func(func() interface{} { m, _ := es.Metrics(); return m }))
 
 	// Create the "stocks" index with correct mappings
 	//

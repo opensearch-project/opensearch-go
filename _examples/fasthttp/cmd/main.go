@@ -59,8 +59,8 @@ func init() {
 func main() {
 	log.SetFlags(0)
 
-	es, err := elasticsearch.NewClient(
-		elasticsearch.Config{Transport: &fasthttp.Transport{}},
+	es, err := opensearch.NewClient(
+		opensearch.Config{Transport: &fasthttp.Transport{}},
 	)
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)

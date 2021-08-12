@@ -26,7 +26,7 @@
 
 // +build !integration
 
-package elasticsearch_test
+package opensearch_test
 
 import (
 	"crypto/tls"
@@ -45,7 +45,7 @@ func init() {
 }
 
 func ExampleNewDefaultClient() {
-	es, err := elasticsearch.NewDefaultClient()
+	es, err := opensearch.NewDefaultClient()
 	if err != nil {
 		log.Fatalf("Error creating the client: %s\n", err)
 	}
@@ -60,7 +60,7 @@ func ExampleNewDefaultClient() {
 }
 
 func ExampleNewClient() {
-	cfg := elasticsearch.Config{
+	cfg := opensearch.Config{
 		Addresses: []string{
 			"http://localhost:9200",
 		},
@@ -76,7 +76,7 @@ func ExampleNewClient() {
 		},
 	}
 
-	es, _ := elasticsearch.NewClient(cfg)
+	es, _ := opensearch.NewClient(cfg)
 	log.Print(es.Transport.(*opensearchtransport.Client).URLs())
 }
 
@@ -90,9 +90,9 @@ func ExampleNewClient_logger() {
 	// * opensearchtransport.CurlLogger
 	// * opensearchtransport.JSONLogger
 
-	cfg := elasticsearch.Config{
+	cfg := opensearch.Config{
 		Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
 	}
 
-	elasticsearch.NewClient(cfg)
+	opensearch.NewClient(cfg)
 }

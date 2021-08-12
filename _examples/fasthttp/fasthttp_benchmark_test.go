@@ -36,7 +36,7 @@ import (
 func BenchmarkHTTPClient(b *testing.B) {
 	b.ReportAllocs()
 
-	client, err := elasticsearch.NewDefaultClient()
+	client, err := opensearch.NewDefaultClient()
 	if err != nil {
 		b.Fatalf("ERROR: %s", err)
 	}
@@ -57,8 +57,8 @@ func BenchmarkHTTPClient(b *testing.B) {
 func BenchmarkFastHTTPClient(b *testing.B) {
 	b.ReportAllocs()
 
-	client, err := elasticsearch.NewClient(
-		elasticsearch.Config{Transport: &fasthttp.Transport{}},
+	client, err := opensearch.NewClient(
+		opensearch.Config{Transport: &fasthttp.Transport{}},
 	)
 	if err != nil {
 		b.Fatalf("ERROR: %s", err)

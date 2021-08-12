@@ -58,7 +58,7 @@ func main() {
 	//
 	// An `ELASTICSEARCH_URL` environment variable will be used when exported.
 	//
-	es, err := elasticsearch.NewDefaultClient()
+	es, err := opensearch.NewDefaultClient()
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
 	}
@@ -78,7 +78,7 @@ func main() {
 		log.Fatalf("Error parsing the response body: %s", err)
 	}
 	// Print client and server version numbers.
-	log.Printf("Client: %s", elasticsearch.Version)
+	log.Printf("Client: %s", opensearch.Version)
 	log.Printf("Server: %s", r["version"].(map[string]interface{})["number"])
 	log.Println(strings.Repeat("~", 37))
 

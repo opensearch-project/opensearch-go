@@ -7,7 +7,7 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-// Licensed to Elasticsearch B.V. under one or more contributor
+// Licensed to opensearch B.V. under one or more contributor
 // license agreements. See the NOTICE file distributed with
 // this work for additional information regarding copyright
 // ownership. Elasticsearch B.V. licenses this file to you under
@@ -25,18 +25,18 @@
 // under the License.
 
 /*
-Package elasticsearch provides a Go client for Elasticsearch.
+Package opensearch provides a Go client for Elasticsearch.
 
 Create the client with the NewDefaultClient function:
 
-		elasticsearch.NewDefaultClient()
+		opensearch.NewDefaultClient()
 
 The ELASTICSEARCH_URL environment variable is used instead of the default URL, when set.
 Use a comma to separate multiple URLs.
 
 To configure the client, pass a Config object to the NewClient function:
 
-		cfg := elasticsearch.Config{
+		cfg := opensearch.Config{
 		  Addresses: []string{
 		    "http://localhost:9200",
 		    "http://localhost:9201",
@@ -53,12 +53,12 @@ To configure the client, pass a Config object to the NewClient function:
 		  },
 		}
 
-		elasticsearch.NewClient(cfg)
+		opensearch.NewClient(cfg)
 
 When using the Elastic Service (https://elastic.co/cloud), you can use CloudID instead of Addresses.
 When either Addresses or CloudID is set, the ELASTICSEARCH_URL environment variable is ignored.
 
-See the elasticsearch_integration_test.go file and the _examples folder for more information.
+See the opensearch_integration_test.go file and the _examples folder for more information.
 
 Call the Elasticsearch APIs by invoking the corresponding methods on the client:
 
@@ -73,4 +73,4 @@ See the github.com/opensearch-project/opensearch-go/opensearchapi package for mo
 
 See the github.com/opensearch-project/opensearch-go/opensearchtransport package for more information about configuring the transport.
 */
-package elasticsearch
+package opensearch

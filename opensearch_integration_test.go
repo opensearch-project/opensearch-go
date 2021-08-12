@@ -26,7 +26,7 @@
 
 // +build integration,!multinode
 
-package elasticsearch_test
+package opensearch_test
 
 import (
 	"context"
@@ -48,7 +48,7 @@ import (
 
 func TestClientTransport(t *testing.T) {
 	t.Run("Persistent", func(t *testing.T) {
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -100,7 +100,7 @@ func TestClientTransport(t *testing.T) {
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -123,7 +123,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -141,7 +141,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("Configured", func(t *testing.T) {
-		cfg := elasticsearch.Config{
+		cfg := opensearch.Config{
 			Transport: &http.Transport{
 				MaxIdleConnsPerHost:   10,
 				ResponseHeaderTimeout: time.Second,
@@ -153,7 +153,7 @@ func TestClientTransport(t *testing.T) {
 			},
 		}
 
-		es, err := elasticsearch.NewClient(cfg)
+		es, err := opensearch.NewClient(cfg)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -180,13 +180,13 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestClientCustomTransport(t *testing.T) {
 	t.Run("Customized", func(t *testing.T) {
-		cfg := elasticsearch.Config{
+		cfg := opensearch.Config{
 			Transport: &CustomTransport{
 				client: http.DefaultClient,
 			},
 		}
 
-		es, err := elasticsearch.NewClient(cfg)
+		es, err := opensearch.NewClient(cfg)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -208,7 +208,7 @@ func TestClientCustomTransport(t *testing.T) {
 			Transport: http.DefaultTransport,
 		})
 
-		es := elasticsearch.Client{
+		es := opensearch.Client{
 			Transport: tp, API: opensearchapi.New(tp),
 		}
 
@@ -242,7 +242,7 @@ func (t *ReplacedTransport) Count() uint64 {
 func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
 		tr := &ReplacedTransport{}
-		es := elasticsearch.Client{
+		es := opensearch.Client{
 			Transport: tr, API: opensearchapi.New(tr),
 		}
 
@@ -262,7 +262,7 @@ func TestClientReplaceTransport(t *testing.T) {
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		es, err := elasticsearch.NewDefaultClient()
+		es, err := opensearch.NewDefaultClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}

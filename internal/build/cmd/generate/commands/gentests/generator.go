@@ -246,7 +246,7 @@ var (
 
 func (g *Generator) genInitializeClient() {
 	g.w(`
-	cfg := elasticsearch.Config{}
+	cfg := opensearch.Config{}
 	`)
 
 	if g.TestSuite.Type == "xpack" {
@@ -268,7 +268,7 @@ func (g *Generator) genInitializeClient() {
 			}` + "\n")
 
 	g.w(`
-	es, eserr := elasticsearch.NewClient(cfg)
+	es, eserr := opensearch.NewClient(cfg)
 	if eserr != nil {
 		t.Fatalf("Error creating the client: %s\n", eserr)
 	}

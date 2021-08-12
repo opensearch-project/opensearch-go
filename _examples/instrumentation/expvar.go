@@ -93,8 +93,8 @@ func main() {
 		}(i)
 	}
 
-	es, err := elasticsearch.NewClient(
-		elasticsearch.Config{
+	es, err := opensearch.NewClient(
+		opensearch.Config{
 			Addresses: []string{
 				"http://localhost:10001",
 				"http://localhost:10002",
