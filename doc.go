@@ -69,8 +69,8 @@ Call the Elasticsearch APIs by invoking the corresponding methods on the client:
 
 		log.Println(res)
 
-See the github.com/elastic/go-elasticsearch/opensearchapi package for more information about using the API.
+See the github.com/opensearch-project/opensearch-go/opensearchapi package for more information about using the API.
 
-See the github.com/elastic/go-elasticsearch/opensearchtransport package for more information about configuring the transport.
+See the github.com/opensearch-project/opensearch-go/opensearchtransport package for more information about configuring the transport.
 */
 package elasticsearch
