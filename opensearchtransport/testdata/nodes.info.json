@@ -12,15 +12,10 @@
       "host": "127.0.0.1",
       "ip": "127.0.0.1",
       "version": "7.4.2",
-      "build_flavor": "default",
+      "build_flavor": "oss",
       "build_type": "tar",
       "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
-      "roles": ["ingest", "master", "data", "ml"],
-      "attributes": {
-        "ml.machine_memory": "8589934592",
-        "xpack.installed": "true",
-        "ml.max_open_jobs": "20"
-      },
+      "roles": ["ingest", "master", "data"],
       "http": {
         "bound_address": [
           "[::1]:10001",
@@ -36,15 +31,10 @@
       "host": "127.0.0.1",
       "ip": "127.0.0.1",
       "version": "7.4.2",
-      "build_flavor": "default",
+      "build_flavor": "oss",
       "build_type": "tar",
       "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
-      "roles": ["ingest", "master", "data", "ml"],
-      "attributes": {
-        "ml.machine_memory": "8589934592",
-        "ml.max_open_jobs": "20",
-        "xpack.installed": "true"
-      },
+      "roles": ["ingest", "master", "data"],
       "http": {
         "bound_address": [
           "127.0.0.1:10002",
@@ -61,15 +51,10 @@
       "host": "127.0.0.1",
       "ip": "127.0.0.1",
       "version": "7.4.2",
-      "build_flavor": "default",
+      "build_flavor": "oss",
       "build_type": "tar",
       "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
       "roles": ["master"],
-      "attributes": {
-        "ml.machine_memory": "8589934592",
-        "ml.max_open_jobs": "20",
-        "xpack.installed": "true"
-      },
       "http": {
         "bound_address": [
           "[::1]:10003",

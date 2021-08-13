@@ -73,12 +73,8 @@ func NameToGo(s string, api ...string) string {
 		"ttl": "TTL",
 
 		"api":   "API",
-		"ccr":   "CCR",
-		"ilm":   "ILM",
-		"ml":    "ML",
 		"sql":   "SQL",
 		"ssl":   "SSL",
-		"xpack": "XPack",
 	}
 
 	specialMappingsForID := map[string]string{
@@ -90,27 +86,6 @@ func NameToGo(s string, api ...string) string {
 		"IngestPutPipeline":    "PipelineID",
 		"IngestSimulate":       "PipelineID",
 		"RenderSearchTemplate": "TemplateID",
-
-		"MLDeleteDataFrameAnalytics":   "ID",
-		"MLGetDataFrameAnalytics":      "ID",
-		"MLGetDataFrameAnalyticsStats": "ID",
-		"MLPutDataFrameAnalytics":      "ID",
-		"MLStartDataFrameAnalytics":    "ID",
-		"MLStopDataFrameAnalytics":     "ID",
-
-		"RollupDeleteJob":     "JobID",
-		"RollupGetJobs":       "JobID",
-		"RollupGetRollupCaps": "Index",
-		"RollupPutJob":        "JobID",
-		"RollupStartJob":      "JobID",
-		"RollupStopJob":       "JobID",
-
-		"SecurityGetAPIKey": "ID",
-
-		"WatcherDeleteWatch":  "WatchID",
-		"WatcherExecuteWatch": "WatchID",
-		"WatcherGetWatch":     "WatchID",
-		"WatcherPutWatch":     "WatchID",
 	}
 
 	if s == "id" && api != nil && len(api) > 0 && api[0] != "" && specialMappingsForID[api[0]] != "" {

@@ -30,7 +30,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"sort"
 	"strings"
 	"unicode"
@@ -57,49 +56,6 @@ func NewEndpoint(f io.Reader) (*Endpoint, error) {
 	var endpoint Endpoint
 	var spec map[string]Endpoint
 
-	var xpackNamespaces = []string{
-		"async_search",
-		"autoscaling",
-		"cat.ml_data_frame_analytics",
-		"cat.ml_datafeeds",
-		"cat.ml_jobs",
-		"cat.ml_trained_models",
-		"cat.transforms",
-		"ccr",
-		"close_point_in_time",
-		"data_frame_transform_deprecated",
-		"enrich",
-		"eql",
-		"graph",
-		"ilm",
-		"indices.create_data_stream",
-		"indices.data_streams_stats",
-		"indices.delete_data_stream",
-		"indices.freeze",
-		"indices.get_data_stream",
-		"indices.migrate_to_data_stream",
-		"indices.promote_data_stream",
-		"indices.reload_search_analyzers",
-		"indices.unfreeze",
-		"license",
-		"logstash",
-		"migration",
-		"ml",
-		"monitoring",
-		"open_point_in_time",
-		"rollup",
-		"searchable_snapshots",
-		"security",
-		"slm",
-		"sql",
-		"ssl",
-		"text_structure",
-		"transform",
-		"watcher",
-		"xpack.info",
-		"xpack.usage",
-	}
-
 	if err := json.NewDecoder(f).Decode(&spec); err != nil {
 		return nil, err
 	}
@@ -110,16 +66,6 @@ func NewEndpoint(f io.Reader) (*Endpoint, error) {
 		endpoint.URL.Params = endpoint.Params
 	}
 
-	if fpath, ok := f.(*os.File); ok {
-		if strings.Contains(fpath.Name(), "x-pack") {
-			endpoint.Type = "xpack"
-		}
-		for _, namespace := range xpackNamespaces {
-			if strings.Contains(fpath.Name(), namespace) {
-				endpoint.Type = "xpack"
-			}
-		}
-	}
 	if endpoint.Type == "" {
 		endpoint.Type = "core"
 	}
@@ -176,13 +122,10 @@ func NewEndpoint(f io.Reader) (*Endpoint, error) {
 		}
 	}
 
-	// Fix up the documentation property (X-Pack spec related); TODO: PR
-	if !strings.HasPrefix(endpoint.Documentation.URL, "http") {
-		if endpoint.Type == "xpack" && endpoint.Documentation.Description == "" && endpoint.Documentation.URL != "" {
-			endpoint.Documentation.Description = endpoint.Documentation.URL
-		}
-		endpoint.Documentation.URL = ""
+	if endpoint.Documentation.Description == "" && endpoint.Documentation.URL != "" {
+		endpoint.Documentation.Description = endpoint.Documentation.URL
 	}
+	endpoint.Documentation.URL = ""
 
 	var partNames []string
 	for param := range paramsCounter {
