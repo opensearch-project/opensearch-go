@@ -52,10 +52,7 @@ type API struct {
 	Exists                                        Exists
 	ExistsSource                                  ExistsSource
 	Explain                                       Explain
-	FeaturesGetFeatures                           FeaturesGetFeatures
-	FeaturesResetFeatures                         FeaturesResetFeatures
 	FieldCaps                                     FieldCaps
-	FleetGlobalCheckpoints                        FleetGlobalCheckpoints
 	Get                                           Get
 	GetScriptContext                              GetScriptContext
 	GetScriptLanguages                            GetScriptLanguages
@@ -78,9 +75,6 @@ type API struct {
 	Search                                        Search
 	SearchShards                                  SearchShards
 	SearchTemplate                                SearchTemplate
-	ShutdownDeleteNode                            ShutdownDeleteNode
-	ShutdownGetNode                               ShutdownGetNode
-	ShutdownPutNode                               ShutdownPutNode
 	TermsEnum                                     TermsEnum
 	Termvectors                                   Termvectors
 	UpdateByQuery                                 UpdateByQuery
@@ -186,7 +180,6 @@ type Indices struct {
 // Ingest contains the Ingest APIs
 type Ingest struct {
 	DeletePipeline IngestDeletePipeline
-	GeoIPStats     IngestGeoIPStats
 	GetPipeline    IngestGetPipeline
 	ProcessorGrok  IngestProcessorGrok
 	PutPipeline    IngestPutPipeline
@@ -216,7 +209,6 @@ type Snapshot struct {
 	Delete            SnapshotDelete
 	GetRepository     SnapshotGetRepository
 	Get               SnapshotGet
-	RepositoryAnalyze SnapshotRepositoryAnalyze
 	Restore           SnapshotRestore
 	Status            SnapshotStatus
 	VerifyRepository  SnapshotVerifyRepository
@@ -249,10 +241,7 @@ func New(t Transport) *API {
 		Exists:                                        newExistsFunc(t),
 		ExistsSource:                                  newExistsSourceFunc(t),
 		Explain:                                       newExplainFunc(t),
-		FeaturesGetFeatures:                           newFeaturesGetFeaturesFunc(t),
-		FeaturesResetFeatures:                         newFeaturesResetFeaturesFunc(t),
 		FieldCaps:                                     newFieldCapsFunc(t),
-		FleetGlobalCheckpoints:                        newFleetGlobalCheckpointsFunc(t),
 		Get:                                           newGetFunc(t),
 		GetScriptContext:                              newGetScriptContextFunc(t),
 		GetScriptLanguages:                            newGetScriptLanguagesFunc(t),
@@ -275,9 +264,6 @@ func New(t Transport) *API {
 		Search:                                        newSearchFunc(t),
 		SearchShards:                                  newSearchShardsFunc(t),
 		SearchTemplate:                                newSearchTemplateFunc(t),
-		ShutdownDeleteNode:                            newShutdownDeleteNodeFunc(t),
-		ShutdownGetNode:                               newShutdownGetNodeFunc(t),
-		ShutdownPutNode:                               newShutdownPutNodeFunc(t),
 		TermsEnum:                                     newTermsEnumFunc(t),
 		Termvectors:                                   newTermvectorsFunc(t),
 		UpdateByQuery:                                 newUpdateByQueryFunc(t),
@@ -374,7 +360,6 @@ func New(t Transport) *API {
 		},
 		Ingest: &Ingest{
 			DeletePipeline: newIngestDeletePipelineFunc(t),
-			GeoIPStats:     newIngestGeoIPStatsFunc(t),
 			GetPipeline:    newIngestGetPipelineFunc(t),
 			ProcessorGrok:  newIngestProcessorGrokFunc(t),
 			PutPipeline:    newIngestPutPipelineFunc(t),
@@ -397,7 +382,6 @@ func New(t Transport) *API {
 			Delete:            newSnapshotDeleteFunc(t),
 			GetRepository:     newSnapshotGetRepositoryFunc(t),
 			Get:               newSnapshotGetFunc(t),
-			RepositoryAnalyze: newSnapshotRepositoryAnalyzeFunc(t),
 			Restore:           newSnapshotRestoreFunc(t),
 			Status:            newSnapshotStatusFunc(t),
 			VerifyRepository:  newSnapshotVerifyRepositoryFunc(t),

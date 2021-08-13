@@ -25,7 +25,6 @@ services:
       - "cluster.routing.allocation.disk.threshold_enabled=false"
       - "discovery.type=single-node"
       - "bootstrap.memory_lock=true"
-      - "xpack.security.enabled=false"
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
     expose:
       - "9200"

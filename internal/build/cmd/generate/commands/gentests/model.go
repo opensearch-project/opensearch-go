@@ -120,9 +120,6 @@ func NewTestSuite(fpath string, payloads []TestPayload) TestSuite {
 		Filepath: fpath,
 	}
 
-	if strings.Contains(fpath, "platinum") {
-		ts.Type = "xpack"
-	}
 	if ts.Type == "" {
 		ts.Type = "free"
 	}
@@ -299,10 +296,6 @@ func (ts TestSuite) Name() string {
 //
 func (ts TestSuite) Filename() string {
 	var b strings.Builder
-
-	if ts.Type == "xpack" {
-		b.WriteString("xpack_")
-	}
 
 	b.WriteString(strings.ToLower(strings.Replace(ts.Dir, ".", "_", -1)))
 	b.WriteString("__")

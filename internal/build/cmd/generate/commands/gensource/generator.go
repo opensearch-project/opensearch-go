@@ -148,19 +148,15 @@ func new` + g.Endpoint.MethodWithNamespace() + `Func(t Transport) ` + g.Endpoint
 func (g *Generator) genMethodDefinition() {
 	g.w("\n// ----- API Definition -------------------------------------------------------\n\n")
 
-	if g.Endpoint.Type == "xpack" {
-		g.w(`// ` + g.Endpoint.MethodWithNamespace() + " - " + g.Endpoint.Documentation.Description)
-	} else {
-		if g.Endpoint.Documentation.Description != "" {
-			words := strings.Split(g.Endpoint.Documentation.Description, " ")
-			initial := strings.ToLower(words[0:1][0])
-			description := initial + " " + strings.Join(words[1:], " ")
-			lines := strings.Split(description, "\n")
+	if g.Endpoint.Documentation.Description != "" {
+		words := strings.Split(g.Endpoint.Documentation.Description, " ")
+		initial := strings.ToLower(words[0:1][0])
+		description := initial + " " + strings.Join(words[1:], " ")
+		lines := strings.Split(description, "\n")
 
-			g.w(`// ` + g.Endpoint.MethodWithNamespace() + " " + lines[0:1][0])
-			for _, line := range lines[1:] {
-				g.w("\n// " + line)
-			}
+		g.w(`// ` + g.Endpoint.MethodWithNamespace() + " " + lines[0:1][0])
+		for _, line := range lines[1:] {
+			g.w("\n// " + line)
 		}
 	}
 
