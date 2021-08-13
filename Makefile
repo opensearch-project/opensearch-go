@@ -221,6 +221,43 @@ cluster.clean: ## Remove unused Docker volumes and networks
 
 
 
+workflow: ## Run all github workflow commands here sequentially
+
+# Lint
+	make lint
+# License Checker
+	.github/check-license-headers.sh
+# Unit Test
+	make test-unit race=true
+# Benchmarks Test
+	make test-bench
+# Integration Test
+### OpenDistro
+	make cluster.clean cluster.opendistro.build cluster.opendistro.start
+	make test-integ race=true
+	make cluster.opendistro.stop
+### OpenSearch
+	make cluster.clean cluster.opensearch.build cluster.opensearch.start
+	make test-integ race=true
+	make cluster.opensearch.stop
+
+# Integration Test Examples
+### OpenDistro
+	make cluster.clean cluster.opendistro.build cluster.opendistro.start
+	cd _examples/encoding && make setup
+	cd ../..
+	make test-examples
+	make cluster.opendistro.stop
+	cd _examples/encoding && make clean
+### OpenSearch
+	make cluster.clean cluster.opensearch.build cluster.opensearch.start
+	cd _examples/encoding && make setup
+	cd ../..
+	make test-examples
+	make cluster.opensearch.stop
+	cd _examples/encoding && make clean
+
+
 ##@ Other
 #------------------------------------------------------------------------------
 help:  ## Display help
