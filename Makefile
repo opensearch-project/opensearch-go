@@ -38,6 +38,9 @@ endif
 		go test -v $(testintegargs) "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
 	fi;
 
+test-integ-secure: ##Run secure integration tests
+	go test -tags=secure,integration ./opensearch_secure_integration_test.go
+
 test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem ./...
