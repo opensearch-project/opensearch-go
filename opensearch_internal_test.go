@@ -49,7 +49,7 @@ type mockTransp struct {
 	RoundTripFunc func(*http.Request) (*http.Response, error)
 }
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
-	response := &http.Response{Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}}}
+	response := &http.Response{Header: http.Header{}}
 
 	if req.URL.Path == "/" {
 		response.Body = ioutil.NopCloser(strings.NewReader(`{
@@ -160,9 +160,7 @@ func TestClientConfiguration(t *testing.T) {
 				Transport: &mockTransp{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 						return &http.Response{
-							Header: http.Header{
-								"X-Elastic-Product": []string{"X-Elastic-Product"},
-							},
+							Header: http.Header{},
 							Body: ioutil.NopCloser(strings.NewReader("")),
 						}, nil
 					},
@@ -512,7 +510,6 @@ func TestProductCheckError(t *testing.T) {
 			w.WriteHeader(http.StatusBadGateway)
 			return
 		}
-		w.Header().Set("X-Elastic-Product", "Elasticsearch")
 		w.Write([]byte("{}"))
 	}))
 	defer server.Close()

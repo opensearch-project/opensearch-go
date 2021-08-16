@@ -43,7 +43,7 @@ import (
 var (
 	defaultResponse    = &http.Response{
 		StatusCode: 200,
-		Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
+		Header: http.Header{},
 		Body: ioutil.NopCloser(strings.NewReader("MOCK")),
 	}
 	defaultRoundTripFn = func(*http.Request) (*http.Response, error) { return defaultResponse, nil }
@@ -51,12 +51,12 @@ var (
 		if request.URL.Path == "/" {
 			return &http.Response{
 				StatusCode: 200,
-				Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
+				Header: http.Header{},
 				Body: ioutil.NopCloser(strings.NewReader("{}")),
 			}, nil
 		}
 		return &http.Response{
-			Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
+			Header: http.Header{},
 			StatusCode: 400,
 			Body: ioutil.NopCloser(strings.NewReader(`
 					{ "error" : {

@@ -90,7 +90,7 @@ func TestStore(t *testing.T) {
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
 			Body:       ioutil.NopCloser(strings.NewReader(`{}`)),
-			Header: http.Header{"X-Elastic-Product": []string{"Elasticsearch"}},
+			Header: http.Header{},
 		},
 	}
 	mocktrans.RoundTripFn = func(req *http.Request) (*http.Response, error) { return mocktrans.Response, nil }
