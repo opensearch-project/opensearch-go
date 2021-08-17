@@ -42,13 +42,13 @@ import (
 
 func TestAPI(t *testing.T) {
 	t.Run("Search", func(t *testing.T) {
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		es.Cluster.Health(es.Cluster.Health.WithWaitForStatus("yellow"))
-		res, err := es.Search(es.Search.WithTimeout(500 * time.Millisecond))
+		client.Cluster.Health(client.Cluster.Health.WithWaitForStatus("yellow"))
+		res, err := client.Search(client.Search.WithTimeout(500 * time.Millisecond))
 		if err != nil {
 			t.Fatalf("Error getting the response: %s\n", err)
 		}
@@ -67,12 +67,12 @@ func TestAPI(t *testing.T) {
 	})
 
 	t.Run("Headers", func(t *testing.T) {
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		res, err := es.Info(es.Info.WithHeader(map[string]string{"Accept": "application/yaml"}))
+		res, err := client.Info(client.Info.WithHeader(map[string]string{"Accept": "application/yaml"}))
 		if err != nil {
 			t.Fatalf("Error getting the response: %s\n", err)
 		}
@@ -97,14 +97,14 @@ func TestAPI(t *testing.T) {
 			requestID = "reindex-123"
 		)
 
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
 		// Prepare indices
 		//
-		es.Indices.Delete([]string{"test", "reindexed"}, es.Indices.Delete.WithIgnoreUnavailable(true))
+		client.Indices.Delete([]string{"test", "reindexed"}, client.Indices.Delete.WithIgnoreUnavailable(true))
 
 		// Index data
 		//
@@ -117,7 +117,7 @@ func TestAPI(t *testing.T) {
 			buf.Write(meta)
 			buf.Write(data)
 		}
-		res, err = es.Bulk(bytes.NewReader(buf.Bytes()), es.Bulk.WithIndex("test"), es.Bulk.WithRefresh("true"))
+		res, err = client.Bulk(bytes.NewReader(buf.Bytes()), client.Bulk.WithIndex("test"), client.Bulk.WithRefresh("true"))
 		if err != nil {
 			t.Fatalf("Failed to index data: %s", err)
 		}
@@ -128,11 +128,11 @@ func TestAPI(t *testing.T) {
 
 		// Launch reindexing task with wait_for_completion=false
 		//
-		res, err = es.Reindex(
+		res, err = client.Reindex(
 			strings.NewReader(`{"source":{"index":"test"}, "dest": {"index":"reindexed"}}`),
-			es.Reindex.WithWaitForCompletion(false),
-			es.Reindex.WithRequestsPerSecond(1),
-			es.Reindex.WithOpaqueID(requestID))
+			client.Reindex.WithWaitForCompletion(false),
+			client.Reindex.WithRequestsPerSecond(1),
+			client.Reindex.WithOpaqueID(requestID))
 		if err != nil {
 			t.Fatalf("Failed to reindex: %s", err)
 		}
@@ -141,7 +141,7 @@ func TestAPI(t *testing.T) {
 		}
 		time.Sleep(10 * time.Millisecond)
 
-		res, err = es.Tasks.List(es.Tasks.List.WithPretty())
+		res, err = client.Tasks.List(client.Tasks.List.WithPretty())
 		if err != nil {
 			t.Fatalf("ERROR: %s", err)
 		}
@@ -152,7 +152,7 @@ func TestAPI(t *testing.T) {
 
 		// Get the list of tasks
 		//
-		res, err = es.Tasks.List(es.Tasks.List.WithPretty())
+		res, err = client.Tasks.List(client.Tasks.List.WithPretty())
 		if err != nil {
 			t.Fatalf("ERROR: %s", err)
 		}
@@ -202,7 +202,7 @@ func TestAPI(t *testing.T) {
 				if task.Headers["X-Opaque-Id"] == requestID {
 					if task.Cancellable {
 						fmt.Printf("=> Closing task %s\n", taskID)
-						res, err = es.Tasks.Cancel(es.Tasks.Cancel.WithTaskID(taskID))
+						res, err = client.Tasks.Cancel(client.Tasks.Cancel.WithTaskID(taskID))
 						if err != nil {
 							t.Fatalf("ERROR: %s", err)
 						}

@@ -251,7 +251,7 @@ func (g *Generator) genInitializeClient() {
 			}` + "\n")
 
 	g.w(`
-	es, eserr := opensearch.NewClient(cfg)
+	client, eserr := opensearch.NewClient(cfg)
 	if eserr != nil {
 		t.Fatalf("Error creating the client: %s\n", eserr)
 	}
@@ -297,7 +297,7 @@ _ = recoverPanic
 	g.w("\n\n")
 }
 
-// Reference: https://github.com/elastic/elasticsearch/blob/master/test/framework/src/main/java/org/elasticsearch/test/rest/ESRestTestCase.java
+// Reference: https://github.com/opensearch-project/OpenSearch/blob/main/test/framework/src/main/java/org/opensearch/test/rest/OpenSearchRestTestCase.java
 //
 func (g *Generator) genCommonSetup() {
 	g.w(`
@@ -306,26 +306,16 @@ func (g *Generator) genCommonSetup() {
 		var res *opensearchapi.Response
 
 		{
-			res, _ = es.Cluster.Health(es.Cluster.Health.WithWaitForNoInitializingShards(true))
+			res, _ = client.Cluster.Health(client.Cluster.Health.WithWaitForNoInitializingShards(true))
 			if res != nil && res.Body != nil {
 				defer res.Body.Close()
 			}
 		}
 
 		{
-			res, _ = es.Indices.DeleteDataStream(
+			res, _ = client.Indices.Delete(
 				[]string{"*"},
-				es.Indices.DeleteDataStream.WithExpandWildcards("all"),
-				es.Indices.DeleteDataStream.WithExpandWildcards("hidden"))
-			if res != nil && res.Body != nil {
-				defer res.Body.Close()
-			}
-		}
-
-		{
-			res, _ = es.Indices.Delete(
-				[]string{"*"},
-				es.Indices.Delete.WithExpandWildcards("all"))
+				client.Indices.Delete.WithExpandWildcards("all"))
 			if res != nil && res.Body != nil {
 				defer res.Body.Close()
 			}
@@ -333,7 +323,7 @@ func (g *Generator) genCommonSetup() {
 
 		{
 			var r map[string]interface{}
-			res, _ = es.Indices.GetTemplate()
+			res, _ = client.Indices.GetTemplate()
 			if res != nil && res.Body != nil {
 				defer res.Body.Close()
 				json.NewDecoder(res.Body).Decode(&r)
@@ -347,30 +337,30 @@ func (g *Generator) genCommonSetup() {
 					if templateName == "logstash-index-template" {
 						continue
 					}
-					es.Indices.DeleteTemplate(templateName)
+					client.Indices.DeleteTemplate(templateName)
 				}
 			}
 		}
 
 		{
-			res, _ = es.Indices.DeleteIndexTemplate("*")
+			res, _ = client.Indices.DeleteIndexTemplate("*")
 			if res != nil && res.Body != nil { defer res.Body.Close() }
 		}
 
 		{
-			res, _ = es.Indices.DeleteAlias([]string{"_all"}, []string{"_all"})
+			res, _ = client.Indices.DeleteAlias([]string{"_all"}, []string{"_all"})
 			if res != nil && res.Body != nil { defer res.Body.Close() }
 		}
 
 		{
 			var r map[string]interface{}
-			res, _ = es.Snapshot.GetRepository()
+			res, _ = client.Snapshot.GetRepository()
 			if res != nil && res.Body != nil {
 				defer res.Body.Close()
 				json.NewDecoder(res.Body).Decode(&r)
 				for repositoryID, _ := range r {
 					var r map[string]interface{}
-					res, _ = es.Snapshot.Get(repositoryID, []string{"_all"})
+					res, _ = client.Snapshot.Get(repositoryID, []string{"_all"})
 					json.NewDecoder(res.Body).Decode(&r)
 					if r["responses"] != nil {
 						for _, vv := range r["responses"].([]interface{}) {
@@ -379,17 +369,17 @@ func (g *Generator) genCommonSetup() {
 								if !ok {
 									continue
 								}
-								es.Snapshot.Delete(repositoryID, fmt.Sprintf("%s", snapshotID))
+								client.Snapshot.Delete(repositoryID, fmt.Sprintf("%s", snapshotID))
 							}
 						}
 					}
-					es.Snapshot.DeleteRepository([]string{fmt.Sprintf("%s", repositoryID)})
+					client.Snapshot.DeleteRepository([]string{fmt.Sprintf("%s", repositoryID)})
 				}
 			}
 		}
 
 		{
-			res, _ = es.Cluster.Health(es.Cluster.Health.WithWaitForStatus("yellow"))
+			res, _ = client.Cluster.Health(client.Cluster.Health.WithWaitForStatus("yellow"))
 			if res != nil && res.Body != nil {
 				defer res.Body.Close()
 			}
@@ -913,7 +903,7 @@ func (g *Generator) genAction(a Action, skipBody ...bool) {
 	g.w("\t\t}\n\n")
 
 	// Get response
-	g.w("\t\tres, err = req.Do(context.Background(), es)\n")
+	g.w("\t\tres, err = req.Do(context.Background(), client)\n")
 
 	g.w(`		if err != nil {
 			t.Fatalf("ERROR: %s", err)

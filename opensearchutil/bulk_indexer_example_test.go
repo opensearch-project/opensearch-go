@@ -42,9 +42,9 @@ import (
 func ExampleNewBulkIndexer() {
 	log.SetFlags(0)
 
-	// Create the Elasticsearch client
+	// Create the OpenSearch client
 	//
-	es, err := opensearch.NewClient(opensearch.Config{
+	client, err := opensearch.NewClient(opensearch.Config{
 		// Retry on 429 TooManyRequests statuses
 		//
 		RetryOnStatus: []int{502, 503, 504, 429},
@@ -64,7 +64,7 @@ func ExampleNewBulkIndexer() {
 	// Create the indexer
 	//
 	indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
-		Client:     es,     // The Elasticsearch client
+		Client:     client, // The OpenSearch client
 		Index:      "test", // The default index name
 		NumWorkers: 4,      // The number of worker goroutines (default: number of CPUs)
 		FlushBytes: 5e+6,   // The flush threshold in bytes (default: 5M)

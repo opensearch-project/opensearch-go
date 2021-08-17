@@ -25,7 +25,7 @@
 // under the License.
 
 /*
-Package opensearch provides a Go client for Elasticsearch.
+Package opensearch provides a Go client for OpenSearch.
 
 Create the client with the NewDefaultClient function:
 
@@ -55,14 +55,11 @@ To configure the client, pass a Config object to the NewClient function:
 
 		opensearch.NewClient(cfg)
 
-When using the Elastic Service (https://elastic.co/cloud), you can use CloudID instead of Addresses.
-When either Addresses or CloudID is set, the ELASTICSEARCH_URL environment variable is ignored.
+See the opensearch_integration_test.go file for more information.
 
-See the opensearch_integration_test.go file and the _examples folder for more information.
+Call the OpenSearch APIs by invoking the corresponding methods on the client:
 
-Call the Elasticsearch APIs by invoking the corresponding methods on the client:
-
-		res, err := es.Info()
+		res, err := client.Info()
 		if err != nil {
 		  log.Fatalf("Error getting response: %s", err)
 		}

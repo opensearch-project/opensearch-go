@@ -57,13 +57,13 @@ var ConsoleToGo = []TranslateRule{
 	{ // ----- Info() -----------------------------------------------------------
 		Pattern: `^GET /\s*$`,
 		Func: func(in string) (string, error) {
-			return "res, err := es.Info()", nil
+			return "res, err := client.Info()", nil
 		}},
 
 	{ // ----- Cat.Health() -----------------------------------------------------
 		Pattern: `^GET /?_cat/health\?v`,
 		Func: func(in string) (string, error) {
-			return "\tres, err := es.Cat.Health(es.Cat.Health.WithV(true))", nil
+			return "\tres, err := client.Cat.Health(client.Cat.Health.WithV(true))", nil
 		}},
 
 	{ // ----- Cat.Indices() -----------------------------------------------------
@@ -77,7 +77,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			fmt.Fprint(&src, "\tres, err := es.Cat.Indices(\n")
+			fmt.Fprint(&src, "\tres, err := client.Cat.Indices(\n")
 
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "\tes.Cat.Indices.WithIndex([]string{%q}...),\n", matches[1])
@@ -110,7 +110,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			fmt.Fprint(&src, "\tres, err := es.Cluster.Health(\n")
+			fmt.Fprint(&src, "\tres, err := client.Cluster.Health(\n")
 
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\tes.Cluster.Health.WithIndex([]string{%q}...),\n", matches[2])
@@ -143,7 +143,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			fmt.Fprint(&src, "\tres, err := es.Cluster.State(\n")
+			fmt.Fprint(&src, "\tres, err := client.Cluster.State(\n")
 
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\tes.Cluster.State.WithIndex([]string{%q}...),\n", matches[2])
@@ -176,7 +176,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			fmt.Fprint(&src, "\tres, err := es.Cluster.PutSettings(\n")
+			fmt.Fprint(&src, "\tres, err := client.Cluster.PutSettings(\n")
 			body, err := bodyStringToReader(matches[3])
 			if err != nil {
 				return "", fmt.Errorf("error converting body: %s", err)
@@ -214,7 +214,7 @@ var ConsoleToGo = []TranslateRule{
 			for i, m := range matches {
 				fmt.Println(i, ":", m)
 			}
-			fmt.Fprint(&src, "\tres, err := es.Nodes.Stats(\n")
+			fmt.Fprint(&src, "\tres, err := client.Nodes.Stats(\n")
 
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\tes.Nodes.Stats.WithNodeID([]string{%q}...),\n", matches[2])
@@ -256,7 +256,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.UpdateByQueryRethrottle(\n")
+			src.WriteString("\tres, err := client.UpdateByQueryRethrottle(\n")
 			fmt.Fprintf(&src, "%q,\n", matches[1])
 			if matches[2] != "" {
 				params, err := url.ParseQuery(strings.TrimPrefix(strings.TrimPrefix(matches[2], "/"), "?"))
@@ -295,7 +295,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.UpdateByQuery(\n")
+			src.WriteString("\tres, err := client.UpdateByQuery(\n")
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\t[]string{%q},\n", matches[2])
 			}
@@ -339,7 +339,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Ingest.PutPipeline(\n")
+			src.WriteString("\tres, err := client.Ingest.PutPipeline(\n")
 			fmt.Fprintf(&src, "\t%q,\n", matches[1])
 
 			if matches[3] != "" {
@@ -392,7 +392,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", fmt.Errorf("Unknown API [%s]", matches[3])
 			}
 
-			src.WriteString("\tres, err := es." + apiName + "(\n")
+			src.WriteString("\tres, err := client." + apiName + "(\n")
 
 			fmt.Fprintf(&src, "\t%q,\n", matches[2])
 
@@ -441,7 +441,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.GetMapping(")
+			src.WriteString("\tres, err := client.Indices.GetMapping(")
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "\tes.Indices.GetMapping.WithIndex(%q),\n", matches[1])
 			}
@@ -473,7 +473,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.PutMapping(")
+			src.WriteString("\tres, err := client.Indices.PutMapping(")
 
 			if matches[2] != "" || matches[3] != "" {
 				fmt.Fprintf(&src, "\n\t[]string{%q},\n", matches[1])
@@ -514,7 +514,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.GetSettings(")
+			src.WriteString("\tres, err := client.Indices.GetSettings(")
 
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "\n\t\tes.Indices.GetSettings.WithIndex([]string{%q}...),\n", matches[1])
@@ -547,7 +547,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.PutSettings(")
+			src.WriteString("\tres, err := client.Indices.PutSettings(")
 
 			if matches[2] != "" || matches[3] != "" {
 				if matches[3] != "" {
@@ -590,7 +590,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.PutTemplate(")
+			src.WriteString("\tres, err := client.Indices.PutTemplate(")
 			fmt.Fprintf(&src, "\n\t%q,\n", matches[1])
 
 			if matches[2] != "" || matches[3] != "" {
@@ -630,7 +630,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.GetTemplate(")
+			src.WriteString("\tres, err := client.Indices.GetTemplate(")
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "\n\tes.Indices.GetTemplate.WithName(%q),\n", matches[1])
 			}
@@ -662,7 +662,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.Create(")
+			src.WriteString("\tres, err := client.Indices.Create(")
 			if matches[2] != "" || matches[3] != "" {
 				fmt.Fprintf(&src, "\n\t%q,\n", matches[1])
 
@@ -704,7 +704,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.ClearScroll(\n")
+			src.WriteString("\tres, err := client.ClearScroll(\n")
 
 			if strings.TrimSpace(matches[1]) != "" {
 				src.WriteString("\t\tes.ClearScroll.WithScrollID(")
@@ -755,7 +755,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			fmt.Fprint(&src, "\tres, err := es.Delete(")
+			fmt.Fprint(&src, "\tres, err := client.Delete(")
 
 			if matches[3] != "" {
 				fmt.Fprintf(&src, "\t%q,\n\t%q,\n", matches[1], matches[2])
@@ -769,9 +769,9 @@ var ConsoleToGo = []TranslateRule{
 				}
 				fmt.Fprint(&src, args)
 
-				src.WriteString("\tes.Delete.WithPretty(),\n")
+				src.WriteString("\tclient.Delete.WithPretty(),\n")
 			} else {
-				fmt.Fprintf(&src, "\t%q, %q, es.Delete.WithPretty()", matches[1], matches[2])
+				fmt.Fprintf(&src, "\t%q, %q, client.Delete.WithPretty()", matches[1], matches[2])
 			}
 			src.WriteString(")")
 
@@ -789,7 +789,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.Delete(")
+			src.WriteString("\tres, err := client.Indices.Delete(")
 
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\n\t[]string{%q},\n", matches[1])
@@ -822,7 +822,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.Refresh(")
+			src.WriteString("\tres, err := client.Indices.Refresh(")
 
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "[]string{%q}", matches[1])
@@ -853,7 +853,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", fmt.Errorf("unknown operation [%s]", matches[2])
 			}
 
-			fmt.Fprintf(&src, "\tres, err := es.Indices.%s(", apiName)
+			fmt.Fprintf(&src, "\tres, err := client.Indices.%s(", apiName)
 
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "[]string{%q}", matches[1])
@@ -877,11 +877,11 @@ var ConsoleToGo = []TranslateRule{
 
 			if matches[1] != "" {
 				apiName = "PutAlias"
-				src.WriteString("\tres, err := es.Indices.PutAlias(")
+				src.WriteString("\tres, err := client.Indices.PutAlias(")
 				fmt.Fprintf(&src, "[]string{%q}", matches[1])
 			} else {
 				apiName = "UpdateAliases"
-				src.WriteString("\tres, err := es.Indices.UpdateAliases(")
+				src.WriteString("\tres, err := client.Indices.UpdateAliases(")
 			}
 
 			if strings.TrimSpace(matches[3]) != "" {
@@ -923,10 +923,10 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.Forcemerge(")
+			src.WriteString("\tres, err := client.Indices.Forcemerge(")
 
 			if matches[1] != "" {
-				fmt.Fprintf(&src, "\tes.Indices.Forcemerge.WithIndex([]string{%q}...),\n", matches[1])
+				fmt.Fprintf(&src, "\tclient.Indices.Forcemerge.WithIndex([]string{%q}...),\n", matches[1])
 			}
 
 			if matches[2] != "" {
@@ -967,9 +967,9 @@ var ConsoleToGo = []TranslateRule{
 			}
 
 			if matches[4] == "" {
-				fmt.Fprintf(&src, "\tres, err := es."+apiName+"(%q, %q, es."+apiName+".WithPretty()", matches[1], matches[3])
+				fmt.Fprintf(&src, "\tres, err := client."+apiName+"(%q, %q, client."+apiName+".WithPretty()", matches[1], matches[3])
 			} else {
-				fmt.Fprintf(&src, "\tres, err := es."+apiName+"(\n\t%q,\n\t%q,\n\t", matches[1], matches[3])
+				fmt.Fprintf(&src, "\tres, err := client."+apiName+"(\n\t%q,\n\t%q,\n\t", matches[1], matches[3])
 
 				params, err := url.ParseQuery(strings.TrimPrefix(strings.TrimPrefix(matches[4], "/"), "?"))
 				if err != nil {
@@ -1011,9 +1011,9 @@ var ConsoleToGo = []TranslateRule{
 			}
 
 			if matches[4] == "" {
-				fmt.Fprintf(&src, "\tres, err := es."+apiName+"(%q, %q, es."+apiName+".WithPretty()", matches[1], matches[2])
+				fmt.Fprintf(&src, "\tres, err := client."+apiName+"(%q, %q, client."+apiName+".WithPretty()", matches[1], matches[2])
 			} else {
-				fmt.Fprintf(&src, "\tres, err := es."+apiName+"(\n\t%q,\n\t%q,\n\t", matches[1], matches[2])
+				fmt.Fprintf(&src, "\tres, err := client."+apiName+"(\n\t%q,\n\t%q,\n\t", matches[1], matches[2])
 				params, err := url.ParseQuery(strings.TrimPrefix(strings.TrimPrefix(matches[4], "/"), "?"))
 				if err != nil {
 					return "", fmt.Errorf("error parsing URL params: %s", err)
@@ -1043,14 +1043,14 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Scroll(\n")
+			src.WriteString("\tres, err := client.Scroll(\n")
 
 			if strings.TrimSpace(matches[3]) != "" {
 				body, err := bodyStringToReader(matches[3])
 				if err != nil {
 					return "", fmt.Errorf("error converting body: %s", err)
 				}
-				fmt.Fprintf(&src, "\tes.Scroll.WithBody(%s),\n", body)
+				fmt.Fprintf(&src, "\tclient.Scroll.WithBody(%s),\n", body)
 			}
 
 			var params url.Values
@@ -1075,7 +1075,7 @@ var ConsoleToGo = []TranslateRule{
 			}
 
 			if !hasPretty {
-				src.WriteString("\tes.Scroll.WithPretty(),\n")
+				src.WriteString("\tclient.Scroll.WithPretty(),\n")
 			}
 
 			src.WriteString("\t)")
@@ -1093,9 +1093,9 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Search(\n")
+			src.WriteString("\tres, err := client.Search(\n")
 			if matches[2] != "" {
-				fmt.Fprintf(&src, "\tes.Search.WithIndex(%q),\n", matches[2])
+				fmt.Fprintf(&src, "\tclient.Search.WithIndex(%q),\n", matches[2])
 			}
 
 			if strings.TrimSpace(matches[4]) != "" {
@@ -1128,7 +1128,7 @@ var ConsoleToGo = []TranslateRule{
 			}
 
 			if !hasPretty {
-				src.WriteString("\tes.Search.WithPretty(),\n")
+				src.WriteString("\tclient.Search.WithPretty(),\n")
 			}
 
 			src.WriteString("\t)")
@@ -1146,7 +1146,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Count(\n")
+			src.WriteString("\tres, err := client.Count(\n")
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "\tes.Count.WithIndex(%q),\n", matches[2])
 			}
@@ -1181,7 +1181,7 @@ var ConsoleToGo = []TranslateRule{
 			}
 
 			if !hasPretty {
-				src.WriteString("\tes.Count.WithPretty(),\n")
+				src.WriteString("\tclient.Count.WithPretty(),\n")
 			}
 
 			src.WriteString("\t)")
@@ -1200,7 +1200,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.DeleteByQueryRethrottle(\n")
+			src.WriteString("\tres, err := client.DeleteByQueryRethrottle(\n")
 			fmt.Fprintf(&src, "%q,\n", matches[1])
 
 			if matches[2] != "" {
@@ -1240,7 +1240,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.DeleteByQuery(\n")
+			src.WriteString("\tres, err := client.DeleteByQuery(\n")
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\t[]string{%q},\n", matches[2])
 			}
@@ -1283,7 +1283,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.ReindexRethrottle(\n")
+			src.WriteString("\tres, err := client.ReindexRethrottle(\n")
 			fmt.Fprintf(&src, "%q,\n", matches[1])
 
 			if matches[2] != "" {
@@ -1324,7 +1324,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Reindex(\n")
+			src.WriteString("\tres, err := client.Reindex(\n")
 
 			if strings.TrimSpace(matches[2]) != "" {
 				body, err := bodyStringToReader(matches[2])
@@ -1362,7 +1362,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Bulk(\n")
+			src.WriteString("\tres, err := client.Bulk(\n")
 
 			if matches[3] != "" {
 				fmt.Fprintf(&src, "\tstrings.NewReader(`\n%s`),\n", matches[3])
@@ -1400,7 +1400,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Tasks.Get(\n")
+			src.WriteString("\tres, err := client.Tasks.Get(\n")
 
 			if matches[1] != "" {
 				fmt.Fprintf(&src, "\t%q,\n", matches[1])
@@ -1435,7 +1435,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Tasks.List(\n")
+			src.WriteString("\tres, err := client.Tasks.List(\n")
 
 			if matches[1] != "" {
 				params, err := url.ParseQuery(strings.TrimPrefix(strings.TrimPrefix(matches[1], "/"), "?"))
@@ -1466,9 +1466,9 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Tasks.Cancel(\n")
+			src.WriteString("\tres, err := client.Tasks.Cancel(\n")
 			if matches[1] != "" {
-				fmt.Fprintf(&src, "es.Tasks.Cancel.WithTaskID(%q),\n", matches[1])
+				fmt.Fprintf(&src, "client.Tasks.Cancel.WithTaskID(%q),\n", matches[1])
 			}
 
 			if matches[2] != "" {
@@ -1499,7 +1499,7 @@ var ConsoleToGo = []TranslateRule{
 				return "", errors.New("cannot match example source to pattern")
 			}
 
-			src.WriteString("\tres, err := es.Indices.Get(")
+			src.WriteString("\tres, err := client.Indices.Get(")
 
 			if matches[2] != "" {
 				fmt.Fprintf(&src, "\n\t[]string{%q},\n", matches[1])
@@ -1682,13 +1682,13 @@ func paramsToArguments(api string, params url.Values) (string, error) {
 		default:
 			value = strconv.Quote(value)
 		}
-		fmt.Fprintf(&b, "\tes.%s.With%s(%s),\n", api, name, value)
+		fmt.Fprintf(&b, "\tclient.%s.With%s(%s),\n", api, name, value)
 	}
 
 	return b.String(), nil
 }
 
-// bodyStringToReader reformats input JSON string and returns it wrapped in strings.NewReader.
+// bodyStringToReader re formats input JSON string and returns it wrapped in strings.NewReader.
 //
 func bodyStringToReader(input string) (string, error) {
 	var body bytes.Buffer

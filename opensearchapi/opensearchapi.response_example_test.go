@@ -33,9 +33,9 @@ import (
 )
 
 func ExampleResponse_IsError() {
-	es, _ := opensearch.NewDefaultClient()
+	client, _ := opensearch.NewDefaultClient()
 
-	res, err := es.Info()
+	res, err := client.Info()
 
 	// Handle connection errors
 	//
@@ -56,23 +56,23 @@ func ExampleResponse_IsError() {
 }
 
 func ExampleResponse_Status() {
-	es, _ := opensearch.NewDefaultClient()
+	client, _ := opensearch.NewDefaultClient()
 
-	res, _ := es.Info()
+	res, _ := client.Info()
 	log.Println(res.Status())
 
 	// 200 OK
 }
 
 func ExampleResponse_String() {
-	es, _ := opensearch.NewDefaultClient()
+	client, _ := opensearch.NewDefaultClient()
 
-	res, _ := es.Info()
+	res, _ := client.Info()
 	log.Println(res.String())
 
 	// [200 OK] {
-	// "name" : "es1",
-	// "cluster_name" : "go-elasticsearch",
+	// "name" : "opensearch1",
+	// "cluster_name" : "opensearch-go",
 	// ...
 	// }
 }

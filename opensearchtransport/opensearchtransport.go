@@ -481,7 +481,7 @@ func (c *Client) logRoundTrip(
 func initUserAgent() string {
 	var b strings.Builder
 
-	b.WriteString("go-elasticsearch")
+	b.WriteString("opensearch-go")
 	b.WriteRune('/')
 	b.WriteString(Version)
 	b.WriteRune(' ')

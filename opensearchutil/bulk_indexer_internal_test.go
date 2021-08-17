@@ -82,7 +82,7 @@ func TestBulkIndexer(t *testing.T) {
 			numItems  = 6
 		)
 
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
 					return &http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}, Body: ioutil.NopCloser(strings.NewReader(infoBody))}, nil
@@ -106,7 +106,7 @@ func TestBulkIndexer(t *testing.T) {
 			NumWorkers:    1,
 			FlushBytes:    50,
 			FlushInterval: time.Hour, // Disable auto-flushing, because response doesn't match number of items
-			Client:        es}
+			Client:        client}
 		if os.Getenv("DEBUG") != "" {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
@@ -177,8 +177,8 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Add() Timeout", func(t *testing.T) {
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
-		bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: es})
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
+		bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
 		time.Sleep(100 * time.Millisecond)
@@ -203,11 +203,11 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Close() Cancel", func(t *testing.T) {
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{
 			NumWorkers: 1,
 			FlushBytes: 1,
-			Client:     es,
+			Client:     client,
 		})
 
 		for i := 0; i < 10; i++ {
@@ -222,7 +222,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Indexer Callback", func(t *testing.T) {
-		esCfg := opensearch.Config{
+		config := opensearch.Config{
 			Transport: &mockTransport{
 				RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 					if request.URL.Path == "/" {
@@ -234,19 +234,19 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		}
 		if os.Getenv("DEBUG") != "" {
-			esCfg.Logger = &opensearchtransport.ColorLogger{
+			config.Logger = &opensearchtransport.ColorLogger{
 				Output:             os.Stdout,
 				EnableRequestBody:  true,
 				EnableResponseBody: true,
 			}
 		}
 
-		es, _ := opensearch.NewClient(esCfg)
+		client, _ := opensearch.NewClient(config)
 
 		var indexerError error
 		biCfg := BulkIndexerConfig{
 			NumWorkers: 1,
-			Client:     es,
+			Client:     client,
 			OnError:    func(ctx context.Context, err error) { indexerError = err },
 		}
 		if os.Getenv("DEBUG") != "" {
@@ -281,7 +281,7 @@ func TestBulkIndexer(t *testing.T) {
 			bodyContent, _ = ioutil.ReadFile("testdata/bulk_response_2.json")
 		)
 
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
 					return &http.Response{
@@ -296,7 +296,7 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		}})
 
-		cfg := BulkIndexerConfig{NumWorkers: 1, Client: es}
+		cfg := BulkIndexerConfig{NumWorkers: 1, Client: client}
 		if os.Getenv("DEBUG") != "" {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
@@ -417,9 +417,9 @@ func TestBulkIndexer(t *testing.T) {
 
 	t.Run("OnFlush callbacks", func(t *testing.T) {
 		type contextKey string
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{
-			Client: es,
+			Client: client,
 			Index:  "foo",
 			OnFlushStart: func(ctx context.Context) context.Context {
 				fmt.Println(">>> Flush started")
@@ -454,7 +454,7 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Automatic flush", func(t *testing.T) {
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
 					return &http.Response{
@@ -474,7 +474,7 @@ func TestBulkIndexer(t *testing.T) {
 
 		cfg := BulkIndexerConfig{
 			NumWorkers:    1,
-			Client:        es,
+			Client:        client,
 			FlushInterval: 50 * time.Millisecond, // Decrease the flush timeout
 		}
 		if os.Getenv("DEBUG") != "" {
@@ -521,7 +521,7 @@ func TestBulkIndexer(t *testing.T) {
 			numItems  = 2
 		)
 
-		esCfg := opensearch.Config{
+		cfg := opensearch.Config{
 			Transport: &mockTransport{
 				RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 					if request.URL.Path == "/" {
@@ -559,11 +559,11 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		}
 		if os.Getenv("DEBUG") != "" {
-			esCfg.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			cfg.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 		}
-		es, _ := opensearch.NewClient(esCfg)
+		client, _ := opensearch.NewClient(cfg)
 
-		biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: es}
+		biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
 		if os.Getenv("DEBUG") != "" {
 			biCfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
@@ -611,8 +611,8 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Custom JSON Decoder", func(t *testing.T) {
-		es, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
-		bi, _ := NewBulkIndexer(BulkIndexerConfig{Client: es, Decoder: customJSONDecoder{}})
+		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransport{}})
+		bi, _ := NewBulkIndexer(BulkIndexerConfig{Client: client, Decoder: customJSONDecoder{}})
 
 		err := bi.Add(context.Background(), BulkIndexerItem{
 			Action:     "index",

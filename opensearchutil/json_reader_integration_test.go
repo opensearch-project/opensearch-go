@@ -44,18 +44,18 @@ func TestJSONReaderIntegration(t *testing.T) {
 			err error
 		)
 
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		es.Indices.Delete([]string{"test"}, es.Indices.Delete.WithIgnoreUnavailable(true))
+		client.Indices.Delete([]string{"test"}, client.Indices.Delete.WithIgnoreUnavailable(true))
 
 		doc := struct {
 			Title string `json:"title"`
 		}{Title: "Foo Bar"}
 
-		res, err = es.Index("test", opensearchutil.NewJSONReader(&doc), es.Index.WithRefresh("true"))
+		res, err = client.Index("test", opensearchutil.NewJSONReader(&doc), client.Index.WithRefresh("true"))
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
@@ -73,10 +73,10 @@ func TestJSONReaderIntegration(t *testing.T) {
 			},
 		}
 
-		res, err = es.Search(
-			es.Search.WithIndex("test"),
-			es.Search.WithBody(opensearchutil.NewJSONReader(&query)),
-			es.Search.WithPretty(),
+		res, err = client.Search(
+			client.Search.WithIndex("test"),
+			client.Search.WithBody(opensearchutil.NewJSONReader(&query)),
+			client.Search.WithPretty(),
 		)
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)

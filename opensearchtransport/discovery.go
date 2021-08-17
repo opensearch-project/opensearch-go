@@ -46,8 +46,6 @@ type Discoverable interface {
 
 // nodeInfo represents the information about node in a cluster.
 //
-// See: https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-nodes-info.html
-//
 type nodeInfo struct {
 	ID         string
 	Name       string
@@ -93,7 +91,7 @@ func (c *Client) DiscoverNodes() error {
 		}
 
 		// Skip master only nodes
-		// TODO(karmi): Move logic to Selector?
+		// TODO: Move logic to Selector?
 		if isMasterOnlyNode {
 			continue
 		}
@@ -118,7 +116,7 @@ func (c *Client) DiscoverNodes() error {
 	if c.poolFunc != nil {
 		c.pool = c.poolFunc(conns, c.selector)
 	} else {
-		// TODO(karmi): Replace only live connections, leave dead scheduled for resurrect?
+		// TODO: Replace only live connections, leave dead scheduled for resurrect?
 		c.pool, err = NewConnectionPool(conns, c.selector)
 		if err != nil {
 			return err
@@ -142,7 +140,7 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	c.Lock()
 	conn, err := c.pool.Next()
 	c.Unlock()
-	// TODO(karmi): If no connection is returned, fallback to original URLs
+	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
 		return out, err
 	}

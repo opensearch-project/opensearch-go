@@ -64,7 +64,7 @@ func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		response := t.InfoResponse
 		response.Body = ioutil.NopCloser(strings.NewReader(`{
 		  "name" : "es1",
-		  "cluster_name" : "go-elasticsearch",
+		  "cluster_name" : "opensearch-go",
 		  "cluster_uuid" : "clusteruuid",
 		  "version" : {
 			"number" : "1.0.0",

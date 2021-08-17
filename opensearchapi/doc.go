@@ -25,26 +25,26 @@
 // under the License.
 
 /*
-Package opensearchapi provides the Go API for Elasticsearch.
+Package opensearchapi provides the Go API for OpenSearch.
 
 It is automatically included in the client provided by the
 github.com/opensearch-project/opensearch-go package:
 
-	es, _ := opensearch.NewDefaultClient()
-	res, _ := es.Info()
+	client, _ := opensearch.NewDefaultClient()
+	res, _ := client.Info()
 	log.Println(res)
 
-For each Elasticsearch API, such as "Index", the package exports two corresponding types:
+For each OpenSearch API, such as "Index", the package exports two corresponding types:
 a function and a struct.
 
-The function type allows you to call the Elasticsearch API as a method on the client,
+The function type allows you to call the OpenSearch API as a method on the client,
 passing the parameters as arguments:
 
-	res, err := es.Index(
+	res, err := client.Index(
 		"test",                                  // Index name
 		strings.NewReader(`{"title" : "Test"}`), // Document body
-		es.Index.WithDocumentID("1"),            // Document ID
-		es.Index.WithRefresh("true"),            // Refresh
+		client.Index.WithDocumentID("1"),            // Document ID
+		client.Index.WithRefresh("true"),            // Refresh
 	)
 	if err != nil {
 		log.Fatalf("ERROR: %s", err)
@@ -66,7 +66,7 @@ with a context and the client as arguments:
 		Refresh:    "true",                                  // Refresh
 	}
 
-	res, err := req.Do(context.Background(), es)
+	res, err := req.Do(context.Background(), client)
 	if err != nil {
 		log.Fatalf("Error getting response: %s", err)
 	}
@@ -101,21 +101,6 @@ It is imperative to close the response body for a non-nil response.
 The Response type implements a couple of convenience methods for accessing
 the status, checking an error status code or printing
 the response body for debugging purposes.
-
-Additional Information
-
-See the Elasticsearch documentation at
-https://www.elastic.co/guide/en/elasticsearch/reference/master/api-conventions.html for detailed information
-about the API endpoints and parameters.
-
-The Go API is generated from the Elasticsearch JSON specification at
-https://github.com/elastic/elasticsearch/tree/master/rest-api-spec/src/main/resources/rest-api-spec/api
-by the internal package available at
-https://github.com/opensearch-project/opensearch-go/tree/main/internal/build/cmd/generate/commands/gensource.
-
-The API is tested by integration tests common to all Elasticsearch official clients, generated from the
-source at https://github.com/elastic/elasticsearch/tree/master/rest-api-spec/src/main/resources/rest-api-spec/test.
-The generator is provided by the internal package available at internal/cmd/generate/commands/gentests.
 
 */
 package opensearchapi

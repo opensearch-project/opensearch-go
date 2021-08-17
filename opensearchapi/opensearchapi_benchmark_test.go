@@ -38,7 +38,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-// TODO(karmi): Refactor into a shared mock/testing package
+// TODO: Refactor into a shared mock/testing package
 
 var (
 	defaultResponse    = &http.Response{
@@ -89,34 +89,34 @@ func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func newFakeClient(b *testing.B) *opensearch.Client {
 	cfg := opensearch.Config{Transport: &FakeTransport{RoundTripFn: defaultRoundTripFn}}
-	es, err := opensearch.NewClient(cfg)
+	client, err := opensearch.NewClient(cfg)
 
 	if err != nil {
 		b.Fatalf("Unexpected error when creating a client: %s", err)
 	}
 
-	return es
+	return client
 }
 
 func newFakeClientWithError(b *testing.B) *opensearch.Client {
 	cfg := opensearch.Config{Transport: &FakeTransport{RoundTripFn: errorRoundTripFn}}
-	es, err := opensearch.NewClient(cfg)
+	client, err := opensearch.NewClient(cfg)
 
 	if err != nil {
 		b.Fatalf("Unexpected error when creating a client: %s", err)
 	}
 
-	return es
+	return client
 }
 
 func BenchmarkAPI(b *testing.B) {
-	var es = newFakeClient(b)
-	var eserr = newFakeClientWithError(b)
+	var client = newFakeClient(b)
+	var fakeClientWithError = newFakeClientWithError(b)
 
 	b.Run("client.Info()                      ", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if _, err := es.Info(); err != nil {
+			if _, err := client.Info(); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -125,7 +125,7 @@ func BenchmarkAPI(b *testing.B) {
 	b.Run("client.Info() WithContext          ", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if _, err := es.Info(es.Info.WithContext(context.Background())); err != nil {
+			if _, err := client.Info(client.Info.WithContext(context.Background())); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -135,7 +135,7 @@ func BenchmarkAPI(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req := opensearchapi.InfoRequest{}
-			if _, err := req.Do(context.Background(), es); err != nil {
+			if _, err := req.Do(context.Background(), client); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -144,7 +144,7 @@ func BenchmarkAPI(b *testing.B) {
 	b.Run("client.Cluster.Health()            ", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			if _, err := es.Cluster.Health(); err != nil {
+			if _, err := client.Cluster.Health(); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -153,10 +153,10 @@ func BenchmarkAPI(b *testing.B) {
 	b.Run("client.Cluster.Health() With()     ", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := es.Cluster.Health(
-				es.Cluster.Health.WithContext(context.Background()),
-				es.Cluster.Health.WithLevel("indices"),
-				es.Cluster.Health.WithPretty(),
+			_, err := client.Cluster.Health(
+				client.Cluster.Health.WithContext(context.Background()),
+				client.Cluster.Health.WithLevel("indices"),
+				client.Cluster.Health.WithPretty(),
 			)
 
 			if err != nil {
@@ -169,7 +169,7 @@ func BenchmarkAPI(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req := opensearchapi.ClusterHealthRequest{}
-			if _, err := req.Do(context.Background(), es); err != nil {
+			if _, err := req.Do(context.Background(), client); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -179,7 +179,7 @@ func BenchmarkAPI(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req := opensearchapi.ClusterHealthRequest{Level: "indices", Pretty: true}
-			if _, err := req.Do(context.Background(), es); err != nil {
+			if _, err := req.Do(context.Background(), client); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -190,15 +190,15 @@ func BenchmarkAPI(b *testing.B) {
 		body := strings.NewReader(`{"title" : "Test"}`)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := es.Index(
+			_, err := client.Index(
 				indx,
 				body,
-				es.Index.WithDocumentID("1"),
-				es.Index.WithRefresh("true"),
-				es.Index.WithContext(context.Background()),
-				es.Index.WithRefresh("true"),
-				es.Index.WithPretty(),
-				es.Index.WithTimeout(100),
+				client.Index.WithDocumentID("1"),
+				client.Index.WithRefresh("true"),
+				client.Index.WithContext(context.Background()),
+				client.Index.WithRefresh("true"),
+				client.Index.WithPretty(),
+				client.Index.WithTimeout(100),
 			)
 
 			if err != nil {
@@ -226,7 +226,7 @@ func BenchmarkAPI(b *testing.B) {
 				Timeout:    100,
 			}
 
-			if _, err := req.Do(context.Background(), es); err != nil {
+			if _, err := req.Do(context.Background(), client); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -251,7 +251,7 @@ func BenchmarkAPI(b *testing.B) {
 			req.DocumentID = docID
 			req.Body = strings.NewReader(body.String())
 
-			if _, err := req.Do(context.Background(), es); err != nil {
+			if _, err := req.Do(context.Background(), client); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -261,7 +261,7 @@ func BenchmarkAPI(b *testing.B) {
 		body := strings.NewReader(`{"query" : { "match_all" : {} } }`)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := es.Search(es.Search.WithContext(context.Background()), es.Search.WithBody(body))
+			_, err := client.Search(client.Search.WithContext(context.Background()), client.Search.WithBody(body))
 
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
@@ -274,7 +274,7 @@ func BenchmarkAPI(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_, err := eserr.Search(eserr.Search.WithContext(context.Background()), eserr.Search.WithBody(body))
+			_, err := fakeClientWithError.Search(fakeClientWithError.Search.WithContext(context.Background()), fakeClientWithError.Search.WithBody(body))
 
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
@@ -288,7 +288,7 @@ func BenchmarkAPI(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req := opensearchapi.SearchRequest{Body: body}
-			if _, err := req.Do(context.Background(), es); err != nil {
+			if _, err := req.Do(context.Background(), client); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -300,7 +300,7 @@ func BenchmarkAPI(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req := opensearchapi.SearchRequest{Body: body}
-			if _, err := req.Do(context.Background(), eserr); err != nil {
+			if _, err := req.Do(context.Background(), fakeClientWithError); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}

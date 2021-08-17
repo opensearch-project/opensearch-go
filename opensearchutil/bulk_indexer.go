@@ -44,7 +44,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 )
 
-// BulkIndexer represents a parallel, asynchronous, efficient indexer for Elasticsearch.
+// BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
 //
 type BulkIndexer interface {
 	// Add adds an item to the indexer. It returns an error when the item cannot be added.
@@ -70,7 +70,7 @@ type BulkIndexerConfig struct {
 	FlushBytes    int           // The flush threshold in bytes. Defaults to 5MB.
 	FlushInterval time.Duration // The flush threshold as duration. Defaults to 30sec.
 
-	Client      *opensearch.Client      // The Elasticsearch client.
+	Client      *opensearch.Client      // The OpenSearch client.
 	Decoder     BulkResponseJSONDecoder // A custom JSON decoder.
 	DebugLogger BulkIndexerDebugLogger  // An optional logger for debugging.
 
@@ -121,7 +121,7 @@ type BulkIndexerItem struct {
 	OnFailure func(context.Context, BulkIndexerItem, BulkIndexerResponseItem, error) // Per item
 }
 
-// BulkIndexerResponse represents the Elasticsearch response.
+// BulkIndexerResponse represents the OpenSearch response.
 //
 type BulkIndexerResponse struct {
 	Took      int                                  `json:"took"`
@@ -129,7 +129,7 @@ type BulkIndexerResponse struct {
 	Items     []map[string]BulkIndexerResponseItem `json:"items,omitempty"`
 }
 
-// BulkIndexerResponseItem represents the Elasticsearch response item.
+// BulkIndexerResponseItem represents the OpenSearch response item.
 //
 type BulkIndexerResponseItem struct {
 	Index      string `json:"_index"`
@@ -552,7 +552,7 @@ func (w *worker) flush(ctx context.Context) error {
 		)
 
 		item = w.items[i]
-		// The Elasticsearch bulk response contains an array of maps like this:
+		// The OpenSearch bulk response contains an array of maps like this:
 		//   [ { "index": { ... } }, { "create": { ... } }, ... ]
 		// We range over the map, to set the first key and value as "op" and "info".
 		for k, v := range blkItem {

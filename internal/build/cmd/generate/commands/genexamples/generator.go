@@ -107,7 +107,7 @@ var (
 	if !g.Example.IsTranslated() {
 		out.WriteString("// ")
 	}
-	out.WriteString(`es, _ := opensearch.NewDefaultClient()` + "\n")
+	out.WriteString(`client, _ := opensearch.NewDefaultClient()` + "\n")
 
 	if !g.Example.IsTranslated() {
 		out.WriteString("\n\tt.Error(`Missing implementation for: ")

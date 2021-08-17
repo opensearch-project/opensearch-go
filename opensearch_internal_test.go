@@ -331,19 +331,19 @@ func TestParseElasticsearchVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, got2, err := ParseElasticsearchVersion(tt.version)
+			got, got1, got2, err := ParseVersion(tt.version)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseElasticsearchVersion() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ParseVersion() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.major {
-				t.Errorf("ParseElasticsearchVersion() got = %v, want %v", got, tt.major)
+				t.Errorf("ParseVersion() got = %v, want %v", got, tt.major)
 			}
 			if got1 != tt.minor {
-				t.Errorf("ParseElasticsearchVersion() got1 = %v, want %v", got1, tt.minor)
+				t.Errorf("ParseVersion() got1 = %v, want %v", got1, tt.minor)
 			}
 			if got2 != tt.patch {
-				t.Errorf("ParseElasticsearchVersion() got2 = %v, want %v", got2, tt.patch)
+				t.Errorf("ParseVersion() got2 = %v, want %v", got2, tt.patch)
 			}
 		})
 	}

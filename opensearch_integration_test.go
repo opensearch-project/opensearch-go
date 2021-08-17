@@ -48,7 +48,7 @@ import (
 
 func TestClientTransport(t *testing.T) {
 	t.Run("Persistent", func(t *testing.T) {
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -58,7 +58,7 @@ func TestClientTransport(t *testing.T) {
 		for i := 0; i < 101; i++ {
 			var curTotal int
 
-			res, err := es.Nodes.Stats(es.Nodes.Stats.WithMetric("http"))
+			res, err := client.Nodes.Stats(client.Nodes.Stats.WithMetric("http"))
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -100,7 +100,7 @@ func TestClientTransport(t *testing.T) {
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -111,7 +111,7 @@ func TestClientTransport(t *testing.T) {
 
 			go func(i int) {
 				defer wg.Done()
-				res, err := es.Info()
+				res, err := client.Info()
 				if err != nil {
 					t.Errorf("Unexpected error: %s", err)
 				} else {
@@ -123,7 +123,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -131,7 +131,7 @@ func TestClientTransport(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
 
-		res, err := es.Info(es.Info.WithContext(ctx))
+		res, err := client.Info(client.Info.WithContext(ctx))
 		if err == nil {
 			res.Body.Close()
 			t.Fatal("Expected 'context deadline exceeded' error")
@@ -153,12 +153,12 @@ func TestClientTransport(t *testing.T) {
 			},
 		}
 
-		es, err := opensearch.NewClient(cfg)
+		client, err := opensearch.NewClient(cfg)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
-		_, err = es.Info()
+		_, err = client.Info()
 		if err == nil {
 			t.Fatalf("Expected error, but got: %v", err)
 		}
@@ -186,13 +186,13 @@ func TestClientCustomTransport(t *testing.T) {
 			},
 		}
 
-		es, err := opensearch.NewClient(cfg)
+		client, err := opensearch.NewClient(cfg)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
 		for i := 0; i < 10; i++ {
-			res, err := es.Info()
+			res, err := client.Info()
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -208,12 +208,12 @@ func TestClientCustomTransport(t *testing.T) {
 			Transport: http.DefaultTransport,
 		})
 
-		es := opensearch.Client{
+		client := opensearch.Client{
 			Transport: tp, API: opensearchapi.New(tp),
 		}
 
 		for i := 0; i < 10; i++ {
-			res, err := es.Info()
+			res, err := client.Info()
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -242,12 +242,12 @@ func (t *ReplacedTransport) Count() uint64 {
 func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
 		tr := &ReplacedTransport{}
-		es := opensearch.Client{
+		client := opensearch.Client{
 			Transport: tr, API: opensearchapi.New(tr),
 		}
 
 		for i := 0; i < 10; i++ {
-			res, err := es.Info()
+			res, err := client.Info()
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -262,12 +262,12 @@ func TestClientReplaceTransport(t *testing.T) {
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		es, err := opensearch.NewDefaultClient()
+		client, err := opensearch.NewDefaultClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		res, err := es.Info()
+		res, err := client.Info()
 		if err != nil {
 			log.Fatalf("Error getting the response: %s\n", err)
 		}
