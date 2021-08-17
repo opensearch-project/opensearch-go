@@ -38,55 +38,6 @@ endif
 		go test -v $(testintegargs) "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
 	fi;
 
-test-api:  ## Run generated API integration tests
-	@mkdir -p tmp
-ifdef race
-	$(eval testapiargs += "-race")
-endif
-	$(eval testapiargs += "-cover" "-coverpkg=github.com/opensearch-project/opensearch-go/opensearchapi" "-coverprofile=$(PWD)/tmp/integration-api.cov" "-tags='integration'" "-timeout=1h")
-ifdef flavor
-else
-	$(eval flavor='free')
-endif
-	@printf "\033[2m→ Running API integration tests for [$(flavor)]...\033[0m\n"
-ifeq ($(flavor), platinum)
-	@{ \
-		set -e ; \
-		trap "test -d .git && git checkout --quiet $(PWD)/opensearchapi/test/go.mod" INT TERM EXIT; \
-		export ELASTICSEARCH_URL='https://elastic:elastic@localhost:9200' && \
-		if which gotestsum > /dev/null 2>&1 ; then \
-			cd opensearchapi/test && \
-			go mod download && \
-				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/opensearchapi/test/xpack/*_test.go && \
-				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml/*_test.go && \
-				gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml-crud/*_test.go; \
-		else \
-			echo "go test -v" $(testapiargs); \
-			cd opensearchapi/test && \
-			go mod download && \
-				go test -v $(testapiargs) $(PWD)/opensearchapi/test/xpack/*_test.go && \
-				go test -v $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml/*_test.go && \
-				go test -v $(testapiargs) $(PWD)/opensearchapi/test/xpack/ml-crud/*_test.go;  \
-		fi; \
-	}
-else
-	$(eval testapiargs += $(PWD)/opensearchapi/test/*_test.go)
-	@{ \
-		set -e ; \
-		trap "test -d .git && git checkout --quiet $(PWD)/opensearchapi/test/go.mod" INT TERM EXIT; \
-		if which gotestsum > /dev/null 2>&1 ; then \
-			cd opensearchapi/test && \
-			go mod download && \
-			gotestsum --format=short-verbose --junitfile=$(PWD)/tmp/integration-api-report.xml -- $(testapiargs); \
-		else \
-			echo "go test -v" $(testapiargs); \
-			cd opensearchapi/test && \
-			go mod download && \
-			go test -v $(testapiargs); \
-		fi; \
-	}
-endif
-
 test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem ./...
@@ -139,7 +90,7 @@ test-examples: ## Execute the _examples
 test-coverage:  ## Generate test coverage report
 	@printf "\033[2m→ Generating test coverage report...\033[0m\n"
 	@go tool cover -html=tmp/unit.cov -o tmp/coverage.html
-	@go tool cover -func=tmp/unit.cov | 'grep' -v 'opensearchapi/api\.' | sed 's/github.com\/elastic\/go-elasticsearch\///g'
+	@go tool cover -func=tmp/unit.cov | 'grep' -v 'opensearchapi/api\.' | sed 's/github.com\/opensearch-project\/opensearch-go\///g'
 	@printf "\033[0m--------------------------------------------------------------------------------\nopen tmp/coverage.html\n\n\033[0m"
 
 ##@ Development
@@ -155,38 +106,13 @@ lint:  ## Run lint on the package
 	}
 
 
-apidiff: ## Display API incompabilities
-	@if ! command -v apidiff > /dev/null; then \
-		printf "\033[31;1mERROR: apidiff not installed\033[0m\n"; \
-		printf "go get -u github.com/go-modules-by-example/apidiff\n"; \
-		printf "\033[2m→ https://github.com/go-modules-by-example/index/blob/master/019_apidiff/README.md\033[0m\n\n"; \
-		false; \
-	fi;
-	@rm -rf tmp/apidiff-OLD tmp/apidiff-NEW
-	@git clone --quiet --local .git/ tmp/apidiff-OLD
-	@mkdir -p tmp/apidiff-NEW
-	@tar -c --exclude .git --exclude tmp --exclude cmd . | tar -x -C tmp/apidiff-NEW
-	@printf "\033[2m→ Running apidiff...\033[0m\n"
-	@pritnf "tmp/apidiff-OLD/opensearchapi tmp/apidiff-NEW/opensearchapi\n"
-	@{ \
-		set -e ; \
-		output=$$(apidiff tmp/apidiff-OLD/opensearchapi tmp/apidiff-NEW/opensearchapi); \
-		printf "\n$$output\n\n"; \
-		if echo $$output | grep -i -e 'incompatible' - > /dev/null 2>&1; then \
-			printf "\n\033[31;1mFAILURE\033[0m\n\n"; \
-			false; \
-		else \
-			printf "\033[32;1mSUCCESS\033[0m\n"; \
-		fi; \
-	}
-
 backport: ## Backport one or more commits from master into version branches
 ifeq ($(origin commits), undefined)
 	@echo "Missing commit(s), exiting..."
 	@exit 2
 endif
 ifndef branches
-	$(eval branches_list = '7.x' '6.x' '5.x')
+	$(eval branches_list = '1.x')
 else
 	$(eval branches_list = $(shell echo $(branches) | tr ',' ' ') )
 endif
@@ -292,111 +218,8 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker network prune --force
 	docker system prune --volumes --force
 
-docker: ## Build the Docker image and run it
-	docker build --file .ci/Dockerfile --tag elastic/go-elasticsearch .
-	docker run -it --network elasticsearch --volume $(PWD)/tmp:/tmp:rw,delegated --rm elastic/go-elasticsearch
 
-##@ Generator
-gen-api:  ## Generate the API package from the JSON specification
-	$(eval input  ?= tmp/rest-api-spec)
-	$(eval output ?= opensearchapi)
-ifdef debug
-	$(eval args += --debug)
-endif
-ifdef ELASTICSEARCH_BUILD_VERSION
-	$(eval version = $(ELASTICSEARCH_BUILD_VERSION))
-else
-	$(eval version = $(ELASTICSEARCH_DEFAULT_BUILD_VERSION))
-endif
-ifdef ELASTICSEARCH_BUILD_HASH
-	$(eval build_hash = $(ELASTICSEARCH_BUILD_HASH))
-else
-	$(eval build_hash = $(shell cat tmp/elasticsearch.json | jq ".projects.elasticsearch.commit_hash"))
-endif
-	@printf "\033[2m→ Generating API package from specification ($(version):$(build_hash))...\033[0m\n"
-	@{ \
-		set -e; \
-		trap "test -d .git && git checkout --quiet $(PWD)/internal/build/go.mod" INT TERM EXIT; \
-		export ELASTICSEARCH_BUILD_VERSION=$(version) && \
-		export ELASTICSEARCH_BUILD_HASH=$(build_hash) && \
-		cd internal/build && \
-		go run main.go apisource --input '$(PWD)/$(input)/api/*.json' --output '$(PWD)/$(output)' $(args) && \
-		go run main.go apistruct --output '$(PWD)/$(output)'; \
-	}
 
-gen-tests:  ## Generate the API tests from the YAML specification
-	$(eval input  ?= tmp/rest-api-spec)
-	$(eval output ?= opensearchapi/test)
-ifdef debug
-	$(eval args += --debug)
-endif
-ifdef ELASTICSEARCH_BUILD_VERSION
-	$(eval version = $(ELASTICSEARCH_BUILD_VERSION))
-else
-	$(eval version = $(ELASTICSEARCH_DEFAULT_BUILD_VERSION))
-endif
-ifdef ELASTICSEARCH_BUILD_HASH
-	$(eval build_hash = $(ELASTICSEARCH_BUILD_HASH))
-else
-	$(eval build_hash = $(shell cat tmp/elasticsearch.json | jq ".projects.elasticsearch.commit_hash"))
-endif
-	@printf "\033[2m→ Generating API tests from specification ($(version):$(build_hash))...\033[0m\n"
-	@{ \
-		set -e; \
-		trap "test -d .git && git checkout --quiet $(PWD)/internal/cmd/generate/go.mod" INT TERM EXIT; \
-		export ELASTICSEARCH_BUILD_VERSION=$(version) && \
-		export ELASTICSEARCH_BUILD_HASH=$(build_hash) && \
-		rm -rf $(output)/*_test.go && \
-		rm -rf $(output)/xpack && \
-		cd internal/build && \
-		go get golang.org/x/tools/cmd/goimports && \
-		go generate ./... && \
-		go run main.go apitests --input '$(PWD)/$(input)/test/free/**/*.y*ml' --output '$(PWD)/$(output)' $(args) && \
-		go run main.go apitests --input '$(PWD)/$(input)/test/platinum/**/*.yml' --output '$(PWD)/$(output)/xpack' $(args) && \
-		mkdir -p '$(PWD)/opensearchapi/test/xpack/ml' && \
-		mkdir -p '$(PWD)/opensearchapi/test/xpack/ml-crud' && \
-		mv $(PWD)/opensearchapi/test/xpack/xpack_ml* $(PWD)/opensearchapi/test/xpack/ml/ && \
-		mv $(PWD)/opensearchapi/test/xpack/ml/xpack_ml__jobs_crud_test.go $(PWD)/opensearchapi/test/xpack/ml-crud/; \
-	}
-
-gen-docs:  ## Generate the skeleton of documentation examples
-	$(eval input  ?= tmp/alternatives_report.json)
-	$(eval update ?= no)
-	@{ \
-		set -e; \
-		trap "test -d .git && git checkout --quiet $(PWD)/internal/cmd/generate/go.mod" INT TERM EXIT; \
-		if [[ $(update) == 'yes' ]]; then \
-			printf "\033[2m→ Updating the alternatives_report.json file\033[0m\n" && \
-			curl -s https://raw.githubusercontent.com/elastic/built-docs/master/raw/en/elasticsearch/reference/master/alternatives_report.json > tmp/alternatives_report.json; \
-		fi; \
-		printf "\033[2m→ Generating Go source files from Console input in [$(input)]\033[0m\n" && \
-		( cd '$(PWD)/internal/cmd/generate' && \
-			go run main.go examples src --debug --input='$(PWD)/$(input)' --output='$(PWD)/.doc/examples/' \
-		) && \
-		( cd '$(PWD)/.doc/examples/src' && \
-			if which gotestsum > /dev/null 2>&1 ; then \
-				gotestsum --format=short-verbose; \
-			else \
-				go test -v $(testunitargs); \
-			fi; \
-		) && \
-		printf "\n\033[2m→ Generating ASCIIDoc files from Go source\033[0m\n" && \
-		( cd '$(PWD)/internal/build' && \
-			go run main.go examples doc --debug --input='$(PWD)/.doc/examples/src/' --output='$(PWD)/.doc/examples/' \
-		) \
-	}
-
-download-specs: ## Download the latest specs for the specified Elasticsearch version
-	$(eval output ?= tmp)
-	@mkdir -p tmp
-	@{ \
-		set -e; \
-		printf "\n\033[2m→ Downloading latest Elasticsearch specs for version [$(ELASTICSEARCH_DEFAULT_BUILD_VERSION)]\033[0m\n" && \
-		rm -rf $(output)/rest-api-spec && \
-		rm -rf $(output)/elasticsearch.json && \
-		cd internal/build && \
-		go run main.go download-spec --output '$(PWD)/$(output)'; \
-	}
 
 ##@ Other
 #------------------------------------------------------------------------------
@@ -405,4 +228,4 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help apidiff backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage docker examples gen-api gen-tests godoc lint release test test-api test-bench test-integ test-unit
+.PHONY: help backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage examples  godoc lint release test test-bench test-integ test-unit
