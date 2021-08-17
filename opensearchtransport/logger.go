@@ -305,9 +305,7 @@ func (l *CurlLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 // LogRoundTrip prints the information about request and response.
 //
 func (l *JSONLogger) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
-	// https://github.com/elastic/ecs/blob/master/schemas/http.yml
-	//
-	// TODO(karmi): Research performance optimization of using sync.Pool
+	// TODO: Research performance optimization of using sync.Pool
 
 	bsize := 200
 	var b = bytes.NewBuffer(make([]byte, 0, bsize))

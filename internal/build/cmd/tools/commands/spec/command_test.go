@@ -42,15 +42,15 @@ func TestBuild_zipfileUrl(t *testing.T) {
 			json: `
 			{
 			  "start_time": "Mon, 19 Apr 2021 12:15:47 GMT",
-			  "version": "8.0.0-SNAPSHOT",
-			  "build_id": "8.0.0-ab7cd914",
+			  "version": "1.0.0-SNAPSHOT",
+			  "build_id": "1.0.0-ab7cd914",
 			  "projects": {
-				"elasticsearch": {
+				"opensearch": {
 				  "branch": "master",
 				  "commit_hash": "d3be79018b5b70a118ea5a897a539428b728df5a",
 				  "Packages": {
 					"rest-resources-zip-8.0.0-SNAPSHOT.zip": {
-					  "url": "https://snapshots.elastic.co/8.0.0-ab7cd914/downloads/elasticsearch/rest-resources-zip-8.0.0-SNAPSHOT.zip",
+					  "url": "https://artifacts.opensearch.org/rest-resources-zip-1.0.0-SNAPSHOT.zip",
 					  "type": "zip"
 					}
 				  }
@@ -58,7 +58,7 @@ func TestBuild_zipfileUrl(t *testing.T) {
 			  }
 			}
 			`,
-			want: "https://snapshots.elastic.co/8.0.0-ab7cd914/downloads/elasticsearch/rest-resources-zip-8.0.0-SNAPSHOT.zip",
+			want: "https://artifacts.opensearch.org/rest-resources-zip-1.0.0-SNAPSHOT.zip",
 		},
 	}
 	for _, tt := range tests {

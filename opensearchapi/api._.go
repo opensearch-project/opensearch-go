@@ -26,7 +26,7 @@
 
 package opensearchapi
 
-// API contains the Elasticsearch APIs
+// API contains the OpenSearch APIs
 //
 type API struct {
 	Cat         *Cat

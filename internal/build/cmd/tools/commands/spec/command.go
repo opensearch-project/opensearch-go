@@ -54,7 +54,7 @@ var (
 
 func init() {
 	output = toolsCmd.Flags().StringP("output", "o", "", "Path to a folder for generated output")
-	commitHash = toolsCmd.Flags().StringP("commit_hash", "c", "", "Elasticsearch commit hash")
+	commitHash = toolsCmd.Flags().StringP("commit_hash", "c", "", "OpenSearch commit hash")
 	debug = toolsCmd.Flags().BoolP("debug", "d", false, "Print the generated source to terminal")
 	info = toolsCmd.Flags().Bool("info", false, "Print the API details to terminal")
 
@@ -63,7 +63,7 @@ func init() {
 
 var toolsCmd = &cobra.Command{
 	Use:   "download-spec",
-	Short: "Downdload specification artifact for code & tests generation",
+	Short: "Download specification artifact for code & tests generation",
 	Run: func(cmd *cobra.Command, args []string) {
 		command := &Command{
 			Output:     *output,
@@ -86,17 +86,17 @@ type Command struct {
 	Info       bool
 }
 
-// download-spec runs a query to the Elastic artifact API, retrieve the list of active artifacts
+// download-spec retrieve the list of active artifacts
 // downloads, extract and write to disk the rest-resources spec alongside a json with relevant build information.
 func (c Command) Execute() (err error) {
-	const artifactsUrl = "https://artifacts-api.elastic.co/v1/versions"
+	artifactsUrl := os.Getenv("OPENSEARCH_ARTIFACTS_URL")
 
-	esBuildVersion := os.Getenv("ELASTICSEARCH_BUILD_VERSION")
-	if esBuildVersion == "" {
-		esBuildVersion = version.Client
+	buildVersion := os.Getenv("OPENSEARCH_BUILD_VERSION")
+	if buildVersion == "" {
+		buildVersion = version.Client
 	}
 
-	versionUrl := strings.Join([]string{artifactsUrl, esBuildVersion}, "/")
+	versionUrl := strings.Join([]string{artifactsUrl, buildVersion}, "/")
 
 	res, err := http.Get(versionUrl)
 	if err != nil {
@@ -124,7 +124,7 @@ func (c Command) Execute() (err error) {
 		build = findMostRecentBuild(v.Version.Builds)
 	}
 	if c.Debug {
-		log.Printf("Build found : %s", build.Projects.Elasticsearch.CommitHash)
+		log.Printf("Build found : %s", build.Projects.OpenSearch.CommitHash)
 	}
 
 	data, err := c.downloadZip(build)
@@ -138,7 +138,7 @@ func (c Command) Execute() (err error) {
 
 	d, _ := json.Marshal(build)
 
-	err = c.writeFileToDest("elasticsearch.json", d)
+	err = c.writeFileToDest("opensearch.json", d)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -197,14 +197,14 @@ type Build struct {
 	Version   string         `json:"version"`
 	BuildId   string         `json:"build_id"`
 	Projects  struct {
-		Elasticsearch struct {
+		OpenSearch struct {
 			Branch     string `json:"branch"`
 			CommitHash string `json:"commit_hash"`
 			Packages   map[string]struct {
 				Url  PackageUrl `json:"url"`
 				Type string     `json:"type"`
 			}
-		} `json:"elasticsearch"`
+		} `json:"opensearch"`
 	} `json:"projects"`
 }
 
@@ -217,7 +217,7 @@ func NewBuild() Build {
 // zipfileUrl return the file URL for the rest-resources artifact from Build
 // There should be only one artifact matching the requirements par Build.
 func (b Build) zipfileUrl() string {
-	for _, pack := range b.Projects.Elasticsearch.Packages {
+	for _, pack := range b.Projects.OpenSearch.Packages {
 		if pack.Type == "zip" && strings.Contains(pack.Url.String(), "rest-resources") {
 			return pack.Url.String()
 		}
@@ -306,7 +306,7 @@ func findMostRecentBuild(builds []Build) Build {
 // that matches the provided commitHash.
 func findBuildByCommitHash(commitHash string, builds []Build) (Build, error) {
 	for _, build := range builds {
-		if build.Projects.Elasticsearch.CommitHash == commitHash {
+		if build.Projects.OpenSearch.CommitHash == commitHash {
 			return build, nil
 		}
 	}

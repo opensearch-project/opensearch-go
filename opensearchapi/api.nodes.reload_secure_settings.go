@@ -169,7 +169,7 @@ func (f NodesReloadSecureSettings) WithContext(v context.Context) func(*NodesRel
 	}
 }
 
-// WithBody - An object containing the password for the elasticsearch keystore.
+// WithBody - An object containing the password for the opensearch keystore.
 //
 func (f NodesReloadSecureSettings) WithBody(v io.Reader) func(*NodesReloadSecureSettingsRequest) {
 	return func(r *NodesReloadSecureSettingsRequest) {

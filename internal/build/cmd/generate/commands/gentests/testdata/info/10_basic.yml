@@ -24,13 +24,13 @@ teardown:
 
   - is_false: foobar
 
-  - match: { cluster_name: "go-elasticsearch" }
+  - match: { cluster_name: "opensearch-go" }
 
   - match:
       version.lucene_version: /\d\.\d\.\d/
 
   - match:
-      $body: /.*elasticsearch.*/
+      $body: /.*opensearch.*/
 
 # Comment
 ---

@@ -350,7 +350,7 @@ func TestTransportPerform(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/abc", nil)
 		tp.setReqUserAgent(req)
 
-		if !strings.HasPrefix(req.UserAgent(), "go-elasticsearch") {
+		if !strings.HasPrefix(req.UserAgent(), "opensearch-go") {
 			t.Errorf("Unexpected user agent: %s", req.UserAgent())
 		}
 	})
@@ -913,12 +913,12 @@ func TestRequestCompression(t *testing.T) {
 		{
 			name:            "Uncompressed",
 			compressionFlag: false,
-			inputBody:       "elasticsearch",
+			inputBody:       "opensearch",
 		},
 		{
 			name:            "Compressed",
 			compressionFlag: true,
-			inputBody:       "elasticsearch",
+			inputBody:       "opensearch",
 		},
 	}
 

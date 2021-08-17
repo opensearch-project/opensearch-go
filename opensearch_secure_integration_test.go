@@ -47,11 +47,11 @@ type Info struct {
 
 func TestSecuredClientAPI(t *testing.T) {
 	t.Run("Check Info", func(t *testing.T) {
-		es, err := getSecuredClient()
+		client, err := getSecuredClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}
-		res, err := es.Info()
+		res, err := client.Info()
 		if err != nil {
 			log.Fatalf("Error getting the response: %s\n", err)
 		}

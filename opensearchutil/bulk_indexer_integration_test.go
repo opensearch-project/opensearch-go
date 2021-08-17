@@ -66,20 +66,20 @@ func TestBulkIndexerIntegration(t *testing.T) {
 				var countSuccessful uint64
 				indexName := "test-bulk-integration"
 
-				es, _ := opensearch.NewClient(opensearch.Config{
+				client, _ := opensearch.NewClient(opensearch.Config{
 					CompressRequestBody: tt.CompressRequestBodyEnabled,
 					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})
 
-				es.Indices.Delete([]string{indexName}, es.Indices.Delete.WithIgnoreUnavailable(true))
-				es.Indices.Create(
+				client.Indices.Delete([]string{indexName}, client.Indices.Delete.WithIgnoreUnavailable(true))
+				client.Indices.Create(
 					indexName,
-					es.Indices.Create.WithBody(strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`)),
-					es.Indices.Create.WithWaitForActiveShards("1"))
+					client.Indices.Create.WithBody(strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`)),
+					client.Indices.Create.WithWaitForActiveShards("1"))
 
 				bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 					Index:  indexName,
-					Client: es,
+					Client: client,
 					// FlushBytes: 3e+6,
 				})
 
@@ -132,14 +132,14 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			})
 
 			t.Run("Multiple indices", func(t *testing.T) {
-				es, _ := opensearch.NewClient(opensearch.Config{
+				client, _ := opensearch.NewClient(opensearch.Config{
 					CompressRequestBody: tt.CompressRequestBodyEnabled,
 					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				})
 
 				bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 					Index:  "test-index-a",
-					Client: es,
+					Client: client,
 				})
 
 				// Default index
@@ -188,7 +188,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 				}
 
-				res, err := es.Indices.Exists([]string{"test-index-a", "test-index-b", "test-index-c"})
+				res, err := client.Indices.Exists([]string{"test-index-a", "test-index-b", "test-index-c"})
 				if err != nil {
 					t.Fatalf("Unexpected error: %s", err)
 				}

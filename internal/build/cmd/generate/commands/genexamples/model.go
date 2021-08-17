@@ -111,8 +111,6 @@ var (
 
 // Example represents the code example in documentation.
 //
-// See: https://github.com/elastic/built-docs/blob/master/raw/en/elasticsearch/reference/master/alternatives_report.json
-//
 type Example struct {
 	SourceLocation struct {
 		File string
@@ -165,7 +163,8 @@ func (e Example) Chapter() string {
 // GithubURL returns a link for the example source.
 //
 func (e Example) GithubURL() string {
-	return fmt.Sprintf("https://github.com/elastic/elasticsearch/blob/master/docs/reference/%s#L%d", e.SourceLocation.File, e.SourceLocation.Line)
+	//TODO: fix url
+	return fmt.Sprintf("https://github.com/opensearch-project/documentation-website")
 }
 
 // Commands returns the list of commands from source.

@@ -59,7 +59,7 @@ func init() {
 const (
 	defaultURL         = "http://localhost:9200"
 	openSearch         = "opensearch"
-	unsupportedProduct = "the client noticed that the server is not a supported distribution of Elasticsearch"
+	unsupportedProduct = "the client noticed that the server is not a supported distribution"
 )
 
 // Version returns the package version as a string.
@@ -69,7 +69,7 @@ const Version = version.Client
 // Config represents the client configuration.
 //
 type Config struct {
-	Addresses []string // A list of Elasticsearch nodes to use.
+	Addresses []string // A list of nodes to use.
 	Username  string   // Username for HTTP Basic Authentication.
 	Password  string   // Password for HTTP Basic Authentication.
 
@@ -105,7 +105,7 @@ type Config struct {
 	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
 }
 
-// Client represents the Elasticsearch client.
+// Client represents the OpenSearch client.
 //
 type Client struct {
 	*opensearchapi.API      // Embeds the API methods
@@ -146,11 +146,6 @@ func NewDefaultClient() (*Client, error) {
 // It will use the ELASTICSEARCH_URL environment variable, if set,
 // to configure the addresses; use a comma to separate multiple URLs.
 //
-// If either cfg.Addresses or cfg.CloudID is set, the ELASTICSEARCH_URL
-// environment variable is ignored.
-//
-// It's an error to set both cfg.Addresses and cfg.CloudID.
-//
 func NewClient(cfg Config) (*Client, error) {
 	var addrs []string
 
@@ -170,7 +165,7 @@ func NewClient(cfg Config) (*Client, error) {
 		urls = append(urls, u)
 	}
 
-	// TODO(karmi): Refactor
+	// TODO: Refactor
 	if urls[0].User != nil {
 		cfg.Username = urls[0].User.Username()
 		pw, _ := urls[0].User.Password()
@@ -217,10 +212,10 @@ func NewClient(cfg Config) (*Client, error) {
 	return client, err
 }
 
-// checkCompatibleInfo validates the informations given by Elasticsearch
+// checkCompatibleInfo validates the information given by OpenSearch
 //
 func checkCompatibleInfo(info info) error {
-	major, _, _, err := ParseElasticsearchVersion(info.Version.Number)
+	major, _, _, err := ParseVersion(info.Version.Number)
 	if err != nil {
 		return err
 	}
@@ -233,9 +228,9 @@ func checkCompatibleInfo(info info) error {
 	return nil
 }
 
-// ParseElasticsearchVersion returns an int64 representation of Elasticsearch version.
+// ParseVersion returns an int64 representation of version.
 //
-func ParseElasticsearchVersion(version string) (int64, int64, int64, error) {
+func ParseVersion(version string) (int64, int64, int64, error) {
 	matches := reVersion.FindStringSubmatch(version)
 
 	if len(matches) < 4 {
@@ -251,10 +246,8 @@ func ParseElasticsearchVersion(version string) (int64, int64, int64, error) {
 // Perform delegates to Transport to execute a request and return a response.
 //
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
-	// ProductCheck validation. We skip this validation of we only want the
-	// header validation. ResponseCheck path continues after original request.
 	if !c.useResponseCheckOnly {
-		// Launch product check for 7.x, request info, check header then payload.
+		// Launch product check, request info, check header then payload.
 		if err := c.doProductCheck(c.productCheck); err != nil {
 			return nil, err
 		}
@@ -291,8 +284,8 @@ func (c *Client) doProductCheck(f func() error) error {
 	return nil
 }
 
-// productCheck runs an opensearchapi.Info query to retrieve informations of the current cluster
-// decodes the response and decides if the cluster is a genuine Elasticsearch product.
+// productCheck runs an opensearchapi.Info query to retrieve information of the current cluster
+// decodes the response and decides if the cluster can be supported or not.
 func (c *Client) productCheck() error {
 	req := opensearchapi.InfoRequest{}
 	res, err := req.Do(context.Background(), c.Transport)
@@ -312,7 +305,7 @@ func (c *Client) productCheck() error {
 		case http.StatusForbidden:
 			return nil
 		default:
-			return fmt.Errorf("cannot retrieve informations from Elasticsearch")
+			return fmt.Errorf("cannot retrieve information from OpenSearch")
 		}
 	}
 
@@ -321,7 +314,7 @@ func (c *Client) productCheck() error {
 	if strings.Contains(contentType, "json") {
 		err = json.NewDecoder(res.Body).Decode(&info)
 		if err != nil {
-			return fmt.Errorf("error decoding Elasticsearch informations: %s", err)
+			return fmt.Errorf("error decoding OpenSearch informations: %s", err)
 		}
 	}
 

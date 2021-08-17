@@ -819,8 +819,6 @@ func (s Stash) Value() string {
 
 // expand "unwraps" a field name like `foo.bar.0.baz` into a proper Go structure
 //
-// See https://github.com/elastic/elasticsearch/tree/master/rest-api-spec/src/main/resources/rest-api-spec/test#dot-notation
-//
 func expand(s string, format ...string) string {
 	var (
 		b bytes.Buffer
