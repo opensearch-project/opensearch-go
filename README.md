@@ -1,3 +1,10 @@
+[![Build](https://github.com/opensearch-project/opensearch-go/actions/workflows/build.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/build.yml)
+[![Unit](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml)
+[![Integration](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml)
+[![codecov](https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg?token=MI9g3KYHVx)](https://codecov.io/gh/opensearch-project/opensearch-go)
+[![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/k-NN/)
+![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
+
 ![OpenSearch logo](OpenSearch.svg)
 
 OpenSearch Go Client
