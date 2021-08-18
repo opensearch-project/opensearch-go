@@ -45,51 +45,6 @@ test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem ./...
 
-test-examples: ## Execute the _examples
-	@printf "\033[2m→ Testing the examples...\033[0m\n"
-	@{ \
-		set -e ; \
-		trap "test -d .git && git checkout --quiet _examples/**/go.mod" INT TERM EXIT; \
-		for d in _examples/*/; do \
-			printf "\033[2m────────────────────────────────────────────────────────────────────────────────\n"; \
-			printf "\033[1mUpdating dependencies for $$d\033[0m\n"; \
-			printf "\033[2m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-			(cd $$d && go mod download && make setup) || \
-			( \
-				printf "\033[31m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-				printf "\033[31;1m⨯ ERROR\033[0m\n"; \
-				false; \
-			); \
-	    done; \
-	    \
-		for f in _examples/*.go; do \
-			printf "\033[2m────────────────────────────────────────────────────────────────────────────────\n"; \
-			printf "\033[1m$$f\033[0m\n"; \
-			printf "\033[2m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-			(go run $$f && true) || \
-			( \
-				printf "\033[31m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-				printf "\033[31;1m⨯ ERROR\033[0m\n"; \
-				false; \
-			); \
-		done; \
-		\
-		for f in _examples/*/; do \
-			printf "\033[2m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-			printf "\033[1m$$f\033[0m\n"; \
-			printf "\033[2m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-			(cd $$f && make test && true) || \
-			( \
-				printf "\033[31m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-				printf "\033[31;1m⨯ ERROR\033[0m\n"; \
-				false; \
-			); \
-		done; \
-		printf "\033[32m────────────────────────────────────────────────────────────────────────────────\033[0m\n"; \
-		\
-		printf "\033[32;1mSUCCESS\033[0m\n"; \
-	}
-
 test-coverage:  ## Generate test coverage report
 	@printf "\033[2m→ Generating test coverage report...\033[0m\n"
 	@go tool cover -html=tmp/unit.cov -o tmp/coverage.html
@@ -244,23 +199,6 @@ workflow: ## Run all github workflow commands here sequentially
 	make test-integ race=true
 	make cluster.opensearch.stop
 
-# Integration Test Examples
-### OpenDistro
-	make cluster.clean cluster.opendistro.build cluster.opendistro.start
-	cd _examples/encoding && make setup
-	cd ../..
-	make test-examples
-	make cluster.opendistro.stop
-	cd _examples/encoding && make clean
-### OpenSearch
-	make cluster.clean cluster.opensearch.build cluster.opensearch.start
-	cd _examples/encoding && make setup
-	cd ../..
-	make test-examples
-	make cluster.opensearch.stop
-	cd _examples/encoding && make clean
-
-
 ##@ Other
 #------------------------------------------------------------------------------
 help:  ## Display help
@@ -268,4 +206,4 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage examples  godoc lint release test test-bench test-integ test-unit
+.PHONY: help backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage  godoc lint release test test-bench test-integ test-unit
