@@ -31,8 +31,9 @@ Create the client with the NewDefaultClient function:
 
 		opensearch.NewDefaultClient()
 
-The ELASTICSEARCH_URL environment variable is used instead of the default URL, when set.
+The OPENSEARCH_URL/ELASTICSEARCH_URL environment variable is used instead of the default URL, when set.
 Use a comma to separate multiple URLs.
+It is an error to set both environment variable.
 
 To configure the client, pass a Config object to the NewClient function:
 
