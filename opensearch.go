@@ -42,9 +42,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/internal/version"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/internal/version"
 )
 
 var (
@@ -57,9 +57,12 @@ func init() {
 }
 
 const (
-	defaultURL         = "http://localhost:9200"
-	openSearch         = "opensearch"
-	unsupportedProduct = "the client noticed that the server is not a supported distribution"
+	defaultURL          = "http://localhost:9200"
+	openSearch          = "opensearch"
+	unsupportedProduct  = "the client noticed that the server is not a supported distribution"
+	envOpenSearchURL    = "OPENSEARCH_URL"
+	envElasticsearchURL = "ELASTICSEARCH_URL"
+
 )
 
 // Version returns the package version as a string.
@@ -132,8 +135,10 @@ type info struct {
 //
 // It will use http://localhost:9200 as the default address.
 //
-// It will use the ELASTICSEARCH_URL environment variable, if set,
+// It will use the OPENSEARCH_URL/ELASTICSEARCH_URL environment variable, if set,
 // to configure the addresses; use a comma to separate multiple URLs.
+//
+// It's an error to set both OPENSEARCH_URL and ELASTICSEARCH_URL.
 //
 func NewDefaultClient() (*Client, error) {
 	return NewClient(Config{})
@@ -143,14 +148,20 @@ func NewDefaultClient() (*Client, error) {
 //
 // It will use http://localhost:9200 as the default address.
 //
-// It will use the ELASTICSEARCH_URL environment variable, if set,
+// It will use the OPENSEARCH_URL/ELASTICSEARCH_URL environment variable, if set,
 // to configure the addresses; use a comma to separate multiple URLs.
+//
+// It's an error to set both OPENSEARCH_URL and ELASTICSEARCH_URL.
 //
 func NewClient(cfg Config) (*Client, error) {
 	var addrs []string
 
 	if len(cfg.Addresses) == 0 {
-		addrs = addrsFromEnvironment()
+		envAddress, err := getAddressFromEnvironment()
+		if err != nil {
+			return nil, err
+		}
+		addrs = envAddress
 	} else {
 		addrs = append(addrs, cfg.Addresses...)
 	}
@@ -210,6 +221,19 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	return client, err
+}
+
+func getAddressFromEnvironment() ([]string, error) {
+	fromOpenSearchEnv := addrsFromEnvironment(envOpenSearchURL)
+	fromElasticsearchEnv := addrsFromEnvironment(envElasticsearchURL)
+
+	if len(fromElasticsearchEnv) > 0 && len(fromOpenSearchEnv) > 0 {
+		return nil, fmt.Errorf("cannot create client: both %s and %s are set", envOpenSearchURL, envElasticsearchURL)
+	}
+	if len(fromOpenSearchEnv) > 0 {
+		return fromOpenSearchEnv, nil
+	}
+	return fromElasticsearchEnv, nil
 }
 
 // checkCompatibleInfo validates the information given by OpenSearch
@@ -343,12 +367,12 @@ func (c *Client) DiscoverNodes() error {
 }
 
 // addrsFromEnvironment returns a list of addresses by splitting
-// the ELASTICSEARCH_URL environment variable with comma, or an empty list.
+// the given environment variable with comma, or an empty list.
 //
-func addrsFromEnvironment() []string {
+func addrsFromEnvironment(name string) []string {
 	var addrs []string
 
-	if envURLs, ok := os.LookupEnv("ELASTICSEARCH_URL"); ok && envURLs != "" {
+	if envURLs, ok := os.LookupEnv(name); ok && envURLs != "" {
 		list := strings.Split(envURLs, ",")
 		for _, u := range list {
 			addrs = append(addrs, strings.TrimSpace(u))
