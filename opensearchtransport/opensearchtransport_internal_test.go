@@ -32,6 +32,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -839,40 +840,68 @@ func TestMaxRetries(t *testing.T) {
 
 func TestCompatibilityHeader(t *testing.T) {
 	tests := []struct {
-		name                string
-		compatibilityHeader bool
-		bodyPresent         bool
-		expectsHeader       []string
+		name                          string
+		esCompatibilityHeader         bool
+		openSearchCompatibilityHeader bool
+		bodyPresent                   bool
+		expectsHeader                 []string
+		wantError                     bool
 	}{
 		{
-			name:                "Compatibility header disabled",
-			compatibilityHeader: false,
-			bodyPresent: false,
-			expectsHeader:       []string{"application/json"},
+			name:                          "Compatibility header disabled",
+			esCompatibilityHeader:         false,
+			openSearchCompatibilityHeader: false,
+			bodyPresent:                   false,
+			expectsHeader:                 []string{"application/json"},
 		},
 		{
-			name:                "Compatibility header enabled",
-			compatibilityHeader: true,
-			bodyPresent: false,
-			expectsHeader:       []string{"application/vnd.elasticsearch+json;compatible-with=7"},
+			name:                          "ES Compatibility header enabled",
+			esCompatibilityHeader:         true,
+			openSearchCompatibilityHeader: false,
+			bodyPresent:                   false,
+			expectsHeader:                 []string{"application/vnd.elasticsearch+json;compatible-with=7"},
 		},
 		{
-			name: "Compatibility header enabled with body",
-			compatibilityHeader: true,
-			bodyPresent: true,
-			expectsHeader:       []string{"application/vnd.elasticsearch+json;compatible-with=7"},
+			name:                          "ES Compatibility header enabled with body",
+			esCompatibilityHeader:         true,
+			openSearchCompatibilityHeader: false,
+			bodyPresent:                   true,
+			expectsHeader:                 []string{"application/vnd.elasticsearch+json;compatible-with=7"},
+		},
+		{
+			name:                          "OpenSearch Compatibility header enabled",
+			esCompatibilityHeader:         false,
+			openSearchCompatibilityHeader: true,
+			bodyPresent:                   false,
+			expectsHeader:                 []string{"application/vnd.opensearch+json;compatible-with=7"},
+		},
+		{
+			name:                          "OpenSearch Compatibility header enabled with body",
+			esCompatibilityHeader:         false,
+			openSearchCompatibilityHeader: true,
+			bodyPresent:                   true,
+			expectsHeader:                 []string{"application/vnd.opensearch+json;compatible-with=7"},
+		},
+		{
+			name:                          "Both OpenSearch and Elasticsearch Compatibility headers are enabled",
+			esCompatibilityHeader:         true,
+			openSearchCompatibilityHeader: true,
+			bodyPresent:                   false,
+			expectsHeader:                 []string{},
+			wantError:                     true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			compatibilityHeader = test.compatibilityHeader
+			esCompatibilityHeader = test.esCompatibilityHeader
+			openSearchCompatibilityHeader = test.openSearchCompatibilityHeader
 
 			c, _ := New(Config{
 				URLs: []*url.URL{{}},
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						if test.compatibilityHeader {
+						if test.esCompatibilityHeader || test.openSearchCompatibilityHeader{
 							if !reflect.DeepEqual(req.Header["Accept"], test.expectsHeader) {
 								t.Errorf("Compatibility header enabled but header is, not in request headers, got: %s, want: %s", req.Header["Accept"], test.expectsHeader)
 							}
@@ -896,9 +925,16 @@ func TestCompatibilityHeader(t *testing.T) {
 				req.Body = ioutil.NopCloser(strings.NewReader("{}"))
 			}
 
-			_, _ = c.Perform(req)
+			_, err := c.Perform(req)
 
-			compatibilityHeader = false
+			if test.wantError {
+				assert.Error(t, err, "Expected error")
+			} else {
+				assert.NoError(t, err, "Not Expected an error")
+			}
+
+			esCompatibilityHeader = false
+			openSearchCompatibilityHeader = false
 		})
 	}
 }

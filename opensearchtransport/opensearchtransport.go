@@ -52,13 +52,17 @@ const (
 	// Version returns the package version as a string.
 	Version = version.Client
 
-	// esCompatHeader defines the env var for Compatibility header.
+	// esCompatHeader defines the env var for Elasticsearch Compatibility header.
 	esCompatHeader = "ELASTIC_CLIENT_APIVERSIONING"
+
+	// openSearchCompatHeader defines the env var for OpenSearch Compatibility header.
+	openSearchCompatHeader = "OPENSEARCH_CLIENT_APIVERSIONING"
 )
 
 var (
 	userAgent   string
-	compatibilityHeader bool
+	esCompatibilityHeader bool
+	openSearchCompatibilityHeader bool
 	reGoVersion = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 
 	defaultMaxRetries    = 3
@@ -68,8 +72,11 @@ var (
 func init() {
 	userAgent = initUserAgent()
 
-	compatHeaderEnv := os.Getenv(esCompatHeader)
-	compatibilityHeader, _ = strconv.ParseBool(compatHeaderEnv)
+	esCompatHeaderEnv := os.Getenv(esCompatHeader)
+	esCompatibilityHeader, _ = strconv.ParseBool(esCompatHeaderEnv)
+
+	openSearchCompatHeaderEnv := os.Getenv(openSearchCompatHeader)
+	openSearchCompatibilityHeader, _ = strconv.ParseBool(openSearchCompatHeaderEnv)
 }
 
 // Interface defines the interface for HTTP client.
@@ -234,12 +241,18 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		err error
 	)
 
-	// Compatibility Header
-	if compatibilityHeader {
-		if req.Body != nil {
-			req.Header.Set("Content-Type", "application/vnd.elasticsearch+json;compatible-with=7")
-		}
-		req.Header.Set("Accept", "application/vnd.elasticsearch+json;compatible-with=7")
+	if esCompatibilityHeader && openSearchCompatibilityHeader {
+		return nil, fmt.Errorf("both %s and %s are set. Only one is allowed", esCompatHeader, openSearchCompatHeader)
+	}
+
+	// Elasticsearch Compatibility Header
+	if esCompatibilityHeader {
+		setCompatibilityHeader(req, "elasticsearch")
+	}
+
+	// OpenSearch Compatibility Header
+	if openSearchCompatibilityHeader {
+		setCompatibilityHeader(req, "opensearch")
 	}
 
 	// Record metrics, when enabled
@@ -398,6 +411,14 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 	// TODO(karmi): Wrap error
 	return res, err
+}
+
+func setCompatibilityHeader(req *http.Request, name string) {
+	headerValue := fmt.Sprintf("application/vnd.%s+json;compatible-with=7", name)
+	if req.Body != nil {
+		req.Header.Set("Content-Type", headerValue)
+	}
+	req.Header.Set("Accept", headerValue)
 }
 
 // URLs returns a list of transport URLs.
