@@ -1,3 +1,4 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/opensearch-project/opensearch-go.svg)](https://pkg.go.dev/github.com/opensearch-project/opensearch-go)
 [![Build](https://github.com/opensearch-project/opensearch-go/actions/workflows/build.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/build.yml)
 [![Unit](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml)
 [![Integration](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml)
