@@ -45,18 +45,18 @@ func init() {
 }
 
 func ExampleNewDefaultClient() {
-	es, err := opensearch.NewDefaultClient()
+	client, err := opensearch.NewDefaultClient()
 	if err != nil {
 		log.Fatalf("Error creating the client: %s\n", err)
 	}
 
-	res, err := es.Info()
+	res, err := client.Info()
 	if err != nil {
 		log.Fatalf("Error getting the response: %s\n", err)
 	}
 	defer res.Body.Close()
 
-	log.Print(es.Transport.(*opensearchtransport.Client).URLs())
+	log.Print(client.Transport.(*opensearchtransport.Client).URLs())
 }
 
 func ExampleNewClient() {
@@ -76,8 +76,8 @@ func ExampleNewClient() {
 		},
 	}
 
-	es, _ := opensearch.NewClient(cfg)
-	log.Print(es.Transport.(*opensearchtransport.Client).URLs())
+	client, _ := opensearch.NewClient(cfg)
+	log.Print(client.Transport.(*opensearchtransport.Client).URLs())
 }
 
 func ExampleNewClient_logger() {
