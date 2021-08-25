@@ -24,6 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build !integration
 // +build !integration
 
 package opensearchutil
@@ -671,7 +672,61 @@ func TestBulkIndexer(t *testing.T) {
 					DocumentID: "42",
 					Index:      "test",
 				}},
-				`{"index":{"_id":"42","_index":"test"}}` + "\n",
+				`{"index":{"_index":"test","_id":"42"}}` + "\n",
+			},
+			{
+				"with version and no document",
+				args{BulkIndexerItem{
+					Action:  "index",
+					Index:   "test",
+					Version: int64Pointer(23),
+				}},
+				`{"index":{"_index":"test"}}` + "\n",
+			},
+			{
+				"with version",
+				args{BulkIndexerItem{
+					Action:     "index",
+					DocumentID: "42",
+					Index:      "test",
+					Version:    int64Pointer(24),
+				}},
+				`{"index":{"_index":"test","_id":"42","version":24}}` + "\n",
+			},
+			{
+				"with version and version_type",
+				args{BulkIndexerItem{
+					Action:      "index",
+					DocumentID:  "42",
+					Index:       "test",
+					Version:     int64Pointer(25),
+					VersionType: strPointer("external"),
+				}},
+				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external"}}` + "\n",
+			},
+			{
+				"wait_for_active_shards",
+				args{BulkIndexerItem{
+					Action:              "index",
+					DocumentID:          "42",
+					Index:               "test",
+					Version:             int64Pointer(25),
+					VersionType:         strPointer("external"),
+					WaitForActiveShards: 1,
+				}},
+				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","wait_for_active_shards":1}}` + "\n",
+			},
+			{
+				"wait_for_active_shards, all",
+				args{BulkIndexerItem{
+					Action:              "index",
+					DocumentID:          "42",
+					Index:               "test",
+					Version:             int64Pointer(25),
+					VersionType:         strPointer("external"),
+					WaitForActiveShards: "all",
+				}},
+				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}` + "\n",
 			},
 		}
 		for _, tt := range tests {
@@ -699,4 +754,12 @@ type customJSONDecoder struct{}
 
 func (d customJSONDecoder) UnmarshalFromReader(r io.Reader, blk *BulkIndexerResponse) error {
 	return json.NewDecoder(r).Decode(blk)
+}
+
+func strPointer(s string) *string {
+	return &s
+}
+
+func int64Pointer(i int64) *int64 {
+	return &i
 }
