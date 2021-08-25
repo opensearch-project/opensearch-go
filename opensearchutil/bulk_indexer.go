@@ -32,10 +32,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"runtime"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -111,14 +109,35 @@ type BulkIndexerStats struct {
 // BulkIndexerItem represents an indexer item.
 //
 type BulkIndexerItem struct {
-	Index           string
-	Action          string
-	DocumentID      string
-	Body            io.Reader
-	RetryOnConflict *int
+	Index               string
+	Action              string
+	DocumentID          string
+	Routing             *string
+	Version             *int64
+	VersionType         *string
+	IfSeqNum            *int64
+	IfPrimaryTerm       *int64
+	WaitForActiveShards interface{}
+	Refresh             *string
+	RequireAlias        *bool
+	Body                io.ReadSeeker
+	RetryOnConflict     *int
 
 	OnSuccess func(context.Context, BulkIndexerItem, BulkIndexerResponseItem)        // Per item
 	OnFailure func(context.Context, BulkIndexerItem, BulkIndexerResponseItem, error) // Per item
+}
+
+type bulkActionMetadata struct {
+	Index               string      `json:"_index,omitempty"`
+	DocumentID          string      `json:"_id,omitempty"`
+	Routing             *string     `json:"routing,omitempty"`
+	Version             *int64      `json:"version,omitempty"`
+	VersionType         *string     `json:"version_type,omitempty"`
+	IfSeqNum            *int64      `json:"if_seq_num,omitempty"`
+	IfPrimaryTerm       *int64      `json:"if_primary_term,omitempty"`
+	WaitForActiveShards interface{} `json:"wait_for_active_shards,omitempty"`
+	Refresh             *string     `json:"refresh,omitempty"`
+	RequireAlias        *bool       `json:"require_alias,omitempty"`
 }
 
 // BulkIndexerResponse represents the OpenSearch response.
@@ -404,30 +423,39 @@ func (w *worker) run() {
 // writeMeta formats and writes the item metadata to the buffer; it must be called under a lock.
 //
 func (w *worker) writeMeta(item BulkIndexerItem) error {
-	w.buf.WriteRune('{')
-	w.aux = strconv.AppendQuote(w.aux, item.Action)
-	w.buf.Write(w.aux)
+	var err error
+	meta := bulkActionMetadata{
+		Index:               item.Index,
+		DocumentID:          item.DocumentID,
+		Version:             item.Version,
+		VersionType:         item.VersionType,
+		Routing:             item.Routing,
+		IfPrimaryTerm:       item.IfPrimaryTerm,
+		IfSeqNum:            item.IfSeqNum,
+		WaitForActiveShards: item.WaitForActiveShards,
+		Refresh:             item.Refresh,
+		RequireAlias:        item.RequireAlias,
+	}
+	// Can not specify version or seq num if no document ID is passed
+	if meta.DocumentID == "" {
+		meta.Version = nil
+		meta.VersionType = nil
+	}
+	w.aux, err = json.Marshal(map[string]bulkActionMetadata{
+		item.Action: meta,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = w.buf.Write(w.aux)
+	if err != nil {
+		return err
+	}
 	w.aux = w.aux[:0]
-	w.buf.WriteRune(':')
-	w.buf.WriteRune('{')
-	if item.DocumentID != "" {
-		w.buf.WriteString(`"_id":`)
-		w.aux = strconv.AppendQuote(w.aux, item.DocumentID)
-		w.buf.Write(w.aux)
-		w.aux = w.aux[:0]
+	_, err = w.buf.WriteRune('\n')
+	if err != nil {
+		return err
 	}
-	if item.Index != "" {
-		if item.DocumentID != "" {
-			w.buf.WriteRune(',')
-		}
-		w.buf.WriteString(`"_index":`)
-		w.aux = strconv.AppendQuote(w.aux, item.Index)
-		w.buf.Write(w.aux)
-		w.aux = w.aux[:0]
-	}
-	w.buf.WriteRune('}')
-	w.buf.WriteRune('}')
-	w.buf.WriteRune('\n')
 	return nil
 }
 
@@ -435,30 +463,21 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 //
 func (w *worker) writeBody(item *BulkIndexerItem) error {
 	if item.Body != nil {
-
-		var getBody func() io.Reader
-
-		if item.OnSuccess != nil || item.OnFailure != nil {
-			var buf bytes.Buffer
-			buf.ReadFrom(item.Body)
-			getBody = func() io.Reader {
-				r := buf
-				return ioutil.NopCloser(&r)
-			}
-			item.Body = getBody()
-		}
-
 		if _, err := w.buf.ReadFrom(item.Body); err != nil {
 			if w.bi.config.OnError != nil {
 				w.bi.config.OnError(context.Background(), err)
 			}
 			return err
 		}
-		w.buf.WriteRune('\n')
 
-		if getBody != nil && (item.OnSuccess != nil || item.OnFailure != nil) {
-			item.Body = getBody()
+		if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
+			if w.bi.config.OnError != nil {
+				w.bi.config.OnError(context.Background(), err)
+			}
+			return err
 		}
+
+		w.buf.WriteRune('\n')
 	}
 	return nil
 }
