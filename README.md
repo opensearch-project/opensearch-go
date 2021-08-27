@@ -24,6 +24,7 @@ OpenSearch Go Client
 
 * [Project Website](https://opensearch.org/)
 * [Developer Guide](DEVELOPER_GUIDE.md)
+* [User Guide](USER_GUIDE.md)
 * [Documentation](https://opensearch.org/docs/)
 * Need help? Try [Forums](https://discuss.opendistrocommunity.dev/c/clients/)
 * [Project Principles](https://opensearch.org/#principles)
