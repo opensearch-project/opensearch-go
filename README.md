@@ -23,9 +23,9 @@ OpenSearch Go Client
 ## Project Resources
 
 * [Project Website](https://opensearch.org/)
-* [Downloads](https://opensearch.org/downloads.html).
+* [Developer Guide](DEVELOPER_GUIDE.md)
 * [Documentation](https://opensearch.org/docs/)
-* Need help? Try [Forums](https://discuss.opendistrocommunity.dev/)
+* Need help? Try [Forums](https://discuss.opendistrocommunity.dev/c/clients/)
 * [Project Principles](https://opensearch.org/#principles)
 * [Contributing to OpenSearch](CONTRIBUTING.md)
 * [Maintainer Responsibilities](MAINTAINERS.md)
