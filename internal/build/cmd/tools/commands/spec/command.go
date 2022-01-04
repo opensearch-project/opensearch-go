@@ -31,10 +31,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
-	"github.com/opensearch-project/opensearch-go/internal/build/utils"
-	"github.com/opensearch-project/opensearch-go/internal/version"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -43,6 +39,11 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
+	"github.com/opensearch-project/opensearch-go/internal/build/utils"
+	"github.com/opensearch-project/opensearch-go/internal/version"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -209,7 +210,7 @@ type Build struct {
 }
 
 func NewBuild() Build {
-	t := time.Date(1970, 0,0,0,0,0,0, time.UTC)
+	t := time.Date(1970, 0, 0, 0, 0, 0, 0, time.UTC)
 	startTime := BuildStartTime{Time: &t}
 	return Build{StartTime: startTime}
 }

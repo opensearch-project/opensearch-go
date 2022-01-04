@@ -29,12 +29,13 @@ package genstruct
 import (
 	"bytes"
 	"fmt"
-	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
 	"go/types"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
 
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/imports"
@@ -281,7 +282,7 @@ type API struct {
 				// Some methods are equal to the namespace (like 'rollup.rollup')
 				// and we don't want to have an empty string here.
 				if len(methodName) == 0 {
-				    methodName = strings.Replace(name, n, "", 1)
+					methodName = strings.Replace(name, n, "", 1)
 				}
 				b.WriteString(fmt.Sprintf("\t%s %s\n", methodName, name))
 			}
@@ -318,7 +319,7 @@ func New(t Transport) *API {
 				// Some methods are equal to the namespace (like 'rollup.rollup')
 				// and we don't want to have an empty string here.
 				if len(methodName) == 0 {
-				    methodName = strings.Replace(name, n, "", 1)
+					methodName = strings.Replace(name, n, "", 1)
 				}
 				b.WriteString(fmt.Sprintf("\t\t\t%s: new%sFunc(t),\n", methodName, name))
 			}

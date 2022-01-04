@@ -129,7 +129,7 @@ func TestTransportCompression(t *testing.T) {
 	u, _ := url.Parse("http://localhost:9200")
 
 	transport, _ := opensearchtransport.New(opensearchtransport.Config{
-		URLs: []*url.URL{u},
+		URLs:                []*url.URL{u},
 		CompressRequestBody: true,
 	})
 

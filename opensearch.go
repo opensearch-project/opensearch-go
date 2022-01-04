@@ -62,7 +62,6 @@ const (
 	unsupportedProduct  = "the client noticed that the server is not a supported distribution"
 	envOpenSearchURL    = "OPENSEARCH_URL"
 	envElasticsearchURL = "ELASTICSEARCH_URL"
-
 )
 
 // Version returns the package version as a string.
@@ -111,7 +110,7 @@ type Config struct {
 // Client represents the OpenSearch client.
 //
 type Client struct {
-	*opensearchapi.API      // Embeds the API methods
+	*opensearchapi.API   // Embeds the API methods
 	Transport            opensearchtransport.Interface
 	useResponseCheckOnly bool
 
@@ -120,8 +119,8 @@ type Client struct {
 }
 
 type esVersion struct {
-	Number      string `json:"number"`
-	BuildFlavor string `json:"build_flavor"`
+	Number       string `json:"number"`
+	BuildFlavor  string `json:"build_flavor"`
 	Distribution string `json:"distribution"`
 }
 
@@ -129,7 +128,6 @@ type info struct {
 	Version esVersion `json:"version"`
 	Tagline string    `json:"tagline"`
 }
-
 
 // NewDefaultClient creates a new client with default options.
 //
@@ -184,9 +182,9 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	tp, err := opensearchtransport.New(opensearchtransport.Config{
-		URLs:         urls,
-		Username:     cfg.Username,
-		Password:     cfg.Password,
+		URLs:     urls,
+		Username: cfg.Username,
+		Password: cfg.Password,
 
 		Header: cfg.Header,
 		CACert: cfg.CACert,

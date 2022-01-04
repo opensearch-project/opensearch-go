@@ -28,7 +28,7 @@ package gentests
 
 import (
 	"fmt"
-  "strings"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -45,7 +45,7 @@ func init() {
 var skipFiles = []string{
 	"update/85_fields_meta.yml",            // Uses non-existing API property
 	"update/86_fields_meta_with_types.yml", // --||--
-	
+
 	"search.highlight/20_fvh.yml", // bad backslash
 }
 

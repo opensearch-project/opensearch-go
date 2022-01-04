@@ -72,9 +72,9 @@ func NameToGo(s string, api ...string) string {
 		"id":  "ID",
 		"ttl": "TTL",
 
-		"api":   "API",
-		"sql":   "SQL",
-		"ssl":   "SSL",
+		"api": "API",
+		"sql": "SQL",
+		"ssl": "SSL",
 	}
 
 	specialMappingsForID := map[string]string{
