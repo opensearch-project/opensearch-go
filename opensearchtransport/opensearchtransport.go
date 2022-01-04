@@ -57,9 +57,9 @@ const (
 )
 
 var (
-	userAgent   string
+	userAgent           string
 	compatibilityHeader bool
-	reGoVersion = regexp.MustCompile(`go(\d+\.\d+\..+)`)
+	reGoVersion         = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 
 	defaultMaxRetries    = 3
 	defaultRetryOnStatus = [...]int{502, 503, 504}
@@ -81,9 +81,9 @@ type Interface interface {
 // Config represents the configuration of HTTP client.
 //
 type Config struct {
-	URLs         []*url.URL
-	Username     string
-	Password     string
+	URLs     []*url.URL
+	Username string
+	Password string
 
 	Header http.Header
 	CACert []byte
@@ -113,10 +113,10 @@ type Config struct {
 type Client struct {
 	sync.Mutex
 
-	urls         []*url.URL
-	username     string
-	password     string
-	header       http.Header
+	urls     []*url.URL
+	username string
+	password string
+	header   http.Header
 
 	retryOnStatus         []int
 	disableRetry          bool
@@ -176,10 +176,10 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	client := Client{
-		urls:         cfg.URLs,
-		username:     cfg.Username,
-		password:     cfg.Password,
-		header:       cfg.Header,
+		urls:     cfg.URLs,
+		username: cfg.Username,
+		password: cfg.Password,
+		header:   cfg.Header,
 
 		retryOnStatus:         cfg.RetryOnStatus,
 		disableRetry:          cfg.DisableRetry,

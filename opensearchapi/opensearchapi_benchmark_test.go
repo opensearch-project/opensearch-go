@@ -41,22 +41,22 @@ import (
 // TODO: Refactor into a shared mock/testing package
 
 var (
-	defaultResponse    = &http.Response{
+	defaultResponse = &http.Response{
 		StatusCode: 200,
-		Header: http.Header{},
-		Body: ioutil.NopCloser(strings.NewReader("MOCK")),
+		Header:     http.Header{},
+		Body:       ioutil.NopCloser(strings.NewReader("MOCK")),
 	}
 	defaultRoundTripFn = func(*http.Request) (*http.Response, error) { return defaultResponse, nil }
 	errorRoundTripFn   = func(request *http.Request) (*http.Response, error) {
 		if request.URL.Path == "/" {
 			return &http.Response{
 				StatusCode: 200,
-				Header: http.Header{},
-				Body: ioutil.NopCloser(strings.NewReader("{}")),
+				Header:     http.Header{},
+				Body:       ioutil.NopCloser(strings.NewReader("{}")),
 			}, nil
 		}
 		return &http.Response{
-			Header: http.Header{},
+			Header:     http.Header{},
 			StatusCode: 400,
 			Body: ioutil.NopCloser(strings.NewReader(`
 					{ "error" : {

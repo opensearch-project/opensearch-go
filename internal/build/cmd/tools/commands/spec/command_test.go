@@ -33,9 +33,9 @@ import (
 
 func TestBuild_zipfileUrl(t *testing.T) {
 	tests := []struct {
-		name   string
-		json   string
-		want   string
+		name string
+		json string
+		want string
 	}{
 		{
 			name: "Simple test with valid url",

@@ -390,7 +390,6 @@ func (g *Generator) genCommonSetup() {
 	`)
 }
 
-
 func (g *Generator) genLocationYAML(t Test) {
 	f, err := os.Open(t.Filepath)
 	if err != nil {
@@ -877,7 +876,7 @@ func (g *Generator) genAction(a Action, skipBody ...bool) {
 		g.w("\t\tHeader: http.Header{\n")
 		for name, value := range a.headers {
 
-			if name == "Content-Type" && value == "application/json"{
+			if name == "Content-Type" && value == "application/json" {
 				continue
 			}
 

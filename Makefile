@@ -1,5 +1,8 @@
 SHELL := /bin/bash
 
+##@ Format project using goimports tool
+format:
+	goimports -w .;
 
 ##@ Test
 test-unit:  ## Run unit tests

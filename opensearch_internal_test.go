@@ -30,7 +30,6 @@ package opensearch
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -41,6 +40,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
 )
 
@@ -49,6 +50,7 @@ var called bool
 type mockTransp struct {
 	RoundTripFunc func(*http.Request) (*http.Response, error)
 }
+
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
 
@@ -194,7 +196,7 @@ func TestClientConfiguration(t *testing.T) {
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 						return &http.Response{
 							Header: http.Header{},
-							Body: ioutil.NopCloser(strings.NewReader("")),
+							Body:   ioutil.NopCloser(strings.NewReader("")),
 						}, nil
 					},
 				},
@@ -387,18 +389,18 @@ func TestGenuineCheckInfo(t *testing.T) {
 		name    string
 		info    info
 		wantErr bool
-		err 	error
+		err     error
 	}{
 		{
 			name: "Supported OpenSearch 1.0.0",
 			info: info{
 				Version: esVersion{
-					Number:      "1.0.0",
+					Number:       "1.0.0",
 					Distribution: openSearch,
 				},
 			},
 			wantErr: false,
-			err: nil,
+			err:     nil,
 		},
 		{
 			name: "Supported Elasticsearch 7.10.0",
@@ -409,7 +411,7 @@ func TestGenuineCheckInfo(t *testing.T) {
 				},
 			},
 			wantErr: false,
-			err: nil,
+			err:     nil,
 		},
 		{
 			name: "Unsupported Elasticsearch Version 6.15.1",
@@ -421,7 +423,7 @@ func TestGenuineCheckInfo(t *testing.T) {
 				Tagline: "You Know, for Search",
 			},
 			wantErr: true,
-			err: errors.New(unsupportedProduct),
+			err:     errors.New(unsupportedProduct),
 		},
 		{
 			name: "Elasticsearch oss",
@@ -433,7 +435,7 @@ func TestGenuineCheckInfo(t *testing.T) {
 				Tagline: "You Know, for Search",
 			},
 			wantErr: false,
-			err: nil,
+			err:     nil,
 		},
 	}
 	for _, tt := range tests {
@@ -479,42 +481,42 @@ func TestResponseCheckOnly(t *testing.T) {
 		{
 			name:                 "Valid request, 500 response",
 			useResponseCheckOnly: false,
-			response:             &http.Response{
+			response: &http.Response{
 				StatusCode: http.StatusInternalServerError,
-				Body: ioutil.NopCloser(strings.NewReader("")),
+				Body:       ioutil.NopCloser(strings.NewReader("")),
 			},
-			requestErr:           nil,
-			wantErr:              true,
+			requestErr: nil,
+			wantErr:    true,
 		},
 		{
 			name:                 "Valid request, 404 response",
 			useResponseCheckOnly: false,
-			response:             &http.Response{
+			response: &http.Response{
 				StatusCode: http.StatusNotFound,
-				Body: ioutil.NopCloser(strings.NewReader("")),
+				Body:       ioutil.NopCloser(strings.NewReader("")),
 			},
-			requestErr:           nil,
-			wantErr:              true,
+			requestErr: nil,
+			wantErr:    true,
 		},
 		{
 			name:                 "Valid request, 403 response",
 			useResponseCheckOnly: false,
-			response:             &http.Response{
+			response: &http.Response{
 				StatusCode: http.StatusForbidden,
-				Body: ioutil.NopCloser(strings.NewReader("")),
+				Body:       ioutil.NopCloser(strings.NewReader("")),
 			},
-			requestErr:           nil,
-			wantErr:              false,
+			requestErr: nil,
+			wantErr:    false,
 		},
 		{
 			name:                 "Valid request, 401 response",
 			useResponseCheckOnly: false,
-			response:             &http.Response{
+			response: &http.Response{
 				StatusCode: http.StatusUnauthorized,
-				Body: ioutil.NopCloser(strings.NewReader("")),
+				Body:       ioutil.NopCloser(strings.NewReader("")),
 			},
-			requestErr:           nil,
-			wantErr:              false,
+			requestErr: nil,
+			wantErr:    false,
 		},
 	}
 	for _, tt := range tests {
