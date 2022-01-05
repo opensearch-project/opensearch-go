@@ -45,6 +45,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/signer"
+
 	"github.com/opensearch-project/opensearch-go/internal/version"
 )
 
@@ -88,6 +90,8 @@ type Config struct {
 	Header http.Header
 	CACert []byte
 
+	Signer signer.Signer
+
 	RetryOnStatus        []int
 	DisableRetry         bool
 	EnableRetryOnTimeout bool
@@ -117,6 +121,8 @@ type Client struct {
 	username string
 	password string
 	header   http.Header
+
+	signer signer.Signer
 
 	retryOnStatus         []int
 	disableRetry          bool
@@ -180,6 +186,8 @@ func New(cfg Config) (*Client, error) {
 		username: cfg.Username,
 		password: cfg.Password,
 		header:   cfg.Header,
+
+		signer: cfg.Signer,
 
 		retryOnStatus:         cfg.RetryOnStatus,
 		disableRetry:          cfg.DisableRetry,
@@ -309,6 +317,10 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		c.setReqURL(conn.URL, req)
 		c.setReqAuth(conn.URL, req)
 
+		if err = c.signRequest(req); err != nil {
+			return nil, fmt.Errorf("failed to sign request: %s", err)
+		}
+
 		if !c.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
 			body, err := req.GetBody()
 			if err != nil {
@@ -437,6 +449,13 @@ func (c *Client) setReqAuth(u *url.URL, req *http.Request) *http.Request {
 	}
 
 	return req
+}
+
+func (c *Client) signRequest(req *http.Request) error {
+	if c.signer != nil {
+		return c.signer.SignRequest(req)
+	}
+	return nil
 }
 
 func (c *Client) setReqUserAgent(req *http.Request) *http.Request {

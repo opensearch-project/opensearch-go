@@ -61,6 +61,20 @@ func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
 
 type mockNetError struct{ error }
 
+type mockSigner struct {
+	SampleKey   string
+	SampleValue string
+	ReturnError bool
+}
+
+func (m *mockSigner) SignRequest(req *http.Request) error {
+	if m.ReturnError {
+		return fmt.Errorf("invalid data")
+	}
+	req.Header.Add(m.SampleKey, m.SampleValue)
+	return nil
+}
+
 func (e *mockNetError) Timeout() bool   { return false }
 func (e *mockNetError) Temporary() bool { return false }
 
@@ -380,6 +394,26 @@ func TestTransportPerform(t *testing.T) {
 			if req.Header.Get("X-Foo") != "baz" {
 				t.Errorf("Unexpected global HTTP request header value: %s", req.Header.Get("X-Foo"))
 			}
+		}
+	})
+
+	t.Run("Sign request", func(t *testing.T) {
+		u, _ := url.Parse("https://foo:bar@example.com")
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u},
+				Signer: &mockSigner{
+					SampleKey:   "sign-status",
+					SampleValue: "success",
+				},
+			},
+		)
+
+		req, _ := http.NewRequest("GET", "/", nil)
+		tp.signRequest(req)
+
+		if _, ok := req.Header["Sign-Status"]; !ok {
+			t.Error("Signature is not added")
 		}
 	})
 
@@ -971,4 +1005,32 @@ func TestRequestCompression(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRequestSigning(t *testing.T) {
+
+	t.Run("Sign request fails", func(t *testing.T) {
+		u, _ := url.Parse("https://foo:bar@example.com")
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u},
+				Signer: &mockSigner{
+					ReturnError: true,
+				},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						return &http.Response{Status: "MOCK"}, nil
+					},
+				},
+			},
+		)
+		req, _ := http.NewRequest("GET", "/", nil)
+		_, err := tp.Perform(req)
+		if err == nil {
+			t.Fatal("Expected error, but, no error found")
+		}
+		if err.Error() != `failed to sign request: invalid data` {
+			t.Fatalf("Expected error `failed to sign request: invalid data`: but got error %q", err)
+		}
+	})
 }

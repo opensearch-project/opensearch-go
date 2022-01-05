@@ -42,6 +42,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/signer"
+
 	"github.com/opensearch-project/opensearch-go/internal/version"
 	"github.com/opensearch-project/opensearch-go/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/opensearchtransport"
@@ -76,6 +78,8 @@ type Config struct {
 	Password  string   // Password for HTTP Basic Authentication.
 
 	Header http.Header // Global HTTP request header.
+
+	Signer signer.Signer
 
 	// PEM-encoded certificate authorities.
 	// When set, an empty certificate pool will be created, and the certificates will be appended to it.
@@ -188,6 +192,8 @@ func NewClient(cfg Config) (*Client, error) {
 
 		Header: cfg.Header,
 		CACert: cfg.CACert,
+
+		Signer: cfg.Signer,
 
 		RetryOnStatus:        cfg.RetryOnStatus,
 		DisableRetry:         cfg.DisableRetry,
