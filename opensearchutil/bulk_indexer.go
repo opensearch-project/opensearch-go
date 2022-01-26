@@ -169,9 +169,21 @@ type BulkIndexerResponseItem struct {
 		Type   string `json:"type"`
 		Reason string `json:"reason"`
 		Cause  struct {
-			Type   string `json:"type"`
-			Reason string `json:"reason"`
-		} `json:"caused_by"`
+			Type        string    `json:"type"`
+			Reason      string    `json:"reason"`
+			ScriptStack *[]string `json:"script_stack,omitempty"`
+			Script      *string   `json:"script,omitempty"`
+			Lang        *string   `json:"lang,omitempty"`
+			Position    *struct {
+				Offset int `json:"offset"`
+				Start  int `json:"start"`
+				End    int `json:"end"`
+			} `json:"position,omitempty"`
+			Cause *struct {
+				Type   string `json:"type"`
+				Reason string `json:"reason"`
+			} `json:"caused_by"`
+		} `json:"caused_by,omitempty"`
 	} `json:"error,omitempty"`
 }
 
