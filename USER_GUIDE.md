@@ -125,3 +125,71 @@ func main() {
 }
 
 ```
+
+## How to use IAMs as authentication method
+
+Before starting, we strongly recommend to read the full AWS documentation regarding IAMs for Opensearch.
+See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html
+
+> Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also must be signed using AWS Signature Version 4.
+https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests
+
+Here is an example of Go code showing how to sign each opensearch request and automatically search for AWS credentials from ~/aws folder or env vars:
+
+```go
+package main
+
+import (
+	"context"
+	"io"
+	"log"
+
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
+	requestsigner "github.com/opensearch-project/opensearch-go/signer/aws"
+)
+
+const domainEndpoint = "https://vpc-test-opensearch-with-iams-lpzna4633opqnm.eu-west-1.es.amazonaws.com/"
+
+func main() {
+	ctx := context.Background()
+
+	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
+	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
+	signer, err := requestsigner.NewSigner(session.Options{SharedConfigState: session.SharedConfigEnable})
+	if err != nil {
+		log.Fatal(err) // Do not log.fatal in a production ready app.
+	}
+
+	// Create an opensearch client and use the request-signer
+	client, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{domainEndpoint},
+		Signer: signer,
+	})
+	if err != nil {
+		log.Fatal("client creation err", err)
+	}
+
+	ping := opensearchapi.PingRequest{}
+
+	resp, err := ping.Do(ctx, client)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.IsError() {
+		log.Println("ping resp code", resp.StatusCode)
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal("response body read err", err)
+		}
+
+		log.Fatal("ping resp body", respBody)
+	}
+
+	log.Println("PING OK")
+}
+```
