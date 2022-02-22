@@ -128,13 +128,13 @@ func main() {
 
 ## How to use IAMs as authentication method
 
-Before starting, we strongly recommend to read the full AWS documentation regarding IAMs for Opensearch.
-See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html
+Before starting, we strongly recommend reading the full AWS documentation regarding using IAM credentials to sign requests to OpenSearch APIs.
+See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html)
 
 > Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also must be signed using AWS Signature Version 4.
-https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests
+See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
-Here is an example of Go code showing how to sign each opensearch request and automatically search for AWS credentials from ~/aws folder or env vars:
+Here is some sample Go code that shows how to sign each OpenSearch request and automatically search for AWS credentials from the ~/aws folder or env vars:
 
 ```go
 package main
