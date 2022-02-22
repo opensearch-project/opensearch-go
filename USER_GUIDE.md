@@ -150,7 +150,7 @@ import (
 	requestsigner "github.com/opensearch-project/opensearch-go/signer/aws"
 )
 
-const domainEndpoint = "https://vpc-test-opensearch-with-iams-lpzna4633opqnm.eu-west-1.es.amazonaws.com/"
+const endpoint = "" // e.g. https://opensearch-domain.region.com
 
 func main() {
 	ctx := context.Background()
