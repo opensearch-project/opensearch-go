@@ -134,7 +134,7 @@ See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.
 > Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also must be signed using AWS Signature Version 4.
 See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
-Here is some sample Go code that shows how to sign each OpenSearch request and automatically search for AWS credentials from the ~/aws folder or env vars:
+Here is some sample Go code that shows how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
 
 ```go
 package main
@@ -164,7 +164,7 @@ func main() {
 
 	// Create an opensearch client and use the request-signer
 	client, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{domainEndpoint},
+		Addresses: []string{endpoint},
 		Signer: signer,
 	})
 	if err != nil {
@@ -180,7 +180,7 @@ func main() {
 	defer resp.Body.Close()
 
 	if resp.IsError() {
-		log.Println("ping resp code", resp.StatusCode)
+		log.Println("ping response status ", resp.Status())
 
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
