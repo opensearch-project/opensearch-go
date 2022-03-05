@@ -314,6 +314,9 @@ func TestBulkIndexer(t *testing.T) {
 			successfulItemBodies = append(successfulItemBodies, string(buf))
 		}
 		failureFunc := func(ctx context.Context, item BulkIndexerItem, res BulkIndexerResponseItem, err error) {
+			if err != nil {
+				t.Fatalf("Unexpected error: %s", err)
+			}
 			atomic.AddUint64(&countFailed, 1)
 			failedIDs = append(failedIDs, item.DocumentID)
 
