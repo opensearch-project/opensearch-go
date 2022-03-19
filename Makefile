@@ -179,8 +179,11 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker network prune --force
 	docker system prune --volumes --force
 
+linters:
+	./bin/golangci-lint run ./... --timeout=5m
 
-
+linters.install:
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
 
 workflow: ## Run all github workflow commands here sequentially
 
@@ -209,4 +212,4 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage  godoc lint release test test-bench test-integ test-unit
+.PHONY: help backport cluster cluster.opendistro.build cluster.opendistro.start cluster.opendistro.stop cluster.clean coverage  godoc lint release test test-bench test-integ test-unit linters linters.install
