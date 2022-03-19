@@ -3,3 +3,5 @@ tmp/
 
 #jetBrains editors
 .idea
+.vscode
+bin/
