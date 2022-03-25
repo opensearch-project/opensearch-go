@@ -125,3 +125,71 @@ func main() {
 }
 
 ```
+
+## How to use IAMs as authentication method
+
+Before starting, we strongly recommend reading the full AWS documentation regarding using IAM credentials to sign requests to OpenSearch APIs.
+See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html)
+
+> Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also must be signed using AWS Signature Version 4.
+See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
+
+Here is some sample Go code that shows how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
+
+```go
+package main
+
+import (
+	"context"
+	"io"
+	"log"
+
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/opensearchapi"
+	requestsigner "github.com/opensearch-project/opensearch-go/signer/aws"
+)
+
+const endpoint = "" // e.g. https://opensearch-domain.region.com
+
+func main() {
+	ctx := context.Background()
+
+	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
+	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
+	signer, err := requestsigner.NewSigner(session.Options{SharedConfigState: session.SharedConfigEnable})
+	if err != nil {
+		log.Fatal(err) // Do not log.fatal in a production ready app.
+	}
+
+	// Create an opensearch client and use the request-signer
+	client, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{endpoint},
+		Signer: signer,
+	})
+	if err != nil {
+		log.Fatal("client creation err", err)
+	}
+
+	ping := opensearchapi.PingRequest{}
+
+	resp, err := ping.Do(ctx, client)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	if resp.IsError() {
+		log.Println("ping response status ", resp.Status())
+
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal("response body read err", err)
+		}
+
+		log.Fatal("ping resp body", respBody)
+	}
+
+	log.Println("PING OK")
+}
+```
