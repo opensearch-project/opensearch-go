@@ -182,9 +182,6 @@ cluster.clean: ## Remove unused Docker volumes and networks
 linters:
 	./bin/golangci-lint run ./... --timeout=5m
 
-linters.install:
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s
-
 workflow: ## Run all github workflow commands here sequentially
 
 # Lint
