@@ -11,9 +11,11 @@ package aws
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -29,15 +31,23 @@ type Signer struct {
 	service string
 }
 
-// NewSigner returns an instance of Signer
+// NewSigner returns an instance of Signer for AWS OpenSearchService
 func NewSigner(opts session.Options) (*Signer, error) {
+	return NewSignerWithService(opts, OpenSearchService)
+}
+
+// NewSignerWithService returns an instance of Signer for given service
+func NewSignerWithService(opts session.Options, service string) (*Signer, error) {
+	if len(strings.TrimSpace(service)) < 1 {
+		return nil, errors.New("service cannot be empty")
+	}
 	awsSession, err := session.NewSessionWithOptions(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session from given option %v due to %s", opts, err)
 	}
 	return &Signer{
 		session: *awsSession,
-		service: OpenSearchService,
+		service: service,
 	}, nil
 }
 
