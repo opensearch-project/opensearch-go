@@ -62,7 +62,6 @@ type IndicesPutMappingRequest struct {
 	AllowNoIndices    *bool
 	ExpandWildcards   string
 	IgnoreUnavailable *bool
-	IncludeTypeName   *bool
 	MasterTimeout     time.Duration
 	Timeout           time.Duration
 	WriteIndexOnly    *bool
@@ -108,10 +107,6 @@ func (r IndicesPutMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.IgnoreUnavailable != nil {
 		params["ignore_unavailable"] = strconv.FormatBool(*r.IgnoreUnavailable)
-	}
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
 	}
 
 	if r.MasterTimeout != 0 {
@@ -226,14 +221,6 @@ func (f IndicesPutMapping) WithExpandWildcards(v string) func(*IndicesPutMapping
 func (f IndicesPutMapping) WithIgnoreUnavailable(v bool) func(*IndicesPutMappingRequest) {
 	return func(r *IndicesPutMappingRequest) {
 		r.IgnoreUnavailable = &v
-	}
-}
-
-// WithIncludeTypeName - whether a type should be expected in the body of the mappings..
-//
-func (f IndicesPutMapping) WithIncludeTypeName(v bool) func(*IndicesPutMappingRequest) {
-	return func(r *IndicesPutMappingRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 

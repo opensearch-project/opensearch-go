@@ -59,7 +59,6 @@ type IndicesGetMappingRequest struct {
 	AllowNoIndices    *bool
 	ExpandWildcards   string
 	IgnoreUnavailable *bool
-	IncludeTypeName   *bool
 	Local             *bool
 	MasterTimeout     time.Duration
 
@@ -103,10 +102,6 @@ func (r IndicesGetMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.IgnoreUnavailable != nil {
 		params["ignore_unavailable"] = strconv.FormatBool(*r.IgnoreUnavailable)
-	}
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
 	}
 
 	if r.Local != nil {
@@ -213,14 +208,6 @@ func (f IndicesGetMapping) WithExpandWildcards(v string) func(*IndicesGetMapping
 func (f IndicesGetMapping) WithIgnoreUnavailable(v bool) func(*IndicesGetMappingRequest) {
 	return func(r *IndicesGetMappingRequest) {
 		r.IgnoreUnavailable = &v
-	}
-}
-
-// WithIncludeTypeName - whether to add the type name to the response (default: false).
-//
-func (f IndicesGetMapping) WithIncludeTypeName(v bool) func(*IndicesGetMappingRequest) {
-	return func(r *IndicesGetMappingRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 
