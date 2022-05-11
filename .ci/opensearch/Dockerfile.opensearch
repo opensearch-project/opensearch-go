@@ -1,5 +1,5 @@
 ARG OPENSEARCH_VERSION
-FROM opensearchproject/opensearch:$OPENSEARCH_VERSION
+FROM opensearchproject/opensearch:${OPENSEARCH_VERSION}
 
 ARG opensearch_path=/usr/share/opensearch
 ARG SECURE_INTEGRATION
