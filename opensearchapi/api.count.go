@@ -55,7 +55,6 @@ type Count func(o ...func(*CountRequest)) (*Response, error)
 //
 type CountRequest struct {
 	Index        []string
-	DocumentType []string
 
 	Body io.Reader
 
@@ -95,14 +94,10 @@ func (r CountRequest) Do(ctx context.Context, transport Transport) (*Response, e
 
 	method = "POST"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len(strings.Join(r.DocumentType, ",")) + 1 + len("_count"))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_count"))
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
-	}
-	if len(r.DocumentType) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.DocumentType, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_count")
@@ -249,14 +244,6 @@ func (f Count) WithBody(v io.Reader) func(*CountRequest) {
 func (f Count) WithIndex(v ...string) func(*CountRequest) {
 	return func(r *CountRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - a list of types to restrict the results.
-//
-func (f Count) WithDocumentType(v ...string) func(*CountRequest) {
-	return func(r *CountRequest) {
-		r.DocumentType = v
 	}
 }
 

@@ -55,7 +55,6 @@ type IndicesGetMapping func(o ...func(*IndicesGetMappingRequest)) (*Response, er
 //
 type IndicesGetMappingRequest struct {
 	Index        []string
-	DocumentType []string
 
 	AllowNoIndices    *bool
 	ExpandWildcards   string
@@ -85,18 +84,13 @@ func (r IndicesGetMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	method = "GET"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping") + 1 + len(strings.Join(r.DocumentType, ",")))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping")
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_mapping")
-	if len(r.DocumentType) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.DocumentType, ","))
-	}
-
 	params = make(map[string]string)
 
 	if r.AllowNoIndices != nil {
@@ -195,14 +189,6 @@ func (f IndicesGetMapping) WithContext(v context.Context) func(*IndicesGetMappin
 func (f IndicesGetMapping) WithIndex(v ...string) func(*IndicesGetMappingRequest) {
 	return func(r *IndicesGetMappingRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - a list of document types.
-//
-func (f IndicesGetMapping) WithDocumentType(v ...string) func(*IndicesGetMappingRequest) {
-	return func(r *IndicesGetMappingRequest) {
-		r.DocumentType = v
 	}
 }
 

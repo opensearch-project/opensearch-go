@@ -56,7 +56,6 @@ type IndicesPutMapping func(body io.Reader, o ...func(*IndicesPutMappingRequest)
 //
 type IndicesPutMappingRequest struct {
 	Index        []string
-	DocumentType string
 
 	Body io.Reader
 
@@ -89,17 +88,13 @@ func (r IndicesPutMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	method = "PUT"
 
-	path.Grow(len(strings.Join(r.Index, ",")) + len("/_mapping") + len(r.DocumentType) + 2)
+	path.Grow(len(strings.Join(r.Index, ",")) + len("/_mapping") + 1)
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_mapping")
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
-	}
 
 	params = make(map[string]string)
 
@@ -207,14 +202,6 @@ func (f IndicesPutMapping) WithContext(v context.Context) func(*IndicesPutMappin
 func (f IndicesPutMapping) WithIndex(v ...string) func(*IndicesPutMappingRequest) {
 	return func(r *IndicesPutMappingRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - the name of the document type.
-//
-func (f IndicesPutMapping) WithDocumentType(v string) func(*IndicesPutMappingRequest) {
-	return func(r *IndicesPutMappingRequest) {
-		r.DocumentType = v
 	}
 }
 

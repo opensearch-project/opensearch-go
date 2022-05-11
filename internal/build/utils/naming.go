@@ -64,7 +64,6 @@ func NameToGo(s string, api ...string) string {
 	exceptions := map[string]string{
 		"index": "Index",
 		"id":    "DocumentID",
-		"type":  "DocumentType",
 	}
 
 	acronyms := map[string]string{

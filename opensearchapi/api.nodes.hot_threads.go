@@ -61,7 +61,6 @@ type NodesHotThreadsRequest struct {
 	Snapshots         *int
 	Threads           *int
 	Timeout           time.Duration
-	DocumentType      string
 
 	Pretty     bool
 	Human      bool
@@ -116,10 +115,6 @@ func (r NodesHotThreadsRequest) Do(ctx context.Context, transport Transport) (*R
 
 	if r.Timeout != 0 {
 		params["timeout"] = formatDuration(r.Timeout)
-	}
-
-	if r.DocumentType != "" {
-		params["type"] = r.DocumentType
 	}
 
 	if r.Pretty {
@@ -234,14 +229,6 @@ func (f NodesHotThreads) WithThreads(v int) func(*NodesHotThreadsRequest) {
 func (f NodesHotThreads) WithTimeout(v time.Duration) func(*NodesHotThreadsRequest) {
 	return func(r *NodesHotThreadsRequest) {
 		r.Timeout = v
-	}
-}
-
-// WithDocumentType - the type to sample (default: cpu).
-//
-func (f NodesHotThreads) WithDocumentType(v string) func(*NodesHotThreadsRequest) {
-	return func(r *NodesHotThreadsRequest) {
-		r.DocumentType = v
 	}
 }
 

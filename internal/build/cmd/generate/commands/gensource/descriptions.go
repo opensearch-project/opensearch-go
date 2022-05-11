@@ -256,17 +256,9 @@ indices.exists_template:
   description: |-
     Returns information about whether a particular index template exists.
 
-indices.exists_type:
-  description: |-
-    Returns information about whether a particular document type exists. (DEPRECATED)
-
 indices.flush:
   description: |-
     Performs the flush operation on one or more indices.
-
-indices.flush_synced:
-  description: |-
-    Performs a synced flush operation on one or more indices.
 
 indices.forcemerge:
   description: |-

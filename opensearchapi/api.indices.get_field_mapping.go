@@ -54,7 +54,6 @@ type IndicesGetFieldMapping func(fields []string, o ...func(*IndicesGetFieldMapp
 //
 type IndicesGetFieldMappingRequest struct {
 	Index        []string
-	DocumentType []string
 
 	Fields []string
 
@@ -86,17 +85,13 @@ func (r IndicesGetFieldMappingRequest) Do(ctx context.Context, transport Transpo
 
 	method = "GET"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping") + 1 + len(strings.Join(r.DocumentType, ",")) + 1 + len("field") + 1 + len(strings.Join(r.Fields, ",")))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping") + 1 + len("field") + 1 + len(strings.Join(r.Fields, ",")))
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_mapping")
-	if len(r.DocumentType) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.DocumentType, ","))
-	}
 	path.WriteString("/")
 	path.WriteString("field")
 	path.WriteString("/")
@@ -200,14 +195,6 @@ func (f IndicesGetFieldMapping) WithContext(v context.Context) func(*IndicesGetF
 func (f IndicesGetFieldMapping) WithIndex(v ...string) func(*IndicesGetFieldMappingRequest) {
 	return func(r *IndicesGetFieldMappingRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - a list of document types.
-//
-func (f IndicesGetFieldMapping) WithDocumentType(v ...string) func(*IndicesGetFieldMappingRequest) {
-	return func(r *IndicesGetFieldMappingRequest) {
-		r.DocumentType = v
 	}
 }
 

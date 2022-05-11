@@ -54,7 +54,6 @@ type Get func(index string, id string, o ...func(*GetRequest)) (*Response, error
 //
 type GetRequest struct {
 	Index        string
-	DocumentType string
 	DocumentID   string
 
 	Preference     string
@@ -89,17 +88,10 @@ func (r GetRequest) Do(ctx context.Context, transport Transport) (*Response, err
 
 	method = "GET"
 
-	if r.DocumentType == "" {
-		r.DocumentType = "_doc"
-	}
-
-	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentType) + 1 + len(r.DocumentID))
+	path.Grow(1 + len(r.Index) + 1 + len("_doc") + 1 + len(r.DocumentID))
 	path.WriteString("/")
 	path.WriteString(r.Index)
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
-	}
+	path.WriteString("/_doc")
 	path.WriteString("/")
 	path.WriteString(r.DocumentID)
 
@@ -209,14 +201,6 @@ func (r GetRequest) Do(ctx context.Context, transport Transport) (*Response, err
 func (f Get) WithContext(v context.Context) func(*GetRequest) {
 	return func(r *GetRequest) {
 		r.ctx = v
-	}
-}
-
-// WithDocumentType - the type of the document (use `_all` to fetch the first document matching the ID across all types).
-//
-func (f Get) WithDocumentType(v string) func(*GetRequest) {
-	return func(r *GetRequest) {
-		r.DocumentType = v
 	}
 }
 

@@ -54,7 +54,6 @@ type ExistsSource func(index string, id string, o ...func(*ExistsSourceRequest))
 //
 type ExistsSourceRequest struct {
 	Index        string
-	DocumentType string
 	DocumentID   string
 
 	Preference     string
@@ -88,13 +87,9 @@ func (r ExistsSourceRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	method = "HEAD"
 
-	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentType) + 1 + len(r.DocumentID) + 1 + len("_source"))
+	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentID) + 1 + len("_source"))
 	path.WriteString("/")
 	path.WriteString(r.Index)
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
-	}
 	path.WriteString("/")
 	path.WriteString(r.DocumentID)
 	path.WriteString("/")
@@ -202,14 +197,6 @@ func (r ExistsSourceRequest) Do(ctx context.Context, transport Transport) (*Resp
 func (f ExistsSource) WithContext(v context.Context) func(*ExistsSourceRequest) {
 	return func(r *ExistsSourceRequest) {
 		r.ctx = v
-	}
-}
-
-// WithDocumentType - the type of the document; deprecated and optional starting with 7.0.
-//
-func (f ExistsSource) WithDocumentType(v string) func(*ExistsSourceRequest) {
-	return func(r *ExistsSourceRequest) {
-		r.DocumentType = v
 	}
 }
 
