@@ -83,7 +83,7 @@ func (r IndicesGetMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	method = "GET"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping")
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping"))
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
