@@ -1,3 +1,14 @@
+- [Developer Guide](#developer-guide)
+  - [Getting Started](#getting-started)
+    - [Git Clone OpenSearch Go Client Repository](#git-clone-opensearch-go-client-repository)
+    - [Install Prerequisites](#install-prerequisites)
+      - [Go 1.11](#go-111)
+      - [Docker](#docker)
+    - [Unit Testing](#unit-testing)
+    - [Integration Testing](#integration-testing)
+      - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
+  - [Use an Editor](#use-an-editor)
+    - [GoLand](#goland)
 # Developer Guide
 
 So you want to contribute code to the OpenSearch Go Client?  Excellent!  We're glad you're here.  Here's what you need to do:
