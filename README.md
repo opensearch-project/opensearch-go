@@ -1,5 +1,5 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/opensearch-project/opensearch-go.svg)](https://pkg.go.dev/github.com/opensearch-project/opensearch-go)
-[![Build](https://github.com/opensearch-project/opensearch-go/actions/workflows/build.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/build.yml)
+[![Build](https://github.com/opensearch-project/opensearch-go/actions/workflows/lint.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/lint.yml)
 [![Unit](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml)
 [![Integration](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml)
 [![codecov](https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg?token=MI9g3KYHVx)](https://codecov.io/gh/opensearch-project/opensearch-go)
