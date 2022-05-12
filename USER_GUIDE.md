@@ -1,3 +1,6 @@
+- [User Guide](#user-guide)
+  - [Example](#example)
+  - [How to use IAMs as authentication method](#how-to-use-iams-as-authentication-method)
 # User Guide
 
 ## Example
