@@ -57,7 +57,6 @@ type Search func(o ...func(*SearchRequest)) (*Response, error)
 //
 type SearchRequest struct {
 	Index        []string
-	DocumentType []string
 
 	Body io.Reader
 
@@ -126,14 +125,10 @@ func (r SearchRequest) Do(ctx context.Context, transport Transport) (*Response, 
 
 	method = "POST"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len(strings.Join(r.DocumentType, ",")) + 1 + len("_search"))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_search"))
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
-	}
-	if len(r.DocumentType) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.DocumentType, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_search")
@@ -396,14 +391,6 @@ func (f Search) WithBody(v io.Reader) func(*SearchRequest) {
 func (f Search) WithIndex(v ...string) func(*SearchRequest) {
 	return func(r *SearchRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - a list of document types to search; leave empty to perform the operation on all types.
-//
-func (f Search) WithDocumentType(v ...string) func(*SearchRequest) {
-	return func(r *SearchRequest) {
-		r.DocumentType = v
 	}
 }
 

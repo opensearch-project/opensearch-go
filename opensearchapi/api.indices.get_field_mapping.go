@@ -54,7 +54,6 @@ type IndicesGetFieldMapping func(fields []string, o ...func(*IndicesGetFieldMapp
 //
 type IndicesGetFieldMappingRequest struct {
 	Index        []string
-	DocumentType []string
 
 	Fields []string
 
@@ -62,7 +61,6 @@ type IndicesGetFieldMappingRequest struct {
 	ExpandWildcards   string
 	IgnoreUnavailable *bool
 	IncludeDefaults   *bool
-	IncludeTypeName   *bool
 	Local             *bool
 
 	Pretty     bool
@@ -86,17 +84,13 @@ func (r IndicesGetFieldMappingRequest) Do(ctx context.Context, transport Transpo
 
 	method = "GET"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping") + 1 + len(strings.Join(r.DocumentType, ",")) + 1 + len("field") + 1 + len(strings.Join(r.Fields, ",")))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_mapping") + 1 + len("field") + 1 + len(strings.Join(r.Fields, ",")))
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_mapping")
-	if len(r.DocumentType) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.DocumentType, ","))
-	}
 	path.WriteString("/")
 	path.WriteString("field")
 	path.WriteString("/")
@@ -118,10 +112,6 @@ func (r IndicesGetFieldMappingRequest) Do(ctx context.Context, transport Transpo
 
 	if r.IncludeDefaults != nil {
 		params["include_defaults"] = strconv.FormatBool(*r.IncludeDefaults)
-	}
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
 	}
 
 	if r.Local != nil {
@@ -203,14 +193,6 @@ func (f IndicesGetFieldMapping) WithIndex(v ...string) func(*IndicesGetFieldMapp
 	}
 }
 
-// WithDocumentType - a list of document types.
-//
-func (f IndicesGetFieldMapping) WithDocumentType(v ...string) func(*IndicesGetFieldMappingRequest) {
-	return func(r *IndicesGetFieldMappingRequest) {
-		r.DocumentType = v
-	}
-}
-
 // WithAllowNoIndices - whether to ignore if a wildcard indices expression resolves into no concrete indices. (this includes `_all` string or when no indices have been specified).
 //
 func (f IndicesGetFieldMapping) WithAllowNoIndices(v bool) func(*IndicesGetFieldMappingRequest) {
@@ -240,14 +222,6 @@ func (f IndicesGetFieldMapping) WithIgnoreUnavailable(v bool) func(*IndicesGetFi
 func (f IndicesGetFieldMapping) WithIncludeDefaults(v bool) func(*IndicesGetFieldMappingRequest) {
 	return func(r *IndicesGetFieldMappingRequest) {
 		r.IncludeDefaults = &v
-	}
-}
-
-// WithIncludeTypeName - whether a type should be returned in the body of the mappings..
-//
-func (f IndicesGetFieldMapping) WithIncludeTypeName(v bool) func(*IndicesGetFieldMappingRequest) {
-	return func(r *IndicesGetFieldMappingRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 

@@ -55,7 +55,6 @@ type Termvectors func(index string, o ...func(*TermvectorsRequest)) (*Response, 
 //
 type TermvectorsRequest struct {
 	Index        string
-	DocumentType string
 	DocumentID   string
 
 	Body io.Reader
@@ -93,17 +92,9 @@ func (r TermvectorsRequest) Do(ctx context.Context, transport Transport) (*Respo
 
 	method = "POST"
 
-	if r.DocumentType == "" {
-		r.DocumentType = "_doc"
-	}
-
-	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentType) + 1 + len(r.DocumentID) + 1 + len("_termvectors"))
+	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentID) + 1 + len("_termvectors"))
 	path.WriteString("/")
 	path.WriteString(r.Index)
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
-	}
 	if r.DocumentID != "" {
 		path.WriteString("/")
 		path.WriteString(r.DocumentID)
@@ -241,14 +232,6 @@ func (f Termvectors) WithBody(v io.Reader) func(*TermvectorsRequest) {
 func (f Termvectors) WithDocumentID(v string) func(*TermvectorsRequest) {
 	return func(r *TermvectorsRequest) {
 		r.DocumentID = v
-	}
-}
-
-// WithDocumentType - the type of the document..
-//
-func (f Termvectors) WithDocumentType(v string) func(*TermvectorsRequest) {
-	return func(r *TermvectorsRequest) {
-		r.DocumentType = v
 	}
 }
 

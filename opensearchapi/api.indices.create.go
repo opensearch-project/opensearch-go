@@ -30,7 +30,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -59,7 +58,6 @@ type IndicesCreateRequest struct {
 
 	Body io.Reader
 
-	IncludeTypeName     *bool
 	MasterTimeout       time.Duration
 	Timeout             time.Duration
 	WaitForActiveShards string
@@ -90,10 +88,6 @@ func (r IndicesCreateRequest) Do(ctx context.Context, transport Transport) (*Res
 	path.WriteString(r.Index)
 
 	params = make(map[string]string)
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
-	}
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
@@ -183,14 +177,6 @@ func (f IndicesCreate) WithContext(v context.Context) func(*IndicesCreateRequest
 func (f IndicesCreate) WithBody(v io.Reader) func(*IndicesCreateRequest) {
 	return func(r *IndicesCreateRequest) {
 		r.Body = v
-	}
-}
-
-// WithIncludeTypeName - whether a type should be expected in the body of the mappings..
-//
-func (f IndicesCreate) WithIncludeTypeName(v bool) func(*IndicesCreateRequest) {
-	return func(r *IndicesCreateRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 

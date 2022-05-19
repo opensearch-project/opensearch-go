@@ -58,7 +58,6 @@ type UpdateByQuery func(index []string, o ...func(*UpdateByQueryRequest)) (*Resp
 //
 type UpdateByQueryRequest struct {
 	Index        []string
-	DocumentType []string
 
 	Body io.Reader
 
@@ -119,13 +118,9 @@ func (r UpdateByQueryRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	method = "POST"
 
-	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len(strings.Join(r.DocumentType, ",")) + 1 + len("_update_by_query"))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + 1 + len("_update_by_query"))
 	path.WriteString("/")
 	path.WriteString(strings.Join(r.Index, ","))
-	if len(r.DocumentType) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.DocumentType, ","))
-	}
 	path.WriteString("/")
 	path.WriteString("_update_by_query")
 
@@ -347,14 +342,6 @@ func (f UpdateByQuery) WithContext(v context.Context) func(*UpdateByQueryRequest
 func (f UpdateByQuery) WithBody(v io.Reader) func(*UpdateByQueryRequest) {
 	return func(r *UpdateByQueryRequest) {
 		r.Body = v
-	}
-}
-
-// WithDocumentType - a list of document types to search; leave empty to perform the operation on all types.
-//
-func (f UpdateByQuery) WithDocumentType(v ...string) func(*UpdateByQueryRequest) {
-	return func(r *UpdateByQueryRequest) {
-		r.DocumentType = v
 	}
 }
 

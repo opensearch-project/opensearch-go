@@ -57,7 +57,6 @@ type IndicesGetTemplateRequest struct {
 	Name []string
 
 	FlatSettings    *bool
-	IncludeTypeName *bool
 	Local           *bool
 	MasterTimeout   time.Duration
 
@@ -94,10 +93,6 @@ func (r IndicesGetTemplateRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.FlatSettings != nil {
 		params["flat_settings"] = strconv.FormatBool(*r.FlatSettings)
-	}
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
 	}
 
 	if r.Local != nil {
@@ -188,14 +183,6 @@ func (f IndicesGetTemplate) WithName(v ...string) func(*IndicesGetTemplateReques
 func (f IndicesGetTemplate) WithFlatSettings(v bool) func(*IndicesGetTemplateRequest) {
 	return func(r *IndicesGetTemplateRequest) {
 		r.FlatSettings = &v
-	}
-}
-
-// WithIncludeTypeName - whether a type should be returned in the body of the mappings..
-//
-func (f IndicesGetTemplate) WithIncludeTypeName(v bool) func(*IndicesGetTemplateRequest) {
-	return func(r *IndicesGetTemplateRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 

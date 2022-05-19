@@ -56,7 +56,6 @@ type Bulk func(body io.Reader, o ...func(*BulkRequest)) (*Response, error)
 //
 type BulkRequest struct {
 	Index        string
-	DocumentType string
 
 	Body io.Reader
 
@@ -91,14 +90,10 @@ func (r BulkRequest) Do(ctx context.Context, transport Transport) (*Response, er
 
 	method = "POST"
 
-	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentType) + 1 + len("_bulk"))
+	path.Grow(1 + len(r.Index) + 1 + len("_bulk"))
 	if r.Index != "" {
 		path.WriteString("/")
 		path.WriteString(r.Index)
-	}
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
 	}
 	path.WriteString("/")
 	path.WriteString("_bulk")
@@ -135,10 +130,6 @@ func (r BulkRequest) Do(ctx context.Context, transport Transport) (*Response, er
 
 	if r.Timeout != 0 {
 		params["timeout"] = formatDuration(r.Timeout)
-	}
-
-	if r.DocumentType != "" {
-		params["type"] = r.DocumentType
 	}
 
 	if r.WaitForActiveShards != "" {
@@ -221,14 +212,6 @@ func (f Bulk) WithContext(v context.Context) func(*BulkRequest) {
 func (f Bulk) WithIndex(v string) func(*BulkRequest) {
 	return func(r *BulkRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - default document type for items which don't provide one.
-//
-func (f Bulk) WithDocumentType(v string) func(*BulkRequest) {
-	return func(r *BulkRequest) {
-		r.DocumentType = v
 	}
 }
 

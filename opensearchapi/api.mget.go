@@ -55,7 +55,6 @@ type Mget func(body io.Reader, o ...func(*MgetRequest)) (*Response, error)
 //
 type MgetRequest struct {
 	Index        string
-	DocumentType string
 
 	Body io.Reader
 
@@ -89,14 +88,10 @@ func (r MgetRequest) Do(ctx context.Context, transport Transport) (*Response, er
 
 	method = "POST"
 
-	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentType) + 1 + len("_mget"))
+	path.Grow(1 + len(r.Index) + 1 + len("_mget"))
 	if r.Index != "" {
 		path.WriteString("/")
 		path.WriteString(r.Index)
-	}
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
 	}
 	path.WriteString("/")
 	path.WriteString("_mget")
@@ -211,14 +206,6 @@ func (f Mget) WithContext(v context.Context) func(*MgetRequest) {
 func (f Mget) WithIndex(v string) func(*MgetRequest) {
 	return func(r *MgetRequest) {
 		r.Index = v
-	}
-}
-
-// WithDocumentType - the type of the document.
-//
-func (f Mget) WithDocumentType(v string) func(*MgetRequest) {
-	return func(r *MgetRequest) {
-		r.DocumentType = v
 	}
 }
 

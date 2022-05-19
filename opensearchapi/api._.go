@@ -139,13 +139,11 @@ type Indices struct {
 	DeleteTemplate        IndicesDeleteTemplate
 	DiskUsage             IndicesDiskUsage
 	ExistsAlias           IndicesExistsAlias
-	ExistsDocumentType    IndicesExistsDocumentType
 	ExistsIndexTemplate   IndicesExistsIndexTemplate
 	Exists                IndicesExists
 	ExistsTemplate        IndicesExistsTemplate
 	FieldUsageStats       IndicesFieldUsageStats
 	Flush                 IndicesFlush
-	FlushSynced           IndicesFlushSynced
 	Forcemerge            IndicesForcemerge
 	GetAlias              IndicesGetAlias
 	GetFieldMapping       IndicesGetFieldMapping
@@ -319,13 +317,11 @@ func New(t Transport) *API {
 			DeleteTemplate:        newIndicesDeleteTemplateFunc(t),
 			DiskUsage:             newIndicesDiskUsageFunc(t),
 			ExistsAlias:           newIndicesExistsAliasFunc(t),
-			ExistsDocumentType:    newIndicesExistsDocumentTypeFunc(t),
 			ExistsIndexTemplate:   newIndicesExistsIndexTemplateFunc(t),
 			Exists:                newIndicesExistsFunc(t),
 			ExistsTemplate:        newIndicesExistsTemplateFunc(t),
 			FieldUsageStats:       newIndicesFieldUsageStatsFunc(t),
 			Flush:                 newIndicesFlushFunc(t),
-			FlushSynced:           newIndicesFlushSyncedFunc(t),
 			Forcemerge:            newIndicesForcemergeFunc(t),
 			GetAlias:              newIndicesGetAliasFunc(t),
 			GetFieldMapping:       newIndicesGetFieldMappingFunc(t),

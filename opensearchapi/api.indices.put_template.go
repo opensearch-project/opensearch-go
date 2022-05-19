@@ -60,7 +60,6 @@ type IndicesPutTemplateRequest struct {
 	Name string
 
 	Create          *bool
-	IncludeTypeName *bool
 	MasterTimeout   time.Duration
 	Order           *int
 
@@ -95,10 +94,6 @@ func (r IndicesPutTemplateRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.Create != nil {
 		params["create"] = strconv.FormatBool(*r.Create)
-	}
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
 	}
 
 	if r.MasterTimeout != 0 {
@@ -185,14 +180,6 @@ func (f IndicesPutTemplate) WithContext(v context.Context) func(*IndicesPutTempl
 func (f IndicesPutTemplate) WithCreate(v bool) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.Create = &v
-	}
-}
-
-// WithIncludeTypeName - whether a type should be returned in the body of the mappings..
-//
-func (f IndicesPutTemplate) WithIncludeTypeName(v bool) func(*IndicesPutTemplateRequest) {
-	return func(r *IndicesPutTemplateRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 

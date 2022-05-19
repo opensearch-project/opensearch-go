@@ -56,14 +56,12 @@ type IndicesPutMapping func(body io.Reader, o ...func(*IndicesPutMappingRequest)
 //
 type IndicesPutMappingRequest struct {
 	Index        []string
-	DocumentType string
 
 	Body io.Reader
 
 	AllowNoIndices    *bool
 	ExpandWildcards   string
 	IgnoreUnavailable *bool
-	IncludeTypeName   *bool
 	MasterTimeout     time.Duration
 	Timeout           time.Duration
 	WriteIndexOnly    *bool
@@ -89,17 +87,13 @@ func (r IndicesPutMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	method = "PUT"
 
-	path.Grow(len(strings.Join(r.Index, ",")) + len("/_mapping") + len(r.DocumentType) + 2)
+	path.Grow(len(strings.Join(r.Index, ",")) + len("/_mapping") + 1)
 	if len(r.Index) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Index, ","))
 	}
 	path.WriteString("/")
 	path.WriteString("_mapping")
-	if r.DocumentType != "" {
-		path.WriteString("/")
-		path.WriteString(r.DocumentType)
-	}
 
 	params = make(map[string]string)
 
@@ -113,10 +107,6 @@ func (r IndicesPutMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.IgnoreUnavailable != nil {
 		params["ignore_unavailable"] = strconv.FormatBool(*r.IgnoreUnavailable)
-	}
-
-	if r.IncludeTypeName != nil {
-		params["include_type_name"] = strconv.FormatBool(*r.IncludeTypeName)
 	}
 
 	if r.MasterTimeout != 0 {
@@ -210,14 +200,6 @@ func (f IndicesPutMapping) WithIndex(v ...string) func(*IndicesPutMappingRequest
 	}
 }
 
-// WithDocumentType - the name of the document type.
-//
-func (f IndicesPutMapping) WithDocumentType(v string) func(*IndicesPutMappingRequest) {
-	return func(r *IndicesPutMappingRequest) {
-		r.DocumentType = v
-	}
-}
-
 // WithAllowNoIndices - whether to ignore if a wildcard indices expression resolves into no concrete indices. (this includes `_all` string or when no indices have been specified).
 //
 func (f IndicesPutMapping) WithAllowNoIndices(v bool) func(*IndicesPutMappingRequest) {
@@ -239,14 +221,6 @@ func (f IndicesPutMapping) WithExpandWildcards(v string) func(*IndicesPutMapping
 func (f IndicesPutMapping) WithIgnoreUnavailable(v bool) func(*IndicesPutMappingRequest) {
 	return func(r *IndicesPutMappingRequest) {
 		r.IgnoreUnavailable = &v
-	}
-}
-
-// WithIncludeTypeName - whether a type should be expected in the body of the mappings..
-//
-func (f IndicesPutMapping) WithIncludeTypeName(v bool) func(*IndicesPutMappingRequest) {
-	return func(r *IndicesPutMappingRequest) {
-		r.IncludeTypeName = &v
 	}
 }
 
