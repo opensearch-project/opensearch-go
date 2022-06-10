@@ -29,7 +29,7 @@ package opensearchapi_test
 import (
 	"log"
 
-	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/v2"
 )
 
 func ExampleResponse_IsError() {

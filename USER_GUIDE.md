@@ -15,8 +15,8 @@ import (
     "context"
     "crypto/tls"
     "fmt"
-    opensearch "github.com/opensearch-project/opensearch-go"
-    opensearchapi "github.com/opensearch-project/opensearch-go/opensearchapi"
+    opensearch "github.com/opensearch-project/opensearch-go/v2"
+    opensearchapi "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
     "net/http"
     "strings"
 )
@@ -148,9 +148,9 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/opensearchapi"
-	requestsigner "github.com/opensearch-project/opensearch-go/signer/aws"
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	requestsigner "github.com/opensearch-project/opensearch-go/v2/signer/aws"
 )
 
 const endpoint = "" // e.g. https://opensearch-domain.region.com
