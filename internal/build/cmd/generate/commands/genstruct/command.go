@@ -35,14 +35,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
+	"github.com/opensearch-project/opensearch-go/v2/internal/build/cmd"
 
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/imports"
 
 	"github.com/spf13/cobra"
 
-	"github.com/opensearch-project/opensearch-go/internal/build/utils"
+	"github.com/opensearch-project/opensearch-go/v2/internal/build/utils"
 )
 
 var (

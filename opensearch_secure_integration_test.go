@@ -18,7 +18,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go"
+	"github.com/opensearch-project/opensearch-go/v2"
 	"github.com/stretchr/testify/assert"
 )
 
