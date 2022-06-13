@@ -35,11 +35,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/internal/build/cmd"
+	"github.com/opensearch-project/opensearch-go/v2/internal/build/cmd"
 
 	"github.com/spf13/cobra"
 
-	"github.com/opensearch-project/opensearch-go/internal/build/utils"
+	"github.com/opensearch-project/opensearch-go/v2/internal/build/utils"
 )
 
 var (
