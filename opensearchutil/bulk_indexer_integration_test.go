@@ -38,9 +38,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
 func TestBulkIndexerIntegration(t *testing.T) {

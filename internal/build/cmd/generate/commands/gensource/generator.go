@@ -35,7 +35,7 @@ import (
 
 	"golang.org/x/tools/imports"
 
-	"github.com/opensearch-project/opensearch-go/internal/build/utils"
+	"github.com/opensearch-project/opensearch-go/v2/internal/build/utils"
 )
 
 // Generator represents the "gensource" generator.

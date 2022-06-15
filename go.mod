@@ -1,4 +1,4 @@
-module github.com/opensearch-project/opensearch-go
+module github.com/opensearch-project/opensearch-go/v2
 
 go 1.11
 

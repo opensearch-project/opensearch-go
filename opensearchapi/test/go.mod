@@ -1,11 +1,11 @@
-module github.com/opensearch-project/opensearch-go/opensearch/test
+module github.com/opensearch-project/opensearch-go/v2/opensearch/test
 
 go 1.11
 
-replace github.com/opensearch-project/opensearch-go => ../../
+replace github.com/opensearch-project/opensearch-go/v2 => ../../
 
 require (
-	github.com/opensearch-project/opensearch-go v1.0.0
+	github.com/opensearch-project/opensearch-go/v2 v2.0.0
 
 	gopkg.in/yaml.v2 v2.4.0
 )
