@@ -51,12 +51,17 @@ func main() {
           }
      }`)
     
-    // Create an index with non-default settings.
-    res := opensearchapi.CreateRequest{
-        Index: IndexName,
+    // Create an index with non-default settings. 
+    createIndex := opensearchapi.IndicesCreateRequest{
+        Index: IndexName, 
         Body:  mapping,
     }
-    fmt.Println("creating index", res)
+    createIndexResponse, err := createIndex.Do(context.Background(), client)
+    if err != nil {
+        fmt.Println("failed to create index ", err)
+        os.Exit(1)
+    }
+    fmt.Println(createIndexResponse)
     
     // Add a document to the index.
     document := strings.NewReader(`{
