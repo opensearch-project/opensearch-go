@@ -95,12 +95,12 @@ func (r TermvectorsRequest) Do(ctx context.Context, transport Transport) (*Respo
 	path.Grow(1 + len(r.Index) + 1 + len(r.DocumentID) + 1 + len("_termvectors"))
 	path.WriteString("/")
 	path.WriteString(r.Index)
+	path.WriteString("/")
+	path.WriteString("_termvectors")
 	if r.DocumentID != "" {
 		path.WriteString("/")
 		path.WriteString(r.DocumentID)
 	}
-	path.WriteString("/")
-	path.WriteString("_termvectors")
 
 	params = make(map[string]string)
 

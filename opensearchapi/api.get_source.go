@@ -91,9 +91,9 @@ func (r GetSourceRequest) Do(ctx context.Context, transport Transport) (*Respons
 	path.WriteString("/")
 	path.WriteString(r.Index)
 	path.WriteString("/")
-	path.WriteString(r.DocumentID)
-	path.WriteString("/")
 	path.WriteString("_source")
+	path.WriteString("/")
+	path.WriteString(r.DocumentID)
 
 	params = make(map[string]string)
 
