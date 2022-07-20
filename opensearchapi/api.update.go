@@ -98,9 +98,9 @@ func (r UpdateRequest) Do(ctx context.Context, transport Transport) (*Response, 
 	path.WriteString("/")
 	path.WriteString(r.Index)
 	path.WriteString("/")
-	path.WriteString(r.DocumentID)
-	path.WriteString("/")
 	path.WriteString("_update")
+	path.WriteString("/")
+	path.WriteString(r.DocumentID)
 
 	params = make(map[string]string)
 
