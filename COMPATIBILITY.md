@@ -9,8 +9,8 @@ The below matrix shows the compatibility of the [`opensearch-go`](https://pkg.go
 | --- | --- |
 | 1.0.0 | 1.0.0-1.0.1 |
 | 1.1.0 | 1.1.0-1.3.1 |
-| 2.0.0 | 2.0.0-2.0.1 |
-| 2.0.1 | 2.0.0-2.0.1 |
+| 2.0.0 | 2.0.0-2.1.0 |
+| 2.0.1 | 2.0.0-2.1.0 |
 
 ## Upgrading
 
