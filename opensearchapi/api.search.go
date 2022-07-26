@@ -62,6 +62,7 @@ type SearchRequest struct {
 
 	AllowNoIndices             *bool
 	AllowPartialSearchResults  *bool
+	AllowLeadingWildcard       *bool
 	Analyzer                   string
 	AnalyzeWildcard            *bool
 	BatchedReduceSize          *int
@@ -141,6 +142,10 @@ func (r SearchRequest) Do(ctx context.Context, transport Transport) (*Response, 
 
 	if r.AllowPartialSearchResults != nil {
 		params["allow_partial_search_results"] = strconv.FormatBool(*r.AllowPartialSearchResults)
+	}
+
+	if r.AllowLeadingWildcard != nil {
+		params["allow_leading_wildcard"] = strconv.FormatBool(*r.AllowLeadingWildcard)
 	}
 
 	if r.Analyzer != "" {
@@ -415,6 +420,14 @@ func (f Search) WithAllowPartialSearchResults(v bool) func(*SearchRequest) {
 func (f Search) WithAnalyzer(v string) func(*SearchRequest) {
 	return func(r *SearchRequest) {
 		r.Analyzer = v
+	}
+}
+
+// WithAllowLeadingWildcard - the wildcard characters * and ? are allowed as the first character of the query string.
+//
+func (f Search) WithAllowLeadingWildcard(v bool) func(*SearchRequest) {
+	return func(r *SearchRequest) {
+		r.AllowLeadingWildcard = &v
 	}
 }
 
