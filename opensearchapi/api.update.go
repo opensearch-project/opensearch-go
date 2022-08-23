@@ -55,8 +55,8 @@ type Update func(index string, id string, body io.Reader, o ...func(*UpdateReque
 // UpdateRequest configures the Update API request.
 //
 type UpdateRequest struct {
-	Index        string
-	DocumentID   string
+	Index      string
+	DocumentID string
 
 	Body io.Reader
 
@@ -98,9 +98,9 @@ func (r UpdateRequest) Do(ctx context.Context, transport Transport) (*Response, 
 	path.WriteString("/")
 	path.WriteString(r.Index)
 	path.WriteString("/")
-	path.WriteString("_update")
-	path.WriteString("/")
 	path.WriteString(r.DocumentID)
+	path.WriteString("/")
+	path.WriteString("_update")
 
 	params = make(map[string]string)
 
