@@ -46,12 +46,12 @@ func main() {
 
 	// Define index mapping.
 	mapping := strings.NewReader(`{
-     'settings': {
-       'index': {
-            'number_of_shards': 4
-            }
-          }
-     }`)
+	    "settings": {
+	        "index": {
+	            "number_of_shards": 4
+	        }
+	    }
+	}`)
 
 	// Create an index with non-default settings.
 	createIndex := opensearchapi.IndicesCreateRequest{
