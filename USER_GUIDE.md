@@ -70,7 +70,7 @@ func main() {
 	    "title": "Moneyball",
 	    "director": "Bennett Miller",
 	    "year": "2011"
-    }`)
+	}`)
 
 	docId := "1"
 	req := opensearchapi.IndexRequest{
