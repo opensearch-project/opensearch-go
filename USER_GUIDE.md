@@ -67,9 +67,9 @@ func main() {
 
 	// Add a document to the index.
 	document := strings.NewReader(`{
-        "title": "Moneyball",
-        "director": "Bennett Miller",
-        "year": "2011"
+	    "title": "Moneyball",
+	    "director": "Bennett Miller",
+	    "year": "2011"
     }`)
 
 	docId := "1"
@@ -87,14 +87,14 @@ func main() {
 
 	// Search for the document.
 	content := strings.NewReader(`{
-       "size": 5,
-       "query": {
-           "multi_match": {
-           "query": "miller",
-           "fields": ["title^2", "director"]
-           }
-      }
-    }`)
+	    "size": 5,
+	    "query": {
+	        "multi_match": {
+	            "query": "miller",
+	            "fields": ["title^2", "director"]
+	        }
+	    }
+	}`)
 
 	search := opensearchapi.SearchRequest{
 		Body: content,
