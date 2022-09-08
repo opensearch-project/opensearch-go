@@ -286,7 +286,7 @@ func (f CatIndices) WithIncludeUnloadedSegments(v bool) func(*CatIndicesRequest)
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatIndices) WithLocal(v bool) func(*CatIndicesRequest) {
 	return func(r *CatIndicesRequest) {

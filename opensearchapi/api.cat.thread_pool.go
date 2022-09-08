@@ -230,7 +230,7 @@ func (f CatThreadPool) WithHelp(v bool) func(*CatThreadPoolRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatThreadPool) WithLocal(v bool) func(*CatThreadPoolRequest) {
 	return func(r *CatThreadPoolRequest) {

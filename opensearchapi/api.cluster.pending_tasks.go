@@ -159,7 +159,7 @@ func (f ClusterPendingTasks) WithContext(v context.Context) func(*ClusterPending
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterPendingTasks) WithLocal(v bool) func(*ClusterPendingTasksRequest) {
 	return func(r *ClusterPendingTasksRequest) {

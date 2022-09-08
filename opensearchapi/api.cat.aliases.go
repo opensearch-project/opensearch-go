@@ -231,7 +231,7 @@ func (f CatAliases) WithHelp(v bool) func(*CatAliasesRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatAliases) WithLocal(v bool) func(*CatAliasesRequest) {
 	return func(r *CatAliasesRequest) {

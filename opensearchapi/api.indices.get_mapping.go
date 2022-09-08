@@ -211,7 +211,7 @@ func (f IndicesGetMapping) WithIgnoreUnavailable(v bool) func(*IndicesGetMapping
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesGetMapping) WithLocal(v bool) func(*IndicesGetMappingRequest) {
 	return func(r *IndicesGetMappingRequest) {

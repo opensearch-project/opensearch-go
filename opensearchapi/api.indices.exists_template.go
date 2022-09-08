@@ -176,7 +176,7 @@ func (f IndicesExistsTemplate) WithFlatSettings(v bool) func(*IndicesExistsTempl
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesExistsTemplate) WithLocal(v bool) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {

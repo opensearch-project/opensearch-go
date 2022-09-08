@@ -238,7 +238,7 @@ func (f CatAllocation) WithHelp(v bool) func(*CatAllocationRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatAllocation) WithLocal(v bool) func(*CatAllocationRequest) {
 	return func(r *CatAllocationRequest) {

@@ -220,7 +220,7 @@ func (f CatPlugins) WithIncludeBootstrap(v bool) func(*CatPluginsRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatPlugins) WithLocal(v bool) func(*CatPluginsRequest) {
 	return func(r *CatPluginsRequest) {

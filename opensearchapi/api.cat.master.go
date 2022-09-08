@@ -207,7 +207,7 @@ func (f CatMaster) WithHelp(v bool) func(*CatMasterRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatMaster) WithLocal(v bool) func(*CatMasterRequest) {
 	return func(r *CatMasterRequest) {

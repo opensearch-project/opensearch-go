@@ -252,7 +252,7 @@ func (f IndicesGetSettings) WithIncludeDefaults(v bool) func(*IndicesGetSettings
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesGetSettings) WithLocal(v bool) func(*IndicesGetSettingsRequest) {
 	return func(r *IndicesGetSettingsRequest) {

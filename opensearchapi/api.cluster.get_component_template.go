@@ -173,7 +173,7 @@ func (f ClusterGetComponentTemplate) WithName(v ...string) func(*ClusterGetCompo
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterGetComponentTemplate) WithLocal(v bool) func(*ClusterGetComponentTemplateRequest) {
 	return func(r *ClusterGetComponentTemplateRequest) {

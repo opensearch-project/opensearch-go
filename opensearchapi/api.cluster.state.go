@@ -251,7 +251,7 @@ func (f ClusterState) WithIgnoreUnavailable(v bool) func(*ClusterStateRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterState) WithLocal(v bool) func(*ClusterStateRequest) {
 	return func(r *ClusterStateRequest) {

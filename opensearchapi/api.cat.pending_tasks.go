@@ -212,7 +212,7 @@ func (f CatPendingTasks) WithHelp(v bool) func(*CatPendingTasksRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatPendingTasks) WithLocal(v bool) func(*CatPendingTasksRequest) {
 	return func(r *CatPendingTasksRequest) {

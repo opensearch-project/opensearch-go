@@ -242,7 +242,7 @@ func (f CatShards) WithHelp(v bool) func(*CatShardsRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatShards) WithLocal(v bool) func(*CatShardsRequest) {
 	return func(r *CatShardsRequest) {

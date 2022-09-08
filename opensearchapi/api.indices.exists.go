@@ -220,7 +220,7 @@ func (f IndicesExists) WithIncludeDefaults(v bool) func(*IndicesExistsRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesExists) WithLocal(v bool) func(*IndicesExistsRequest) {
 	return func(r *IndicesExistsRequest) {

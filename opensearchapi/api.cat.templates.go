@@ -224,7 +224,7 @@ func (f CatTemplates) WithHelp(v bool) func(*CatTemplatesRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatTemplates) WithLocal(v bool) func(*CatTemplatesRequest) {
 	return func(r *CatTemplatesRequest) {

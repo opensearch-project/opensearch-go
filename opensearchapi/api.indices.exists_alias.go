@@ -210,7 +210,7 @@ func (f IndicesExistsAlias) WithIgnoreUnavailable(v bool) func(*IndicesExistsAli
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesExistsAlias) WithLocal(v bool) func(*IndicesExistsAliasRequest) {
 	return func(r *IndicesExistsAliasRequest) {

@@ -251,7 +251,7 @@ func (f CatNodes) WithIncludeUnloadedSegments(v bool) func(*CatNodesRequest) {
 	}
 }
 
-// WithLocal - calculate the selected nodes using the local cluster state rather than the state from master node (default: false).
+// WithLocal - calculate the selected nodes using the local cluster state rather than the state from cluster-manager node (default: false).
 //
 func (f CatNodes) WithLocal(v bool) func(*CatNodesRequest) {
 	return func(r *CatNodesRequest) {

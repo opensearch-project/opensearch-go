@@ -163,7 +163,7 @@ func (f ClusterExistsComponentTemplate) WithContext(v context.Context) func(*Clu
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterExistsComponentTemplate) WithLocal(v bool) func(*ClusterExistsComponentTemplateRequest) {
 	return func(r *ClusterExistsComponentTemplateRequest) {

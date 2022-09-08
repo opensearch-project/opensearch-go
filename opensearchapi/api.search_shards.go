@@ -216,7 +216,7 @@ func (f SearchShards) WithIgnoreUnavailable(v bool) func(*SearchShardsRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f SearchShards) WithLocal(v bool) func(*SearchShardsRequest) {
 	return func(r *SearchShardsRequest) {

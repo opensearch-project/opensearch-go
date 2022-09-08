@@ -236,7 +236,7 @@ func (f ClusterHealth) WithLevel(v string) func(*ClusterHealthRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterHealth) WithLocal(v bool) func(*ClusterHealthRequest) {
 	return func(r *ClusterHealthRequest) {
