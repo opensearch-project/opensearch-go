@@ -72,27 +72,27 @@ func (c *Client) DiscoverNodes() error {
 
 	for _, node := range nodes {
 		var (
-			isMasterOnlyNode bool
+			isClusterManagerOnlyNode bool
 		)
 
 		roles := append(node.Roles[:0:0], node.Roles...)
 		sort.Strings(roles)
 
-		if len(roles) == 1 && roles[0] == "master" {
-			isMasterOnlyNode = true
+		if len(roles) == 1 && (roles[0] == "master" || roles[0] == "cluster_manager") {
+			isClusterManagerOnlyNode = true
 		}
 
 		if debugLogger != nil {
 			var skip string
-			if isMasterOnlyNode {
+			if isClusterManagerOnlyNode {
 				skip = "; [SKIP]"
 			}
 			debugLogger.Logf("Discovered node [%s]; %s; roles=%s%s\n", node.Name, node.URL, node.Roles, skip)
 		}
 
-		// Skip master only nodes
+		// Skip cluster_manager only nodes
 		// TODO: Move logic to Selector?
-		if isMasterOnlyNode {
+		if isClusterManagerOnlyNode {
 			continue
 		}
 
