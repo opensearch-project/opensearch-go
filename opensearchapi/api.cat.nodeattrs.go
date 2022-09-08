@@ -54,13 +54,14 @@ type CatNodeattrs func(o ...func(*CatNodeattrsRequest)) (*Response, error)
 // CatNodeattrsRequest configures the Cat Nodeattrs API request.
 //
 type CatNodeattrsRequest struct {
-	Format        string
-	H             []string
-	Help          *bool
-	Local         *bool
-	MasterTimeout time.Duration
-	S             []string
-	V             *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -106,6 +107,10 @@ func (r CatNodeattrsRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -215,11 +220,21 @@ func (f CatNodeattrs) WithLocal(v bool) func(*CatNodeattrsRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatNodeattrs) WithMasterTimeout(v time.Duration) func(*CatNodeattrsRequest) {
 	return func(r *CatNodeattrsRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatNodeattrs) WithClusterManagerTimeout(v time.Duration) func(*CatNodeattrsRequest) {
+	return func(r *CatNodeattrsRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

@@ -56,9 +56,10 @@ type DanglingIndicesImportDanglingIndex func(index_uuid string, o ...func(*Dangl
 type DanglingIndicesImportDanglingIndexRequest struct {
 	IndexUUID string
 
-	AcceptDataLoss *bool
-	MasterTimeout  time.Duration
-	Timeout        time.Duration
+	AcceptDataLoss        *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -95,6 +96,10 @@ func (r DanglingIndicesImportDanglingIndexRequest) Do(ctx context.Context, trans
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -176,11 +181,21 @@ func (f DanglingIndicesImportDanglingIndex) WithAcceptDataLoss(v bool) func(*Dan
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f DanglingIndicesImportDanglingIndex) WithMasterTimeout(v time.Duration) func(*DanglingIndicesImportDanglingIndexRequest) {
 	return func(r *DanglingIndicesImportDanglingIndexRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f DanglingIndicesImportDanglingIndex) WithClusterManagerTimeout(v time.Duration) func(*DanglingIndicesImportDanglingIndexRequest) {
+	return func(r *DanglingIndicesImportDanglingIndexRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

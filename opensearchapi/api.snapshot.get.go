@@ -57,11 +57,12 @@ type SnapshotGetRequest struct {
 	Repository string
 	Snapshot   []string
 
-	IgnoreUnavailable *bool
-	IncludeRepository *bool
-	IndexDetails      *bool
-	MasterTimeout     time.Duration
-	Verbose           *bool
+	IgnoreUnavailable     *bool
+	IncludeRepository     *bool
+	IndexDetails          *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Verbose               *bool
 
 	Pretty     bool
 	Human      bool
@@ -108,6 +109,10 @@ func (r SnapshotGetRequest) Do(ctx context.Context, transport Transport) (*Respo
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Verbose != nil {
@@ -205,11 +210,21 @@ func (f SnapshotGet) WithIndexDetails(v bool) func(*SnapshotGetRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f SnapshotGet) WithMasterTimeout(v time.Duration) func(*SnapshotGetRequest) {
 	return func(r *SnapshotGetRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f SnapshotGet) WithClusterManagerTimeout(v time.Duration) func(*SnapshotGetRequest) {
+	return func(r *SnapshotGetRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

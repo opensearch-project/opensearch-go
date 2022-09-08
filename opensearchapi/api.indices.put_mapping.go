@@ -55,16 +55,17 @@ type IndicesPutMapping func(body io.Reader, o ...func(*IndicesPutMappingRequest)
 // IndicesPutMappingRequest configures the Indices Put Mapping API request.
 //
 type IndicesPutMappingRequest struct {
-	Index        []string
+	Index []string
 
 	Body io.Reader
 
-	AllowNoIndices    *bool
-	ExpandWildcards   string
-	IgnoreUnavailable *bool
-	MasterTimeout     time.Duration
-	Timeout           time.Duration
-	WriteIndexOnly    *bool
+	AllowNoIndices        *bool
+	ExpandWildcards       string
+	IgnoreUnavailable     *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	WriteIndexOnly        *bool
 
 	Pretty     bool
 	Human      bool
@@ -111,6 +112,10 @@ func (r IndicesPutMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -224,11 +229,21 @@ func (f IndicesPutMapping) WithIgnoreUnavailable(v bool) func(*IndicesPutMapping
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesPutMapping) WithMasterTimeout(v time.Duration) func(*IndicesPutMappingRequest) {
 	return func(r *IndicesPutMappingRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesPutMapping) WithClusterManagerTimeout(v time.Duration) func(*IndicesPutMappingRequest) {
+	return func(r *IndicesPutMappingRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

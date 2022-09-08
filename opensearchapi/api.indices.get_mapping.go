@@ -54,13 +54,14 @@ type IndicesGetMapping func(o ...func(*IndicesGetMappingRequest)) (*Response, er
 // IndicesGetMappingRequest configures the Indices Get Mapping API request.
 //
 type IndicesGetMappingRequest struct {
-	Index        []string
+	Index []string
 
-	AllowNoIndices    *bool
-	ExpandWildcards   string
-	IgnoreUnavailable *bool
-	Local             *bool
-	MasterTimeout     time.Duration
+	AllowNoIndices        *bool
+	ExpandWildcards       string
+	IgnoreUnavailable     *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -110,6 +111,10 @@ func (r IndicesGetMappingRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -219,11 +224,21 @@ func (f IndicesGetMapping) WithLocal(v bool) func(*IndicesGetMappingRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesGetMapping) WithMasterTimeout(v time.Duration) func(*IndicesGetMappingRequest) {
 	return func(r *IndicesGetMappingRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesGetMapping) WithClusterManagerTimeout(v time.Duration) func(*IndicesGetMappingRequest) {
+	return func(r *IndicesGetMappingRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

@@ -59,9 +59,10 @@ type IndicesPutTemplateRequest struct {
 
 	Name string
 
-	Create          *bool
-	MasterTimeout   time.Duration
-	Order           *int
+	Create                *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Order                 *int
 
 	Pretty     bool
 	Human      bool
@@ -98,6 +99,10 @@ func (r IndicesPutTemplateRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Order != nil {
@@ -183,11 +188,21 @@ func (f IndicesPutTemplate) WithCreate(v bool) func(*IndicesPutTemplateRequest) 
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesPutTemplate) WithMasterTimeout(v time.Duration) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesPutTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesPutTemplateRequest) {
+	return func(r *IndicesPutTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

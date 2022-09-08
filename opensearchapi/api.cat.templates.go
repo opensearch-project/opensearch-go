@@ -56,13 +56,14 @@ type CatTemplates func(o ...func(*CatTemplatesRequest)) (*Response, error)
 type CatTemplatesRequest struct {
 	Name string
 
-	Format        string
-	H             []string
-	Help          *bool
-	Local         *bool
-	MasterTimeout time.Duration
-	S             []string
-	V             *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -115,6 +116,10 @@ func (r CatTemplatesRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -232,11 +237,21 @@ func (f CatTemplates) WithLocal(v bool) func(*CatTemplatesRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatTemplates) WithMasterTimeout(v time.Duration) func(*CatTemplatesRequest) {
 	return func(r *CatTemplatesRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatTemplates) WithClusterManagerTimeout(v time.Duration) func(*CatTemplatesRequest) {
+	return func(r *CatTemplatesRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

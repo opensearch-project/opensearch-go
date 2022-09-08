@@ -64,6 +64,7 @@ type ClusterStateRequest struct {
 	IgnoreUnavailable      *bool
 	Local                  *bool
 	MasterTimeout          time.Duration
+	ClusterManagerTimeout  time.Duration
 	WaitForMetadataVersion *int
 	WaitForTimeout         time.Duration
 
@@ -126,6 +127,10 @@ func (r ClusterStateRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.WaitForMetadataVersion != nil {
@@ -259,11 +264,21 @@ func (f ClusterState) WithLocal(v bool) func(*ClusterStateRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterState) WithMasterTimeout(v time.Duration) func(*ClusterStateRequest) {
 	return func(r *ClusterStateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterState) WithClusterManagerTimeout(v time.Duration) func(*ClusterStateRequest) {
+	return func(r *ClusterStateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

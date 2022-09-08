@@ -56,7 +56,8 @@ type SnapshotDeleteRequest struct {
 	Repository string
 	Snapshot   string
 
-	MasterTimeout time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -91,6 +92,10 @@ func (r SnapshotDeleteRequest) Do(ctx context.Context, transport Transport) (*Re
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -160,11 +165,21 @@ func (f SnapshotDelete) WithContext(v context.Context) func(*SnapshotDeleteReque
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f SnapshotDelete) WithMasterTimeout(v time.Duration) func(*SnapshotDeleteRequest) {
 	return func(r *SnapshotDeleteRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f SnapshotDelete) WithClusterManagerTimeout(v time.Duration) func(*SnapshotDeleteRequest) {
+	return func(r *SnapshotDeleteRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

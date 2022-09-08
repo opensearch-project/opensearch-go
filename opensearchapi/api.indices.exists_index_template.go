@@ -56,9 +56,10 @@ type IndicesExistsIndexTemplate func(name string, o ...func(*IndicesExistsIndexT
 type IndicesExistsIndexTemplateRequest struct {
 	Name string
 
-	FlatSettings  *bool
-	Local         *bool
-	MasterTimeout time.Duration
+	FlatSettings          *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -99,6 +100,10 @@ func (r IndicesExistsIndexTemplateRequest) Do(ctx context.Context, transport Tra
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -184,11 +189,21 @@ func (f IndicesExistsIndexTemplate) WithLocal(v bool) func(*IndicesExistsIndexTe
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesExistsIndexTemplate) WithMasterTimeout(v time.Duration) func(*IndicesExistsIndexTemplateRequest) {
 	return func(r *IndicesExistsIndexTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesExistsIndexTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesExistsIndexTemplateRequest) {
+	return func(r *IndicesExistsIndexTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

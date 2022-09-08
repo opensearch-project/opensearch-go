@@ -58,8 +58,9 @@ type IngestPutPipelineRequest struct {
 
 	Body io.Reader
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -94,6 +95,10 @@ func (r IngestPutPipelineRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -171,11 +176,21 @@ func (f IngestPutPipeline) WithContext(v context.Context) func(*IngestPutPipelin
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IngestPutPipeline) WithMasterTimeout(v time.Duration) func(*IngestPutPipelineRequest) {
 	return func(r *IngestPutPipelineRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IngestPutPipeline) WithClusterManagerTimeout(v time.Duration) func(*IngestPutPipelineRequest) {
+	return func(r *IngestPutPipelineRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

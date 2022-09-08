@@ -56,12 +56,13 @@ type IndicesClose func(index []string, o ...func(*IndicesCloseRequest)) (*Respon
 type IndicesCloseRequest struct {
 	Index []string
 
-	AllowNoIndices      *bool
-	ExpandWildcards     string
-	IgnoreUnavailable   *bool
-	MasterTimeout       time.Duration
-	Timeout             time.Duration
-	WaitForActiveShards string
+	AllowNoIndices        *bool
+	ExpandWildcards       string
+	IgnoreUnavailable     *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	WaitForActiveShards   string
 
 	Pretty     bool
 	Human      bool
@@ -106,6 +107,10 @@ func (r IndicesCloseRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -207,11 +212,21 @@ func (f IndicesClose) WithIgnoreUnavailable(v bool) func(*IndicesCloseRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesClose) WithMasterTimeout(v time.Duration) func(*IndicesCloseRequest) {
 	return func(r *IndicesCloseRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesClose) WithClusterManagerTimeout(v time.Duration) func(*IndicesCloseRequest) {
+	return func(r *IndicesCloseRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

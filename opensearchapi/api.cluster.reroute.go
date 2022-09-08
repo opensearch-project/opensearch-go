@@ -57,12 +57,13 @@ type ClusterReroute func(o ...func(*ClusterRerouteRequest)) (*Response, error)
 type ClusterRerouteRequest struct {
 	Body io.Reader
 
-	DryRun        *bool
-	Explain       *bool
-	MasterTimeout time.Duration
-	Metric        []string
-	RetryFailed   *bool
-	Timeout       time.Duration
+	DryRun                *bool
+	Explain               *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Metric                []string
+	RetryFailed           *bool
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -100,6 +101,10 @@ func (r ClusterRerouteRequest) Do(ctx context.Context, transport Transport) (*Re
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.Metric) > 0 {
@@ -209,11 +214,21 @@ func (f ClusterReroute) WithExplain(v bool) func(*ClusterRerouteRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterReroute) WithMasterTimeout(v time.Duration) func(*ClusterRerouteRequest) {
 	return func(r *ClusterRerouteRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterReroute) WithClusterManagerTimeout(v time.Duration) func(*ClusterRerouteRequest) {
+	return func(r *ClusterRerouteRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

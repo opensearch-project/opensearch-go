@@ -56,14 +56,15 @@ type CatSnapshots func(o ...func(*CatSnapshotsRequest)) (*Response, error)
 type CatSnapshotsRequest struct {
 	Repository []string
 
-	Format            string
-	H                 []string
-	Help              *bool
-	IgnoreUnavailable *bool
-	MasterTimeout     time.Duration
-	S                 []string
-	Time              string
-	V                 *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	IgnoreUnavailable     *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	Time                  string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -116,6 +117,10 @@ func (r CatSnapshotsRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -237,11 +242,21 @@ func (f CatSnapshots) WithIgnoreUnavailable(v bool) func(*CatSnapshotsRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatSnapshots) WithMasterTimeout(v time.Duration) func(*CatSnapshotsRequest) {
 	return func(r *CatSnapshotsRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatSnapshots) WithClusterManagerTimeout(v time.Duration) func(*CatSnapshotsRequest) {
+	return func(r *CatSnapshotsRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

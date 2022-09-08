@@ -54,14 +54,15 @@ type CatPendingTasks func(o ...func(*CatPendingTasksRequest)) (*Response, error)
 // CatPendingTasksRequest configures the Cat Pending Tasks API request.
 //
 type CatPendingTasksRequest struct {
-	Format        string
-	H             []string
-	Help          *bool
-	Local         *bool
-	MasterTimeout time.Duration
-	S             []string
-	Time          string
-	V             *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	Time                  string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -107,6 +108,10 @@ func (r CatPendingTasksRequest) Do(ctx context.Context, transport Transport) (*R
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -220,11 +225,21 @@ func (f CatPendingTasks) WithLocal(v bool) func(*CatPendingTasksRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatPendingTasks) WithMasterTimeout(v time.Duration) func(*CatPendingTasksRequest) {
 	return func(r *CatPendingTasksRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatPendingTasks) WithClusterManagerTimeout(v time.Duration) func(*CatPendingTasksRequest) {
+	return func(r *CatPendingTasksRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

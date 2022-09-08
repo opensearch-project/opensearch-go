@@ -60,8 +60,9 @@ type IndicesPutAliasRequest struct {
 
 	Name string
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -96,6 +97,10 @@ func (r IndicesPutAliasRequest) Do(ctx context.Context, transport Transport) (*R
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -181,11 +186,21 @@ func (f IndicesPutAlias) WithBody(v io.Reader) func(*IndicesPutAliasRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesPutAlias) WithMasterTimeout(v time.Duration) func(*IndicesPutAliasRequest) {
 	return func(r *IndicesPutAliasRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesPutAlias) WithClusterManagerTimeout(v time.Duration) func(*IndicesPutAliasRequest) {
+	return func(r *IndicesPutAliasRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

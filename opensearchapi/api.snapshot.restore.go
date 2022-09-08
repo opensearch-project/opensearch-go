@@ -60,8 +60,9 @@ type SnapshotRestoreRequest struct {
 	Repository string
 	Snapshot   string
 
-	MasterTimeout     time.Duration
-	WaitForCompletion *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	WaitForCompletion     *bool
 
 	Pretty     bool
 	Human      bool
@@ -98,6 +99,10 @@ func (r SnapshotRestoreRequest) Do(ctx context.Context, transport Transport) (*R
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.WaitForCompletion != nil {
@@ -183,11 +188,21 @@ func (f SnapshotRestore) WithBody(v io.Reader) func(*SnapshotRestoreRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f SnapshotRestore) WithMasterTimeout(v time.Duration) func(*SnapshotRestoreRequest) {
 	return func(r *SnapshotRestoreRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f SnapshotRestore) WithClusterManagerTimeout(v time.Duration) func(*SnapshotRestoreRequest) {
+	return func(r *SnapshotRestoreRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

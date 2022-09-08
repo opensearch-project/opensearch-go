@@ -55,8 +55,9 @@ type ClusterPendingTasks func(o ...func(*ClusterPendingTasksRequest)) (*Response
 // ClusterPendingTasksRequest configures the Cluster Pending Tasks API request.
 //
 type ClusterPendingTasksRequest struct {
-	Local         *bool
-	MasterTimeout time.Duration
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -90,6 +91,10 @@ func (r ClusterPendingTasksRequest) Do(ctx context.Context, transport Transport)
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -167,11 +172,21 @@ func (f ClusterPendingTasks) WithLocal(v bool) func(*ClusterPendingTasksRequest)
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterPendingTasks) WithMasterTimeout(v time.Duration) func(*ClusterPendingTasksRequest) {
 	return func(r *ClusterPendingTasksRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterPendingTasks) WithClusterManagerTimeout(v time.Duration) func(*ClusterPendingTasksRequest) {
+	return func(r *ClusterPendingTasksRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 
