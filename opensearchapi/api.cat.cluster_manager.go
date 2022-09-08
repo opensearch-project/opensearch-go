@@ -7,23 +7,6 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-// Licensed to Elasticsearch B.V. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. Elasticsearch B.V. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package opensearchapi
 
 import (
@@ -34,9 +17,9 @@ import (
 	"time"
 )
 
-func newCatMasterFunc(t Transport) CatMaster {
-	return func(o ...func(*CatMasterRequest)) (*Response, error) {
-		var r = CatMasterRequest{}
+func newCatClusterManagerFunc(t Transport) CatClusterManager {
+	return func(o ...func(*CatClusterManagerRequest)) (*Response, error) {
+		var r = CatClusterManagerRequest{}
 		for _, f := range o {
 			f(&r)
 		}
@@ -46,13 +29,11 @@ func newCatMasterFunc(t Transport) CatMaster {
 
 // ----- API Definition -------------------------------------------------------
 
-// CatMaster returns information about the cluster-manager node.
-//
-// Deprecated: To promote inclusive language, please use CatClusterManager instead.
-type CatMaster func(o ...func(*CatMasterRequest)) (*Response, error)
+// CatClusterManager returns information about the cluster-manager node.
+type CatClusterManager func(o ...func(*CatClusterManagerRequest)) (*Response, error)
 
-// CatMasterRequest configures the Cat Master API request.
-type CatMasterRequest struct {
+// CatClusterManagerRequest configures the Cat Cluster Manager API request.
+type CatClusterManagerRequest struct {
 	Format                string
 	H                     []string
 	Help                  *bool
@@ -73,7 +54,7 @@ type CatMasterRequest struct {
 }
 
 // Do executes the request and returns response or error.
-func (r CatMasterRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r CatClusterManagerRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -82,8 +63,8 @@ func (r CatMasterRequest) Do(ctx context.Context, transport Transport) (*Respons
 
 	method = "GET"
 
-	path.Grow(len("/_cat/master"))
-	path.WriteString("/_cat/master")
+	path.Grow(len("/_cat/cluster_manager"))
+	path.WriteString("/_cat/cluster_manager")
 
 	params = make(map[string]string)
 
@@ -179,36 +160,36 @@ func (r CatMasterRequest) Do(ctx context.Context, transport Transport) (*Respons
 }
 
 // WithContext sets the request context.
-func (f CatMaster) WithContext(v context.Context) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithContext(v context.Context) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.ctx = v
 	}
 }
 
 // WithFormat - a short version of the accept header, e.g. json, yaml.
-func (f CatMaster) WithFormat(v string) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithFormat(v string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Format = v
 	}
 }
 
 // WithH - comma-separated list of column names to display.
-func (f CatMaster) WithH(v ...string) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithH(v ...string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.H = v
 	}
 }
 
 // WithHelp - return help information.
-func (f CatMaster) WithHelp(v bool) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithHelp(v bool) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Help = &v
 	}
 }
 
 // WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
-func (f CatMaster) WithLocal(v bool) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithLocal(v bool) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Local = &v
 	}
 }
@@ -216,64 +197,64 @@ func (f CatMaster) WithLocal(v bool) func(*CatMasterRequest) {
 // WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
 //
 // Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
-func (f CatMaster) WithMasterTimeout(v time.Duration) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithMasterTimeout(v time.Duration) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.MasterTimeout = v
 	}
 }
 
 // WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
-func (f CatMaster) WithClusterManagerTimeout(v time.Duration) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithClusterManagerTimeout(v time.Duration) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.ClusterManagerTimeout = v
 	}
 }
 
 // WithS - comma-separated list of column names or column aliases to sort by.
-func (f CatMaster) WithS(v ...string) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithS(v ...string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.S = v
 	}
 }
 
 // WithV - verbose mode. display column headers.
-func (f CatMaster) WithV(v bool) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithV(v bool) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.V = &v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-func (f CatMaster) WithPretty() func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithPretty() func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-func (f CatMaster) WithHuman() func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithHuman() func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f CatMaster) WithErrorTrace() func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithErrorTrace() func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f CatMaster) WithFilterPath(v ...string) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithFilterPath(v ...string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f CatMaster) WithHeader(h map[string]string) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithHeader(h map[string]string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -284,8 +265,8 @@ func (f CatMaster) WithHeader(h map[string]string) func(*CatMasterRequest) {
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f CatMaster) WithOpaqueID(s string) func(*CatMasterRequest) {
-	return func(r *CatMasterRequest) {
+func (f CatClusterManager) WithOpaqueID(s string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
