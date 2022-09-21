@@ -580,11 +580,11 @@ var ConsoleToGo = []TranslateRule{
 		}},
 
 	{ // ----- Indices.PutTemplate() -------------------------------------------------
-		Pattern: `^PUT /?_template/[^/\s]+`,
+		Pattern: `^PUT /?_index_template/[^/\s]+`,
 		Func: func(in string) (string, error) {
 			var src strings.Builder
 
-			re := regexp.MustCompile(`(?ms)^PUT /?_template/(?P<name>[^/\s]+)/?(?P<params>\??[\S/]+)?\s?(?P<body>.+)?`)
+			re := regexp.MustCompile(`(?ms)^PUT /?_index_template/(?P<name>[^/\s]+)/?(?P<params>\??[\S/]+)?\s?(?P<body>.+)?`)
 			matches := re.FindStringSubmatch(in)
 			if matches == nil {
 				return "", errors.New("cannot match example source to pattern")
@@ -620,11 +620,11 @@ var ConsoleToGo = []TranslateRule{
 		}},
 
 	{ // ----- Indices.GetTemplate() -------------------------------------------------
-		Pattern: `^GET /?_template/[^/\s]+`,
+		Pattern: `^GET /?_index_template/[^/\s]+`,
 		Func: func(in string) (string, error) {
 			var src strings.Builder
 
-			re := regexp.MustCompile(`(?ms)^GET /?_template/(?P<name>[^/\?\s]+)/?(?P<params>\??[\S/]+)?\s?`)
+			re := regexp.MustCompile(`(?ms)^GET /?_index_template/(?P<name>[^/\?\s]+)/?(?P<params>\??[\S/]+)?\s?`)
 			matches := re.FindStringSubmatch(in)
 			if matches == nil {
 				return "", errors.New("cannot match example source to pattern")

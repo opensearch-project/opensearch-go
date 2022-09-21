@@ -79,9 +79,9 @@ func (r IndicesDeleteTemplateRequest) Do(ctx context.Context, transport Transpor
 
 	method = "DELETE"
 
-	path.Grow(1 + len("_template") + 1 + len(r.Name))
+	path.Grow(1 + len("_index_template") + 1 + len(r.Name))
 	path.WriteString("/")
-	path.WriteString("_template")
+	path.WriteString("_index_template")
 	path.WriteString("/")
 	path.WriteString(r.Name)
 

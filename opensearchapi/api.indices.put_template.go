@@ -59,9 +59,9 @@ type IndicesPutTemplateRequest struct {
 
 	Name string
 
-	Create          *bool
-	MasterTimeout   time.Duration
-	Order           *int
+	Create        *bool
+	MasterTimeout time.Duration
+	Order         *int
 
 	Pretty     bool
 	Human      bool
@@ -84,9 +84,9 @@ func (r IndicesPutTemplateRequest) Do(ctx context.Context, transport Transport) 
 
 	method = "PUT"
 
-	path.Grow(1 + len("_template") + 1 + len(r.Name))
+	path.Grow(1 + len("_index_template") + 1 + len(r.Name))
 	path.WriteString("/")
-	path.WriteString("_template")
+	path.WriteString("_index_template")
 	path.WriteString("/")
 	path.WriteString(r.Name)
 

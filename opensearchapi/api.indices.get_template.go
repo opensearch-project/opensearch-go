@@ -56,9 +56,9 @@ type IndicesGetTemplate func(o ...func(*IndicesGetTemplateRequest)) (*Response, 
 type IndicesGetTemplateRequest struct {
 	Name []string
 
-	FlatSettings    *bool
-	Local           *bool
-	MasterTimeout   time.Duration
+	FlatSettings  *bool
+	Local         *bool
+	MasterTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -81,9 +81,9 @@ func (r IndicesGetTemplateRequest) Do(ctx context.Context, transport Transport) 
 
 	method = "GET"
 
-	path.Grow(1 + len("_template") + 1 + len(strings.Join(r.Name, ",")))
+	path.Grow(1 + len("_index_template") + 1 + len(strings.Join(r.Name, ",")))
 	path.WriteString("/")
-	path.WriteString("_template")
+	path.WriteString("_index_template")
 	if len(r.Name) > 0 {
 		path.WriteString("/")
 		path.WriteString(strings.Join(r.Name, ","))
