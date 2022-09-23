@@ -152,14 +152,14 @@ godoc: ## Display documentation for the package
 	@printf "\n"
 	godoc --http=localhost:6060 --play
 
-cluster.opensearch.build:
+cluster.build:
 	docker-compose --project-directory .ci/opensearch build;
 
-cluster.opensearch.start:
+cluster.start:
 	docker-compose --project-directory .ci/opensearch up -d ;
 	sleep 20;
 
-cluster.opensearch.stop:
+cluster.stop:
 	docker-compose --project-directory .ci/opensearch down ;
 
 
@@ -184,9 +184,9 @@ workflow: ## Run all github workflow commands here sequentially
 	make test-bench
 # Integration Test
 ### OpenSearch
-	make cluster.clean cluster.opensearch.build cluster.opensearch.start
+	make cluster.clean cluster.build cluster.start
 	make test-integ race=true
-	make cluster.opensearch.stop
+	make cluster.stop
 
 ##@ Other
 #------------------------------------------------------------------------------

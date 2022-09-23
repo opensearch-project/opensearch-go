@@ -53,7 +53,7 @@ Hence, create all integration tests with build tag 'integration'.
 #### Execute integration tests from your terminal
 1. Run below command to start containers. By default, it will launch latest OpenSearch cluster.
    ```
-   make cluster.opensearch.build cluster.opensearch.start
+   make cluster.build cluster.start
    ```
 2. Run all integration tests.
    ```
@@ -61,7 +61,7 @@ Hence, create all integration tests with build tag 'integration'.
    ```
 3. Stop and clean containers.
    ```
-   make cluster.opensearch.stop cluster.clean
+   make cluster.stop cluster.clean
    ```
 ## Use an Editor
 
