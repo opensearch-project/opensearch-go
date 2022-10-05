@@ -678,7 +678,18 @@ func TestBulkIndexer(t *testing.T) {
 				`{"index":{"_index":"test","_id":"42"}}` + "\n",
 			},
 			{
-				"with version and no document",
+				"with if_seq_no and if_primary_term",
+				args{BulkIndexerItem{
+					Action:        "index",
+					DocumentID:    "42",
+					Index:         "test",
+					IfSeqNum:      int64Pointer(5),
+					IfPrimaryTerm: int64Pointer(1),
+				}},
+				`{"index":{"_index":"test","_id":"42","if_seq_no":5,"if_primary_term":1}}` + "\n",
+			},
+			{
+				"with version and no document, if_seq_no, and if_primary_term",
 				args{BulkIndexerItem{
 					Action:  "index",
 					Index:   "test",
