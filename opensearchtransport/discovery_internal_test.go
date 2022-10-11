@@ -232,6 +232,138 @@ func TestDiscovery(t *testing.T) {
 								"data_hot",
 								"data_warm",
 								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+						"es2": {
+							URL: "http://es2:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+						"es3": {
+							URL: "http://es3:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+					},
+				},
+				wants{
+					false, 3,
+				},
+			},
+			{
+				"Cluster manager only node should not be selected",
+				fields{
+					Nodes: map[string]Node{
+						"es1": {
+							URL: "http://es1:9200",
+							Roles: []string{
+								"cluster_manager",
+							},
+						},
+						"es2": {
+							URL: "http://es2:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+						"es3": {
+							URL: "http://es3:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+					},
+				},
+
+				wants{
+					false, 2,
+				},
+			},
+			{
+				"Cluster manager and data only nodes should be selected",
+				fields{
+					Nodes: map[string]Node{
+						"es1": {
+							URL: "http://es1:9200",
+							Roles: []string{
+								"data",
+								"cluster_manager",
+							},
+						},
+						"es2": {
+							URL: "http://es2:9200",
+							Roles: []string{
+								"data",
+								"cluster_manager",
+							},
+						},
+					},
+				},
+
+				wants{
+					false, 2,
+				},
+			},
+			{
+				"Default roles should allow every node to be selected",
+				fields{
+					Nodes: map[string]Node{
+						"es1": {
+							URL: "http://es1:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
 								"master",
 								"ml",
 								"remote_cluster_client",

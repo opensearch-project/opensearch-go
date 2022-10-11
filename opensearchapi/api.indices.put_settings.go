@@ -59,13 +59,14 @@ type IndicesPutSettingsRequest struct {
 
 	Body io.Reader
 
-	AllowNoIndices    *bool
-	ExpandWildcards   string
-	FlatSettings      *bool
-	IgnoreUnavailable *bool
-	MasterTimeout     time.Duration
-	PreserveExisting  *bool
-	Timeout           time.Duration
+	AllowNoIndices        *bool
+	ExpandWildcards       string
+	FlatSettings          *bool
+	IgnoreUnavailable     *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	PreserveExisting      *bool
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -116,6 +117,10 @@ func (r IndicesPutSettingsRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.PreserveExisting != nil {
@@ -237,11 +242,21 @@ func (f IndicesPutSettings) WithIgnoreUnavailable(v bool) func(*IndicesPutSettin
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesPutSettings) WithMasterTimeout(v time.Duration) func(*IndicesPutSettingsRequest) {
 	return func(r *IndicesPutSettingsRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesPutSettings) WithClusterManagerTimeout(v time.Duration) func(*IndicesPutSettingsRequest) {
+	return func(r *IndicesPutSettingsRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

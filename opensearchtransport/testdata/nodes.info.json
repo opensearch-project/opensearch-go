@@ -15,7 +15,7 @@
       "build_flavor": "oss",
       "build_type": "tar",
       "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
-      "roles": ["ingest", "master", "data"],
+      "roles": ["ingest", "cluster_manager", "data"],
       "http": {
         "bound_address": [
           "[::1]:10001",
@@ -34,7 +34,7 @@
       "build_flavor": "oss",
       "build_type": "tar",
       "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
-      "roles": ["ingest", "master", "data"],
+      "roles": ["ingest", "cluster_manager", "data"],
       "http": {
         "bound_address": [
           "127.0.0.1:10002",
@@ -54,7 +54,7 @@
       "build_flavor": "oss",
       "build_type": "tar",
       "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
-      "roles": ["master"],
+      "roles": ["cluster_manager"],
       "http": {
         "bound_address": [
           "[::1]:10003",

@@ -56,9 +56,10 @@ type IndicesGetIndexTemplate func(o ...func(*IndicesGetIndexTemplateRequest)) (*
 type IndicesGetIndexTemplateRequest struct {
 	Name []string
 
-	FlatSettings  *bool
-	Local         *bool
-	MasterTimeout time.Duration
+	FlatSettings          *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -101,6 +102,10 @@ func (r IndicesGetIndexTemplateRequest) Do(ctx context.Context, transport Transp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -186,7 +191,7 @@ func (f IndicesGetIndexTemplate) WithFlatSettings(v bool) func(*IndicesGetIndexT
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesGetIndexTemplate) WithLocal(v bool) func(*IndicesGetIndexTemplateRequest) {
 	return func(r *IndicesGetIndexTemplateRequest) {
@@ -194,11 +199,21 @@ func (f IndicesGetIndexTemplate) WithLocal(v bool) func(*IndicesGetIndexTemplate
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesGetIndexTemplate) WithMasterTimeout(v time.Duration) func(*IndicesGetIndexTemplateRequest) {
 	return func(r *IndicesGetIndexTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesGetIndexTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesGetIndexTemplateRequest) {
+	return func(r *IndicesGetIndexTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

@@ -57,14 +57,15 @@ type CatThreadPool func(o ...func(*CatThreadPoolRequest)) (*Response, error)
 type CatThreadPoolRequest struct {
 	ThreadPoolPatterns []string
 
-	Format        string
-	H             []string
-	Help          *bool
-	Local         *bool
-	MasterTimeout time.Duration
-	S             []string
-	Size          string
-	V             *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	Size                  string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -117,6 +118,10 @@ func (r CatThreadPoolRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -230,7 +235,7 @@ func (f CatThreadPool) WithHelp(v bool) func(*CatThreadPoolRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatThreadPool) WithLocal(v bool) func(*CatThreadPoolRequest) {
 	return func(r *CatThreadPoolRequest) {
@@ -238,11 +243,21 @@ func (f CatThreadPool) WithLocal(v bool) func(*CatThreadPoolRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatThreadPool) WithMasterTimeout(v time.Duration) func(*CatThreadPoolRequest) {
 	return func(r *CatThreadPoolRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatThreadPool) WithClusterManagerTimeout(v time.Duration) func(*CatThreadPoolRequest) {
+	return func(r *CatThreadPoolRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

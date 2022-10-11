@@ -55,8 +55,9 @@ type DeleteScript func(id string, o ...func(*DeleteScriptRequest)) (*Response, e
 type DeleteScriptRequest struct {
 	ScriptID string
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -89,6 +90,10 @@ func (r DeleteScriptRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -162,11 +167,21 @@ func (f DeleteScript) WithContext(v context.Context) func(*DeleteScriptRequest) 
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f DeleteScript) WithMasterTimeout(v time.Duration) func(*DeleteScriptRequest) {
 	return func(r *DeleteScriptRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f DeleteScript) WithClusterManagerTimeout(v time.Duration) func(*DeleteScriptRequest) {
+	return func(r *DeleteScriptRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

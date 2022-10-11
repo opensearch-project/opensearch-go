@@ -55,8 +55,9 @@ type IngestDeletePipeline func(id string, o ...func(*IngestDeletePipelineRequest
 type IngestDeletePipelineRequest struct {
 	PipelineID string
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -91,6 +92,10 @@ func (r IngestDeletePipelineRequest) Do(ctx context.Context, transport Transport
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -164,11 +169,21 @@ func (f IngestDeletePipeline) WithContext(v context.Context) func(*IngestDeleteP
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IngestDeletePipeline) WithMasterTimeout(v time.Duration) func(*IngestDeletePipelineRequest) {
 	return func(r *IngestDeletePipelineRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IngestDeletePipeline) WithClusterManagerTimeout(v time.Duration) func(*IngestDeletePipelineRequest) {
+	return func(r *IngestDeletePipelineRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

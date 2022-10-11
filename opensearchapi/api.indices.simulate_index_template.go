@@ -59,9 +59,10 @@ type IndicesSimulateIndexTemplateRequest struct {
 
 	Name string
 
-	Cause         string
-	Create        *bool
-	MasterTimeout time.Duration
+	Cause                 string
+	Create                *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -104,6 +105,10 @@ func (r IndicesSimulateIndexTemplateRequest) Do(ctx context.Context, transport T
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -201,11 +206,21 @@ func (f IndicesSimulateIndexTemplate) WithCreate(v bool) func(*IndicesSimulateIn
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesSimulateIndexTemplate) WithMasterTimeout(v time.Duration) func(*IndicesSimulateIndexTemplateRequest) {
 	return func(r *IndicesSimulateIndexTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesSimulateIndexTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesSimulateIndexTemplateRequest) {
+	return func(r *IndicesSimulateIndexTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

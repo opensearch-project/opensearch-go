@@ -56,13 +56,14 @@ type IndicesGet func(index []string, o ...func(*IndicesGetRequest)) (*Response, 
 type IndicesGetRequest struct {
 	Index []string
 
-	AllowNoIndices    *bool
-	ExpandWildcards   string
-	FlatSettings      *bool
-	IgnoreUnavailable *bool
-	IncludeDefaults   *bool
-	Local             *bool
-	MasterTimeout     time.Duration
+	AllowNoIndices        *bool
+	ExpandWildcards       string
+	FlatSettings          *bool
+	IgnoreUnavailable     *bool
+	IncludeDefaults       *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -117,6 +118,10 @@ func (r IndicesGetRequest) Do(ctx context.Context, transport Transport) (*Respon
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -226,7 +231,7 @@ func (f IndicesGet) WithIncludeDefaults(v bool) func(*IndicesGetRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesGet) WithLocal(v bool) func(*IndicesGetRequest) {
 	return func(r *IndicesGetRequest) {
@@ -234,11 +239,21 @@ func (f IndicesGet) WithLocal(v bool) func(*IndicesGetRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesGet) WithMasterTimeout(v time.Duration) func(*IndicesGetRequest) {
 	return func(r *IndicesGetRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesGet) WithClusterManagerTimeout(v time.Duration) func(*IndicesGetRequest) {
+	return func(r *IndicesGetRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

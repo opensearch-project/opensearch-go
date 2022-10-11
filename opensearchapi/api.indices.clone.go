@@ -60,9 +60,10 @@ type IndicesCloneRequest struct {
 
 	Target string
 
-	MasterTimeout       time.Duration
-	Timeout             time.Duration
-	WaitForActiveShards string
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	WaitForActiveShards   string
 
 	Pretty     bool
 	Human      bool
@@ -97,6 +98,10 @@ func (r IndicesCloneRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -186,11 +191,21 @@ func (f IndicesClone) WithBody(v io.Reader) func(*IndicesCloneRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesClone) WithMasterTimeout(v time.Duration) func(*IndicesCloneRequest) {
 	return func(r *IndicesCloneRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesClone) WithClusterManagerTimeout(v time.Duration) func(*IndicesCloneRequest) {
+	return func(r *IndicesCloneRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

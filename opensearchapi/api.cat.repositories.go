@@ -54,13 +54,14 @@ type CatRepositories func(o ...func(*CatRepositoriesRequest)) (*Response, error)
 // CatRepositoriesRequest configures the Cat Repositories API request.
 //
 type CatRepositoriesRequest struct {
-	Format        string
-	H             []string
-	Help          *bool
-	Local         *bool
-	MasterTimeout time.Duration
-	S             []string
-	V             *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -106,6 +107,10 @@ func (r CatRepositoriesRequest) Do(ctx context.Context, transport Transport) (*R
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -207,7 +212,7 @@ func (f CatRepositories) WithHelp(v bool) func(*CatRepositoriesRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node.
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatRepositories) WithLocal(v bool) func(*CatRepositoriesRequest) {
 	return func(r *CatRepositoriesRequest) {
@@ -215,11 +220,21 @@ func (f CatRepositories) WithLocal(v bool) func(*CatRepositoriesRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatRepositories) WithMasterTimeout(v time.Duration) func(*CatRepositoriesRequest) {
 	return func(r *CatRepositoriesRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatRepositories) WithClusterManagerTimeout(v time.Duration) func(*CatRepositoriesRequest) {
+	return func(r *CatRepositoriesRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

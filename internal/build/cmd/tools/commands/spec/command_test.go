@@ -46,7 +46,7 @@ func TestBuild_zipfileUrl(t *testing.T) {
 			  "build_id": "1.0.0-ab7cd914",
 			  "projects": {
 				"opensearch": {
-				  "branch": "master",
+				  "branch": "main",
 				  "commit_hash": "d3be79018b5b70a118ea5a897a539428b728df5a",
 				  "Packages": {
 					"rest-resources-zip-8.0.0-SNAPSHOT.zip": {

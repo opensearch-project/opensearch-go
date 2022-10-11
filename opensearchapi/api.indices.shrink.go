@@ -61,10 +61,11 @@ type IndicesShrinkRequest struct {
 
 	Target string
 
-	CopySettings        *bool
-	MasterTimeout       time.Duration
-	Timeout             time.Duration
-	WaitForActiveShards string
+	CopySettings          *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	WaitForActiveShards   string
 
 	Pretty     bool
 	Human      bool
@@ -103,6 +104,10 @@ func (r IndicesShrinkRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -200,11 +205,21 @@ func (f IndicesShrink) WithCopySettings(v bool) func(*IndicesShrinkRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesShrink) WithMasterTimeout(v time.Duration) func(*IndicesShrinkRequest) {
 	return func(r *IndicesShrinkRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesShrink) WithClusterManagerTimeout(v time.Duration) func(*IndicesShrinkRequest) {
+	return func(r *IndicesShrinkRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

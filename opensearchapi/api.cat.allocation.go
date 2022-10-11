@@ -57,14 +57,15 @@ type CatAllocation func(o ...func(*CatAllocationRequest)) (*Response, error)
 type CatAllocationRequest struct {
 	NodeID []string
 
-	Bytes         string
-	Format        string
-	H             []string
-	Help          *bool
-	Local         *bool
-	MasterTimeout time.Duration
-	S             []string
-	V             *bool
+	Bytes                 string
+	Format                string
+	H                     []string
+	Help                  *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -121,6 +122,10 @@ func (r CatAllocationRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -238,7 +243,7 @@ func (f CatAllocation) WithHelp(v bool) func(*CatAllocationRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatAllocation) WithLocal(v bool) func(*CatAllocationRequest) {
 	return func(r *CatAllocationRequest) {
@@ -246,11 +251,21 @@ func (f CatAllocation) WithLocal(v bool) func(*CatAllocationRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatAllocation) WithMasterTimeout(v time.Duration) func(*CatAllocationRequest) {
 	return func(r *CatAllocationRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatAllocation) WithClusterManagerTimeout(v time.Duration) func(*CatAllocationRequest) {
+	return func(r *CatAllocationRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

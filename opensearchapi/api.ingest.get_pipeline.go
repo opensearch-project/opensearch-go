@@ -56,8 +56,9 @@ type IngestGetPipeline func(o ...func(*IngestGetPipelineRequest)) (*Response, er
 type IngestGetPipelineRequest struct {
 	PipelineID string
 
-	MasterTimeout time.Duration
-	Summary       *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Summary               *bool
 
 	Pretty     bool
 	Human      bool
@@ -94,6 +95,10 @@ func (r IngestGetPipelineRequest) Do(ctx context.Context, transport Transport) (
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Summary != nil {
@@ -175,11 +180,21 @@ func (f IngestGetPipeline) WithPipelineID(v string) func(*IngestGetPipelineReque
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IngestGetPipeline) WithMasterTimeout(v time.Duration) func(*IngestGetPipelineRequest) {
 	return func(r *IngestGetPipelineRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IngestGetPipeline) WithClusterManagerTimeout(v time.Duration) func(*IngestGetPipelineRequest) {
+	return func(r *IngestGetPipelineRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

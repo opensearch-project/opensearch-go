@@ -55,8 +55,9 @@ type IndicesDeleteIndexTemplate func(name string, o ...func(*IndicesDeleteIndexT
 type IndicesDeleteIndexTemplateRequest struct {
 	Name string
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -89,6 +90,10 @@ func (r IndicesDeleteIndexTemplateRequest) Do(ctx context.Context, transport Tra
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -162,11 +167,21 @@ func (f IndicesDeleteIndexTemplate) WithContext(v context.Context) func(*Indices
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesDeleteIndexTemplate) WithMasterTimeout(v time.Duration) func(*IndicesDeleteIndexTemplateRequest) {
 	return func(r *IndicesDeleteIndexTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesDeleteIndexTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesDeleteIndexTemplateRequest) {
+	return func(r *IndicesDeleteIndexTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

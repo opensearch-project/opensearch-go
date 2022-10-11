@@ -225,7 +225,7 @@ func (f IndicesGetFieldMapping) WithIncludeDefaults(v bool) func(*IndicesGetFiel
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesGetFieldMapping) WithLocal(v bool) func(*IndicesGetFieldMappingRequest) {
 	return func(r *IndicesGetFieldMappingRequest) {

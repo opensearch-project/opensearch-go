@@ -54,10 +54,11 @@ type ClusterGetSettings func(o ...func(*ClusterGetSettingsRequest)) (*Response, 
 // ClusterGetSettingsRequest configures the Cluster Get Settings API request.
 //
 type ClusterGetSettingsRequest struct {
-	FlatSettings    *bool
-	IncludeDefaults *bool
-	MasterTimeout   time.Duration
-	Timeout         time.Duration
+	FlatSettings          *bool
+	IncludeDefaults       *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -95,6 +96,10 @@ func (r ClusterGetSettingsRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -184,11 +189,21 @@ func (f ClusterGetSettings) WithIncludeDefaults(v bool) func(*ClusterGetSettings
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterGetSettings) WithMasterTimeout(v time.Duration) func(*ClusterGetSettingsRequest) {
 	return func(r *ClusterGetSettingsRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterGetSettings) WithClusterManagerTimeout(v time.Duration) func(*ClusterGetSettingsRequest) {
+	return func(r *ClusterGetSettingsRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

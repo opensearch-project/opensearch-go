@@ -59,9 +59,10 @@ type ClusterPutComponentTemplateRequest struct {
 
 	Name string
 
-	Create        *bool
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	Create                *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -98,6 +99,10 @@ func (r ClusterPutComponentTemplateRequest) Do(ctx context.Context, transport Tr
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -183,11 +188,21 @@ func (f ClusterPutComponentTemplate) WithCreate(v bool) func(*ClusterPutComponen
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterPutComponentTemplate) WithMasterTimeout(v time.Duration) func(*ClusterPutComponentTemplateRequest) {
 	return func(r *ClusterPutComponentTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterPutComponentTemplate) WithClusterManagerTimeout(v time.Duration) func(*ClusterPutComponentTemplateRequest) {
+	return func(r *ClusterPutComponentTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

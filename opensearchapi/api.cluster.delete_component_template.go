@@ -55,8 +55,9 @@ type ClusterDeleteComponentTemplate func(name string, o ...func(*ClusterDeleteCo
 type ClusterDeleteComponentTemplateRequest struct {
 	Name string
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -89,6 +90,10 @@ func (r ClusterDeleteComponentTemplateRequest) Do(ctx context.Context, transport
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -162,11 +167,21 @@ func (f ClusterDeleteComponentTemplate) WithContext(v context.Context) func(*Clu
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterDeleteComponentTemplate) WithMasterTimeout(v time.Duration) func(*ClusterDeleteComponentTemplateRequest) {
 	return func(r *ClusterDeleteComponentTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterDeleteComponentTemplate) WithClusterManagerTimeout(v time.Duration) func(*ClusterDeleteComponentTemplateRequest) {
+	return func(r *ClusterDeleteComponentTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

@@ -56,8 +56,9 @@ type ClusterExistsComponentTemplate func(name string, o ...func(*ClusterExistsCo
 type ClusterExistsComponentTemplateRequest struct {
 	Name string
 
-	Local         *bool
-	MasterTimeout time.Duration
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -94,6 +95,10 @@ func (r ClusterExistsComponentTemplateRequest) Do(ctx context.Context, transport
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -163,7 +168,7 @@ func (f ClusterExistsComponentTemplate) WithContext(v context.Context) func(*Clu
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterExistsComponentTemplate) WithLocal(v bool) func(*ClusterExistsComponentTemplateRequest) {
 	return func(r *ClusterExistsComponentTemplateRequest) {
@@ -171,11 +176,21 @@ func (f ClusterExistsComponentTemplate) WithLocal(v bool) func(*ClusterExistsCom
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterExistsComponentTemplate) WithMasterTimeout(v time.Duration) func(*ClusterExistsComponentTemplateRequest) {
 	return func(r *ClusterExistsComponentTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterExistsComponentTemplate) WithClusterManagerTimeout(v time.Duration) func(*ClusterExistsComponentTemplateRequest) {
+	return func(r *ClusterExistsComponentTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

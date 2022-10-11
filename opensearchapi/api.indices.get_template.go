@@ -56,9 +56,10 @@ type IndicesGetTemplate func(o ...func(*IndicesGetTemplateRequest)) (*Response, 
 type IndicesGetTemplateRequest struct {
 	Name []string
 
-	FlatSettings    *bool
-	Local           *bool
-	MasterTimeout   time.Duration
+	FlatSettings          *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -101,6 +102,10 @@ func (r IndicesGetTemplateRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -186,7 +191,7 @@ func (f IndicesGetTemplate) WithFlatSettings(v bool) func(*IndicesGetTemplateReq
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f IndicesGetTemplate) WithLocal(v bool) func(*IndicesGetTemplateRequest) {
 	return func(r *IndicesGetTemplateRequest) {
@@ -194,11 +199,21 @@ func (f IndicesGetTemplate) WithLocal(v bool) func(*IndicesGetTemplateRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesGetTemplate) WithMasterTimeout(v time.Duration) func(*IndicesGetTemplateRequest) {
 	return func(r *IndicesGetTemplateRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesGetTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesGetTemplateRequest) {
+	return func(r *IndicesGetTemplateRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

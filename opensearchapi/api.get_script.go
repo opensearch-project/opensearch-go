@@ -55,7 +55,8 @@ type GetScript func(id string, o ...func(*GetScriptRequest)) (*Response, error)
 type GetScriptRequest struct {
 	ScriptID string
 
-	MasterTimeout time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -88,6 +89,10 @@ func (r GetScriptRequest) Do(ctx context.Context, transport Transport) (*Respons
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -157,11 +162,21 @@ func (f GetScript) WithContext(v context.Context) func(*GetScriptRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f GetScript) WithMasterTimeout(v time.Duration) func(*GetScriptRequest) {
 	return func(r *GetScriptRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f GetScript) WithClusterManagerTimeout(v time.Duration) func(*GetScriptRequest) {
+	return func(r *GetScriptRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

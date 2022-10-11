@@ -56,8 +56,9 @@ type IndicesUpdateAliases func(body io.Reader, o ...func(*IndicesUpdateAliasesRe
 type IndicesUpdateAliasesRequest struct {
 	Body io.Reader
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -87,6 +88,10 @@ func (r IndicesUpdateAliasesRequest) Do(ctx context.Context, transport Transport
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -164,11 +169,21 @@ func (f IndicesUpdateAliases) WithContext(v context.Context) func(*IndicesUpdate
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesUpdateAliases) WithMasterTimeout(v time.Duration) func(*IndicesUpdateAliasesRequest) {
 	return func(r *IndicesUpdateAliasesRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesUpdateAliases) WithClusterManagerTimeout(v time.Duration) func(*IndicesUpdateAliasesRequest) {
+	return func(r *IndicesUpdateAliasesRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

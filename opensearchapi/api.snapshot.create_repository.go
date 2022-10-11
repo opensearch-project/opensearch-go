@@ -59,9 +59,10 @@ type SnapshotCreateRepositoryRequest struct {
 
 	Repository string
 
-	MasterTimeout time.Duration
-	Timeout       time.Duration
-	Verify        *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	Verify                *bool
 
 	Pretty     bool
 	Human      bool
@@ -94,6 +95,10 @@ func (r SnapshotCreateRepositoryRequest) Do(ctx context.Context, transport Trans
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -175,11 +180,21 @@ func (f SnapshotCreateRepository) WithContext(v context.Context) func(*SnapshotC
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f SnapshotCreateRepository) WithMasterTimeout(v time.Duration) func(*SnapshotCreateRepositoryRequest) {
 	return func(r *SnapshotCreateRepositoryRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f SnapshotCreateRepository) WithClusterManagerTimeout(v time.Duration) func(*SnapshotCreateRepositoryRequest) {
+	return func(r *SnapshotCreateRepositoryRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

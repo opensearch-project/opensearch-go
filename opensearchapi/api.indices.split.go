@@ -61,10 +61,11 @@ type IndicesSplitRequest struct {
 
 	Target string
 
-	CopySettings        *bool
-	MasterTimeout       time.Duration
-	Timeout             time.Duration
-	WaitForActiveShards string
+	CopySettings          *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	WaitForActiveShards   string
 
 	Pretty     bool
 	Human      bool
@@ -103,6 +104,10 @@ func (r IndicesSplitRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -200,11 +205,21 @@ func (f IndicesSplit) WithCopySettings(v bool) func(*IndicesSplitRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesSplit) WithMasterTimeout(v time.Duration) func(*IndicesSplitRequest) {
 	return func(r *IndicesSplitRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesSplit) WithClusterManagerTimeout(v time.Duration) func(*IndicesSplitRequest) {
+	return func(r *IndicesSplitRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

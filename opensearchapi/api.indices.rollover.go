@@ -61,10 +61,11 @@ type IndicesRolloverRequest struct {
 	Alias    string
 	NewIndex string
 
-	DryRun              *bool
-	MasterTimeout       time.Duration
-	Timeout             time.Duration
-	WaitForActiveShards string
+	DryRun                *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
+	WaitForActiveShards   string
 
 	Pretty     bool
 	Human      bool
@@ -105,6 +106,10 @@ func (r IndicesRolloverRequest) Do(ctx context.Context, transport Transport) (*R
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -210,11 +215,21 @@ func (f IndicesRollover) WithDryRun(v bool) func(*IndicesRolloverRequest) {
 	}
 }
 
-// WithMasterTimeout - specify timeout for connection to master.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f IndicesRollover) WithMasterTimeout(v time.Duration) func(*IndicesRolloverRequest) {
 	return func(r *IndicesRolloverRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f IndicesRollover) WithClusterManagerTimeout(v time.Duration) func(*IndicesRolloverRequest) {
+	return func(r *IndicesRolloverRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

@@ -7,23 +7,6 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-// Licensed to Elasticsearch B.V. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. Elasticsearch B.V. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package opensearchapi
 
 import (
@@ -34,9 +17,9 @@ import (
 	"time"
 )
 
-func newCatTemplatesFunc(t Transport) CatTemplates {
-	return func(o ...func(*CatTemplatesRequest)) (*Response, error) {
-		var r = CatTemplatesRequest{}
+func newCatClusterManagerFunc(t Transport) CatClusterManager {
+	return func(o ...func(*CatClusterManagerRequest)) (*Response, error) {
+		var r = CatClusterManagerRequest{}
 		for _, f := range o {
 			f(&r)
 		}
@@ -46,16 +29,11 @@ func newCatTemplatesFunc(t Transport) CatTemplates {
 
 // ----- API Definition -------------------------------------------------------
 
-// CatTemplates returns information about existing templates.
-//
-//
-type CatTemplates func(o ...func(*CatTemplatesRequest)) (*Response, error)
+// CatClusterManager returns information about the cluster-manager node.
+type CatClusterManager func(o ...func(*CatClusterManagerRequest)) (*Response, error)
 
-// CatTemplatesRequest configures the Cat Templates API request.
-//
-type CatTemplatesRequest struct {
-	Name string
-
+// CatClusterManagerRequest configures the Cat Cluster Manager API request.
+type CatClusterManagerRequest struct {
 	Format                string
 	H                     []string
 	Help                  *bool
@@ -76,8 +54,7 @@ type CatTemplatesRequest struct {
 }
 
 // Do executes the request and returns response or error.
-//
-func (r CatTemplatesRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r CatClusterManagerRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -86,15 +63,8 @@ func (r CatTemplatesRequest) Do(ctx context.Context, transport Transport) (*Resp
 
 	method = "GET"
 
-	path.Grow(1 + len("_cat") + 1 + len("templates") + 1 + len(r.Name))
-	path.WriteString("/")
-	path.WriteString("_cat")
-	path.WriteString("/")
-	path.WriteString("templates")
-	if r.Name != "" {
-		path.WriteString("/")
-		path.WriteString(r.Name)
-	}
+	path.Grow(len("/_cat/cluster_manager"))
+	path.WriteString("/_cat/cluster_manager")
 
 	params = make(map[string]string)
 
@@ -190,49 +160,36 @@ func (r CatTemplatesRequest) Do(ctx context.Context, transport Transport) (*Resp
 }
 
 // WithContext sets the request context.
-//
-func (f CatTemplates) WithContext(v context.Context) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithContext(v context.Context) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.ctx = v
 	}
 }
 
-// WithName - a pattern that returned template names must match.
-//
-func (f CatTemplates) WithName(v string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
-		r.Name = v
-	}
-}
-
 // WithFormat - a short version of the accept header, e.g. json, yaml.
-//
-func (f CatTemplates) WithFormat(v string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithFormat(v string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Format = v
 	}
 }
 
 // WithH - comma-separated list of column names to display.
-//
-func (f CatTemplates) WithH(v ...string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithH(v ...string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.H = v
 	}
 }
 
 // WithHelp - return help information.
-//
-func (f CatTemplates) WithHelp(v bool) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithHelp(v bool) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Help = &v
 	}
 }
 
 // WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
-//
-func (f CatTemplates) WithLocal(v bool) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithLocal(v bool) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Local = &v
 	}
 }
@@ -240,73 +197,64 @@ func (f CatTemplates) WithLocal(v bool) func(*CatTemplatesRequest) {
 // WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
 //
 // Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
-//
-func (f CatTemplates) WithMasterTimeout(v time.Duration) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithMasterTimeout(v time.Duration) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.MasterTimeout = v
 	}
 }
 
 // WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
-//
-func (f CatTemplates) WithClusterManagerTimeout(v time.Duration) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithClusterManagerTimeout(v time.Duration) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.ClusterManagerTimeout = v
 	}
 }
 
 // WithS - comma-separated list of column names or column aliases to sort by.
-//
-func (f CatTemplates) WithS(v ...string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithS(v ...string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.S = v
 	}
 }
 
 // WithV - verbose mode. display column headers.
-//
-func (f CatTemplates) WithV(v bool) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithV(v bool) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.V = &v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-//
-func (f CatTemplates) WithPretty() func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithPretty() func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-//
-func (f CatTemplates) WithHuman() func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithHuman() func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-//
-func (f CatTemplates) WithErrorTrace() func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithErrorTrace() func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-//
-func (f CatTemplates) WithFilterPath(v ...string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithFilterPath(v ...string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-//
-func (f CatTemplates) WithHeader(h map[string]string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithHeader(h map[string]string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -317,9 +265,8 @@ func (f CatTemplates) WithHeader(h map[string]string) func(*CatTemplatesRequest)
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-//
-func (f CatTemplates) WithOpaqueID(s string) func(*CatTemplatesRequest) {
-	return func(r *CatTemplatesRequest) {
+func (f CatClusterManager) WithOpaqueID(s string) func(*CatClusterManagerRequest) {
+	return func(r *CatClusterManagerRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}

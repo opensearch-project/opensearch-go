@@ -54,14 +54,15 @@ type CatPlugins func(o ...func(*CatPluginsRequest)) (*Response, error)
 // CatPluginsRequest configures the Cat Plugins API request.
 //
 type CatPluginsRequest struct {
-	Format           string
-	H                []string
-	Help             *bool
-	IncludeBootstrap *bool
-	Local            *bool
-	MasterTimeout    time.Duration
-	S                []string
-	V                *bool
+	Format                string
+	H                     []string
+	Help                  *bool
+	IncludeBootstrap      *bool
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	S                     []string
+	V                     *bool
 
 	Pretty     bool
 	Human      bool
@@ -111,6 +112,10 @@ func (r CatPluginsRequest) Do(ctx context.Context, transport Transport) (*Respon
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -220,7 +225,7 @@ func (f CatPlugins) WithIncludeBootstrap(v bool) func(*CatPluginsRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatPlugins) WithLocal(v bool) func(*CatPluginsRequest) {
 	return func(r *CatPluginsRequest) {
@@ -228,11 +233,21 @@ func (f CatPlugins) WithLocal(v bool) func(*CatPluginsRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatPlugins) WithMasterTimeout(v time.Duration) func(*CatPluginsRequest) {
 	return func(r *CatPluginsRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatPlugins) WithClusterManagerTimeout(v time.Duration) func(*CatPluginsRequest) {
+	return func(r *CatPluginsRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

@@ -62,6 +62,7 @@ type CatNodesRequest struct {
 	IncludeUnloadedSegments *bool
 	Local                   *bool
 	MasterTimeout           time.Duration
+	ClusterManagerTimeout   time.Duration
 	S                       []string
 	Time                    string
 	V                       *bool
@@ -122,6 +123,10 @@ func (r CatNodesRequest) Do(ctx context.Context, transport Transport) (*Response
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if len(r.S) > 0 {
@@ -251,7 +256,7 @@ func (f CatNodes) WithIncludeUnloadedSegments(v bool) func(*CatNodesRequest) {
 	}
 }
 
-// WithLocal - calculate the selected nodes using the local cluster state rather than the state from master node (default: false).
+// WithLocal - calculate the selected nodes using the local cluster state rather than the state from cluster-manager node (default: false).
 //
 func (f CatNodes) WithLocal(v bool) func(*CatNodesRequest) {
 	return func(r *CatNodesRequest) {
@@ -259,11 +264,21 @@ func (f CatNodes) WithLocal(v bool) func(*CatNodesRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatNodes) WithMasterTimeout(v time.Duration) func(*CatNodesRequest) {
 	return func(r *CatNodesRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatNodes) WithClusterManagerTimeout(v time.Duration) func(*CatNodesRequest) {
+	return func(r *CatNodesRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

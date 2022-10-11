@@ -57,9 +57,10 @@ type ClusterPutSettings func(body io.Reader, o ...func(*ClusterPutSettingsReques
 type ClusterPutSettingsRequest struct {
 	Body io.Reader
 
-	FlatSettings  *bool
-	MasterTimeout time.Duration
-	Timeout       time.Duration
+	FlatSettings          *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
+	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -93,6 +94,10 @@ func (r ClusterPutSettingsRequest) Do(ctx context.Context, transport Transport) 
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -178,11 +183,21 @@ func (f ClusterPutSettings) WithFlatSettings(v bool) func(*ClusterPutSettingsReq
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterPutSettings) WithMasterTimeout(v time.Duration) func(*ClusterPutSettingsRequest) {
 	return func(r *ClusterPutSettingsRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterPutSettings) WithClusterManagerTimeout(v time.Duration) func(*ClusterPutSettingsRequest) {
+	return func(r *ClusterPutSettingsRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

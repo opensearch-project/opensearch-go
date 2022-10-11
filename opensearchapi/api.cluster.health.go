@@ -60,6 +60,7 @@ type ClusterHealthRequest struct {
 	Level                       string
 	Local                       *bool
 	MasterTimeout               time.Duration
+	ClusterManagerTimeout       time.Duration
 	Timeout                     time.Duration
 	WaitForActiveShards         string
 	WaitForEvents               string
@@ -115,6 +116,10 @@ func (r ClusterHealthRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Timeout != 0 {
@@ -236,7 +241,7 @@ func (f ClusterHealth) WithLevel(v string) func(*ClusterHealthRequest) {
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f ClusterHealth) WithLocal(v bool) func(*ClusterHealthRequest) {
 	return func(r *ClusterHealthRequest) {
@@ -244,11 +249,21 @@ func (f ClusterHealth) WithLocal(v bool) func(*ClusterHealthRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f ClusterHealth) WithMasterTimeout(v time.Duration) func(*ClusterHealthRequest) {
 	return func(r *ClusterHealthRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f ClusterHealth) WithClusterManagerTimeout(v time.Duration) func(*ClusterHealthRequest) {
+	return func(r *ClusterHealthRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

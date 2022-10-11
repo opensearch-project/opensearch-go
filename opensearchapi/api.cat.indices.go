@@ -65,6 +65,7 @@ type CatIndicesRequest struct {
 	IncludeUnloadedSegments *bool
 	Local                   *bool
 	MasterTimeout           time.Duration
+	ClusterManagerTimeout   time.Duration
 	Pri                     *bool
 	S                       []string
 	Time                    string
@@ -137,6 +138,10 @@ func (r CatIndicesRequest) Do(ctx context.Context, transport Transport) (*Respon
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pri != nil {
@@ -286,7 +291,7 @@ func (f CatIndices) WithIncludeUnloadedSegments(v bool) func(*CatIndicesRequest)
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f CatIndices) WithLocal(v bool) func(*CatIndicesRequest) {
 	return func(r *CatIndicesRequest) {
@@ -294,11 +299,21 @@ func (f CatIndices) WithLocal(v bool) func(*CatIndicesRequest) {
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f CatIndices) WithMasterTimeout(v time.Duration) func(*CatIndicesRequest) {
 	return func(r *CatIndicesRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f CatIndices) WithClusterManagerTimeout(v time.Duration) func(*CatIndicesRequest) {
+	return func(r *CatIndicesRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

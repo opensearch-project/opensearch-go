@@ -56,8 +56,9 @@ type SnapshotGetRepository func(o ...func(*SnapshotGetRepositoryRequest)) (*Resp
 type SnapshotGetRepositoryRequest struct {
 	Repository []string
 
-	Local         *bool
-	MasterTimeout time.Duration
+	Local                 *bool
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -96,6 +97,10 @@ func (r SnapshotGetRepositoryRequest) Do(ctx context.Context, transport Transpor
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -173,7 +178,7 @@ func (f SnapshotGetRepository) WithRepository(v ...string) func(*SnapshotGetRepo
 	}
 }
 
-// WithLocal - return local information, do not retrieve the state from master node (default: false).
+// WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
 //
 func (f SnapshotGetRepository) WithLocal(v bool) func(*SnapshotGetRepositoryRequest) {
 	return func(r *SnapshotGetRepositoryRequest) {
@@ -181,11 +186,21 @@ func (f SnapshotGetRepository) WithLocal(v bool) func(*SnapshotGetRepositoryRequ
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f SnapshotGetRepository) WithMasterTimeout(v time.Duration) func(*SnapshotGetRepositoryRequest) {
 	return func(r *SnapshotGetRepositoryRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f SnapshotGetRepository) WithClusterManagerTimeout(v time.Duration) func(*SnapshotGetRepositoryRequest) {
+	return func(r *SnapshotGetRepositoryRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 

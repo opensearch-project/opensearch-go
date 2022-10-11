@@ -60,7 +60,8 @@ type SnapshotCloneRequest struct {
 	Snapshot       string
 	TargetSnapshot string
 
-	MasterTimeout time.Duration
+	MasterTimeout         time.Duration
+	ClusterManagerTimeout time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -99,6 +100,10 @@ func (r SnapshotCloneRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	if r.MasterTimeout != 0 {
 		params["master_timeout"] = formatDuration(r.MasterTimeout)
+	}
+
+	if r.ClusterManagerTimeout != 0 {
+		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
 	}
 
 	if r.Pretty {
@@ -172,11 +177,21 @@ func (f SnapshotClone) WithContext(v context.Context) func(*SnapshotCloneRequest
 	}
 }
 
-// WithMasterTimeout - explicit operation timeout for connection to master node.
+// WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+// Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
 func (f SnapshotClone) WithMasterTimeout(v time.Duration) func(*SnapshotCloneRequest) {
 	return func(r *SnapshotCloneRequest) {
 		r.MasterTimeout = v
+	}
+}
+
+// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
+//
+func (f SnapshotClone) WithClusterManagerTimeout(v time.Duration) func(*SnapshotCloneRequest) {
+	return func(r *SnapshotCloneRequest) {
+		r.ClusterManagerTimeout = v
 	}
 }
 
