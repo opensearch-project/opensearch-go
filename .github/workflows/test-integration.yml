@@ -15,9 +15,6 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        cluster: [ "opendistro" , "opensearch" ]
     steps:
       - uses: actions/checkout@v2
         with: { fetch-depth: 1 }
@@ -30,9 +27,9 @@ jobs:
           sudo sysctl -w vm.swappiness=1
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
-      - name: Launch ${{ matrix.cluster }} cluster
+      - name: Launch OpenSearch cluster
         run: |
-          make cluster.clean cluster.${{ matrix.cluster }}.build cluster.${{ matrix.cluster }}.start
+          make cluster.clean cluster.build cluster.start
       - run: make test-integ race=true
       - uses: codecov/codecov-action@v1
         with:
@@ -45,9 +42,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SECURE_INTEGRATION: true
-    strategy:
-      matrix:
-        cluster: [ "opendistro" , "opensearch" ]
     steps:
       - uses: actions/checkout@v2
         with: { fetch-depth: 1 }
@@ -60,7 +54,7 @@ jobs:
           sudo sysctl -w vm.swappiness=1
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
-      - name: Launch ${{ matrix.cluster }} cluster
+      - name: Launch OpenSearch cluster
         run: |
-          make cluster.clean cluster.${{ matrix.cluster }}.build cluster.${{ matrix.cluster }}.start
+          make cluster.clean cluster.build cluster.start
       - run: make test-integ-secure
