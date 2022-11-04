@@ -133,7 +133,7 @@ type bulkActionMetadata struct {
 	Routing             *string     `json:"routing,omitempty"`
 	Version             *int64      `json:"version,omitempty"`
 	VersionType         *string     `json:"version_type,omitempty"`
-	IfSeqNum            *int64      `json:"if_seq_num,omitempty"`
+	IfSeqNum            *int64      `json:"if_seq_no,omitempty"`
 	IfPrimaryTerm       *int64      `json:"if_primary_term,omitempty"`
 	WaitForActiveShards interface{} `json:"wait_for_active_shards,omitempty"`
 	Refresh             *string     `json:"refresh,omitempty"`
