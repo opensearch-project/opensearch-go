@@ -5,6 +5,6 @@ go 1.15
 require (
 	github.com/aws/aws-sdk-go v1.44.132
 	github.com/aws/aws-sdk-go-v2 v1.17.1
-	github.com/aws/aws-sdk-go-v2/config v1.17.10
+	github.com/aws/aws-sdk-go-v2/config v1.18.0
 	github.com/stretchr/testify v1.8.1
 )
