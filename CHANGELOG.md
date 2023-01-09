@@ -2,6 +2,8 @@
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+### Dependencies
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.1 to 1.17.3
 
 ### Added
 - Github workflow for changelog verification ([#172](https://github.com/opensearch-project/opensearch-go/pull/172))
