@@ -10,6 +10,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Vamshi Vijay Nakkirtha  | [vamshin](https://github.com/vamshin)       | Amazon      |
 | Vijayan Balasubramanian | [VijayanB](https://github.com/VijayanB)     | Amazon      |
 | Sven Cowart             | [svencowart](https://github.com/svencowart) |             |
+| Vacha Shah              | [VachaShah](https://github.com/VachaShah)   | Amazon      |
 
 ## Emeritus
 
