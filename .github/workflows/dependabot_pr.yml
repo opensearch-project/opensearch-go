@@ -23,7 +23,7 @@ jobs:
           token: ${{ steps.github_app_token.outputs.token }}
 
       - name: Update the changelog
-        uses: dangoslen/dependabot-changelog-helper@v1
+        uses: dangoslen/dependabot-changelog-helper@v2
         with:
           version: 'Unreleased'
 
