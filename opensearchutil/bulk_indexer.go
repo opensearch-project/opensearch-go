@@ -138,6 +138,7 @@ type bulkActionMetadata struct {
 	WaitForActiveShards interface{} `json:"wait_for_active_shards,omitempty"`
 	Refresh             *string     `json:"refresh,omitempty"`
 	RequireAlias        *bool       `json:"require_alias,omitempty"`
+	RetryOnConflict     *int        `json:"retry_on_conflict,omitempty"`
 }
 
 // BulkIndexerResponse represents the OpenSearch response.
@@ -447,6 +448,7 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 		WaitForActiveShards: item.WaitForActiveShards,
 		Refresh:             item.Refresh,
 		RequireAlias:        item.RequireAlias,
+		RetryOnConflict:     item.RetryOnConflict,
 	}
 	// Can not specify version or seq num if no document ID is passed
 	if meta.DocumentID == "" {
