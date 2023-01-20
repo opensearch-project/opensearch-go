@@ -1,6 +1,8 @@
 - [User Guide](#user-guide)
-    - [Example](#example)
-    - [How to use IAMs as authentication method](#how-to-use-iams-as-authentication-method)
+  - [Example](#example)
+  - [How to use IAMs as authentication method](#how-to-use-iams-as-authentication-method)
+      - [AWS SDK V1](#aws-sdk-v1)
+      - [AWS SDK V2](#aws-sdk-v2)
 
 # User Guide
 
@@ -221,32 +223,39 @@ func main() {
 
 #### AWS SDK V2
 
+AWS SDK V2 for Go can be used for various service options. To create a client, please see the example below:
+
 ```go
 package main
 
 import (
 	"context"
-	"io"
 	"log"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	opensearch "github.com/opensearch-project/opensearch-go/v2"
+	opensearchapi "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	requestsigner "github.com/opensearch-project/opensearch-go/v2/signer/awsv2"
 )
 
-const endpoint = "" // e.g. https://opensearch-domain.region.com
+const endpoint = "" // e.g. https://opensearch-domain.region.com or serverless collection endpoint
 
 func main() {
 	ctx := context.Background()
 
-	cfg, err := config.LoadDefaultConfig(ctx)
+	awsCfg, err := config.LoadDefaultConfig(ctx,
+		config.WithRegion("<AWS_REGION>"),
+		config.WithCredentialsProvider(
+			getCredentialProvider("<AWS_ACCESS_KEY>", "<AWS_SECRET_ACCESS_KEY>", "<AWS_SESSION_TOKEN>"),
+		),
+	)
 	if err != nil {
 		log.Fatal(err) // Do not log.fatal in a production ready app.
 	}
 
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
-	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
-	signer, err := requestsigner.NewSigner(cfg)
+	signer, err := requestsigner.NewSignerWithService(awsCfg, "es") // "aoss" for Amazon OpenSearch Serverless
 	if err != nil {
 		log.Fatal(err) // Do not log.fatal in a production ready app.
 	}
@@ -260,26 +269,51 @@ func main() {
 		log.Fatal("client creation err", err)
 	}
 
-	ping := opensearchapi.PingRequest{}
+	indexName = "go-test-index"
 
-	resp, err := ping.Do(ctx, client)
+    // Define index mapping.
+	mapping := strings.NewReader(`{
+	 "settings": {
+	   "index": {
+	        "number_of_shards": 4
+	        }
+	      }
+	 }`)
+    
+	// Create an index with non-default settings.
+	createIndex := opensearchapi.IndicesCreateRequest{
+		Index: indexName,
+	}
+	createIndexResponse, err := createIndex.Do(context.Background(), client)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Error ", err.Error())
+		log.Println("failed to create index ", err)
+		log.Fatal("create response body read err", err)
 	}
-	defer resp.Body.Close()
+	log.Println(createIndexResponse)
 
-	if resp.IsError() {
-		log.Println("ping response status ", resp.Status())
+	// Delete previously created index.
+	deleteIndex := opensearchapi.IndicesDeleteRequest{
+		Index: []string{indexName},
+	}
 
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatal("response body read err", err)
+	deleteIndexResponse, err := deleteIndex.Do(context.Background(), client)
+	if err != nil {
+		log.Println("failed to delete index ", err)
+		log.Fatal("delete index response body read err", err)
+	}
+	log.Println("deleting index", deleteIndexResponse)
+}
+
+func getCredentialProvider(accessKey, secretAccessKey, token string) aws.CredentialsProviderFunc {
+	return func(ctx context.Context) (aws.Credentials, error) {
+		c := &aws.Credentials{
+			AccessKeyID:     accessKey,
+			SecretAccessKey: secretAccessKey,
+			SessionToken:    token,
 		}
-
-		log.Fatal("ping resp body", respBody)
+		return *c, nil
 	}
-
-	log.Println("PING OK")
 }
 
 ```
