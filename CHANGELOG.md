@@ -20,7 +20,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 
 ### Removed
-- Remove info call before performing every request ([#]())
+- Remove info call before performing every request ([#219](https://github.com/opensearch-project/opensearch-go/pull/219))
 
 ### Fixed
  - Renamed the sequence number struct tag to if_seq_no to fix optimistic concurrency control ([#166](https://github.com/opensearch-project/opensearch-go/pull/166))
