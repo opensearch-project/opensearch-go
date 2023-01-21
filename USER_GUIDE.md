@@ -1,8 +1,8 @@
 - [User Guide](#user-guide)
-  - [Example](#example)
-  - [How to use IAMs as authentication method](#how-to-use-iams-as-authentication-method)
-      - [AWS SDK V1](#aws-sdk-v1)
-      - [AWS SDK V2](#aws-sdk-v2)
+	- [Example](#example)
+	- [Amazon OpenSearch Service](#amazon-opensearch-service)
+			- [AWS SDK V1](#aws-sdk-v1)
+			- [AWS SDK V2](#aws-sdk-v2)
 
 # User Guide
 
@@ -138,7 +138,7 @@ func main() {
 
 ```
 
-## How to use IAMs as authentication method
+## Amazon OpenSearch Service
 
 Before starting, we strongly recommend reading the full AWS documentation regarding using IAM credentials to sign
 requests to OpenSearch APIs.
@@ -223,7 +223,7 @@ func main() {
 
 #### AWS SDK V2
 
-AWS SDK V2 for Go can be used for various service options. To create a client, please see the example below:
+Use the AWS SDK v2 for Go to authenticate with Amazon OpenSearch service.
 
 ```go
 package main
@@ -239,7 +239,7 @@ import (
 	requestsigner "github.com/opensearch-project/opensearch-go/v2/signer/awsv2"
 )
 
-const endpoint = "" // e.g. https://opensearch-domain.region.com or serverless collection endpoint
+const endpoint = "" // e.g. https://opensearch-domain.region.com or Amazon OpenSearch Serverless endpoint
 
 func main() {
 	ctx := context.Background()
@@ -271,7 +271,7 @@ func main() {
 
 	indexName = "go-test-index"
 
-    // Define index mapping.
+	// Define index mapping.
 	mapping := strings.NewReader(`{
 	 "settings": {
 	   "index": {
