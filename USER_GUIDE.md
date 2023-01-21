@@ -283,6 +283,7 @@ func main() {
 	// Create an index with non-default settings.
 	createIndex := opensearchapi.IndicesCreateRequest{
 		Index: indexName,
+		Body:  mapping,
 	}
 	createIndexResponse, err := createIndex.Do(context.Background(), client)
 	if err != nil {
