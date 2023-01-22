@@ -81,6 +81,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		q := req.Header
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
+		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 	t.Run("sign request success with body", func(t *testing.T) {
 		req, err := http.NewRequest(
@@ -109,6 +110,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		q := req.Header
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
+		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body for other AWS Services", func(t *testing.T) {
@@ -139,6 +141,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		q := req.Header
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
+		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request failed due to invalid service", func(t *testing.T) {

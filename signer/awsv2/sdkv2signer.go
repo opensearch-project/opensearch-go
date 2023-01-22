@@ -68,6 +68,7 @@ func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 	}
 
 	hash, err := hexEncodedSha256OfRequest(r)
+	r.Header.Set("X-Amz-Content-Sha256", hash)
 	if err != nil {
 		return err
 	}
