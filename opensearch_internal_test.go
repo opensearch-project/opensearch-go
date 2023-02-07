@@ -32,10 +32,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"os"
-	"reflect"
 	"regexp"
 	"strings"
 	"testing"
@@ -444,128 +442,5 @@ func TestGenuineCheckInfo(t *testing.T) {
 				t.Errorf("checkCompatibleInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
-	}
-}
-
-func TestResponseCheckOnly(t *testing.T) {
-	tests := []struct {
-		name                 string
-		useResponseCheckOnly bool
-		response             *http.Response
-		requestErr           error
-		wantErr              bool
-	}{
-		{
-			name:                 "Valid answer without header",
-			useResponseCheckOnly: false,
-			response: &http.Response{
-				Body: ioutil.NopCloser(strings.NewReader("{}")),
-			},
-			wantErr: false,
-		},
-		{
-			name:                 "Valid answer and response check",
-			useResponseCheckOnly: true,
-			response: &http.Response{
-				Body: ioutil.NopCloser(strings.NewReader("{}")),
-			},
-			wantErr: false,
-		},
-		{
-			name:                 "Request failed",
-			useResponseCheckOnly: true,
-			response:             nil,
-			requestErr:           errors.New("request failed"),
-			wantErr:              true,
-		},
-		{
-			name:                 "Valid request, 500 response",
-			useResponseCheckOnly: false,
-			response: &http.Response{
-				StatusCode: http.StatusInternalServerError,
-				Body:       ioutil.NopCloser(strings.NewReader("")),
-			},
-			requestErr: nil,
-			wantErr:    true,
-		},
-		{
-			name:                 "Valid request, 404 response",
-			useResponseCheckOnly: false,
-			response: &http.Response{
-				StatusCode: http.StatusNotFound,
-				Body:       ioutil.NopCloser(strings.NewReader("")),
-			},
-			requestErr: nil,
-			wantErr:    true,
-		},
-		{
-			name:                 "Valid request, 403 response",
-			useResponseCheckOnly: false,
-			response: &http.Response{
-				StatusCode: http.StatusForbidden,
-				Body:       ioutil.NopCloser(strings.NewReader("")),
-			},
-			requestErr: nil,
-			wantErr:    false,
-		},
-		{
-			name:                 "Valid request, 401 response",
-			useResponseCheckOnly: false,
-			response: &http.Response{
-				StatusCode: http.StatusUnauthorized,
-				Body:       ioutil.NopCloser(strings.NewReader("")),
-			},
-			requestErr: nil,
-			wantErr:    false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c, _ := NewClient(Config{
-				Transport: &mockTransp{RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-					return tt.response, tt.requestErr
-				}},
-				UseResponseCheckOnly: tt.useResponseCheckOnly,
-			})
-			_, err := c.Cat.Indices()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Unexpected error, got %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
-func TestProductCheckError(t *testing.T) {
-	var requestPaths []string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestPaths = append(requestPaths, r.URL.Path)
-		if len(requestPaths) == 1 {
-			// Simulate transient error from a proxy on the first request.
-			// This must not be cached by the client.
-			w.WriteHeader(http.StatusBadGateway)
-			return
-		}
-		w.Write([]byte("{}"))
-	}))
-	defer server.Close()
-
-	c, _ := NewClient(Config{Addresses: []string{server.URL}, DisableRetry: true})
-	if _, err := c.Cat.Indices(); err == nil {
-		t.Fatal("expected error")
-	}
-	if c.productCheckSuccess {
-		t.Fatalf("product check should be invalid, got %v", c.productCheckSuccess)
-	}
-	if _, err := c.Cat.Indices(); err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-	if n := len(requestPaths); n != 3 {
-		t.Fatalf("expected 3 requests, got %d", n)
-	}
-	if !reflect.DeepEqual(requestPaths, []string{"/", "/", "/_cat/indices"}) {
-		t.Fatalf("unexpected request paths: %s", requestPaths)
-	}
-	if !c.productCheckSuccess {
-		t.Fatalf("product check should be valid, got : %v", c.productCheckSuccess)
 	}
 }

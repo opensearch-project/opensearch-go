@@ -742,6 +742,18 @@ func TestBulkIndexer(t *testing.T) {
 				}},
 				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}` + "\n",
 			},
+			{
+				"with retry_on_conflict",
+				args{BulkIndexerItem{
+					Action:          "index",
+					DocumentID:      "42",
+					Index:           "test",
+					Version:         int64Pointer(25),
+					VersionType:     strPointer("external"),
+					RetryOnConflict: intPointer(5),
+				}},
+				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}` + "\n",
+			},
 		}
 		for _, tt := range tests {
 			tt := tt
@@ -775,5 +787,9 @@ func strPointer(s string) *string {
 }
 
 func int64Pointer(i int64) *int64 {
+	return &i
+}
+
+func intPointer(i int) *int {
 	return &i
 }

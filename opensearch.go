@@ -27,19 +27,14 @@
 package opensearch
 
 import (
-	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2/signer"
@@ -99,8 +94,6 @@ type Config struct {
 	EnableMetrics     bool // Enable the metrics collection.
 	EnableDebugLogger bool // Enable the debug logging.
 
-	UseResponseCheckOnly bool
-
 	RetryBackoff func(attempt int) time.Duration // Optional backoff duration. Default: nil.
 
 	Transport http.RoundTripper            // The HTTP transport object.
@@ -116,10 +109,6 @@ type Config struct {
 type Client struct {
 	*opensearchapi.API   // Embeds the API methods
 	Transport            opensearchtransport.Interface
-	useResponseCheckOnly bool
-
-	productCheckMu      sync.RWMutex
-	productCheckSuccess bool
 }
 
 type esVersion struct {
@@ -217,7 +206,7 @@ func NewClient(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("error creating transport: %s", err)
 	}
 
-	client := &Client{Transport: tp, useResponseCheckOnly: cfg.UseResponseCheckOnly}
+	client := &Client{Transport: tp}
 	client.API = opensearchapi.New(client)
 
 	if cfg.DiscoverNodesOnStart {
@@ -274,82 +263,8 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 // Perform delegates to Transport to execute a request and return a response.
 //
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
-	if !c.useResponseCheckOnly {
-		// Launch product check, request info, check header then payload.
-		if err := c.doProductCheck(c.productCheck); err != nil {
-			return nil, err
-		}
-	}
-
-	// Retrieve the original request.
+	// Perform the original request.
 	return c.Transport.Perform(req)
-}
-
-// doProductCheck calls f if there as not been a prior successful call to doProductCheck,
-// returning nil otherwise.
-func (c *Client) doProductCheck(f func() error) error {
-	c.productCheckMu.RLock()
-	productCheckSuccess := c.productCheckSuccess
-	c.productCheckMu.RUnlock()
-
-	if productCheckSuccess {
-		return nil
-	}
-
-	c.productCheckMu.Lock()
-	defer c.productCheckMu.Unlock()
-
-	if c.productCheckSuccess {
-		return nil
-	}
-
-	if err := f(); err != nil {
-		return err
-	}
-
-	c.productCheckSuccess = true
-
-	return nil
-}
-
-// productCheck runs an opensearchapi.Info query to retrieve information of the current cluster
-// decodes the response and decides if the cluster can be supported or not.
-func (c *Client) productCheck() error {
-	req := opensearchapi.InfoRequest{}
-	res, err := req.Do(context.Background(), c.Transport)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		_, err = io.Copy(ioutil.Discard, res.Body)
-		if err != nil {
-			return err
-		}
-		switch res.StatusCode {
-		case http.StatusUnauthorized:
-			return nil
-		case http.StatusForbidden:
-			return nil
-		default:
-			return fmt.Errorf("cannot retrieve information from OpenSearch")
-		}
-	}
-
-	var info info
-	contentType := res.Header.Get("Content-Type")
-	if strings.Contains(contentType, "json") {
-		err = json.NewDecoder(res.Body).Decode(&info)
-		if err != nil {
-			return fmt.Errorf("error decoding OpenSearch informations: %s", err)
-		}
-	}
-
-	if info.Version.Number != "" {
-		return checkCompatibleInfo(info)
-	}
-	return nil
 }
 
 // Metrics returns the client metrics.
