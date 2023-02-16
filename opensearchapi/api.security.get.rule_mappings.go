@@ -47,8 +47,8 @@ func (r GetSecurityRuleMappingRequest) Do(ctx context.Context, transport Transpo
 
 	method = http.MethodGet
 
-	path.Grow(len("/_security/role_mapping/") + len(r.Name))
-	path.WriteString("/_security/role_mapping/")
+	path.Grow(len("/_plugins/_security/api/rolesmapping/") + len(r.Name))
+	path.WriteString("/_plugins/_security/api/rolesmapping/")
 	path.WriteString(r.Name)
 
 	params = make(map[string]string)

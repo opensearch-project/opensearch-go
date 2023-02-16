@@ -22,6 +22,8 @@ func newCreateSecurityRuleMappingFunc(t Transport) CreateSecurityRuleMapping {
 // CreateSecurityRuleMapping creates a role mapping
 //
 //	To use this API, you must have at least the manage_security cluster privilege.
+//
+// https://opensearch.org/docs/2.3/security/access-control/api/#create-role-mapping
 type CreateSecurityRuleMapping func(name string, body io.Reader, o ...func(*CreateSecurityRuleMappingRequest)) (*Response, error)
 
 // CreateSecurityRuleMappingRequest configures the Create Security Rule Mapping API request.
@@ -48,10 +50,10 @@ func (r CreateSecurityRuleMappingRequest) Do(ctx context.Context, transport Tran
 		params map[string]string
 	)
 
-	method = http.MethodPost
+	method = http.MethodPut
 
-	path.Grow(len("/_security/role_mapping/") + len(r.Name))
-	path.WriteString("/_security/role_mapping/")
+	path.Grow(len("/_plugins/_security/api/rolesmapping/") + len(r.Name))
+	path.WriteString("/_plugins/_security/api/rolesmapping/")
 	path.WriteString(r.Name)
 
 	params = make(map[string]string)

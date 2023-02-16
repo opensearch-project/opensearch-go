@@ -203,7 +203,7 @@ type Remote struct {
 // Security contains the Security APIs
 type Security struct {
 	Create CreateSecurityRuleMapping
-	Update UpdateSecurityRuleMapping
+	Patch  PatchSecurityRuleMapping
 	Delete DeleteSecurityRuleMapping
 	Get    GetSecurityRuleMapping
 	List   ListSecurityRuleMapping
@@ -381,7 +381,7 @@ func New(t Transport) *API {
 		Remote: &Remote{},
 		Security: &Security{
 			Create: newCreateSecurityRuleMappingFunc(t),
-			Update: newUpdateSecurityRuleMappingFunc(t),
+			Patch:  newPatchSecurityRuleMappingFunc(t),
 			Delete: newDeleteSecurityRuleMappingFunc(t),
 			Get:    newGetSecurityRuleMappingFunc(t),
 			List:   newListSecurityRuleMappingFunc(t),
