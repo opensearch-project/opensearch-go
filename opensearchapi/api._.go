@@ -27,7 +27,6 @@
 package opensearchapi
 
 // API contains the OpenSearch APIs
-//
 type API struct {
 	Cat      *Cat
 	Cluster  *Cluster
@@ -35,6 +34,7 @@ type API struct {
 	Ingest   *Ingest
 	Nodes    *Nodes
 	Remote   *Remote
+	Security *Security
 	Snapshot *Snapshot
 	Tasks    *Tasks
 
@@ -198,6 +198,15 @@ type Nodes struct {
 
 // Remote contains the Remote APIs
 type Remote struct {
+}
+
+// Security contains the Security APIs
+type Security struct {
+	Create CreateSecurityRuleMapping
+	Update UpdateSecurityRuleMapping
+	Delete DeleteSecurityRuleMapping
+	Get    GetSecurityRuleMapping
+	List   ListSecurityRuleMapping
 }
 
 // Snapshot contains the Snapshot APIs
@@ -370,6 +379,13 @@ func New(t Transport) *API {
 			Usage:                newNodesUsageFunc(t),
 		},
 		Remote: &Remote{},
+		Security: &Security{
+			Create: newCreateSecurityRuleMappingFunc(t),
+			Update: newUpdateSecurityRuleMappingFunc(t),
+			Delete: newDeleteSecurityRuleMappingFunc(t),
+			Get:    newGetSecurityRuleMappingFunc(t),
+			List:   newListSecurityRuleMappingFunc(t),
+		},
 		Snapshot: &Snapshot{
 			CleanupRepository: newSnapshotCleanupRepositoryFunc(t),
 			Clone:             newSnapshotCloneFunc(t),
