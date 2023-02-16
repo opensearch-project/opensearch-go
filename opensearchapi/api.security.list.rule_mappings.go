@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-func newListSecurityRuleMappingFunc(t Transport) ListSecurityRuleMapping {
-	return func(o ...func(*ListSecurityRuleMappingRequest)) (*Response, error) {
-		var r = ListSecurityRuleMappingRequest{}
+func newListSecurityRoleMappingFunc(t Transport) ListSecurityRoleMapping {
+	return func(o ...func(*ListSecurityRoleMappingRequest)) (*Response, error) {
+		var r = ListSecurityRoleMappingRequest{}
 		for _, f := range o {
 			f(&r)
 		}
@@ -18,13 +18,13 @@ func newListSecurityRuleMappingFunc(t Transport) ListSecurityRuleMapping {
 
 // ----- API Definition -------------------------------------------------------
 
-// ListSecurityRuleMapping Lists the role mappings
+// ListSecurityRoleMapping Lists the role mappings
 //
 //	To use this API, you must have at least the manage_security cluster privilege.
-type ListSecurityRuleMapping func(o ...func(*ListSecurityRuleMappingRequest)) (*Response, error)
+type ListSecurityRoleMapping func(o ...func(*ListSecurityRoleMappingRequest)) (*Response, error)
 
-// ListSecurityRuleMappingRequest configures the List Security Rule Mapping API request.
-type ListSecurityRuleMappingRequest struct {
+// ListSecurityRoleMappingRequest configures the List Security Rule Mapping API request.
+type ListSecurityRoleMappingRequest struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
@@ -36,7 +36,7 @@ type ListSecurityRuleMappingRequest struct {
 }
 
 // Do will execute the request and returns response or error.
-func (r ListSecurityRuleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r ListSecurityRoleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -109,43 +109,43 @@ func (r ListSecurityRuleMappingRequest) Do(ctx context.Context, transport Transp
 }
 
 // WithContext sets the request context.
-func (f ListSecurityRuleMapping) WithContext(v context.Context) func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithContext(v context.Context) func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		r.ctx = v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-func (f ListSecurityRuleMapping) WithPretty() func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithPretty() func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-func (f ListSecurityRuleMapping) WithHuman() func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithHuman() func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f ListSecurityRuleMapping) WithErrorTrace() func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithErrorTrace() func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f ListSecurityRuleMapping) WithFilterPath(v ...string) func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithFilterPath(v ...string) func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f ListSecurityRuleMapping) WithHeader(h map[string]string) func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithHeader(h map[string]string) func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -156,8 +156,8 @@ func (f ListSecurityRuleMapping) WithHeader(h map[string]string) func(*ListSecur
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f ListSecurityRuleMapping) WithOpaqueID(s string) func(*ListSecurityRuleMappingRequest) {
-	return func(r *ListSecurityRuleMappingRequest) {
+func (f ListSecurityRoleMapping) WithOpaqueID(s string) func(*ListSecurityRoleMappingRequest) {
+	return func(r *ListSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}

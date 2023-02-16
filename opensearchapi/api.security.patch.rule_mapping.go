@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-func newPatchSecurityRuleMappingFunc(t Transport) PatchSecurityRuleMapping {
-	return func(name string, body io.Reader, o ...func(*PatchSecurityRuleMappingRequest)) (*Response, error) {
-		var r = PatchSecurityRuleMappingRequest{Name: name, Body: body}
+func newPatchSecurityRoleMappingFunc(t Transport) PatchSecurityRoleMapping {
+	return func(name string, body io.Reader, o ...func(*PatchSecurityRoleMappingRequest)) (*Response, error) {
+		var r = PatchSecurityRoleMappingRequest{Name: name, Body: body}
 		for _, f := range o {
 			f(&r)
 		}
@@ -19,14 +19,14 @@ func newPatchSecurityRuleMappingFunc(t Transport) PatchSecurityRuleMapping {
 
 // ----- API Definition -------------------------------------------------------
 
-// PatchSecurityRuleMapping Patches a role mapping
+// PatchSecurityRoleMapping Patches a role mapping
 //
 //	To use this API, you must have at least the manage_security cluster privilege.
 //		https://opensearch.org/docs/2.3/security/access-control/api/#patch-role-mapping
-type PatchSecurityRuleMapping func(name string, body io.Reader, o ...func(*PatchSecurityRuleMappingRequest)) (*Response, error)
+type PatchSecurityRoleMapping func(name string, body io.Reader, o ...func(*PatchSecurityRoleMappingRequest)) (*Response, error)
 
-// PatchSecurityRuleMappingRequest configures the Patch Security Rule Mapping API request.
-type PatchSecurityRuleMappingRequest struct {
+// PatchSecurityRoleMappingRequest configures the Patch Security Rule Mapping API request.
+type PatchSecurityRoleMappingRequest struct {
 	Name string
 
 	Body io.Reader
@@ -42,7 +42,7 @@ type PatchSecurityRuleMappingRequest struct {
 }
 
 // Do will execute the request and returns response or error.
-func (r PatchSecurityRuleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r PatchSecurityRoleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -116,43 +116,43 @@ func (r PatchSecurityRuleMappingRequest) Do(ctx context.Context, transport Trans
 }
 
 // WithContext sets the request context.
-func (f PatchSecurityRuleMapping) WithContext(v context.Context) func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithContext(v context.Context) func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		r.ctx = v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-func (f PatchSecurityRuleMapping) WithPretty() func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithPretty() func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-func (f PatchSecurityRuleMapping) WithHuman() func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithHuman() func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f PatchSecurityRuleMapping) WithErrorTrace() func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithErrorTrace() func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f PatchSecurityRuleMapping) WithFilterPath(v ...string) func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithFilterPath(v ...string) func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f PatchSecurityRuleMapping) WithHeader(h map[string]string) func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithHeader(h map[string]string) func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -163,8 +163,8 @@ func (f PatchSecurityRuleMapping) WithHeader(h map[string]string) func(*PatchSec
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f PatchSecurityRuleMapping) WithOpaqueID(s string) func(*PatchSecurityRuleMappingRequest) {
-	return func(r *PatchSecurityRuleMappingRequest) {
+func (f PatchSecurityRoleMapping) WithOpaqueID(s string) func(*PatchSecurityRoleMappingRequest) {
+	return func(r *PatchSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}

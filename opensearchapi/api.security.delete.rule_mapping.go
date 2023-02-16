@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-func newDeleteSecurityRuleMappingFunc(t Transport) DeleteSecurityRuleMapping {
-	return func(name string, o ...func(*DeleteSecurityRuleMappingRequest)) (*Response, error) {
-		var r = DeleteSecurityRuleMappingRequest{Name: name}
+func newDeleteSecurityRoleMappingFunc(t Transport) DeleteSecurityRoleMapping {
+	return func(name string, o ...func(*DeleteSecurityRoleMappingRequest)) (*Response, error) {
+		var r = DeleteSecurityRoleMappingRequest{Name: name}
 		for _, f := range o {
 			f(&r)
 		}
@@ -18,13 +18,13 @@ func newDeleteSecurityRuleMappingFunc(t Transport) DeleteSecurityRuleMapping {
 
 // ----- API Definition -------------------------------------------------------
 
-// DeleteSecurityRuleMapping Deletes a role mapping
+// DeleteSecurityRoleMapping Deletes a role mapping
 //
 //	To use this API, you must have at least the manage_security cluster privilege.
-type DeleteSecurityRuleMapping func(name string, o ...func(*DeleteSecurityRuleMappingRequest)) (*Response, error)
+type DeleteSecurityRoleMapping func(name string, o ...func(*DeleteSecurityRoleMappingRequest)) (*Response, error)
 
-// DeleteSecurityRuleMappingRequest configures the Delete Security Rule Mapping API request.
-type DeleteSecurityRuleMappingRequest struct {
+// DeleteSecurityRoleMappingRequest configures the Delete Security Rule Mapping API request.
+type DeleteSecurityRoleMappingRequest struct {
 	Name string
 
 	Pretty     bool
@@ -38,7 +38,7 @@ type DeleteSecurityRuleMappingRequest struct {
 }
 
 // Do will execute the request and returns response or error.
-func (r DeleteSecurityRuleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r DeleteSecurityRoleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -112,43 +112,43 @@ func (r DeleteSecurityRuleMappingRequest) Do(ctx context.Context, transport Tran
 }
 
 // WithContext sets the request context.
-func (f DeleteSecurityRuleMapping) WithContext(v context.Context) func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithContext(v context.Context) func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		r.ctx = v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-func (f DeleteSecurityRuleMapping) WithPretty() func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithPretty() func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-func (f DeleteSecurityRuleMapping) WithHuman() func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithHuman() func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f DeleteSecurityRuleMapping) WithErrorTrace() func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithErrorTrace() func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f DeleteSecurityRuleMapping) WithFilterPath(v ...string) func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithFilterPath(v ...string) func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f DeleteSecurityRuleMapping) WithHeader(h map[string]string) func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithHeader(h map[string]string) func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -159,8 +159,8 @@ func (f DeleteSecurityRuleMapping) WithHeader(h map[string]string) func(*DeleteS
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f DeleteSecurityRuleMapping) WithOpaqueID(s string) func(*DeleteSecurityRuleMappingRequest) {
-	return func(r *DeleteSecurityRuleMappingRequest) {
+func (f DeleteSecurityRoleMapping) WithOpaqueID(s string) func(*DeleteSecurityRoleMappingRequest) {
+	return func(r *DeleteSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}

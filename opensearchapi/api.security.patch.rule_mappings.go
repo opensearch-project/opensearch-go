@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-func newBulkUpsertSecurityRuleMappingFunc(t Transport) BulkUpsertSecurityRuleMapping {
-	return func(name string, body io.Reader, o ...func(*BulkUpsertSecurityRuleMappingRequest)) (*Response, error) {
-		var r = BulkUpsertSecurityRuleMappingRequest{Name: name, Body: body}
+func newBulkUpsertSecurityRoleMappingFunc(t Transport) BulkUpsertSecurityRoleMapping {
+	return func(name string, body io.Reader, o ...func(*BulkUpsertSecurityRoleMappingRequest)) (*Response, error) {
+		var r = BulkUpsertSecurityRoleMappingRequest{Name: name, Body: body}
 		for _, f := range o {
 			f(&r)
 		}
@@ -19,14 +19,14 @@ func newBulkUpsertSecurityRuleMappingFunc(t Transport) BulkUpsertSecurityRuleMap
 
 // ----- API Definition -------------------------------------------------------
 
-// BulkUpsertSecurityRuleMapping Bulk Upsert multiple role mappings
+// BulkUpsertSecurityRoleMapping Bulk Upsert multiple role mappings
 //
 //	To use this API, you must have at least the manage_security cluster privilege.
 //		https://opensearch.org/docs/2.3/security/access-control/api/#BulkUpsert-role-mapping
-type BulkUpsertSecurityRuleMapping func(name string, body io.Reader, o ...func(*BulkUpsertSecurityRuleMappingRequest)) (*Response, error)
+type BulkUpsertSecurityRoleMapping func(name string, body io.Reader, o ...func(*BulkUpsertSecurityRoleMappingRequest)) (*Response, error)
 
-// BulkUpsertSecurityRuleMappingRequest configures the BulkUpsert Security Rule Mapping API request.
-type BulkUpsertSecurityRuleMappingRequest struct {
+// BulkUpsertSecurityRoleMappingRequest configures the BulkUpsert Security Rule Mapping API request.
+type BulkUpsertSecurityRoleMappingRequest struct {
 	Name string
 
 	Body io.Reader
@@ -42,7 +42,7 @@ type BulkUpsertSecurityRuleMappingRequest struct {
 }
 
 // Do will execute the request and returns response or error.
-func (r BulkUpsertSecurityRuleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r BulkUpsertSecurityRoleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -115,43 +115,43 @@ func (r BulkUpsertSecurityRuleMappingRequest) Do(ctx context.Context, transport 
 }
 
 // WithContext sets the request context.
-func (f BulkUpsertSecurityRuleMapping) WithContext(v context.Context) func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithContext(v context.Context) func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		r.ctx = v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-func (f BulkUpsertSecurityRuleMapping) WithPretty() func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithPretty() func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-func (f BulkUpsertSecurityRuleMapping) WithHuman() func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithHuman() func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f BulkUpsertSecurityRuleMapping) WithErrorTrace() func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithErrorTrace() func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f BulkUpsertSecurityRuleMapping) WithFilterPath(v ...string) func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithFilterPath(v ...string) func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f BulkUpsertSecurityRuleMapping) WithHeader(h map[string]string) func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithHeader(h map[string]string) func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -162,8 +162,8 @@ func (f BulkUpsertSecurityRuleMapping) WithHeader(h map[string]string) func(*Bul
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f BulkUpsertSecurityRuleMapping) WithOpaqueID(s string) func(*BulkUpsertSecurityRuleMappingRequest) {
-	return func(r *BulkUpsertSecurityRuleMappingRequest) {
+func (f BulkUpsertSecurityRoleMapping) WithOpaqueID(s string) func(*BulkUpsertSecurityRoleMappingRequest) {
+	return func(r *BulkUpsertSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
