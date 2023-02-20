@@ -202,12 +202,12 @@ type Remote struct {
 
 // Security contains the Security APIs
 type Security struct {
-	Create     CreateSecurityRoleMapping
-	BulkUpsert BulkUpsertSecurityRoleMapping
-	Patch      PatchSecurityRoleMapping
-	Delete     DeleteSecurityRoleMapping
-	Get        GetSecurityRoleMapping
-	List       ListSecurityRoleMapping
+	Create    CreateSecurityRoleMapping
+	BulkPatch BulkPatchSecurityRoleMapping
+	Patch     PatchSecurityRoleMapping
+	Delete    DeleteSecurityRoleMapping
+	Get       GetSecurityRoleMapping
+	List      ListSecurityRoleMapping
 }
 
 // Snapshot contains the Snapshot APIs
@@ -381,12 +381,12 @@ func New(t Transport) *API {
 		},
 		Remote: &Remote{},
 		Security: &Security{
-			Create:     newCreateSecurityRoleMappingFunc(t),
-			BulkUpsert: newBulkUpsertSecurityRoleMappingFunc(t),
-			Patch:      newPatchSecurityRoleMappingFunc(t),
-			Delete:     newDeleteSecurityRoleMappingFunc(t),
-			Get:        newGetSecurityRoleMappingFunc(t),
-			List:       newListSecurityRoleMappingFunc(t),
+			Create:    newCreateSecurityRoleMappingFunc(t),
+			BulkPatch: newBulkPatchSecurityRoleMappingFunc(t),
+			Patch:     newPatchSecurityRoleMappingFunc(t),
+			Delete:    newDeleteSecurityRoleMappingFunc(t),
+			Get:       newGetSecurityRoleMappingFunc(t),
+			List:      newListSecurityRoleMappingFunc(t),
 		},
 		Snapshot: &Snapshot{
 			CleanupRepository: newSnapshotCleanupRepositoryFunc(t),
