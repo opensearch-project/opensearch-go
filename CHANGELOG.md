@@ -25,6 +25,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
 ### Changed
+- SnapshotDeleteRequest use []string instead of string ([#237](https://github.com/opensearch-project/opensearch-go/pull/237))
 - Workflow improvements ([#242](https://github.com/opensearch-project/opensearch-go/pull/242))
 
 ### Deprecated
