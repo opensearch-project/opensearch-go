@@ -52,7 +52,7 @@ jobs:
         run: |
           tar xf opensearch-min-*
           ./opensearch-*/bin/opensearch &
-          for attempt in {1..20}; do sleep 5; if curl -s localhost:9200; then echo '=====> ready'; break; fi; echo '=====> waiting...'; don
+          for attempt in {1..20}; do sleep 5; if curl -s localhost:9200; then echo '=====> ready'; break; fi; echo '=====> waiting...'; done
       
       - name: Checkout Go Client
         uses: actions/checkout@v3
