@@ -21,9 +21,9 @@ jobs:
         go: ['1.x']
       fail-fast: false
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
-      - uses: actions/setup-go@v2.1.3
+      - uses: actions/setup-go@v3
         with: { go-version: "${{ matrix.go }}" }
       - run: go version
       - run: make test-unit race=true
@@ -37,9 +37,9 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
-      - uses: actions/setup-go@v2.1.3
+      - uses: actions/setup-go@v3
         with: { go-version: '1.x' }
       - run: go version
       - run: make test-bench
