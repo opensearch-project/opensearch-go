@@ -56,10 +56,21 @@ jobs:
       
       - name: Checkout Go Client
         uses: actions/checkout@v3
+        with:
+          path: go-client
 
       - name: Setup Go
         uses: actions/setup-go@v3
         with: { go-version: '1.x' }
 
       - name: Integration test
+        working-directory: go-client
         run: make test-integ race=true
+      
+      - name: Save server logs
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: opensearch-logs-${{ matrix.opensearch_ref }}-go-${{ matrix.python-version }}
+          path: |
+            opensearch/distribution/archives/linux-tar/build/distributions/**/logs/*
