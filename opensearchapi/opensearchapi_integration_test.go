@@ -24,12 +24,14 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build integration
 // +build integration
 
 package opensearchapi_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -214,5 +216,124 @@ func TestAPI(t *testing.T) {
 				}
 			}
 		}
+	})
+	t.Run("Snapshot", func(t *testing.T) {
+		// Functio to perform requests
+		//
+		opensearchDo := func(ctx context.Context, client *opensearch.Client, req opensearchapi.Request, msg string, t *testing.T) {
+			resp, err := req.Do(ctx, client)
+			if err != nil {
+				t.Fatalf("Failed to %s: %s", msg, err)
+			}
+			defer resp.Body.Close()
+			if resp.IsError() {
+				if resp.StatusCode != 404 {
+					t.Fatalf("Failed to %s: %s", msg, resp.Status())
+				}
+			}
+		}
+
+		// Create Client
+		//
+		client, err := opensearch.NewDefaultClient()
+		if err != nil {
+			t.Fatalf("Error creating the client: %s\n", err)
+		}
+
+		// Pre Cleanup indices
+		//
+		iDeleteReq := &opensearchapi.IndicesDeleteRequest{
+			Index:             []string{"test", "test_restored"},
+			IgnoreUnavailable: opensearchapi.BoolPtr(true),
+		}
+		ctx := context.Background()
+		opensearchDo(ctx, client, iDeleteReq, "index data", t)
+
+		// Index data
+		//
+		var buf bytes.Buffer
+		for j := 1; j <= 1000; j++ {
+			meta := []byte(fmt.Sprintf(`{ "index" : { "_id" : "%d" } }%s`, j, "\n"))
+			data := []byte(`{"content":"` + strings.Repeat("ABC", 100) + `"}`)
+			data = append(data, "\n"...)
+
+			buf.Grow(len(meta) + len(data))
+			buf.Write(meta)
+			buf.Write(data)
+		}
+
+		bulkReq := &opensearchapi.BulkRequest{
+			Body:    bytes.NewReader(buf.Bytes()),
+			Index:   "test",
+			Refresh: "true",
+		}
+		opensearchDo(ctx, client, bulkReq, "index data", t)
+
+		// Test Snapshot functions
+		//
+		sRepoCreateReq := &opensearchapi.SnapshotCreateRepositoryRequest{
+			Body:       bytes.NewBufferString(`{"type":"fs","settings":{"location":"/usr/share/opensearch/mnt"}}`),
+			Repository: "snapshot-test",
+		}
+		opensearchDo(ctx, client, sRepoCreateReq, "create Snapshot Repository", t)
+
+		sRepoVerifyReq := &opensearchapi.SnapshotVerifyRepositoryRequest{
+			Repository: "snapshot-test",
+		}
+		opensearchDo(ctx, client, sRepoVerifyReq, "verify Snapshot Repository", t)
+
+		sDeleteReq := &opensearchapi.SnapshotDeleteRequest{
+			Snapshot:   []string{"test", "clone-test"},
+			Repository: "snapshot-test",
+		}
+		opensearchDo(ctx, client, sDeleteReq, "delete Snapshots", t)
+
+		sCreateReq := &opensearchapi.SnapshotCreateRequest{
+			Body:              bytes.NewBufferString(`{"indices":"test","ignore_unavailable":true,"include_global_state":false,"partial":false}`),
+			Snapshot:          "test",
+			Repository:        "snapshot-test",
+			WaitForCompletion: opensearchapi.BoolPtr(true),
+		}
+		opensearchDo(ctx, client, sCreateReq, "create Snapshot", t)
+
+		sCloneReq := &opensearchapi.SnapshotCloneRequest{
+			Body:           bytes.NewBufferString(`{"indices":"*"}`),
+			Snapshot:       "test",
+			TargetSnapshot: "clone-test",
+			Repository:     "snapshot-test",
+		}
+		opensearchDo(ctx, client, sCloneReq, "clone Snapshot", t)
+
+		sGetReq := &opensearchapi.SnapshotGetRequest{
+			Snapshot:   []string{"test", "clone-test"},
+			Repository: "snapshot-test",
+		}
+		opensearchDo(ctx, client, sGetReq, "get Snapshots", t)
+
+		sStatusReq := &opensearchapi.SnapshotGetRequest{
+			Snapshot:   []string{"test", "clone-test"},
+			Repository: "snapshot-test",
+		}
+		opensearchDo(ctx, client, sStatusReq, "get Snapshot status", t)
+
+		sRestoreReq := &opensearchapi.SnapshotRestoreRequest{
+			Body: bytes.NewBufferString(
+				`{
+					"indices":"test",
+					"ignore_unavailable":true,
+					"include_global_state":false,
+					"partial":false,
+					"rename_pattern": "(.+)",
+					"rename_replacement":"$1_restored"
+				}`,
+			),
+			Snapshot:          "clone-test",
+			Repository:        "snapshot-test",
+			WaitForCompletion: opensearchapi.BoolPtr(true),
+		}
+		opensearchDo(ctx, client, sRestoreReq, "restore Snapshot", t)
+
+		opensearchDo(ctx, client, sDeleteReq, "delete Snapshots", t)
+		opensearchDo(ctx, client, iDeleteReq, "index data", t)
 	})
 }
