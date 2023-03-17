@@ -193,7 +193,7 @@ func (r GetRequest) Do(ctx context.Context, transport Transport) (*Response, err
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

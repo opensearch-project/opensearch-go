@@ -174,7 +174,7 @@ func (r IndicesGetFieldMappingRequest) Do(ctx context.Context, transport Transpo
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

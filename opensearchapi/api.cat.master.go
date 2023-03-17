@@ -175,7 +175,7 @@ func (r CatMasterRequest) Do(ctx context.Context, transport Transport) (*Respons
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.
