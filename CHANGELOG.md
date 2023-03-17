@@ -19,6 +19,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Github workflow for changelog verification ([#172](https://github.com/opensearch-project/opensearch-go/pull/172))
 - Add Go Documentation link for the client ([#182](https://github.com/opensearch-project/opensearch-go/pull/182))
 - Support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216))
+- Add Err() function to Response for detailed errors ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
 
 ### Dependencies
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
@@ -26,6 +27,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 - Workflow improvements ([#242](https://github.com/opensearch-project/opensearch-go/pull/242))
+- Opensearchapi check the response for errors ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
 
 ### Deprecated
 
