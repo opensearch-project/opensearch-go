@@ -27,16 +27,16 @@
 package opensearchapi
 
 // API contains the OpenSearch APIs
-//
 type API struct {
-	Cat      *Cat
-	Cluster  *Cluster
-	Indices  *Indices
-	Ingest   *Ingest
-	Nodes    *Nodes
-	Remote   *Remote
-	Snapshot *Snapshot
-	Tasks    *Tasks
+	Cat         *Cat
+	Cluster     *Cluster
+	Indices     *Indices
+	Ingest      *Ingest
+	Nodes       *Nodes
+	Remote      *Remote
+	Snapshot    *Snapshot
+	Tasks       *Tasks
+	PointInTime *PointInTime
 
 	Bulk                               Bulk
 	ClearScroll                        ClearScroll
@@ -226,6 +226,12 @@ type Tasks struct {
 	List   TasksList
 }
 
+type PointInTime struct {
+	Create PointInTimeCreate
+	Delete PointInTimeDelete
+	Get    PointInTimeGet
+}
+
 // New creates new API
 func New(t Transport) *API {
 	return &API{
@@ -395,6 +401,11 @@ func New(t Transport) *API {
 			Cancel: newTasksCancelFunc(t),
 			Get:    newTasksGetFunc(t),
 			List:   newTasksListFunc(t),
+		},
+		PointInTime: &PointInTime{
+			Create: newPointInTimeCreateFunc(t),
+			Delete: newPointInTimeDeleteFunc(t),
+			Get:    newPointInTimeGetFunc(t),
 		},
 	}
 }
