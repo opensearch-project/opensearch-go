@@ -22,18 +22,18 @@ OpenSearch Go Client
 
 ## Project Resources
 
-* [Project Website](https://opensearch.org/)
-* [Developer Guide](DEVELOPER_GUIDE.md)
-* [User Guide](USER_GUIDE.md)
-* [Documentation](https://opensearch.org/docs/latest/clients/go/)
-* [API Documentation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v2)
-* Need help? Try [Forums](https://discuss.opendistrocommunity.dev/c/clients/)
-* [Project Principles](https://opensearch.org/#principles)
-* [Contributing to OpenSearch](CONTRIBUTING.md)
-* [Maintainer Responsibilities](MAINTAINERS.md)
-* [Release Management](RELEASING.md)
-* [Admin Responsibilities](ADMINS.md)
-* [Security](SECURITY.md)
+- [Project Website](https://opensearch.org/)
+- [Developer Guide](DEVELOPER_GUIDE.md)
+- [User Guide](USER_GUIDE.md)
+- [Documentation](https://opensearch.org/docs/latest/clients/go/)
+- [API Documentation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v2)
+- Need help? Try [Forums](https://discuss.opendistrocommunity.dev/c/clients/)
+- [Project Principles](https://opensearch.org/#principles)
+- [Contributing to OpenSearch](CONTRIBUTING.md)
+- [Maintainer Responsibilities](MAINTAINERS.md)
+- [Release Management](RELEASING.md)
+- [Admin Responsibilities](ADMINS.md)
+- [Security](SECURITY.md)
 
 ## Code of Conduct
 

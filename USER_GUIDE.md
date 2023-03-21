@@ -1,8 +1,6 @@
 - [User Guide](#user-guide)
-	- [Example](#example)
-	- [Amazon OpenSearch Service](#amazon-opensearch-service)
-			- [AWS SDK V1](#aws-sdk-v1)
-			- [AWS SDK V2](#aws-sdk-v2)
+  - [Example](#example)
+  - [Amazon OpenSearch Service](#amazon-opensearch-service) - [AWS SDK V1](#aws-sdk-v1) - [AWS SDK V2](#aws-sdk-v2)
 
 # User Guide
 
@@ -149,7 +147,7 @@ See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.
 > must
 > be signed using AWS Signature Version 4.
 >
-See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
+> See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
 Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2`
 respectively.
@@ -283,7 +281,7 @@ func main() {
 	        }
 	      }
 	 }`)
-    
+
 	// Create an index with non-default settings.
 	createIndex := opensearchapi.IndicesCreateRequest{
 		Index: indexName,
