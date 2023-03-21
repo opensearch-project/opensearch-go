@@ -7,23 +7,6 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-// Licensed to Elasticsearch B.V. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. Elasticsearch B.V. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package opensearchapi
 
 import (
@@ -46,12 +29,9 @@ func newIndicesGetDataStreamFunc(t Transport) IndicesGetDataStream {
 // ----- API Definition -------------------------------------------------------
 
 // IndicesGetDataStream returns a data stream specific information if Name parameter is passed. Otherwise, returns all data streams.
-//
-//
 type IndicesGetDataStream func(o ...func(*IndicesGetDataStreamRequest)) (*Response, error)
 
 // IndicesGetDataStreamRequest configures the Indices Get Data Stream API request.
-//
 type IndicesGetDataStreamRequest struct {
 	Name string
 
@@ -68,7 +48,6 @@ type IndicesGetDataStreamRequest struct {
 }
 
 // Do execute the request and returns response or error.
-//
 func (r IndicesGetDataStreamRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
@@ -79,9 +58,7 @@ func (r IndicesGetDataStreamRequest) Do(ctx context.Context, transport Transport
 	method = "GET"
 
 	path.Grow(1 + len("_data_stream") + 1 + len(r.Name))
-	path.WriteString("/")
-	path.WriteString("_data_stream")
-	path.WriteString("/")
+	path.WriteString("/_data_stream/")
 	path.WriteString(r.Name)
 
 	params = make(map[string]string)
@@ -150,7 +127,6 @@ func (r IndicesGetDataStreamRequest) Do(ctx context.Context, transport Transport
 }
 
 // WithContext sets the request context.
-//
 func (f IndicesGetDataStream) WithContext(v context.Context) func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.ctx = v
@@ -158,7 +134,6 @@ func (f IndicesGetDataStream) WithContext(v context.Context) func(*IndicesGetDat
 }
 
 // WithName - the comma separated names of the index templates.
-//
 func (f IndicesGetDataStream) WithName(v string) func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.Name = v
@@ -166,7 +141,6 @@ func (f IndicesGetDataStream) WithName(v string) func(*IndicesGetDataStreamReque
 }
 
 // WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
-//
 func (f IndicesGetDataStream) WithClusterManagerTimeout(v time.Duration) func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.ClusterManagerTimeout = v
@@ -174,7 +148,6 @@ func (f IndicesGetDataStream) WithClusterManagerTimeout(v time.Duration) func(*I
 }
 
 // WithPretty makes the response body pretty-printed.
-//
 func (f IndicesGetDataStream) WithPretty() func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.Pretty = true
@@ -182,7 +155,6 @@ func (f IndicesGetDataStream) WithPretty() func(*IndicesGetDataStreamRequest) {
 }
 
 // WithHuman makes statistical values human-readable.
-//
 func (f IndicesGetDataStream) WithHuman() func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.Human = true
@@ -190,7 +162,6 @@ func (f IndicesGetDataStream) WithHuman() func(*IndicesGetDataStreamRequest) {
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-//
 func (f IndicesGetDataStream) WithErrorTrace() func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.ErrorTrace = true
@@ -198,7 +169,6 @@ func (f IndicesGetDataStream) WithErrorTrace() func(*IndicesGetDataStreamRequest
 }
 
 // WithFilterPath filters the properties of the response body.
-//
 func (f IndicesGetDataStream) WithFilterPath(v ...string) func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		r.FilterPath = v
@@ -206,7 +176,6 @@ func (f IndicesGetDataStream) WithFilterPath(v ...string) func(*IndicesGetDataSt
 }
 
 // WithHeader adds the headers to the HTTP request.
-//
 func (f IndicesGetDataStream) WithHeader(h map[string]string) func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		if r.Header == nil {
@@ -219,7 +188,6 @@ func (f IndicesGetDataStream) WithHeader(h map[string]string) func(*IndicesGetDa
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-//
 func (f IndicesGetDataStream) WithOpaqueID(s string) func(*IndicesGetDataStreamRequest) {
 	return func(r *IndicesGetDataStreamRequest) {
 		if r.Header == nil {

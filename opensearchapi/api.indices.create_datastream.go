@@ -7,30 +7,12 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-// Licensed to Elasticsearch B.V. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. Elasticsearch B.V. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package opensearchapi
 
 import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 )
 
 func newIndicesCreateDataStreamFunc(t Transport) IndicesCreateDataStream {
@@ -46,17 +28,11 @@ func newIndicesCreateDataStreamFunc(t Transport) IndicesCreateDataStream {
 // ----- API Definition -------------------------------------------------------
 
 // IndicesCreateDataStream creates a data stream.
-//
-//
 type IndicesCreateDataStream func(index string, o ...func(*IndicesCreateDataStreamRequest)) (*Response, error)
 
 // IndicesCreateDataStreamRequest configures the Indices Create Data Stream API request.
-//
 type IndicesCreateDataStreamRequest struct {
 	Name string
-
-	ClusterManagerTimeout time.Duration
-	Timeout               time.Duration
 
 	Pretty     bool
 	Human      bool
@@ -69,7 +45,6 @@ type IndicesCreateDataStreamRequest struct {
 }
 
 // Do execute the request and returns response or error.
-//
 func (r IndicesCreateDataStreamRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
@@ -80,20 +55,10 @@ func (r IndicesCreateDataStreamRequest) Do(ctx context.Context, transport Transp
 	method = "PUT"
 
 	path.Grow(1 + len("_data_stream") + 1 + len(r.Name))
-	path.WriteString("/")
-	path.WriteString("_data_stream")
-	path.WriteString("/")
+	path.WriteString("/_data_stream/")
 	path.WriteString(r.Name)
 
 	params = make(map[string]string)
-
-	if r.ClusterManagerTimeout != 0 {
-		params["cluster_manager_timeout"] = formatDuration(r.ClusterManagerTimeout)
-	}
-
-	if r.Timeout != 0 {
-		params["timeout"] = formatDuration(r.Timeout)
-	}
 
 	if r.Pretty {
 		params["pretty"] = "true"
@@ -155,31 +120,13 @@ func (r IndicesCreateDataStreamRequest) Do(ctx context.Context, transport Transp
 }
 
 // WithContext sets the request context.
-//
 func (f IndicesCreateDataStream) WithContext(v context.Context) func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		r.ctx = v
 	}
 }
 
-// WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
-//
-func (f IndicesCreateDataStream) WithClusterManagerTimeout(v time.Duration) func(*IndicesCreateDataStreamRequest) {
-	return func(r *IndicesCreateDataStreamRequest) {
-		r.ClusterManagerTimeout = v
-	}
-}
-
-// WithTimeout - explicit operation timeout.
-//
-func (f IndicesCreateDataStream) WithTimeout(v time.Duration) func(*IndicesCreateDataStreamRequest) {
-	return func(r *IndicesCreateDataStreamRequest) {
-		r.Timeout = v
-	}
-}
-
 // WithPretty makes the response body pretty-printed.
-//
 func (f IndicesCreateDataStream) WithPretty() func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		r.Pretty = true
@@ -187,7 +134,6 @@ func (f IndicesCreateDataStream) WithPretty() func(*IndicesCreateDataStreamReque
 }
 
 // WithHuman makes statistical values human-readable.
-//
 func (f IndicesCreateDataStream) WithHuman() func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		r.Human = true
@@ -195,7 +141,6 @@ func (f IndicesCreateDataStream) WithHuman() func(*IndicesCreateDataStreamReques
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-//
 func (f IndicesCreateDataStream) WithErrorTrace() func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		r.ErrorTrace = true
@@ -203,7 +148,6 @@ func (f IndicesCreateDataStream) WithErrorTrace() func(*IndicesCreateDataStreamR
 }
 
 // WithFilterPath filters the properties of the response body.
-//
 func (f IndicesCreateDataStream) WithFilterPath(v ...string) func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		r.FilterPath = v
@@ -211,7 +155,6 @@ func (f IndicesCreateDataStream) WithFilterPath(v ...string) func(*IndicesCreate
 }
 
 // WithHeader adds the headers to the HTTP request.
-//
 func (f IndicesCreateDataStream) WithHeader(h map[string]string) func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		if r.Header == nil {
@@ -224,7 +167,6 @@ func (f IndicesCreateDataStream) WithHeader(h map[string]string) func(*IndicesCr
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-//
 func (f IndicesCreateDataStream) WithOpaqueID(s string) func(*IndicesCreateDataStreamRequest) {
 	return func(r *IndicesCreateDataStreamRequest) {
 		if r.Header == nil {
