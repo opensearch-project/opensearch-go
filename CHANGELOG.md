@@ -18,7 +18,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Github workflow for changelog verification ([#172](https://github.com/opensearch-project/opensearch-go/pull/172))
 - Add Go Documentation link for the client ([#182](https://github.com/opensearch-project/opensearch-go/pull/182))
-- Support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216))
+- Support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216), [#259](https://github.com/opensearch-project/opensearch-go/pull/259))
 
 ### Dependencies
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
