@@ -189,37 +189,40 @@ func main() {
 
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
 	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
-	signer, err := requestsigner.NewSigner(session.Options{SharedConfigState: session.SharedConfigEnable})
+	signer, err := requestsigner.NewSignerWithService(
+		session.Options{SharedConfigState: session.SharedConfigEnable},
+		requestsigner.OpenSearchService, // Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless.
+	)
 	if err != nil {
-		log.Fatal(err) // Do not log.fatal in a production ready app.
+		log.Fatalf("failed to create signer: %v", err) // Do not log.fatal in a production ready app.
 	}
 
-	// Create an opensearch client and use the request-signer
+	// Create an opensearch client and use the request-signer.
 	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{endpoint},
 		Signer:    signer,
 	})
 	if err != nil {
-		log.Fatal("client creation err", err)
+		log.Fatalf("failed to create new opensearch client: %v", err)
 	}
 
 	ping := opensearchapi.PingRequest{}
 
 	resp, err := ping.Do(ctx, client)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to ping: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.IsError() {
-		log.Println("ping response status ", resp.Status())
+		log.Printf("ping response status: %q", resp.Status())
 
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Fatal("response body read err", err)
+			log.Fatalf("failed to read response body body: %v", err)
 		}
 
-		log.Fatal("ping resp body", respBody)
+		log.Fatalf("ping resp body: %s", respBody)
 	}
 
 	log.Println("PING OK")
@@ -236,6 +239,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -256,25 +260,25 @@ func main() {
 		),
 	)
 	if err != nil {
-		log.Fatal(err) // Do not log.fatal in a production ready app.
+		log.Fatalf("failed to load aws configuraiton: %v", err) // Do not log.fatal in a production ready app.
 	}
 
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
-	signer, err := requestsigner.NewSignerWithService(awsCfg, "es") // "aoss" for Amazon OpenSearch Serverless
+	signer, err := requestsigner.NewSignerWithService(awsCfg, "es") // Use "aoss" for Amazon OpenSearch Serverless
 	if err != nil {
-		log.Fatal(err) // Do not log.fatal in a production ready app.
+		log.Fatalf("failed to create signer: %v", err)
 	}
 
-	// Create an opensearch client and use the request-signer
+	// Create an opensearch client and use the request-signer.
 	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{endpoint},
 		Signer:    signer,
 	})
 	if err != nil {
-		log.Fatal("client creation err", err)
+		log.Fatalf("failed to create new opensearch client: %v", err)
 	}
 
-	indexName = "go-test-index"
+	indexName := "go-test-index"
 
 	// Define index mapping.
 	mapping := strings.NewReader(`{
@@ -292,11 +296,9 @@ func main() {
 	}
 	createIndexResponse, err := createIndex.Do(context.Background(), client)
 	if err != nil {
-		log.Println("Error ", err.Error())
-		log.Println("failed to create index ", err)
-		log.Fatal("create response body read err", err)
+		log.Fatalf("failed to create index: %v", err)
 	}
-	log.Println(createIndexResponse)
+	log.Printf("created index: %#v", createIndexResponse)
 
 	// Delete previously created index.
 	deleteIndex := opensearchapi.IndicesDeleteRequest{
@@ -305,10 +307,9 @@ func main() {
 
 	deleteIndexResponse, err := deleteIndex.Do(context.Background(), client)
 	if err != nil {
-		log.Println("failed to delete index ", err)
-		log.Fatal("delete index response body read err", err)
+		log.Fatalf("failed to delete index: %v", err)
 	}
-	log.Println("deleting index", deleteIndexResponse)
+	log.Printf("deleted index: %#v", deleteIndexResponse)
 }
 
 func getCredentialProvider(accessKey, secretAccessKey, token string) aws.CredentialsProviderFunc {

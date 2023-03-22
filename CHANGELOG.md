@@ -8,7 +8,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.9 to 1.18.12
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.8 to 1.18.10
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.17.10 to 1.18.9
-- Bumps `github.com/aws/aws-sdk-go` from 1.44.195 to 1.44.210
+- Bumps `github.com/aws/aws-sdk-go` from 1.44.195 to 1.44.225
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.185 to 1.44.205
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.180 to 1.44.195
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.176 to 1.44.185
@@ -18,8 +18,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Github workflow for changelog verification ([#172](https://github.com/opensearch-project/opensearch-go/pull/172))
 - Add Go Documentation link for the client ([#182](https://github.com/opensearch-project/opensearch-go/pull/182))
-- Support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216))
 - Add implementation of Data Streams API ([#257](https://github.com/opensearch-project/opensearch-go/pull/257)
+- Support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216), [#259](https://github.com/opensearch-project/opensearch-go/pull/259))
 
 ### Dependencies
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
