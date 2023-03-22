@@ -7,6 +7,9 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
+//go:build integration
+// +build integration
+
 package opensearchapi_test
 
 import (

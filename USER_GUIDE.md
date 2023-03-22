@@ -394,7 +394,7 @@ Response Body:        {"acknowledged" : true}
 
 ### Delete Data Streams
 
- - Create new client as as previous example
+ - Create new client as previous example
  - Prepare request object
 ```
 opensearchapi.IndicesDeleteDataStreamRequest{
@@ -418,7 +418,7 @@ Response Body:        {"acknowledged" : true}
 
 ### Get All Data Streams
 
-- Create new client as as previous example
+- Create new client as previous example
 - Prepare request object
 ```
 r := opensearchapi.IndicesGetDataStreamRequest{
@@ -441,7 +441,7 @@ Response Body: 	      {"data_streams":[{"name":"demo-name","timestamp_field":{"n
 
 ### Get Specific Data Stream
 
-- Create new client as as previous example
+- Create new client as previous example
 - Prepare request object
 ```
 r := opensearchapi.IndicesGetDataStreamRequest{
