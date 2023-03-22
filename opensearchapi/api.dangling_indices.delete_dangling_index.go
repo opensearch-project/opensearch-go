@@ -162,7 +162,7 @@ func (r DanglingIndicesDeleteDanglingIndexRequest) Do(ctx context.Context, trans
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

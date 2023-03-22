@@ -28,6 +28,7 @@ package opensearchapi
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -37,7 +38,6 @@ import (
 )
 
 // Response represents the API response.
-//
 type Response struct {
 	StatusCode int
 	Header     http.Header
@@ -47,7 +47,6 @@ type Response struct {
 // String returns the response as a string.
 //
 // The intended usage is for testing or debugging only.
-//
 func (r *Response) String() string {
 	var (
 		out = new(bytes.Buffer)
@@ -84,7 +83,6 @@ func (r *Response) String() string {
 }
 
 // Status returns the response status as a string.
-//
 func (r *Response) Status() string {
 	var b strings.Builder
 	if r != nil {
@@ -96,19 +94,36 @@ func (r *Response) Status() string {
 }
 
 // IsError returns true when the response status indicates failure.
-//
 func (r *Response) IsError() bool {
 	return r.StatusCode > 299
 }
 
 // Warnings returns the deprecation warnings from response headers.
-//
 func (r *Response) Warnings() []string {
 	return r.Header["Warning"]
 }
 
 // HasWarnings returns true when the response headers contain deprecation warnings.
-//
 func (r *Response) HasWarnings() bool {
 	return len(r.Warnings()) > 0
+}
+
+// Err returns an error when the response status indicates failures.
+func (r *Response) Err() error {
+	if r.IsError() {
+		if r.Body == nil {
+			return fmt.Errorf(r.Status())
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf(r.Status())
+		}
+		var e *Error
+		err = json.Unmarshal(body, &e)
+		if err == nil {
+			return e
+		}
+		return fmt.Errorf("status: %d, error: %s", r.StatusCode, string(body))
+	}
+	return nil
 }
