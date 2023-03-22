@@ -1,8 +1,6 @@
 - [User Guide](#user-guide)
-	- [Example](#example)
-	- [Amazon OpenSearch Service](#amazon-opensearch-service)
-			- [AWS SDK V1](#aws-sdk-v1)
-			- [AWS SDK V2](#aws-sdk-v2)
+  - [Example](#example)
+  - [Amazon OpenSearch Service](#amazon-opensearch-service) - [AWS SDK V1](#aws-sdk-v1) - [AWS SDK V2](#aws-sdk-v2)
 
 # User Guide
 
@@ -174,7 +172,7 @@ See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.
 > must
 > be signed using AWS Signature Version 4.
 >
-See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
+> See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
 Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2`
 respectively.
@@ -209,25 +207,28 @@ func main() {
 
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
 	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
-	signer, err := requestsigner.NewSigner(session.Options{SharedConfigState: session.SharedConfigEnable})
+	signer, err := requestsigner.NewSignerWithService(
+		session.Options{SharedConfigState: session.SharedConfigEnable},
+		requestsigner.OpenSearchService, // Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless.
+	)
 	if err != nil {
-		log.Fatal(err) // Do not log.fatal in a production ready app.
+		log.Fatalf("failed to create signer: %v", err) // Do not log.fatal in a production ready app.
 	}
 
-	// Create an opensearch client and use the request-signer
+	// Create an opensearch client and use the request-signer.
 	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{endpoint},
 		Signer:    signer,
 	})
 	if err != nil {
-		log.Fatal("client creation err", err)
+		log.Fatalf("failed to create new opensearch client: %v", err)
 	}
 
 	ping := opensearchapi.PingRequest{}
 
 	resp, err := ping.Do(ctx, client)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to ping: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -245,6 +246,7 @@ package main
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -265,25 +267,25 @@ func main() {
 		),
 	)
 	if err != nil {
-		log.Fatal(err) // Do not log.fatal in a production ready app.
+		log.Fatalf("failed to load aws configuraiton: %v", err) // Do not log.fatal in a production ready app.
 	}
 
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
-	signer, err := requestsigner.NewSignerWithService(awsCfg, "es") // "aoss" for Amazon OpenSearch Serverless
+	signer, err := requestsigner.NewSignerWithService(awsCfg, "es") // Use "aoss" for Amazon OpenSearch Serverless
 	if err != nil {
-		log.Fatal(err) // Do not log.fatal in a production ready app.
+		log.Fatalf("failed to create signer: %v", err)
 	}
 
-	// Create an opensearch client and use the request-signer
+	// Create an opensearch client and use the request-signer.
 	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{endpoint},
 		Signer:    signer,
 	})
 	if err != nil {
-		log.Fatal("client creation err", err)
+		log.Fatalf("failed to create new opensearch client: %v", err)
 	}
 
-	indexName = "go-test-index"
+	indexName := "go-test-index"
 
 	// Define index mapping.
 	mapping := strings.NewReader(`{
@@ -293,7 +295,7 @@ func main() {
 	        }
 	      }
 	 }`)
-    
+
 	// Create an index with non-default settings.
 	createIndex := opensearchapi.IndicesCreateRequest{
 		Index: indexName,
@@ -301,11 +303,9 @@ func main() {
 	}
 	createIndexResponse, err := createIndex.Do(ctx, client)
 	if err != nil {
-		log.Println("Error ", err.Error())
-		log.Println("failed to create index ", err)
-		log.Fatal("create response body read err", err)
+		log.Fatalf("failed to create index: %v", err)
 	}
-	log.Println(createIndexResponse)
+	log.Printf("created index: %#v", createIndexResponse)
 
 	// Delete previously created index.
 	deleteIndex := opensearchapi.IndicesDeleteRequest{
@@ -314,10 +314,9 @@ func main() {
 
 	deleteIndexResponse, err := deleteIndex.Do(ctx, client)
 	if err != nil {
-		log.Println("failed to delete index ", err)
-		log.Fatal("delete index response body read err", err)
+		log.Fatalf("failed to delete index: %v", err)
 	}
-	log.Println("deleting index", deleteIndexResponse)
+	log.Printf("deleted index: %#v", deleteIndexResponse)
 }
 
 func getCredentialProvider(accessKey, secretAccessKey, token string) aws.CredentialsProviderFunc {

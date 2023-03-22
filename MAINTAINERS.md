@@ -13,8 +13,8 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 
 ## Emeritus
 
-| Maintainer              | GitHub ID                                   | Affiliation |
-| ----------------------- | ------------------------------------------- | ----------- |
-| Jack Mazanec            | [jmazanec15](https://github.com/jmazanec15) | Amazon      |
-| Vamshi Vijay Nakkirtha  | [vamshin](https://github.com/vamshin)       | Amazon      |
-| Rob Cowart              | [robcowart](https://github.com/robcowart)   | ElastiFlow  |
+| Maintainer             | GitHub ID                                   | Affiliation |
+| ---------------------- | ------------------------------------------- | ----------- |
+| Jack Mazanec           | [jmazanec15](https://github.com/jmazanec15) | Amazon      |
+| Vamshi Vijay Nakkirtha | [vamshin](https://github.com/vamshin)       | Amazon      |
+| Rob Cowart             | [robcowart](https://github.com/robcowart)   | ElastiFlow  |
