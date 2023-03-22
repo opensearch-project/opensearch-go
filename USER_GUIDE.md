@@ -9,6 +9,7 @@
 		- [Get All Data Streams](#get-data-streams)
 		- [Get Specific Data Stream](#get-specific-data-streams)
 		- [Get Specific Data Stream Stats](#get-specific-data-streams-stats)
+
 # User Guide
 
 ## Example
@@ -154,7 +155,7 @@ See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.
 > must
 > be signed using AWS Signature Version 4.
 >
-See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
+> See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
 Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2`
 respectively.
@@ -288,7 +289,7 @@ func main() {
 	        }
 	      }
 	 }`)
-    
+
 	// Create an index with non-default settings.
 	createIndex := opensearchapi.IndicesCreateRequest{
 		Index: indexName,
