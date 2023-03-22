@@ -151,7 +151,7 @@ func (r ClusterPostVotingConfigExclusionsRequest) Do(ctx context.Context, transp
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

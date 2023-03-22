@@ -153,7 +153,7 @@ func (r IndicesRecoveryRequest) Do(ctx context.Context, transport Transport) (*R
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

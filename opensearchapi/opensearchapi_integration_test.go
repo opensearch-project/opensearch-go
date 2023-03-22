@@ -56,10 +56,6 @@ func TestAPI(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		if res.IsError() {
-			t.Fatalf("Error response: %s", res.String())
-		}
-
 		var d map[string]interface{}
 		err = json.NewDecoder(res.Body).Decode(&d)
 		if err != nil {
@@ -79,10 +75,6 @@ func TestAPI(t *testing.T) {
 			t.Fatalf("Error getting the response: %s\n", err)
 		}
 		defer res.Body.Close()
-
-		if res.IsError() {
-			t.Fatalf("Error response: %s", res.String())
-		}
 
 		if !strings.HasPrefix(res.String(), "[200 OK] ---") {
 			t.Errorf("Unexpected response body: doesn't start with '[200 OK] ---'; %s", res.String())
@@ -123,10 +115,7 @@ func TestAPI(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to index data: %s", err)
 		}
-		res.Body.Close()
-		if res.IsError() {
-			t.Fatalf("Failed to index data: %s", res.Status())
-		}
+		defer res.Body.Close()
 
 		// Launch reindexing task with wait_for_completion=false
 		//
@@ -138,9 +127,6 @@ func TestAPI(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to reindex: %s", err)
 		}
-		if res.IsError() {
-			t.Fatalf("Failed to reindex: %s", res.Status())
-		}
 		time.Sleep(10 * time.Millisecond)
 
 		res, err = client.Tasks.List(client.Tasks.List.WithPretty())
@@ -148,9 +134,6 @@ func TestAPI(t *testing.T) {
 			t.Fatalf("ERROR: %s", err)
 		}
 		res.Body.Close()
-		if res.IsError() {
-			t.Fatalf("Failed to get tasks: %s", res.Status())
-		}
 
 		// Get the list of tasks
 		//
@@ -159,10 +142,6 @@ func TestAPI(t *testing.T) {
 			t.Fatalf("ERROR: %s", err)
 		}
 		defer res.Body.Close()
-
-		if res.IsError() {
-			t.Fatalf("Failed to get tasks: %s", res.Status())
-		}
 
 		type task struct {
 			Node        string
@@ -208,10 +187,7 @@ func TestAPI(t *testing.T) {
 						if err != nil {
 							t.Fatalf("ERROR: %s", err)
 						}
-						res.Body.Close()
-						if res.IsError() {
-							t.Fatalf("Failed to cancel task: %s", res)
-						}
+						defer res.Body.Close()
 					}
 				}
 			}

@@ -173,7 +173,7 @@ func (r IndicesGetMappingRequest) Do(ctx context.Context, transport Transport) (
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

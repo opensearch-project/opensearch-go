@@ -169,7 +169,7 @@ func (r IndicesPutIndexTemplateRequest) Do(ctx context.Context, transport Transp
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.
