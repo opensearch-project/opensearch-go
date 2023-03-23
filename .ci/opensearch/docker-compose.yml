@@ -12,6 +12,7 @@ services:
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
+      - path.repo=/usr/share/opensearch/mnt
     ports:
       - "9200:9200"
     user: opensearch
