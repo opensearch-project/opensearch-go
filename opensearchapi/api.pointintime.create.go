@@ -28,13 +28,14 @@ package opensearchapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 	"time"
 )
 
 func newPointInTimeCreateFunc(t Transport) PointInTimeCreate {
-	return func(o ...func(*PointInTimeCreateRequest)) (*Response, error) {
+	return func(o ...func(*PointInTimeCreateRequest)) (*Response, *PointInTimeCreateResp, error) {
 		var r = PointInTimeCreateRequest{}
 		for _, f := range o {
 			f(&r)
@@ -46,11 +47,11 @@ func newPointInTimeCreateFunc(t Transport) PointInTimeCreate {
 // ----- API Definition -------------------------------------------------------
 
 // Point In Time ets you run different queries against a dataset that is fixed in time.
-type PointInTimeCreate func(o ...func(*PointInTimeCreateRequest)) (*Response, error)
+type PointInTimeCreate func(o ...func(*PointInTimeCreateRequest)) (*Response, *PointInTimeCreateResp, error)
 
 // PointInTimeRequest configures the Point In Time API request.
 type PointInTimeCreateRequest struct {
-	Indices []string
+	Index []string
 
 	KeepAlive               time.Duration
 	Preference              string
@@ -68,17 +69,30 @@ type PointInTimeCreateRequest struct {
 	ctx context.Context
 }
 
+type PointInTimeCreateResp struct {
+	PitID  string `json:"pit_id"`
+	Shards struct {
+		Total      int `json:"total"`
+		Successful int `json:"successful"`
+		Skipped    int `json:"skipped"`
+		Failed     int `json:"failed"`
+	} `json:"_shards"`
+	CreationTime int `json:"creation_time"`
+}
+
 // Do executes the request and returns response or error.
-func (r PointInTimeCreateRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r PointInTimeCreateRequest) Do(ctx context.Context, transport Transport) (*Response, *PointInTimeCreateResp, error) {
 	var (
 		path   strings.Builder
 		params map[string]string
+
+		data PointInTimeCreateResp
 	)
 	method := "POST"
 
-	path.Grow(1 + len(strings.Join(r.Indices, ",")) + len("/_search/point_in_time"))
+	path.Grow(1 + len(strings.Join(r.Index, ",")) + len("/_search/point_in_time"))
 	path.WriteString("/")
-	path.WriteString(strings.Join(r.Indices, ","))
+	path.WriteString(strings.Join(r.Index, ","))
 	path.WriteString("/_search/point_in_time")
 
 	params = make(map[string]string)
@@ -121,7 +135,7 @@ func (r PointInTimeCreateRequest) Do(ctx context.Context, transport Transport) (
 
 	req, err := newRequest(method, path.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(params) > 0 {
@@ -150,7 +164,7 @@ func (r PointInTimeCreateRequest) Do(ctx context.Context, transport Transport) (
 
 	res, err := transport.Perform(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	response := Response{
@@ -159,7 +173,25 @@ func (r PointInTimeCreateRequest) Do(ctx context.Context, transport Transport) (
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	if err = response.Err(); err != nil {
+		return &response, nil, err
+	}
+
+	if len(r.FilterPath) != 0 {
+		return &response, nil, nil
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&data); err != nil {
+		return &response, nil, err
+	}
+	return &response, &data, nil
+}
+
+// WithIndex - a list of index names to search; use _all to perform the operation on all indices.
+func (f PointInTimeCreate) WithIndex(v ...string) func(*PointInTimeCreateRequest) {
+	return func(r *PointInTimeCreateRequest) {
+		r.Index = v
+	}
 }
 
 // WithContext sets the request context.

@@ -28,12 +28,14 @@ package opensearchapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func newPointInTimeGetFunc(t Transport) PointInTimeGet {
-	return func(o ...func(*PointInTimeGetRequest)) (*Response, error) {
+	return func(o ...func(*PointInTimeGetRequest)) (*Response, *PointInTimeGetResp, error) {
 		var r = PointInTimeGetRequest{}
 		for _, f := range o {
 			f(&r)
@@ -45,7 +47,7 @@ func newPointInTimeGetFunc(t Transport) PointInTimeGet {
 // ----- API Definition -------------------------------------------------------
 
 // Point In Time ets you run different queries against a dataset that is fixed in time.
-type PointInTimeGet func(o ...func(*PointInTimeGetRequest)) (*Response, error)
+type PointInTimeGet func(o ...func(*PointInTimeGetRequest)) (*Response, *PointInTimeGetResp, error)
 
 // PointInTimeRequest configures the Point In Time API request.
 type PointInTimeGetRequest struct {
@@ -59,11 +61,21 @@ type PointInTimeGetRequest struct {
 	ctx context.Context
 }
 
+type PointInTimeGetResp struct {
+	Pits []struct {
+		PitID        string        `json:"pit_id"`
+		CreationTime int           `json:"creation_time"`
+		KeepAlive    time.Duration `json:"keep_alive"`
+	} `json:"pits"`
+}
+
 // Do executes the request and returns response or error.
-func (r PointInTimeGetRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r PointInTimeGetRequest) Do(ctx context.Context, transport Transport) (*Response, *PointInTimeGetResp, error) {
 	var (
 		path   strings.Builder
 		params map[string]string
+
+		data PointInTimeGetResp
 	)
 	method := "GET"
 
@@ -90,7 +102,7 @@ func (r PointInTimeGetRequest) Do(ctx context.Context, transport Transport) (*Re
 
 	req, err := newRequest(method, path.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(params) > 0 {
@@ -119,7 +131,7 @@ func (r PointInTimeGetRequest) Do(ctx context.Context, transport Transport) (*Re
 
 	res, err := transport.Perform(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	response := Response{
@@ -128,7 +140,18 @@ func (r PointInTimeGetRequest) Do(ctx context.Context, transport Transport) (*Re
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	if err = response.Err(); err != nil {
+		return &response, nil, err
+	}
+
+	if len(r.FilterPath) != 0 {
+		return &response, nil, nil
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&data); err != nil {
+		return &response, nil, err
+	}
+	return &response, &data, nil
 }
 
 // WithContext sets the request context.

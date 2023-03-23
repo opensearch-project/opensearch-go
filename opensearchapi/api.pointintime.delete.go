@@ -36,7 +36,7 @@ import (
 )
 
 func newPointInTimeDeleteFunc(t Transport) PointInTimeDelete {
-	return func(o ...func(*PointInTimeDeleteRequest)) (*Response, error) {
+	return func(o ...func(*PointInTimeDeleteRequest)) (*Response, *PointInTimeDeleteResp, error) {
 		var r = PointInTimeDeleteRequest{}
 		for _, f := range o {
 			f(&r)
@@ -48,12 +48,11 @@ func newPointInTimeDeleteFunc(t Transport) PointInTimeDelete {
 // ----- API Definition -------------------------------------------------------
 
 // Point In Time ets you run different queries against a dataset that is fixed in time.
-type PointInTimeDelete func(o ...func(*PointInTimeDeleteRequest)) (*Response, error)
+type PointInTimeDelete func(o ...func(*PointInTimeDeleteRequest)) (*Response, *PointInTimeDeleteResp, error)
 
 // PointInTimeRequest configures the Point In Time API request.
 type PointInTimeDeleteRequest struct {
 	PitID []string
-	All   bool
 
 	Pretty     bool
 	Human      bool
@@ -65,35 +64,40 @@ type PointInTimeDeleteRequest struct {
 	ctx context.Context
 }
 
-type PointInTimeList struct {
+type PointInTimeDeleteRequestBody struct {
 	PitID []string `json:"pit_id"`
 }
 
+type PointInTimeDeleteResp struct {
+	Pits []struct {
+		PitID      string `json:"pit_id"`
+		Successful bool   `json:"successful"`
+	} `json:"pits"`
+}
+
 // Do executes the request and returns response or error.
-func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (*Response, *PointInTimeDeleteResp, error) {
 	var (
 		path   strings.Builder
 		params map[string]string
 		body   io.Reader
+
+		data PointInTimeDeleteResp
 	)
 	method := "DELETE"
 
 	path.Grow(len("/_search/point_in_time"))
 	path.WriteString("/_search/point_in_time")
-	if r.All {
-		path.Grow(len("/_all"))
-		path.WriteString("/_all")
-	}
 
 	params = make(map[string]string)
 
-	if !r.All && len(r.PitID) > 0 {
-		bodyStruct := PointInTimeList{PitID: r.PitID}
-		bodyJson, err := json.Marshal(bodyStruct)
+	if len(r.PitID) > 0 {
+		bodyStruct := PointInTimeDeleteRequestBody{PitID: r.PitID}
+		bodyJSON, err := json.Marshal(bodyStruct)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		body = bytes.NewBuffer(bodyJson)
+		body = bytes.NewBuffer(bodyJSON)
 	}
 
 	if r.Pretty {
@@ -114,7 +118,7 @@ func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (
 
 	req, err := newRequest(method, path.String(), body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(params) > 0 {
@@ -123,6 +127,10 @@ func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (
 			q.Set(k, v)
 		}
 		req.URL.RawQuery = q.Encode()
+	}
+
+	if body != nil {
+		req.Header[headerContentType] = headerContentTypeJSON
 	}
 
 	if len(r.Header) > 0 {
@@ -143,7 +151,7 @@ func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (
 
 	res, err := transport.Perform(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	response := Response{
@@ -152,7 +160,25 @@ func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	if err = response.Err(); err != nil {
+		return &response, nil, err
+	}
+
+	if len(r.FilterPath) != 0 {
+		return &response, nil, nil
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&data); err != nil {
+		return &response, nil, err
+	}
+	return &response, &data, nil
+}
+
+// WithPitID sets the Pit to delete.
+func (f PointInTimeDelete) WithPitID(v ...string) func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
+		r.PitID = v
+	}
 }
 
 // WithContext sets the request context.
