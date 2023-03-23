@@ -27,3 +27,12 @@ jobs:
         shell: bash
       - run: go version
       - run: make lint
+
+      - name: Install npm v8
+        run: npm i -g npm@8
+      - name: Prettify markdown code
+        uses: creyD/prettier_action@v4.2
+        with:
+          commit_message: "Auto formatting markdown code"
+          prettier_options: --prose-wrap always --write **/*.md
+          github_token: ${{ secrets.GITHUB_TOKEN }}
