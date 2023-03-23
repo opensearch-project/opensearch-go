@@ -33,6 +33,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -197,14 +198,14 @@ func TestAPI(t *testing.T) {
 		// Functio to perform requests
 		//
 		opensearchDo := func(ctx context.Context, client *opensearch.Client, req opensearchapi.Request, msg string, t *testing.T) {
-			resp, err := req.Do(ctx, client)
+			_, err := req.Do(ctx, client)
 			if err != nil {
-				t.Fatalf("Failed to %s: %s", msg, err)
-			}
-			defer resp.Body.Close()
-			if resp.IsError() {
-				if resp.StatusCode != 404 {
-					t.Fatalf("Failed to %s: %s", msg, resp.Status())
+				var opensearchError *opensearchapi.Error
+				if errors.As(err, &opensearchError) {
+					if opensearchError.Err.Type == "snapshot_missing_exception" {
+						return
+					}
+					t.Fatalf("Failed to %s: %s", msg, err)
 				}
 			}
 		}
