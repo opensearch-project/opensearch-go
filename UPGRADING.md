@@ -11,7 +11,7 @@
 
 `SnapshotDeleteRequest` and `SnapshotDelete` changed the argument `Snapshot` type from `string` to `[]string`.
 
-Before:
+Before 3.0.0:
 
 ```go
 // If you have a string containing your snapshot
@@ -29,7 +29,7 @@ reqSnapshots := &opensearchapi.SnapshotDeleteRequest{
 }
 ```
 
-After:
+With 3.0.0:
 
 ```go
 // If you have a string containing your snapshots
@@ -54,7 +54,24 @@ Prior versions only returned an error if the request failed to execute. For exam
 With opensearch-go >= 3.0.0 each opensearchapi requests will return an error if the response http status code is > 299.
 The error can be parsed into the new `opensearchapi.Error` type by using `errors.As` to match for exceptions and get a more detailed view. 
 
-Example:
+Before 3.0.0:
+```go
+createIndex := opensearchapi.IndicesCreateRequest{
+  Index: IndexName,
+  Body:  mapping,
+}
+
+ctx := context.Background()
+createIndexResp, err := createIndex.Do(ctx, client)
+if err != nil {
+    return err
+}
+if createIndexResp.IsError() {
+    fmt.Errorf("Opensearch returned an error. Status: %d", createIndexResp.StatusCode)
+}
+```
+
+With 3.0.0:
 
 ```go
 createIndex := opensearchapi.IndicesCreateRequest{
@@ -66,14 +83,15 @@ ctx := context.Background()
 var opensearchError *opensearchapi.Error
 
 createIndexResponse, err := createIndex.Do(ctx, client)
-	// Load err into opensearchapi.Error to access the fields and tolerate if the index already exists
-	if err != nil {
-		if errors.As(err, &opensearchError) {
-			if opensearchError.Err.Type != "resource_already_exists_exception" {
-				return err
-			}
-		} else {
+// Load err into opensearchapi.Error to access the fields and tolerate if the index already exists
+if err != nil {
+	if errors.As(err, &opensearchError) {
+		if opensearchError.Err.Type != "resource_already_exists_exception" {
 			return err
 		}
+	} else {
+		return err
 	}
+}
 ```
+
