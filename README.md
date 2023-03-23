@@ -18,7 +18,10 @@ OpenSearch Go Client
 
 ## Welcome!
 
-**opensearch-go** is [a community-driven, open source fork](https://aws.amazon.com/blogs/opensource/introducing-opensearch/) of go-elasticsearch licensed under the [Apache v2.0 License](LICENSE.txt). For more information, see [opensearch.org](https://opensearch.org/).
+**opensearch-go** is
+[a community-driven, open source fork](https://aws.amazon.com/blogs/opensource/introducing-opensearch/)
+of go-elasticsearch licensed under the [Apache v2.0 License](LICENSE.txt). For
+more information, see [opensearch.org](https://opensearch.org/).
 
 ## Project Resources
 
@@ -37,7 +40,12 @@ OpenSearch Go Client
 
 ## Code of Conduct
 
-This project has adopted the [Amazon Open Source Code of Conduct](CODE_OF_CONDUCT.md). For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq), or contact [opensource-codeofconduct@amazon.com](mailto:opensource-codeofconduct@amazon.com) with any additional questions or comments.
+This project has adopted the
+[Amazon Open Source Code of Conduct](CODE_OF_CONDUCT.md). For more information
+see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq), or
+contact
+[opensource-codeofconduct@amazon.com](mailto:opensource-codeofconduct@amazon.com)
+with any additional questions or comments.
 
 ## License
 
