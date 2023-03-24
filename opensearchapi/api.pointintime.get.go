@@ -46,10 +46,10 @@ func newPointInTimeGetFunc(t Transport) PointInTimeGet {
 
 // ----- API Definition -------------------------------------------------------
 
-// Point In Time ets you run different queries against a dataset that is fixed in time.
+// PointInTimeGet lets you get all existing pits
 type PointInTimeGet func(o ...func(*PointInTimeGetRequest)) (*Response, *PointInTimeGetResp, error)
 
-// PointInTimeRequest configures the Point In Time API request.
+// PointInTimeGetRequest configures the Point In Time Get API request.
 type PointInTimeGetRequest struct {
 	Pretty     bool
 	Human      bool
@@ -61,6 +61,7 @@ type PointInTimeGetRequest struct {
 	ctx context.Context
 }
 
+// PointInTimeGetResp is a custom type to parse the Point In Time Get Reponse
 type PointInTimeGetResp struct {
 	Pits []struct {
 		PitID        string        `json:"pit_id"`

@@ -46,10 +46,10 @@ func newPointInTimeCreateFunc(t Transport) PointInTimeCreate {
 
 // ----- API Definition -------------------------------------------------------
 
-// Point In Time ets you run different queries against a dataset that is fixed in time.
+// PointInTimeCreate let you create a pit for searching with pagination
 type PointInTimeCreate func(o ...func(*PointInTimeCreateRequest)) (*Response, *PointInTimeCreateResp, error)
 
-// PointInTimeRequest configures the Point In Time API request.
+// PointInTimeCreateRequest configures the Point In Time Create API request.
 type PointInTimeCreateRequest struct {
 	Index []string
 
@@ -69,6 +69,7 @@ type PointInTimeCreateRequest struct {
 	ctx context.Context
 }
 
+// PointInTimeCreateResp is a custom type to parse the Point In Time Create Reponse
 type PointInTimeCreateResp struct {
 	PitID  string `json:"pit_id"`
 	Shards struct {
@@ -80,7 +81,7 @@ type PointInTimeCreateResp struct {
 	CreationTime int `json:"creation_time"`
 }
 
-// Do executes the request and returns response or error.
+// Do executes the request and returns response, PointInTimeCreateResp and error.
 func (r PointInTimeCreateRequest) Do(ctx context.Context, transport Transport) (*Response, *PointInTimeCreateResp, error) {
 	var (
 		path   strings.Builder

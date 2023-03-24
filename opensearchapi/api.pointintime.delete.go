@@ -47,10 +47,10 @@ func newPointInTimeDeleteFunc(t Transport) PointInTimeDelete {
 
 // ----- API Definition -------------------------------------------------------
 
-// Point In Time ets you run different queries against a dataset that is fixed in time.
+// PointInTimeDelete lets you delete pits used for searching with pagination
 type PointInTimeDelete func(o ...func(*PointInTimeDeleteRequest)) (*Response, *PointInTimeDeleteResp, error)
 
-// PointInTimeRequest configures the Point In Time API request.
+// PointInTimeDeleteRequest configures the Point In Time Delete API request.
 type PointInTimeDeleteRequest struct {
 	PitID []string
 
@@ -64,10 +64,12 @@ type PointInTimeDeleteRequest struct {
 	ctx context.Context
 }
 
+// PointInTimeDeleteRequestBody is used to from the delete request body
 type PointInTimeDeleteRequestBody struct {
 	PitID []string `json:"pit_id"`
 }
 
+// PointInTimeDeleteResp is a custom type to parse the Point In Time Delete Reponse
 type PointInTimeDeleteResp struct {
 	Pits []struct {
 		PitID      string `json:"pit_id"`

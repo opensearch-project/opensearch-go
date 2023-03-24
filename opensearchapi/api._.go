@@ -226,6 +226,7 @@ type Tasks struct {
 	List   TasksList
 }
 
+// PointInTime contains the Point In Time APIs
 type PointInTime struct {
 	Create PointInTimeCreate
 	Delete PointInTimeDelete
