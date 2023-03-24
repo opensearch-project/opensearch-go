@@ -18,6 +18,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds Go Documentation link for the client ([#182](https://github.com/opensearch-project/opensearch-go/pull/182))
 - Adds implementation of Data Streams API ([#257](https://github.com/opensearch-project/opensearch-go/pull/257)
 - Adds `Err()` function to Response for detailed errors ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
+- Adds Point In Time API ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
+- Adds InfoResp type ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
 
 ### Changed
 

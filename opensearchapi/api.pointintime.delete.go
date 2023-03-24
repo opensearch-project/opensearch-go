@@ -27,14 +27,17 @@
 package opensearchapi
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 )
 
-func newInfoFunc(t Transport) Info {
-	return func(o ...func(*InfoRequest)) (*Response, error) {
-		var r = InfoRequest{}
+func newPointInTimeDeleteFunc(t Transport) PointInTimeDelete {
+	return func(o ...func(*PointInTimeDeleteRequest)) (*Response, *PointInTimeDeleteResp, error) {
+		var r = PointInTimeDeleteRequest{}
 		for _, f := range o {
 			f(&r)
 		}
@@ -44,11 +47,13 @@ func newInfoFunc(t Transport) Info {
 
 // ----- API Definition -------------------------------------------------------
 
-// Info returns basic information about the cluster.
-type Info func(o ...func(*InfoRequest)) (*Response, error)
+// PointInTimeDelete lets you delete pits used for searching with pagination
+type PointInTimeDelete func(o ...func(*PointInTimeDeleteRequest)) (*Response, *PointInTimeDeleteResp, error)
 
-// InfoRequest configures the Info API request.
-type InfoRequest struct {
+// PointInTimeDeleteRequest configures the Point In Time Delete API request.
+type PointInTimeDeleteRequest struct {
+	PitID []string
+
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
@@ -59,39 +64,43 @@ type InfoRequest struct {
 	ctx context.Context
 }
 
-// InfoResp is a custom type to parse the Info Reponse
-type InfoResp struct {
-	Name        string `json:"name"`
-	ClusterName string `json:"cluster_name"`
-	ClusterUUID string `json:"cluster_uuid"`
-	Version     struct {
-		Distribution                     string `json:"distribution"`
-		Number                           string `json:"number"`
-		BuildType                        string `json:"build_type"`
-		BuildHash                        string `json:"build_hash"`
-		BuildDate                        string `json:"build_date"`
-		BuildSnapshot                    bool   `json:"build_snapshot"`
-		LuceneVersion                    string `json:"lucene_version"`
-		MinimumWireCompatibilityVersion  string `json:"minimum_wire_compatibility_version"`
-		MinimumIndexCompatibilityVersion string `json:"minimum_index_compatibility_version"`
-	} `json:"version"`
-	Tagline string `json:"tagline"`
+// PointInTimeDeleteRequestBody is used to from the delete request body
+type PointInTimeDeleteRequestBody struct {
+	PitID []string `json:"pit_id"`
+}
+
+// PointInTimeDeleteResp is a custom type to parse the Point In Time Delete Reponse
+type PointInTimeDeleteResp struct {
+	Pits []struct {
+		PitID      string `json:"pit_id"`
+		Successful bool   `json:"successful"`
+	} `json:"pits"`
 }
 
 // Do executes the request and returns response or error.
-func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r PointInTimeDeleteRequest) Do(ctx context.Context, transport Transport) (*Response, *PointInTimeDeleteResp, error) {
 	var (
-		method string
 		path   strings.Builder
 		params map[string]string
+		body   io.Reader
+
+		data PointInTimeDeleteResp
 	)
+	method := "DELETE"
 
-	method = "GET"
-
-	path.Grow(len("/"))
-	path.WriteString("/")
+	path.Grow(len("/_search/point_in_time"))
+	path.WriteString("/_search/point_in_time")
 
 	params = make(map[string]string)
+
+	if len(r.PitID) > 0 {
+		bodyStruct := PointInTimeDeleteRequestBody{PitID: r.PitID}
+		bodyJSON, err := json.Marshal(bodyStruct)
+		if err != nil {
+			return nil, nil, err
+		}
+		body = bytes.NewBuffer(bodyJSON)
+	}
 
 	if r.Pretty {
 		params["pretty"] = "true"
@@ -109,9 +118,9 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
-	req, err := newRequest(method, path.String(), nil)
+	req, err := newRequest(method, path.String(), body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(params) > 0 {
@@ -120,6 +129,10 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 			q.Set(k, v)
 		}
 		req.URL.RawQuery = q.Encode()
+	}
+
+	if body != nil {
+		req.Header[headerContentType] = headerContentTypeJSON
 	}
 
 	if len(r.Header) > 0 {
@@ -140,7 +153,7 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 
 	res, err := transport.Perform(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	response := Response{
@@ -149,40 +162,65 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	if err = response.Err(); err != nil {
+		return &response, nil, err
+	}
+
+	if len(r.FilterPath) != 0 {
+		return &response, nil, nil
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&data); err != nil {
+		return &response, nil, err
+	}
+	return &response, &data, nil
+}
+
+// WithPitID sets the Pit to delete.
+func (f PointInTimeDelete) WithPitID(v ...string) func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
+		r.PitID = v
+	}
 }
 
 // WithContext sets the request context.
-func (f Info) WithContext(v context.Context) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeDelete) WithContext(v context.Context) func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
 		r.ctx = v
 	}
 }
 
+// WithPretty makes the response body pretty-printed.
+func (f PointInTimeDelete) WithPretty() func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
+		r.Pretty = true
+	}
+}
+
 // WithHuman makes statistical values human-readable.
-func (f Info) WithHuman() func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeDelete) WithHuman() func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f Info) WithErrorTrace() func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeDelete) WithErrorTrace() func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f Info) WithFilterPath(v ...string) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeDelete) WithFilterPath(v ...string) func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f Info) WithHeader(h map[string]string) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeDelete) WithHeader(h map[string]string) func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -193,8 +231,8 @@ func (f Info) WithHeader(h map[string]string) func(*InfoRequest) {
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f Info) WithOpaqueID(s string) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeDelete) WithOpaqueID(s string) func(*PointInTimeDeleteRequest) {
+	return func(r *PointInTimeDeleteRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}

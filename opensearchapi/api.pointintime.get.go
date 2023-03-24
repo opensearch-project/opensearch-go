@@ -28,13 +28,15 @@ package opensearchapi
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 )
 
-func newInfoFunc(t Transport) Info {
-	return func(o ...func(*InfoRequest)) (*Response, error) {
-		var r = InfoRequest{}
+func newPointInTimeGetFunc(t Transport) PointInTimeGet {
+	return func(o ...func(*PointInTimeGetRequest)) (*Response, *PointInTimeGetResp, error) {
+		var r = PointInTimeGetRequest{}
 		for _, f := range o {
 			f(&r)
 		}
@@ -44,11 +46,11 @@ func newInfoFunc(t Transport) Info {
 
 // ----- API Definition -------------------------------------------------------
 
-// Info returns basic information about the cluster.
-type Info func(o ...func(*InfoRequest)) (*Response, error)
+// PointInTimeGet lets you get all existing pits
+type PointInTimeGet func(o ...func(*PointInTimeGetRequest)) (*Response, *PointInTimeGetResp, error)
 
-// InfoRequest configures the Info API request.
-type InfoRequest struct {
+// PointInTimeGetRequest configures the Point In Time Get API request.
+type PointInTimeGetRequest struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
@@ -59,37 +61,27 @@ type InfoRequest struct {
 	ctx context.Context
 }
 
-// InfoResp is a custom type to parse the Info Reponse
-type InfoResp struct {
-	Name        string `json:"name"`
-	ClusterName string `json:"cluster_name"`
-	ClusterUUID string `json:"cluster_uuid"`
-	Version     struct {
-		Distribution                     string `json:"distribution"`
-		Number                           string `json:"number"`
-		BuildType                        string `json:"build_type"`
-		BuildHash                        string `json:"build_hash"`
-		BuildDate                        string `json:"build_date"`
-		BuildSnapshot                    bool   `json:"build_snapshot"`
-		LuceneVersion                    string `json:"lucene_version"`
-		MinimumWireCompatibilityVersion  string `json:"minimum_wire_compatibility_version"`
-		MinimumIndexCompatibilityVersion string `json:"minimum_index_compatibility_version"`
-	} `json:"version"`
-	Tagline string `json:"tagline"`
+// PointInTimeGetResp is a custom type to parse the Point In Time Get Reponse
+type PointInTimeGetResp struct {
+	Pits []struct {
+		PitID        string        `json:"pit_id"`
+		CreationTime int           `json:"creation_time"`
+		KeepAlive    time.Duration `json:"keep_alive"`
+	} `json:"pits"`
 }
 
 // Do executes the request and returns response or error.
-func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r PointInTimeGetRequest) Do(ctx context.Context, transport Transport) (*Response, *PointInTimeGetResp, error) {
 	var (
-		method string
 		path   strings.Builder
 		params map[string]string
+
+		data PointInTimeGetResp
 	)
+	method := "GET"
 
-	method = "GET"
-
-	path.Grow(len("/"))
-	path.WriteString("/")
+	path.Grow(len("/_search/point_in_time/_all"))
+	path.WriteString("/_search/point_in_time/_all")
 
 	params = make(map[string]string)
 
@@ -111,7 +103,7 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 
 	req, err := newRequest(method, path.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if len(params) > 0 {
@@ -140,7 +132,7 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 
 	res, err := transport.Perform(req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	response := Response{
@@ -149,40 +141,58 @@ func (r InfoRequest) Do(ctx context.Context, transport Transport) (*Response, er
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	if err = response.Err(); err != nil {
+		return &response, nil, err
+	}
+
+	if len(r.FilterPath) != 0 {
+		return &response, nil, nil
+	}
+
+	if err := json.NewDecoder(response.Body).Decode(&data); err != nil {
+		return &response, nil, err
+	}
+	return &response, &data, nil
 }
 
 // WithContext sets the request context.
-func (f Info) WithContext(v context.Context) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeGet) WithContext(v context.Context) func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
 		r.ctx = v
 	}
 }
 
+// WithPretty makes the response body pretty-printed.
+func (f PointInTimeGet) WithPretty() func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
+		r.Pretty = true
+	}
+}
+
 // WithHuman makes statistical values human-readable.
-func (f Info) WithHuman() func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeGet) WithHuman() func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f Info) WithErrorTrace() func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeGet) WithErrorTrace() func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f Info) WithFilterPath(v ...string) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeGet) WithFilterPath(v ...string) func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f Info) WithHeader(h map[string]string) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeGet) WithHeader(h map[string]string) func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -193,8 +203,8 @@ func (f Info) WithHeader(h map[string]string) func(*InfoRequest) {
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f Info) WithOpaqueID(s string) func(*InfoRequest) {
-	return func(r *InfoRequest) {
+func (f PointInTimeGet) WithOpaqueID(s string) func(*PointInTimeGetRequest) {
+	return func(r *PointInTimeGetRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
