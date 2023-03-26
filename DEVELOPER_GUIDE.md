@@ -7,6 +7,8 @@
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
+    - [Lint](#lint)
+      - [Markdown lint](#markdown-lint)
   - [Use an Editor](#use-an-editor)
     - [GoLand](#goland)
 
@@ -70,6 +72,20 @@ Hence, create all integration tests with build tag 'integration'.
    ```
    make cluster.stop cluster.clean
    ```
+   
+## Lint
+
+To keep all the code in a certain uniform format, it was decided to use some writing rules.
+If you wrote something wrong, it's okay, you can simply run the script to check the necessary files, and optionally format the content.
+But keep in mind that all these checks are repeated on the pipeline, so it's better to check locally.
+
+### Markdown lint
+
+
+To check the markdown files, run the following command:
+```
+make lint.markdown
+```
 
 ## Use an Editor
 
