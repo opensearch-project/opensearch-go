@@ -33,19 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        if: github.event_name == 'pull_request'
-        with:
-          fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-      - uses: actions/checkout@v3
-        if: github.event_name == 'push'
-        with:
-          fetch-depth: 0
-      - name: Install npm v8
-        run: npm i -g npm@8
-      - name: Prettify markdown code
-        uses: creyD/prettier_action@v4.2
-        with:
-          commit_message: "Auto formatting markdown code"
-          prettier_options: --prose-wrap never --write **/*.md
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+        with: { fetch-depth: 1 }
+      - name: Install dependencies
+        run: npm i -g npm@8 && npm i -g prettier
+      - name: Check markdown files
+        run: prettier --prose-wrap never --check **/*.md
