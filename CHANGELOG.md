@@ -20,6 +20,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `Err()` function to Response for detailed errors ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
 - Adds Point In Time API ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
 - Adds InfoResp type ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
+- Adds markdown linter ([#261](https://github.com/opensearch-project/opensearch-go/pull/261))
 - Adds testcases to check upsert functionality ([#207](https://github.com/opensearch-project/opensearch-go/issues/207))
 - Added @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
 
