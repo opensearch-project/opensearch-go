@@ -21,12 +21,14 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds Point In Time API ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
 - Adds InfoResp type ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
 - Adds testcases to check upsert functionality ([#207](https://github.com/opensearch-project/opensearch-go/issues/207))
+- Added @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
 
 ### Changed
 
 - Uses `[]string` instead of `string` in `SnapshotDeleteRequest` ([#237](https://github.com/opensearch-project/opensearch-go/pull/237))
 - Removes the need for double error checking ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
 - Updates workflows to reduce CI time, consolidate OpenSearch versions, update compatibility matrix ([#242](https://github.com/opensearch-project/opensearch-go/pull/242))
+- Moved @svencowart to emeritus maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
 
 ### Deprecated
 
