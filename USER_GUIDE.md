@@ -1,21 +1,18 @@
 - [User Guide](#user-guide)
-	- [Example](#example)
-	- [Amazon OpenSearch Service](#amazon-opensearch-service)
-			- [AWS SDK V1](#aws-sdk-v1)
-			- [AWS SDK V2](#aws-sdk-v2)
-	- [Data Streams API](#data-streams-api)
-		- [Create Data Stream](#create-data-streams)
-		- [Delete Data Stream](#delete-data-streams)
-		- [Get All Data Streams](#get-data-streams)
-		- [Get Specific Data Stream](#get-specific-data-streams)
-		- [Get Specific Data Stream Stats](#get-specific-data-streams-stats)
+  - [Example](#example)
+  - [Amazon OpenSearch Service](#amazon-opensearch-service) - [AWS SDK V1](#aws-sdk-v1) - [AWS SDK V2](#aws-sdk-v2)
+  - [Data Streams API](#data-streams-api)
+    - [Create Data Stream](#create-data-streams)
+    - [Delete Data Stream](#delete-data-streams)
+    - [Get All Data Streams](#get-data-streams)
+    - [Get Specific Data Stream](#get-specific-data-streams)
+    - [Get Specific Data Stream Stats](#get-specific-data-streams-stats)
 
 # User Guide
 
 ## Example
 
-In the example below, we create a client, an index with non-default settings, insert a document to the index,
-search for the document, delete the document and finally delete the index.
+In the example below, we create a client, an index with non-default settings, insert a document to the index, search for the document, delete the document and finally delete the index.
 
 ```go
 package main
@@ -171,26 +168,17 @@ func example() error {
 
 ## Amazon OpenSearch Service
 
-Before starting, we strongly recommend reading the full AWS documentation regarding using IAM credentials to sign
-requests to OpenSearch APIs.
-See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html)
+Before starting, we strongly recommend reading the full AWS documentation regarding using IAM credentials to sign requests to OpenSearch APIs. See [Identity and Access Management in Amazon OpenSearch Service.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html)
 
-> Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service
-> configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also
-> must
-> be signed using AWS Signature Version 4.
+> Even if you configure a completely open resource-based access policy, all requests to the OpenSearch Service configuration API must be signed. If your policies specify IAM users or roles, requests to the OpenSearch APIs also must be signed using AWS Signature Version 4.
 >
 > See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
-Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2`
-respectively.
-Both signers are equivalent in their functionality, they provide AWS Signature Version 4 (SigV4).
+Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2` respectively. Both signers are equivalent in their functionality, they provide AWS Signature Version 4 (SigV4).
 
-To read more about SigV4
-see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
 
-Here are some Go samples that show how to sign each OpenSearch request and automatically search for AWS credentials from
-the ~/.aws folder or environment variables:
+Here are some Go samples that show how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
 
 #### AWS SDK V1
 
@@ -344,7 +332,8 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 
 ### Create Data Streams
 
- - Create new client
+- Create new client
+
 ```
 client, err := opensearch.NewDefaultClient()
 if err != nil {
@@ -352,7 +341,7 @@ if err != nil {
 }
 ```
 
- - Create template index
+- Create template index
 
 ```
 iPut := opensearchapi.IndicesPutIndexTemplateRequest{
@@ -365,7 +354,8 @@ iPut := opensearchapi.IndicesPutIndexTemplateRequest{
 iPutResponse, err := iPut.Do(context.Background(), client)
 ```
 
- - Prepare request object
+- Prepare request object
+
 ```
 es := opensearchapi.IndicesCreateDataStreamRequest{
 	Name:       "demo-name",
@@ -378,7 +368,8 @@ es := opensearchapi.IndicesCreateDataStreamRequest{
 }
 ```
 
- - Execute request
+- Execute request
+
 ```
 res, err := es.Do(context.TODO(), client)
 if err != nil {
@@ -387,7 +378,8 @@ if err != nil {
 }
 ```
 
- - Try to read response
+- Try to read response
+
 ```
 defer res.Body.Close()
 body, err := ioutil.ReadAll(res.Body)
@@ -401,7 +393,8 @@ fmt.Println("Response Headers: ", res.Header)
 fmt.Println("Response Body: ", string(body))
 ```
 
- - Successfully created data stream
+- Successfully created data stream
+
 ```
 Response Status Code: 200
 Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
@@ -410,8 +403,9 @@ Response Body:        {"acknowledged" : true}
 
 ### Delete Data Streams
 
- - Create new client as previous example
- - Prepare request object
+- Create new client as previous example
+- Prepare request object
+
 ```
 opensearchapi.IndicesDeleteDataStreamRequest{
 	Name:       "demo-name",
@@ -423,9 +417,11 @@ opensearchapi.IndicesDeleteDataStreamRequest{
 	},
 }
 ```
+
 - Execute request as previous example
 - Try to read response as previous example
-- Successfully deleted data stream 
+- Successfully deleted data stream
+
 ```
 Response Status Code: 200
 Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
@@ -436,6 +432,7 @@ Response Body:        {"acknowledged" : true}
 
 - Create new client as previous example
 - Prepare request object
+
 ```
 r := opensearchapi.IndicesGetDataStreamRequest{
 	Pretty:     true,
@@ -446,9 +443,11 @@ r := opensearchapi.IndicesGetDataStreamRequest{
 	},
 }
 ```
+
 - Execute request as previous example
 - Try to read response as previous example
 - Successfully retrieved data streams
+
 ```
 Response Status Code: 200
 Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
@@ -459,6 +458,7 @@ Response Body: 	      {"data_streams":[{"name":"demo-name","timestamp_field":{"n
 
 - Create new client as previous example
 - Prepare request object
+
 ```
 r := opensearchapi.IndicesGetDataStreamRequest{
 		Name: 	 	"demo-name",
@@ -470,9 +470,11 @@ r := opensearchapi.IndicesGetDataStreamRequest{
 		},
 	}
 ```
+
 - Execute request as previous example
 - Try to read response as previous example
 - Successfully retrieved data stream
+
 ```
 Response Status Code: 200
 Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
@@ -483,6 +485,7 @@ Response Body:        {"data_streams":[{"name":"demo-name","timestamp_field":{"n
 
 - Create new client as as previous example
 - Prepare request object
+
 ```
 r := opensearchapi.IndicesGetDataStreamStatsRequest{
 	Name:       "demo-name",
@@ -494,9 +497,11 @@ r := opensearchapi.IndicesGetDataStreamStatsRequest{
 	},
 }
 ```
+
 - Execute request as previous example
 - Try to read response as previous example
 - Successfully retrieved data stream stats
+
 ```
 Response Status Code: 200
 Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
