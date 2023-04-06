@@ -24,6 +24,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds markdown linter ([#261](https://github.com/opensearch-project/opensearch-go/pull/261))
 - Adds testcases to check upsert functionality ([#207](https://github.com/opensearch-project/opensearch-go/issues/207))
 - Added @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
+- Adds dynamic type to _source field ([#158](https://github.com/opensearch-project/opensearch-go/issues/158))
+- Adds testcases for Document API ([#280](https://github.com/opensearch-project/opensearch-go/issues/280))
 
 ### Changed
 
