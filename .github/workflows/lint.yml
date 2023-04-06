@@ -27,3 +27,14 @@ jobs:
         shell: bash
       - run: go version
       - run: make lint
+
+  prettify:
+    name: Prettify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
+      - name: Install dependencies
+        run: npm i -g npm@8 && npm i -g prettier
+      - name: Check markdown files
+        run: prettier --prose-wrap never --check **/*.md
