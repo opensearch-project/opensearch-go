@@ -29,7 +29,7 @@ import (
 )
 
 func TestDocumentRequest_Do(t *testing.T) {
-	index := fmt.Sprintf("demo-index-%s", time.Now().Format("2006-01-02-15-04-05"))
+	index := fmt.Sprintf("index-%s", time.Now().Format("2006-01-02-15-04-05"))
 
 	tests := []struct {
 		name     string
@@ -319,6 +319,8 @@ func TestDocumentRequest_Do(t *testing.T) {
 				// ignore took field, since it is dynamic
 				took := regexp.MustCompile(`"took":\d+`)
 				actual := took.ReplaceAllString(buffer.String(), `"took":0`)
+				// ignore _type field, since it is legacy
+				actual = strings.ReplaceAll(actual, `"_type":"_doc",`, "")
 
 				require.JSONEqf(t, tt.wantBody, actual, "Do() got = %v, want %v", got.String(), tt.wantBody)
 			}
