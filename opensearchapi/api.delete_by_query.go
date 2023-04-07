@@ -221,13 +221,9 @@ func (r DeleteByQueryRequest) Do(ctx context.Context, transport Transport) (*Res
 
 	if source, ok := r.Source.(bool); ok {
 		params["_source"] = strconv.FormatBool(source)
-	}
-
-	if source, ok := r.Source.(string); ok && source != "" {
+	} else if source, ok := r.Source.(string); ok && source != "" {
 		params["_source"] = source
-	}
-
-	if sources, ok := r.Source.([]string); ok && len(sources) > 0 {
+	} else if sources, ok := r.Source.([]string); ok && len(sources) > 0 {
 		params["_source"] = strings.Join(sources, ",")
 	}
 

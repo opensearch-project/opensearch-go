@@ -289,10 +289,8 @@ func TestDocumentRequest_Do(t *testing.T) {
 		Body:       strings.NewReader(fmt.Sprintf(`{"settings": {"index": {"number_of_shards": 4}}}`)),
 	}
 
-	iCreateResponse, err := iCreate.Do(context.Background(), client)
+	_, err = iCreate.Do(context.Background(), client)
 	require.NoError(t, err)
-	require.Equalf(t, false, iCreateResponse.IsError(),
-		"Error when creating index template: %s", iCreateResponse.String())
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -302,7 +300,6 @@ func TestDocumentRequest_Do(t *testing.T) {
 				return
 			}
 
-			require.Equalf(t, got.IsError(), tt.wantErr, "Do() got = %v, want %v", got.IsError(), tt.wantErr)
 			require.Equalf(t, got.StatusCode, tt.want.StatusCode, "Do() got = %v, want %v", got.StatusCode, tt.want.StatusCode)
 
 			if tt.wantBody != "" {

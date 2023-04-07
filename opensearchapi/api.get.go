@@ -115,11 +115,10 @@ func (r GetRequest) Do(ctx context.Context, transport Transport) (*Response, err
 
 	if source, ok := r.Source.(bool); ok {
 		params["_source"] = strconv.FormatBool(source)
-	} else {
-		sources, ok := r.Source.([]string)
-		if ok && len(sources) > 0 {
-			params["_source"] = strings.Join(sources, ",")
-		}
+	} else if source, ok := r.Source.(string); ok && source != "" {
+		params["_source"] = source
+	} else if sources, ok := r.Source.([]string); ok && len(sources) > 0 {
+		params["_source"] = strings.Join(sources, ",")
 	}
 
 	if len(r.SourceExcludes) > 0 {
