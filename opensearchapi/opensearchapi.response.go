@@ -33,6 +33,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -120,7 +121,7 @@ func (r *Response) Err() error {
 		}
 		var e *Error
 		err = json.Unmarshal(body, &e)
-		if err == nil {
+		if err == nil && !reflect.ValueOf(e.Err).IsZero() {
 			return e
 		}
 		return fmt.Errorf("status: %d, error: %s", r.StatusCode, string(body))
