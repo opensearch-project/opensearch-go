@@ -49,5 +49,5 @@ type RootCause struct {
 
 // Error returns a string.
 func (e *Error) Error() string {
-	return fmt.Sprintf("error: %s, status: %d", e.Err, e.Status)
+	return fmt.Sprintf("status: %d, type: %s, reason: %s, root_cause: %s", e.Status, e.Err.Type, e.Err.Reason, e.Err.RootCause)
 }
