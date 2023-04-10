@@ -46,6 +46,7 @@ func TestAPIResponse(t *testing.T) {
 	var (
 		body string
 		res  *Response
+		err  error
 	)
 
 	t.Run("String", func(t *testing.T) {
@@ -108,14 +109,34 @@ func TestAPIResponse(t *testing.T) {
 	t.Run("Error", func(t *testing.T) {
 		res = &Response{StatusCode: 201}
 
-		if err := res.Err(); err != nil {
+		if err = res.Err(); err != nil {
 			t.Errorf("Unexpected error for response: %s", res.Status())
 		}
 
 		res = &Response{StatusCode: 403}
 
-		if err := res.Err(); err == nil {
+		if err = res.Err(); err == nil {
 			t.Errorf("Expected error for response: %s", res.Status())
+		}
+
+		res = &Response{
+			StatusCode: 404,
+			Body: io.NopCloser(
+				strings.NewReader(`
+				{
+					"_index":"index",
+					"_id":"2",
+					"matched":false
+				}`),
+			),
+		}
+		err = res.Err()
+		if err == nil {
+			t.Errorf("Expected error for response: %s", res.Status())
+		}
+		var errTest *Error
+		if errors.As(err, &errTest) {
+			t.Errorf("Expected error NOT to be of type opensearchapi.Error: %T", err)
 		}
 
 		res = &Response{
@@ -139,11 +160,10 @@ func TestAPIResponse(t *testing.T) {
 				}`)),
 		}
 
-		err := res.Err()
+		err = res.Err()
 		if err == nil {
 			t.Errorf("Expected error for response: %s", res.Status())
 		}
-		var errTest *Error
 		if !errors.As(err, &errTest) {
 			t.Errorf("Expected error to be of type opensearchapi.Error: %T", err)
 		}
