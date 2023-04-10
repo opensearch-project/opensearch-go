@@ -23,6 +23,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds markdown linter ([#261](https://github.com/opensearch-project/opensearch-go/pull/261))
 - Adds testcases to check upsert functionality ([#207](https://github.com/opensearch-project/opensearch-go/issues/207))
 - Added @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
+- Adds document_lifecycle guide ([#290](https://github.com/opensearch-project/opensearch-go/pull/290))
 
 ### Changed
 
