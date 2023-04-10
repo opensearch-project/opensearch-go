@@ -1,10 +1,11 @@
 # Index Template
+
 Index templates are a convenient way to define settings, mappings, and aliases for one or more indices when they are created. In this guide, you'll learn how to create an index template and apply it to an index.
 
 ## Setup
 
-Assuming you have OpenSearch running locally on port 9200, you can create a client instance
-with the following code:
+Assuming you have OpenSearch running locally on port 9200, you can create a client instance with the following code:
+
 ```go
 package main
 
@@ -25,6 +26,7 @@ func main() {
 ## Index Template API Actions
 
 ### Create an Index Template
+
 You can create an index template to define default settings and mappings for indices of certain patterns. The following example creates an index template named `books` with default settings and mappings for indices of the `books-*` pattern:
 
 ```go
@@ -55,8 +57,7 @@ if err != nil {
 log.Printf("response: [%+v]", res)
 ```
 
-Now, when you create an index that matches the `books-*` pattern, OpenSearch will automatically apply the template's settings and mappings to the index.
-Let's create an index named `books-nonfiction` and verify that its settings and mappings match those of the template:
+Now, when you create an index that matches the `books-*` pattern, OpenSearch will automatically apply the template's settings and mappings to the index. Let's create an index named `books-nonfiction` and verify that its settings and mappings match those of the template:
 
 ```go
 res, err = client.Indices.Create("books-nonfiction")
@@ -74,6 +75,7 @@ log.Printf("response: [%+v]", res)
 ```
 
 ### Multiple Index Templates
+
 If multiple index templates match the index's name, OpenSearch will apply the template with the highest priority. The following example creates two index templates named `books-*` and `books-fiction-*` with different settings:
 
 ```go
@@ -130,6 +132,7 @@ log.Printf("response: [%+v]", res)
 ```
 
 ### Composable Index Templates
+
 Composable index templates are a new type of index template that allow you to define multiple component templates and compose them into a final template. The following example creates a component template named `books_mappings` with default mappings for indices of the `books-*` and `books-fiction-*` patterns:
 
 ```go
@@ -202,7 +205,7 @@ if err != nil {
     log.Printf("error occurred: [%s]", err.Error())
 }
 log.Printf("response: [%+v]", res)
-``` 
+```
 
 When we create an index named `books-fiction-horror`, OpenSearch will apply the `books-fiction-*` template's settings, and `books_mappings` template mappings to the index:
 
@@ -221,6 +224,7 @@ log.Printf("response: [%+v]", res)
 ```
 
 ### Get an Index Template
+
 You can get an index template with the `get_index_template` API action:
 
 ```go
@@ -234,6 +238,7 @@ log.Printf("response: [%+v]", res)
 ```
 
 ### Delete an Index Template
+
 You can delete an index template with the `delete_template` API action:
 
 ```go
@@ -245,6 +250,7 @@ log.Printf("response: [%+v]", res)
 ```
 
 ## Cleanup
+
 Let's delete all resources created in this guide:
 
 ```go
