@@ -22,8 +22,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds InfoResp type ([#253](https://github.com/opensearch-project/opensearch-go/pull/253))
 - Adds markdown linter ([#261](https://github.com/opensearch-project/opensearch-go/pull/261))
 - Adds testcases to check upsert functionality ([#207](https://github.com/opensearch-project/opensearch-go/issues/207))
-- Added @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
-- Adds index_lifecycle guide ([#287](https://github.com/opensearch-project/opensearch-go/pull/287))
+- Adds @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
+- Adds `index_lifecycle` guide ([#287](https://github.com/opensearch-project/opensearch-go/pull/287))
+- Adds `advanced_index_actions` guide ([#288](https://github.com/opensearch-project/opensearch-go/pull/288))
+- Adds `index_template` guide ([#289](https://github.com/opensearch-project/opensearch-go/pull/289))
+- Adds `document_lifecycle` guide ([#290](https://github.com/opensearch-project/opensearch-go/pull/290))
+- Adds `search` guide ([#291](https://github.com/opensearch-project/opensearch-go/pull/291))
+- Adds `bulk` guide ([#292](https://github.com/opensearch-project/opensearch-go/pull/292))
 
 ### Changed
 
@@ -43,6 +48,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Renames the sequence number struct tag to `if_seq_no` to fix optimistic concurrency control ([#166](https://github.com/opensearch-project/opensearch-go/pull/166))
 - Fixes `RetryOnConflict` on bulk indexer ([#215](https://github.com/opensearch-project/opensearch-go/pull/215))
 - Corrects curl logging to emit the correct URL destination ([#101](https://github.com/opensearch-project/opensearch-go/pull/101))
+- Corrects handling of errors without an error response body ([#286](https://github.com/opensearch-project/opensearch-go/pull/286))
 
 ### Security
 
