@@ -145,26 +145,6 @@ func TestDocumentRequest_Do(t *testing.T) {
 			wantErr:  false,
 		},
 
-		// Explain document
-		//{
-		//	name: "TestExplainRequest_Do",
-		//	r: opensearchapi.ExplainRequest{
-		//		Index:      index,
-		//		DocumentID: "2",
-		//		Body:       strings.NewReader(`{ "query": { "match": {"year": "2019" } } }`),
-		//		Human:      true,
-		//		ErrorTrace: true,
-		//	},
-		//	want: &opensearchapi.Response{
-		//		StatusCode: 200,
-		//		Header: http.Header{
-		//			"Content-Type": []string{"application/json; charset=UTF-8"},
-		//		},
-		//	},
-		//	wantBody: ``,
-		//	wantErr:  false,
-		//},
-
 		// Search document
 		{
 			name: "TestSearchRequest_Do. Source parameter is a slice of strings",
