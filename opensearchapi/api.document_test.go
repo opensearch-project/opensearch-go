@@ -37,6 +37,7 @@ func TestDocumentRequest_Do(t *testing.T) {
 		want     *opensearchapi.Response
 		wantBody string
 		wantErr  bool
+		refresh  bool
 	}{
 		// Create document
 		{
@@ -145,6 +146,26 @@ func TestDocumentRequest_Do(t *testing.T) {
 			wantErr:  false,
 		},
 
+		// Explain document
+		{
+			name: "TestExplainRequest_Do",
+			r: opensearchapi.ExplainRequest{
+				Index:      index,
+				DocumentID: "2",
+				Query:      `title: "Tenet"`,
+				Source:     true,
+			},
+			want: &opensearchapi.Response{
+				StatusCode: 200,
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=UTF-8"},
+				},
+			},
+			wantBody: ``,
+			wantErr:  false,
+			refresh:  true,
+		},
+
 		// Search document
 		{
 			name: "TestSearchRequest_Do. Source parameter is a slice of strings",
@@ -159,8 +180,9 @@ func TestDocumentRequest_Do(t *testing.T) {
 					"Content-Type": []string{"application/json; charset=UTF-8"},
 				},
 			},
-			wantBody: fmt.Sprintf(`{"_shards": {"failed":0, "skipped":0, "successful":4, "total":4}, "hits":{"hits":[], "max_score": null, "total": {"relation":"eq", "value":0}}, "timed_out":false, "took":0}`),
+			wantBody: fmt.Sprintf(`{"took":0,"timed_out":false,"_shards":{"total":4,"successful":4,"skipped":0,"failed":0},"hits":{"total":{"value":1,"relation":"eq"},"max_score":0.6931471,"hits":[{"_index":"%s","_id":"2","_score":0.6931471,"_source":{ "title": "Tenet", "director": "Christopher Nolan", "year": "2019" }}]}}`, index),
 			wantErr:  false,
+			refresh:  true,
 		},
 
 		// Update document
@@ -273,6 +295,12 @@ func TestDocumentRequest_Do(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, tt := range tests {
+		if tt.refresh {
+			refresh, err := client.Indices.Refresh()
+			require.NoError(t, err)
+			t.Logf("response: %+v", refresh)
+		}
+
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := tt.r.Do(context.Background(), client)
 			if (err != nil) != tt.wantErr {
