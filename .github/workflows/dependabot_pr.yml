@@ -34,6 +34,9 @@ jobs:
         with:
           version: 'Unreleased'
       
+      - name: Install dependencies
+        run: npm i -g npm@8 && npm i -g prettier
+
       - name: Format markdown files with prettier
         run: prettier --prose-wrap never --write **/*.md
 
