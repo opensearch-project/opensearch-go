@@ -149,9 +149,9 @@ func TestDocumentRequest_Do(t *testing.T) {
 		{
 			name: "TestSearchRequest_Do. Source parameter is a slice of strings",
 			r: opensearchapi.SearchRequest{
-				Index: []string{index},
-				Body:  strings.NewReader(`{ "query": { "match": { "title": "Tenet" } } }`),
-				//Source: true,
+				Index:  []string{index},
+				Body:   strings.NewReader(`{ "query": { "match": { "title": "Tenet" } } }`),
+				Source: true,
 			},
 			want: &opensearchapi.Response{
 				StatusCode: 200,
