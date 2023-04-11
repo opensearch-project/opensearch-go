@@ -44,6 +44,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Renames the sequence number struct tag to `if_seq_no` to fix optimistic concurrency control ([#166](https://github.com/opensearch-project/opensearch-go/pull/166))
 - Fixes `RetryOnConflict` on bulk indexer ([#215](https://github.com/opensearch-project/opensearch-go/pull/215))
 - Corrects curl logging to emit the correct URL destination ([#101](https://github.com/opensearch-project/opensearch-go/pull/101))
+- Corrects handling of errors without an error response body ([#286](https://github.com/opensearch-project/opensearch-go/pull/286))
 
 ### Security
 
