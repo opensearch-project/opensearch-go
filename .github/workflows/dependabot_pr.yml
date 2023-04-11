@@ -33,6 +33,9 @@ jobs:
         uses: dangoslen/dependabot-changelog-helper@v2
         with:
           version: 'Unreleased'
+      
+      - name: Format markdown files with prettier
+        run: prettier --prose-wrap never --write **/*.md
 
       - name: Commit the changes
         uses: stefanzweifel/git-auto-commit-action@v4
