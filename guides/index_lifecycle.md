@@ -22,7 +22,7 @@ Let's create a client instance to access this cluster:
         "github.com/opensearch-project/opensearch-go/v2"
         "log"
     )
-    
+
     func main() {
         client, err := opensearch.NewDefaultClient()
         if err != nil {
@@ -50,7 +50,7 @@ To specify settings and mappings, you can pass them as the `body` of the request
 
 ```go
     movies := "movies"
-    
+
     createMovieIndex, err := client.Indices.Create(movies,
     client.Indices.Create.WithBody(strings.NewReader(`{
                 "settings": {
@@ -87,7 +87,7 @@ When you create a new document for an index, OpenSearch will automatically creat
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", res)
-    
+
     res, err = client.Indices.Create(
         "burner",
         client.Indices.Create.WithBody(strings.NewReader(`{  "settings": {} }`)),
@@ -96,7 +96,7 @@ When you create a new document for an index, OpenSearch will automatically creat
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", res)
-    
+
     // return status code 200 OK
     res, err = client.Indices.Exists([]string{"burner"})
     if err != nil {
