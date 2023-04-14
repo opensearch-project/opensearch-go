@@ -29,6 +29,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `bulk` guide ([#292](https://github.com/opensearch-project/opensearch-go/pull/292))
 - Adds `search` guide ([#291](https://github.com/opensearch-project/opensearch-go/pull/291))
 - Adds `document_lifecycle` guide ([#290](https://github.com/opensearch-project/opensearch-go/pull/290))
+- Adds `index_template` guide ([#289](https://github.com/opensearch-project/opensearch-go/pull/289))
 
 ### Changed
 
