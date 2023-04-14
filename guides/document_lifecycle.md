@@ -8,12 +8,12 @@ Assuming you have OpenSearch running locally on port 9200, you can create a clie
 
 ```go
     package main
-    
+
     import (
         "github.com/opensearch-project/opensearch-go/v2"
         "log"
     )
-    
+
     func main() {
         client, err := opensearch.NewDefaultClient()
         if err != nil {
@@ -27,7 +27,7 @@ Next, create an index named `movies` with the default settings:
 
 ```go
     movies := "movies"
-    
+
     // delete the indexes if they exist
     deleteIndexes, err := client.Indices.Delete(
         []string{movies},
@@ -37,7 +37,7 @@ Next, create an index named `movies` with the default settings:
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", deleteIndexes)
-    
+
     createMovieIndex, err := client.Indices.Create(movies)
     if err != nil {
         log.Printf("error occurred: [%s]", err.Error())
@@ -57,7 +57,7 @@ To create a new document, use the `create` or `index` API action. The following 
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", res)
-    
+
     res, err = client.Create(movies, "2", strings.NewReader(`{"title": "Beauty and the Beast - Live Action", "year": 2017 }`))
     if err != nil {
         log.Printf("error occurred: [%s]", err.Error())
@@ -82,7 +82,7 @@ The `index` action, on the other hand, is idempotent. If you try to index a docu
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", res)
-    
+
     res, err = client.Index(movies, strings.NewReader(`{ "title": "The Lion King", "year": 1994}`), client.Index.WithDocumentID("2"))
     if err != nil {
         log.Printf("error occurred: [%s]", err.Error())
@@ -142,7 +142,7 @@ You can also use `_source_include` and `_source_exclude` parameters to specify w
     }
     log.Printf("response: [%+v]", res)
     // OUTPUT: {"_index":"movies","_id":"1","_version":1,"_seq_no":0,"_primary_term":1,"found":true,"_source":{"title":"Beauty and the Beast"}}
-    
+
     res, err = client.Get(movies, "1", client.Get.WithSourceExcludes("title"))
     if err != nil {
         log.Printf("error occurred: [%s]", err.Error())
@@ -212,7 +212,7 @@ To update documents that match a query, use the `update_by_query` API action. Th
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", res)
-    
+
     res, err = client.UpdateByQuery(
         []string{movies},
         client.UpdateByQuery.WithQuery("year:<1990"),
@@ -252,7 +252,7 @@ To delete documents that match a query, use the `delete_by_query` API action. Th
         log.Printf("error occurred: [%s]", err.Error())
     }
     log.Printf("response: [%+v]", res)
-    
+
     res, err = client.DeleteByQuery(
         []string{movies},
         strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
