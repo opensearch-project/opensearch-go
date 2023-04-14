@@ -23,12 +23,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds markdown linter ([#261](https://github.com/opensearch-project/opensearch-go/pull/261))
 - Adds testcases to check upsert functionality ([#207](https://github.com/opensearch-project/opensearch-go/issues/207))
 - Adds @Jakob3xD to co-maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
+- Adds dynamic type to \_source field ([#158](https://github.com/opensearch-project/opensearch-go/issues/158))
+- Adds testcases for Document API ([#280](https://github.com/opensearch-project/opensearch-go/issues/280))
 - Adds `index_lifecycle` guide ([#287](https://github.com/opensearch-project/opensearch-go/pull/287))
-- Adds `advanced_index_actions` guide ([#288](https://github.com/opensearch-project/opensearch-go/pull/288))
-- Adds `index_template` guide ([#289](https://github.com/opensearch-project/opensearch-go/pull/289))
-- Adds `document_lifecycle` guide ([#290](https://github.com/opensearch-project/opensearch-go/pull/290))
-- Adds `search` guide ([#291](https://github.com/opensearch-project/opensearch-go/pull/291))
 - Adds `bulk` guide ([#292](https://github.com/opensearch-project/opensearch-go/pull/292))
+- Adds `search` guide ([#291](https://github.com/opensearch-project/opensearch-go/pull/291))
+- Adds `document_lifecycle` guide ([#290](https://github.com/opensearch-project/opensearch-go/pull/290))
+- Adds `index_template` guide ([#289](https://github.com/opensearch-project/opensearch-go/pull/289))
 
 ### Changed
 
