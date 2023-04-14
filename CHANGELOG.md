@@ -27,6 +27,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds testcases for Document API ([#280](https://github.com/opensearch-project/opensearch-go/issues/280))
 - Adds `index_lifecycle` guide ([#287](https://github.com/opensearch-project/opensearch-go/pull/287))
 - Adds `bulk` guide ([#292](https://github.com/opensearch-project/opensearch-go/pull/292))
+- Adds `search` guide ([#291](https://github.com/opensearch-project/opensearch-go/pull/291))
 
 ### Changed
 
