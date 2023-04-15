@@ -40,7 +40,7 @@ jobs:
           export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
           export SECURE_INTEGRATION=${{ matrix.secured }}
           make cluster.clean cluster.build cluster.start
-          sleep 20
+#          sleep 20
 
       - name: Integration test without security
         if: ${{ matrix.secured == 'false'}}
