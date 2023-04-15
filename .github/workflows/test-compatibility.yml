@@ -43,7 +43,9 @@ jobs:
 
       - name: Integration test without security
         if: ${{ matrix.secured == 'false'}}
-        run: make test-integ race=true
+        run: |
+          make test-integ race=true
+          sleep 20
 
       - name: Integration test with security
         if: ${{ matrix.secured == 'true'}}
