@@ -255,6 +255,24 @@ func TestDocumentRequest_Do(t *testing.T) {
 			wantBody: fmt.Sprintf(`{"_index":"%s","_id":"1","_version":2,"result":"noop","_shards":{"total":0,"successful":0,"failed":0},"_seq_no":2,"_primary_term":1,"get":{"_seq_no":2,"_primary_term":1,"found":true,"_source":{"title":"Moneyball","year":"2012"}}}`, index),
 			wantErr:  false,
 		},
+		// Update by query
+		{
+			name: "TestUpdateByQueryRequest_Do. Source Excludes",
+			r: opensearchapi.UpdateByQueryRequest{
+				Index: []string{index},
+				Query: `title: "Tenet"`,
+				Body:  strings.NewReader(`{ "script" : { "source": "ctx._source.title += params.title", "lang": "painless", "params" : { "title" : "TeneT" } } }`),
+			},
+			want: &opensearchapi.Response{
+				StatusCode: 200,
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=UTF-8"},
+				},
+			},
+			wantBody: `{"batches":1, "deleted":0, "failures":[], "noops":0, "requests_per_second":-1, "retries":{"bulk":0, "search":0}, "throttled_millis":0, "throttled_until_millis":0, "timed_out":false, "took":0, "total":1, "updated":1, "version_conflicts":0}`,
+			wantErr:  false,
+			refresh:  true,
+		},
 
 		// Bulk document
 		{
