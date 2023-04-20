@@ -68,6 +68,21 @@ In order to differentiate unit tests from integration tests, Go has a built-in m
    make cluster.stop cluster.clean
    ```
 
+#### Compatibility with Windows OS
+
+If you have a problem with running 'Make' follow this steps:
+
+1. Install WSL2 (compatibility layer for running Linux applications on Windows 10).
+
+2. From Terminal choose your path to OpenSearch project and run WSL2.
+   ```
+   wsl
+   ```
+3. Install 'Make' if you haven't done this before
+   ```
+   sudo apt install make
+   ```
+
 ## Lint
 
 To keep all the code in a certain uniform format, it was decided to use some writing rules. If you wrote something wrong, it's okay, you can simply run the script to check the necessary files, and optionally format the content. But keep in mind that all these checks are repeated on the pipeline, so it's better to check locally.
