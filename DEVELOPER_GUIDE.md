@@ -35,9 +35,9 @@ OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.11 at a
 
 #### Windows
 
-[WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) is compatibility layer for running Linux applications on Windows.
+To build the project on Windows, use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install), the compatibility layer for running Linux applications.
 
-Make ensure that you install 'Make' on WSL2.
+Install ```make```
 ```
 sudo apt install make
 ```
@@ -76,7 +76,7 @@ In order to differentiate unit tests from integration tests, Go has a built-in m
 3. Stop and clean containers.
    ```
    make cluster.stop cluster.clean
-   ``` 
+   ```
 
 ## Lint
 
