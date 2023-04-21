@@ -4,6 +4,7 @@
     - [Install Prerequisites](#install-prerequisites)
       - [Go 1.11](#go-111)
       - [Docker](#docker)
+      - [Windows](#windows)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
@@ -31,6 +32,15 @@ OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.11 at a
 #### Docker
 
 [Docker](https://docs.docker.com/install/) is required for building some OpenSearch artifacts and executing integration tests.
+
+#### Windows
+
+[WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) is compatibility layer for running Linux applications on Windows.
+
+Make ensure that you install 'Make' on WSL2.
+```
+sudo apt install make
+```
 
 ### Unit Testing
 
@@ -66,22 +76,7 @@ In order to differentiate unit tests from integration tests, Go has a built-in m
 3. Stop and clean containers.
    ```
    make cluster.stop cluster.clean
-   ```
-
-#### Compatibility with Windows OS
-
-If you have a problem with running 'Make' follow this steps:
-
-1. Install WSL2 (compatibility layer for running Linux applications on Windows 10).
-
-2. From Terminal choose your path to OpenSearch project and run WSL2.
-   ```
-   wsl
-   ```
-3. Install 'Make' if you haven't done this before
-   ```
-   sudo apt install make
-   ```
+   ``` 
 
 ## Lint
 
