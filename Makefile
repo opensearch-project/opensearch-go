@@ -205,6 +205,23 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker network prune --force
 	docker system prune --volumes --force
 
+cluster.check:
+	@printf "\033[2m→ Checking up cluster health...\033[0m\n"
+	HEALTH_CHECK_URL=$(HEALTH_CHECK_URL) \
+    NUM_CHECKS=$(NUM_CHECKS) \
+    CHECK_INTERVAL=$(CHECK_INTERVAL)
+	for ((i=1; i<=NUM_CHECKS; i++)); do \
+		response=$$(curl -sS "$$HEALTH_CHECK_URL"); \
+		if [[ $$response == *"green"* ]]; then \
+			echo "Cluster is healthy."; \
+			exit 0; \
+		fi; \
+		echo "Check #$$i: Cluster is not healthy. Status: $$response"; \
+		sleep $$CHECK_INTERVAL; \
+	done; \
+	echo "Cluster is still not healthy after $$NUM_CHECKS checks."; \
+	exit 1;
+
 linters:
 	./bin/golangci-lint run ./... --timeout=5m
 
