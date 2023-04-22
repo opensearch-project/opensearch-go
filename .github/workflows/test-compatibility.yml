@@ -41,6 +41,9 @@ jobs:
           export SECURE_INTEGRATION=${{ matrix.secured }}
           make cluster.clean cluster.build cluster.start
 #          sleep 20
+      - name: Check Opensearch cluster health
+        run: |
+          make cluster.check
 
       - name: Integration test without security
         if: ${{ matrix.secured == 'false'}}
