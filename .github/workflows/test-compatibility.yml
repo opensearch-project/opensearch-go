@@ -43,7 +43,7 @@ jobs:
 #          sleep 20
       - name: Check Opensearch cluster health
         run: |
-          make cluster.check HEALTH_CHECK_URL=http://opensearch:9200/_cluster/health NUM_CHECKS=30 CHECK_INTERVAL=1 
+          make cluster.check HEALTH_CHECK_URL=http://127.0.0.1:9200/_cluster/health NUM_CHECKS=30 CHECK_INTERVAL=1 
 
       - name: Integration test without security
         if: ${{ matrix.secured == 'false'}}
