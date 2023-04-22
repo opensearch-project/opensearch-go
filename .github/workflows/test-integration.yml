@@ -30,9 +30,6 @@ jobs:
       - name: Launch OpenSearch cluster
         run: |
           make cluster.clean cluster.build cluster.start
-      - name: Check Opensearch cluster health
-        run: |
-          make cluster.check
       - run: make test-integ race=true
       - uses: codecov/codecov-action@v1
         with:
@@ -60,7 +57,4 @@ jobs:
       - name: Launch OpenSearch cluster
         run: |
           make cluster.clean cluster.build cluster.start
-      - name: Check Opensearch cluster health
-        run: |
-          make cluster.check
       - run: make test-integ-secure
