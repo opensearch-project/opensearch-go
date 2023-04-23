@@ -207,12 +207,16 @@ cluster.clean: ## Remove unused Docker volumes and networks
 
 cluster.check:
 	@printf "\033[2m→ Checking up cluster health...\033[0m\n"
-	HEALTH_CHECK_URL=$(HEALTH_CHECK_URL) \
+	SECURE_INTEGRATION=$(SECURE_INTEGRATION) \
     NUM_CHECKS=$(NUM_CHECKS) \
-    CHECK_INTERVAL=$(CHECK_INTERVAL)
-	for ((i=1; i<=NUM_CHECKS; i++)); do \
-		response=$$(curl -sS "$$HEALTH_CHECK_URL"); \
-		if [[ $$response == *"green"* ]]; then \
+    CHECK_INTERVAL=$(CHECK_INTERVAL) \
+    echo "SECURE_INTEGRATION: $$SECURE_INTEGRATION"; \
+    for ((i=1; i<=NUM_CHECKS; i++)); do \
+      	if [[ $$SECURE_INTEGRATION == "true" ]]; \
+      	then response=$$(curl --insecure -sS "https://localhost:9200/_cluster/health" -u admin:admin); \
+  		else response=$$(curl --insecure -sS "http://localhost:9200/_cluster/health" -u admin:admin); \
+  		fi; \
+		if [[  $$response == *"green"* || $$response == *"yellow"* ]]; then \
 			echo "Cluster is healthy."; \
 			exit 0; \
 		fi; \
@@ -221,6 +225,12 @@ cluster.check:
 	done; \
 	echo "Cluster is still not healthy after $$NUM_CHECKS checks."; \
 	exit 1;
+
+cluster.kek:
+	if [[ "$$SECURE_INTEGRATION" == "false" ]] \
+	then HEALTH_CHECK_URL="https://localhost:9200/_cluster/health" \
+	else HEALTH_CHECK_URL="http://localhost:9200/_cluster/health" \
+	fi; \
 
 linters:
 	./bin/golangci-lint run ./... --timeout=5m
