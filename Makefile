@@ -221,6 +221,10 @@ cluster.check:
 			exit 0; \
 		fi; \
 		echo "Check #$$i: Cluster is not healthy. Status: $$response"; \
+		if [[ $$i == $$((NUM_CHECKS / 5)) ]]; then \
+			echo "Restarting OpenSearch Container..."; \
+			docker-compose --project-directory .ci/opensearch restart; \
+		fi; \
 		sleep $$CHECK_INTERVAL; \
 	done; \
 	echo "Cluster is still not healthy after $$NUM_CHECKS checks."; \
