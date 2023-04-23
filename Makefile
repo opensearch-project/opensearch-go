@@ -214,7 +214,7 @@ cluster.check:
     for ((i=1; i<=NUM_CHECKS; i++)); do \
       	if [[ $$SECURE_INTEGRATION == "true" ]]; \
       	then response=$$(curl --insecure -sS "https://localhost:9200/_cluster/health" -u admin:admin); \
-  		else response=$$(curl --insecure -sS "http://localhost:9200/_cluster/health" -u admin:admin); \
+  		else response=$$(curl -sS "http://localhost:9200/_cluster/health"); \
   		fi; \
 		if [[  $$response == *"green"* || $$response == *"yellow"* ]]; then \
 			echo "Cluster is healthy."; \
