@@ -4,6 +4,7 @@
     - [Install Prerequisites](#install-prerequisites)
       - [Go 1.11](#go-111)
       - [Docker](#docker)
+      - [Windows](#windows)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
@@ -31,6 +32,15 @@ OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.11 at a
 #### Docker
 
 [Docker](https://docs.docker.com/install/) is required for building some OpenSearch artifacts and executing integration tests.
+
+#### Windows
+
+To build the project on Windows, use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install), the compatibility layer for running Linux applications.
+
+Install ```make```
+```
+sudo apt install make
+```
 
 ### Unit Testing
 
