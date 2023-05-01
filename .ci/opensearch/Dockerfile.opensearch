@@ -5,3 +5,8 @@ ARG opensearch_path=/usr/share/opensearch
 ARG SECURE_INTEGRATION
 
 RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then $opensearch_path/bin/opensearch-plugin remove opensearch-security; fi
+
+HEALTHCHECK --start-period=10s --interval=5s --retries=5 --timeout=1s \
+  CMD if [ "$SECURE_INTEGRATION" != "true" ]; \
+    then curl -fs localhost:9200/_cat/health || exit 1; \
+    else curl -fs -k https:/localhost:9200/_cat/health -u admin:admin || exit 1; fi

@@ -205,37 +205,6 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker network prune --force
 	docker system prune --volumes --force
 
-cluster.check:
-	@printf "\033[2m→ Checking up cluster health...\033[0m\n"
-	SECURE_INTEGRATION=$(SECURE_INTEGRATION) \
-    NUM_CHECKS=$(NUM_CHECKS) \
-    CHECK_INTERVAL=$(CHECK_INTERVAL) \
-    echo "SECURE_INTEGRATION: $$SECURE_INTEGRATION"; \
-    for ((i=1; i<=NUM_CHECKS; i++)); do \
-      	if [[ $$SECURE_INTEGRATION == "true" ]]; \
-      	then response=$$(curl --insecure -sS "https://localhost:9200/_cluster/health" -u admin:admin); \
-  		else response=$$(curl -sS "http://localhost:9200/_cluster/health"); \
-  		fi; \
-		if [[  $$response == *"green"* || $$response == *"yellow"* ]]; then \
-			echo "Cluster is healthy."; \
-			exit 0; \
-		fi; \
-		echo "Check #$$i: Cluster is not healthy. Status: $$response"; \
-		if [[ $$i == $$((NUM_CHECKS / 5)) ]]; then \
-			echo "Restarting OpenSearch Container..."; \
-			docker-compose --project-directory .ci/opensearch restart; \
-		fi; \
-		sleep $$CHECK_INTERVAL; \
-	done; \
-	echo "Cluster is still not healthy after $$NUM_CHECKS checks."; \
-	exit 1;
-
-cluster.kek:
-	if [[ "$$SECURE_INTEGRATION" == "false" ]] \
-	then HEALTH_CHECK_URL="https://localhost:9200/_cluster/health" \
-	else HEALTH_CHECK_URL="http://localhost:9200/_cluster/health" \
-	fi; \
-
 linters:
 	./bin/golangci-lint run ./... --timeout=5m
 
