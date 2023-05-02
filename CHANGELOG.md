@@ -33,6 +33,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `advanced_index_actions` guide ([#288](https://github.com/opensearch-project/opensearch-go/pull/288))
 - Adds testcases to check UpdateByQuery functionality ([#304](https://github.com/opensearch-project/opensearch-go/pull/304))
 - Adds additional timeout after cluster start ([##303](https://github.com/opensearch-project/opensearch-go/pull/303))
+- Adds more relevant healthchecker ([#315](https://github.com/opensearch-project/opensearch-go/pull/315))
 
 ### Changed
 
