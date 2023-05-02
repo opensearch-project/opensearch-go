@@ -9,5 +9,5 @@ RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then $opensearch_path/bin/opensearc
 
 HEALTHCHECK --start-period=20s --interval=5s --retries=5 --timeout=1s \
   CMD if [ "$SECURE_INTEGRATION" != "true" ]; \
-  then curl -f http://localhost:9200/_cat/health; \
-  else curl -fk https://localhost:9200/_cat/health -u admin:admin; fi
+  then curl -f http://localhost:9200/_cat/health || exit 1; \
+  else curl -fk https://localhost:9200/_cat/health -u admin:admin || exit 1; fi
