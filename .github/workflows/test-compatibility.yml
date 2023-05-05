@@ -40,9 +40,9 @@ jobs:
           export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
           export SECURE_INTEGRATION=${{ matrix.secured }}
           make cluster.clean cluster.build cluster.start
-      - name: Check Opensearch cluster health
-        run: |
-          make cluster.check SECURE_INTEGRATION=${{ matrix.secured }} NUM_CHECKS=30 CHECK_INTERVAL=1
+          for attempt in `seq 25`; do sleep 5; \
+          if curl -s $(if $SECURE_INTEGRATION; then echo "-ku admin:admin https://"; fi)localhost:9200; \
+          then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
 
       - name: Integration test without security
         if: ${{ matrix.secured == 'false'}}
