@@ -24,6 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build !integration
 // +build !integration
 
 package opensearch
@@ -37,8 +38,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/opensearch-project/opensearch-go/v2/opensearchtransport"
 )
@@ -104,22 +103,6 @@ func TestClientConfiguration(t *testing.T) {
 		}
 	})
 
-	t.Run("With URL from ELASTICSEARCH_URL", func(t *testing.T) {
-		os.Setenv(envElasticsearchURL, "http://elasticsearch.com")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
-
-		c, err := NewClient(Config{Transport: &mockTransp{}})
-		if err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-
-		if u != "http://elasticsearch.com" {
-			t.Errorf("Unexpected URL, want=http://elasticsearch.com, got=%s", u)
-		}
-	})
-
 	t.Run("With URL from OPENSEARCH_URL", func(t *testing.T) {
 		os.Setenv(envOpenSearchURL, "http://opensearch.com")
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
@@ -136,25 +119,9 @@ func TestClientConfiguration(t *testing.T) {
 		}
 	})
 
-	t.Run("With URL from OPENSEARCH_URL and ELASTICSEARCH_URL", func(t *testing.T) {
-		os.Setenv(envOpenSearchURL, "http://opensearch.com")
-		defer func() { os.Setenv(envOpenSearchURL, "") }()
-
-		os.Setenv(envElasticsearchURL, "http://elasticsearch.com")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
-
-		_, err := NewClient(Config{Transport: &mockTransp{}})
-		assert.Error(t, err, "Expected error")
-
-		match, _ := regexp.MatchString("both .* are set", err.Error())
-		if !match {
-			t.Errorf("Expected error when addresses from OPENSEARCH_URL and ELASTICSEARCH_URL are used together, got: %v", err)
-		}
-	})
-
 	t.Run("With URL from environment and cfg.Addresses", func(t *testing.T) {
-		os.Setenv(envElasticsearchURL, "http://example.com")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
+		os.Setenv(envOpenSearchURL, "http://example.com")
+		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: &mockTransp{}})
 		if err != nil {
@@ -178,8 +145,8 @@ func TestClientConfiguration(t *testing.T) {
 	})
 
 	t.Run("With invalid URL from environment", func(t *testing.T) {
-		os.Setenv(envElasticsearchURL, ":foobar")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
+		os.Setenv(envOpenSearchURL, ":foobar")
+		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		c, err := NewDefaultClient()
 		if err == nil {
