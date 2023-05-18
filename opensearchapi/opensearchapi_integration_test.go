@@ -32,7 +32,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -225,13 +224,7 @@ func TestAPI(t *testing.T) {
 		opensearchDo := func(ctx context.Context, client *opensearch.Client, req opensearchapi.Request, msg string, t *testing.T) {
 			_, err := req.Do(ctx, client)
 			if err != nil {
-				var opensearchError *opensearchapi.Error
-				if errors.As(err, &opensearchError) {
-					if opensearchError.Err.Type == "snapshot_missing_exception" {
-						return
-					}
-					t.Fatalf("Failed to %s: %s", msg, err)
-				}
+				t.Fatalf("Error performing the request: %s\n", err)
 			}
 		}
 
