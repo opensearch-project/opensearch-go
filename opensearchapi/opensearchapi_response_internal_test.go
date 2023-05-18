@@ -44,7 +44,6 @@ func TestAPIResponse(t *testing.T) {
 	var (
 		body string
 		res  *Response
-		err  error
 	)
 
 	t.Run("String", func(t *testing.T) {
