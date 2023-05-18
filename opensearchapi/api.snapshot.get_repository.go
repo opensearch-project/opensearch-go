@@ -159,7 +159,7 @@ func (r SnapshotGetRepositoryRequest) Do(ctx context.Context, transport Transpor
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	return &response, nil
 }
 
 // WithContext sets the request context.

@@ -24,14 +24,12 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build !integration
 // +build !integration
 
 package opensearchapi
 
 import (
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -103,78 +101,6 @@ func TestAPIResponse(t *testing.T) {
 
 		if !res.IsError() {
 			t.Errorf("Expected error for response: %s", res.Status())
-		}
-	})
-
-	t.Run("Error", func(t *testing.T) {
-		res = &Response{StatusCode: 201}
-
-		if err = res.Err(); err != nil {
-			t.Errorf("Unexpected error for response: %s", res.Status())
-		}
-
-		res = &Response{StatusCode: 403}
-
-		if err = res.Err(); err == nil {
-			t.Errorf("Expected error for response: %s", res.Status())
-		}
-
-		res = &Response{
-			StatusCode: 404,
-			Body: io.NopCloser(
-				strings.NewReader(`
-				{
-					"_index":"index",
-					"_id":"2",
-					"matched":false
-				}`),
-			),
-		}
-		err = res.Err()
-		if err == nil {
-			t.Errorf("Expected error for response: %s", res.Status())
-		}
-		var errTest *Error
-		if errors.As(err, &errTest) {
-			t.Errorf("Expected error NOT to be of type opensearchapi.Error: %T", err)
-		}
-
-		res = &Response{
-			StatusCode: 400,
-			Body: io.NopCloser(
-				strings.NewReader(`
-				{
-					"error":{
-						"root_cause":[{
-							"type":"resource_already_exists_exception",
-							"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists",
-							"index":"test",
-							"index_uuid":"HU2mN_RMRXGcS38j3yV-VQ"
-						}],
-						"type":"resource_already_exists_exception",
-						"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists",
-						"index":"test",
-						"index_uuid":"HU2mN_RMRXGcS38j3yV-VQ"
-					},
-					"status":400
-				}`)),
-		}
-
-		err = res.Err()
-		if err == nil {
-			t.Errorf("Expected error for response: %s", res.Status())
-		}
-		if !errors.As(err, &errTest) {
-			t.Errorf("Expected error to be of type opensearchapi.Error: %T", err)
-		}
-		if errTest.Status != 400 ||
-			errTest.Err.Reason != "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists" ||
-			errTest.Err.Type != "resource_already_exists_exception" ||
-			len(errTest.Err.RootCause) != 1 ||
-			errTest.Err.RootCause[0].Type != "resource_already_exists_exception" ||
-			errTest.Err.RootCause[0].Reason != "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists" {
-
-			t.Errorf("Reponse Error was not parsed correctly")
 		}
 	})
 
