@@ -167,7 +167,7 @@ func (r IndicesPutAliasRequest) Do(ctx context.Context, transport Transport) (*R
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	return &response, nil
 }
 
 // WithContext sets the request context.

@@ -179,7 +179,7 @@ func (r ClusterRerouteRequest) Do(ctx context.Context, transport Transport) (*Re
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	return &response, nil
 }
 
 // WithContext sets the request context.
