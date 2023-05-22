@@ -10,6 +10,10 @@ OpenSearch Go Client
 - [License](#license)
 - [Copyright](#copyright)
 
+> **Warning**
+> 
+> `2.3.0` is the last minor version for the 2.x line for the OpenSearch Go client. All new features will now be added to the upcoming major version 3.0.0 being developed in the [`main`](https://github.com/opensearch-project/opensearch-go) branch of this client. To upgrade to the next major version,see [UPGRADING](https://github.com/opensearch-project/opensearch-go/blob/main/UPGRADING.md). The 2.3.x line will be managed and supported for security fixes.
+
 ## Welcome!
 
 **opensearch-go** is [a community-driven, open source fork](https://aws.amazon.com/blogs/opensource/introducing-opensearch/) of go-elasticsearch licensed under the [Apache v2.0 License](LICENSE.txt). For more information, see [opensearch.org](https://opensearch.org/).
