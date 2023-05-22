@@ -148,7 +148,7 @@ func (r TermsEnumRequest) Do(ctx context.Context, transport Transport) (*Respons
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	return &response, nil
 }
 
 // WithContext sets the request context.

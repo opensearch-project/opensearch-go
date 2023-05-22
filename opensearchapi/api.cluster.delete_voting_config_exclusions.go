@@ -141,7 +141,7 @@ func (r ClusterDeleteVotingConfigExclusionsRequest) Do(ctx context.Context, tran
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	return &response, nil
 }
 
 // WithContext sets the request context.
