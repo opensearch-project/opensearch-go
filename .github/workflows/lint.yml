@@ -25,6 +25,7 @@ jobs:
         with:
           version: v1.52.2
           args: -v -c .golangci.yml
+          only-new-issues: true
 
   prettify:
     name: Prettify
