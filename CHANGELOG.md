@@ -9,7 +9,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.180 to 1.44.285
 - Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.4 to 1.18.1
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.8 to 1.18.25
-- Bumps `github.com/stretchr/testify` from 1.8.1 to 1.8.2
+- Bumps `github.com/stretchr/testify` from 1.8.1 to 1.8.4
 
 ### Added
 
