@@ -86,13 +86,13 @@ func example() error {
 
 	// When using a structure, the conversion process to io.Reader can be omitted using utility functions.
 	document := struct {
-	    Title    string `json:"title"`
-        Director string `json:"director"`
-        Year     string `json:"year"`
-    }{
-        Title:    "Moneyball",
-        Director: "Bennett Miller",
-        Year:     "2011",
+		Title    string `json:"title"`
+		Director string `json:"director"`
+		Year     string `json:"year"`
+	}{
+		Title:    "Moneyball",
+		Director: "Bennett Miller",
+		Year:     "2011",
 	}
 
 	docId := "1"
