@@ -1,0 +1,136 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+//
+// Modifications Copyright OpenSearch Contributors. See
+// GitHub history for details.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package opensearchapi
+
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v2"
+)
+
+// IndicesAnalyzeReq represents possible options for the index create request
+type IndicesAnalyzeReq struct {
+	Index string
+	Body  IndicesAnalyzeBody
+
+	Header http.Header
+	Params IndicesAnalyzeParams
+}
+
+type IndicesAnalyzeBody struct {
+	Analyzer   string   `json:"analyzer,omitempty"`
+	Attributes []string `json:"attributes,omitempty"`
+	CharFilter []string `json:"char_filter,omitempty"`
+	Explain    bool     `json:"explain,omitempty"`
+	Field      string   `json:"field,omitempty"`
+	Filter     []string `json:"filter,omitempty"`
+	Normalizer string   `json:"normalizer,omitempty"`
+	Text       []string `json:"text"`
+	Tokenizer  string   `json:"tokenizer,omitempty"`
+}
+
+// GetRequest returns the *http.Request that gets executed by the client
+func (r IndicesAnalyzeReq) GetRequest() (*http.Request, error) {
+	body, err := json.Marshal(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var path strings.Builder
+	path.Grow(10 + len(r.Index))
+	if len(r.Index) != 0 {
+		path.WriteString("/")
+		path.WriteString(r.Index)
+	}
+	path.WriteString("/_analyze")
+	return opensearch.BuildRequest(
+		"GET",
+		path.String(),
+		bytes.NewReader(body),
+		r.Params.get(),
+		r.Header,
+	)
+}
+
+// IndicesAnalyzeResp represents the returned struct of the index create response
+type IndicesAnalyzeResp struct {
+	Tokens []IndicesAnalyzeToken `json:"tokens"`
+	Detail struct {
+		CustomAnalyzer bool                         `json:"custom_analyzer"`
+		Charfilters    []IndicesAnalyzeCharfilter   `json:"charfilters"`
+		Tokenizer      IndicesAnalyzeTokenizer      `json:"tokenizer"`
+		Tokenfilters   []IndicesAnalyzeTokenfilters `json:"tokenfilters"`
+		Analyzer       IndicesAnalyzeAnalyzer       `json:"analyzer"`
+	} `json:"detail"`
+	response *opensearch.Response
+}
+
+// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+func (r IndicesAnalyzeResp) Inspect() Inspect {
+	return Inspect{Response: r.response}
+}
+
+type IndicesAnalyzeToken struct {
+	Token       string `json:"token"`
+	StartOffset int    `json:"start_offset"`
+	EndOffset   int    `json:"end_offset"`
+	Type        string `json:"type"`
+	Position    int    `json:"position"`
+}
+
+type IndicesAnalyzeTokenizer struct {
+	Name   string                `json:"name"`
+	Tokens []IndicesAnalyzeToken `json:"tokens"`
+}
+type IndicesAnalyzeTokenfilters struct {
+	Name   string `json:"name"`
+	Tokens []struct {
+		Token       string `json:"token"`
+		StartOffset int    `json:"start_offset"`
+		EndOffset   int    `json:"end_offset"`
+		Type        string `json:"type"`
+		Position    int    `json:"position"`
+		Keyword     bool   `json:"keyword"`
+	} `json:"tokens"`
+}
+
+type IndicesAnalyzeCharfilter struct {
+	Name         string   `json:"name"`
+	FilteredText []string `json:"filtered_text"`
+}
+
+type IndicesAnalyzeAnalyzer struct {
+	Name   string `json:"name"`
+	Tokens []struct {
+		Token          string `json:"token"`
+		StartOffset    int    `json:"start_offset"`
+		EndOffset      int    `json:"end_offset"`
+		Type           string `json:"type"`
+		Position       int    `json:"position"`
+		Bytes          string `json:"bytes"`
+		PositionLength int    `json:"positionLength"`
+		TermFrequency  int    `json:"termFrequency"`
+	} `json:"tokens"`
+}

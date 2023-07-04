@@ -40,8 +40,9 @@ type Config struct {
 
 // Client represents the opensearchapi Client summarizing all API calls
 type Client struct {
-	Client *opensearch.Client
-	Cat    catClient
+	Client  *opensearch.Client
+	Cat     catClient
+	Indices indicesClient
 }
 
 // clientInit inits the Client with all sub clients
@@ -50,6 +51,7 @@ func clientInit(rootClient *opensearch.Client) *Client {
 		Client: rootClient,
 	}
 	client.Cat = catClient{apiClient: client}
+	client.Indices = indicesClient{apiClient: client}
 	return client
 }
 
