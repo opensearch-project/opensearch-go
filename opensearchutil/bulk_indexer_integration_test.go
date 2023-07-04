@@ -39,12 +39,14 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
 func TestBulkIndexerIntegration(t *testing.T) {
 	testRecordCount := uint64(10000)
+	ctx := context.Background()
 
 	testCases := []struct {
 		name                       string
@@ -155,16 +157,24 @@ func TestBulkIndexerIntegration(t *testing.T) {
 	for _, c := range testCases {
 		indexName := "test-bulk-integration"
 
-		client, _ := opensearch.NewClient(opensearch.Config{
-			CompressRequestBody: c.compressRequestBodyEnabled,
-			Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
-		})
+		client, _ := opensearchapi.NewClient(
+			opensearchapi.Config{
+				Client: opensearch.Config{
+					CompressRequestBody: c.compressRequestBodyEnabled,
+					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
+				},
+			},
+		)
 
-		client.Indices.Delete([]string{indexName}, client.Indices.Delete.WithIgnoreUnavailable(true))
+		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
 		client.Indices.Create(
-			indexName,
-			client.Indices.Create.WithBody(strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`)),
-			client.Indices.Create.WithWaitForActiveShards("1"))
+			ctx,
+			opensearchapi.IndicesCreateReq{
+				Index:  indexName,
+				Body:   strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`),
+				Params: opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
+			},
+		)
 
 		for _, tt := range c.tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -279,7 +289,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 					}
 
-					res, err := client.Indices.Exists([]string{"test-index-a", "test-index-b", "test-index-c"})
+					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: []string{"test-index-a", "test-index-b", "test-index-c"}})
 					if err != nil {
 						t.Fatalf("Unexpected error: %s", err)
 					}

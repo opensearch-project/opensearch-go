@@ -24,11 +24,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build !integration
 // +build !integration
 
 package opensearch_test
 
 import (
+	"context"
 	"crypto/tls"
 	"log"
 	"net"
@@ -37,6 +39,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchtransport"
 )
 
@@ -45,39 +48,41 @@ func init() {
 }
 
 func ExampleNewDefaultClient() {
-	client, err := opensearch.NewDefaultClient()
+	ctx := context.Background()
+	client, err := opensearchapi.NewDefaultClient()
 	if err != nil {
 		log.Fatalf("Error creating the client: %s\n", err)
 	}
 
-	res, err := client.Info()
+	_, err = client.Info(ctx, nil)
 	if err != nil {
 		log.Fatalf("Error getting the response: %s\n", err)
 	}
-	defer res.Body.Close()
 
-	log.Print(client.Transport.(*opensearchtransport.Client).URLs())
+	log.Print(client.Client.Transport.(*opensearchtransport.Client).URLs())
 }
 
 func ExampleNewClient() {
-	cfg := opensearch.Config{
-		Addresses: []string{
-			"http://localhost:9200",
-		},
-		Username: "foo",
-		Password: "bar",
-		Transport: &http.Transport{
-			MaxIdleConnsPerHost:   10,
-			ResponseHeaderTimeout: time.Second,
-			DialContext:           (&net.Dialer{Timeout: time.Second}).DialContext,
-			TLSClientConfig: &tls.Config{
-				MinVersion: tls.VersionTLS11,
+	cfg := opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{
+				"http://localhost:9200",
+			},
+			Username: "foo",
+			Password: "bar",
+			Transport: &http.Transport{
+				MaxIdleConnsPerHost:   10,
+				ResponseHeaderTimeout: time.Second,
+				DialContext:           (&net.Dialer{Timeout: time.Second}).DialContext,
+				TLSClientConfig: &tls.Config{
+					MinVersion: tls.VersionTLS11,
+				},
 			},
 		},
 	}
 
-	client, _ := opensearch.NewClient(cfg)
-	log.Print(client.Transport.(*opensearchtransport.Client).URLs())
+	client, _ := opensearchapi.NewClient(cfg)
+	log.Print(client.Client.Transport.(*opensearchtransport.Client).URLs())
 }
 
 func ExampleNewClient_logger() {
@@ -90,9 +95,11 @@ func ExampleNewClient_logger() {
 	// * opensearchtransport.CurlLogger
 	// * opensearchtransport.JSONLogger
 
-	cfg := opensearch.Config{
-		Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
+	cfg := opensearchapi.Config{
+		Client: opensearch.Config{
+			Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
+		},
 	}
 
-	opensearch.NewClient(cfg)
+	opensearchapi.NewClient(cfg)
 }

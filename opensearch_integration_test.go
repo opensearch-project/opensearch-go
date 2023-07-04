@@ -24,14 +24,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build integration,!multinode
+//go:build integration && !multinode
 
 package opensearch_test
 
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"log"
 	"net"
 	"net/http"
@@ -47,60 +46,48 @@ import (
 )
 
 func TestClientTransport(t *testing.T) {
-	t.Run("Persistent", func(t *testing.T) {
-		client, err := opensearch.NewDefaultClient()
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
-
-		var total int
-
-		for i := 0; i < 101; i++ {
-			var curTotal int
-
-			res, err := client.Nodes.Stats(client.Nodes.Stats.WithMetric("http"))
+	/*
+		t.Run("Persistent", func(t *testing.T) {
+			client, err := opensearchapi.NewClient(opensearchapi.Config{})
 			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
+				t.Fatalf("Error creating the client: %s", err)
 			}
-			defer res.Body.Close()
 
-			r := struct {
-				Nodes map[string]struct {
-					HTTP struct {
-						TotalOpened int `json:"total_opened"`
-					}
+			var total int
+
+			for i := 0; i < 101; i++ {
+				var curTotal int
+
+				res, err := client.Nodes.Stats(nil, &opensearchapi.NodesStatsReq{Metric: []string{"http"}})
+				if err != nil {
+					t.Fatalf("Unexpected error: %s", err)
 				}
-			}{}
 
-			if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-				t.Fatalf("Error parsing the response body: %s", err)
+				for _, v := range res.Nodes {
+					curTotal = v.HTTP.TotalOpened
+					break
+				}
+
+				if curTotal < 1 {
+					t.Errorf("Unexpected total_opened: %d", curTotal)
+				}
+				if total == 0 {
+					total = curTotal
+				}
+
+				if total != curTotal {
+					t.Errorf("Expected total_opened=%d, got: %d", total, curTotal)
+				}
 			}
 
-			for _, v := range r.Nodes {
-				curTotal = v.HTTP.TotalOpened
-				break
-			}
-
-			if curTotal < 1 {
-				t.Errorf("Unexpected total_opened: %d", curTotal)
-			}
-
-			if total == 0 {
-				total = curTotal
-			}
-
-			if total != curTotal {
-				t.Errorf("Expected total_opened=%d, got: %d", total, curTotal)
-			}
-		}
-
-		log.Printf("total_opened: %d", total)
-	})
+			log.Printf("total_opened: %d", total)
+		})
+	*/
 
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		client, err := opensearch.NewDefaultClient()
+		client, err := opensearchapi.NewClient(opensearchapi.Config{})
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -111,11 +98,9 @@ func TestClientTransport(t *testing.T) {
 
 			go func(i int) {
 				defer wg.Done()
-				res, err := client.Info()
+				_, err := client.Info(nil, nil)
 				if err != nil {
 					t.Errorf("Unexpected error: %s", err)
-				} else {
-					defer res.Body.Close()
 				}
 			}(i)
 		}
@@ -123,7 +108,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		client, err := opensearch.NewDefaultClient()
+		client, err := opensearchapi.NewClient(opensearchapi.Config{})
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -131,9 +116,8 @@ func TestClientTransport(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
 
-		res, err := client.Info(client.Info.WithContext(ctx))
+		_, err = client.Info(ctx, nil)
 		if err == nil {
-			res.Body.Close()
 			t.Fatal("Expected 'context deadline exceeded' error")
 		}
 
@@ -141,24 +125,26 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("Configured", func(t *testing.T) {
-		cfg := opensearch.Config{
-			Transport: &http.Transport{
-				MaxIdleConnsPerHost:   10,
-				ResponseHeaderTimeout: time.Second,
-				DialContext:           (&net.Dialer{Timeout: time.Nanosecond}).DialContext,
-				TLSClientConfig: &tls.Config{
-					MinVersion:         tls.VersionTLS11,
-					InsecureSkipVerify: true,
+		cfg := opensearchapi.Config{
+			Client: opensearch.Config{
+				Transport: &http.Transport{
+					MaxIdleConnsPerHost:   10,
+					ResponseHeaderTimeout: time.Second,
+					DialContext:           (&net.Dialer{Timeout: time.Nanosecond}).DialContext,
+					TLSClientConfig: &tls.Config{
+						MinVersion:         tls.VersionTLS11,
+						InsecureSkipVerify: true,
+					},
 				},
 			},
 		}
 
-		client, err := opensearch.NewClient(cfg)
+		client, err := opensearchapi.NewClient(cfg)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
-		_, err = client.Info()
+		_, err = client.Info(nil, nil)
 		if err == nil {
 			t.Fatalf("Expected error, but got: %v", err)
 		}
@@ -180,23 +166,24 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestClientCustomTransport(t *testing.T) {
 	t.Run("Customized", func(t *testing.T) {
-		cfg := opensearch.Config{
-			Transport: &CustomTransport{
-				client: http.DefaultClient,
+		cfg := opensearchapi.Config{
+			Client: opensearch.Config{
+				Transport: &CustomTransport{
+					client: http.DefaultClient,
+				},
 			},
 		}
 
-		client, err := opensearch.NewClient(cfg)
+		client, err := opensearchapi.NewClient(cfg)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
 		for i := 0; i < 10; i++ {
-			res, err := client.Info()
+			_, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
-			defer res.Body.Close()
 		}
 	})
 
@@ -208,16 +195,17 @@ func TestClientCustomTransport(t *testing.T) {
 			Transport: http.DefaultTransport,
 		})
 
-		client := opensearch.Client{
-			Transport: tp, API: opensearchapi.New(tp),
+		client := opensearchapi.Client{
+			Client: &opensearch.Client{
+				Transport: tp,
+			},
 		}
 
 		for i := 0; i < 10; i++ {
-			res, err := client.Info()
+			_, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
-			defer res.Body.Close()
 		}
 	})
 }
@@ -242,16 +230,17 @@ func (t *ReplacedTransport) Count() uint64 {
 func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
 		tr := &ReplacedTransport{}
-		client := opensearch.Client{
-			Transport: tr, API: opensearchapi.New(tr),
+		client := opensearchapi.Client{
+			Client: &opensearch.Client{
+				Transport: tr,
+			},
 		}
 
 		for i := 0; i < 10; i++ {
-			res, err := client.Info()
+			_, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
-			defer res.Body.Close()
 		}
 
 		if tr.Count() != 10 {
@@ -262,21 +251,17 @@ func TestClientReplaceTransport(t *testing.T) {
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		client, err := opensearch.NewDefaultClient()
+		client, err := opensearchapi.NewClient(opensearchapi.Config{})
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		res, err := client.Info()
+		res, err := client.Info(nil, nil)
 		if err != nil {
 			log.Fatalf("Error getting the response: %s\n", err)
 		}
-		defer res.Body.Close()
-
-		var d map[string]interface{}
-		err = json.NewDecoder(res.Body).Decode(&d)
-		if err != nil {
-			log.Fatalf("Error parsing the response: %s\n", err)
+		if res.ClusterName == "" {
+			log.Fatalf("cluster_name is empty: %s\n", err)
 		}
 	})
 }

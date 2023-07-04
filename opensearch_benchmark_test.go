@@ -24,6 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build !integration
 // +build !integration
 
 package opensearch_test
@@ -55,38 +56,33 @@ var infoResponse = http.Response{
 }
 
 type FakeTransport struct {
-	InfoResponse *http.Response
-	FakeResponse *http.Response
+	Response *http.Response
 }
 
 func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.URL.Path == "/" {
-		response := t.InfoResponse
-		response.Body = ioutil.NopCloser(strings.NewReader(`{
+	response := t.Response
+	response.Body = ioutil.NopCloser(strings.NewReader(`{
 		  "name" : "es1",
 		  "cluster_name" : "opensearch-go",
 		  "cluster_uuid" : "clusteruuid",
 		  "version" : {
-			"number" : "1.0.0",
+			"number" : "2.7.0",
 			"distribution" : "opensearch",
-			"build_type" : "docker",
-			"build_hash" : "somehash",
-			"build_date" : "2021-06-09T06:34:20.411011746Z",
-			"build_snapshot" : true,
-			"lucene_version" : "8.9.0",
-			"minimum_wire_compatibility_version" : "6.8.0",
-			"minimum_index_compatibility_version" : "6.0.0-beta1"
+			"build_type" : "tar",
+			"build_hash" : "b7a6e09e492b1e965d827525f7863b366ef0e304",
+			"build_date" : "2023-04-27T21:43:09.523336706Z",
+			"build_snapshot" : false,
+			"lucene_version" : "9.5.0",
+			"minimum_wire_compatibility_version" : "7.10.0",
+			"minimum_index_compatibility_version" : "7.0.0"
 		  }
 		}`))
-		return t.InfoResponse, nil
-	}
-	return t.FakeResponse, nil
+	return t.Response, nil
 }
 
-func newFakeTransport(b *testing.B) *FakeTransport {
+func newFakeTransport(b *testing.B, resp http.Response) *FakeTransport {
 	return &FakeTransport{
-		InfoResponse: &infoResponse,
-		FakeResponse: &defaultResponse,
+		Response: &resp,
 	}
 }
 
@@ -95,7 +91,7 @@ func BenchmarkClient(b *testing.B) {
 
 	b.Run("Create client with defaults", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b)})
+			_, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b, defaultResponse)})
 
 			if err != nil {
 				b.Fatalf("Unexpected error when creating a client: %s", err)
@@ -109,10 +105,11 @@ func BenchmarkClientAPI(b *testing.B) {
 
 	ctx := context.Background()
 
-	client, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
-		Transport: newFakeTransport(b),
-	})
+	client, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{"http://localhost:9200"},
+			Transport: newFakeTransport(b, infoResponse),
+		}})
 	if err != nil {
 		b.Fatalf("ERROR: %s", err)
 	}
@@ -120,16 +117,14 @@ func BenchmarkClientAPI(b *testing.B) {
 	b.Run("InfoRequest{}.Do()", func(b *testing.B) {
 		b.ResetTimer()
 
-		req := opensearchapi.InfoRequest{}
-
 		for i := 0; i < b.N; i++ {
-			if _, err := req.Do(ctx, client); err != nil {
+			if _, err := client.Info(ctx, nil); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
 	})
 
-	b.Run("IndexRequest{...}.Do()", func(b *testing.B) {
+	b.Run("client.Index()", func(b *testing.B) {
 		b.ResetTimer()
 		var body strings.Builder
 
@@ -141,89 +136,48 @@ func BenchmarkClientAPI(b *testing.B) {
 			body.WriteString(docID)
 			body.WriteString(`	" }`)
 
-			req := opensearchapi.IndexRequest{
+			req := opensearchapi.IndexReq{
 				Index:      "test",
 				DocumentID: docID,
 				Body:       strings.NewReader(body.String()),
-				Refresh:    "true",
-				Pretty:     true,
-				Timeout:    100,
+				Params: opensearchapi.IndexParams{
+					Refresh: "true",
+					Pretty:  true,
+					Timeout: 100,
+				},
 			}
-			if _, err := req.Do(ctx, client); err != nil {
-				b.Errorf("Unexpected error when getting a response: %s", err)
-			}
-		}
-	})
 
-	b.Run("Index(...)", func(b *testing.B) {
-		b.ResetTimer()
-		var body strings.Builder
-
-		for i := 0; i < b.N; i++ {
-			docID := strconv.FormatInt(int64(i), 10)
-
-			body.Reset()
-			body.WriteString(`{"foo" : "bar `)
-			body.WriteString(docID)
-			body.WriteString(`	" }`)
-
-			_, err := client.Index(
-				"test",
-				strings.NewReader(body.String()),
-				client.Index.WithDocumentID(docID),
-				client.Index.WithRefresh("true"),
-				client.Index.WithPretty(),
-				client.Index.WithTimeout(100),
-				client.Index.WithContext(ctx),
-			)
+			_, err := client.Index(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
 	})
 
-	b.Run("SearchRequest{...}.Do()", func(b *testing.B) {
+	b.Run("client.Search()", func(b *testing.B) {
 		b.ResetTimer()
 
 		body := `{"foo" : "bar"}`
-		indx := []string{"test"}
 
-		for i := 0; i < b.N; i++ {
-			req := opensearchapi.SearchRequest{
-				Index:   indx,
-				Body:    strings.NewReader(body),
-				Size:    opensearchapi.IntPtr(25),
+		req := &opensearchapi.SearchReq{
+			Indices: []string{"test"},
+			Body:    strings.NewReader(body),
+			Params: opensearchapi.SearchParams{
+				Size:    opensearchapi.ToPointer(25),
 				Pretty:  true,
 				Timeout: 100,
-			}
-			if _, err := req.Do(ctx, client); err != nil {
-				b.Errorf("Unexpected error when getting a response: %s", err)
-			}
+			},
 		}
-	})
-
-	b.Run("Search(...)", func(b *testing.B) {
-		b.ResetTimer()
-
-		body := `{"foo" : "bar"}`
-		indx := "test"
 
 		for i := 0; i < b.N; i++ {
-			_, err := client.Search(
-				client.Search.WithIndex(indx),
-				client.Search.WithBody(strings.NewReader(body)),
-				client.Search.WithSize(25),
-				client.Search.WithPretty(),
-				client.Search.WithTimeout(100),
-				client.Search.WithContext(ctx),
-			)
+			_, err := client.Search(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
 	})
 
-	b.Run("BulkRequest{...}.Do()", func(b *testing.B) {
+	b.Run("client.Bulk()", func(b *testing.B) {
 		b.ResetTimer()
 		var body strings.Builder
 
@@ -236,39 +190,15 @@ func BenchmarkClientAPI(b *testing.B) {
 			body.WriteString(docID)
 			body.WriteString(`	" }`)
 
-			req := opensearchapi.BulkRequest{
-				Body:    strings.NewReader(body.String()),
-				Refresh: "true",
-				Pretty:  true,
-				Timeout: 100,
+			req := opensearchapi.BulkReq{
+				Body: strings.NewReader(body.String()),
+				Params: opensearchapi.BulkParams{
+					Refresh: "true",
+					Pretty:  true,
+					Timeout: 100,
+				},
 			}
-			if _, err := req.Do(ctx, client); err != nil {
-				b.Errorf("Unexpected error when getting a response: %s", err)
-			}
-		}
-	})
-
-	b.Run("Bulk(...)", func(b *testing.B) {
-		b.ResetTimer()
-		var body strings.Builder
-
-		for i := 0; i < b.N; i++ {
-			docID := strconv.FormatInt(int64(i), 10)
-
-			body.Reset()
-			body.WriteString(`{"index" : { "_index" : "test", "_type" : "_doc", "_id" : "` + docID + `" }}`)
-			body.WriteString(`{"foo" : "bar `)
-			body.WriteString(docID)
-			body.WriteString(`	" }`)
-
-			_, err := client.Bulk(
-				strings.NewReader(body.String()),
-				client.Bulk.WithRefresh("true"),
-				client.Bulk.WithPretty(),
-				client.Bulk.WithTimeout(100),
-				client.Bulk.WithContext(ctx),
-			)
-			if err != nil {
+			if _, err := client.Bulk(ctx, req); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}

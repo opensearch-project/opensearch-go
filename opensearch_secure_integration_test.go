@@ -7,31 +7,48 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-// +build integration,secure
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build integration && secure
 
 package opensearch_test
 
 import (
+	"context"
 	"crypto/tls"
-	"encoding/json"
 	"log"
 	"net/http"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v2"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 )
 
-func getSecuredClient() (*opensearch.Client, error) {
-
-	return opensearch.NewClient(opensearch.Config{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+func getSecuredClient() (*opensearchapi.Client, error) {
+	return opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Username:  "admin",
+				Password:  "admin",
+				Addresses: []string{"https://localhost:9200"},
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			},
 		},
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "admin",
-		Password:  "admin",
-	})
+	)
 }
 
 type clusterVersion struct {
@@ -47,24 +64,18 @@ type Info struct {
 
 func TestSecuredClientAPI(t *testing.T) {
 	t.Run("Check Info", func(t *testing.T) {
+		ctx := context.Background()
 		client, err := getSecuredClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}
-		res, err := client.Info()
+		res, err := client.Info(ctx, nil)
 		if err != nil {
 			log.Fatalf("Error getting the response: %s\n", err)
 		}
-		defer res.Body.Close()
 
-		var infoResponse Info
-		err = json.NewDecoder(res.Body).Decode(&infoResponse)
-		if err != nil {
-			log.Fatalf("Error parsing the response: %s\n", err)
-		}
-		assert.True(t, len(infoResponse.Version.Number) > 0, "version number should not be empty")
-		assert.True(t, len(infoResponse.Tagline) > 0, "tagline should not be empty")
-		assert.True(t, len(infoResponse.Version.Distribution) > 0 || len(infoResponse.Version.BuildFlavor) > 0,
-			"Either distribution or build flavor should not be empty")
+		assert.True(t, len(res.Version.Number) > 0, "version number should not be empty")
+		assert.True(t, len(res.Tagline) > 0, "tagline should not be empty")
+		assert.True(t, len(res.Version.Distribution) > 0, "distribution should not be empty")
 	})
 }

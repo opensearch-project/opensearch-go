@@ -24,6 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build !integration
 // +build !integration
 
 package opensearchutil_test
@@ -38,6 +39,7 @@ import (
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
@@ -72,7 +74,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 	b.Run("Basic", func(b *testing.B) {
 		b.ResetTimer()
 
-		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransp{}})
+		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransp{}}})
 		bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:     client,
 			FlushBytes: 1024,
