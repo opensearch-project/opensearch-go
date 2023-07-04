@@ -38,12 +38,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v2"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 )
 
 // BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
-//
 type BulkIndexer interface {
 	// Add adds an item to the indexer. It returns an error when the item cannot be added.
 	// Use the OnSuccess and OnFailure callbacks to get the operation result for the item.
@@ -62,15 +60,13 @@ type BulkIndexer interface {
 }
 
 // BulkIndexerConfig represents configuration of the indexer.
-//
 type BulkIndexerConfig struct {
 	NumWorkers    int           // The number of workers. Defaults to runtime.NumCPU().
 	FlushBytes    int           // The flush threshold in bytes. Defaults to 5MB.
 	FlushInterval time.Duration // The flush threshold as duration. Defaults to 30sec.
 
-	Client      *opensearch.Client      // The OpenSearch client.
-	Decoder     BulkResponseJSONDecoder // A custom JSON decoder.
-	DebugLogger BulkIndexerDebugLogger  // An optional logger for debugging.
+	Client      *opensearchapi.Client  // The OpenSearch client.
+	DebugLogger BulkIndexerDebugLogger // An optional logger for debugging.
 
 	OnError      func(context.Context, error)          // Called for indexer errors.
 	OnFlushStart func(context.Context) context.Context // Called when the flush starts.
@@ -79,7 +75,6 @@ type BulkIndexerConfig struct {
 	// Parameters of the Bulk API.
 	Index               string
 	ErrorTrace          bool
-	FilterPath          []string
 	Header              http.Header
 	Human               bool
 	Pipeline            string
@@ -94,7 +89,6 @@ type BulkIndexerConfig struct {
 }
 
 // BulkIndexerStats represents the indexer statistics.
-//
 type BulkIndexerStats struct {
 	NumAdded    uint64
 	NumFlushed  uint64
@@ -107,7 +101,6 @@ type BulkIndexerStats struct {
 }
 
 // BulkIndexerItem represents an indexer item.
-//
 type BulkIndexerItem struct {
 	Index               string
 	Action              string
@@ -123,8 +116,8 @@ type BulkIndexerItem struct {
 	Body                io.ReadSeeker
 	RetryOnConflict     *int
 
-	OnSuccess func(context.Context, BulkIndexerItem, BulkIndexerResponseItem)        // Per item
-	OnFailure func(context.Context, BulkIndexerItem, BulkIndexerResponseItem, error) // Per item
+	OnSuccess func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem)        // Per item
+	OnFailure func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) // Per item
 }
 
 type bulkActionMetadata struct {
@@ -141,61 +134,7 @@ type bulkActionMetadata struct {
 	RetryOnConflict     *int        `json:"retry_on_conflict,omitempty"`
 }
 
-// BulkIndexerResponse represents the OpenSearch response.
-//
-type BulkIndexerResponse struct {
-	Took      int                                  `json:"took"`
-	HasErrors bool                                 `json:"errors"`
-	Items     []map[string]BulkIndexerResponseItem `json:"items,omitempty"`
-}
-
-// BulkIndexerResponseItem represents the OpenSearch response item.
-//
-type BulkIndexerResponseItem struct {
-	Index      string `json:"_index"`
-	DocumentID string `json:"_id"`
-	Version    int64  `json:"_version"`
-	Result     string `json:"result"`
-	Status     int    `json:"status"`
-	SeqNo      int64  `json:"_seq_no"`
-	PrimTerm   int64  `json:"_primary_term"`
-
-	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-
-	Error struct {
-		Type   string `json:"type"`
-		Reason string `json:"reason"`
-		Cause  struct {
-			Type        string    `json:"type"`
-			Reason      string    `json:"reason"`
-			ScriptStack *[]string `json:"script_stack,omitempty"`
-			Script      *string   `json:"script,omitempty"`
-			Lang        *string   `json:"lang,omitempty"`
-			Position    *struct {
-				Offset int `json:"offset"`
-				Start  int `json:"start"`
-				End    int `json:"end"`
-			} `json:"position,omitempty"`
-			Cause *struct {
-				Type   string `json:"type"`
-				Reason string `json:"reason"`
-			} `json:"caused_by"`
-		} `json:"caused_by,omitempty"`
-	} `json:"error,omitempty"`
-}
-
-// BulkResponseJSONDecoder defines the interface for custom JSON decoders.
-//
-type BulkResponseJSONDecoder interface {
-	UnmarshalFromReader(io.Reader, *BulkIndexerResponse) error
-}
-
 // BulkIndexerDebugLogger defines the interface for a debugging logger.
-//
 type BulkIndexerDebugLogger interface {
 	Printf(string, ...interface{})
 }
@@ -223,14 +162,9 @@ type bulkIndexerStats struct {
 }
 
 // NewBulkIndexer creates a new bulk indexer.
-//
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	if cfg.Client == nil {
-		cfg.Client, _ = opensearch.NewDefaultClient()
-	}
-
-	if cfg.Decoder == nil {
-		cfg.Decoder = defaultJSONDecoder{}
+		cfg.Client, _ = opensearchapi.NewDefaultClient()
 	}
 
 	if cfg.NumWorkers == 0 {
@@ -259,7 +193,6 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 // Add adds an item to the indexer.
 //
 // Adding an item after a call to Close() will panic.
-//
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 	atomic.AddUint64(&bi.stats.numAdded, 1)
 
@@ -277,7 +210,6 @@ func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 
 // Close stops the periodic flush, closes the indexer queue channel,
 // notifies the done channel and calls flush on all writers.
-//
 func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
 	close(bi.queue)
@@ -310,7 +242,6 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 }
 
 // Stats returns indexer statistics.
-//
 func (bi *bulkIndexer) Stats() BulkIndexerStats {
 	return BulkIndexerStats{
 		NumAdded:    atomic.LoadUint64(&bi.stats.numAdded),
@@ -325,7 +256,6 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 }
 
 // init initializes the bulk indexer.
-//
 func (bi *bulkIndexer) init() {
 	bi.queue = make(chan BulkIndexerItem, bi.config.NumWorkers)
 
@@ -371,7 +301,6 @@ func (bi *bulkIndexer) init() {
 }
 
 // worker represents an indexer worker.
-//
 type worker struct {
 	id    int
 	ch    <-chan BulkIndexerItem
@@ -383,7 +312,6 @@ type worker struct {
 }
 
 // run launches the worker in a goroutine.
-//
 func (w *worker) run() {
 	go func() {
 		ctx := context.Background()
@@ -402,7 +330,7 @@ func (w *worker) run() {
 
 			if err := w.writeMeta(item); err != nil {
 				if item.OnFailure != nil {
-					item.OnFailure(ctx, item, BulkIndexerResponseItem{}, err)
+					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 				}
 				atomic.AddUint64(&w.bi.stats.numFailed, 1)
 				w.mu.Unlock()
@@ -411,7 +339,7 @@ func (w *worker) run() {
 
 			if err := w.writeBody(&item); err != nil {
 				if item.OnFailure != nil {
-					item.OnFailure(ctx, item, BulkIndexerResponseItem{}, err)
+					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 				}
 				atomic.AddUint64(&w.bi.stats.numFailed, 1)
 				w.mu.Unlock()
@@ -434,7 +362,6 @@ func (w *worker) run() {
 }
 
 // writeMeta formats and writes the item metadata to the buffer; it must be called under a lock.
-//
 func (w *worker) writeMeta(item BulkIndexerItem) error {
 	var err error
 	meta := bulkActionMetadata{
@@ -474,7 +401,6 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 }
 
 // writeBody writes the item body to the buffer; it must be called under a lock.
-//
 func (w *worker) writeBody(item *BulkIndexerItem) error {
 	if item.Body != nil {
 		if _, err := w.buf.ReadFrom(item.Body); err != nil {
@@ -497,7 +423,6 @@ func (w *worker) writeBody(item *BulkIndexerItem) error {
 }
 
 // flush writes out the worker buffer; it must be called under a lock.
-//
 func (w *worker) flush(ctx context.Context) error {
 	if w.bi.config.OnFlushStart != nil {
 		ctx = w.bi.config.OnFlushStart(ctx)
@@ -516,7 +441,7 @@ func (w *worker) flush(ctx context.Context) error {
 
 	var (
 		err error
-		blk BulkIndexerResponse
+		blk *opensearchapi.BulkResp
 	)
 
 	defer func() {
@@ -529,27 +454,27 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	atomic.AddUint64(&w.bi.stats.numRequests, 1)
-	req := opensearchapi.BulkRequest{
+	req := opensearchapi.BulkReq{
 		Index: w.bi.config.Index,
 		Body:  w.buf,
+		Params: opensearchapi.BulkParams{
+			Pipeline:            w.bi.config.Pipeline,
+			Refresh:             w.bi.config.Refresh,
+			Routing:             w.bi.config.Routing,
+			Source:              w.bi.config.Source,
+			SourceExcludes:      w.bi.config.SourceExcludes,
+			SourceIncludes:      w.bi.config.SourceIncludes,
+			Timeout:             w.bi.config.Timeout,
+			WaitForActiveShards: w.bi.config.WaitForActiveShards,
 
-		Pipeline:            w.bi.config.Pipeline,
-		Refresh:             w.bi.config.Refresh,
-		Routing:             w.bi.config.Routing,
-		Source:              w.bi.config.Source,
-		SourceExcludes:      w.bi.config.SourceExcludes,
-		SourceIncludes:      w.bi.config.SourceIncludes,
-		Timeout:             w.bi.config.Timeout,
-		WaitForActiveShards: w.bi.config.WaitForActiveShards,
-
-		Pretty:     w.bi.config.Pretty,
-		Human:      w.bi.config.Human,
-		ErrorTrace: w.bi.config.ErrorTrace,
-		FilterPath: w.bi.config.FilterPath,
-		Header:     w.bi.config.Header,
+			Pretty:     w.bi.config.Pretty,
+			Human:      w.bi.config.Human,
+			ErrorTrace: w.bi.config.ErrorTrace,
+		},
+		Header: w.bi.config.Header,
 	}
 
-	res, err := req.Do(ctx, w.bi.config.Client)
+	blk, err = w.bi.config.Client.Bulk(ctx, req)
 	if err != nil {
 		atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
 		if w.bi.config.OnError != nil {
@@ -557,30 +482,11 @@ func (w *worker) flush(ctx context.Context) error {
 		}
 		return fmt.Errorf("flush: %s", err)
 	}
-	if res.Body != nil {
-		defer res.Body.Close()
-	}
-	if res.IsError() {
-		atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
-		// TODO(karmi): Wrap error (include response struct)
-		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(ctx, fmt.Errorf("flush: %s", err))
-		}
-		return fmt.Errorf("flush: %s", res.String())
-	}
-
-	if err := w.bi.config.Decoder.UnmarshalFromReader(res.Body, &blk); err != nil {
-		// TODO(karmi): Wrap error (include response struct)
-		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(ctx, fmt.Errorf("flush: %s", err))
-		}
-		return fmt.Errorf("flush: error parsing response body: %s", err)
-	}
 
 	for i, blkItem := range blk.Items {
 		var (
 			item BulkIndexerItem
-			info BulkIndexerResponseItem
+			info opensearchapi.BulkRespItem
 			op   string
 		)
 
@@ -592,7 +498,7 @@ func (w *worker) flush(ctx context.Context) error {
 			op = k
 			info = v
 		}
-		if info.Error.Type != "" || info.Status > 201 {
+		if info.Error != nil || info.Status > 201 {
 			atomic.AddUint64(&w.bi.stats.numFailed, 1)
 			if item.OnFailure != nil {
 				item.OnFailure(ctx, item, info, nil)
@@ -618,10 +524,4 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	return err
-}
-
-type defaultJSONDecoder struct{}
-
-func (d defaultJSONDecoder) UnmarshalFromReader(r io.Reader, blk *BulkIndexerResponse) error {
-	return json.NewDecoder(r).Decode(blk)
 }
