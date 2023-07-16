@@ -17,14 +17,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/opensearch-project/opensearch-go/v2"
-	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	"github.com/stretchr/testify/require"
 )
 
 type DataStreamRequest interface {
@@ -32,7 +33,9 @@ type DataStreamRequest interface {
 }
 
 func TestIndicesDataStreams_Do(t *testing.T) {
-	name := fmt.Sprintf("demo-%s", time.Now().Format("2006-01-02-15-04-05"))
+	// We need two datastreams to ensure endpoints that fetch both are tested appropriately
+	dataStream1 := fmt.Sprintf("demo-1-%s", time.Now().Format("2006-01-02-15-04-05"))
+	dataStream2 := fmt.Sprintf("demo-2-%s", time.Now().Format("2006-01-02-15-04-05"))
 
 	tests := []struct {
 		name     string
@@ -44,7 +47,27 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 		{
 			name: "TestIndicesCreateDataStreamRequest_Do",
 			r: opensearchapi.IndicesCreateDataStreamRequest{
-				Name:       name,
+				Name:       dataStream1,
+				Pretty:     true,
+				Human:      true,
+				ErrorTrace: true,
+				Header: map[string][]string{
+					"Content-Type": {"application/json"},
+				},
+			},
+			want: &opensearchapi.Response{
+				StatusCode: 200,
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=UTF-8"},
+				},
+			},
+			wantBody: `{"acknowledged":true}`,
+			wantErr:  false,
+		},
+		{
+			name: "TestIndicesCreateDataStream2Request_Do",
+			r: opensearchapi.IndicesCreateDataStreamRequest{
+				Name:       dataStream2,
 				Pretty:     true,
 				Human:      true,
 				ErrorTrace: true,
@@ -64,7 +87,7 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 		{
 			name: "TestIndicesGetDataStreamRequest_Do",
 			r: opensearchapi.IndicesGetDataStreamRequest{
-				Name:       name,
+				Name:       dataStream1,
 				Pretty:     true,
 				Human:      true,
 				ErrorTrace: true,
@@ -101,7 +124,7 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 		{
 			name: "TestIndicesGetStatsDataStreamRequest_Do",
 			r: opensearchapi.IndicesGetDataStreamStatsRequest{
-				Name:       name,
+				Name:       dataStream1,
 				Pretty:     true,
 				Human:      true,
 				ErrorTrace: true,
@@ -115,13 +138,52 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 					"Content-Type": []string{"application/json; charset=UTF-8"},
 				},
 			},
-			wantBody: fmt.Sprintf(`{"_shards":{"total":2,"successful":1,"failed":0},"data_stream_count":1,"backing_indices":1,"total_store_size":"208b","total_store_size_bytes":208,"data_streams":[{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0}]}`, name),
+			wantBody: fmt.Sprintf(`{"_shards":{"total":2,"successful":1,"failed":0},"data_stream_count":1,"backing_indices":1,"total_store_size":"208b","total_store_size_bytes":208,"data_streams":[{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0}]}`, dataStream1),
+			wantErr:  false,
+		},
+		{
+			name: "TestIndicesGetAllStatsDataStreamRequest_Do",
+			r: opensearchapi.IndicesGetDataStreamStatsRequest{
+				Pretty:     true,
+				Human:      true,
+				ErrorTrace: true,
+				Header: map[string][]string{
+					"Content-Type": {"application/json"},
+				},
+			},
+			want: &opensearchapi.Response{
+				StatusCode: 200,
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=UTF-8"},
+				},
+			},
+			wantBody: fmt.Sprintf(`{"_shards":{"total":4,"successful":2,"failed":0},"data_stream_count":2,"backing_indices":2,"total_store_size":"416b","total_store_size_bytes":416,"data_streams":[{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0},{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0}]}`, dataStream2, dataStream1),
 			wantErr:  false,
 		},
 		{
 			name: "TestIndicesDeleteDataStreamRequest_Do",
 			r: opensearchapi.IndicesDeleteDataStreamRequest{
-				Name:       name,
+				Name:       dataStream1,
+				Pretty:     true,
+				Human:      true,
+				ErrorTrace: true,
+				Header: map[string][]string{
+					"Content-Type": {"application/json"},
+				},
+			},
+			want: &opensearchapi.Response{
+				StatusCode: 200,
+				Header: http.Header{
+					"Content-Type": []string{"application/json; charset=UTF-8"},
+				},
+			},
+			wantBody: `{"acknowledged":true}`,
+			wantErr:  false,
+		},
+		{
+			name: "TestIndicesDeleteDataStream2Request_Do",
+			r: opensearchapi.IndicesDeleteDataStreamRequest{
+				Name:       dataStream2,
 				Pretty:     true,
 				Human:      true,
 				ErrorTrace: true,
@@ -182,7 +244,7 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 					fmt.Println(err)
 				}
 
-				require.Equalf(t, buffer.String(), tt.wantBody, "Do() got = %v, want %v", got.String(), tt.wantBody)
+				require.Equalf(t, tt.wantBody, buffer.String(), "Do() got = %v, want %v", got.String(), tt.wantBody)
 			}
 		})
 	}
