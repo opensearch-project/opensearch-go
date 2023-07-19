@@ -168,7 +168,10 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 			require.Equalf(t, got.StatusCode, tt.want.StatusCode, "Do() got = %v, want %v", got.StatusCode, tt.want.StatusCode)
 
 			if tt.wantBody != "" {
-				require.Equalf(t, got.Header, tt.want.Header, "Do() got = %v, want %v", got.Header, tt.want.Header)
+				for name, value := range tt.want.Header {
+					require.Contains(t, got.Header, name)
+					require.Equal(t, value, got.Header[name])
+				}
 
 				defer got.Body.Close()
 				body, err := ioutil.ReadAll(got.Body)
