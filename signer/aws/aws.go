@@ -49,10 +49,12 @@ func NewSignerWithService(opts session.Options, service string) (*Signer, error)
 	if len(strings.TrimSpace(service)) < 1 {
 		return nil, errors.New("service cannot be empty")
 	}
+
 	awsSession, err := session.NewSessionWithOptions(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get session from given options %v: %v", opts, err)
+		return nil, fmt.Errorf("failed to get session from given options %v: %w", opts, err)
 	}
+
 	return &Signer{
 		session: *awsSession,
 		service: service,
@@ -70,18 +72,22 @@ func sign(req *http.Request, region *string, serviceName string, signer *v4.Sign
 	}
 
 	var body io.ReadSeeker
-	var contentSha256Hash = emptyBodySHA256
+
+	contentSha256Hash := emptyBodySHA256
 
 	if req.Body != nil {
 		b, err := io.ReadAll(req.Body)
 		if err != nil {
-			return fmt.Errorf("failed to read request body: %v", err)
+			return fmt.Errorf("failed to read request body: %w", err)
 		}
+
 		body = bytes.NewReader(b)
+
 		hash, err := hexEncodedSha256(b)
 		if err != nil {
-			return fmt.Errorf("failed to calculate hash of request body: %v", err)
+			return fmt.Errorf("failed to calculate hash of request body: %w", err)
 		}
+
 		contentSha256Hash = hash
 	}
 	// Add the "X-Amz-Content-Sha256" header as required by Amazon OpenSearch Serverless.
@@ -97,9 +103,8 @@ func sign(req *http.Request, region *string, serviceName string, signer *v4.Sign
 func hexEncodedSha256(b []byte) (string, error) {
 	hasher := sha256.New()
 
-	_, err := hasher.Write(b)
-	if err != nil {
-		return "", fmt.Errorf("failed to write: %v", err)
+	if _, err := hasher.Write(b); err != nil {
+		return "", fmt.Errorf("failed to write: %w", err)
 	}
 
 	digest := hasher.Sum(nil)
