@@ -72,12 +72,6 @@ lint:  ## Run lint on the package
 	@printf "\033[2m→ Running lint...\033[0m\n"
 	go vet github.com/opensearch-project/opensearch-go/...
 	go list github.com/opensearch-project/opensearch-go/... | 'grep' -v internal | xargs golint -set_exit_status
-	@{ \
-		set -e ; \
-		trap "test -d ../../../.git && git checkout --quiet go.mod" INT TERM EXIT; \
-		echo "cd internal/build/ && go vet ./..."; \
-		cd "internal/build/" && go mod tidy && go mod download && go vet ./...; \
-	}
 
 package := "prettier"
 lint.markdown:
