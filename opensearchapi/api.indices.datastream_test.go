@@ -13,9 +13,7 @@
 package opensearchapi_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -23,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kinbiko/jsonassert"
 	"github.com/opensearch-project/opensearch-go/v2"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/stretchr/testify/require"
@@ -157,7 +156,7 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 					"Content-Type": []string{"application/json; charset=UTF-8"},
 				},
 			},
-			wantBody: fmt.Sprintf(`{"_shards":{"total":4,"successful":2,"failed":0},"data_stream_count":2,"backing_indices":2,"total_store_size":"416b","total_store_size_bytes":416,"data_streams":[{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0},{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0}]}`, dataStream2, dataStream1),
+			wantBody: fmt.Sprintf(`{"_shards":{"total":4,"successful":2,"failed":0},"data_stream_count":2,"backing_indices":2,"total_store_size":"416b","total_store_size_bytes":416,"data_streams":["<<UNORDERED>>",{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0},{"data_stream":"%s","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0}]}`, dataStream2, dataStream1),
 			wantErr:  false,
 		},
 		{
@@ -239,12 +238,8 @@ func TestIndicesDataStreams_Do(t *testing.T) {
 				body, err := ioutil.ReadAll(got.Body)
 				require.NoError(t, err)
 
-				buffer := new(bytes.Buffer)
-				if err := json.Compact(buffer, body); err != nil {
-					fmt.Println(err)
-				}
-
-				require.Equalf(t, tt.wantBody, buffer.String(), "Do() got = %v, want %v", got.String(), tt.wantBody)
+				ja := jsonassert.New(t)
+				ja.Assertf(string(body), tt.wantBody)
 			}
 		})
 	}
