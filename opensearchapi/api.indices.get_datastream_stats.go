@@ -58,8 +58,11 @@ func (r IndicesGetDataStreamStatsRequest) Do(ctx context.Context, transport Tran
 	method = "GET"
 
 	path.Grow(1 + len("_data_stream") + 1 + len(r.Name) + 1 + len("_stats"))
-	path.WriteString("/_data_stream/")
-	path.WriteString(r.Name)
+	path.WriteString("/_data_stream")
+	if r.Name != "" {
+		path.WriteString("/")
+		path.WriteString(r.Name)
+	}
 	path.WriteString("/_stats")
 
 	params = make(map[string]string)
