@@ -25,7 +25,6 @@
 // under the License.
 
 //go:build !integration
-// +build !integration
 
 package opensearchutil_test
 
@@ -129,9 +128,8 @@ func ExampleNewBulkIndexer() {
 	stats := indexer.Stats()
 	if stats.NumFailed > 0 {
 		log.Fatalf("Indexed [%d] documents with [%d] errors", stats.NumFlushed, stats.NumFailed)
-	} else {
-		log.Printf("Successfully indexed [%d] documents", stats.NumFlushed)
 	}
+	log.Printf("Successfully indexed [%d] documents", stats.NumFlushed)
 
 	// For optimal performance, consider using a third-party package for JSON decoding and HTTP transport.
 }

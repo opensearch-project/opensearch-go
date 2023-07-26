@@ -25,7 +25,6 @@
 // under the License.
 
 //go:build !integration
-// +build !integration
 
 package opensearchutil
 
@@ -33,7 +32,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -58,7 +57,7 @@ var infoBody = `{
 }`
 
 var defaultRoundTripFunc = func(*http.Request) (*http.Response, error) {
-	return &http.Response{Body: ioutil.NopCloser(strings.NewReader(`{}`))}, nil
+	return &http.Response{Body: io.NopCloser(strings.NewReader(`{}`))}, nil
 }
 
 type mockTransport struct {
@@ -85,7 +84,10 @@ func TestBulkIndexer(t *testing.T) {
 		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
 			RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 				if request.URL.Path == "/" {
-					return &http.Response{Header: http.Header{"Content-Type": []string{"application/json"}}, Body: ioutil.NopCloser(strings.NewReader(infoBody))}, nil
+					return &http.Response{
+						Header: http.Header{"Content-Type": []string{"application/json"}},
+						Body:   io.NopCloser(strings.NewReader(infoBody)),
+					}, nil
 				}
 
 				countReqs++
@@ -97,8 +99,8 @@ func TestBulkIndexer(t *testing.T) {
 				case 3:
 					testfile = "testdata/bulk_response_1c.json"
 				}
-				bodyContent, _ := ioutil.ReadFile(testfile)
-				return &http.Response{Body: ioutil.NopCloser(bytes.NewBuffer(bodyContent))}, nil
+				bodyContent, _ := os.ReadFile(testfile)
+				return &http.Response{Body: io.NopCloser(bytes.NewBuffer(bodyContent))}, nil
 			},
 		}}})
 
@@ -106,7 +108,8 @@ func TestBulkIndexer(t *testing.T) {
 			NumWorkers:    1,
 			FlushBytes:    50,
 			FlushInterval: time.Hour, // Disable auto-flushing, because response doesn't match number of items
-			Client:        client}
+			Client:        client,
+		}
 		if os.Getenv("DEBUG") != "" {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
@@ -217,7 +220,7 @@ func TestBulkIndexer(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
 		if err := bi.Close(ctx); err == nil {
-			t.Errorf("Expected context cancelled error, but got: %v", err)
+			t.Errorf("Expected context canceled error, but got: %v", err)
 		}
 	})
 
@@ -227,7 +230,7 @@ func TestBulkIndexer(t *testing.T) {
 				Transport: &mockTransport{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 						if request.URL.Path == "/" {
-							return &http.Response{Body: ioutil.NopCloser(strings.NewReader(infoBody))}, nil
+							return &http.Response{Body: io.NopCloser(strings.NewReader(infoBody))}, nil
 						}
 
 						return nil, fmt.Errorf("Mock transport error")
@@ -280,7 +283,7 @@ func TestBulkIndexer(t *testing.T) {
 
 			numItems       = 4
 			numFailed      = 2
-			bodyContent, _ = ioutil.ReadFile("testdata/bulk_response_2.json")
+			bodyContent, _ = os.ReadFile("testdata/bulk_response_2.json")
 		)
 
 		client, _ := opensearchapi.NewClient(
@@ -292,12 +295,12 @@ func TestBulkIndexer(t *testing.T) {
 								return &http.Response{
 									StatusCode: http.StatusOK,
 									Status:     "200 OK",
-									Body:       ioutil.NopCloser(strings.NewReader(infoBody)),
+									Body:       io.NopCloser(strings.NewReader(infoBody)),
 									Header:     http.Header{"Content-Type": []string{"application/json"}},
 								}, nil
 							}
 
-							return &http.Response{Body: ioutil.NopCloser(bytes.NewBuffer(bodyContent))}, nil
+							return &http.Response{Body: io.NopCloser(bytes.NewBuffer(bodyContent))}, nil
 						},
 					},
 				},
@@ -314,7 +317,7 @@ func TestBulkIndexer(t *testing.T) {
 		successFunc := func(ctx context.Context, item BulkIndexerItem, res opensearchapi.BulkRespItem) {
 			atomic.AddUint64(&countSuccessful, 1)
 
-			buf, err := ioutil.ReadAll(item.Body)
+			buf, err := io.ReadAll(item.Body)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -327,7 +330,7 @@ func TestBulkIndexer(t *testing.T) {
 			atomic.AddUint64(&countFailed, 1)
 			failedIDs = append(failedIDs, item.DocumentID)
 
-			buf, err := ioutil.ReadAll(item.Body)
+			buf, err := io.ReadAll(item.Body)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -471,15 +474,17 @@ func TestBulkIndexer(t *testing.T) {
 					return &http.Response{
 						StatusCode: http.StatusOK,
 						Status:     "200 OK",
-						Body:       ioutil.NopCloser(strings.NewReader(infoBody)),
+						Body:       io.NopCloser(strings.NewReader(infoBody)),
 						Header:     http.Header{"Content-Type": []string{"application/json"}},
 					}, nil
 				}
 
 				return &http.Response{
-					StatusCode: http.StatusOK,
-					Status:     "200 OK",
-					Body:       ioutil.NopCloser(strings.NewReader(`{"items":[{"index": {}}]}`))}, nil
+						StatusCode: http.StatusOK,
+						Status:     "200 OK",
+						Body:       io.NopCloser(strings.NewReader(`{"items":[{"index": {}}]}`)),
+					},
+					nil
 			},
 		}}})
 
@@ -540,7 +545,7 @@ func TestBulkIndexer(t *testing.T) {
 							return &http.Response{
 								StatusCode: http.StatusOK,
 								Status:     "200 OK",
-								Body:       ioutil.NopCloser(strings.NewReader(infoBody)),
+								Body:       io.NopCloser(strings.NewReader(infoBody)),
 								Header:     http.Header{"Content-Type": []string{"application/json"}},
 							}, nil
 						}
@@ -548,15 +553,17 @@ func TestBulkIndexer(t *testing.T) {
 						countReqs++
 						if countReqs <= 4 {
 							return &http.Response{
-								StatusCode: http.StatusTooManyRequests,
-								Status:     "429 TooManyRequests",
-								Body:       ioutil.NopCloser(strings.NewReader(`{"took":1}`))}, nil
+									StatusCode: http.StatusTooManyRequests,
+									Status:     "429 TooManyRequests",
+									Body:       io.NopCloser(strings.NewReader(`{"took":1}`)),
+								},
+								nil
 						}
-						bodyContent, _ := ioutil.ReadFile("testdata/bulk_response_1c.json")
+						bodyContent, _ := os.ReadFile("testdata/bulk_response_1c.json")
 						return &http.Response{
 							StatusCode: http.StatusOK,
 							Status:     "200 OK",
-							Body:       ioutil.NopCloser(bytes.NewBuffer(bodyContent)),
+							Body:       io.NopCloser(bytes.NewBuffer(bodyContent)),
 						}, nil
 					},
 				},
@@ -585,7 +592,7 @@ func TestBulkIndexer(t *testing.T) {
 
 		for i := 1; i <= numItems; i++ {
 			wg.Add(1)
-			go func(i int) {
+			go func() {
 				defer wg.Done()
 				err := bi.Add(context.Background(), BulkIndexerItem{
 					Action: "foo",
@@ -595,7 +602,7 @@ func TestBulkIndexer(t *testing.T) {
 					t.Errorf("Unexpected error: %s", err)
 					return
 				}
-			}(i)
+			}()
 		}
 		wg.Wait()
 
@@ -755,7 +762,6 @@ func TestBulkIndexer(t *testing.T) {
 				if w.buf.String() != tt.want {
 					t.Errorf("worker.writeMeta() %s = got [%s], want [%s]", tt.name, w.buf.String(), tt.want)
 				}
-
 			})
 		}
 	})

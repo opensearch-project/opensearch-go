@@ -25,7 +25,6 @@
 // under the License.
 
 //go:build integration
-// +build integration
 
 package opensearchutil_test
 
@@ -45,7 +44,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
 		ctx := context.Background()
 
-		client, err := opensearchapi.NewClient(opensearchapi.Config{})
+		client, err := opensearchapi.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}

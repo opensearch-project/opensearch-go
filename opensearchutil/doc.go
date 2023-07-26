@@ -26,6 +26,5 @@
 
 /*
 Package opensearchutil provides helper utilities to the Go client for OpenSearch.
-
 */
 package opensearchutil

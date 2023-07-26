@@ -41,6 +41,8 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 )
 
+const defaultFlushInterval = 30 * time.Second
+
 // BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
 type BulkIndexer interface {
 	// Add adds an item to the indexer. It returns an error when the item cannot be added.
@@ -164,7 +166,11 @@ type bulkIndexerStats struct {
 // NewBulkIndexer creates a new bulk indexer.
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	if cfg.Client == nil {
-		cfg.Client, _ = opensearchapi.NewDefaultClient()
+		var err error
+		cfg.Client, err = opensearchapi.NewDefaultClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if cfg.NumWorkers == 0 {
@@ -176,7 +182,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	}
 
 	if cfg.FlushInterval == 0 {
-		cfg.FlushInterval = 30 * time.Second
+		cfg.FlushInterval = defaultFlushInterval
 	}
 
 	bi := bulkIndexer{
@@ -233,6 +239,7 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 				if bi.config.OnError != nil {
 					bi.config.OnError(ctx, err)
 				}
+
 				continue
 			}
 		}
@@ -265,15 +272,19 @@ func (bi *bulkIndexer) init() {
 			ch:  bi.queue,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
-			aux: make([]byte, 0, 512)}
+			//nolint:gomnd // Predefine the slice capacity
+			aux: make([]byte, 0, 512),
+		}
 		w.run()
 		bi.workers = append(bi.workers, &w)
 	}
 	bi.wg.Add(bi.config.NumWorkers)
 
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)
+
 	go func() {
 		ctx := context.Background()
+
 		for {
 			select {
 			case <-bi.done:
@@ -282,6 +293,7 @@ func (bi *bulkIndexer) init() {
 				if bi.config.DebugLogger != nil {
 					bi.config.DebugLogger.Printf("[indexer] Auto-flushing workers after %s\n", bi.config.FlushInterval)
 				}
+
 				for _, w := range bi.workers {
 					w.mu.Lock()
 					if w.buf.Len() > 0 {
@@ -290,6 +302,7 @@ func (bi *bulkIndexer) init() {
 							if bi.config.OnError != nil {
 								bi.config.OnError(ctx, err)
 							}
+
 							continue
 						}
 					}
@@ -332,8 +345,10 @@ func (w *worker) run() {
 				if item.OnFailure != nil {
 					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 				}
+
 				atomic.AddUint64(&w.bi.stats.numFailed, 1)
 				w.mu.Unlock()
+
 				continue
 			}
 
@@ -343,6 +358,7 @@ func (w *worker) run() {
 				}
 				atomic.AddUint64(&w.bi.stats.numFailed, 1)
 				w.mu.Unlock()
+
 				continue
 			}
 
@@ -350,9 +366,11 @@ func (w *worker) run() {
 			if w.buf.Len() >= w.bi.config.FlushBytes {
 				if err := w.flush(ctx); err != nil {
 					w.mu.Unlock()
+
 					if w.bi.config.OnError != nil {
 						w.bi.config.OnError(ctx, err)
 					}
+
 					continue
 				}
 			}
@@ -364,6 +382,7 @@ func (w *worker) run() {
 // writeMeta formats and writes the item metadata to the buffer; it must be called under a lock.
 func (w *worker) writeMeta(item BulkIndexerItem) error {
 	var err error
+
 	meta := bulkActionMetadata{
 		Index:               item.Index,
 		DocumentID:          item.DocumentID,
@@ -377,48 +396,56 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 		RequireAlias:        item.RequireAlias,
 		RetryOnConflict:     item.RetryOnConflict,
 	}
+
 	// Can not specify version or seq num if no document ID is passed
 	if meta.DocumentID == "" {
 		meta.Version = nil
 		meta.VersionType = nil
 	}
+
 	w.aux, err = json.Marshal(map[string]bulkActionMetadata{
 		item.Action: meta,
 	})
 	if err != nil {
 		return err
 	}
+
 	_, err = w.buf.Write(w.aux)
 	if err != nil {
 		return err
 	}
+
 	w.aux = w.aux[:0]
+
 	_, err = w.buf.WriteRune('\n')
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 // writeBody writes the item body to the buffer; it must be called under a lock.
 func (w *worker) writeBody(item *BulkIndexerItem) error {
-	if item.Body != nil {
-		if _, err := w.buf.ReadFrom(item.Body); err != nil {
-			if w.bi.config.OnError != nil {
-				w.bi.config.OnError(context.Background(), err)
-			}
-			return err
-		}
-
-		if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
-			if w.bi.config.OnError != nil {
-				w.bi.config.OnError(context.Background(), err)
-			}
-			return err
-		}
-
-		w.buf.WriteRune('\n')
+	if item.Body == nil {
+		return nil
 	}
+
+	if _, err := w.buf.ReadFrom(item.Body); err != nil {
+		if w.bi.config.OnError != nil {
+			w.bi.config.OnError(context.Background(), err)
+		}
+		return err
+	}
+
+	if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
+		if w.bi.config.OnError != nil {
+			w.bi.config.OnError(context.Background(), err)
+		}
+		return err
+	}
+
+	w.buf.WriteRune('\n')
 	return nil
 }
 
@@ -478,9 +505,9 @@ func (w *worker) flush(ctx context.Context) error {
 	if err != nil {
 		atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
 		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(ctx, fmt.Errorf("flush: %s", err))
+			w.bi.config.OnError(ctx, fmt.Errorf("flush: %w", err))
 		}
-		return fmt.Errorf("flush: %s", err)
+		return fmt.Errorf("flush: %w", err)
 	}
 
 	for i, blkItem := range blk.Items {

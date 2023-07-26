@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchutil_test
 
@@ -33,7 +33,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -48,12 +47,13 @@ type Foo struct {
 
 func (f Foo) EncodeJSON(w io.Writer) error {
 	var b bytes.Buffer
+
 	b.WriteString(`{"bar":"`)
 	b.WriteString(strings.ToUpper(f.Bar))
 	b.WriteString(`"}`)
 	b.WriteString("\n")
-	_, err := b.WriteTo(w)
-	if err != nil {
+
+	if _, err := b.WriteTo(w); err != nil {
 		return err
 	}
 	return nil
@@ -68,7 +68,7 @@ func BenchmarkJSONReader(b *testing.B) {
 		var buf bytes.Buffer
 		for i := 0; i < b.N; i++ {
 			json.NewEncoder(&buf).Encode(map[string]string{"foo": "bar"})
-			if string(buf.String()) != `{"foo":"bar"}`+"\n" {
+			if buf.String() != `{"foo":"bar"}`+"\n" {
 				b.Fatalf("Unexpected output: %q", buf.String())
 			}
 			buf.Reset()
@@ -79,7 +79,7 @@ func BenchmarkJSONReader(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			out, _ := ioutil.ReadAll(opensearchutil.NewJSONReader(map[string]string{"foo": "bar"}))
+			out, _ := io.ReadAll(opensearchutil.NewJSONReader(map[string]string{"foo": "bar"}))
 			if string(out) != `{"foo":"bar"}`+"\n" {
 				b.Fatalf("Unexpected output: %q", out)
 			}
@@ -103,7 +103,7 @@ func BenchmarkJSONReader(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			out, _ := ioutil.ReadAll(opensearchutil.NewJSONReader(Foo{Bar: "baz"}))
+			out, _ := io.ReadAll(opensearchutil.NewJSONReader(Foo{Bar: "baz"}))
 			if string(out) != `{"bar":"BAZ"}`+"\n" {
 				b.Fatalf("Unexpected output: %q", out)
 			}
