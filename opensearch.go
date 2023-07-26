@@ -46,15 +46,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2/signer"
 )
 
-var (
-	reVersion *regexp.Regexp
-)
-
-func init() {
-	versionPattern := `^([0-9]+)\.([0-9]+)\.([0-9]+)`
-	reVersion = regexp.MustCompile(versionPattern)
-}
-
 const (
 	defaultURL         = "http://localhost:9200"
 	openSearch         = "opensearch"
@@ -156,10 +147,7 @@ func NewClient(cfg Config) (*Client, error) {
 	var addrs []string
 
 	if len(cfg.Addresses) == 0 {
-		envAddress, err := getAddressFromEnvironment()
-		if err != nil {
-			return nil, err
-		}
+		envAddress := getAddressFromEnvironment()
 		addrs = envAddress
 	} else {
 		addrs = append(addrs, cfg.Addresses...)
@@ -167,11 +155,12 @@ func NewClient(cfg Config) (*Client, error) {
 
 	urls, err := addrsToURLs(addrs)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create client: %s", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateClient, err)
 	}
 
 	if len(urls) == 0 {
-		u, _ := url.Parse(defaultURL) // errcheck exclude
+		//nolint:errcheck // errcheck exclude ???
+		u, _ := url.Parse(defaultURL)
 		urls = append(urls, u)
 	}
 
@@ -211,21 +200,21 @@ func NewClient(cfg Config) (*Client, error) {
 		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("error creating transport: %s", err)
+		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)
 	}
 
 	client := &Client{Transport: tp}
 
 	if cfg.DiscoverNodesOnStart {
+		//nolint:errcheck // goroutine discards return values
 		go client.DiscoverNodes()
 	}
 
 	return client, err
 }
 
-func getAddressFromEnvironment() ([]string, error) {
-	fromOpenSearchEnv := addrsFromEnvironment(envOpenSearchURL)
-	return fromOpenSearchEnv, nil
+func getAddressFromEnvironment() []string {
+	return addrsFromEnvironment(envOpenSearchURL)
 }
 
 // checkCompatibleInfo validates the information given by OpenSearch
@@ -234,25 +223,41 @@ func checkCompatibleInfo(info info) error {
 	if err != nil {
 		return err
 	}
+
 	if info.Version.Distribution == openSearch {
 		return nil
 	}
-	if major != 7 {
+
+	if major != SupportedElasticVersion {
 		return errors.New(unsupportedProduct)
 	}
+
 	return nil
 }
 
 // ParseVersion returns an int64 representation of version.
 func ParseVersion(version string) (int64, int64, int64, error) {
+	reVersion := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)`)
 	matches := reVersion.FindStringSubmatch(version)
-
+	//nolint:gomnd // 4 is the minium regexp match length
 	if len(matches) < 4 {
-		return 0, 0, 0, fmt.Errorf("")
+		return 0, 0, 0, fmt.Errorf("%w: regexp does not match on version string", ErrParseVersion)
 	}
-	major, _ := strconv.ParseInt(matches[1], 10, 0)
-	minor, _ := strconv.ParseInt(matches[2], 10, 0)
-	patch, _ := strconv.ParseInt(matches[3], 10, 0)
+
+	major, err := strconv.ParseInt(matches[1], 10, 0)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%w: %w", ErrParseVersion, err)
+	}
+
+	minor, err := strconv.ParseInt(matches[2], 10, 0)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%w: %w", ErrParseVersion, err)
+	}
+
+	patch, err := strconv.ParseInt(matches[3], 10, 0)
+	if err != nil {
+		return 0, 0, 0, fmt.Errorf("%w: %w", ErrParseVersion, err)
+	}
 
 	return major, minor, patch, nil
 }
@@ -274,6 +279,7 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer interface{}) (
 		httpReq = httpReq.WithContext(ctx)
 	}
 
+	//nolint:bodyclose // body got already closed by Perform, this is a nopcloser
 	resp, err := c.Perform(httpReq)
 	if err != nil {
 		return nil, err
@@ -288,11 +294,13 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer interface{}) (
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return response, fmt.Errorf("failed to read the response body, status: %d, err: %s", resp.StatusCode, err)
+			return response, fmt.Errorf("failed to read the response body, status: %d, err: %w", resp.StatusCode, err)
 		}
+
 		response.Body = io.NopCloser(bytes.NewReader(data))
+
 		if err := json.Unmarshal(data, dataPointer); err != nil {
-			return response, fmt.Errorf("failed to parse body into the pointer, status: %d, body: %s, err: %s", resp.StatusCode, data, err)
+			return response, fmt.Errorf("failed to parse body into the pointer, status: %d, body: %s, err: %w", resp.StatusCode, data, err)
 		}
 	}
 
@@ -304,7 +312,8 @@ func (c *Client) Metrics() (opensearchtransport.Metrics, error) {
 	if mt, ok := c.Transport.(opensearchtransport.Measurable); ok {
 		return mt.Metrics()
 	}
-	return opensearchtransport.Metrics{}, errors.New("transport is missing method Metrics()")
+
+	return opensearchtransport.Metrics{}, ErrTransportMissingMethodMetrics
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
@@ -312,7 +321,8 @@ func (c *Client) DiscoverNodes() error {
 	if dt, ok := c.Transport.(opensearchtransport.Discoverable); ok {
 		return dt.DiscoverNodes()
 	}
-	return errors.New("transport is missing method DiscoverNodes()")
+
+	return ErrTransportMissingMethodDiscoverNodes
 }
 
 // addrsFromEnvironment returns a list of addresses by splitting
@@ -322,8 +332,10 @@ func addrsFromEnvironment(name string) []string {
 
 	if envURLs, ok := os.LookupEnv(name); ok && envURLs != "" {
 		list := strings.Split(envURLs, ",")
-		for _, u := range list {
-			addrs = append(addrs, strings.TrimSpace(u))
+		addrs = make([]string, len(list))
+
+		for idx, u := range list {
+			addrs[idx] = strings.TrimSpace(u)
 		}
 	}
 
@@ -332,14 +344,16 @@ func addrsFromEnvironment(name string) []string {
 
 // addrsToURLs creates a list of url.URL structures from url list.
 func addrsToURLs(addrs []string) ([]*url.URL, error) {
-	var urls []*url.URL
+	urls := make([]*url.URL, 0)
+
 	for _, addr := range addrs {
 		u, err := url.Parse(strings.TrimRight(addr, "/"))
 		if err != nil {
-			return nil, fmt.Errorf("cannot parse url: %v", err)
+			return nil, fmt.Errorf("%w: %w", ErrParseURL, err)
 		}
 
 		urls = append(urls, u)
 	}
+
 	return urls, nil
 }
