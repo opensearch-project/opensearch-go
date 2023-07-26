@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchtransport
 
@@ -33,7 +33,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -43,12 +42,10 @@ import (
 	"time"
 )
 
-var (
-	_ = fmt.Print
-)
+var _ = fmt.Print
 
 func init() {
-	rand.Seed(time.Now().Unix())
+	rand.New(rand.NewSource(time.Now().Unix())).Uint64()
 }
 
 type mockTransp struct {
@@ -96,13 +93,15 @@ func TestTransport(t *testing.T) {
 	})
 
 	t.Run("Custom", func(t *testing.T) {
-		tp, _ := New(Config{
-			URLs: []*url.URL{{}},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{{}},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
+				},
 			},
-		})
-
+		)
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.transport.RoundTrip(&http.Request{URL: &url.URL{}})
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
@@ -240,7 +239,7 @@ func (cp *CustomConnectionPool) Next() (*Connection, error) {
 }
 
 func (cp *CustomConnectionPool) OnFailure(c *Connection) error {
-	var index = -1
+	index := -1
 	for i, u := range cp.urls {
 		if u == c.URL {
 			index = i
@@ -252,8 +251,8 @@ func (cp *CustomConnectionPool) OnFailure(c *Connection) error {
 	}
 	return fmt.Errorf("connection not found")
 }
-func (cp *CustomConnectionPool) OnSuccess(c *Connection) error { return nil }
-func (cp *CustomConnectionPool) URLs() []*url.URL              { return cp.urls }
+func (cp *CustomConnectionPool) OnSuccess(_ *Connection) {}
+func (cp *CustomConnectionPool) URLs() []*url.URL        { return cp.urls }
 
 func TestTransportCustomConnectionPool(t *testing.T) {
 	t.Run("Run", func(t *testing.T) {
@@ -291,14 +290,18 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 func TestTransportPerform(t *testing.T) {
 	t.Run("Executes", func(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-			}})
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
+				},
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
@@ -313,7 +316,7 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		tp.setReqURL(u, req)
 
 		expected := "https://foo.com/bar/abc"
@@ -327,7 +330,7 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("https://foo:bar@example.com")
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		tp.setReqAuth(u, req)
 
 		username, password, ok := req.BasicAuth()
@@ -344,7 +347,7 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("http://example.com")
 		tp, _ := New(Config{URLs: []*url.URL{u}, Username: "foo", Password: "bar"})
 
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		tp.setReqAuth(u, req)
 
 		username, password, ok := req.BasicAuth()
@@ -361,7 +364,7 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("http://example.com")
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		tp.setReqUserAgent(req)
 
 		if !strings.HasPrefix(req.UserAgent(), "opensearch-go") {
@@ -377,7 +380,7 @@ func TestTransportPerform(t *testing.T) {
 
 		{
 			// Set the global HTTP header
-			req, _ := http.NewRequest("GET", "/abc", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			tp.setReqGlobalHeader(req)
 
 			if req.Header.Get("X-Foo") != "bar" {
@@ -387,7 +390,7 @@ func TestTransportPerform(t *testing.T) {
 
 		{
 			// Do NOT overwrite an existing request header
-			req, _ := http.NewRequest("GET", "/abc", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			req.Header.Set("X-Foo", "baz")
 			tp.setReqGlobalHeader(req)
 
@@ -409,7 +412,7 @@ func TestTransportPerform(t *testing.T) {
 			},
 		)
 
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		tp.signRequest(req)
 
 		if _, ok := req.Header["Sign-Status"]; !ok {
@@ -418,14 +421,18 @@ func TestTransportPerform(t *testing.T) {
 	})
 
 	t.Run("Error No URL", func(t *testing.T) {
-		tp, _ := New(Config{
-			URLs: []*url.URL{},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-			}})
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
+				},
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Perform(req)
 		if err.Error() != `cannot get connection: no connection available` {
 			t.Fatalf("Expected error `cannot get URL`: but got error %q", err)
@@ -441,25 +448,28 @@ func TestTransportPerformRetries(t *testing.T) {
 		)
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					if i == numReqs {
-						fmt.Print(": OK\n")
-						return &http.Response{Status: "OK"}, nil
-					}
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u, u, u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						if i == numReqs {
+							fmt.Print(": OK\n")
+							return &http.Response{Status: "OK"}, nil
+						}
+						fmt.Print(": ERR\n")
+						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+					},
 				},
-			}})
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -480,25 +490,28 @@ func TestTransportPerformRetries(t *testing.T) {
 		)
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					if i == numReqs {
-						fmt.Print(": OK\n")
-						return &http.Response{Status: "OK"}, nil
-					}
-					fmt.Print(": ERR\n")
-					return nil, io.EOF
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u, u, u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						if i == numReqs {
+							fmt.Print(": OK\n")
+							return &http.Response{Status: "OK"}, nil
+						}
+						fmt.Print(": ERR\n")
+						return nil, io.EOF
+					},
 				},
-			}})
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -519,30 +532,33 @@ func TestTransportPerformRetries(t *testing.T) {
 		)
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					if i == numReqs {
-						fmt.Print(": 200\n")
-						return &http.Response{StatusCode: 200}, nil
-					}
-					fmt.Print(": 502\n")
-					return &http.Response{StatusCode: 502}, nil
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u, u, u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						if i == numReqs {
+							fmt.Print(": 200\n")
+							return &http.Response{StatusCode: http.StatusOK}, nil
+						}
+						fmt.Print(": 502\n")
+						return &http.Response{StatusCode: http.StatusBadGateway}, nil
+					},
 				},
-			}})
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		if res.StatusCode != 200 {
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected response: %+v", res)
 		}
 
@@ -558,23 +574,25 @@ func TestTransportPerformRetries(t *testing.T) {
 		)
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs:       []*url.URL{u, u, u},
-			MaxRetries: numReqs,
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": 502\n")
-					body := ioutil.NopCloser(strings.NewReader(`MOCK`))
-					return &http.Response{StatusCode: 502, Body: body}, nil
+		tp, _ := New(
+			Config{
+				URLs:       []*url.URL{u, u, u},
+				MaxRetries: numReqs,
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						fmt.Print(": 502\n")
+						body := io.NopCloser(strings.NewReader(`MOCK`))
+						return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
+					},
 				},
-			}})
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		res, err := tp.Perform(req)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -583,11 +601,11 @@ func TestTransportPerformRetries(t *testing.T) {
 			t.Errorf("Unexpected number of requests, want=%d, got=%d", numReqs, i)
 		}
 
-		if res.StatusCode != 502 {
+		if res.StatusCode != http.StatusBadGateway {
 			t.Errorf("Unexpected response: %+v", res)
 		}
 
-		resBody, _ := ioutil.ReadAll(res.Body)
+		resBody, _ := io.ReadAll(res.Body)
 		res.Body.Close()
 
 		if string(resBody) != "MOCK" {
@@ -602,21 +620,24 @@ func TestTransportPerformRetries(t *testing.T) {
 		)
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u, u, u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						fmt.Print(": ERR\n")
+						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+					},
 				},
-			}})
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
-
 		if err == nil {
 			t.Fatalf("Expected error, got: %v", err)
 		}
@@ -634,21 +655,24 @@ func TestTransportPerformRetries(t *testing.T) {
 	t.Run("Reset request body during retry", func(t *testing.T) {
 		var bodies []string
 		u, _ := url.Parse("https://foo.com/bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					body, err := ioutil.ReadAll(req.Body)
-					if err != nil {
-						panic(err)
-					}
-					bodies = append(bodies, string(body))
-					return &http.Response{Status: "MOCK", StatusCode: 502}, nil
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						body, err := io.ReadAll(req.Body)
+						if err != nil {
+							panic(err)
+						}
+						bodies = append(bodies, string(body))
+						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+					},
 				},
-			}},
+			},
 		)
 
-		req, _ := http.NewRequest("POST", "/abc", strings.NewReader("FOOBAR"))
+		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader("FOOBAR"))
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
@@ -669,21 +693,24 @@ func TestTransportPerformRetries(t *testing.T) {
 		var i int
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": ERR\n")
-					return nil, fmt.Errorf("Mock regular error (%d)", i)
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u, u, u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						fmt.Print(": ERR\n")
+						return nil, fmt.Errorf("Mock regular error (%d)", i)
+					},
 				},
-			}})
+			},
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
-
 		if err == nil {
 			t.Fatalf("Expected error, got: %v", err)
 		}
@@ -701,20 +728,23 @@ func TestTransportPerformRetries(t *testing.T) {
 		var i int
 
 		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs: []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+		tp, _ := New(
+			Config{
+				URLs: []*url.URL{u, u, u},
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						i++
+						fmt.Printf("Request #%d", i)
+						fmt.Print(": ERR\n")
+						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+					},
 				},
+				DisableRetry: true,
 			},
-			DisableRetry: true,
-		})
+		)
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+		//nolint:bodyclose // Mock response does not have a body to close
 		tp.Perform(req)
 
 		if i != 1 {
@@ -756,11 +786,11 @@ func TestTransportPerformRetries(t *testing.T) {
 			},
 		})
 
-		req, _ := http.NewRequest("GET", "/abc", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
+		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.Perform(req)
 		end := time.Since(start)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -862,6 +892,7 @@ func TestMaxRetries(t *testing.T) {
 				DisableRetry: test.disableRetry,
 			})
 
+			//nolint:bodyclose // Mock response does not have a body to close
 			c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
 
 			if test.expectedCallCount != callCount {
@@ -871,74 +902,7 @@ func TestMaxRetries(t *testing.T) {
 	}
 }
 
-func TestCompatibilityHeader(t *testing.T) {
-	tests := []struct {
-		name                string
-		compatibilityHeader bool
-		bodyPresent         bool
-		expectsHeader       []string
-	}{
-		{
-			name:                "Compatibility header disabled",
-			compatibilityHeader: false,
-			bodyPresent:         false,
-			expectsHeader:       []string{"application/json"},
-		},
-		{
-			name:                "Compatibility header enabled",
-			compatibilityHeader: true,
-			bodyPresent:         false,
-			expectsHeader:       []string{"application/vnd.elasticsearch+json;compatible-with=7"},
-		},
-		{
-			name:                "Compatibility header enabled with body",
-			compatibilityHeader: true,
-			bodyPresent:         true,
-			expectsHeader:       []string{"application/vnd.elasticsearch+json;compatible-with=7"},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			compatibilityHeader = test.compatibilityHeader
-
-			c, _ := New(Config{
-				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						if test.compatibilityHeader {
-							if !reflect.DeepEqual(req.Header["Accept"], test.expectsHeader) {
-								t.Errorf("Compatibility header enabled but header is, not in request headers, got: %s, want: %s", req.Header["Accept"], test.expectsHeader)
-							}
-						}
-						if test.bodyPresent {
-							if !reflect.DeepEqual(req.Header["Content-Type"], test.expectsHeader) {
-								t.Errorf("Compatibility header with Body enabled, not in request headers, got: %s, want: %s", req.Header["Content-Type"], test.expectsHeader)
-							}
-						}
-
-						return &http.Response{
-							StatusCode: http.StatusOK,
-							Status:     "MOCK",
-						}, nil
-					},
-				},
-			})
-
-			req := &http.Request{URL: &url.URL{}, Header: make(http.Header)}
-			if test.bodyPresent {
-				req.Body = ioutil.NopCloser(strings.NewReader("{}"))
-			}
-
-			_, _ = c.Perform(req)
-
-			compatibilityHeader = false
-		})
-	}
-}
-
 func TestRequestCompression(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		compressionFlag bool
@@ -978,7 +942,7 @@ func TestRequestCompression(t *testing.T) {
 							var unBuf bytes.Buffer
 							zr, err := gzip.NewReader(&buf)
 							if err != nil {
-								return nil, fmt.Errorf("decompression error: %v", err)
+								return nil, fmt.Errorf("decompression error: %w", err)
 							}
 							unBuf.ReadFrom(zr)
 							buf = unBuf
@@ -993,8 +957,9 @@ func TestRequestCompression(t *testing.T) {
 				},
 			})
 
-			req, _ := http.NewRequest("POST", "/abc", bytes.NewBufferString(test.inputBody))
+			req, _ := http.NewRequest(http.MethodPost, "/abc", bytes.NewBufferString(test.inputBody))
 
+			//nolint:bodyclose // Mock response does not have a body to close
 			res, err := tp.Perform(req)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
@@ -1008,7 +973,6 @@ func TestRequestCompression(t *testing.T) {
 }
 
 func TestRequestSigning(t *testing.T) {
-
 	t.Run("Sign request fails", func(t *testing.T) {
 		u, _ := url.Parse("https://foo:bar@example.com")
 		tp, _ := New(
@@ -1024,7 +988,8 @@ func TestRequestSigning(t *testing.T) {
 				},
 			},
 		)
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Perform(req)
 		if err == nil {
 			t.Fatal("Expected error, but, no error found")

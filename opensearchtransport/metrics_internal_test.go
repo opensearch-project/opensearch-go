@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchtransport
 
@@ -56,8 +56,11 @@ func TestMetrics(t *testing.T) {
 		tp.metrics.responses[200] = 1
 		tp.metrics.responses[404] = 2
 
-		req, _ := http.NewRequest("HEAD", "/", nil)
-		tp.Perform(req)
+		req, _ := http.NewRequest(http.MethodHead, "/", nil)
+		resp, err := tp.Perform(req)
+		if err == nil {
+			defer resp.Body.Close()
+		}
 
 		m, err := tp.Metrics()
 		if err != nil {

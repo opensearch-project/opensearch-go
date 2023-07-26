@@ -25,7 +25,6 @@
 // under the License.
 
 //go:build integration
-// +build integration
 
 package opensearchtransport_test
 

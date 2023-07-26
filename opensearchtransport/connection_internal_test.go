@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchtransport
 
@@ -81,8 +81,8 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 
 		pool := &statusConnectionPool{
 			live: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo2"}},
 			},
 			selector: &roundRobinSelector{curr: -1},
 		}
@@ -107,9 +107,9 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 	t.Run("Three URLs", func(t *testing.T) {
 		pool := &statusConnectionPool{
 			live: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo3"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo2"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo3"}},
 			},
 			selector: &roundRobinSelector{curr: -1},
 		}
@@ -117,7 +117,6 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		var expected string
 		for i := 0; i < 11; i++ {
 			c, err := pool.Next()
-
 			if err != nil {
 				t.Errorf("Unexpected error: %s", err)
 			}
@@ -143,8 +142,8 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		pool := &statusConnectionPool{
 			live: []*Connection{},
 			dead: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}, Failures: 3},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}, Failures: 1},
+				{URL: &url.URL{Scheme: "http", Host: "foo1"}, Failures: 3},
+				{URL: &url.URL{Scheme: "http", Host: "foo2"}, Failures: 1},
 			},
 			selector: &roundRobinSelector{curr: -1},
 		}
@@ -180,16 +179,14 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 	t.Run("Move connection to live list and mark it as healthy", func(t *testing.T) {
 		pool := &statusConnectionPool{
 			dead: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}, Failures: 3, IsDead: true},
+				{URL: &url.URL{Scheme: "http", Host: "foo1"}, Failures: 3, IsDead: true},
 			},
 			selector: &roundRobinSelector{curr: -1},
 		}
 
 		conn := pool.dead[0]
 
-		if err := pool.OnSuccess(conn); err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
+		pool.OnSuccess(conn)
 
 		if conn.IsDead {
 			t.Errorf("Expected the connection to be live; %s", conn)
@@ -213,12 +210,12 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 	t.Run("Remove connection, mark it, and sort dead connections", func(t *testing.T) {
 		pool := &statusConnectionPool{
 			live: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo2"}},
 			},
 			dead: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo3"}, Failures: 0},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo4"}, Failures: 99},
+				{URL: &url.URL{Scheme: "http", Host: "foo3"}, Failures: 0},
+				{URL: &url.URL{Scheme: "http", Host: "foo4"}, Failures: 99},
 			},
 			selector: &roundRobinSelector{curr: -1},
 		}
@@ -228,7 +225,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		if err := pool.OnFailure(conn); err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
-
+		conn.Lock()
 		if !conn.IsDead {
 			t.Errorf("Expected the connection to be dead; %s", conn)
 		}
@@ -236,7 +233,10 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		if conn.DeadSince.IsZero() {
 			t.Errorf("Unexpected value for DeadSince: %s", conn.DeadSince)
 		}
+		conn.Unlock()
 
+		pool.Lock()
+		defer pool.Unlock()
 		if len(pool.live) != 1 {
 			t.Errorf("Expected 1 live connection, got: %d", len(pool.live))
 		}
@@ -261,9 +261,9 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 	t.Run("Short circuit when the connection is already dead", func(t *testing.T) {
 		pool := &statusConnectionPool{
 			live: []*Connection{
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}},
-				&Connection{URL: &url.URL{Scheme: "http", Host: "foo3"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo2"}},
+				{URL: &url.URL{Scheme: "http", Host: "foo3"}},
 			},
 			selector: &roundRobinSelector{curr: -1},
 		}
@@ -285,15 +285,14 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 	t.Run("Mark the connection as dead and add/remove it to the lists", func(t *testing.T) {
 		pool := &statusConnectionPool{
 			live:     []*Connection{},
-			dead:     []*Connection{&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}, IsDead: true}},
+			dead:     []*Connection{{URL: &url.URL{Scheme: "http", Host: "foo1"}, IsDead: true}},
 			selector: &roundRobinSelector{curr: -1},
 		}
 
 		conn := pool.dead[0]
-
-		if err := pool.resurrect(conn, true); err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
+		conn.Lock()
+		defer conn.Unlock()
+		pool.resurrect(conn, true)
 
 		if conn.IsDead {
 			t.Errorf("Expected connection to be dead, got: %s", conn)
@@ -310,15 +309,14 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 
 	t.Run("Short circuit removal when the connection is not in the dead list", func(t *testing.T) {
 		pool := &statusConnectionPool{
-			dead:     []*Connection{&Connection{URL: &url.URL{Scheme: "http", Host: "bar"}, IsDead: true}},
+			dead:     []*Connection{{URL: &url.URL{Scheme: "http", Host: "bar"}, IsDead: true}},
 			selector: &roundRobinSelector{curr: -1},
 		}
 
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}, IsDead: true}
-
-		if err := pool.resurrect(conn, true); err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
+		conn.Lock()
+		defer conn.Unlock()
+		pool.resurrect(conn, true)
 
 		if len(pool.live) != 1 {
 			t.Errorf("Expected 1 live connection, got: %s", pool.live)
@@ -330,20 +328,19 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 	})
 
 	t.Run("Schedule resurrect", func(t *testing.T) {
-		defaultResurrectTimeoutInitial = 0
-		defer func() { defaultResurrectTimeoutInitial = 60 * time.Second }()
-
 		pool := &statusConnectionPool{
 			live: []*Connection{},
 			dead: []*Connection{
-				&Connection{
+				{
 					URL:       &url.URL{Scheme: "http", Host: "foo1"},
 					Failures:  100,
 					IsDead:    true,
 					DeadSince: time.Now().UTC(),
 				},
 			},
-			selector: &roundRobinSelector{curr: -1},
+			selector:                     &roundRobinSelector{curr: -1},
+			resurrectTimeoutInitial:      0,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		}
 
 		conn := pool.dead[0]
@@ -375,7 +372,6 @@ func TestConnection(t *testing.T) {
 			`<http://foo1> dead=true failures=10`,
 			conn.String(),
 		)
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}

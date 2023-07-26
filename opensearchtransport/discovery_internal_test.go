@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchtransport
 
@@ -34,7 +34,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -47,14 +46,14 @@ func TestDiscovery(t *testing.T) {
 	defaultHandler := func(w http.ResponseWriter, r *http.Request) {
 		f, err := os.Open("testdata/nodes.info.json")
 		if err != nil {
-			http.Error(w, fmt.Sprintf("Fixture error: %s", err), 500)
+			http.Error(w, fmt.Sprintf("Fixture error: %s", err), http.StatusInternalServerError)
 			return
 		}
 		io.Copy(w, f)
 	}
 
-	srv := &http.Server{Addr: "localhost:10001", Handler: http.HandlerFunc(defaultHandler)}
-	srvTLS := &http.Server{Addr: "localhost:12001", Handler: http.HandlerFunc(defaultHandler)}
+	srv := &http.Server{Addr: "localhost:10001", Handler: http.HandlerFunc(defaultHandler), ReadTimeout: 1 * time.Second}
+	srvTLS := &http.Server{Addr: "localhost:12001", Handler: http.HandlerFunc(defaultHandler), ReadTimeout: 1 * time.Second}
 
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -485,12 +484,10 @@ func TestDiscovery(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				var names []string
 				var urls []*url.URL
-				for name, node := range tt.args.Nodes {
+				for _, node := range tt.args.Nodes {
 					u, _ := url.Parse(node.URL)
 					urls = append(urls, u)
-					names = append(names, name)
 				}
 
 				newRoundTripper := func() http.RoundTripper {
@@ -505,11 +502,11 @@ func TestDiscovery(t *testing.T) {
 							b, _ := json.Marshal(nodes)
 
 							return &http.Response{
-								Status:        "200 OK",
-								StatusCode:    200,
+								Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+								StatusCode:    http.StatusOK,
 								ContentLength: int64(len(b)),
 								Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-								Body:          ioutil.NopCloser(bytes.NewReader(b)),
+								Body:          io.NopCloser(bytes.NewReader(b)),
 							}, nil
 						},
 					}
