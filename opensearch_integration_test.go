@@ -48,7 +48,7 @@ import (
 func TestClientTransport(t *testing.T) {
 	/*
 		t.Run("Persistent", func(t *testing.T) {
-			client, err := opensearchapi.NewClient(opensearchapi.Config{})
+			client, err := opensearchapi.NewDefaultClient()
 			if err != nil {
 				t.Fatalf("Error creating the client: %s", err)
 			}
@@ -87,7 +87,7 @@ func TestClientTransport(t *testing.T) {
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		client, err := opensearchapi.NewClient(opensearchapi.Config{})
+		client, err := opensearchapi.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -108,7 +108,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		client, err := opensearchapi.NewClient(opensearchapi.Config{})
+		client, err := opensearchapi.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -251,7 +251,7 @@ func TestClientReplaceTransport(t *testing.T) {
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		client, err := opensearchapi.NewClient(opensearchapi.Config{})
+		client, err := opensearchapi.NewDefaultClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}

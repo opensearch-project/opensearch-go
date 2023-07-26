@@ -25,13 +25,13 @@
 // under the License.
 
 //go:build !integration
-// +build !integration
 
 package opensearch_test
 
 import (
 	"context"
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -41,27 +41,13 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 )
 
-var defaultResponse = http.Response{
-	Status:        "200 OK",
-	StatusCode:    200,
-	ContentLength: 2,
-	Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-	Body:          ioutil.NopCloser(strings.NewReader(`{}`)),
-}
-
-var infoResponse = http.Response{
-	Status:     "200 OK",
-	StatusCode: http.StatusOK,
-	Header:     http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-}
-
 type FakeTransport struct {
 	Response *http.Response
 }
 
-func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *FakeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 	response := t.Response
-	response.Body = ioutil.NopCloser(strings.NewReader(`{
+	response.Body = io.NopCloser(strings.NewReader(`{
 		  "name" : "es1",
 		  "cluster_name" : "opensearch-go",
 		  "cluster_uuid" : "clusteruuid",
@@ -80,19 +66,26 @@ func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.Response, nil
 }
 
-func newFakeTransport(b *testing.B, resp http.Response) *FakeTransport {
+func newFakeTransport(_ *testing.B, resp http.Response) *FakeTransport {
 	return &FakeTransport{
 		Response: &resp,
 	}
 }
 
 func BenchmarkClient(b *testing.B) {
+	defaultResponse := http.Response{
+		Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+		StatusCode:    http.StatusOK,
+		ContentLength: 2,
+		Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+		Body:          io.NopCloser(strings.NewReader(`{}`)),
+	}
+
 	b.ReportAllocs()
 
 	b.Run("Create client with defaults", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b, defaultResponse)})
-
 			if err != nil {
 				b.Fatalf("Unexpected error when creating a client: %s", err)
 			}
@@ -101,15 +94,24 @@ func BenchmarkClient(b *testing.B) {
 }
 
 func BenchmarkClientAPI(b *testing.B) {
+	infoResponse := http.Response{
+		Status:     fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+		StatusCode: http.StatusOK,
+		Header:     http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+	}
+
 	b.ReportAllocs()
 
 	ctx := context.Background()
 
-	client, err := opensearchapi.NewClient(opensearchapi.Config{
-		Client: opensearch.Config{
-			Addresses: []string{"http://localhost:9200"},
-			Transport: newFakeTransport(b, infoResponse),
-		}})
+	client, err := opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Addresses: []string{"http://localhost:9200"},
+				Transport: newFakeTransport(b, infoResponse),
+			},
+		},
+	)
 	if err != nil {
 		b.Fatalf("ERROR: %s", err)
 	}

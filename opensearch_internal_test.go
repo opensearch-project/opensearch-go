@@ -25,13 +25,12 @@
 // under the License.
 
 //go:build !integration
-// +build !integration
 
 package opensearch
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -52,7 +51,7 @@ var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
 
 	if req.URL.Path == "/" {
-		response.Body = ioutil.NopCloser(strings.NewReader(`{
+		response.Body = io.NopCloser(strings.NewReader(`{
 		  "version" : {
 			"number" : "1.0.0",
 			"distribution" : "opensearch"
@@ -74,11 +73,8 @@ func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestClientConfiguration(t *testing.T) {
-	t.Parallel()
-
 	t.Run("With empty", func(t *testing.T) {
 		c, err := NewDefaultClient()
-
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -161,7 +157,7 @@ func TestClientConfiguration(t *testing.T) {
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 						return &http.Response{
 							Header: http.Header{},
-							Body:   ioutil.NopCloser(strings.NewReader("")),
+							Body:   io.NopCloser(strings.NewReader("")),
 						}, nil
 					},
 				},
@@ -175,18 +171,20 @@ func TestClientConfiguration(t *testing.T) {
 func TestClientInterface(t *testing.T) {
 	t.Run("Transport", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: &mockTransp{}})
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		if called != false { // megacheck ignore
+		if called != false {
 			t.Errorf("Unexpected call to transport by client")
 		}
 
-		c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
+		res, err := c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
+		if err == nil && res != nil && res.Body != nil {
+			res.Body.Close()
+		}
 
-		if called != true { // megacheck ignore
+		if called != true {
 			t.Errorf("Expected client to call transport")
 		}
 	})
@@ -405,7 +403,7 @@ func TestGenuineCheckInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := checkCompatibleInfo(tt.info); (err != nil) != tt.wantErr && err != tt.err {
+			if err := checkCompatibleInfo(tt.info); (err != nil) != tt.wantErr && !errors.Is(err, tt.err) {
 				t.Errorf("checkCompatibleInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

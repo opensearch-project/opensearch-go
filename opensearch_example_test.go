@@ -25,7 +25,6 @@
 // under the License.
 
 //go:build !integration
-// +build !integration
 
 package opensearch_test
 
@@ -75,7 +74,7 @@ func ExampleNewClient() {
 				ResponseHeaderTimeout: time.Second,
 				DialContext:           (&net.Dialer{Timeout: time.Second}).DialContext,
 				TLSClientConfig: &tls.Config{
-					MinVersion: tls.VersionTLS11,
+					MinVersion: tls.VersionTLS12,
 				},
 			},
 		},
@@ -87,14 +86,12 @@ func ExampleNewClient() {
 
 func ExampleNewClient_logger() {
 	// import "github.com/opensearch-project/opensearch-go/opensearchtransport"
-
 	// Use one of the bundled loggers:
 	//
 	// * opensearchtransport.TextLogger
 	// * opensearchtransport.ColorLogger
 	// * opensearchtransport.CurlLogger
 	// * opensearchtransport.JSONLogger
-
 	cfg := opensearchapi.Config{
 		Client: opensearch.Config{
 			Logger: &opensearchtransport.ColorLogger{Output: os.Stdout},
