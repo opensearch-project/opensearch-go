@@ -7,7 +7,7 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-package aws
+package aws_test
 
 import (
 	"bytes"
@@ -20,16 +20,16 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/stretchr/testify/assert"
+
+	osaws "github.com/opensearch-project/opensearch-go/v2/signer/aws"
 )
 
 func TestConstants(t *testing.T) {
-	assert.Equal(t, "es", OpenSearchService)
-	assert.Equal(t, "aoss", OpenSearchServerless)
-	assert.Equal(t, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", emptyBodySHA256)
+	assert.Equal(t, "es", osaws.OpenSearchService)
+	assert.Equal(t, "aoss", osaws.OpenSearchServerless)
 }
 
 func TestV4Signer(t *testing.T) {
-
 	t.Run("sign request failed due to no region found", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
 		assert.NoError(t, err)
@@ -39,7 +39,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		signer, err := NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(sessionOptions)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -56,7 +56,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		signer, err := NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(sessionOptions)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -71,7 +71,7 @@ func TestV4Signer(t *testing.T) {
 	t.Run("sign request success with body", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
-			bytes.NewBuffer([]byte(`some data`)))
+			bytes.NewBufferString("some data"))
 		assert.NoError(t, err)
 
 		sessionOptions := session.Options{
@@ -80,7 +80,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		signer, err := NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(sessionOptions)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -95,7 +95,7 @@ func TestV4Signer(t *testing.T) {
 	t.Run("sign request success with body for OpenSearch Service Serverless", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
-			bytes.NewBuffer([]byte(`some data`)))
+			bytes.NewBufferString("some data"))
 		assert.NoError(t, err)
 
 		sessionOptions := session.Options{
@@ -104,7 +104,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		signer, err := NewSignerWithService(sessionOptions, OpenSearchServerless)
+		signer, err := osaws.NewSignerWithService(sessionOptions, osaws.OpenSearchServerless)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -123,7 +123,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		_, err := NewSignerWithService(sessionOptions, "")
+		_, err := osaws.NewSignerWithService(sessionOptions, "")
 		assert.EqualError(t, err, "service cannot be empty")
 	})
 
@@ -134,7 +134,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		_, err := NewSignerWithService(sessionOptions, "	 ")
+		_, err := osaws.NewSignerWithService(sessionOptions, "	 ")
 		assert.EqualError(t, err, "service cannot be empty")
 	})
 
@@ -150,7 +150,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
-		signer, err := NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(sessionOptions)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
