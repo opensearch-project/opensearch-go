@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build integration
+//go:build integration
 
 package opensearchtransport
 
@@ -42,9 +42,6 @@ func NewServer(addr string, handler http.Handler) *http.Server {
 }
 
 func TestStatusConnectionPool(t *testing.T) {
-	defaultResurrectTimeoutInitial = time.Second
-	defer func() { defaultResurrectTimeoutInitial = 60 * time.Second }()
-
 	var (
 		server      *http.Server
 		servers     []*http.Server
@@ -88,6 +85,7 @@ func TestStatusConnectionPool(t *testing.T) {
 	transport, _ := New(cfg)
 
 	pool := transport.pool.(*statusConnectionPool)
+	pool.resurrectTimeoutInitial = time.Second
 
 	for i := 1; i <= 9; i++ {
 		req, _ := http.NewRequest("GET", "/", nil)

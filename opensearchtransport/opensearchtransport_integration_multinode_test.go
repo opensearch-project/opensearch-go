@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build integration,multinode
+//go:build integration && multinode
 
 package opensearchtransport_test
 

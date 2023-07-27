@@ -27,25 +27,23 @@
 package opensearchtransport
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 )
 
 // Discoverable defines the interface for transports supporting node discovery.
-//
 type Discoverable interface {
 	DiscoverNodes() error
 }
 
 // nodeInfo represents the information about node in a cluster.
-//
 type nodeInfo struct {
 	ID         string
 	Name       string
@@ -58,27 +56,22 @@ type nodeInfo struct {
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
-//
 func (c *Client) DiscoverNodes() error {
-	var conns []*Connection
+	conns := make([]*Connection, 0)
 
 	nodes, err := c.getNodesInfo()
 	if err != nil {
 		if debugLogger != nil {
 			debugLogger.Logf("Error getting nodes info: %s\n", err)
 		}
-		return fmt.Errorf("discovery: get nodes: %s", err)
+
+		return fmt.Errorf("discovery: get nodes: %w", err)
 	}
 
 	for _, node := range nodes {
-		var (
-			isClusterManagerOnlyNode bool
-		)
+		var isClusterManagerOnlyNode bool
 
-		roles := append(node.Roles[:0:0], node.Roles...)
-		sort.Strings(roles)
-
-		if len(roles) == 1 && (roles[0] == "master" || roles[0] == "cluster_manager") {
+		if len(node.Roles) == 1 && (node.Roles[0] == "master" || node.Roles[0] == "cluster_manager") {
 			isClusterManagerOnlyNode = true
 		}
 
@@ -87,6 +80,7 @@ func (c *Client) DiscoverNodes() error {
 			if isClusterManagerOnlyNode {
 				skip = "; [SKIP]"
 			}
+
 			debugLogger.Logf("Discovered node [%s]; %s; roles=%s%s\n", node.Name, node.URL, node.Roles, skip)
 		}
 
@@ -117,24 +111,18 @@ func (c *Client) DiscoverNodes() error {
 		c.pool = c.poolFunc(conns, c.selector)
 	} else {
 		// TODO: Replace only live connections, leave dead scheduled for resurrect?
-		c.pool, err = NewConnectionPool(conns, c.selector)
-		if err != nil {
-			return err
-		}
+		c.pool = NewConnectionPool(conns, c.selector)
 	}
 
 	return nil
 }
 
 func (c *Client) getNodesInfo() ([]nodeInfo, error) {
-	var (
-		out    []nodeInfo
-		scheme = c.urls[0].Scheme
-	)
+	scheme := c.urls[0].Scheme
 
-	req, err := http.NewRequest("GET", "/_nodes/http", nil)
+	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, "/_nodes/http", nil)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 
 	c.Lock()
@@ -142,7 +130,7 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	c.Unlock()
 	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 
 	c.setReqURL(conn.URL, req)
@@ -151,39 +139,43 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 	defer res.Body.Close()
 
-	if res.StatusCode > 200 {
-		body, _ := ioutil.ReadAll(res.Body)
-		return out, fmt.Errorf("server error: %s: %s", res.Status, body)
+	if res.StatusCode > http.StatusOK {
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, fmt.Errorf("server error: %s: %w", res.Status, err)
+		}
+		return nil, fmt.Errorf("server error: %s: %s", res.Status, body)
 	}
 
 	var env map[string]json.RawMessage
 	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
-		return out, err
+		return nil, err
 	}
 
 	var nodes map[string]nodeInfo
 	if err := json.Unmarshal(env["nodes"], &nodes); err != nil {
-		return out, err
+		return nil, err
 	}
+
+	out := make([]nodeInfo, len(nodes))
+	idx := 0
 
 	for id, node := range nodes {
 		node.ID = id
-		u, err := c.getNodeURL(node, scheme)
-		if err != nil {
-			return out, err
-		}
+		u := c.getNodeURL(node, scheme)
 		node.URL = u
-		out = append(out, node)
+		out[idx] = node
+		idx++
 	}
 
 	return out, nil
 }
 
-func (c *Client) getNodeURL(node nodeInfo, scheme string) (*url.URL, error) {
+func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	var (
 		host string
 		port string
@@ -197,25 +189,28 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) (*url.URL, error) {
 	} else {
 		host = strings.Split(addrs[0], ":")[0]
 	}
-	port = ports[len(ports)-1]
 
+	port = ports[len(ports)-1]
 	u := &url.URL{
 		Scheme: scheme,
 		Host:   host + ":" + port,
 	}
 
-	return u, nil
+	return u
 }
 
-func (c *Client) scheduleDiscoverNodes(d time.Duration) {
+func (c *Client) scheduleDiscoverNodes() {
+	//nolint:errcheck // errors are logged inside the function
 	go c.DiscoverNodes()
 
 	c.Lock()
 	defer c.Unlock()
+
 	if c.discoverNodesTimer != nil {
 		c.discoverNodesTimer.Stop()
 	}
+
 	c.discoverNodesTimer = time.AfterFunc(c.discoverNodesInterval, func() {
-		c.scheduleDiscoverNodes(c.discoverNodesInterval)
+		c.scheduleDiscoverNodes()
 	})
 }

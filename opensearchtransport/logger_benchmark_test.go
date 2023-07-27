@@ -24,13 +24,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchtransport_test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -46,13 +46,16 @@ func BenchmarkTransportLogger(b *testing.B) {
 			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &opensearchtransport.TextLogger{Output: ioutil.Discard},
+				Logger:    &opensearchtransport.TextLogger{Output: io.Discard},
 			})
 
-			req, _ := http.NewRequest("GET", "/abc", nil)
-			_, err := tp.Perform(req)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+			resp, err := tp.Perform(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
+			}
+			if resp.Body != nil {
+				resp.Body.Close()
 			}
 		}
 	})
@@ -62,20 +65,25 @@ func BenchmarkTransportLogger(b *testing.B) {
 			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &opensearchtransport.TextLogger{Output: ioutil.Discard, EnableRequestBody: true, EnableResponseBody: true},
+				Logger: &opensearchtransport.TextLogger{
+					Output:             io.Discard,
+					EnableRequestBody:  true,
+					EnableResponseBody: true,
+				},
 			})
 
-			req, _ := http.NewRequest("GET", "/abc", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			res, err := tp.Perform(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
 			}
+			res.Body.Close()
 
-			body, err := ioutil.ReadAll(res.Body)
+			body, err := io.ReadAll(res.Body)
 			if err != nil {
 				b.Fatalf("Error reading response body: %s", err)
 			}
-			res.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			res.Body = io.NopCloser(bytes.NewBuffer(body))
 			if len(body) < 13 {
 				b.Errorf("Error reading response body bytes, want=13, got=%d", len(body))
 			}
@@ -87,13 +95,16 @@ func BenchmarkTransportLogger(b *testing.B) {
 			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &opensearchtransport.JSONLogger{Output: ioutil.Discard},
+				Logger:    &opensearchtransport.JSONLogger{Output: io.Discard},
 			})
 
-			req, _ := http.NewRequest("GET", "/abc", nil)
-			_, err := tp.Perform(req)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+			resp, err := tp.Perform(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
+			}
+			if resp != nil && resp.Body != nil {
+				resp.Body.Close()
 			}
 		}
 	})
@@ -103,13 +114,20 @@ func BenchmarkTransportLogger(b *testing.B) {
 			tp, _ := opensearchtransport.New(opensearchtransport.Config{
 				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
 				Transport: newFakeTransport(b),
-				Logger:    &opensearchtransport.JSONLogger{Output: ioutil.Discard, EnableRequestBody: true, EnableResponseBody: true},
+				Logger: &opensearchtransport.JSONLogger{
+					Output:             io.Discard,
+					EnableRequestBody:  true,
+					EnableResponseBody: true,
+				},
 			})
 
-			req, _ := http.NewRequest("GET", "/abc", nil)
-			_, err := tp.Perform(req)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+			resp, err := tp.Perform(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
+			}
+			if resp != nil && resp.Body != nil {
+				resp.Body.Close()
 			}
 		}
 	})
