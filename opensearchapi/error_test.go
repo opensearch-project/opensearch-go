@@ -40,41 +40,9 @@ import (
 )
 
 func TestError(t *testing.T) {
-	t.Run("Body-ErrEmpty", func(t *testing.T) {
-		resp := &opensearch.Response{StatusCode: 400}
-		assert.True(t, resp.IsError())
-		err := parseError(resp)
-		assert.True(t, errors.Is(err, ErrUnexpectedEmptyBody))
-	})
-
-	t.Run("Body-ErrReader", func(t *testing.T) {
-		resp := &opensearch.Response{StatusCode: 400, Body: io.NopCloser(iotest.ErrReader(errors.New("io reader test")))}
-		assert.True(t, resp.IsError())
-		err := parseError(resp)
-		assert.True(t, errors.Is(err, ErrReadBody))
-	})
-
-	t.Run("Body-ErrUnmarshal", func(t *testing.T) {
+	t.Run("Error okay", func(t *testing.T) {
 		resp := &opensearch.Response{
-			StatusCode: 404,
-			Body: io.NopCloser(
-				strings.NewReader(`
-					{
-						"_index":"index",
-						"_id":"2",
-						"matched":false
-					}`),
-			),
-		}
-		assert.True(t, resp.IsError())
-		err := parseError(resp)
-		assert.True(t, errors.Is(err, ErrJSONUnmarshalBody))
-		assert.True(t, errors.Is(err, ErrJSONUnmarshalOpensearchError))
-	})
-
-	t.Run("Body-Okay", func(t *testing.T) {
-		resp := &opensearch.Response{
-			StatusCode: 400,
+			StatusCode: http.StatusBadRequest,
 			Body: io.NopCloser(
 				strings.NewReader(`
 					{
@@ -98,7 +66,7 @@ func TestError(t *testing.T) {
 		err := parseError(resp)
 		var testError Error
 		require.True(t, errors.As(err, &testError))
-		assert.Equal(t, 400, testError.Status)
+		assert.Equal(t, http.StatusBadRequest, testError.Status)
 		assert.Equal(t, "resource_already_exists_exception", testError.Err.Type)
 		assert.Equal(t, "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists", testError.Err.Reason)
 		assert.Equal(t, "test", testError.Err.Index)

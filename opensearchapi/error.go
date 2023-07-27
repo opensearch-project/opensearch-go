@@ -29,10 +29,10 @@ import (
 
 // Error vars
 var (
-	ErrUnexpectedEmptyBody          = errors.New("body is unexpectedly empty")
-	ErrReadBody                     = errors.New("failed to read body")
-	ErrJSONUnmarshalBody            = errors.New("failed to json unmarshal body")
-	ErrJSONUnmarshalOpensearchError = errors.New("opensearch error response could not be parsed as error")
+	ErrUnexpectedEmptyBody    = errors.New("body is unexpectedly empty")
+	ErrReadBody               = errors.New("failed to read body")
+	ErrJSONUnmarshalBody      = errors.New("failed to json unmarshal body")
+	ErrUnknownOpensearchError = errors.New("opensearch error response could not be parsed as error")
 )
 
 // Error represents the Opensearch API error response
@@ -77,16 +77,15 @@ func (e StringError) Error() string {
 // UnmarshalJSON is a custom unmarshal function for Error returning custom errors in special cases
 func (e *Error) UnmarshalJSON(b []byte) error {
 	var dummy struct {
-		Err    Err `json:"error"`
-		Status int `json:"status"`
+		Err    json.RawMessage `json:"error"`
+		Status int             `json:"status"`
 	}
-
 	if err := json.Unmarshal(b, &dummy); err != nil {
-		return err
+		return fmt.Errorf("%w: %s", err, b)
 	}
 
-	if dummy.Status == 0 && dummy.Err.Type == "" && dummy.Err.Reason == "" {
-		return fmt.Errorf("%w: %s", ErrJSONUnmarshalOpensearchError, b)
+	if len(dummy.Err) == 0 {
+		return fmt.Errorf("%w: %s", ErrUnknownOpensearchError, b)
 	}
 
 	var osErr Err
