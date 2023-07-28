@@ -23,9 +23,9 @@ import (
 	"os"
 	"strings"
 
-	opensearch "github.com/opensearch-project/opensearch-go/v2"
-	opensearchapi "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-	opensearchutil "github.com/opensearch-project/opensearch-go/v2/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
 const IndexName = "go-test-index1"
@@ -38,22 +38,30 @@ func main() {
 }
 
 func example() error {
-
 	// Initialize the client with SSL/TLS enabled.
-	client, err := opensearch.NewClient(opensearch.Config{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
+	client, err := opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
+				},
+				Addresses: []string{"https://localhost:9200"},
+				Username:  "admin", // For testing only. Don't store credentials in code.
+				Password:  "admin",
+			},
 		},
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "admin", // For testing only. Don't store credentials in code.
-		Password:  "admin",
-	})
+	)
 	if err != nil {
 		return err
 	}
 
+	ctx := context.Background()
 	// Print OpenSearch version information on console.
-	fmt.Println(client.Info())
+	infoResp, err := client.Info(ctx, nil)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Cluster INFO:\n  Cluster Name: %s\n  Cluster UUID: %s\n  Version Number: %s\n", infoResp.ClusterName, infoResp.ClusterUUID, infoResp.Version.Number)
 
 	// Define index mapping.
         // Note: these particular settings (eg, shards/replicas)
@@ -67,13 +75,14 @@ func example() error {
 	}`)
 
 	// Create an index with non-default settings.
-	createIndex := opensearchapi.IndicesCreateRequest{
-		Index: IndexName,
-		Body:  mapping,
-	}
-	ctx := context.Background()
-	var opensearchError *opensearchapi.Error
-	createIndexResponse, err := createIndex.Do(ctx, client)
+	var opensearchError opensearchapi.Error
+	createIndexResponse, err := client.Indices.Create(
+        ctx,
+	    opensearchapi.IndicesCreateReq{
+	        Index: IndexName,
+            Body:  mapping,
+	    },
+    )
 	// Load err into opensearchapi.Error to access the fields and tolerate if the index already exists
 	if err != nil {
 		if errors.As(err, &opensearchError) {
@@ -84,7 +93,7 @@ func example() error {
 			return err
 		}
 	}
-	fmt.Println(createIndexResponse)
+	fmt.Printf("Created Index: %s\n  Shards Acknowledged: %t\n", createIndexResponse.Index, createIndexResponse.ShardsAcknowledged)
 
 	// When using a structure, the conversion process to io.Reader can be omitted using utility functions.
 	document := struct {
@@ -98,16 +107,18 @@ func example() error {
 	}
 
 	docId := "1"
-	req := opensearchapi.IndexRequest{
-		Index:      IndexName,
-		DocumentID: docId,
-		Body:       opensearchutil.NewJSONReader(&document),
-	}
-	insertResponse, err := req.Do(ctx, client)
+	insertResp, err := client.Index(
+        ctx,
+	    opensearchapi.IndexReq{
+	        Index:      IndexName,
+	        DocumentID: docId,
+            Body:       opensearchutil.NewJSONReader(&document),
+	    }
+    )
 	if err != nil {
 		return err
 	}
-	fmt.Println(insertResponse)
+	fmt.Printf("Created document in %s\n  ID: %s\n", insertResp.Index, insertResp.ID)
 
 	// Search for the document.
 	content := strings.NewReader(`{
@@ -120,47 +131,60 @@ func example() error {
 	    }
 	}`)
 
-	search := opensearchapi.SearchRequest{
-		Body: content,
-	}
-
-	searchResponse, err := search.Do(ctx, client)
+	searchResp, err := client.Search(
+        ctx,
+	    &opensearchapi.SearchReq{
+	        Body: content,
+	    }
+    )
 	if err != nil {
 		return err
 	}
-	fmt.Println(searchResponse)
-
-	// Delete the document.
-	deleteReq := opensearchapi.DeleteRequest{
-		Index:      IndexName,
-		DocumentID: docId,
+	if searchResp.Hits.Total.Value > 0 {
+		indices := make([]string, 0)
+		for _, hit := range searchResp.Hits.Hits {
+			add := true
+			for _, index := range indices {
+				if index == hit.Index {
+					add = false
+				}
+			}
+			if add {
+				indices = append(indices, hit.Index)
+			}
+		}
+		fmt.Printf("Search indices: %s\n", strings.Join(indices, ","))
 	}
 
-	deleteResponse, err := deleteReq.Do(ctx, client)
-	if err != nil {
-		return err
-	}
-	fmt.Println("deleting document")
-	fmt.Println(deleteResponse)
+	/*
+		// Delete the document.
+		deleteReq := opensearchapi.DeleteReq{
+			Index:      IndexName,
+			DocumentID: docId,
+		}
 
+		deleteResponse, err := client.Indices.Delete(ctx, deleteReq)
+		if err != nil {
+			return err
+		}
+		fmt.Println("deleting document")
+		fmt.Println(deleteResponse)
+	*/
 	// Delete previously created index.
-	deleteIndex := opensearchapi.IndicesDeleteRequest{
-		Index: []string{IndexName},
-	}
 
-	deleteIndexResponse, err := deleteIndex.Do(ctx, client)
+	deleteIndexResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Index: []string{IndexName}})
 	if err != nil {
 		return err
 	}
-	fmt.Println("deleting index", deleteIndexResponse)
+	fmt.Println(fmt.Sprintf("Deleted index: %t", deleteIndexResp.Acknowledged))
 
 	// Try to delete the index again which failes as it does not exist
 	// Load err into opensearchapi.Error to access the fields and tolerate if the index is missing
-	_, err = deleteIndex.Do(ctx, client)
+	_, err = client.Indices.Delete(ctx, deleteIndex)
 	if err != nil {
 		if errors.As(err, &opensearchError) {
 			if opensearchError.Err.Type != "index_not_found_exception" {
-				return err
+				return nil
 			}
 		} else {
 			return err
@@ -191,20 +215,28 @@ package main
 
 import (
 	"context"
-	"io"
-	"log"
+	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws/session"
+	requestsigner "github.com/opensearch-project/opensearch-go/v2/signer/aws"
+
 	"github.com/opensearch-project/opensearch-go/v2"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-	requestsigner "github.com/opensearch-project/opensearch-go/v2/signer/aws"
 )
+
+const IndexName = "go-test-index1"
+
+func main() {
+	if err := example(); err != nil {
+		fmt.Println(fmt.Sprintf("Error: %s", err))
+		os.Exit(1)
+	}
+}
 
 const endpoint = "" // e.g. https://opensearch-domain.region.com
 
-func main() {
-	ctx := context.Background()
-
+func example() error {
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
 	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
 	signer, err := requestsigner.NewSignerWithService(
@@ -212,27 +244,31 @@ func main() {
 		requestsigner.OpenSearchService, // Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless.
 	)
 	if err != nil {
-		log.Fatalf("failed to create signer: %v", err) // Do not log.fatal in a production ready app.
+		return err
 	}
-
 	// Create an opensearch client and use the request-signer.
-	client, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{endpoint},
-		Signer:    signer,
-	})
+	client, err := opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Addresses: []string{endpoint},
+				Signer:    signer,
+			},
+		},
+	)
 	if err != nil {
-		log.Fatalf("failed to create new opensearch client: %v", err)
+		return err
 	}
 
-	ping := opensearchapi.PingRequest{}
+	ctx := context.Background()
+    
+    ping, err := client.Ping(ctx, nil)
+    if err != nil {
+        return err
+    }
 
-	resp, err := ping.Do(ctx, client)
-	if err != nil {
-		log.Fatalf("failed to ping: %v", err)
-	}
-	defer resp.Body.Close()
+    fmt.Println(ping)
 
-	log.Println("PING OK")
+	return nil
 }
 ```
 
@@ -245,19 +281,27 @@ package main
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	opensearch "github.com/opensearch-project/opensearch-go/v2"
-	opensearchapi "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	requestsigner "github.com/opensearch-project/opensearch-go/v2/signer/awsv2"
 )
 
 const endpoint = "" // e.g. https://opensearch-domain.region.com or Amazon OpenSearch Serverless endpoint
 
 func main() {
+	if err := example(); err != nil {
+		fmt.Println(fmt.Sprintf("Error: %s", err))
+		os.Exit(1)
+	}
+}
+func example() error {
 	ctx := context.Background()
 
 	awsCfg, err := config.LoadDefaultConfig(ctx,
@@ -267,22 +311,26 @@ func main() {
 		),
 	)
 	if err != nil {
-		log.Fatalf("failed to load aws configuraiton: %v", err) // Do not log.fatal in a production ready app.
+		return err
 	}
 
 	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
 	signer, err := requestsigner.NewSignerWithService(awsCfg, "es") // Use "aoss" for Amazon OpenSearch Serverless
 	if err != nil {
-		log.Fatalf("failed to create signer: %v", err)
+		return err
 	}
 
 	// Create an opensearch client and use the request-signer.
-	client, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{endpoint},
-		Signer:    signer,
-	})
+	client, err := opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Addresses: []string{endpoint},
+				Signer:    signer,
+			},
+		},
+	)
 	if err != nil {
-		log.Fatalf("failed to create new opensearch client: %v", err)
+		return err
 	}
 
 	indexName := "go-test-index"
@@ -297,26 +345,26 @@ func main() {
 	 }`)
 
 	// Create an index with non-default settings.
-	createIndex := opensearchapi.IndicesCreateRequest{
-		Index: indexName,
-		Body:  mapping,
-	}
-	createIndexResponse, err := createIndex.Do(ctx, client)
+	createResp, err := client.Indices.Create(
+		ctx,
+		opensearchapi.IndicesCreateReq{
+			Index: indexName,
+			Body:  mapping,
+		},
+	)
 	if err != nil {
-		log.Fatalf("failed to create index: %v", err)
-	}
-	log.Printf("created index: %#v", createIndexResponse)
-
-	// Delete previously created index.
-	deleteIndex := opensearchapi.IndicesDeleteRequest{
-		Index: []string{indexName},
+		return err
 	}
 
-	deleteIndexResponse, err := deleteIndex.Do(ctx, client)
+	fmt.Println("created index: %s", createResp.Index)
+
+	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
 	if err != nil {
-		log.Fatalf("failed to delete index: %v", err)
+		return err
 	}
-	log.Printf("deleted index: %#v", deleteIndexResponse)
+
+	fmt.Println("deleted index: %#v", delResp.Acknowledged)
+	return nil
 }
 
 func getCredentialProvider(accessKey, secretAccessKey, token string) aws.CredentialsProviderFunc {
@@ -329,7 +377,6 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 		return *c, nil
 	}
 }
-
 ```
 
 ## Guides by Topic
