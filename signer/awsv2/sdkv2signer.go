@@ -56,6 +56,7 @@ func NewSignerWithService(cfg aws.Config, service string) (signer.Signer, error)
 	}, nil
 }
 
+// SignRequest adds headers to the request
 func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 	ctx := context.Background()
 	t := time.Now()
