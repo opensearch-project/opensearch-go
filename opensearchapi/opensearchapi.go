@@ -44,6 +44,7 @@ type Client struct {
 	Cat     catClient
 	Indices indicesClient
 	Nodes   nodesClient
+	Cluster clusterClient
 }
 
 // clientInit inits the Client with all sub clients
@@ -54,6 +55,7 @@ func clientInit(rootClient *opensearch.Client) *Client {
 	client.Cat = catClient{apiClient: client}
 	client.Indices = indicesClient{apiClient: client}
 	client.Nodes = nodesClient{apiClient: client}
+	client.Cluster = clusterClient{apiClient: client}
 
 	return client
 }

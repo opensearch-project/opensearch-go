@@ -1,0 +1,131 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+//
+// Modifications Copyright OpenSearch Contributors. See
+// GitHub history for details.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package opensearchapi
+
+import (
+	"net/http"
+	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v2"
+)
+
+// ClusterPutDecommissionReq represents possible options for the /_cluster/decommission/awareness request
+type ClusterPutDecommissionReq struct {
+	AwarenessAttrName  string
+	AwarenessAttrValue string
+
+	Header http.Header
+	Params ClusterPutDecommissionParams
+}
+
+// GetRequest returns the *http.Request that gets executed by the client
+func (r ClusterPutDecommissionReq) GetRequest() (*http.Request, error) {
+	var path strings.Builder
+	path.Grow(34 + len(r.AwarenessAttrName) + len(r.AwarenessAttrValue))
+	path.WriteString("/_cluster/decommission/awareness/")
+	path.WriteString(r.AwarenessAttrName)
+	path.WriteString("/")
+	path.WriteString(r.AwarenessAttrValue)
+
+	return opensearch.BuildRequest(
+		"PUT",
+		path.String(),
+		nil,
+		r.Params.get(),
+		r.Header,
+	)
+}
+
+// ClusterPutDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
+type ClusterPutDecommissionResp struct {
+	Acknowledged bool `json:"acknowledged"`
+	response     *opensearch.Response
+}
+
+// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+func (r ClusterPutDecommissionResp) Inspect() Inspect {
+	return Inspect{Response: r.response}
+}
+
+// ClusterDeleteDecommissionReq represents possible options for the /_cluster/decommission/awareness request
+type ClusterDeleteDecommissionReq struct {
+	Header http.Header
+	Params ClusterDeleteDecommissionParams
+}
+
+// GetRequest returns the *http.Request that gets executed by the client
+func (r ClusterDeleteDecommissionReq) GetRequest() (*http.Request, error) {
+	return opensearch.BuildRequest(
+		"DELETE",
+		"/_cluster/decommission/awareness",
+		nil,
+		r.Params.get(),
+		r.Header,
+	)
+}
+
+// ClusterDeleteDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
+type ClusterDeleteDecommissionResp struct {
+	Acknowledged bool `json:"acknowledged"`
+	response     *opensearch.Response
+}
+
+// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+func (r ClusterDeleteDecommissionResp) Inspect() Inspect {
+	return Inspect{Response: r.response}
+}
+
+// ClusterGetDecommissionReq represents possible options for the /_cluster/decommission/awareness request
+type ClusterGetDecommissionReq struct {
+	AwarenessAttrName string
+
+	Header http.Header
+	Params ClusterGetDecommissionParams
+}
+
+// GetRequest returns the *http.Request that gets executed by the client
+func (r ClusterGetDecommissionReq) GetRequest() (*http.Request, error) {
+	var path strings.Builder
+	path.Grow(41 + len(r.AwarenessAttrName))
+	path.WriteString("/_cluster/decommission/awareness/")
+	path.WriteString(r.AwarenessAttrName)
+	path.WriteString("/_status")
+
+	return opensearch.BuildRequest(
+		"GET",
+		path.String(),
+		nil,
+		r.Params.get(),
+		r.Header,
+	)
+}
+
+// ClusterGetDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
+type ClusterGetDecommissionResp struct {
+	Values   map[string]string
+	response *opensearch.Response
+}
+
+// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+func (r ClusterGetDecommissionResp) Inspect() Inspect {
+	return Inspect{Response: r.response}
+}
