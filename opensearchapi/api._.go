@@ -30,6 +30,7 @@ package opensearchapi
 type API struct {
 	Cat         *Cat
 	Cluster     *Cluster
+	Cold        *ColdWarm
 	Indices     *Indices
 	Ingest      *Ingest
 	Nodes       *Nodes
@@ -107,6 +108,13 @@ type Cat struct {
 
 	// Deprecated: To promote inclusive language, please use ClusterManager instead.
 	Master CatMaster
+}
+
+// ColdWarm contains the ColdWarm APIs
+type ColdWarm struct {
+	Search        ColdSearch
+	MigrationWarm ColdMigrationWarm
+	MigrationCold WarmMigrationCold
 }
 
 // Cluster contains the Cluster APIs
@@ -317,6 +325,10 @@ func New(t Transport) *API {
 			Reroute:                      newClusterRerouteFunc(t),
 			State:                        newClusterStateFunc(t),
 			Stats:                        newClusterStatsFunc(t),
+		},
+		Cold: &ColdWarm{
+			Search:        newColdSearchFunc(t),
+			MigrationWarm: newColdMigrationWarmFunc(t),
 		},
 		Indices: &Indices{
 			AddBlock:              newIndicesAddBlockFunc(t),
