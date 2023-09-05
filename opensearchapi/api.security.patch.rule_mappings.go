@@ -1,29 +1,3 @@
-// SPDX-License-Identifier: Apache-2.0
-//
-// The OpenSearch Contributors require contributions made to
-// this file be licensed under the Apache-2.0 license or a
-// compatible open source license.
-//
-// Modifications Copyright OpenSearch Contributors. See
-// GitHub history for details.
-
-// Licensed to Elasticsearch B.V. under one or more contributor
-// license agreements. See the NOTICE file distributed with
-// this work for additional information regarding copyright
-// ownership. Elasticsearch B.V. licenses this file to you under
-// the Apache License, Version 2.0 (the "License"); you may
-// not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-
 package opensearchapi
 
 import (
@@ -33,9 +7,9 @@ import (
 	"strings"
 )
 
-func newBulkPatchSecurityRoleMappingsFunc(t Transport) BulkPatchSecurityRoleMappings {
-	return func(body io.Reader, o ...func(*BulkPatchSecurityRoleMappingsRequest)) (*Response, error) {
-		var r = BulkPatchSecurityRoleMappingsRequest{Body: body}
+func newBulkPatchSecurityRoleMappingFunc(t Transport) BulkPatchSecurityRoleMapping {
+	return func(body io.Reader, o ...func(*BulkPatchSecurityRoleMappingRequest)) (*Response, error) {
+		var r = BulkPatchSecurityRoleMappingRequest{Body: body}
 		for _, f := range o {
 			f(&r)
 		}
@@ -44,14 +18,14 @@ func newBulkPatchSecurityRoleMappingsFunc(t Transport) BulkPatchSecurityRoleMapp
 }
 
 // ----- API Definition -------------------------------------------------------
-
-// BulkPatchSecurityRoleMappings creates or updates multiple role mappings in a single call.
+// BulkPatchSecurityRoleMapping Bulk Patch multiple role mappings
 //
-// https://opensearch.org/docs/2.3/security/access-control/api/#patch-role-mappings
-type BulkPatchSecurityRoleMappings func(body io.Reader, o ...func(*BulkPatchSecurityRoleMappingsRequest)) (*Response, error)
+//	To use this API, you must have at least the manage_security cluster privilege.
+//		https://opensearch.org/docs/2.3/security/access-control/api/#BulkPatch-role-mapping
+type BulkPatchSecurityRoleMapping func(body io.Reader, o ...func(*BulkPatchSecurityRoleMappingRequest)) (*Response, error)
 
-// BulkPatchSecurityRoleMappingsRequest configures the patch Security Rule Mapping API request.
-type BulkPatchSecurityRoleMappingsRequest struct {
+// BulkPatchSecurityRoleMappingRequest configures the BulkPatch Security Rule Mapping API request.
+type BulkPatchSecurityRoleMappingRequest struct {
 	Body io.Reader
 
 	Pretty     bool
@@ -65,7 +39,7 @@ type BulkPatchSecurityRoleMappingsRequest struct {
 }
 
 // Do will execute the request and returns response or error.
-func (r BulkPatchSecurityRoleMappingsRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+func (r BulkPatchSecurityRoleMappingRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
 		path   strings.Builder
@@ -138,43 +112,43 @@ func (r BulkPatchSecurityRoleMappingsRequest) Do(ctx context.Context, transport 
 }
 
 // WithContext sets the request context.
-func (f BulkPatchSecurityRoleMappings) WithContext(v context.Context) func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithContext(v context.Context) func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		r.ctx = v
 	}
 }
 
 // WithPretty makes the response body pretty-printed.
-func (f BulkPatchSecurityRoleMappings) WithPretty() func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithPretty() func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		r.Pretty = true
 	}
 }
 
 // WithHuman makes statistical values human-readable.
-func (f BulkPatchSecurityRoleMappings) WithHuman() func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithHuman() func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		r.Human = true
 	}
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-func (f BulkPatchSecurityRoleMappings) WithErrorTrace() func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithErrorTrace() func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		r.ErrorTrace = true
 	}
 }
 
 // WithFilterPath filters the properties of the response body.
-func (f BulkPatchSecurityRoleMappings) WithFilterPath(v ...string) func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithFilterPath(v ...string) func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		r.FilterPath = v
 	}
 }
 
 // WithHeader adds the headers to the HTTP request.
-func (f BulkPatchSecurityRoleMappings) WithHeader(h map[string]string) func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithHeader(h map[string]string) func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}
@@ -185,8 +159,8 @@ func (f BulkPatchSecurityRoleMappings) WithHeader(h map[string]string) func(*Bul
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-func (f BulkPatchSecurityRoleMappings) WithOpaqueID(s string) func(*BulkPatchSecurityRoleMappingsRequest) {
-	return func(r *BulkPatchSecurityRoleMappingsRequest) {
+func (f BulkPatchSecurityRoleMapping) WithOpaqueID(s string) func(*BulkPatchSecurityRoleMappingRequest) {
+	return func(r *BulkPatchSecurityRoleMappingRequest) {
 		if r.Header == nil {
 			r.Header = make(http.Header)
 		}

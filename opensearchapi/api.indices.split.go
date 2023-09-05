@@ -178,7 +178,7 @@ func (r IndicesSplitRequest) Do(ctx context.Context, transport Transport) (*Resp
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

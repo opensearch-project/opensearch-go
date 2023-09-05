@@ -157,7 +157,7 @@ func (r NodesReloadSecureSettingsRequest) Do(ctx context.Context, transport Tran
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

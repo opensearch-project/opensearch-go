@@ -156,7 +156,7 @@ func (r SnapshotDeleteRepositoryRequest) Do(ctx context.Context, transport Trans
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

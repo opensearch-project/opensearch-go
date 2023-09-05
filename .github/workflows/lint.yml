@@ -16,15 +16,24 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v3
+        with: { go-version: '1.x' }
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
         with:
-          go-version: 1.17
+          version: v1.53.3
+          args: -v -c .golangci.yml
+          only-new-issues: true
+
+  prettify:
+    name: Prettify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - name: Install dependencies
-        run: go get -u golang.org/x/lint/golint
-        env:
-          GOBIN: ${{ env.GOROOT }}/bin
-        shell: bash
-      - run: go version
-      - run: make lint
+        run: npm i -g npm@8 && npm i -g prettier
+      - name: Check markdown files
+        run: prettier --prose-wrap never --check **/*.md

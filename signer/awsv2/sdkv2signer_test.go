@@ -7,26 +7,30 @@
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
 
-package awsv2
+package awsv2_test
 
 import (
 	"bytes"
 	"context"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"os"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/opensearch-project/opensearch-go/v2/signer/awsv2"
 )
 
-func getCredentialProvider(accessKey, secretAccessKey, token string) aws.CredentialsProviderFunc {
+func getCredentialProvider() aws.CredentialsProviderFunc {
 	return func(ctx context.Context) (aws.Credentials, error) {
 		c := &aws.Credentials{
-			AccessKeyID:     accessKey,
-			SecretAccessKey: secretAccessKey,
-			SessionToken:    token,
+			AccessKeyID:     "AKID",
+			SecretAccessKey: "SECRET_KEY",
+			SessionToken:    "TOKEN",
 		}
+
 		return *c, nil
 	}
 }
@@ -42,13 +46,13 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		}()
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithCredentialsProvider(
-				getCredentialProvider("AKID", "SECRET_KEY", "TOKEN"),
+				getCredentialProvider(),
 			),
 			config.WithRegion(""),
 		)
 		assert.NoError(t, err)
 
-		signer, err := NewSigner(awsCfg)
+		signer, err := awsv2.NewSigner(awsCfg)
 		assert.NoError(t, err)
 		err = signer.SignRequest(req)
 
@@ -67,12 +71,12 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),
 			config.WithCredentialsProvider(
-				getCredentialProvider("AKID", "SECRET_KEY", "TOKEN"),
+				getCredentialProvider(),
 			),
 		)
 		assert.NoError(t, err)
 
-		signer, err := NewSigner(awsCfg)
+		signer, err := awsv2.NewSigner(awsCfg)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -86,7 +90,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 	t.Run("sign request success with body", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
-			bytes.NewBuffer([]byte(`some data`)))
+			bytes.NewBufferString("some data"))
 		assert.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
@@ -97,12 +101,12 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),
 			config.WithCredentialsProvider(
-				getCredentialProvider("AKID", "SECRET_KEY", "TOKEN"),
+				getCredentialProvider(),
 			),
 		)
 		assert.NoError(t, err)
 
-		signer, err := NewSigner(awsCfg)
+		signer, err := awsv2.NewSigner(awsCfg)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -116,7 +120,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 	t.Run("sign request success with body for other AWS Services", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
-			bytes.NewBuffer([]byte(`some data`)))
+			bytes.NewBufferString("some data"))
 		assert.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
@@ -127,12 +131,12 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),
 			config.WithCredentialsProvider(
-				getCredentialProvider("AKID", "SECRET_KEY", "TOKEN"),
+				getCredentialProvider(),
 			),
 		)
 		assert.NoError(t, err)
 
-		signer, err := NewSignerWithService(awsCfg, "ec")
+		signer, err := awsv2.NewSignerWithService(awsCfg, "ec")
 		assert.NoError(t, err)
 
 		assert.NoError(t, err)
@@ -148,12 +152,12 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),
 			config.WithCredentialsProvider(
-				getCredentialProvider("AKID", "SECRET_KEY", "TOKEN"),
+				getCredentialProvider(),
 			),
 		)
 		assert.NoError(t, err)
 
-		_, err = NewSignerWithService(awsCfg, "")
+		_, err = awsv2.NewSignerWithService(awsCfg, "")
 		assert.EqualError(t, err, "service cannot be empty")
 	})
 }
