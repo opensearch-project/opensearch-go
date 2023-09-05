@@ -24,29 +24,48 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
+//nolint:testpackage // Can't be testpackage, because it tests the function resurrect()
 package opensearchtransport
 
 import (
 	"fmt"
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
 	"testing"
-
-	_ "net/http/pprof"
+	"time"
 )
 
 func init() {
-	go func() { log.Fatalln(http.ListenAndServe("localhost:6060", nil)) }()
+	go func() {
+		server := &http.Server{
+			Addr:         "localhost:6060",
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+		}
+		log.Fatalln(server.ListenAndServe())
+	}()
+}
+
+func initSingleConnectionPool() *singleConnectionPool {
+	return &singleConnectionPool{
+		connection: &Connection{
+			URL: &url.URL{
+				Scheme: "http",
+				Host:   "foo1",
+			},
+		},
+	}
 }
 
 func BenchmarkSingleConnectionPool(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("Next()", func(b *testing.B) {
-		pool := &singleConnectionPool{connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}}
+		pool := initSingleConnectionPool()
 
 		b.Run("Single          ", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -71,7 +90,7 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := &singleConnectionPool{connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}}
+		pool := initSingleConnectionPool()
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, _ := pool.Next()
@@ -98,19 +117,25 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 	})
 }
 
+func createStatusConnectionPool(conns []*Connection) *statusConnectionPool {
+	return &statusConnectionPool{
+		live:                         conns,
+		selector:                     &roundRobinSelector{curr: -1},
+		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+	}
+}
+
 func BenchmarkStatusConnectionPool(b *testing.B) {
 	b.ReportAllocs()
 
-	var conns []*Connection
+	conns := make([]*Connection, 1000)
 	for i := 0; i < 1000; i++ {
-		conns = append(conns, &Connection{URL: &url.URL{Scheme: "http", Host: fmt.Sprintf("foo%d", i)}})
+		conns[i] = &Connection{URL: &url.URL{Scheme: "http", Host: fmt.Sprintf("foo%d", i)}}
 	}
 
 	b.Run("Next()", func(b *testing.B) {
-		pool := &statusConnectionPool{
-			live:     conns,
-			selector: &roundRobinSelector{curr: -1},
-		}
+		pool := createStatusConnectionPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -147,10 +172,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := &statusConnectionPool{
-			live:     conns,
-			selector: &roundRobinSelector{curr: -1},
-		}
+		pool := createStatusConnectionPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, err := pool.Next()
@@ -199,10 +221,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnSuccess()", func(b *testing.B) {
-		pool := &statusConnectionPool{
-			live:     conns,
-			selector: &roundRobinSelector{curr: -1},
-		}
+		pool := createStatusConnectionPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, err := pool.Next()
@@ -211,9 +230,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 			}
 
 			for i := 0; i < b.N; i++ {
-				if err := pool.OnSuccess(c); err != nil {
-					b.Errorf("Unexpected error: %v", err)
-				}
+				pool.OnSuccess(c)
 			}
 		})
 
@@ -226,9 +243,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 				}
 
 				for pb.Next() {
-					if err := pool.OnSuccess(c); err != nil {
-						b.Errorf("Unexpected error: %v", err)
-					}
+					pool.OnSuccess(c)
 				}
 			})
 		})
@@ -242,19 +257,14 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 				}
 
 				for pb.Next() {
-					if err := pool.OnSuccess(c); err != nil {
-						b.Errorf("Unexpected error: %v", err)
-					}
+					pool.OnSuccess(c)
 				}
 			})
 		})
 	})
 
 	b.Run("resurrect()", func(b *testing.B) {
-		pool := &statusConnectionPool{
-			live:     conns,
-			selector: &roundRobinSelector{curr: -1},
-		}
+		pool := createStatusConnectionPool(conns)
 
 		b.Run("Single", func(b *testing.B) {
 			c, err := pool.Next()
@@ -268,9 +278,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				pool.Lock()
-				if err := pool.resurrect(c, true); err != nil {
-					b.Errorf("Unexpected error: %v", err)
-				}
+				pool.resurrect(c, true)
 				pool.Unlock()
 			}
 		})
@@ -289,9 +297,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 				for pb.Next() {
 					pool.Lock()
-					if err := pool.resurrect(c, true); err != nil {
-						b.Errorf("Unexpected error: %v", err)
-					}
+					pool.resurrect(c, true)
 					pool.Unlock()
 				}
 			})
@@ -311,9 +317,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 				for pb.Next() {
 					pool.Lock()
-					if err := pool.resurrect(c, true); err != nil {
-						b.Errorf("Unexpected error: %v", err)
-					}
+					pool.resurrect(c, true)
 					pool.Unlock()
 				}
 			})

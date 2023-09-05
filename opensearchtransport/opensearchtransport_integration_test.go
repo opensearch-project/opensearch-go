@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build integration
+//go:build integration
 
 package opensearchtransport_test
 
@@ -118,6 +118,33 @@ func TestTransportHeaders(t *testing.T) {
 
 	if !bytes.HasPrefix(body, []byte("---")) {
 		t.Errorf("Unexpected response body:\n%s", body)
+	}
+}
+
+func TestTransportBodyClose(t *testing.T) {
+	u, _ := url.Parse("http://localhost:9200")
+
+	tp, _ := opensearchtransport.New(opensearchtransport.Config{
+		URLs: []*url.URL{u},
+	})
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	res, err := tp.Perform(req)
+	if err != nil {
+		t.Fatalf("Unexpected error: %s", err)
+	}
+	if closeResp := res.Body.Close(); closeResp != nil {
+		t.Fatalf("Unexpected return on res.Body.Close(): %s", closeResp)
+	}
+	if closeResp := res.Body.Close(); closeResp != nil {
+		t.Fatalf("Unexpected return on res.Body.Close(): %s", closeResp)
+	}
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("Failed to read the reponse body: %s", err)
+	}
+	if body == nil || len(body) == 0 {
+		t.Fatalf("Unexpected response body:\n%s", body)
 	}
 }
 

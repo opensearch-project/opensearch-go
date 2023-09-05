@@ -1,8 +1,15 @@
 run:
+  timeout: 10m
   modules-download-mode: readonly
   issues-exit-code: 0
 
 linters-settings:
+  errcheck:
+    check-blank: true
+    check-type-assertions: false
+  errorlint:
+    check-generated: false
+    default-signifies-exhaustive: false
   exhaustive:
     default-signifies-exhaustive: false
   gci:
@@ -11,14 +18,8 @@ linters-settings:
       - default
       - prefix(github.com/opensearch-project/opensearch-go)
   goconst:
-    min-occurrences: 5
-    ignore-tests: true
-  godot:
-    scope: toplevel
-    exclude:
-      - go-sumtype:decl
-      - check interfaces
-    capital: true
+    min-len: 3
+    min-occurrences: 3
   godox:
     keywords:
       - BUG
@@ -26,92 +27,138 @@ linters-settings:
       - HACK
   goimports:
     local-prefixes: github.com/opensearch-project/opensearch-go
-  gosimple:
-    go: "1.18"
-    checks: ["all"]
   lll:
-    line-length: 130
-    tab-width: 4
+    line-length: 140
   nolintlint:
-    allow-unused: false
     allow-leading-space: false
-    allow-no-explanation: []
     require-explanation: true
     require-specific: true
-  staticcheck:
-    go: "1.18"
-    checks: ["all"]
-  stylecheck:
-    go: "1.18"
-    checks: ["all"]
-    dot-import-whitelist: []
-    initialisms: []
-    http-status-code-whitelist: []
   unparam:
     check-exported: true
-  unused:
-    go: "1.18"
-  whitespace:
-    multi-if: false
-    multi-func: false
-  tagliatelle:
+  misspell:
+    locale: US
+    ignore-words: expect
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
 
 linters:
-  enable-all: true
-  disable:
-    # TODO: enable one by one
-    - tparallel
-    - gofmt
-    - goimports
-    - ineffassign
-    - gci
-    - paralleltest
-    - maintidx
-    - unparam
-    - goconst
-    - wastedassign
-    - gosimple
-    - dupl
-    - structcheck
-    - unused
-    - nestif
-    - errorlint
-    - lll
-    - gocyclo
-    - prealloc
+  disable-all: true
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
-    - whitespace
-    - gofumpt
-    - godot
-    - gocritic
-    - gocognit
-    - unconvert
-    - errchkjson
-    - thelper
-    - ireturn
-    - forbidigo
     - containedctx
-    - tagliatelle
-    - cyclop
+    - contextcheck
+    - decorder
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
     - errcheck
-    - exhaustivestruct
-    - forcetypeassert
-    - funlen
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    - exportloopref
+    - gci
+    - ginkgolinter
+    - gocheckcompilerdirectives
     - gochecknoglobals
     - gochecknoinits
-    - goerr113
+    - goconst
+    - gocritic
+    - godox
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
     - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
     - gosec
-    - varnamelen
-    - wrapcheck
+    - gosimple
+    - govet
+    - grouper
+    - importas
+    - ineffassign
+    - interfacebloat
+    - lll
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
     - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
     - staticcheck
     - stylecheck
-    - golint
-    - interfacer 
-    - maligned    
-    - nlreturn    
-    - scopelint   
-    - testpackage 
-    - wsl
-    - ifshort
+    - tagalign
+    - testpackage
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - zerologlint
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - cyclop
+        - dupl
+        - errcheck
+        - gochecknoglobals
+        - gochecknoinits
+        - goconst
+        - gomnd
+        - noctx
+    - linters:
+        - gosec
+      text: "math/rand"
+      path: _test\.go
+    - linters:
+        - gosec
+      text: "TLS InsecureSkipVerify set true"
+      path: _test\.go
+    - linters:
+        - gosec
+      text: "G108: Profiling endpoint is automatically exposed on /debug/pprof"
+      path: _test\.go
+    - linters:
+        - goconst
+      text: "string `true` has"
+      path: opensearchapi\/api_
+    - linters:
+        - errcheck
+      text: "Error return value of `debugLogger.Logf` is not checked"
+    - linters:
+        - errcheck
+        - gomnd
+        - gochecknoglobals
+      path: opensearchtransport\/logger\.go
+    - linters:
+        - nestif
+      path: opensearchtransport/opensearchtransport.go

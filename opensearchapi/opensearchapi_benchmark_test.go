@@ -28,6 +28,7 @@ package opensearchapi_test
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -277,7 +278,10 @@ func BenchmarkAPI(b *testing.B) {
 			_, err := fakeClientWithError.Search(fakeClientWithError.Search.WithContext(context.Background()), fakeClientWithError.Search.WithBody(body))
 
 			if err != nil {
-				b.Errorf("Unexpected error when getting a response: %s", err)
+				var opensearchError *opensearchapi.Error
+				if !errors.As(err, &opensearchError) {
+					b.Errorf("Unexpected error when getting a response: %s", err)
+				}
 			}
 		}
 	})
@@ -301,7 +305,10 @@ func BenchmarkAPI(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			req := opensearchapi.SearchRequest{Body: body}
 			if _, err := req.Do(context.Background(), fakeClientWithError); err != nil {
-				b.Errorf("Unexpected error when getting a response: %s", err)
+				var opensearchError *opensearchapi.Error
+				if !errors.As(err, &opensearchError) {
+					b.Errorf("Unexpected error when getting a response: %s", err)
+				}
 			}
 		}
 	})

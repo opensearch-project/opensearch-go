@@ -24,12 +24,13 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchtransport_test
 
 import (
-	"io/ioutil"
+	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -38,24 +39,24 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2/opensearchtransport"
 )
 
-var defaultResponse = http.Response{
-	Status:        "200 OK",
-	StatusCode:    200,
-	ContentLength: 13,
-	Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-	Body:          ioutil.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
-}
-
 type FakeTransport struct {
 	FakeResponse *http.Response
 }
 
-func (t *FakeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+func (t *FakeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
 	return t.FakeResponse, nil
 }
 
-func newFakeTransport(b *testing.B) *FakeTransport {
-	return &FakeTransport{FakeResponse: &defaultResponse}
+func newFakeTransport(_ *testing.B) *FakeTransport {
+	return &FakeTransport{
+		FakeResponse: &http.Response{
+			Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+			StatusCode:    http.StatusOK,
+			ContentLength: 13,
+			Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+			Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
+		},
+	}
 }
 
 func BenchmarkTransport(b *testing.B) {
@@ -68,11 +69,12 @@ func BenchmarkTransport(b *testing.B) {
 				Transport: newFakeTransport(b),
 			})
 
-			req, _ := http.NewRequest("GET", "/abc", nil)
-			_, err := tp.Perform(req)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+			res, err := tp.Perform(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
 			}
+			defer res.Body.Close()
 		}
 	})
 
@@ -87,11 +89,12 @@ func BenchmarkTransport(b *testing.B) {
 				Transport: newFakeTransport(b),
 			})
 
-			req, _ := http.NewRequest("GET", "/abc", nil)
-			_, err := tp.Perform(req)
+			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+			res, err := tp.Perform(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %s", err)
 			}
+			defer res.Body.Close()
 		}
 	})
 }

@@ -24,6 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+//go:build integration
 // +build integration
 
 package opensearchutil_test
@@ -61,10 +62,6 @@ func TestJSONReaderIntegration(t *testing.T) {
 		}
 		defer res.Body.Close()
 
-		if res.IsError() {
-			t.Fatalf("Error response: %s", res.String())
-		}
-
 		query := map[string]interface{}{
 			"query": map[string]interface{}{
 				"match": map[string]interface{}{
@@ -82,10 +79,6 @@ func TestJSONReaderIntegration(t *testing.T) {
 			t.Fatalf("Error getting response: %s", err)
 		}
 		defer res.Body.Close()
-
-		if res.IsError() {
-			t.Errorf("Error response: %s", res)
-		}
 
 		if !strings.Contains(res.String(), "Foo Bar") {
 			t.Errorf("Unexpected response: %s", res)

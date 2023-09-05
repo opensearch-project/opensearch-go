@@ -28,15 +28,16 @@ package opensearchapi
 
 // API contains the OpenSearch APIs
 type API struct {
-	Cat      *Cat
-	Cluster  *Cluster
-	Indices  *Indices
-	Ingest   *Ingest
-	Nodes    *Nodes
-	Remote   *Remote
-	Security *Security
-	Snapshot *Snapshot
-	Tasks    *Tasks
+	Cat         *Cat
+	Cluster     *Cluster
+	Indices     *Indices
+	Ingest      *Ingest
+	Nodes       *Nodes
+	Remote      *Remote
+	Security    *Security
+	Snapshot    *Snapshot
+	Tasks       *Tasks
+	PointInTime *PointInTime
 
 	Bulk                               Bulk
 	ClearScroll                        ClearScroll
@@ -136,10 +137,12 @@ type Indices struct {
 	Clone                 IndicesClone
 	Close                 IndicesClose
 	Create                IndicesCreate
+	CreateDataStream      IndicesCreateDataStream
 	DeleteAlias           IndicesDeleteAlias
 	DeleteIndexTemplate   IndicesDeleteIndexTemplate
 	Delete                IndicesDelete
 	DeleteTemplate        IndicesDeleteTemplate
+	DeleteDataStream      IndicesDeleteDataStream
 	DiskUsage             IndicesDiskUsage
 	ExistsAlias           IndicesExistsAlias
 	ExistsIndexTemplate   IndicesExistsIndexTemplate
@@ -155,6 +158,8 @@ type Indices struct {
 	Get                   IndicesGet
 	GetSettings           IndicesGetSettings
 	GetTemplate           IndicesGetTemplate
+	GetDataStream         IndicesGetDataStream
+	GetDataStreamStats    IndicesGetDataStreamStats
 	GetUpgrade            IndicesGetUpgrade
 	Open                  IndicesOpen
 	PutAlias              IndicesPutAlias
@@ -230,6 +235,13 @@ type Tasks struct {
 	Cancel TasksCancel
 	Get    TasksGet
 	List   TasksList
+}
+
+// PointInTime contains the Point In Time APIs
+type PointInTime struct {
+	Create PointInTimeCreate
+	Delete PointInTimeDelete
+	Get    PointInTimeGet
 }
 
 // New creates new API
@@ -324,10 +336,12 @@ func New(t Transport) *API {
 			Clone:                 newIndicesCloneFunc(t),
 			Close:                 newIndicesCloseFunc(t),
 			Create:                newIndicesCreateFunc(t),
+			CreateDataStream:      newIndicesCreateDataStreamFunc(t),
 			DeleteAlias:           newIndicesDeleteAliasFunc(t),
 			DeleteIndexTemplate:   newIndicesDeleteIndexTemplateFunc(t),
 			Delete:                newIndicesDeleteFunc(t),
 			DeleteTemplate:        newIndicesDeleteTemplateFunc(t),
+			DeleteDataStream:      newIndicesDeleteDataStreamFunc(t),
 			DiskUsage:             newIndicesDiskUsageFunc(t),
 			ExistsAlias:           newIndicesExistsAliasFunc(t),
 			ExistsIndexTemplate:   newIndicesExistsIndexTemplateFunc(t),
@@ -343,6 +357,8 @@ func New(t Transport) *API {
 			Get:                   newIndicesGetFunc(t),
 			GetSettings:           newIndicesGetSettingsFunc(t),
 			GetTemplate:           newIndicesGetTemplateFunc(t),
+			GetDataStream:         newIndicesGetDataStreamFunc(t),
+			GetDataStreamStats:    newIndicesGetDataStreamStatsFunc(t),
 			GetUpgrade:            newIndicesGetUpgradeFunc(t),
 			Open:                  newIndicesOpenFunc(t),
 			PutAlias:              newIndicesPutAliasFunc(t),
@@ -405,6 +421,11 @@ func New(t Transport) *API {
 			Cancel: newTasksCancelFunc(t),
 			Get:    newTasksGetFunc(t),
 			List:   newTasksListFunc(t),
+		},
+		PointInTime: &PointInTime{
+			Create: newPointInTimeCreateFunc(t),
+			Delete: newPointInTimeDeleteFunc(t),
+			Get:    newPointInTimeGetFunc(t),
 		},
 	}
 }

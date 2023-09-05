@@ -159,7 +159,7 @@ func (r ClusterGetComponentTemplateRequest) Do(ctx context.Context, transport Tr
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

@@ -37,7 +37,7 @@ response status codes (by default 502, 503, 504). Use the RetryOnStatus option t
 The transport will not retry a timeout network error, unless enabled by setting EnableRetryOnTimeout to true.
 
 Use the MaxRetries option to configure the number of retries, and set DisableRetry to true
-to disable the retry behaviour altogether.
+to disable the retry behavior altogether.
 
 By default, the retry will be performed without any delay; to configure a backoff interval,
 implement the RetryBackoff option function; see an example in the package unit tests for information.
@@ -45,7 +45,7 @@ implement the RetryBackoff option function; see an example in the package unit t
 When multiple addresses are passed in configuration, the package will use them in a round-robin fashion,
 and will keep track of live and dead nodes. The status of dead nodes is checked periodically.
 
-To customize the node selection behaviour, provide a Selector implementation in the configuration.
+To customize the node selection behavior, provide a Selector implementation in the configuration.
 To replace the connection pool entirely, provide a custom ConnectionPool implementation via
 the ConnectionPoolFunc option.
 

@@ -156,7 +156,7 @@ func (r IndicesDeleteIndexTemplateRequest) Do(ctx context.Context, transport Tra
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

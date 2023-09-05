@@ -212,7 +212,7 @@ func (r IndexRequest) Do(ctx context.Context, transport Transport) (*Response, e
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.

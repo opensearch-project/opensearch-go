@@ -178,7 +178,7 @@ func (r IndicesShrinkRequest) Do(ctx context.Context, transport Transport) (*Res
 		Header:     res.Header,
 	}
 
-	return &response, nil
+	return &response, response.Err()
 }
 
 // WithContext sets the request context.
