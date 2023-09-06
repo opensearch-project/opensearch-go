@@ -56,6 +56,8 @@ func example() error {
 	fmt.Println(client.Info())
 
 	// Define index mapping.
+        // Note: these particular settings (eg, shards/replicas)
+        // will have no effect in AWS OpenSearch Serverless
 	mapping := strings.NewReader(`{
 	    "settings": {
 	        "index": {
