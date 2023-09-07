@@ -53,7 +53,12 @@ func clientInit(rootClient *opensearch.Client) *Client {
 		Client: rootClient,
 	}
 	client.Cat = catClient{apiClient: client}
-	client.Indices = indicesClient{apiClient: client}
+	client.Indices = indicesClient{
+		apiClient: client,
+		Alias:     aliasClient{apiClient: client},
+		Mapping:   mappingClient{apiClient: client},
+		Settings:  settingsClient{apiClient: client},
+	}
 	client.Nodes = nodesClient{apiClient: client}
 	client.Cluster = clusterClient{apiClient: client}
 
