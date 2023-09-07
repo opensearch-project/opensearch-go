@@ -22,32 +22,34 @@
 package opensearchapi
 
 import (
+	"io"
 	"net/http"
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v2"
 )
 
-// IndicesClearCacheReq represents possible options for the index clear cache request
-type IndicesClearCacheReq struct {
+// IndicesFieldCapsReq represents possible options for the index shrink request
+type IndicesFieldCapsReq struct {
 	Indices []string
 
+	Body io.Reader
+
 	Header http.Header
-	Params IndicesClearCacheParams
+	Params IndicesFieldCapsParams
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
+func (r IndicesFieldCapsReq) GetRequest() (*http.Request, error) {
 	indices := strings.Join(r.Indices, ",")
 
 	var path strings.Builder
-	path.Grow(len("//_cache/clear") + len(indices))
-	if len(indices) != 0 {
+	path.Grow(10 + len(indices))
+	if len(indices) > 0 {
 		path.WriteString("/")
 		path.WriteString(indices)
 	}
-	path.WriteString("/_cache/clear")
-
+	path.WriteString("/_field_caps")
 	return opensearch.BuildRequest(
 		"POST",
 		path.String(),
@@ -57,17 +59,19 @@ func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
 	)
 }
 
-// IndicesClearCacheResp represents the returned struct of the index clear cache response
-type IndicesClearCacheResp struct {
-	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
+// IndicesFieldCapsResp represents the returned struct of the index shrink response
+type IndicesFieldCapsResp struct {
+	Indices []string `json:"indices"`
+	Fields  map[string]map[string]struct {
+		Type         string   `json:"type"`
+		Searchable   bool     `json:"searchable"`
+		Aggregatable bool     `json:"aggregatable"`
+		Indices      []string `json:"indices"`
+	} `json:"fields"`
 	response *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesClearCacheResp) Inspect() Inspect {
+func (r IndicesFieldCapsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }

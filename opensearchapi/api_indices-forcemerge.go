@@ -28,26 +28,25 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2"
 )
 
-// IndicesClearCacheReq represents possible options for the index clear cache request
-type IndicesClearCacheReq struct {
+// IndicesForcemergeReq represents possible options for the <index>/_forcemerge request
+type IndicesForcemergeReq struct {
 	Indices []string
 
 	Header http.Header
-	Params IndicesClearCacheParams
+	Params IndicesForcemergeParams
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
+func (r IndicesForcemergeReq) GetRequest() (*http.Request, error) {
 	indices := strings.Join(r.Indices, ",")
 
 	var path strings.Builder
-	path.Grow(len("//_cache/clear") + len(indices))
-	if len(indices) != 0 {
+	path.Grow(len("//_forcemerge") + len(indices))
+	if len(indices) > 0 {
 		path.WriteString("/")
 		path.WriteString(indices)
 	}
-	path.WriteString("/_cache/clear")
-
+	path.WriteString("/_forcemerge")
 	return opensearch.BuildRequest(
 		"POST",
 		path.String(),
@@ -57,8 +56,8 @@ func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
 	)
 }
 
-// IndicesClearCacheResp represents the returned struct of the index clear cache response
-type IndicesClearCacheResp struct {
+// IndicesForcemergeResp represents the returned struct of the flush indices response
+type IndicesForcemergeResp struct {
 	Shards struct {
 		Total      int `json:"total"`
 		Successful int `json:"successful"`
@@ -68,6 +67,6 @@ type IndicesClearCacheResp struct {
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesClearCacheResp) Inspect() Inspect {
+func (r IndicesForcemergeResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }

@@ -30,7 +30,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v2"
 )
 
-// IndicesAnalyzeReq represents possible options for the index create request
+// IndicesAnalyzeReq represents possible options for the <indices>/_analyze request
 type IndicesAnalyzeReq struct {
 	Index string
 	Body  IndicesAnalyzeBody
@@ -39,6 +39,7 @@ type IndicesAnalyzeReq struct {
 	Params IndicesAnalyzeParams
 }
 
+// IndicesAnalyzeBody represents the request body for the indices analyze request
 type IndicesAnalyzeBody struct {
 	Analyzer   string   `json:"analyzer,omitempty"`
 	Attributes []string `json:"attributes,omitempty"`
@@ -82,7 +83,7 @@ type IndicesAnalyzeResp struct {
 		Charfilters    []IndicesAnalyzeCharfilter   `json:"charfilters"`
 		Tokenizer      IndicesAnalyzeTokenizer      `json:"tokenizer"`
 		Tokenfilters   []IndicesAnalyzeTokenfilters `json:"tokenfilters"`
-		Analyzer       IndicesAnalyzeAnalyzer       `json:"analyzer"`
+		Analyzer       IndicesAnalyzeInfo           `json:"analyzer"`
 	} `json:"detail"`
 	response *opensearch.Response
 }
@@ -92,6 +93,7 @@ func (r IndicesAnalyzeResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
+// IndicesAnalyzeToken is a sut type of IndicesAnalyzeResp containing information about analyzer token
 type IndicesAnalyzeToken struct {
 	Token       string `json:"token"`
 	StartOffset int    `json:"start_offset"`
@@ -100,10 +102,13 @@ type IndicesAnalyzeToken struct {
 	Position    int    `json:"position"`
 }
 
+// IndicesAnalyzeTokenizer is a sub type of IndicesAnalyzerResp containing information about the tokenizer name and tokens
 type IndicesAnalyzeTokenizer struct {
 	Name   string                `json:"name"`
 	Tokens []IndicesAnalyzeToken `json:"tokens"`
 }
+
+// IndicesAnalyzeTokenfilters is a sub type of IndicesAnalyzerResp containing information about the token filers name and tokens
 type IndicesAnalyzeTokenfilters struct {
 	Name   string `json:"name"`
 	Tokens []struct {
@@ -116,12 +121,14 @@ type IndicesAnalyzeTokenfilters struct {
 	} `json:"tokens"`
 }
 
+// IndicesAnalyzeCharfilter is a sub type of IndicesAnalyzerResp containing information about the char filter name and filtered text
 type IndicesAnalyzeCharfilter struct {
 	Name         string   `json:"name"`
 	FilteredText []string `json:"filtered_text"`
 }
 
-type IndicesAnalyzeAnalyzer struct {
+// IndicesAnalyzeInfo is a sub type of IndicesAnalyzerResp containing information about the analyzer name and tokens
+type IndicesAnalyzeInfo struct {
 	Name   string `json:"name"`
 	Tokens []struct {
 		Token          string `json:"token"`

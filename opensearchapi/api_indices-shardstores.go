@@ -22,34 +22,34 @@
 package opensearchapi
 
 import (
+	"encoding/json"
 	"net/http"
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v2"
 )
 
-// IndicesClearCacheReq represents possible options for the index clear cache request
-type IndicesClearCacheReq struct {
+// IndicesShardStoresReq represents possible options for the index shrink request
+type IndicesShardStoresReq struct {
 	Indices []string
 
 	Header http.Header
-	Params IndicesClearCacheParams
+	Params IndicesShardStoresParams
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
+func (r IndicesShardStoresReq) GetRequest() (*http.Request, error) {
 	indices := strings.Join(r.Indices, ",")
 
 	var path strings.Builder
-	path.Grow(len("//_cache/clear") + len(indices))
-	if len(indices) != 0 {
+	path.Grow(15 + len(indices))
+	if len(indices) > 0 {
 		path.WriteString("/")
 		path.WriteString(indices)
 	}
-	path.WriteString("/_cache/clear")
-
+	path.WriteString("/_shard_stores")
 	return opensearch.BuildRequest(
-		"POST",
+		"GET",
 		path.String(),
 		nil,
 		r.Params.get(),
@@ -57,17 +57,17 @@ func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
 	)
 }
 
-// IndicesClearCacheResp represents the returned struct of the index clear cache response
-type IndicesClearCacheResp struct {
-	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
+// IndicesShardStoresResp represents the returned struct of the index shrink response
+type IndicesShardStoresResp struct {
+	Indices map[string]struct {
+		Shards map[string]struct {
+			Stores []json.RawMessage `json:"stores"`
+		} `json:"shards"`
+	} `json:"indices"`
 	response *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesClearCacheResp) Inspect() Inspect {
+func (r IndicesShardStoresResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }

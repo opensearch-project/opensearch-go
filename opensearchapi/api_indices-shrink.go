@@ -22,52 +22,44 @@
 package opensearchapi
 
 import (
+	"fmt"
+	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v2"
 )
 
-// IndicesClearCacheReq represents possible options for the index clear cache request
-type IndicesClearCacheReq struct {
-	Indices []string
+// IndicesShrinkReq represents possible options for the index shrink request
+type IndicesShrinkReq struct {
+	Index  string
+	Target string
+
+	Body io.Reader
 
 	Header http.Header
-	Params IndicesClearCacheParams
+	Params IndicesShrinkParams
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(len("//_cache/clear") + len(indices))
-	if len(indices) != 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
-	}
-	path.WriteString("/_cache/clear")
-
+func (r IndicesShrinkReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		path.String(),
-		nil,
+		fmt.Sprintf("/%s/_shrink/%s", r.Index, r.Target),
+		r.Body,
 		r.Params.get(),
 		r.Header,
 	)
 }
 
-// IndicesClearCacheResp represents the returned struct of the index clear cache response
-type IndicesClearCacheResp struct {
-	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-	response *opensearch.Response
+// IndicesShrinkResp represents the returned struct of the index shrink response
+type IndicesShrinkResp struct {
+	Acknowledged       bool   `json:"acknowledged"`
+	ShardsAcknowledged bool   `json:"shards_acknowledged"`
+	Index              string `json:"index"`
+	response           *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesClearCacheResp) Inspect() Inspect {
+func (r IndicesShrinkResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
