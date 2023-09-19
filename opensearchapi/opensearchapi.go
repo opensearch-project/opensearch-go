@@ -42,10 +42,11 @@ type Config struct {
 type Client struct {
 	Client   *opensearch.Client
 	Cat      catClient
-	Indices  indicesClient
-	Nodes    nodesClient
 	Cluster  clusterClient
 	Dangling danglingClient
+	Document documentClient
+	Indices  indicesClient
+	Nodes    nodesClient
 	Script   scriptClient
 }
 
@@ -65,6 +66,7 @@ func clientInit(rootClient *opensearch.Client) *Client {
 	client.Cluster = clusterClient{apiClient: client}
 	client.Dangling = danglingClient{apiClient: client}
 	client.Script = scriptClient{apiClient: client}
+	client.Document = documentClient{apiClient: client}
 
 	return client
 }
@@ -127,6 +129,9 @@ func parseError(resp *opensearch.Response) error {
 		}
 		return apiError
 	}
+
+	// ToDo: Parse 404 errors separate as they are not in one standard format
+	// https://github.com/opensearch-project/OpenSearch/issues/9988
 
 	var apiError Error
 	if err = json.Unmarshal(body, &apiError); err != nil {
