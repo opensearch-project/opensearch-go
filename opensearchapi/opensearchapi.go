@@ -40,14 +40,17 @@ type Config struct {
 
 // Client represents the opensearchapi Client summarizing all API calls
 type Client struct {
-	Client   *opensearch.Client
-	Cat      catClient
-	Cluster  clusterClient
-	Dangling danglingClient
-	Document documentClient
-	Indices  indicesClient
-	Nodes    nodesClient
-	Script   scriptClient
+	Client            *opensearch.Client
+	Cat               catClient
+	Cluster           clusterClient
+	Dangling          danglingClient
+	Document          documentClient
+	Indices           indicesClient
+	Nodes             nodesClient
+	Script            scriptClient
+	ComponentTemplate componentTemplateClient
+	IndexTemplate     indexTemplateClient
+	DataStream        dataStreamClient
 }
 
 // clientInit inits the Client with all sub clients
@@ -67,6 +70,9 @@ func clientInit(rootClient *opensearch.Client) *Client {
 	client.Dangling = danglingClient{apiClient: client}
 	client.Script = scriptClient{apiClient: client}
 	client.Document = documentClient{apiClient: client}
+	client.ComponentTemplate = componentTemplateClient{apiClient: client}
+	client.IndexTemplate = indexTemplateClient{apiClient: client}
+	client.DataStream = dataStreamClient{apiClient: client}
 
 	return client
 }
