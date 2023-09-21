@@ -51,8 +51,9 @@ type Client struct {
 	ComponentTemplate componentTemplateClient
 	IndexTemplate     indexTemplateClient
 	// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndexTemplate instead
-	Template   templateClient
-	DataStream dataStreamClient
+	Template    templateClient
+	DataStream  dataStreamClient
+	PointInTime pointInTimeClient
 }
 
 // clientInit inits the Client with all sub clients
@@ -76,6 +77,7 @@ func clientInit(rootClient *opensearch.Client) *Client {
 	client.IndexTemplate = indexTemplateClient{apiClient: client}
 	client.Template = templateClient{apiClient: client}
 	client.DataStream = dataStreamClient{apiClient: client}
+	client.PointInTime = pointInTimeClient{apiClient: client}
 
 	return client
 }
