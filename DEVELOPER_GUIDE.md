@@ -73,7 +73,7 @@ docker-compose -f docker-compose.yml up
 
 This command will start the OpenSearch container using the `docker-compose.yaml` configuration file. During the build process, the necessary dependencies and files will be downloaded, which may take some time depending on your internet connection and system resources.
 
-Once the container is built and running, you can open a web browser and navigate to [http://localhost:9200](http://localhost:9200) to access the Open
+Once the container is built and running, you can open a web browser and navigate to [http://localhost:9200](http://localhost:9200) to access the OpenSearch docker container. 
 
 In order to differentiate unit tests from integration tests, Go has a built-in mechanism for allowing you to logically separate your tests with [build tags](https://pkg.go.dev/cmd/go#hdr-Build_constraints). The build tag needs to be placed as close to the top of the file as possible, and must have a blank line beneath it. Hence, create all integration tests with build tag 'integration'.
 
