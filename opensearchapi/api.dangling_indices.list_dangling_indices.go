@@ -134,7 +134,7 @@ func (r DanglingIndicesListDanglingIndicesRequest) Do(ctx context.Context, trans
 		Header:     res.Header,
 	}
 
-	return &response, response.Err()
+	return &response, nil
 }
 
 // WithContext sets the request context.
