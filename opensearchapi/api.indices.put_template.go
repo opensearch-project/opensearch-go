@@ -24,11 +24,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// Deprecated: uses a nonexistent legacy REST API (/_template).
-// In OpenSearch v2.x the correct REST API is /_index_template,
-// which is accessible by the correct method in the following
-// location: opensearchapi/api.indices.put_index_template.go
-
 package opensearchapi
 
 import (
