@@ -24,6 +24,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
+// Deprecated: uses a nonexistent legacy REST API (/_template).`
+// In OpenSearch v2.x the correct REST API is /_index_template,
+// which is accessible by the correct method in the following
+// location: opensearchapi/api.indices.put_index_template.go
+
 package opensearchapi
 
 import (
@@ -35,6 +40,7 @@ import (
 	"time"
 )
 
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use newIndicesPutSettingsFunc instead
 func newIndicesPutTemplateFunc(t Transport) IndicesPutTemplate {
 	return func(name string, body io.Reader, o ...func(*IndicesPutTemplateRequest)) (*Response, error) {
 		var r = IndicesPutTemplateRequest{Name: name, Body: body}
@@ -48,12 +54,11 @@ func newIndicesPutTemplateFunc(t Transport) IndicesPutTemplate {
 // ----- API Definition -------------------------------------------------------
 
 // IndicesPutTemplate creates or updates an index template.
-//
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 type IndicesPutTemplate func(name string, body io.Reader, o ...func(*IndicesPutTemplateRequest)) (*Response, error)
 
 // IndicesPutTemplateRequest configures the Indices Put Template API request.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettingsRequest instead
 type IndicesPutTemplateRequest struct {
 	Body io.Reader
 
@@ -75,7 +80,7 @@ type IndicesPutTemplateRequest struct {
 }
 
 // Do executes the request and returns response or error.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettingsRequest instead
 func (r IndicesPutTemplateRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
@@ -173,7 +178,7 @@ func (r IndicesPutTemplateRequest) Do(ctx context.Context, transport Transport) 
 }
 
 // WithContext sets the request context.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithContext(v context.Context) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.ctx = v
@@ -181,7 +186,7 @@ func (f IndicesPutTemplate) WithContext(v context.Context) func(*IndicesPutTempl
 }
 
 // WithCreate - whether the index template should only be added if new or can also replace an existing one.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithCreate(v bool) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.Create = &v
@@ -189,9 +194,8 @@ func (f IndicesPutTemplate) WithCreate(v bool) func(*IndicesPutTemplateRequest) 
 }
 
 // WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
-//
 // Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithMasterTimeout(v time.Duration) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.MasterTimeout = v
@@ -199,7 +203,7 @@ func (f IndicesPutTemplate) WithMasterTimeout(v time.Duration) func(*IndicesPutT
 }
 
 // WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.ClusterManagerTimeout = v
@@ -207,7 +211,7 @@ func (f IndicesPutTemplate) WithClusterManagerTimeout(v time.Duration) func(*Ind
 }
 
 // WithOrder - the order for this template when merging multiple matching ones (higher numbers are merged later, overriding the lower numbers).
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithOrder(v int) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.Order = &v
@@ -215,7 +219,7 @@ func (f IndicesPutTemplate) WithOrder(v int) func(*IndicesPutTemplateRequest) {
 }
 
 // WithPretty makes the response body pretty-printed.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithPretty() func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.Pretty = true
@@ -223,7 +227,7 @@ func (f IndicesPutTemplate) WithPretty() func(*IndicesPutTemplateRequest) {
 }
 
 // WithHuman makes statistical values human-readable.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithHuman() func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.Human = true
@@ -231,7 +235,7 @@ func (f IndicesPutTemplate) WithHuman() func(*IndicesPutTemplateRequest) {
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithErrorTrace() func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.ErrorTrace = true
@@ -239,7 +243,7 @@ func (f IndicesPutTemplate) WithErrorTrace() func(*IndicesPutTemplateRequest) {
 }
 
 // WithFilterPath filters the properties of the response body.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithFilterPath(v ...string) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		r.FilterPath = v
@@ -247,7 +251,7 @@ func (f IndicesPutTemplate) WithFilterPath(v ...string) func(*IndicesPutTemplate
 }
 
 // WithHeader adds the headers to the HTTP request.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithHeader(h map[string]string) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		if r.Header == nil {
@@ -260,7 +264,7 @@ func (f IndicesPutTemplate) WithHeader(h map[string]string) func(*IndicesPutTemp
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-//
+// deprecated: uses a nonexistent legacy REST API (/_template) correct REST API is /_index_template use IndicesPutSettings instead
 func (f IndicesPutTemplate) WithOpaqueID(s string) func(*IndicesPutTemplateRequest) {
 	return func(r *IndicesPutTemplateRequest) {
 		if r.Header == nil {
