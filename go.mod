@@ -8,5 +8,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.44
 	github.com/kinbiko/jsonassert v1.1.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 )
