@@ -2,6 +2,10 @@
 
 ![OpenSearch logo](OpenSearch.svg)
 
+
+
+
+
 OpenSearch Go Client
 
 - [Welcome!](#welcome)
