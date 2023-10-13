@@ -1,12 +1,6 @@
 name: Lint check
 
-on:
-  push:
-    branches:
-      - "*"
-  pull_request:
-    branches:
-      - "*"
+on: [push, pull_request]
 
 env:
   GITHUB_ACTIONS: true

@@ -38,7 +38,7 @@ endif
 		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
 	else \
 		echo "go test -v" $(testintegargs) "."; \
-		go test -v $(testintegargs) "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
+		go test -v $(testintegargs) "." "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
 	fi;
 
 test-integ-secure: ##Run secure integration tests
@@ -48,11 +48,24 @@ test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem ./...
 
-test-coverage:  ## Generate test coverage report
+coverage:  ## Print test coverage report
+	@make gen-coverage
+	@go tool cover -func=$(PWD)/tmp/total.cov
+	@printf "\033[0m--------------------------------------------------------------------------------\n\033[0m"
+
+coverage-html: ## Open test coverage report in browser
+	@make gen-coverage
+	@go tool cover -html $(PWD)/tmp/total.cov
+
+gen-coverage:  ## Generate test coverage report
 	@printf "\033[2m→ Generating test coverage report...\033[0m\n"
-	@go tool cover -html=tmp/unit.cov -o tmp/coverage.html
-	@go tool cover -func=tmp/unit.cov | 'grep' -v 'opensearchapi/api\.' | sed 's/github.com\/opensearch-project\/opensearch-go\///g'
-	@printf "\033[0m--------------------------------------------------------------------------------\nopen tmp/coverage.html\n\n\033[0m"
+	@rm -rf tmp
+	@mkdir tmp
+	@mkdir tmp/unit
+	@mkdir tmp/integration
+	@go test -cover ./... -args -test.gocoverdir="$(PWD)/tmp/unit"
+	@go test -cover -tags='integration' ./... -args -test.gocoverdir="$(PWD)/tmp/integration"
+	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
 ##@ Development
 lint:  ## Run lint on the package
@@ -205,7 +218,7 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker system prune --volumes --force
 
 linters:
-	./bin/golangci-lint run ./... --timeout=5m
+	docker run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/v1.53.3:/root/.cache -w /app golangci/golangci-lint:v1.53.3 golangci-lint run --timeout=5m
 
 workflow: ## Run all github workflow commands here sequentially
 

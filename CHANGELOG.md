@@ -6,10 +6,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
-- Bumps `github.com/aws/aws-sdk-go` from 1.44.180 to 1.45.16
-- Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.4 to 1.21.0
-- Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.8 to 1.18.42
+- Bumps `github.com/aws/aws-sdk-go` from 1.44.180 to 1.45.24
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.4 to 1.21.1
+- Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.8 to 1.18.44
 - Bumps `github.com/stretchr/testify` from 1.8.1 to 1.8.4
+- Bumps `golang.org/x/net` from 0.7.0 to 0.17.0
 - Bumps `github.com/golangci/golangci-lint-action` from 1.53.3 to 1.54.2
 
 ### Added
@@ -43,6 +44,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Read, close and replace the http Reponse Body ([#300](https://github.com/opensearch-project/opensearch-go/pull/300))
 - Updated and adjusted golangci-lint, solve linting complains for signer ([#352](https://github.com/opensearch-project/opensearch-go/pull/352))
 - Solve linting complains for opensearchtransport ([#353](https://github.com/opensearch-project/opensearch-go/pull/353))
+- Updated Developer guide to include docker build instructions ([#385](https://github.com/opensearch-project/opensearch-go/pull/385)
+- Test against version 2.9.0,2.10.0, run tests in all branches, change intergration tests to wait for OpenSearch to start ([#392](https://github.com/opensearch-project/opensearch-go/pull/392))
+- Makefile: use docker golangci-lint, run integration test on `.` folder, change coverage generation ([#392](https://github.com/opensearch-project/opensearch-go/pull/392)) 
 
 ### Deprecated
 
