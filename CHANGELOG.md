@@ -42,7 +42,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Read, close and replace the http Reponse Body ([#300](https://github.com/opensearch-project/opensearch-go/pull/300))
 - Updated and adjusted golangci-lint, solve linting complains for signer ([#352](https://github.com/opensearch-project/opensearch-go/pull/352))
 - Solve linting complains for opensearchtransport ([#353](https://github.com/opensearch-project/opensearch-go/pull/353))
-- Updated Developer guide to include docker build instructions ([#385]https://github.com/opensearch-project/opensearch-go/pull/385)
+- Updated Developer guide to include docker build instructions ([#385](https://github.com/opensearch-project/opensearch-go/pull/385)
+- Test against version 2.9.0,2.10.0, run tests in all branches, change intergration tests to wait for OpenSearch to start ([#392](https://github.com/opensearch-project/opensearch-go/pull/392))
+- Makefile: use docker golangci-lint, run integration test on `.` folder, change coverage generation ([#392](https://github.com/opensearch-project/opensearch-go/pull/392)) 
 
 ### Deprecated
 
