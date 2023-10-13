@@ -172,3 +172,22 @@ func formatDuration(d time.Duration) string {
 func ToPointer[V any](value V) *V {
 	return &value
 }
+
+// ResponseShards is a sub type of api repsonses containing information about shards
+type ResponseShards struct {
+	Total      int                     `json:"total"`
+	Successful int                     `json:"successful"`
+	Failed     int                     `json:"failed"`
+	Failures   []ResponseShardsFailure `json:"failures"`
+	Skipped    int                     `json:"skipped"`
+}
+
+// ResponseShardsFailure is a sub type of ReponseShards containing information about a failed shard
+type ResponseShardsFailure struct {
+	Shard  int `json:"shard"`
+	Index  any `json:"index"`
+	Reason struct {
+		Type   string `json:"type"`
+		Reason string `json:"reason"`
+	} `json:"reason"`
+}
