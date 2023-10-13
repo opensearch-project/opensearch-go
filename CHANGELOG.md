@@ -42,6 +42,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Read, close and replace the http Reponse Body ([#300](https://github.com/opensearch-project/opensearch-go/pull/300))
 - Updated and adjusted golangci-lint, solve linting complains for signer ([#352](https://github.com/opensearch-project/opensearch-go/pull/352))
 - Solve linting complains for opensearchtransport ([#353](https://github.com/opensearch-project/opensearch-go/pull/353))
+- Updated the linter version from 1.53.3 to 1.54.2 ([[#307](https://github.com/opensearch-project/opensearch-go/issues/307)](https://github.com/opensearch-project/opensearch-go/issues/307))
+
 
 ### Deprecated
 
