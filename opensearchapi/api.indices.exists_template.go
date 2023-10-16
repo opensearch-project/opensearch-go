@@ -48,7 +48,9 @@ func newIndicesExistsTemplateFunc(t Transport) IndicesExistsTemplate {
 // ----- API Definition -------------------------------------------------------
 
 // IndicesExistsTemplate returns information about whether a particular index template exists.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
+type IndicesExistsTemplate func(name []string, o ...func(*IndicesExistsTemplateRequest)) (*Response, error)
+
 // Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplateRequest instead
 // IndicesExistsTemplateRequest configures the Indices Exists Template API request.
 type IndicesExistsTemplateRequest struct {
