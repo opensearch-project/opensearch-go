@@ -45,7 +45,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Deprecated
 
-- Deprecated legacy API /opensearchapi/api.indices.put_template.go ([#151](https://github.com/opensearch-project/opensearch-go/issues/151))
+- Deprecate legacy API /_template ([#151](https://github.com/opensearch-project/opensearch-go/issues/151))
 
 ### Removed
 
