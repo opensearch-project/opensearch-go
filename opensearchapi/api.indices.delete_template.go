@@ -33,6 +33,7 @@ import (
 	"time"
 )
 
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use newIndicesDeleteIndexTemplateFunc instead
 func newIndicesDeleteTemplateFunc(t Transport) IndicesDeleteTemplate {
 	return func(name string, o ...func(*IndicesDeleteTemplateRequest)) (*Response, error) {
 		var r = IndicesDeleteTemplateRequest{Name: name}
@@ -47,11 +48,12 @@ func newIndicesDeleteTemplateFunc(t Transport) IndicesDeleteTemplate {
 
 // IndicesDeleteTemplate deletes an index template.
 //
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 type IndicesDeleteTemplate func(name string, o ...func(*IndicesDeleteTemplateRequest)) (*Response, error)
 
 // IndicesDeleteTemplateRequest configures the Indices Delete Template API request.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplateRequest instead
 type IndicesDeleteTemplateRequest struct {
 	Name string
 
@@ -71,6 +73,7 @@ type IndicesDeleteTemplateRequest struct {
 
 // Do executes the request and returns response or error.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplateRequest instead
 func (r IndicesDeleteTemplateRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
@@ -161,6 +164,7 @@ func (r IndicesDeleteTemplateRequest) Do(ctx context.Context, transport Transpor
 
 // WithContext sets the request context.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithContext(v context.Context) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.ctx = v
@@ -171,6 +175,7 @@ func (f IndicesDeleteTemplate) WithContext(v context.Context) func(*IndicesDelet
 //
 // Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithMasterTimeout(v time.Duration) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.MasterTimeout = v
@@ -179,6 +184,7 @@ func (f IndicesDeleteTemplate) WithMasterTimeout(v time.Duration) func(*IndicesD
 
 // WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.ClusterManagerTimeout = v
@@ -187,6 +193,7 @@ func (f IndicesDeleteTemplate) WithClusterManagerTimeout(v time.Duration) func(*
 
 // WithTimeout - explicit operation timeout.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithTimeout(v time.Duration) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.Timeout = v
@@ -195,6 +202,7 @@ func (f IndicesDeleteTemplate) WithTimeout(v time.Duration) func(*IndicesDeleteT
 
 // WithPretty makes the response body pretty-printed.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithPretty() func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.Pretty = true
@@ -203,6 +211,7 @@ func (f IndicesDeleteTemplate) WithPretty() func(*IndicesDeleteTemplateRequest) 
 
 // WithHuman makes statistical values human-readable.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithHuman() func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.Human = true
@@ -211,6 +220,7 @@ func (f IndicesDeleteTemplate) WithHuman() func(*IndicesDeleteTemplateRequest) {
 
 // WithErrorTrace includes the stack trace for errors in the response body.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithErrorTrace() func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.ErrorTrace = true
@@ -219,6 +229,7 @@ func (f IndicesDeleteTemplate) WithErrorTrace() func(*IndicesDeleteTemplateReque
 
 // WithFilterPath filters the properties of the response body.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithFilterPath(v ...string) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		r.FilterPath = v
@@ -227,6 +238,7 @@ func (f IndicesDeleteTemplate) WithFilterPath(v ...string) func(*IndicesDeleteTe
 
 // WithHeader adds the headers to the HTTP request.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithHeader(h map[string]string) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		if r.Header == nil {
@@ -240,6 +252,7 @@ func (f IndicesDeleteTemplate) WithHeader(h map[string]string) func(*IndicesDele
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesDeleteIndexTemplate instead
 func (f IndicesDeleteTemplate) WithOpaqueID(s string) func(*IndicesDeleteTemplateRequest) {
 	return func(r *IndicesDeleteTemplateRequest) {
 		if r.Header == nil {
