@@ -34,6 +34,7 @@ import (
 	"time"
 )
 
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use newIndicesExistsIndexTemplateFunc instead
 func newIndicesExistsTemplateFunc(t Transport) IndicesExistsTemplate {
 	return func(name []string, o ...func(*IndicesExistsTemplateRequest)) (*Response, error) {
 		var r = IndicesExistsTemplateRequest{Name: name}
@@ -48,11 +49,8 @@ func newIndicesExistsTemplateFunc(t Transport) IndicesExistsTemplate {
 
 // IndicesExistsTemplate returns information about whether a particular index template exists.
 //
-//
-type IndicesExistsTemplate func(name []string, o ...func(*IndicesExistsTemplateRequest)) (*Response, error)
-
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplateRequest instead
 // IndicesExistsTemplateRequest configures the Indices Exists Template API request.
-//
 type IndicesExistsTemplateRequest struct {
 	Name []string
 
@@ -73,6 +71,7 @@ type IndicesExistsTemplateRequest struct {
 
 // Do executes the request and returns response or error.
 //
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplateRequest instead
 func (r IndicesExistsTemplateRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	var (
 		method string
@@ -166,7 +165,7 @@ func (r IndicesExistsTemplateRequest) Do(ctx context.Context, transport Transpor
 }
 
 // WithContext sets the request context.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithContext(v context.Context) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.ctx = v
@@ -174,7 +173,7 @@ func (f IndicesExistsTemplate) WithContext(v context.Context) func(*IndicesExist
 }
 
 // WithFlatSettings - return settings in flat format (default: false).
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithFlatSettings(v bool) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.FlatSettings = &v
@@ -182,7 +181,7 @@ func (f IndicesExistsTemplate) WithFlatSettings(v bool) func(*IndicesExistsTempl
 }
 
 // WithLocal - return local information, do not retrieve the state from cluster-manager node (default: false).
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithLocal(v bool) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.Local = &v
@@ -192,7 +191,7 @@ func (f IndicesExistsTemplate) WithLocal(v bool) func(*IndicesExistsTemplateRequ
 // WithMasterTimeout - explicit operation timeout for connection to cluster-manager node.
 //
 // Deprecated: To promote inclusive language, use WithClusterManagerTimeout instead.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithMasterTimeout(v time.Duration) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.MasterTimeout = v
@@ -200,7 +199,7 @@ func (f IndicesExistsTemplate) WithMasterTimeout(v time.Duration) func(*IndicesE
 }
 
 // WithClusterManagerTimeout - explicit operation timeout for connection to cluster-manager node.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithClusterManagerTimeout(v time.Duration) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.ClusterManagerTimeout = v
@@ -208,7 +207,7 @@ func (f IndicesExistsTemplate) WithClusterManagerTimeout(v time.Duration) func(*
 }
 
 // WithPretty makes the response body pretty-printed.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithPretty() func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.Pretty = true
@@ -216,7 +215,7 @@ func (f IndicesExistsTemplate) WithPretty() func(*IndicesExistsTemplateRequest) 
 }
 
 // WithHuman makes statistical values human-readable.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithHuman() func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.Human = true
@@ -224,7 +223,7 @@ func (f IndicesExistsTemplate) WithHuman() func(*IndicesExistsTemplateRequest) {
 }
 
 // WithErrorTrace includes the stack trace for errors in the response body.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithErrorTrace() func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.ErrorTrace = true
@@ -232,7 +231,7 @@ func (f IndicesExistsTemplate) WithErrorTrace() func(*IndicesExistsTemplateReque
 }
 
 // WithFilterPath filters the properties of the response body.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithFilterPath(v ...string) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		r.FilterPath = v
@@ -240,7 +239,7 @@ func (f IndicesExistsTemplate) WithFilterPath(v ...string) func(*IndicesExistsTe
 }
 
 // WithHeader adds the headers to the HTTP request.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithHeader(h map[string]string) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		if r.Header == nil {
@@ -253,7 +252,7 @@ func (f IndicesExistsTemplate) WithHeader(h map[string]string) func(*IndicesExis
 }
 
 // WithOpaqueID adds the X-Opaque-Id header to the HTTP request.
-//
+// Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndicesExistsIndexTemplate instead
 func (f IndicesExistsTemplate) WithOpaqueID(s string) func(*IndicesExistsTemplateRequest) {
 	return func(r *IndicesExistsTemplateRequest) {
 		if r.Header == nil {
