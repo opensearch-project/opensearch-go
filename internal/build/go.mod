@@ -7,7 +7,7 @@ replace github.com/opensearch-project/opensearch-go/v2 => ../../
 require (
 	github.com/alecthomas/chroma v0.8.2
 	github.com/kr/pretty v0.1.0 // indirect
-	github.com/opensearch-project/opensearch-go/v2 v2.2.0
+	github.com/opensearch-project/opensearch-go/v2 v2.4.0
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/crypto v0.1.0
 	golang.org/x/tools v0.1.12
