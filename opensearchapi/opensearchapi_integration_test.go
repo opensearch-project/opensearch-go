@@ -38,6 +38,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/opensearch-project/opensearch-go/v2"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
@@ -122,6 +123,68 @@ func TestAPI(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to index data: %s", err)
 		}
+
+		// Add a document to the index.
+		document := strings.NewReader(`{
+			"title": "Moneyball",
+			"director": "Bennett Miller",
+			"year": "2011"
+		}`)
+
+		docId := "1"
+		req := opensearchapi.IndexRequest{
+			Index:      "test",
+			DocumentID: docId,
+			Body:       document,
+		}
+		insertResponse, err := req.Do(context.Background(), client)
+		if err != nil {
+			fmt.Println("failed to insert document ", err)
+		}
+		defer insertResponse.Body.Close()
+
+		// Get the document with source filters
+		getSourceRequest := opensearchapi.GetSourceRequest{
+			Index:      "test",
+			DocumentID: "1",
+			Source:     []string{"title"},
+		}
+		getSourceResponse, err := getSourceRequest.Do(context.Background(), client)
+		if err != nil {
+			fmt.Println("failed to get source ", err)
+		}
+		assert.Equal(t, 200, getSourceResponse.StatusCode)
+		assert.Contains(t, getSourceResponse.String(), "title")
+		assert.NotContains(t, getSourceResponse.String(), "director")
+		defer getSourceResponse.Body.Close()
+
+		getSourceRequest = opensearchapi.GetSourceRequest{
+			Index:      "test",
+			DocumentID: "1",
+			SourceIncludes:     []string{"title"},
+		}
+		getSourceResponse, err = getSourceRequest.Do(context.Background(), client)
+		if err != nil {
+			fmt.Println("failed to get source ", err)
+		}
+		assert.Equal(t, 200, getSourceResponse.StatusCode)
+		assert.Contains(t, getSourceResponse.String(), "title")
+		assert.NotContains(t, getSourceResponse.String(), "director")
+		defer getSourceResponse.Body.Close()
+
+		getSourceRequest = opensearchapi.GetSourceRequest{
+			Index:      "test",
+			DocumentID: "1",
+			SourceExcludes: []string{"title"},
+		}
+		getSourceResponse, err = getSourceRequest.Do(context.Background(), client)
+		if err != nil {
+			fmt.Println("failed to get source ", err)
+		}
+		assert.Equal(t, 200, getSourceResponse.StatusCode)
+		assert.Contains(t, getSourceResponse.String(), "director")
+		assert.NotContains(t, getSourceResponse.String(), "title")
+		defer getSourceResponse.Body.Close()
 
 		// Launch reindexing task with wait_for_completion=false
 		//
