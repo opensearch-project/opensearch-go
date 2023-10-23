@@ -60,7 +60,8 @@ type GetSourceRequest struct {
 	Realtime       *bool
 	Refresh        *bool
 	Routing        string
-	Source         interface{}
+	// Deprecated: This parameter is similar to SourceIncludes, please use that instead.
+	Source         []string
 	SourceExcludes []string
 	SourceIncludes []string
 	Version        *int
@@ -113,12 +114,8 @@ func (r GetSourceRequest) Do(ctx context.Context, transport Transport) (*Respons
 		params["routing"] = r.Routing
 	}
 
-	if source, ok := r.Source.(bool); ok {
-		params["_source"] = strconv.FormatBool(source)
-	} else if source, ok := r.Source.(string); ok && source != "" {
-		params["_source"] = source
-	} else if sources, ok := r.Source.([]string); ok && len(sources) > 0 {
-		params["_source"] = strings.Join(sources, ",")
+	if len(r.Source) > 0 {
+		params["_source"] = strings.Join(r.Source, ",")
 	}
 
 	if len(r.SourceExcludes) > 0 {
@@ -236,9 +233,9 @@ func (f GetSource) WithRouting(v string) func(*GetSourceRequest) {
 	}
 }
 
-// WithSource - true or false to return the _source field or not, or a list of fields to return.
+// WithSource - a list of fields to return. This field is deprecated, please use SourceIncludes instead.
 //
-func (f GetSource) WithSource(v interface{}) func(*GetSourceRequest) {
+func (f GetSource) WithSource(v ...string) func(*GetSourceRequest) {
 	return func(r *GetSourceRequest) {
 		r.Source = v
 	}
