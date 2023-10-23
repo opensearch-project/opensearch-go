@@ -7,12 +7,8 @@ The below matrix shows the compatibility of the [`opensearch-go`](https://pkg.go
 
 | Client Version | OpenSearch Version |
 | -------------- | ------------------ |
-| 1.0.0          | 1.0.0-1.0.1        |
-| 1.1.0          | 1.1.0-1.3.1        |
-| 2.0.0          | 2.0.0-2.1.0        |
-| 2.0.1          | 2.0.0-2.1.0        |
-| 2.1.0          | 2.0.0-2.5.0        |
-| 2.2.0          | 2.0.0-2.5.0        |
+| 1.x.0          | 1.x                |
+| 2.x.0          | 1.3.13-2.11.0      |
 
 ## Upgrading
 
