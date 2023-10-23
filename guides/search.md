@@ -186,6 +186,42 @@ log.Printf("deleted pits: [%+v]", delpits)
 
 Note that a point-in-time is associated with an index or a set of index. So, when performing a search with a point-in-time, you DO NOT specify the index in the search.
 
+## Source API
+
+The source API returns the source of the documents with included or excluded fields. The following example returns all fields from document source in the `movies` index:
+
+```go
+getSourceRequest := opensearchapi.GetSourceRequest{
+    Index:      "movies",
+    DocumentID: "1",
+}
+getSourceResponse, err := getSourceRequest.Do(context.Background(), client)
+if err != nil {
+    log.Printf("error occurred: [%s]", err.Error())
+}
+log.Printf("source: [%+v]", getSourceResponse)
+```
+
+To include certain fields in the source response, use `SourceIncludes` or `Source`(this field is deprecated and `SourceIncludes` is recommended to be used instead). To get only required fields:
+
+```go
+getSourceRequest = opensearchapi.GetSourceRequest{
+    Index:      "movies",
+    DocumentID: "1",
+    SourceIncludes:     []string{"title"},
+}
+```
+
+To exclude certain fields in the source response, use `SourceExcludes` as follows:
+
+```go
+getSourceRequest = opensearchapi.GetSourceRequest{
+    Index:      "movies",
+    DocumentID: "1",
+    SourceExcludes: []string{"title"},
+}
+```
+
 ## Cleanup
 
 ```go
