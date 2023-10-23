@@ -7,11 +7,15 @@
       - [Windows](#windows)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
+    - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
-    - [Lint](#lint)
-      - [Markdown lint](#markdown-lint)
+  - [Lint](#lint)
+    - [Markdown lint](#markdown-lint)
+    - [Go lint](#go-lint)
+  - [Coverage](#coverage)
   - [Use an Editor](#use-an-editor)
     - [GoLand](#goland)
+    - [Vim](#vim)
 
 # Developer Guide
 
@@ -25,9 +29,9 @@ Fork [opensearch-project/opensearch-go](https://github.com/opensearch-project/op
 
 ### Install Prerequisites
 
-#### Go 1.11
+#### Go 1.15
 
-OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.11 at a minimum.
+OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.15 at a minimum.
 
 #### Docker
 
@@ -37,7 +41,7 @@ OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.11 at a
 
 To build the project on Windows, use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install), the compatibility layer for running Linux applications.
 
-Install ```make```
+Install `make`
 ```
 sudo apt install make
 ```
@@ -60,6 +64,18 @@ go test -v -run TestName;
 ### Integration Testing
 
 In order to test opensearch-go client, you need a running OpenSearch cluster. You can use Docker to accomplish this. The [Docker Compose file](.ci/opensearch/docker-compose.yml) supports the ability to run integration tests for the project in local environments. If you have not installed docker-compose, you can install it from this [link](https://docs.docker.com/compose/install/).
+
+### Composing an OpenSearch Docker Container
+
+Ensure that Docker is installed on your local machine. You can check by running `docker --version`. Next, navigate to your local opensearch-go repository. Run the following command to build and start the OpenSearch docker container. 
+
+```
+make cluster.build cluster.start
+```
+
+This command will start the OpenSearch container using the `docker-compose.yaml` configuration file. During the build process, the necessary dependencies and files will be downloaded, which may take some time depending on your internet connection and system resources.
+
+Once the container is built and running, you can open a web browser and navigate to localhost:9200 to access the OpenSearch docker container. 
 
 In order to differentiate unit tests from integration tests, Go has a built-in mechanism for allowing you to logically separate your tests with [build tags](https://pkg.go.dev/cmd/go#hdr-Build_constraints). The build tag needs to be placed as close to the top of the file as possible, and must have a blank line beneath it. Hence, create all integration tests with build tag 'integration'.
 
@@ -90,6 +106,30 @@ To check the markdown files, run the following command:
 make lint.markdown
 ```
 
+### Go lint
+
+To check all go files, run the following command:
+
+```
+make linters
+```
+
+## Coverage
+
+To get the repository test coverage, run the following command:
+
+For the results to be display in your terminal:
+
+```
+make coverage
+```
+
+For the results to be display in your browser:
+
+```
+make coverage-html
+```
+
 ## Use an Editor
 
 ### GoLand
@@ -100,3 +140,8 @@ You can import the OpenSearch project into GoLand as follows:
 2. In the subsequent dialog navigate to the ~/go/src/opensearch-go and click **Open**
 
 After you have opened your project, you need to specify the location of the Go SDK. You can either specify a local path to the SDK or download it. To set the Go SDK, navigate to **Go | GOROOT** and set accordingly.
+
+### Vim
+
+To improve your vim experience with Go, you might want to check out [fatih/vim-go](https://github.com/fatih/vim-go).
+For example it correctly formats the file and validates it on save.
