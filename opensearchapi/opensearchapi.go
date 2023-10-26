@@ -57,6 +57,7 @@ type Client struct {
 	Ingest      ingestClient
 	Tasks       tasksClient
 	Scroll      scrollClient
+	Snapshot    snapshotClient
 }
 
 // clientInit inits the Client with all sub clients
@@ -84,6 +85,10 @@ func clientInit(rootClient *opensearch.Client) *Client {
 	client.Ingest = ingestClient{apiClient: client}
 	client.Tasks = tasksClient{apiClient: client}
 	client.Scroll = scrollClient{apiClient: client}
+	client.Snapshot = snapshotClient{
+		apiClient:  client,
+		Repository: repositoryClient{apiClient: client},
+	}
 
 	return client
 }
