@@ -28,8 +28,8 @@ jobs:
           file: coverage.out
       - name: Comment coverage report
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ] || [ "${{ matrix.os }}" == "windows-latest" ] || [ "${{ matrix.os }}" == "macOS-latest" ]; then
-            curl -sSfL https://codecov.io/bash | bash -s -- -Z -K -f coverage.out || echo "Codecov upload failed"
+          if [[ "windows-latest" == "ubuntu-latest" || "windows-latest" == "windows-latest" || "windows-latest" == "macOS-latest" ]]; then
+          ...
           fi
   bench:
     name: Benchmarks
