@@ -28,11 +28,9 @@ jobs:
           file: coverage.out
       - name: Comment coverage report
         run: |
-          case ${{ matrix.os }} in
-            ubuntu-latest|windows-latest|macOS-latest
-              curl -sSfL https://codecov.io/bash | bash -s -- -Z -K -f coverage.out || echo "Codecov upload failed"
-              ;;
-          esac
+          if [ "${{ matrix.os }}" == "ubuntu-latest" ] || [ "${{ matrix.os }}" == "windows-latest" ] || [ "${{ matrix.os }}" == "macOS-latest" ]; then
+            curl -sSfL https://codecov.io/bash | bash -s -- -Z -K -f coverage.out || echo "Codecov upload failed"
+          fi
   bench:
     name: Benchmarks
     runs-on: ubuntu-latest
