@@ -28,10 +28,11 @@ jobs:
           file: coverage.out
       - name: Comment coverage report
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then # will only run on ubuntu
-            curl -sSfL https://codecov.io/bash | bash -s -- -Z -K -f coverage.out || echo "Codecov upload failed"
-          fi      
-
+          case ${{ matrix.os }} in
+            ubuntu-latest|windows-latest|macOS-latest)
+              curl -sSfL https://codecov.io/bash | bash -s -- -Z -K -f coverage.out || echo "Codecov upload failed"
+              ;;
+          esac
   bench:
     name: Benchmarks
     runs-on: ubuntu-latest
