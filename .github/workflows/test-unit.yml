@@ -16,15 +16,21 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - uses: actions/setup-go@v3
-        with: { go-version: "${{ matrix.go }}" }
-      - run: go version
-      - run: make test-unit race=true
-      - uses: codecov/codecov-action@v1
         with:
-          file: tmp/unit.cov
-          flags: unit
+          fetch-depth: 1
+      - uses: actions/setup-go@v3
+        with:
+          go-version: "${{ matrix.go }}"
+      - run: go version
+      - run: make test-unit-with-coverage
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage.out
+      - name: Comment coverage report
+        run: |
+          curl -sSfL https://codecov.io/bash | bash -s -- -Z -K -f coverage.out || echo "Codecov upload failed"
         if: matrix.os == 'ubuntu-latest'
 
   bench:
@@ -32,8 +38,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
+        with:
+          fetch-depth: 1
       - uses: actions/setup-go@v3
-        with: { go-version: '1.x' }
+        with:
+          go-version: '1.x'
       - run: go version
       - run: make test-bench
