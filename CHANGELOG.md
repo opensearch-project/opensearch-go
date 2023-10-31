@@ -33,6 +33,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - go: update to golang version 1.20 ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 - guids: updated to work for the new opensearchapi ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 - Test adjusted to new opensearchapi functions and structs ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Change codecov to comment code coverage to each PR ([#410](https://github.com/opensearch-project/opensearch-go/pull/410))
 
 ### Deprecated
 
