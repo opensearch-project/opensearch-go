@@ -10,15 +10,13 @@ test-unit:  ## Run unit tests
 ifdef race
 	$(eval testunitargs += "-race")
 endif
-	$(eval testunitargs += "-cover" "-coverprofile=tmp/unit.cov" "./...")
-	@mkdir -p tmp
-	@if which gotestsum > /dev/null 2>&1 ; then \
-		echo "gotestsum --format=short-verbose --junitfile=tmp/unit-report.xml --" $(testunitargs); \
-		gotestsum --format=short-verbose --junitfile=tmp/unit-report.xml -- $(testunitargs); \
-	else \
-		echo "go test -v" $(testunitargs); \
-		go test -v $(testunitargs); \
-	fi;
+	$(eval testunitargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/unit")
+	@mkdir -p $(PWD)/tmp/unit
+	@echo "go test -v" $(testunitargs); \
+	go test -v $(testunitargs);
+ifdef coverage
+	@go tool covdata textfmt -i=$(PWD)/tmp/unit -o $(PWD)/tmp/unit.cov
+endif
 test: test-unit
 
 test-integ:  ## Run integration tests
@@ -30,16 +28,13 @@ endif
 ifdef race
 	$(eval testintegargs += "-race")
 endif
-	$(eval testintegargs += "-cover" "-coverprofile=tmp/integration-client.cov" "-tags='$(testintegtags)'" "-timeout=1h")
-	@mkdir -p tmp
-	@if which gotestsum > /dev/null 2>&1 ; then \
-		echo "gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml --" $(testintegargs); \
-		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "."; \
-		gotestsum --format=short-verbose --junitfile=tmp/integration-report.xml -- $(testintegargs) "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
-	else \
-		echo "go test -v" $(testintegargs) "."; \
-		go test -v $(testintegargs) "." "./opensearchtransport" "./opensearchapi" "./opensearchutil"; \
-	fi;
+	$(eval testintegargs += "-cover" "-tags='$(testintegtags)'" "-timeout=1h" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
+	@mkdir -p $(PWD)/tmp/integration
+	@echo "go test -v" $(testintegargs); \
+	go test -v $(testintegargs);
+ifdef coverage
+	@go tool covdata textfmt -i=$(PWD)/tmp/integration -o $(PWD)/tmp/integ.cov
+endif
 
 test-integ-secure: ##Run secure integration tests
 	go test -tags=secure,integration ./opensearch_secure_integration_test.go
@@ -63,8 +58,11 @@ gen-coverage:  ## Generate test coverage report
 	@mkdir tmp
 	@mkdir tmp/unit
 	@mkdir tmp/integration
-	@go test -cover ./... -args -test.gocoverdir="$(PWD)/tmp/unit"
-	@go test -cover -tags='integration' ./... -args -test.gocoverdir="$(PWD)/tmp/integration"
+	@make test-unit coverage=true
+	@make test-integ coverage=true
+	@make build-coverage
+
+build-coverage:
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
 ##@ Development
