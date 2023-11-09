@@ -10,66 +10,77 @@ Let's start by creating an index and adding some documents to it:
 package main
 
 import (
-    "context"
-    "fmt"
-    "github.com/opensearch-project/opensearch-go/v2"
-    "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-    "log"
-    "strings"
+	"context"
+	"fmt"
+	"os"
+	"strconv"
+	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 )
 
 func main() {
-    client, err := opensearch.NewDefaultClient()
-    if err != nil {
-        log.Printf("error occurred: [%s]", err.Error())
-    }
-    log.Printf("response: [%+v]", client)
-
-    movies := "movies"
-
-    // create the index
-    createMovieIndex, err := client.Indices.Create(movies)
-    if err != nil {
-        log.Printf("error occurred: [%s]", err.Error())
-    }
-    log.Printf("response: [%+v]", createMovieIndex)
-
-    for i := 1; i < 11; i++ {
-        req := opensearchapi.IndexRequest{
-            Index:      movies,
-            DocumentID: fmt.Sprintf("%d", i),
-            Body:       strings.NewReader(fmt.Sprintf(`{"title": "The Dark Knight %d", "director": "Christopher Nolan", "year": %d}`, i, 2008+i)),
-        }
-        _, err := req.Do(context.Background(), client)
-        if err != nil {
-            log.Printf("error occurred: [%s]", err.Error())
-        }
-    }
-
-    req := opensearchapi.IndexRequest{
-        Index: movies,
-        Body:  strings.NewReader(`{"title": "The Godfather", "director": "Francis Ford Coppola", "year": 1972}`),
-    }
-    _, err = req.Do(context.Background(), client)
-    if err != nil {
-        log.Printf("error occurred: [%s]", err.Error())
-    }
-
-    req = opensearchapi.IndexRequest{
-        Index: movies,
-        Body:  strings.NewReader(`{"title": "The Shawshank Redemption", "director": "Frank Darabont", "year": 1994}`),
-    }
-    _, err = req.Do(context.Background(), client)
-    if err != nil {
-        log.Printf("error occurred: [%s]", err.Error())
-    }
-
-    // refresh the index to make the documents searchable
-    _, err = client.Indices.Refresh(client.Indices.Refresh.WithIndex(movies))
-    if err != nil {
-        log.Printf("error occurred: [%s]", err.Error())
-    }
+	if err := example(); err != nil {
+		fmt.Println(fmt.Sprintf("Error: %s", err))
+		os.Exit(1)
+	}
 }
+
+func example() error {
+	client, err := opensearchapi.NewDefaultClient()
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
+	exampleIndex := "movies"
+
+	createResp, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: exampleIndex})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Created: %t\n", createResp.Acknowledged)
+
+	for i := 1; i < 11; i++ {
+		_, err = client.Index(
+			ctx,
+			opensearchapi.IndexReq{
+				Index:      exampleIndex,
+				DocumentID: strconv.Itoa(i),
+				Body:       strings.NewReader(fmt.Sprintf(`{"title": "The Dark Knight %d", "director": "Christopher Nolan", "year": %d}`, i, 2008+i)),
+			},
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = client.Index(
+		ctx,
+		opensearchapi.IndexReq{
+			Index: exampleIndex,
+			Body:  strings.NewReader(`{"title": "The Godfather", "director": "Francis Ford Coppola", "year": 1972}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Index(
+		ctx,
+		opensearchapi.IndexReq{
+			Index: exampleIndex,
+			Body:  strings.NewReader(`{"title": "The Shawshank Redemption", "director": "Frank Darabont", "year": 1994}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{exampleIndex}})
+	if err != nil {
+		return err
+	}
 ```
 
 ## Search API
@@ -79,26 +90,35 @@ func main() {
 The search API allows you to search for documents in an index. The following example searches for ALL documents in the `movies` index:
 
 ```go
-res, err := client.Search(
-    client.Search.WithIndex(movies),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	searchResp, err := client.Search(ctx, &opensearchapi.SearchReq{Indices: []string{exampleIndex}})
+	if err != nil {
+		return err
+	}
+	respAsJson, err := json.MarshalIndent(searchResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 ```
 
 You can also search for documents that match a specific query. The following example searches for documents that match the query `dark knight`:
 
 ```go
-part, err := client.Search(
-    client.Search.WithIndex(movies),
-    client.Search.WithQuery(`title: "dark knight"`),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", part)
+	searchResp, err = client.Search(
+		ctx,
+		&opensearchapi.SearchReq{
+			Indices: []string{exampleIndex},
+			Params:  opensearchapi.SearchParams{Query: `title: "dark knight"`},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 ```
 
 OpenSearch query DSL allows you to specify complex queries. Check out the [OpenSearch query DSL documentation](https://opensearch.org/docs/latest/query-dsl/) for more information.
@@ -108,17 +128,26 @@ OpenSearch query DSL allows you to specify complex queries. Check out the [OpenS
 The search API allows you to paginate through the search results. The following example searches for documents that match the query `dark knight`, sorted by `year` in ascending order, and returns the first 2 results after skipping the first 5 results:
 
 ```go
-sort, err := client.Search(
-    client.Search.WithIndex(movies),
-    client.Search.WithSize(2),
-    client.Search.WithFrom(5),
-    client.Search.WithSort("year:desc"),
-    client.Search.WithQuery(`title: "dark knight"`),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", sort)
+	searchResp, err = client.Search(
+		ctx,
+		&opensearchapi.SearchReq{
+			Indices: []string{exampleIndex},
+			Params: opensearchapi.SearchParams{
+				Query: `title: "dark knight"`,
+				Size:  opensearchapi.ToPointer(2),
+				From:  opensearchapi.ToPointer(5),
+				Sort:  []string{"year:desc"},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 ```
 
 ### Pagination with scroll
@@ -126,17 +155,26 @@ log.Printf("response: [%+v]", sort)
 When retrieving large amounts of non-real-time data, you can use the `scroll` parameter to paginate through the search results.
 
 ```go
-page1, err := client.Search(
-    client.Search.WithIndex(movies),
-    client.Search.WithSize(2),
-    client.Search.WithQuery(`title: "dark knight"`),
-    client.Search.WithSort("year:asc"),
-    client.Search.WithScroll(time.Minute),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", page1)
+	searchResp, err = client.Search(
+		ctx,
+		&opensearchapi.SearchReq{
+			Indices: []string{exampleIndex},
+			Params: opensearchapi.SearchParams{
+				Query:  `title: "dark knight"`,
+				Size:   opensearchapi.ToPointer(2),
+				Sort:   []string{"year:desc"},
+				Scroll: time.Minute,
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 ```
 
 ### Pagination with Point in Time
@@ -144,44 +182,59 @@ log.Printf("response: [%+v]", page1)
 The scroll example above has one weakness: if the index is updated while you are scrolling through the results, they will be paginated inconsistently. To avoid this, you should use the "Point in Time" feature. The following example demonstrates how to use the `point_in_time` and `pit_id` parameters to paginate through the search results:
 
 ```go
-// create a point in time
-_, pit, err := client.PointInTime.Create(
-    client.PointInTime.Create.WithIndex(movies),
-    client.PointInTime.Create.WithKeepAlive(time.Minute),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("created pit: [%+v]", pit)
+	pitCreateResp, err := client.PointInTime.Create(
+		ctx,
+		opensearchapi.PointInTimeCreateReq{
+			Indices: []string{exampleIndex},
+			Params:  opensearchapi.PointInTimeCreateParams{KeepAlive: time.Minute},
+		},
+	)
+	if err != nil {
+		return err
+	}
 
-// run a search query with a pit.id
-page1, err := client.Search(
-    client.Search.WithSize(5),
-    client.Search.WithBody(strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pit.PitID))),
-    client.Search.WithSort("year:asc"),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", page1)
+	searchResp, err = client.Search(
+		ctx,
+		&opensearchapi.SearchReq{
+			Body: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pitCreateResp.PitID)),
+			Params: opensearchapi.SearchParams{
+				Size: opensearchapi.ToPointer(5),
+				Sort: []string{"year:desc"},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 
-// to get the next set of documents, run the same query with the last document’s sort values as the search_after parameter, keeping the same sort and pit.id.
-page2, err := client.Search(
-    client.Search.WithSize(5),
-    client.Search.WithBody(strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pit.PitID))),
-    client.Search.WithSort("year:asc"),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", page2)
+	searchResp, err = client.Search(
+		ctx,
+		&opensearchapi.SearchReq{
+			Body: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pitCreateResp.PitID)),
+			Params: opensearchapi.SearchParams{
+				Size: opensearchapi.ToPointer(5),
+				Sort: []string{"year:desc"},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 
-// to delete the point in time, run the following query
-_, delpits, err := client.PointInTime.Delete(client.PointInTime.Delete.WithPitID(pit.PitID))
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("deleted pits: [%+v]", delpits)
+	_, err = client.PointInTime.Delete(ctx, opensearchapi.PointInTimeDeleteReq{PitID: []string{pitCreateResp.PitID}})
+	if err != nil {
+		return err
+	}
 ```
 
 Note that a point-in-time is associated with an index or a set of index. So, when performing a search with a point-in-time, you DO NOT specify the index in the search.
@@ -191,43 +244,84 @@ Note that a point-in-time is associated with an index or a set of index. So, whe
 The source API returns the source of the documents with included or excluded fields. The following example returns all fields from document source in the `movies` index:
 
 ```go
-getSourceRequest := opensearchapi.GetSourceRequest{
-    Index:      "movies",
-    DocumentID: "1",
-}
-getSourceResponse, err := getSourceRequest.Do(context.Background(), client)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("source: [%+v]", getSourceResponse)
+	sourceResp, err := client.Document.Source(
+		ctx,
+		opensearchapi.DocumentSourceReq{
+			Index:      "movies",
+			DocumentID: "1",
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(sourceResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Source Response:\n%s\n", string(respAsJson))
 ```
 
 To include certain fields in the source response, use `SourceIncludes` or `Source`(this field is deprecated and `SourceIncludes` is recommended to be used instead). To get only required fields:
 
 ```go
-getSourceRequest = opensearchapi.GetSourceRequest{
-    Index:      "movies",
-    DocumentID: "1",
-    SourceIncludes:     []string{"title"},
-}
+	sourceResp, err := client.Document.Source(
+		ctx,
+		opensearchapi.DocumentSourceReq{
+			Index:      "movies",
+			DocumentID: "1",
+			Params: opensearchapi.DocumentSourceParams{
+				SourceIncludes: []string{"title"},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(sourceResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Source Response:\n%s\n", string(respAsJson))
 ```
 
 To exclude certain fields in the source response, use `SourceExcludes` as follows:
 
 ```go
-getSourceRequest = opensearchapi.GetSourceRequest{
-    Index:      "movies",
-    DocumentID: "1",
-    SourceExcludes: []string{"title"},
-}
+	sourceResp, err = client.Document.Source(
+		ctx,
+		opensearchapi.DocumentSourceReq{
+			Index:      "movies",
+			DocumentID: "1",
+			Params: opensearchapi.DocumentSourceParams{
+				SourceExcludes: []string{"title"},
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(sourceResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Source Response:\n%s\n", string(respAsJson))
 ```
 
 ## Cleanup
 
 ```go
-deleteIndex, err := client.Indices.Delete([]string{"movies"})
-if err != nil {
-    log.Printf("Error creating index: %s", err.Error())
+	delResp, err := client.Indices.Delete(
+		ctx,
+		opensearchapi.IndicesDeleteReq{
+			Indices: []string{"movies"},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted: %t\n", delResp.Acknowledged)
+
+	return nil
 }
-log.Printf("response: [%+v]", deleteIndex)
 ```

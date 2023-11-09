@@ -10,17 +10,43 @@ Assuming you have OpenSearch running locally on port 9200, you can create a clie
 package main
 
 import (
-    "github.com/opensearch-project/opensearch-go/v2"
-    "log"
+	"context"
+	"crypto/tls"
+	"fmt"
+	"net/http"
+	"os"
+	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 )
 
 func main() {
-    client, err := opensearch.NewDefaultClient()
-    if err != nil {
-        log.Printf("error occurred: [%s]", err.Error())
-    }
-    log.Printf("response: [%+v]", client)
+	if err := example(); err != nil {
+		fmt.Println(fmt.Sprintf("Error: %s", err))
+		os.Exit(1)
+	}
 }
+
+func example() error {
+	// Initialize the client with SSL/TLS enabled.
+	client, err := opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
+				},
+				Addresses: []string{"https://localhost:9200"},
+				Username:  "admin", // For testing only. Don't store credentials in code.
+				Password:  "admin",
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
 ```
 
 ## Index Template API Actions
@@ -30,223 +56,233 @@ func main() {
 You can create an index template to define default settings and mappings for indices of certain patterns. The following example creates an index template named `books` with default settings and mappings for indices of the `books-*` pattern:
 
 ```go
-body := strings.NewReader(`{
-    "index_patterns": ["books-*"],
-    "template": {
-      "settings": {
-        "index": {
-          "number_of_shards": 3,
-          "number_of_replicas": 0
-        }
-      },
-      "mappings": {
-        "properties": {
-          "title": { "type": "text" },
-          "author": { "type": "text" },
-          "published_on": { "type": "date" },
-          "pages": { "type": "integer" }
-        }
-      }
-    }
-}`)
-
-res, err := client.Indices.PutIndexTemplate("books", body)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	tempCreateResp, err := client.IndexTemplate.Create(
+		ctx,
+		opensearchapi.IndexTemplateCreateReq{
+			IndexTemplate: "books",
+			Body: strings.NewReader(`{
+    		"index_patterns": ["books-*"],
+    		"template": {
+    		  "settings": {
+    		    "index": {
+    		      "number_of_shards": 3,
+    		      "number_of_replicas": 0
+    		    }
+    		  },
+    		  "mappings": {
+    		    "properties": {
+    		      "title": { "type": "text" },
+    		      "author": { "type": "text" },
+    		      "published_on": { "type": "date" },
+    		      "pages": { "type": "integer" }
+    		    }
+    		  }
+    		},
+				"priority": 50
+		}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index Tempalte created: %t\n", tempCreateResp.Acknowledged)
 ```
 
 Now, when you create an index that matches the `books-*` pattern, OpenSearch will automatically apply the template's settings and mappings to the index. Let's create an index named `books-nonfiction` and verify that its settings and mappings match those of the template:
 
 ```go
-res, err = client.Indices.Create("books-nonfiction")
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	fmt.Printf("Index Tempalte created: %t\n", tempCreateResp.Acknowledged)
 
-// check mappings properties
-res, err = client.Indices.Get([]string{"books-nonfiction"})
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	createResp, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: "books-nonfiction"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Created: %t\n", createResp.Acknowledged)
+
+	getResp, err := client.Indices.Get(ctx, opensearchapi.IndicesGetReq{Indices: []string{"books-nonfiction"}})
+	if err != nil {
+		return err
+	}
+	respAsJson, err := json.MarshalIndent(getResp.Indices, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Get Document:\n%s\n", string(respAsJson))
 ```
 
 ### Multiple Index Templates
 
-If multiple index templates match the index's name, OpenSearch will apply the template with the highest priority. The following example creates two index templates named `books-*` and `books-fiction-*` with different settings:
+If multiple index templates match the index's name, OpenSearch will apply the template with the highest priority. The following example creates one more index templates named `books-fiction` with different settings:
 
 ```go
-res, err := client.Indices.PutIndexTemplate("books", strings.NewReader(`{
-    "index_patterns": ["books-*"],
-    "priority": 0,
-    "template": {
-      "settings": {
-        "index": {
-          "number_of_shards": 3,
-          "number_of_replicas": 0
-        }
-      }
-    }
-}`))
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
-
-// higher priority than the `books` template
-res, err = client.Indices.PutIndexTemplate("books-fiction", strings.NewReader(`{
-    "index_patterns": ["books-fiction-*"],
-    "priority": 1,
-    "template": {
-      "settings": {
-        "index": {
-          "number_of_shards": 1,
-          "number_of_replicas": 1
-        }
-      }
-    }
-}`))
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+    // higher priority than the `books` template
+	tempCreateResp, err = client.IndexTemplate.Create(
+		ctx,
+		opensearchapi.IndexTemplateCreateReq{
+			IndexTemplate: "books-fiction",
+			Body: strings.NewReader(`{
+    		"index_patterns": ["books-fiction-*"],
+    		"template": {
+    		  "settings": {
+    		    "index": {
+    		      "number_of_shards": 1,
+    		      "number_of_replicas": 0
+    		    }
+    		  }
+    		},
+				"priority": 60
+		}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index Tempalte created: %t\n", tempCreateResp.Acknowledged)
 ```
 
-When we create an index named `books-fiction-romance`, OpenSearch will apply the `books-fiction-*` template's settings to the index:
+When we create an index named `books-fiction-romance`, OpenSearch will apply the `books-fiction` template's settings to the index:
 
 ```go
-res, err = client.Indices.Create("books-fiction-romance")
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	createResp, err = client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: "books-fiction-romance"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
-res, err = client.Indices.Get([]string{"books-fiction-romance"})
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	getResp, err = client.Indices.Get(ctx, opensearchapi.IndicesGetReq{Indices: []string{"books-fiction-romance"}})
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(getResp.Indices, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Get Document:\n%s\n", string(respAsJson))
 ```
 
-### Composable Index Templates
-
-Composable index templates are a new type of index template that allow you to define multiple component templates and compose them into a final template. The following example creates a component template named `books_mappings` with default mappings for indices of the `books-*` and `books-fiction-*` patterns:
+Let us clean up the created templates and indices:
 
 ```go
-// delete index templates if they exist
-res, err := client.Indices.DeleteIndexTemplate("books-*")
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	delTempResp, err := client.IndexTemplate.Delete(ctx, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: "books*"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted templates: %t\n", delTempResp.Acknowledged)
 
-// delete indices if they exist
-res, err = client.Indices.Delete([]string{"books-*", "books-fiction-*"})
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
-
-// Composable Index Templates
-res, err = client.Cluster.PutComponentTemplate("books_mappings", strings.NewReader(`{
-    "template": {
-      "mappings": {
-        "properties": {
-          "title": { "type": "text" },
-          "author": { "type": "text" },
-          "published_on": { "type": "date" },
-          "pages": { "type": "integer" }
-        }
-      }
-    }
-}`))
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
-
-// use the `books_mappings` component template with priority 0
-res, err = client.Indices.PutIndexTemplate("books", strings.NewReader(`{
-    "index_patterns": ["books-*"],
-    "composed_of": ["books_mappings"],
-    "priority": 0,
-    "template": {
-      "settings": {
-        "index": {
-          "number_of_shards": 3,
-          "number_of_replicas": 0
-        }
-      }
-    }
-}`))
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
-
-// use the `books_mappings` component template with priority 1
-res, err = client.Indices.PutIndexTemplate("books", strings.NewReader(`{
-    "index_patterns": ["books-fiction-*"],
-    "composed_of": ["books_mappings"],
-    "priority": 1,
-    "template": {
-      "settings": {
-        "index": {
-          "number_of_shards": 3,
-          "number_of_replicas": 0
-        }
-      }
-    }
-}`))
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	delResp, err := client.Indices.Delete(
+		ctx,
+		opensearchapi.IndicesDeleteReq{
+			Indices: []string{"books-*"},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted indices: %t\n", delResp.Acknowledged)
 ```
 
-When we create an index named `books-fiction-horror`, OpenSearch will apply the `books-fiction-*` template's settings, and `books_mappings` template mappings to the index:
+### Component Templates
+
+Component templates are subsets of templates that can be used by index templates. This allows you do store duplicate index template parts in a Component template and reuse it across index templates. The following example creates a component template named `books` with default mappings and an index template with a `books-*` patterns referencing the component template:
 
 ```go
-res, err = client.Indices.Create("books-fiction-horror")
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+    // Component templates
+	compTempCreateResp, err := client.ComponentTemplate.Create(
+		ctx,
+		opensearchapi.ComponentTemplateCreateReq{
+			ComponentTemplate: "books",
+			Body: strings.NewReader(`{
+    		"template": {
+    		  "mappings": {
+    		    "properties": {
+    		      "title": { "type": "text" },
+    		      "author": { "type": "text" },
+    		      "published_on": { "type": "date" },
+    		      "pages": { "type": "integer" }
+    		    }
+    		  }
+    		}
+		}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Created: %t\n", compTempCreateResp.Acknowledged)
 
-res, err = client.Indices.Get([]string{"books-fiction-horror"})
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+    // Index template composed of books component template
+	tempCreateResp, err := client.IndexTemplate.Create(
+		ctx,
+		opensearchapi.IndexTemplateCreateReq{
+			IndexTemplate: "books",
+			Body: strings.NewReader(`{
+    		"index_patterns": ["books-*"],
+    		"template": {
+    		  "settings": {
+    		    "index": {
+    		      "number_of_shards": 3,
+    		      "number_of_replicas": 0
+    		    }
+    		  }
+    		},
+    		"composed_of": ["books"],
+				"priority": 50
+		}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index Tempalte created: %t\n", tempCreateResp.Acknowledged)
+```
+
+When we create an index named `books-fiction-horror`, OpenSearch will apply the `books` index template settings, and `books` component template mappings to the index:
+
+```go
+	createResp, err = client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: "books-fiction-horror"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index created: %t\n", createResp.Acknowledged)
+
+	getResp, err = client.Indices.Get(ctx, opensearchapi.IndicesGetReq{Indices: []string{"books-fiction-horror"}})
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(getResp.Indices, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Get Document:\n%s\n", string(respAsJson))
 ```
 
 ### Get an Index Template
 
-You can get an index template with the `get_index_template` API action:
+You can get an index template with the `IndexTemplate.Get()` action:
 
 ```go
-res, err = client.Indices.GetIndexTemplate(
-    client.Indices.GetIndexTemplate.WithName("books"),
-)
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	indexTempGetReq, err := client.IndexTemplate.Get(ctx, &opensearchapi.IndexTemplateGetReq{IndexTemplates: []string{"books"}})
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(indexTempGetReq, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Get Index Template:\n%s\n", string(respAsJson))
 ```
 
 ### Delete an Index Template
 
-You can delete an index template with the `delete_template` API action:
+You can delete an index template with the `IndexTemplate.Delete()` action:
 
 ```go
-res, err = client.Indices.DeleteIndexTemplate("books")
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
-}
-log.Printf("response: [%+v]", res)
+	delTempResp, err = client.IndexTemplate.Delete(ctx, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: "books*"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted templates: %t\n", delTempResp.Acknowledged)
 ```
 
 ## Cleanup
@@ -254,9 +290,24 @@ log.Printf("response: [%+v]", res)
 Let's delete all resources created in this guide:
 
 ```go
-res, err = client.Indices.DeleteIndexTemplate("books-fiction")
-if err != nil {
-    log.Printf("error occurred: [%s]", err.Error())
+	delResp, err = client.Indices.Delete(
+		ctx,
+		opensearchapi.IndicesDeleteReq{
+			Indices: []string{"books-*"},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted indices: %t\n", delResp.Acknowledged)
+
+	compTempDelResp, err := client.ComponentTemplate.Delete(ctx, opensearchapi.ComponentTemplateDeleteReq{ComponentTemplate: "books*"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted templates: %t\n", compTempDelResp.Acknowledged)
+
+	return nil
 }
-log.Printf("response: [%+v]", res)
 ```

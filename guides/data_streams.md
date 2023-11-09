@@ -1,179 +1,146 @@
-## Data Streams API
+# Data Streams API
 
-### Create Data Streams
+## Setup
 
-- Create new client
+First, create a client instance with the following code:
 
-```
-client, err := opensearch.NewDefaultClient()
-if err != nil {
-    panic(err)
-}
-```
+```go
+package main
 
-- Create template index
+import (
+	"context"
+	"fmt"
+	"os"
+	"strings"
 
-```
-iPut := opensearchapi.IndicesPutIndexTemplateRequest{
-	Name:       "demo-data-template",
-	Pretty:     true,
-	Human:      true,
-	ErrorTrace: true,
-	Body:       strings.NewReader(`{"index_patterns": ["demo-*"], "data_stream": {}, "priority": 100} }`),
-}
-iPutResponse, err := iPut.Do(context.Background(), client)
-```
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+)
 
-- Prepare request object
-
-```
-es := opensearchapi.IndicesCreateDataStreamRequest{
-	Name:       "demo-name",
-	Human:      true,
-	Pretty:     true,
-	ErrorTrace: true,
-	Header: map[string][]string{
-		"Content-Type": {"application/json"},
-	},
-}
-```
-
-- Execute request
-
-```
-res, err := es.Do(context.TODO(), client)
-if err != nil {
-	// do not panic in production code
-	panic(err)
-}
-```
-
-- Try to read response
-
-```
-defer res.Body.Close()
-body, err := ioutil.ReadAll(res.Body)
-if err != nil {
-	// do not panic in production code
-	panic(err)
-}
-
-fmt.Println("Response Status Code: ", res.StatusCode)
-fmt.Println("Response Headers: ", res.Header)
-fmt.Println("Response Body: ", string(body))
-```
-
-- Successfully created data stream
-
-```
-Response Status Code: 200
-Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
-Response Body:        {"acknowledged" : true}
-```
-
-### Delete Data Streams
-
-- Create new client as previous example
-- Prepare request object
-
-```
-opensearchapi.IndicesDeleteDataStreamRequest{
-	Name:       "demo-name",
-	Pretty:     true,
-	Human:      true,
-	ErrorTrace: true,
-	Header: map[string][]string{
-		"Content-Type": {"application/json"},
-	},
-}
-```
-
-- Execute request as previous example
-- Try to read response as previous example
-- Successfully deleted data stream
-
-```
-Response Status Code: 200
-Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
-Response Body:        {"acknowledged" : true}
-```
-
-### Get All Data Streams
-
-- Create new client as previous example
-- Prepare request object
-
-```
-r := opensearchapi.IndicesGetDataStreamRequest{
-	Pretty:     true,
-	Human:      true,
-	ErrorTrace: true,
-	Header: map[string][]string{
-		"Content-Type": {"application/json"},
-	},
-}
-```
-
-- Execute request as previous example
-- Try to read response as previous example
-- Successfully retrieved data streams
-
-```
-Response Status Code: 200
-Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
-Response Body: 	      {"data_streams":[{"name":"demo-name","timestamp_field":{"name":"@timestamp"},"indices":[{"index_name":".ds-demo-2023-03-21-23-33-46-000001","index_uuid":"NnzgqnP0ThS7LOMHJuZ-VQ"}],"generation":1,"status":"YELLOW","template":"demo-data-template"}]}
-```
-
-### Get Specific Data Stream
-
-- Create new client as previous example
-- Prepare request object
-
-```
-r := opensearchapi.IndicesGetDataStreamRequest{
-		Name: 	 	"demo-name",
-		Pretty:     true,
-		Human:      true,
-		ErrorTrace: true,
-		Header: map[string][]string{
-			"Content-Type": {"application/json"},
-		},
+func main() {
+	if err := example(); err != nil {
+		fmt.Println(fmt.Sprintf("Error: %s", err))
+		os.Exit(1)
 	}
-```
-
-- Execute request as previous example
-- Try to read response as previous example
-- Successfully retrieved data stream
-
-```
-Response Status Code: 200
-Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
-Response Body:        {"data_streams":[{"name":"demo-name","timestamp_field":{"name":"@timestamp"},"indices":[{"index_name":".ds-demo-2023-03-21-23-31-50-000001","index_uuid":"vhsowqdeRFCmr1GgQ7mIsQ"}],"generation":1,"status":"YELLOW","template":"demo-data-template"}]}
-```
-
-### Get Specific Data Stream Stats
-
-- Create new client as as previous example
-- Prepare request object
-
-```
-r := opensearchapi.IndicesGetDataStreamStatsRequest{
-	Name:       "demo-name",
-	Pretty:     true,
-	Human:      true,
-	ErrorTrace: true,
-	Header: map[string][]string{
-		"Content-Type": {"application/json"},
-	},
 }
+
+func example() error {
+	client, err := opensearchapi.NewDefaultClient()
+	if err != nil {
+		return err
+	}
+
+	ctx := context.Background()
 ```
 
-- Execute request as previous example
-- Try to read response as previous example
-- Successfully retrieved data stream stats
+Next, create an index template with a data_stream section:
 
+```go
+	tempCreateResp, err := client.IndexTemplate.Create(
+		ctx,
+		opensearchapi.IndexTemplateCreateReq{
+		    IndexTemplate: "books",
+			Body: strings.NewReader(`{
+    		    "index_patterns": ["books-nonfiction"],
+    		    "template": {
+    		      "settings": {
+    		        "index": {
+    		          "number_of_shards": 3,
+    		          "number_of_replicas": 0
+    		        }
+    		      }
+    		    },
+				"data_stream": {},
+				"priority": 50
+		}`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index Tempalte created: %t\n", tempCreateResp.Acknowledged)
 ```
-Response Status Code: 200
-Response Headers:     map[Content-Length:[28] Content-Type:[application/json; charset=UTF-8]]
-Response Body:        {"_shards":{"total":2,"successful":1,"failed":0},"data_stream_count":1,"backing_indices":1,"total_store_size":"208b","total_store_size_bytes":208,"data_streams":[{"data_stream":"demo-name","backing_indices":1,"store_size":"208b","store_size_bytes":208,"maximum_timestamp":0}]}
+
+## Create Data Streams
+
+The `DataStream.Create()` action allows you to create a new Data Stream:
+
+```go
+	createResp, err := client.DataStream.Create(ctx, opensearchapi.DataStreamCreateReq{DataStream: "books-nonfiction"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Created: %t\n", createResp.Acknowledged)
+```
+
+## Get Data Streams
+
+The `DataStream.Get()` action allows you to get information about Data Streams. Omitting the Request struct will get all DataStreams:
+
+```go
+	getResp, err := client.DataStream.Get(ctx, nil)
+	if err != nil {
+		return err
+	}
+	respAsJson, err := json.MarshalIndent(getResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Get DataStream:\n%s\n", string(respAsJson))
+```
+
+By specifying a Data Stream in the request you'll only see the requested Data Stream:
+
+```go
+	getResp, err = client.DataStream.Get(ctx, &opensearchapi.DataStreamGetReq{DataStreams: []string{"books-nonfiction"}})
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(getResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Get DataStream:\n%s\n", string(respAsJson))
+```
+
+## Get Data Stream Stats
+
+The `DataStream.Stats()` action allows you to get stats about Data Streams:
+
+```go
+	statsResp, err := client.DataStream.Stats(ctx, nil)
+	if err != nil {
+		return err
+	}
+	respAsJson, err = json.MarshalIndent(statsResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Stats DataStream:\n%s\n", string(respAsJson))
+```
+
+## Delete Data Streams
+
+The `DataStream.Delete()` action allows you to delete a Data Stream:
+
+```go
+	delResp, err := client.DataStream.Delete(ctx, opensearchapi.DataStreamDeleteReq{DataStream: "books-nonfiction"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("DataStream deleted: %t\n", delResp.Acknowledged)
+```
+
+## Cleanup
+
+To clean up the resources created in this guide, delete the index template:
+
+```go
+	delTempResp, err := client.IndexTemplate.Delete(ctx, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: "books"})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted templates: %t\n", delTempResp.Acknowledged)
+
+	return nil
+}
 ```
