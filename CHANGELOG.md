@@ -18,6 +18,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `Err()` function to Response for detailed errors ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
 - Adds golangci-lint as code analysis tool ([#313](https://github.com/opensearch-project/opensearch-go/pull/313))
 - Adds govulncheck to check for go vulnerablities ([#405](https://github.com/opensearch-project/opensearch-go/pull/405))
+- Adds opensearchapi with new client and function structure ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Adds integration tests for all opensearchapi functions ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 
 ### Changed
 
@@ -27,12 +29,19 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Updated Developer guide to include docker build instructions ([#385](https://github.com/opensearch-project/opensearch-go/pull/385))
 - Test against version 2.9.0,2.10.0, run tests in all branches, change intergration tests to wait for OpenSearch to start ([#392](https://github.com/opensearch-project/opensearch-go/pull/392))
 - Makefile: use docker golangci-lint, run integration test on `.` folder, change coverage generation ([#392](https://github.com/opensearch-project/opensearch-go/pull/392)) 
+- golangci-lint: update rules and fail when issues are found ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- go: update to golang version 1.20 ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- guids: updated to work for the new opensearchapi ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Test adjusted to new opensearchapi functions and structs ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 
 ### Deprecated
 
 - Deprecate legacy API /_template ([#390](https://github.com/opensearch-project/opensearch-go/pull/390))
 
 ### Removed
+
+- Removes all old opensearchapi functions ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Removes /internal/build code and folders ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 
 ### Fixed
 
