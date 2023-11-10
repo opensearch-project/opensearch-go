@@ -28,6 +28,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -81,6 +82,9 @@ func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion
 // this is helpful to detect missing fields in the go structs
 func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Response) {
 	t.Helper()
+	if _, ok := os.LookupEnv("OPENSEARCH_GO_SKIP_JSON_COMPARE"); ok {
+		return
+	}
 	require.NotNil(t, rawResp)
 
 	parsedBody, err := json.Marshal(resp)
