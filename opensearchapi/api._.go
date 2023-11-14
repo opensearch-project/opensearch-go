@@ -34,6 +34,7 @@ type API struct {
 	Ingest      *Ingest
 	Nodes       *Nodes
 	Remote      *Remote
+	Security    *Security
 	Snapshot    *Snapshot
 	Tasks       *Tasks
 	PointInTime *PointInTime
@@ -202,6 +203,16 @@ type Nodes struct {
 
 // Remote contains the Remote APIs
 type Remote struct {
+}
+
+// Security contains the Security APIs
+type Security struct {
+	Create    CreateSecurityRoleMapping
+	BulkPatch BulkPatchSecurityRoleMapping
+	Patch     PatchSecurityRoleMapping
+	Delete    DeleteSecurityRoleMapping
+	Get       GetSecurityRoleMapping
+	List      ListSecurityRoleMapping
 }
 
 // Snapshot contains the Snapshot APIs
@@ -385,6 +396,14 @@ func New(t Transport) *API {
 			Usage:                newNodesUsageFunc(t),
 		},
 		Remote: &Remote{},
+		Security: &Security{
+			Create:    newCreateSecurityRoleMappingFunc(t),
+			BulkPatch: newBulkPatchSecurityRoleMappingFunc(t),
+			Patch:     newPatchSecurityRoleMappingFunc(t),
+			Delete:    newDeleteSecurityRoleMappingFunc(t),
+			Get:       newGetSecurityRoleMappingFunc(t),
+			List:      newListSecurityRoleMappingFunc(t),
+		},
 		Snapshot: &Snapshot{
 			CleanupRepository: newSnapshotCleanupRepositoryFunc(t),
 			Clone:             newSnapshotCloneFunc(t),
