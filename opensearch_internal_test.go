@@ -24,21 +24,19 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearch
 
 import (
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 
 	"github.com/opensearch-project/opensearch-go/v2/opensearchtransport"
 )
@@ -53,7 +51,7 @@ var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
 
 	if req.URL.Path == "/" {
-		response.Body = ioutil.NopCloser(strings.NewReader(`{
+		response.Body = io.NopCloser(strings.NewReader(`{
 		  "version" : {
 			"number" : "1.0.0",
 			"distribution" : "opensearch"
@@ -75,11 +73,8 @@ func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestClientConfiguration(t *testing.T) {
-	t.Parallel()
-
 	t.Run("With empty", func(t *testing.T) {
 		c, err := NewDefaultClient()
-
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -104,22 +99,6 @@ func TestClientConfiguration(t *testing.T) {
 		}
 	})
 
-	t.Run("With URL from ELASTICSEARCH_URL", func(t *testing.T) {
-		os.Setenv(envElasticsearchURL, "http://elasticsearch.com")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
-
-		c, err := NewClient(Config{Transport: &mockTransp{}})
-		if err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-
-		if u != "http://elasticsearch.com" {
-			t.Errorf("Unexpected URL, want=http://elasticsearch.com, got=%s", u)
-		}
-	})
-
 	t.Run("With URL from OPENSEARCH_URL", func(t *testing.T) {
 		os.Setenv(envOpenSearchURL, "http://opensearch.com")
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
@@ -136,25 +115,9 @@ func TestClientConfiguration(t *testing.T) {
 		}
 	})
 
-	t.Run("With URL from OPENSEARCH_URL and ELASTICSEARCH_URL", func(t *testing.T) {
-		os.Setenv(envOpenSearchURL, "http://opensearch.com")
-		defer func() { os.Setenv(envOpenSearchURL, "") }()
-
-		os.Setenv(envElasticsearchURL, "http://elasticsearch.com")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
-
-		_, err := NewClient(Config{Transport: &mockTransp{}})
-		assert.Error(t, err, "Expected error")
-
-		match, _ := regexp.MatchString("both .* are set", err.Error())
-		if !match {
-			t.Errorf("Expected error when addresses from OPENSEARCH_URL and ELASTICSEARCH_URL are used together, got: %v", err)
-		}
-	})
-
 	t.Run("With URL from environment and cfg.Addresses", func(t *testing.T) {
-		os.Setenv(envElasticsearchURL, "http://example.com")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
+		os.Setenv(envOpenSearchURL, "http://example.com")
+		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: &mockTransp{}})
 		if err != nil {
@@ -178,8 +141,8 @@ func TestClientConfiguration(t *testing.T) {
 	})
 
 	t.Run("With invalid URL from environment", func(t *testing.T) {
-		os.Setenv(envElasticsearchURL, ":foobar")
-		defer func() { os.Setenv(envElasticsearchURL, "") }()
+		os.Setenv(envOpenSearchURL, ":foobar")
+		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		c, err := NewDefaultClient()
 		if err == nil {
@@ -194,7 +157,7 @@ func TestClientConfiguration(t *testing.T) {
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 						return &http.Response{
 							Header: http.Header{},
-							Body:   ioutil.NopCloser(strings.NewReader("")),
+							Body:   io.NopCloser(strings.NewReader("")),
 						}, nil
 					},
 				},
@@ -208,18 +171,20 @@ func TestClientConfiguration(t *testing.T) {
 func TestClientInterface(t *testing.T) {
 	t.Run("Transport", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: &mockTransp{}})
-
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		if called != false { // megacheck ignore
+		if called != false {
 			t.Errorf("Unexpected call to transport by client")
 		}
 
-		c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
+		res, err := c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
+		if err == nil && res != nil && res.Body != nil {
+			res.Body.Close()
+		}
 
-		if called != true { // megacheck ignore
+		if called != true {
 			t.Errorf("Expected client to call transport")
 		}
 	})
@@ -438,7 +403,7 @@ func TestGenuineCheckInfo(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := checkCompatibleInfo(tt.info); (err != nil) != tt.wantErr && err != tt.err {
+			if err := checkCompatibleInfo(tt.info); (err != nil) != tt.wantErr && !errors.Is(err, tt.err) {
 				t.Errorf("checkCompatibleInfo() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

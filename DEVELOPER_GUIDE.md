@@ -29,13 +29,13 @@ Fork [opensearch-project/opensearch-go](https://github.com/opensearch-project/op
 
 ### Install Prerequisites
 
-#### Go 1.15
+#### Go 1.20
 
-OpenSearch Go Client builds using [Go](https://golang.org/doc/install) 1.15 at a minimum.
+OpenSearch Go Client builds using [Go](https://go.dev/doc/install) 1.20 at a minimum.
 
 #### Docker
 
-[Docker](https://docs.docker.com/install/) is required for building some OpenSearch artifacts and executing integration tests.
+[Docker](https://docs.docker.com/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
 
 #### Windows
 

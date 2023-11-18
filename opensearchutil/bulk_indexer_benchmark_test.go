@@ -24,20 +24,21 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchutil_test
 
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
@@ -62,8 +63,8 @@ var mockResponseBody = `{
 
 type mockTransp struct{}
 
-func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
-	return &http.Response{Body: ioutil.NopCloser(strings.NewReader(mockResponseBody))}, nil // 1x alloc
+func (t *mockTransp) RoundTrip(_ *http.Request) (*http.Response, error) {
+	return &http.Response{Body: io.NopCloser(strings.NewReader(mockResponseBody))}, nil // 1x alloc
 }
 
 func BenchmarkBulkIndexer(b *testing.B) {
@@ -72,7 +73,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 	b.Run("Basic", func(b *testing.B) {
 		b.ResetTimer()
 
-		client, _ := opensearch.NewClient(opensearch.Config{Transport: &mockTransp{}})
+		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransp{}}})
 		bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:     client,
 			FlushBytes: 1024,

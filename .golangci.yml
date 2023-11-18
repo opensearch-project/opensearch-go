@@ -1,7 +1,6 @@
 run:
   timeout: 10m
   modules-download-mode: readonly
-  issues-exit-code: 0
 
 linters-settings:
   errcheck:
@@ -37,11 +36,21 @@ linters-settings:
     check-exported: true
   misspell:
     locale: US
-    ignore-words: expect
+    ignore-words:
+      - expect
+      - cancelled
   prealloc:
     simple: true
     range-loops: true
     for-loops: false
+  revive:
+    rules:
+      - name: exported
+        severity: error
+        disabled: false
+        arguments:
+          - "checkPrivateReceivers"
+          - "sayRepetitiveInsteadOfStutters"
 
 linters:
   disable-all: true
@@ -76,7 +85,6 @@ linters:
     - gofumpt
     - goheader
     - goimports
-    - gomnd
     - gomoddirectives
     - gomodguard
     - goprintffuncname
@@ -124,8 +132,11 @@ linters:
     - zerologlint
 
 issues:
+  include:
+    - EXC0012
+    - EXC0014
   exclude-rules:
-    - path: _test\.go
+    - path: (_test\.go|opensearchapi/internal)
       linters:
         - cyclop
         - dupl
@@ -133,7 +144,6 @@ issues:
         - gochecknoglobals
         - gochecknoinits
         - goconst
-        - gomnd
         - noctx
     - linters:
         - gosec
@@ -149,16 +159,17 @@ issues:
       path: _test\.go
     - linters:
         - goconst
-      text: "string `true` has"
       path: opensearchapi\/api_
     - linters:
         - errcheck
       text: "Error return value of `debugLogger.Logf` is not checked"
     - linters:
         - errcheck
-        - gomnd
         - gochecknoglobals
       path: opensearchtransport\/logger\.go
     - linters:
         - nestif
       path: opensearchtransport/opensearchtransport.go
+    - linters:
+        - dupl
+      path: (-params\.go|api_indices|api_dangling\.go|api_point_in_time\.go|rethrottle\.go|api_cat-.*\.go)

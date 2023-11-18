@@ -29,6 +29,7 @@ import (
 
 const (
 	openSearchService = "es"
+	//nolint:gosec // static empty Body
 	emptyStringSHA256 = `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
 )
 
@@ -56,6 +57,7 @@ func NewSignerWithService(cfg aws.Config, service string) (signer.Signer, error)
 	}, nil
 }
 
+// SignRequest adds headers to the request
 func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 	ctx := context.Background()
 	t := time.Now()

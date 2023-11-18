@@ -97,7 +97,8 @@ func (c *Client) Metrics() (Metrics, error) {
 	}
 
 	if pool, ok := c.pool.(connectionable); ok {
-		for _, c := range pool.connections() {
+		connections := pool.connections()
+		for idx, c := range connections {
 			c.Lock()
 
 			cm := ConnectionMetric{
@@ -107,7 +108,7 @@ func (c *Client) Metrics() (Metrics, error) {
 			}
 
 			if !c.DeadSince.IsZero() {
-				cm.DeadSince = &c.DeadSince
+				cm.DeadSince = &connections[idx].DeadSince
 			}
 
 			if c.ID != "" {

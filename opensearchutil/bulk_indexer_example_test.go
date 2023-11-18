@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchutil_test
 
@@ -36,6 +36,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
@@ -44,18 +45,20 @@ func ExampleNewBulkIndexer() {
 
 	// Create the OpenSearch client
 	//
-	client, err := opensearch.NewClient(opensearch.Config{
-		// Retry on 429 TooManyRequests statuses
-		//
-		RetryOnStatus: []int{502, 503, 504, 429},
+	client, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			// Retry on 429 TooManyRequests statuses
+			//
+			RetryOnStatus: []int{502, 503, 504, 429},
 
-		// A simple incremental backoff function
-		//
-		RetryBackoff: func(i int) time.Duration { return time.Duration(i) * 100 * time.Millisecond },
+			// A simple incremental backoff function
+			//
+			RetryBackoff: func(i int) time.Duration { return time.Duration(i) * 100 * time.Millisecond },
 
-		// Retry up to 5 attempts
-		//
-		MaxRetries: 5,
+			// Retry up to 5 attempts
+			//
+			MaxRetries: 5,
+		},
 	})
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
@@ -91,7 +94,7 @@ func ExampleNewBulkIndexer() {
 			OnSuccess: func(
 				ctx context.Context,
 				item opensearchutil.BulkIndexerItem,
-				res opensearchutil.BulkIndexerResponseItem,
+				res opensearchapi.BulkRespItem,
 			) {
 				fmt.Printf("[%d] %s test/%s", res.Status, res.Result, item.DocumentID)
 			},
@@ -100,7 +103,7 @@ func ExampleNewBulkIndexer() {
 			OnFailure: func(
 				ctx context.Context,
 				item opensearchutil.BulkIndexerItem,
-				res opensearchutil.BulkIndexerResponseItem, err error,
+				res opensearchapi.BulkRespItem, err error,
 			) {
 				if err != nil {
 					log.Printf("ERROR: %s", err)
@@ -125,9 +128,8 @@ func ExampleNewBulkIndexer() {
 	stats := indexer.Stats()
 	if stats.NumFailed > 0 {
 		log.Fatalf("Indexed [%d] documents with [%d] errors", stats.NumFlushed, stats.NumFailed)
-	} else {
-		log.Printf("Successfully indexed [%d] documents", stats.NumFlushed)
 	}
+	log.Printf("Successfully indexed [%d] documents", stats.NumFlushed)
 
 	// For optimal performance, consider using a third-party package for JSON decoding and HTTP transport.
 }

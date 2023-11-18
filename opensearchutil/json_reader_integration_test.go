@@ -25,42 +25,40 @@
 // under the License.
 
 //go:build integration
-// +build integration
 
 package opensearchutil_test
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v2"
+	"golang.org/x/exp/slices"
+
 	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
 )
 
 func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
-		var (
-			res *opensearchapi.Response
-			err error
-		)
+		ctx := context.Background()
 
-		client, err := opensearch.NewDefaultClient()
+		client, err := opensearchapi.NewDefaultClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		client.Indices.Delete([]string{"test"}, client.Indices.Delete.WithIgnoreUnavailable(true))
+		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{"test"}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
 
 		doc := struct {
 			Title string `json:"title"`
 		}{Title: "Foo Bar"}
 
-		res, err = client.Index("test", opensearchutil.NewJSONReader(&doc), client.Index.WithRefresh("true"))
+		_, err = client.Index(ctx, opensearchapi.IndexReq{Index: "test", Body: opensearchutil.NewJSONReader(&doc), Params: opensearchapi.IndexParams{Refresh: "true"}})
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
-		defer res.Body.Close()
 
 		query := map[string]interface{}{
 			"query": map[string]interface{}{
@@ -69,19 +67,16 @@ func TestJSONReaderIntegration(t *testing.T) {
 				},
 			},
 		}
-
-		res, err = client.Search(
-			client.Search.WithIndex("test"),
-			client.Search.WithBody(opensearchutil.NewJSONReader(&query)),
-			client.Search.WithPretty(),
-		)
+		req := &opensearchapi.SearchReq{
+			Indices: []string{"test"},
+			Body:    opensearchutil.NewJSONReader(&query),
+		}
+		res, err := client.Search(ctx, req)
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
-		defer res.Body.Close()
-
-		if !strings.Contains(res.String(), "Foo Bar") {
-			t.Errorf("Unexpected response: %s", res)
+		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, func(c opensearchapi.SearchHit) bool { return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar") }) {
+			t.Errorf("Unexpected response: %v", res)
 		}
 	})
 }

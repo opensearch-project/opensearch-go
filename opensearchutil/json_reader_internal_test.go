@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-// +build !integration
+//go:build !integration
 
 package opensearchutil
 
@@ -32,16 +32,15 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"strings"
 	"testing"
 )
 
 type errReader struct{}
 
-func (errReader) Read(p []byte) (int, error)         { return 1, errors.New("MOCK ERROR") }
-func (errReader) Write(p []byte) (int, error)        { return 0, errors.New("MOCK ERROR") }
-func (errReader) WriteTo(w io.Writer) (int64, error) { return 0, errors.New("MOCK ERROR") }
+func (errReader) Read(_ []byte) (int, error)         { return 1, errors.New("MOCK ERROR") }
+func (errReader) Write(_ []byte) (int, error)        { return 0, errors.New("MOCK ERROR") }
+func (errReader) WriteTo(_ io.Writer) (int64, error) { return 0, errors.New("MOCK ERROR") }
 
 type Foo struct {
 	Bar string
@@ -57,14 +56,14 @@ func (f Foo) EncodeJSON(w io.Writer) error {
 
 func TestJSONReader(t *testing.T) {
 	t.Run("Default", func(t *testing.T) {
-		out, _ := ioutil.ReadAll(NewJSONReader(map[string]string{"foo": "bar"}))
+		out, _ := io.ReadAll(NewJSONReader(map[string]string{"foo": "bar"}))
 		if string(out) != `{"foo":"bar"}`+"\n" {
 			t.Fatalf("Unexpected output: %s", out)
 		}
 	})
 
 	t.Run("Custom", func(t *testing.T) {
-		out, _ := ioutil.ReadAll(NewJSONReader(Foo{Bar: "baz"}))
+		out, _ := io.ReadAll(NewJSONReader(Foo{Bar: "baz"}))
 		if string(out) != `{"bar":"BAZ"}`+"\n" {
 			t.Fatalf("Unexpected output: %s", out)
 		}
