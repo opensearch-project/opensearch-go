@@ -27,12 +27,11 @@ jobs:
           for attempt in `seq 25`; do sleep 5; \
           if curl -s localhost:9200; \
           then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
-      - run: make test-integ race=true
-      - uses: codecov/codecov-action@v1
+      - run: make test-integ race=true coverage=true
+      - uses: codecov/codecov-action@v3
         with:
-          file: tmp/integration-client.cov
+          file: tmp/integ.cov
           flags: integration
-
 
   secured:
     name: Tests against secure cluster
