@@ -49,6 +49,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Corrects AWSv4 signature on DataStream Stats with no index name specified ([#338](https://github.com/opensearch-project/opensearch-go/pull/338))
 - Fixed GetSourceRequest `Source` field and deprecated the `Source` parameter ([#402](https://github.com/opensearch-project/opensearch-go/pull/402))
+- Corrects developer guide summary with golang version 1.20 ([#434](https://github.com/opensearch-project/opensearch-go/pull/434))
 
 ### Security
 

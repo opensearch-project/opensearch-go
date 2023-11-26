@@ -2,7 +2,7 @@
   - [Getting Started](#getting-started)
     - [Git Clone OpenSearch Go Client Repository](#git-clone-opensearch-go-client-repository)
     - [Install Prerequisites](#install-prerequisites)
-      - [Go 1.11](#go-111)
+      - [Go 1.20](#go-120)
       - [Docker](#docker)
       - [Windows](#windows)
     - [Unit Testing](#unit-testing)
