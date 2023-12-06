@@ -12,6 +12,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.2 to 1.8.4
 - Bumps `golang.org/x/net` from 0.7.0 to 0.17.0
 - Bumps `github.com/golangci/golangci-lint-action` from 1.53.3 to 1.54.2
+- Bumps `github.com/wI2L/jsondiff` from 0.4.0 to 0.5.0
 
 ### Added
 
