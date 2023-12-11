@@ -11,8 +11,8 @@ package opensearchapi_test
 import (
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v2/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

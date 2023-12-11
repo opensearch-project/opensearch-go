@@ -9,7 +9,7 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v3"
 )
 
 // ClusterPostVotingConfigExclusionsReq represents possible options for the /_cluster/voting_config_exclusions request

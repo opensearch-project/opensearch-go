@@ -36,8 +36,8 @@ import (
 
 	"golang.org/x/exp/slices"
 
-	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v2/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
 )
 
 func TestJSONReaderIntegration(t *testing.T) {

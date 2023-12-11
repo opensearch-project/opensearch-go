@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 )
 
 func main() {

@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsSignerV4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 
-	"github.com/opensearch-project/opensearch-go/v2/signer"
+	"github.com/opensearch-project/opensearch-go/v3/signer"
 )
 
 const (

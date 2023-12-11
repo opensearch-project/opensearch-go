@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v3"
 )
 
 // Config represents the client configuration
