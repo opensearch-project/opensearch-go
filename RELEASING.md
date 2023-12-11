@@ -37,5 +37,5 @@ The release process is standard across repositories in this org and is run by a 
 2. Add a comparison link to the new version at the bottom of the [CHANGELOG](CHANGELOG.md).
 3. Adjust the internal client version in the [internal/version/version.go](internal/version/version.go) file.
 4. Create a PR with the changes and merge it into main.
-5. Create a tag, e.g. `v2.1.0`, and push it to the GitHub repo. This makes the new version available on https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v2.
+5. Create a tag, e.g. `v3.0.1`, and push it to the GitHub repo. This makes the new version available on https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v3.
 6. Create a new `Unreleased` section in the [CHANGELOG](CHANGELOG.md) and merge it into main.

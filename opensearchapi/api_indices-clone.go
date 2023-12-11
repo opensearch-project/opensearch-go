@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v2"
+	"github.com/opensearch-project/opensearch-go/v3"
 )
 
 // IndicesCloneReq represents possible options for the index clone request

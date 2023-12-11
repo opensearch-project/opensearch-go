@@ -6,7 +6,7 @@
 
 package opensearchapi
 
-import "github.com/opensearch-project/opensearch-go/v2"
+import "github.com/opensearch-project/opensearch-go/v3"
 
 // Inspect represents the struct returned by Inspect() func, its main use is to return the opensearch.Response to the user
 type Inspect struct {
