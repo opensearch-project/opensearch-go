@@ -47,7 +47,7 @@ jobs:
           export SECURE_INTEGRATION=${{ matrix.secured }}
           make cluster.clean cluster.build cluster.start
           for attempt in `seq 25`; do sleep 5; \
-          if curl -s $(if $SECURE_INTEGRATION; then echo "-ku admin:admin https://"; fi)localhost:9200; \
+          if curl -s $(if $SECURE_INTEGRATION; then echo "-ku admin:myStrongPassword123! https://"; fi)localhost:9200; \
           then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
 
       - name: Integration test without security

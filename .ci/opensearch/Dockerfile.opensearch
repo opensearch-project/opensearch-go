@@ -9,5 +9,5 @@ RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then $opensearch_path/bin/opensearc
 
 HEALTHCHECK --start-period=20s --interval=30s \
   CMD curl -sf -retry 5 --max-time 5 --retry-delay 5 --retry-max-time 30 \
-  $(if $SECURE_INTEGRATION; then echo "-u admin:admin -k https://"; fi)"localhost:9200" \
+  $(if $SECURE_INTEGRATION; then echo "-u admin:myStrongPassword123! -k https://"; fi)"localhost:9200" \
   || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'

@@ -15,6 +15,7 @@ services:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
       - path.repo=/usr/share/opensearch/mnt
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
     ports:
       - "9200:9200"
     user: opensearch
