@@ -4,7 +4,7 @@ This guide covers OpenSearch Golang Client API actions for Index Lifecycle. You'
 
 ## Setup
 
-In this guide, we will need an OpenSearch cluster with more than one node. Let's use the sample [docker-compose.yml](https://opensearch.org/samples/docker-compose.yml) to start a cluster with two nodes. The cluster's API will be available at `localhost:9200` with basic authentication enabled with default username and password of `admin:< Admin password >`.
+In this guide, we will need an OpenSearch cluster with more than one node. Let's use the sample [docker-compose.yml](https://opensearch.org/samples/docker-compose.yml) to start a cluster with two nodes. The cluster's API will be available at `localhost:9200` with basic authentication enabled with default username and password of `admin:< admin password >`.
 
 To start the cluster, run the following command:
 
@@ -46,7 +46,7 @@ func example() error {
 				},
 				Addresses: []string{"https://localhost:9200"},
 				Username:  "admin", // For testing only. Don't store credentials in code.
-				Password:  "< Admin password >",
+				Password:  "< admin password >",
 			},
 		},
 	)
