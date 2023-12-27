@@ -7,7 +7,9 @@ ENV SECURE_INTEGRATION=$SECURE_INTEGRATION
 
 # Starting in 2.12.0 security demo requires an initial admin password, which is set as myStrongPassword123!
 ENV password="admin"
-RUN if [$OPENSEARCH_VERSION="latest"]; then password="myStrongPassword123!" fi
+RUN if [ "$OPENSEARCH_VERSION" = "latest" ]; then \
+        export password="myStrongPassword123!"; \
+    fi
 
 RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then $opensearch_path/bin/opensearch-plugin remove opensearch-security; fi
 
