@@ -44,6 +44,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Test adjusted to new opensearchapi functions and structs ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 - Change codecov to comment code coverage to each PR ([#410](https://github.com/opensearch-project/opensearch-go/pull/410))
 - Change module version from v2 to v3 ([#444](https://github.com/opensearch-project/opensearch-go/pull/444))
+- Clusters deployed using IPV6 do not support the DiscoverNodes method.([#458](https://github.com/opensearch-project/opensearch-go/issues/458))
 
 ### Deprecated
 
