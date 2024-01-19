@@ -189,15 +189,12 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	if len(addrs) > 1 {
 		host = addrs[0]
 	} else {
-		host, port, err = net.SplitHostPort(addrs[0])
+		host, _, err = net.SplitHostPort(addrs[0])
 		if err != nil {
 			host = strings.Split(addrs[0], ":")[0]
 		}
 	}
-	if len(port) == 0 {
-		port = ports[len(ports)-1]
-	}
-	
+	port = ports[len(ports)-1]
 	u := &url.URL{
 		Scheme: scheme,
 		Host:   net.JoinHostPort(host, port),
