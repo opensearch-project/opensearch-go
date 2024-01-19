@@ -63,6 +63,25 @@
         "publish_address": "127.0.0.1:10003",
         "max_content_length_in_bytes": 104857600
       }
+    },
+    "4uJ-108zTz27ISgkmAQgfw": {
+      "name": "es4",
+      "transport_address": "[fc99:3528::a04:812c]:9303",
+      "host": "fc99:3528:0:0:0:0:a04:812c",
+      "ip": "fc99:3528::a04:812c",
+      "version": "7.4.2",
+      "build_flavor": "oss",
+      "build_type": "tar",
+      "build_hash": "2f90bbf7b93631e52bafb59b3b049cb44ec25e96",
+      "roles": ["cluster_manager"],
+      "http": {
+        "bound_address": [
+          "[::1]:10004",
+          "[fc99:3528::a04:812c]:10004"
+        ],
+        "publish_address": "[fc99:3528::a04:812c]:10004",
+        "max_content_length_in_bytes": 104857600
+      }
     }
   }
 }

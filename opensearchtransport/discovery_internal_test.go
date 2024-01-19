@@ -82,7 +82,7 @@ func TestDiscovery(t *testing.T) {
 		}
 		fmt.Printf("NodesInfo: %+v\n", nodes)
 
-		if len(nodes) != 3 {
+		if len(nodes) != 4 {
 			t.Errorf("Unexpected number of nodes, want=3, got=%d", len(nodes))
 		}
 
@@ -98,6 +98,10 @@ func TestDiscovery(t *testing.T) {
 				}
 			case "es3":
 				if node.URL.String() != "http://127.0.0.1:10003" {
+					t.Errorf("Unexpected URL: %s", node.URL.String())
+				}
+			case "es4":
+				if node.URL.String() != "http://[fc99:3528::a04:812c]:10004" {
 					t.Errorf("Unexpected URL: %s", node.URL.String())
 				}
 			}
