@@ -33,7 +33,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 )
@@ -176,24 +175,9 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 }
 
 func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
-	var (
-		host string
-		port string
-
-		addrs = strings.Split(node.HTTP.PublishAddress, "/")
-		ports = strings.Split(node.HTTP.PublishAddress, ":")
-	)
-
-	if len(addrs) > 1 {
-		host = addrs[0]
-	} else {
-		host = strings.Split(addrs[0], ":")[0]
-	}
-
-	port = ports[len(ports)-1]
 	u := &url.URL{
 		Scheme: scheme,
-		Host:   host + ":" + port,
+		Host:   node.HTTP.PublishAddress,
 	}
 
 	return u
