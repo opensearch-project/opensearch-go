@@ -83,7 +83,7 @@ func TestDiscovery(t *testing.T) {
 		fmt.Printf("NodesInfo: %+v\n", nodes)
 
 		if len(nodes) != 4 {
-			t.Errorf("Unexpected number of nodes, want=3, got=%d", len(nodes))
+			t.Errorf("Unexpected number of nodes, want=4, got=%d", len(nodes))
 		}
 
 		for _, node := range nodes {
