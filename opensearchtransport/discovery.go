@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -179,6 +180,7 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	var (
 		host string
 		port string
+		err  error
 
 		addrs = strings.Split(node.HTTP.PublishAddress, "/")
 		ports = strings.Split(node.HTTP.PublishAddress, ":")
@@ -187,13 +189,15 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	if len(addrs) > 1 {
 		host = addrs[0]
 	} else {
-		host = strings.Split(addrs[0], ":")[0]
+		host, _, err = net.SplitHostPort(addrs[0])
+		if err != nil {
+			host = strings.Split(addrs[0], ":")[0]
+		}
 	}
-
 	port = ports[len(ports)-1]
 	u := &url.URL{
 		Scheme: scheme,
-		Host:   host + ":" + port,
+		Host:   net.JoinHostPort(host, port),
 	}
 
 	return u
