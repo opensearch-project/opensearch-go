@@ -4,6 +4,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 ### Dependencies
+- Bumps `github.com/aws/aws-sdk-go` from 1.48.13 to 1.50.14
 ### Added
 ### Changed
 ### Deprecated
