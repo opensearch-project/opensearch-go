@@ -6,6 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Dependencies
 - Bumps `github.com/aws/aws-sdk-go` from 1.48.13 to 1.50.21
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.25.11 to 1.27.0
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.0 to 1.25.2
 ### Added
 ### Changed
 ### Deprecated
