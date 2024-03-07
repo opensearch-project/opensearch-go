@@ -139,6 +139,9 @@ type ClusterStatsIndices struct {
 				} `json:"refresh_size_lag"`
 				MaxRefreshTimeLagInMillis int `json:"max_refresh_time_lag_in_millis"`
 				TotalTimeSpentInMillis    int `json:"total_time_spent_in_millis"`
+				Pressure                  struct {
+					TotalRejections int `json:"total_rejections"`
+				} `json:"pressure"`
 			} `json:"upload"`
 			Download struct {
 				TotalDownloadSize struct {

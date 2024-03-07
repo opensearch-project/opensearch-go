@@ -78,34 +78,38 @@ func (r NodesStatsResp) Inspect() Inspect {
 
 // NodesStats is a map item of NodesStatsResp representing all values of a node
 type NodesStats struct {
-	Timestamp                int                                `json:"timestamp"`
-	Name                     string                             `json:"name"`
-	TransportAddress         string                             `json:"transport_address"`
-	Host                     string                             `json:"host"`
-	IP                       string                             `json:"ip"`
-	Roles                    []string                           `json:"roles"`
-	Attributes               map[string]string                  `json:"attributes"`
-	Indices                  NodesStatsIndices                  `json:"indices"`
-	OS                       NodesStatsOS                       `json:"os"`
-	Process                  NodesStatsProcess                  `json:"process"`
-	JVM                      NodesStatsJVM                      `json:"jvm"`
-	ThreadPool               NodesStatsThreadPool               `json:"thread_pool"`
-	FS                       NodesStatsFS                       `json:"fs"`
-	Transport                NodesStatsTransport                `json:"transport"`
-	HTTP                     NodesStatsHTTP                     `json:"http"`
-	Breakers                 NodesStatsBreakers                 `json:"breakers"`
-	Scripts                  NodesStatsScript                   `json:"script"`
-	Discovery                NodesStatsDiscovery                `json:"discovery"`
-	Ingest                   NodesStatsIngest                   `json:"ingest"`
-	AdaptiveSelection        NodesStatsAdaptiveSelection        `json:"adaptive_selection"`
-	ScriptCache              NodesStatsScriptCache              `json:"script_cache"`
-	IndexingPressure         NodesStatsIndexingPressure         `json:"indexing_pressure"`
-	ShardIndexingPressure    NodesStatsShardIndexingPressure    `json:"shard_indexing_pressure"`
-	SearchBackpressure       NodesStatsSearchBackpressure       `json:"search_backpressure"`
-	ClusterManagerThrottling NodesStatsClusterManagerThrottling `json:"cluster_manager_throttling"`
-	WeightedRouting          NodesStatsWeightedRouting          `json:"weighted_routing"`
-	SearchPipeline           NodesStatsSearchPipeline           `json:"search_pipeline"`
-	TaskCancellation         NodesStatsTaskCancellation         `json:"task_cancellation"`
+	Timestamp                      int                                      `json:"timestamp"`
+	Name                           string                                   `json:"name"`
+	TransportAddress               string                                   `json:"transport_address"`
+	Host                           string                                   `json:"host"`
+	IP                             string                                   `json:"ip"`
+	Roles                          []string                                 `json:"roles"`
+	Attributes                     map[string]string                        `json:"attributes"`
+	Indices                        NodesStatsIndices                        `json:"indices"`
+	OS                             NodesStatsOS                             `json:"os"`
+	Process                        NodesStatsProcess                        `json:"process"`
+	JVM                            NodesStatsJVM                            `json:"jvm"`
+	ThreadPool                     NodesStatsThreadPool                     `json:"thread_pool"`
+	FS                             NodesStatsFS                             `json:"fs"`
+	Transport                      NodesStatsTransport                      `json:"transport"`
+	HTTP                           NodesStatsHTTP                           `json:"http"`
+	Breakers                       NodesStatsBreakers                       `json:"breakers"`
+	Scripts                        NodesStatsScript                         `json:"script"`
+	Discovery                      NodesStatsDiscovery                      `json:"discovery"`
+	Ingest                         NodesStatsIngest                         `json:"ingest"`
+	AdaptiveSelection              NodesStatsAdaptiveSelection              `json:"adaptive_selection"`
+	ScriptCache                    NodesStatsScriptCache                    `json:"script_cache"`
+	IndexingPressure               NodesStatsIndexingPressure               `json:"indexing_pressure"`
+	ShardIndexingPressure          NodesStatsShardIndexingPressure          `json:"shard_indexing_pressure"`
+	SearchBackpressure             NodesStatsSearchBackpressure             `json:"search_backpressure"`
+	ClusterManagerThrottling       NodesStatsClusterManagerThrottling       `json:"cluster_manager_throttling"`
+	WeightedRouting                NodesStatsWeightedRouting                `json:"weighted_routing"`
+	SearchPipeline                 NodesStatsSearchPipeline                 `json:"search_pipeline"`
+	TaskCancellation               NodesStatsTaskCancellation               `json:"task_cancellation"`
+	ResourceUsageStats             map[string]NodesStatsResourceUsageStats  `json:"resource_usage_stats"`
+	SegmentReplicationBackpressure NodesStatsSegmentReplicationBackpressure `json:"segment_replication_backpressure"`
+	Repositories                   []json.RawMessage                        `json:"repositories"`
+	AdmissionControl               NodesStatsAdmissionControl               `json:"admission_control"`
 }
 
 // NodesStatsIndices is a sub type of NodesStats representing Indices information of the node
@@ -141,23 +145,27 @@ type NodesStatsIndices struct {
 		Current             int `json:"current"`
 	} `json:"get"`
 	Search struct {
-		OpenContexts            int `json:"open_contexts"`
-		QueryTotal              int `json:"query_total"`
-		QueryTimeInMillis       int `json:"query_time_in_millis"`
-		QueryCurrent            int `json:"query_current"`
-		FetchTotal              int `json:"fetch_total"`
-		FetchTimeInMillis       int `json:"fetch_time_in_millis"`
-		FetchCurrent            int `json:"fetch_current"`
-		ScrollTotal             int `json:"scroll_total"`
-		ScrollTimeInMillis      int `json:"scroll_time_in_millis"`
-		ScrollCurrent           int `json:"scroll_current"`
-		PointInTimeTotal        int `json:"point_in_time_total"`
-		PointInTimeTimeInMillis int `json:"point_in_time_time_in_millis"`
-		PointInTimeCurrent      int `json:"point_in_time_current"`
-		SuggestTotal            int `json:"suggest_total"`
-		SuggestTimeInMillis     int `json:"suggest_time_in_millis"`
-		SuggestCurrent          int `json:"suggest_current"`
-		Request                 struct {
+		OpenContexts                int     `json:"open_contexts"`
+		QueryTotal                  int     `json:"query_total"`
+		QueryTimeInMillis           int     `json:"query_time_in_millis"`
+		QueryCurrent                int     `json:"query_current"`
+		ConcurrentQueryTotal        int     `json:"concurrent_query_total"`
+		ConcurrentQueryTimeInMillis int     `json:"concurrent_query_time_in_millis"`
+		ConcurrentQueryCurrent      int     `json:"concurrent_query_current"`
+		ConcurrentAVGSliceCount     float32 `json:"concurrent_avg_slice_count"`
+		FetchTotal                  int     `json:"fetch_total"`
+		FetchTimeInMillis           int     `json:"fetch_time_in_millis"`
+		FetchCurrent                int     `json:"fetch_current"`
+		ScrollTotal                 int     `json:"scroll_total"`
+		ScrollTimeInMillis          int     `json:"scroll_time_in_millis"`
+		ScrollCurrent               int     `json:"scroll_current"`
+		PointInTimeTotal            int     `json:"point_in_time_total"`
+		PointInTimeTimeInMillis     int     `json:"point_in_time_time_in_millis"`
+		PointInTimeCurrent          int     `json:"point_in_time_current"`
+		SuggestTotal                int     `json:"suggest_total"`
+		SuggestTimeInMillis         int     `json:"suggest_time_in_millis"`
+		SuggestCurrent              int     `json:"suggest_current"`
+		Request                     struct {
 			DfsPreQuery NodesStatsIndicesSearchRequest `json:"dfs_pre_query"`
 			Query       NodesStatsIndicesSearchRequest `json:"query"`
 			Fetch       NodesStatsIndicesSearchRequest `json:"fetch"`
@@ -238,6 +246,9 @@ type NodesStatsIndices struct {
 				} `json:"refresh_size_lag"`
 				MaxRefreshTimeLagInMillis int `json:"max_refresh_time_lag_in_millis"`
 				TotalTimeSpentInMillis    int `json:"total_time_spent_in_millis"`
+				Pressure                  struct {
+					TotalRejections int `json:"total_rejections"`
+				} `json:"pressure"`
 			} `json:"upload"`
 			Download struct {
 				TotalDownloadSize struct {
@@ -371,16 +382,7 @@ type NodesStatsJVM struct {
 		PeakCount int `json:"peak_count"`
 	} `json:"threads"`
 	Gc struct {
-		Collectors struct {
-			Young struct {
-				CollectionCount        int `json:"collection_count"`
-				CollectionTimeInMillis int `json:"collection_time_in_millis"`
-			} `json:"young"`
-			Old struct {
-				CollectionCount        int `json:"collection_count"`
-				CollectionTimeInMillis int `json:"collection_time_in_millis"`
-			} `json:"old"`
-		} `json:"collectors"`
+		Collectors map[string]NodesStatsJVMGCCollectors `json:"collectors"`
 	} `json:"gc"`
 	// Not parsing each field directly as one of them contains singe quotes which are not allowed as tag in golang json
 	// https://github.com/golang/go/issues/22518
@@ -392,71 +394,25 @@ type NodesStatsJVM struct {
 	} `json:"classes"`
 }
 
-// NodesStatsThreadPoolValues is a sub type of NodesStatsThreadPool representing all information a thread pool can have
-type NodesStatsThreadPoolValues struct {
-	Threads   int `json:"threads"`
-	Queue     int `json:"queue"`
-	Active    int `json:"active"`
-	Rejected  int `json:"rejected"`
-	Largest   int `json:"largest"`
-	Completed int `json:"completed"`
+// NodesStatsJVMGCCollectors is a sub type of NodesStatsJVM containing collector information
+type NodesStatsJVMGCCollectors struct {
+	CollectionCount        int `json:"collection_count"`
+	CollectionTimeInMillis int `json:"collection_time_in_millis"`
 }
 
-// NodesStatsThreadPoolValuesSearch is a sub type of NodesStatsThreadPool representing all information a search thread pool can have
-type NodesStatsThreadPoolValuesSearch struct {
-	Threads              int   `json:"threads"`
-	Queue                int   `json:"queue"`
-	Active               int   `json:"active"`
-	Rejected             int   `json:"rejected"`
-	Largest              int   `json:"largest"`
-	Completed            int   `json:"completed"`
-	TotalWaitTimeInNanos int64 `json:"total_wait_time_in_nanos"`
+// NodesStatsThreadPoolValues is a sub type of NodesStatsThreadPool representing all information a thread pool can have
+type NodesStatsThreadPoolValues struct {
+	Threads              int    `json:"threads"`
+	Queue                int    `json:"queue"`
+	Active               int    `json:"active"`
+	Rejected             int    `json:"rejected"`
+	Largest              int    `json:"largest"`
+	Completed            int    `json:"completed"`
+	TotalWaitTimeInNanos *int64 `json:"total_wait_time_in_nanos,omitempty"`
 }
 
 // NodesStatsThreadPool is a sub type of NodesStats representing thread pool information of the node
-type NodesStatsThreadPool struct {
-	AdBatchTaskThreadpool                  NodesStatsThreadPoolValues       `json:"ad-batch-task-threadpool"`
-	AdThreadpool                           NodesStatsThreadPoolValues       `json:"ad-threadpool"`
-	Analyze                                NodesStatsThreadPoolValues       `json:"analyze"`
-	FetchShardStarted                      NodesStatsThreadPoolValues       `json:"fetch_shard_started"`
-	FetchShardStore                        NodesStatsThreadPoolValues       `json:"fetch_shard_store"`
-	Flush                                  NodesStatsThreadPoolValues       `json:"flush"`
-	ForceMerge                             NodesStatsThreadPoolValues       `json:"force_merge"`
-	Generic                                NodesStatsThreadPoolValues       `json:"generic"`
-	Get                                    NodesStatsThreadPoolValues       `json:"get"`
-	Listener                               NodesStatsThreadPoolValues       `json:"listener"`
-	Management                             NodesStatsThreadPoolValues       `json:"management"`
-	OpenDistroJobScheduler                 NodesStatsThreadPoolValues       `json:"open_distro_job_scheduler"`
-	OpensearchAsynchronousSearchGeneric    NodesStatsThreadPoolValues       `json:"opensearch_asynchronous_search_generic"`
-	OpensearchMLTask                       NodesStatsThreadPoolValues       `json:"OPENSEARCH_ML_TASK_THREAD_POOL"`
-	OpensearchMlDeploy                     NodesStatsThreadPoolValues       `json:"opensearch_ml_deploy"`
-	OpensearchMlExecute                    NodesStatsThreadPoolValues       `json:"opensearch_ml_execute"`
-	OpensearchMlGeneral                    NodesStatsThreadPoolValues       `json:"opensearch_ml_general"`
-	OpensearchMlLoad                       NodesStatsThreadPoolValues       `json:"opensearch_ml_load"`
-	OpensearchMlPredict                    NodesStatsThreadPoolValues       `json:"opensearch_ml_predict"`
-	OpensearchMlRegister                   NodesStatsThreadPoolValues       `json:"opensearch_ml_register"`
-	OpensearchMlTrain                      NodesStatsThreadPoolValues       `json:"opensearch_ml_train"`
-	OpensearchMlUpload                     NodesStatsThreadPoolValues       `json:"opensearch_ml_upload"`
-	Refresh                                NodesStatsThreadPoolValues       `json:"refresh"`
-	RemotePurge                            NodesStatsThreadPoolValues       `json:"remote_purge"`
-	RemoteRefresh                          NodesStatsThreadPoolValues       `json:"remote_refresh"`
-	ReplicationFollower                    NodesStatsThreadPoolValues       `json:"replication_follower"`
-	ReplicationLeader                      NodesStatsThreadPoolValues       `json:"replication_leader"`
-	Search                                 NodesStatsThreadPoolValuesSearch `json:"search"`
-	SearchThrottled                        NodesStatsThreadPoolValuesSearch `json:"search_throttled"`
-	Snapshot                               NodesStatsThreadPoolValues       `json:"snapshot"`
-	SQLWorker                              NodesStatsThreadPoolValues       `json:"sql-worker"`
-	SystemRead                             NodesStatsThreadPoolValues       `json:"system_read"`
-	SystemWrite                            NodesStatsThreadPoolValues       `json:"system_write"`
-	Training                               NodesStatsThreadPoolValues       `json:"training"`
-	TranslogSync                           NodesStatsThreadPoolValues       `json:"translog_sync"`
-	TranslogTransfer                       NodesStatsThreadPoolValues       `json:"translog_transfer"`
-	Warmer                                 NodesStatsThreadPoolValues       `json:"warmer"`
-	Write                                  NodesStatsThreadPoolValues       `json:"write"`
-	PluginGeospatialIP2GeoDatasourceUpdate NodesStatsThreadPoolValues       `json:"_plugin_geospatial_ip2geo_datasource_update"`
-	RemoteRefreshRetry                     NodesStatsThreadPoolValues       `json:"remote_refresh_retry"`
-	RemoteRecovery                         NodesStatsThreadPoolValues       `json:"remote_recovery"`
-}
+type NodesStatsThreadPool map[string]NodesStatsThreadPoolValues
 
 // NodesStatsFS is a sub type of NodesStats representing filesystem information of the node
 type NodesStatsFS struct {
@@ -549,6 +505,13 @@ type NodesStatsDiscovery struct {
 		IncompatibleDiffs int `json:"incompatible_diffs"`
 		CompatibleDiffs   int `json:"compatible_diffs"`
 	} `json:"published_cluster_states"`
+	ClusterStateStats struct {
+		Overall struct {
+			UpdateCount       int `json:"update_count"`
+			TotalTimeInMillis int `json:"total_time_in_millis"`
+			FailedCount       int `json:"failed_count"`
+		} `json:"overall"`
+	} `json:"cluster_state_stats"`
 }
 
 // NodesStatsIngestDetails is a sub map type of NodsStatsIngest containing all information of ingest pipelines
@@ -720,4 +683,25 @@ type NodesStatsIndicesSearchRequest struct {
 	TimeInMillis int `json:"time_in_millis"`
 	Current      int `json:"current"`
 	Total        int `json:"total"`
+}
+
+// NodesStatsResourceUsageStats is a sub type of NodesStats containing nodes resource information
+type NodesStatsResourceUsageStats struct {
+	Timestamp                int64  `json:"timestamp"`
+	CPUUtilizationPercent    string `json:"cpu_utilization_percent"`
+	MemoryUtilizationPercent string `json:"memory_utilization_percent"`
+}
+
+// NodesStatsSegmentReplicationBackpressure is a sub type of NodesStats containing information about segment replication backpressure
+type NodesStatsSegmentReplicationBackpressure struct {
+	TotalRejectedRequests int `json:"total_rejected_requests"`
+}
+
+// NodesStatsAdmissionControl is a sub of NodesStats
+type NodesStatsAdmissionControl struct {
+	GlobalCPUUsage struct {
+		Transport struct {
+			RejectionCount json.RawMessage `json:"rejection_count"`
+		} `json:"transport"`
+	} `json:"global_cpu_usage"`
 }
