@@ -108,22 +108,26 @@ type IndicesStatsGet struct {
 
 // IndicesStatsSearch is a sub type of IndicesStatsInfo containing stats about index search
 type IndicesStatsSearch struct {
-	OpenContexts            int `json:"open_contexts"`
-	QueryTotal              int `json:"query_total"`
-	QueryTimeInMillis       int `json:"query_time_in_millis"`
-	QueryCurrent            int `json:"query_current"`
-	FetchTotal              int `json:"fetch_total"`
-	FetchTimeInMillis       int `json:"fetch_time_in_millis"`
-	FetchCurrent            int `json:"fetch_current"`
-	ScrollTotal             int `json:"scroll_total"`
-	ScrollTimeInMillis      int `json:"scroll_time_in_millis"`
-	ScrollCurrent           int `json:"scroll_current"`
-	PointInTimeTotal        int `json:"point_in_time_total"`
-	PointInTimeTimeInMillis int `json:"point_in_time_time_in_millis"`
-	PointInTimeCurrent      int `json:"point_in_time_current"`
-	SuggestTotal            int `json:"suggest_total"`
-	SuggestTimeInMillis     int `json:"suggest_time_in_millis"`
-	SuggestCurrent          int `json:"suggest_current"`
+	OpenContexts                int     `json:"open_contexts"`
+	QueryTotal                  int     `json:"query_total"`
+	QueryTimeInMillis           int     `json:"query_time_in_millis"`
+	QueryCurrent                int     `json:"query_current"`
+	ConcurrentQueryTotal        int     `json:"concurrent_query_total"`
+	ConcurrentQueryTimeInMillis int     `json:"concurrent_query_time_in_millis"`
+	ConcurrentQueryCurrent      int     `json:"concurrent_query_current"`
+	ConcurrentAVGSliceCount     float32 `json:"concurrent_avg_slice_count"`
+	FetchTotal                  int     `json:"fetch_total"`
+	FetchTimeInMillis           int     `json:"fetch_time_in_millis"`
+	FetchCurrent                int     `json:"fetch_current"`
+	ScrollTotal                 int     `json:"scroll_total"`
+	ScrollTimeInMillis          int     `json:"scroll_time_in_millis"`
+	ScrollCurrent               int     `json:"scroll_current"`
+	PointInTimeTotal            int     `json:"point_in_time_total"`
+	PointInTimeTimeInMillis     int     `json:"point_in_time_time_in_millis"`
+	PointInTimeCurrent          int     `json:"point_in_time_current"`
+	SuggestTotal                int     `json:"suggest_total"`
+	SuggestTimeInMillis         int     `json:"suggest_time_in_millis"`
+	SuggestCurrent              int     `json:"suggest_current"`
 }
 
 // IndicesStatsMerges is a sub type of IndicesStatsInfo containing stats about index merges
@@ -213,6 +217,9 @@ type IndicesStatsSegments struct {
 			} `json:"refresh_size_lag"`
 			MaxRefreshTimeLagInMillis int `json:"max_refresh_time_lag_in_millis"`
 			TotalTimeSpentInMillis    int `json:"total_time_spent_in_millis"`
+			Pressure                  struct {
+				TotalRejections int `json:"total_rejections"`
+			} `json:"pressure"`
 		} `json:"upload"`
 		Download struct {
 			TotalDownloadSize struct {

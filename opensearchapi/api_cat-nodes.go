@@ -118,6 +118,10 @@ type CatNodesItemResp struct {
 	SearchQueryCurrent              int    `json:"search.query_current,string"`
 	SearchQueryTime                 string `json:"search.query_time"`
 	SearchQueryTotal                int    `json:"search.query_total,string"`
+	SearchConcurrentQueryCurrent    int    `json:"search.concurrent_query_current,string"`
+	SearchConcurrentQueryTime       string `json:"search.concurrent_query_time"`
+	SearchConcurrentQueryTotal      int    `json:"search.concurrent_query_total,string"`
+	SearchConcurrentAvgSliceCount   string `json:"search.concurrent_avg_slice_count"`
 	SearchScrollCurrent             int    `json:"search.scroll_current,string"`
 	SearchScrollTime                string `json:"search.scroll_time"`
 	SearchScrollTotal               int    `json:"search.scroll_total,string"`
