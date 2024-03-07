@@ -28,6 +28,8 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,11 +39,22 @@ import (
 )
 
 func getSecuredClient() (*opensearchapi.Client, error) {
+	version := os.Getenv("OPENSEARCH_VERSION")
+	parts := strings.Split(version, ".")
+	first, err := strconv.Atoi(parts[0])
+	second, err := strconv.Atoi(parts[1])
+	var password string
+	if first > 2 || (first == 2 && second >= 12) {
+		password = "myStrongPassword123!"
+	} else {
+		password = "admin"
+	}
+
 	return opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
 				Username:  "admin",
-				Password:  "admin",
+				Password:  password,
 				Addresses: []string{"https://localhost:9200"},
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
