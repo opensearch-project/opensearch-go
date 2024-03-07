@@ -28,10 +28,10 @@ import (
 	"crypto/tls"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
-	"os"
 
 	"github.com/stretchr/testify/assert"
 
@@ -42,8 +42,8 @@ import (
 func getSecuredClient() (*opensearchapi.Client, error) {
 	version := os.Getenv("OPENSEARCH_VERSION")
 	parts := strings.Split(version, ".")
-	first, err := strconv.Atoi(parts[0])
-	second, err := strconv.Atoi(parts[1])
+	first, _ := strconv.Atoi(parts[0])
+	second, _ := strconv.Atoi(parts[1])
 	var password string
 	if first > 2 || (first == 2 && second >= 12) {
 		password = "myStrongPassword123!"
