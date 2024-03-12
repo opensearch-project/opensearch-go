@@ -26,6 +26,7 @@ package opensearch_test
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"net/http"
 	"testing"
@@ -37,29 +38,29 @@ import (
 )
 
 func getSecuredClient() (*opensearchapi.Client, error) {
-	return opensearchapi.NewClient(
-		opensearchapi.Config{
-			Client: opensearch.Config{
-				Username:  "admin",
-				Password:  "admin",
-				Addresses: []string{"https://localhost:9200"},
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	errs := make([]error, 0)
+	for _, password := range []string{"admin", "myStrongPassword123!"} {
+		client, _ := opensearchapi.NewClient(
+			opensearchapi.Config{
+				Client: opensearch.Config{
+					Username:  "admin",
+					Password:  password,
+					Addresses: []string{"https://localhost:9200"},
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+					},
 				},
 			},
-		},
-	)
-}
+		)
+		_, err := client.Info(nil, nil)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		return client, nil
+	}
+	return nil, errors.Join(errs...)
 
-type clusterVersion struct {
-	Number       string `json:"number"`
-	BuildFlavor  string `json:"build_flavor"`
-	Distribution string `json:"distribution"`
-}
-
-type Info struct {
-	Version clusterVersion `json:"version"`
-	Tagline string         `json:"tagline"`
 }
 
 func TestSecuredClientAPI(t *testing.T) {
