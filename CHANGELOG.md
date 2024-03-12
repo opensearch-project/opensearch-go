@@ -4,7 +4,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 ### Dependencies
-- Bumps `github.com/aws/aws-sdk-go` from 1.48.13 to 1.50.21
+- Bumps `github.com/aws/aws-sdk-go` from 1.48.13 to 1.50.36
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.25.11 to 1.27.7
 - Bumps `github.com/stretchr/testify` from 1.8.4 to 1.9.0
 ### Added
