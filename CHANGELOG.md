@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/aws/aws-sdk-go` from 1.48.13 to 1.50.21
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.25.11 to 1.27.0
 - Bumps `github.com/stretchr/testify` from 1.8.4 to 1.9.0
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.0 to 1.25.3
 ### Added
 - Added new struct fields introduced by opensearch 2.12 ([#482](https://github.com/opensearch-project/opensearch-go/pull/482))
 - Adds initial admin password environment variable and CI changes to support 2.12.0 release ([#449](https://github.com/opensearch-project/opensearch-go/pull/449))
