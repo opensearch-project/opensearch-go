@@ -51,8 +51,8 @@ type CatIndexResp struct {
 	Status             string `json:"status"`
 	Index              string `json:"index"`
 	UUID               string `json:"uuid"`
-	Primary            int    `json:"pri,string"`
-	Replica            int    `json:"rep,string"`
+	Primary            *int   `json:"pri,string"`
+	Replica            *int   `json:"rep,string"`
 	DocsCount          *int   `json:"docs.count,string"`
 	DocDeleted         *int   `json:"docs.deleted,string"`
 	CreationDate       int    `json:"creation.date,string"`
