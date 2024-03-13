@@ -15,12 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestScrollClient(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
@@ -92,7 +93,7 @@ func TestScrollClient(t *testing.T) {
 						require.Nil(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
-						osapitest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

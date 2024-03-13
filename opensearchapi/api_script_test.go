@@ -15,12 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestScriptClient(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
@@ -154,7 +155,7 @@ func TestScriptClient(t *testing.T) {
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
 			if strings.Contains(value.Name, "Language") {
-				osapitest.SkipIfBelowVersion(t, client, 2, 3, value.Name)
+				ostest.SkipIfBelowVersion(t, client, 2, 3, value.Name)
 			}
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
@@ -184,32 +185,32 @@ func TestScriptClient(t *testing.T) {
 			)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.Script.Get(nil, opensearchapi.ScriptGetReq{ScriptID: scriptID})
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Context", func(t *testing.T) {
 			resp, err := client.Script.Context(nil, nil)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Language", func(t *testing.T) {
-			osapitest.SkipIfBelowVersion(t, client, 2, 3, "Language")
+			ostest.SkipIfBelowVersion(t, client, 2, 3, "Language")
 			resp, err := client.Script.Language(nil, nil)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("PainlessExecute", func(t *testing.T) {
 			resp, err := client.Script.PainlessExecute(
@@ -218,7 +219,7 @@ func TestScriptClient(t *testing.T) {
 			)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 	})
 }

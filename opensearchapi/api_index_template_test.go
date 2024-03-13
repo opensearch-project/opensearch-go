@@ -15,12 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestIndexTemplateClient(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
@@ -83,10 +84,10 @@ func TestIndexTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = client.IndexTemplate.Exists(nil, opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
+						resp.Response, err = client.IndexTemplate.Exists(nil, opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
 						return resp, err
 					},
 				},
@@ -94,10 +95,10 @@ func TestIndexTemplateClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = failingClient.IndexTemplate.Exists(nil, opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
+						resp.Response, err = failingClient.IndexTemplate.Exists(nil, opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
 						return resp, err
 					},
 				},
@@ -179,7 +180,7 @@ func TestIndexTemplateClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Exists" {
-							osapitest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})

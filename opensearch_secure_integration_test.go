@@ -19,54 +19,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build integration && secure
+//go:build integration
 
 package opensearch_test
 
 import (
 	"context"
-	"crypto/tls"
-	"errors"
 	"log"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 )
-
-func getSecuredClient() (*opensearchapi.Client, error) {
-	errs := make([]error, 0)
-	for _, password := range []string{"admin", "myStrongPassword123!"} {
-		client, _ := opensearchapi.NewClient(
-			opensearchapi.Config{
-				Client: opensearch.Config{
-					Username:  "admin",
-					Password:  password,
-					Addresses: []string{"https://localhost:9200"},
-					Transport: &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-					},
-				},
-			},
-		)
-		_, err := client.Info(nil, nil)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		return client, nil
-	}
-	return nil, errors.Join(errs...)
-
-}
 
 func TestSecuredClientAPI(t *testing.T) {
 	t.Run("Check Info", func(t *testing.T) {
 		ctx := context.Background()
-		client, err := getSecuredClient()
+		client, err := ostest.NewClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}

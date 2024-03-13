@@ -38,6 +38,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v3"
+	osapitest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
@@ -164,6 +165,16 @@ func TestBulkIndexerIntegration(t *testing.T) {
 				},
 			},
 		)
+
+		config, err := osapitest.ClientConfig()
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		if config != nil {
+			config.Client.CompressRequestBody = c.compressRequestBodyEnabled
+			config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			client, _ = opensearchapi.NewClient(*config)
+		}
 
 		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
 		client.Indices.Create(

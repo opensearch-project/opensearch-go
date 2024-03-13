@@ -36,6 +36,7 @@ import (
 
 	"golang.org/x/exp/slices"
 
+	osapitest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
 )
@@ -44,7 +45,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
 		ctx := context.Background()
 
-		client, err := opensearchapi.NewDefaultClient()
+		client, err := osapitest.NewClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
