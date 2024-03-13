@@ -10,7 +10,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Added new struct fields introduced by opensearch 2.12 ([#482](https://github.com/opensearch-project/opensearch-go/pull/482))
 - Adds initial admin password environment variable and CI changes to support 2.12.0 release ([#449](https://github.com/opensearch-project/opensearch-go/pull/449))
+- Adds merge_id field for indices segement request ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 ### Changed
+- Updated workflow action versions ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Changed integration tests to work with secure and unsecure opensearch ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Moved functions from opensearch/internal/test to internal/test for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Changed custom_foldername field to pointer as it can be null ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 ### Deprecated
 ### Removed
 ### Fixed
