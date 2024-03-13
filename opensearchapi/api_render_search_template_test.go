@@ -25,6 +25,14 @@ func TestRenderSearchTemplate(t *testing.T) {
 	client, err := ostest.NewClient()
 	require.Nil(t, err)
 
+	if ostest.IsSecure() {
+		major, patch, _, err := ostest.GetVersion(client)
+		assert.Nil(t, err)
+		if major == 2 && (patch == 10 || patch == 11) {
+			t.Skipf("Skiping %s due to: https://github.com/opensearch-project/security/issues/3672", t.Name())
+		}
+	}
+
 	testScript := "test-search-template"
 	t.Cleanup(func() {
 		client.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: testScript})
