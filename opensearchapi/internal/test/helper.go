@@ -7,19 +7,13 @@
 package osapitest
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/wI2L/jsondiff"
 
 	"github.com/opensearch-project/opensearch-go/v3"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
@@ -51,51 +45,12 @@ func VerifyInspect(t *testing.T, inspect opensearchapi.Inspect) {
 	assert.NotEmpty(t, inspect.Response.Body)
 }
 
-// SkipIfBelowVersion skips a test if the cluster version is below a given version
-func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion, patchVersion int64, testName string) {
-	t.Helper()
-	resp, err := client.Info(context.Background(), nil)
-	assert.Nil(t, err)
-	major, patch, _, err := opensearch.ParseVersion(resp.Version.Number)
-	assert.Nil(t, err)
-	if major <= majorVersion && patch <= patchVersion {
-		t.Skipf("Skiping %s as version %d.%d.x does not support this endpoint", testName, major, patch)
-	}
+// DummyInspect is a struct to match the Response interface that is used for testing
+type DummyInspect struct {
+	Response *opensearch.Response
 }
 
-// CompareRawJSONwithParsedJSON is a helper function to determin the difference between the parsed JSON and the raw JSON
-// this is helpful to detect missing fields in the go structs
-func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Response) {
-	t.Helper()
-	if _, ok := os.LookupEnv("OPENSEARCH_GO_SKIP_JSON_COMPARE"); ok {
-		return
-	}
-	require.NotNil(t, rawResp)
-
-	parsedBody, err := json.Marshal(resp)
-	require.Nil(t, err)
-
-	body, err := io.ReadAll(rawResp.Body)
-	require.Nil(t, err)
-
-	// If the parsedBody and body does not match, then we need to check if we are adding or removing fields
-	if string(parsedBody) != string(body) {
-		patch, err := jsondiff.CompareJSON(body, parsedBody)
-		assert.Nil(t, err)
-		operations := make([]jsondiff.Operation, 0)
-		for _, operation := range patch {
-			// different opensearch version added more field, only check if we miss some fields
-			if operation.Type != "add" {
-				operations = append(operations, operation)
-			}
-		}
-		assert.Empty(t, operations)
-		if len(operations) == 0 {
-			return
-		}
-		for _, op := range operations {
-			fmt.Printf("%s\n", op)
-		}
-		fmt.Printf("%s\n", body)
-	}
+// Inspect is a fuction of DummyInspect use to match the Response interface
+func (r DummyInspect) Inspect() opensearchapi.Inspect {
+	return opensearchapi.Inspect{Response: r.Response}
 }
