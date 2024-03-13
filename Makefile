@@ -28,7 +28,7 @@ endif
 ifdef race
 	$(eval testintegargs += "-race")
 endif
-	$(eval testintegargs += "-cover" "-tags='$(testintegtags)'" "-timeout=1h" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
+	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=1h" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
 	@mkdir -p $(PWD)/tmp/integration
 	@echo "go test -v" $(testintegargs); \
 	go test -v $(testintegargs);
@@ -37,7 +37,7 @@ ifdef coverage
 endif
 
 test-integ-secure: ##Run secure integration tests
-	go test -tags=secure,integration ./opensearch_secure_integration_test.go
+	@SECURE_INTEGRATION=true make test-integ
 
 test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
