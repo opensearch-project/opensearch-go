@@ -136,7 +136,7 @@ issues:
     - EXC0012
     - EXC0014
   exclude-rules:
-    - path: (_test\.go|opensearchapi/internal)
+    - path: (_test\.go|internal/)
       linters:
         - cyclop
         - dupl
@@ -152,7 +152,7 @@ issues:
     - linters:
         - gosec
       text: "TLS InsecureSkipVerify set true"
-      path: _test\.go
+      path: (_test\.go|internal/)
     - linters:
         - gosec
       text: "G108: Profiling endpoint is automatically exposed on /debug/pprof"
