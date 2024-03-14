@@ -82,6 +82,7 @@ type IndicesSegmentsDetails struct {
 	Search        bool   `json:"search"`
 	Version       string `json:"version"`
 	Compound      bool   `json:"compound"`
+	MergeID       string `json:"merge_id"`
 	Sort          []struct {
 		Field   string `json:"field"`
 		Mode    string `json:"mode"`

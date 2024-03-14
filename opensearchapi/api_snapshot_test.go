@@ -17,12 +17,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestSnapshotClient(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
@@ -288,7 +289,7 @@ func TestSnapshotClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Repository Get" {
-							osapitest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -312,7 +313,7 @@ func TestSnapshotClient(t *testing.T) {
 			resp, err := client.Snapshot.Repository.Get(nil, &opensearchapi.SnapshotRepositoryGetReq{Repos: []string{testRepo}})
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp.Repos, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Repos, resp.Inspect().Response)
 		})
 	})
 }

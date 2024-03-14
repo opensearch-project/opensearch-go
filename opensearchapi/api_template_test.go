@@ -15,12 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestTemplateClient(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
@@ -83,10 +84,10 @@ func TestTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = client.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
+						resp.Response, err = client.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
 						return resp, err
 					},
 				},
@@ -94,10 +95,10 @@ func TestTemplateClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = failingClient.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
+						resp.Response, err = failingClient.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
 						return resp, err
 					},
 				},
@@ -135,7 +136,7 @@ func TestTemplateClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" && value.Name != "Exists" {
-							osapitest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -156,7 +157,7 @@ func TestTemplateClient(t *testing.T) {
 			require.Nil(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
 		})
 	})
 }

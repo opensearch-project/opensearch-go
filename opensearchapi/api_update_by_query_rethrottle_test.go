@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
@@ -24,7 +25,7 @@ import (
 
 func TestUpdateByQueryRethrottle(t *testing.T) {
 	t.Parallel()
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 
 	testIndex := "test-updatebyquery-rethrottle-source"
@@ -86,7 +87,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {

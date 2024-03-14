@@ -167,7 +167,7 @@ type NodesInfoPlugin struct {
 	JavaVersion         string   `json:"java_version"`
 	Description         string   `json:"description"`
 	Classname           string   `json:"classname"`
-	CustomFoldername    string   `json:"custom_foldername"`
+	CustomFoldername    *string  `json:"custom_foldername"`
 	ExtendedPlugins     []string `json:"extended_plugins"`
 	HasNativeController bool     `json:"has_native_controller"`
 }

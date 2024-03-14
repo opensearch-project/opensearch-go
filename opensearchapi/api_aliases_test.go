@@ -14,13 +14,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestAliases(t *testing.T) {
 	t.Run("Aliases", func(t *testing.T) {
-		client, err := opensearchapi.NewDefaultClient()
+		client, err := ostest.NewClient()
 		require.Nil(t, err)
 
 		index := "test-aliases"
@@ -41,7 +42,7 @@ func TestAliases(t *testing.T) {
 			require.Nil(t, err)
 			require.NotEmpty(t, resp)
 			require.NotEmpty(t, resp.Inspect().Response)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 
 		t.Run("inspect", func(t *testing.T) {

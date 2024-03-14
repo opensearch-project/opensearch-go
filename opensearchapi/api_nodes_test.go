@@ -14,12 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestNodes(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
@@ -86,10 +87,10 @@ func TestNodes(t *testing.T) {
 					Name: "without request",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = client.Nodes.HotThreads(nil, nil)
+						resp.Response, err = client.Nodes.HotThreads(nil, nil)
 						return resp, err
 					},
 				},
@@ -97,10 +98,10 @@ func TestNodes(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = client.Nodes.HotThreads(nil, &opensearchapi.NodesHotThreadsReq{NodeID: []string{"*"}})
+						resp.Response, err = client.Nodes.HotThreads(nil, &opensearchapi.NodesHotThreadsReq{NodeID: []string{"*"}})
 						return resp, err
 					},
 				},
@@ -108,10 +109,10 @@ func TestNodes(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						var (
-							resp dummyInspect
+							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.response, err = failingClient.Nodes.HotThreads(nil, nil)
+						resp.Response, err = failingClient.Nodes.HotThreads(nil, nil)
 						return resp, err
 					},
 				},
@@ -178,7 +179,7 @@ func TestNodes(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "HotThreads" {
-							osapitest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})

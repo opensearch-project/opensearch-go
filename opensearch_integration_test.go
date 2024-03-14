@@ -31,6 +31,7 @@ package opensearch_test
 import (
 	"context"
 	"crypto/tls"
+	"github.com/stretchr/testify/require"
 	"log"
 	"net"
 	"net/http"
@@ -41,6 +42,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v3"
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
 )
@@ -48,7 +50,7 @@ import (
 func TestClientTransport(t *testing.T) {
 	/*
 		t.Run("Persistent", func(t *testing.T) {
-			client, err := opensearchapi.NewDefaultClient()
+			client, err := ostest.NewClient()
 			if err != nil {
 				t.Fatalf("Error creating the client: %s", err)
 			}
@@ -87,7 +89,7 @@ func TestClientTransport(t *testing.T) {
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		client, err := opensearchapi.NewDefaultClient()
+		client, err := ostest.NewClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -108,7 +110,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		client, err := opensearchapi.NewDefaultClient()
+		client, err := ostest.NewClient()
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -166,17 +168,22 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestClientCustomTransport(t *testing.T) {
 	t.Run("Customized", func(t *testing.T) {
-		cfg := opensearchapi.Config{
-			Client: opensearch.Config{
-				Transport: &CustomTransport{
-					client: http.DefaultClient,
-				},
-			},
-		}
+		client, err := opensearchapi.NewDefaultClient()
+		require.Nil(t, err)
 
-		client, err := opensearchapi.NewClient(cfg)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
+		cfg, err := ostest.ClientConfig()
+		require.Nil(t, err)
+
+		if cfg != nil {
+			cfg.Client.Transport = &CustomTransport{
+				client: &http.Client{
+					Transport: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+					},
+				},
+			}
+			client, err = opensearchapi.NewClient(*cfg)
+			require.Nil(t, err)
 		}
 
 		for i := 0; i < 10; i++ {
@@ -194,6 +201,20 @@ func TestClientCustomTransport(t *testing.T) {
 			},
 			Transport: http.DefaultTransport,
 		})
+		config, err := ostest.ClientConfig()
+		if err != nil {
+			t.Fatalf("Error getting config: %s", err)
+		}
+		if config != nil {
+			tp, _ = opensearchtransport.New(opensearchtransport.Config{
+				URLs: []*url.URL{
+					{Scheme: "https", Host: "localhost:9200"},
+				},
+				Transport: config.Client.Transport,
+				Username:  config.Client.Username,
+				Password:  config.Client.Password,
+			})
+		}
 
 		client := opensearchapi.Client{
 			Client: &opensearch.Client{
@@ -217,10 +238,20 @@ type ReplacedTransport struct {
 func (t *ReplacedTransport) Perform(req *http.Request) (*http.Response, error) {
 	req.URL.Scheme = "http"
 	req.URL.Host = "localhost:9200"
+	config, err := ostest.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	if config != nil {
+		req.URL.Scheme = "https"
+		req.SetBasicAuth(config.Client.Username, config.Client.Password)
+	}
 
 	atomic.AddUint64(&t.counter, 1)
-
-	return http.DefaultTransport.RoundTrip(req)
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	return transport.RoundTrip(req)
 }
 
 func (t *ReplacedTransport) Count() uint64 {
@@ -251,7 +282,7 @@ func TestClientReplaceTransport(t *testing.T) {
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		client, err := opensearchapi.NewDefaultClient()
+		client, err := ostest.NewClient()
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}

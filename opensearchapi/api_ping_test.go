@@ -14,12 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestPing(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 
 	t.Run("with nil request", func(t *testing.T) {
@@ -39,9 +40,9 @@ func TestPing(t *testing.T) {
 		require.Nil(t, err)
 
 		var (
-			resp dummyInspect
+			resp osapitest.DummyInspect
 		)
-		resp.response, err = failingClient.Ping(nil, nil)
+		resp.Response, err = failingClient.Ping(nil, nil)
 		assert.NotNil(t, err)
 		assert.NotNil(t, resp)
 		osapitest.VerifyInspect(t, resp.Inspect())

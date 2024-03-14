@@ -39,6 +39,7 @@ import (
 	"strings"
 	"testing"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
 )
@@ -94,15 +95,29 @@ func TestTransportRetries(t *testing.T) {
 }
 
 func TestTransportHeaders(t *testing.T) {
-	u, _ := url.Parse("http://localhost:9200")
-
 	hdr := http.Header{}
 	hdr.Set("Accept", "application/yaml")
 
+	u, _ := url.Parse("http://localhost:9200")
 	tp, _ := opensearchtransport.New(opensearchtransport.Config{
 		URLs:   []*url.URL{u},
 		Header: hdr,
 	})
+
+	config, err := ostest.ClientConfig()
+	if err != nil {
+		t.Fatalf("Failed to get client config: %s", err)
+	}
+	if config != nil {
+		u, _ := url.Parse("https://localhost:9200")
+		tp, _ = opensearchtransport.New(opensearchtransport.Config{
+			URLs:      []*url.URL{u},
+			Header:    hdr,
+			Username:  config.Client.Username,
+			Password:  config.Client.Password,
+			Transport: config.Client.Transport,
+		})
+	}
 
 	req, _ := http.NewRequest("GET", "/", nil)
 	res, err := tp.Perform(req)
@@ -127,6 +142,20 @@ func TestTransportBodyClose(t *testing.T) {
 	tp, _ := opensearchtransport.New(opensearchtransport.Config{
 		URLs: []*url.URL{u},
 	})
+
+	config, err := ostest.ClientConfig()
+	if err != nil {
+		t.Fatalf("Failed to get client config: %s", err)
+	}
+	if config != nil {
+		u, _ := url.Parse("https://localhost:9200")
+		tp, _ = opensearchtransport.New(opensearchtransport.Config{
+			URLs:      []*url.URL{u},
+			Username:  config.Client.Username,
+			Password:  config.Client.Password,
+			Transport: config.Client.Transport,
+		})
+	}
 
 	req, _ := http.NewRequest("GET", "/", nil)
 	res, err := tp.Perform(req)
@@ -159,6 +188,21 @@ func TestTransportCompression(t *testing.T) {
 		URLs:                []*url.URL{u},
 		CompressRequestBody: true,
 	})
+
+	config, err := ostest.ClientConfig()
+	if err != nil {
+		t.Fatalf("Failed to get client config: %s", err)
+	}
+	if config != nil {
+		u, _ := url.Parse("https://localhost:9200")
+		transport, _ = opensearchtransport.New(opensearchtransport.Config{
+			URLs:                []*url.URL{u},
+			CompressRequestBody: true,
+			Username:            config.Client.Username,
+			Password:            config.Client.Password,
+			Transport:           config.Client.Transport,
+		})
+	}
 
 	indexName := "/shiny_new_index"
 

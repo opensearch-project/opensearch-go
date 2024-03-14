@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
@@ -25,7 +26,7 @@ import (
 
 func TestReindex(t *testing.T) {
 	t.Parallel()
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 
 	sourceIndex := "test-reindex-source"
@@ -79,7 +80,7 @@ func TestReindex(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request but dont wait", func(t *testing.T) {
@@ -92,7 +93,7 @@ func TestReindex(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {

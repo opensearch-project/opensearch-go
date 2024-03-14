@@ -17,12 +17,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestIndexClient(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 
 	index := "test-index-test"
@@ -60,7 +61,7 @@ func TestIndexClient(t *testing.T) {
 			resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body, DocumentID: "test"})
 			require.Nil(t, err)
 			require.NotNil(t, resp)
-			osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 			assert.Equal(t, result, resp.Result)
 		}
 	})
@@ -70,7 +71,7 @@ func TestIndexClient(t *testing.T) {
 		resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body})
 		require.Nil(t, err)
 		require.NotNil(t, resp)
-		osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.Equal(t, index, resp.Index)
 		assert.Equal(t, "created", resp.Result)
 	})

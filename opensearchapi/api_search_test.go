@@ -12,14 +12,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
+	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
 )
 
 func TestSearch(t *testing.T) {
-	client, err := opensearchapi.NewDefaultClient()
+	client, err := ostest.NewClient()
 	require.Nil(t, err)
 
 	index := "test-index-search"
@@ -41,7 +43,7 @@ func TestSearch(t *testing.T) {
 		resp, err := client.Search(nil, nil)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.NotEmpty(t, resp.Hits.Hits)
 	})
 
@@ -49,7 +51,7 @@ func TestSearch(t *testing.T) {
 		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		osapitest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.NotEmpty(t, resp.Hits.Hits)
 	})
 
