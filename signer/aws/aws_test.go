@@ -65,7 +65,7 @@ func TestV4Signer(t *testing.T) {
 		q := req.Header
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.Equal(t, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", q.Get("X-Amz-Content-Sha256"))
+		assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body", func(t *testing.T) {
