@@ -32,7 +32,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -54,7 +53,7 @@ func TestTransportRetries(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		counter++
 
-		body, _ := ioutil.ReadAll(r.Body)
+		body, _ := io.ReadAll(r.Body)
 		fmt.Println("req.Body:", string(body))
 
 		http.Error(w, "FAKE 502", http.StatusBadGateway)
@@ -82,7 +81,7 @@ func TestTransportRetries(t *testing.T) {
 				t.Fatalf("Unexpected error: %s", err)
 			}
 
-			body, _ := ioutil.ReadAll(res.Body)
+			body, _ := io.ReadAll(res.Body)
 
 			fmt.Println("> GET", req.URL)
 			fmt.Printf("< %s (tries: %d)\n", bytes.TrimSpace(body), counter)
@@ -126,7 +125,7 @@ func TestTransportHeaders(t *testing.T) {
 	}
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}

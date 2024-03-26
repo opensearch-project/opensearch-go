@@ -7,7 +7,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -42,7 +42,7 @@ func example() error {
 		return err
 	}
 
-	resBody, err := ioutil.ReadAll(infoResponse.Body)
+	resBody, err := io.ReadAll(infoResponse.Body)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	createIndexRespBody, err := ioutil.ReadAll(createIndexResp.Body)
+	createIndexRespBody, err := io.ReadAll(createIndexResp.Body)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	searchRespBody, err := ioutil.ReadAll(searchResp.Body)
+	searchRespBody, err := io.ReadAll(searchResp.Body)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	deleteIndexRespBody, err := ioutil.ReadAll(deleteIndexResp.Body)
+	deleteIndexRespBody, err := io.ReadAll(deleteIndexResp.Body)
 	if err != nil {
 		return err
 	}
