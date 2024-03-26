@@ -18,7 +18,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -55,7 +55,7 @@ The following example returns the server version information via `GET /`.
 		return err
 	}
 
-	resBody, err := ioutil.ReadAll(infoResponse.Body)
+	resBody, err := io.ReadAll(infoResponse.Body)
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ The following example creates an index.
 	if err != nil {
 		return err
 	}
-	createIndexRespBody, err := ioutil.ReadAll(createIndexResp.Body)
+	createIndexRespBody, err := io.ReadAll(createIndexResp.Body)
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ The following example searches for a document.
 	if err != nil {
 		return err
 	}
-	searchRespBody, err := ioutil.ReadAll(searchResp.Body)
+	searchRespBody, err := io.ReadAll(searchResp.Body)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ The following example deletes an index.
 	if err != nil {
 		return err
 	}
-	deleteIndexRespBody, err := ioutil.ReadAll(deleteIndexResp.Body)
+	deleteIndexRespBody, err := io.ReadAll(deleteIndexResp.Body)
 	if err != nil {
 		return err
 	}

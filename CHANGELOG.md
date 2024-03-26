@@ -17,6 +17,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Moved functions from opensearch/internal/test to internal/test for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changed custom_foldername field to pointer as it can be null ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changed cat indices Primary and Replica field to pointer as it can be null ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Replace ioutil with io in examples and integration test [#495](https://github.com/opensearch-project/opensearch-go/pull/495)
 ### Deprecated
 ### Removed
 ### Fixed
