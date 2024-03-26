@@ -21,6 +21,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 ### Removed
 ### Fixed
+- Fix search request missing a slash when no indices are given ([#470](https://github.com/opensearch-project/opensearch-go/pull/469))
 ### Security
 
 ## [3.0.0]
