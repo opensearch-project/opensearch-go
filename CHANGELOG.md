@@ -21,6 +21,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 ### Removed
 ### Fixed
+- Fix SigV4 with AWS SDK v1 ([#496](https://github.com/opensearch-project/opensearch-go/pull/496))
 ### Security
 
 ## [3.0.0]
