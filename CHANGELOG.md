@@ -2,37 +2,34 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [3.1.0]
+
+### Added
+
+- Adds new struct fields introduced in OpenSearch 2.12 ([#482](https://github.com/opensearch-project/opensearch-go/pull/482))
+- Adds initial admin password environment variable and CI changes to support 2.12.0 release ([#449](https://github.com/opensearch-project/opensearch-go/pull/449))
+- Adds `merge_id` field for indices segment request ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+
+### Changed
+
+- Updates workflow action versions ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Changes integration tests to work with secure and unsecure OpenSearch ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Moves functions from `opensearch/internal/test` to `internal/test` for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Changes `custom_foldername` field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Changs cat indices Primary and Replica field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Replaces `ioutil` with `io` in examples and integration tests [#495](https://github.com/opensearch-project/opensearch-go/pull/495)
+
+### Fixed
+
+- Fix incorrect SigV4 `x-amz-content-sha256` with AWS SDK v1 requests without a body ([#496](https://github.com/opensearch-project/opensearch-go/pull/496))
+
 ### Dependencies
+
 - Bumps `github.com/aws/aws-sdk-go` from 1.48.13 to 1.50.36
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.25.11 to 1.27.7
 - Bumps `github.com/stretchr/testify` from 1.8.4 to 1.9.0
-### Added
-- Added new struct fields introduced by opensearch 2.12 ([#482](https://github.com/opensearch-project/opensearch-go/pull/482))
-- Adds initial admin password environment variable and CI changes to support 2.12.0 release ([#449](https://github.com/opensearch-project/opensearch-go/pull/449))
-- Adds merge_id field for indices segement request ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-### Changed
-- Updated workflow action versions ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Changed integration tests to work with secure and unsecure opensearch ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Moved functions from opensearch/internal/test to internal/test for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Changed custom_foldername field to pointer as it can be null ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Changed cat indices Primary and Replica field to pointer as it can be null ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Replace ioutil with io in examples and integration test [#495](https://github.com/opensearch-project/opensearch-go/pull/495)
-### Deprecated
-### Removed
-### Fixed
-- Fix SigV4 with AWS SDK v1 ([#496](https://github.com/opensearch-project/opensearch-go/pull/496))
-### Security
 
 ## [3.0.0]
-### Dependencies
-
-- Bumps `github.com/aws/aws-sdk-go` from 1.44.263 to 1.48.13
-- Bumps `github.com/aws/aws-sdk-go-v2` from 1.18.0 to 1.23.5
-- Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.25 to 1.25.11
-- Bumps `github.com/stretchr/testify` from 1.8.2 to 1.8.4
-- Bumps `golang.org/x/net` from 0.7.0 to 0.17.0
-- Bumps `github.com/golangci/golangci-lint-action` from 1.53.3 to 1.54.2
 
 ### Added
 
@@ -42,47 +39,48 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds opensearchapi with new client and function structure ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 - Adds integration tests for all opensearchapi functions ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 - Adds guide on making raw JSON REST requests ([#399](https://github.com/opensearch-project/opensearch-go/pull/399))
+- Adds IPV6 support in the DiscoverNodes method ([#458](https://github.com/opensearch-project/opensearch-go/issues/458))
 
 ### Changed
 
 - Removes the need for double error checking ([#246](https://github.com/opensearch-project/opensearch-go/pull/246))
-- Updated and adjusted golangci-lint, solve linting complains for signer ([#352](https://github.com/opensearch-project/opensearch-go/pull/352))
-- Solve linting complains for opensearchtransport ([#353](https://github.com/opensearch-project/opensearch-go/pull/353))
-- Updated Developer guide to include docker build instructions ([#385](https://github.com/opensearch-project/opensearch-go/pull/385))
-- Test against version 2.9.0,2.10.0, run tests in all branches, change intergration tests to wait for OpenSearch to start ([#392](https://github.com/opensearch-project/opensearch-go/pull/392))
-- Makefile: use docker golangci-lint, run integration test on `.` folder, change coverage generation ([#392](https://github.com/opensearch-project/opensearch-go/pull/392)) 
-- golangci-lint: update rules and fail when issues are found ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
-- go: update to golang version 1.20 ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
-- guids: updated to work for the new opensearchapi ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
-- Test adjusted to new opensearchapi functions and structs ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
-- Change codecov to comment code coverage to each PR ([#410](https://github.com/opensearch-project/opensearch-go/pull/410))
-- Change module version from v2 to v3 ([#444](https://github.com/opensearch-project/opensearch-go/pull/444))
-- Support IPV6 in the DiscoverNodes method ([#458](https://github.com/opensearch-project/opensearch-go/issues/458))
+- Updates and adjusted golangci-lint, solve linting complains for signer ([#352](https://github.com/opensearch-project/opensearch-go/pull/352))
+- Solves linting complains for opensearchtransport ([#353](https://github.com/opensearch-project/opensearch-go/pull/353))
+- Updates Developer guide to include docker build instructions ([#385](https://github.com/opensearch-project/opensearch-go/pull/385))
+- Tests against version 2.9.0, 2.10.0, run tests in all branches, changes integration tests to wait for OpenSearch to start ([#392](https://github.com/opensearch-project/opensearch-go/pull/392))
+- Makefile: uses docker golangci-lint, run integration test on `.` folder, change coverage generation ([#392](https://github.com/opensearch-project/opensearch-go/pull/392)) 
+- golangci-lint: updates rules and fail when issues are found ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- go: updates to golang version 1.20 ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- guids: updates to work for the new opensearchapi ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Adjusts tests to new opensearchapi functions and structs ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Changes codecov to comment code coverage to each PR ([#410](https://github.com/opensearch-project/opensearch-go/pull/410))
+- Changes module version from v2 to v3 ([#444](https://github.com/opensearch-project/opensearch-go/pull/444))
 
 ### Deprecated
 
-- Deprecate legacy API /_template ([#390](https://github.com/opensearch-project/opensearch-go/pull/390))
+- Deprecates legacy API `/_template` ([#390](https://github.com/opensearch-project/opensearch-go/pull/390))
 
 ### Removed
 
 - Removes all old opensearchapi functions ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
-- Removes /internal/build code and folders ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
+- Removes `/internal/build` code and folders ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 
 ### Fixed
 
-- Corrects AWSv4 signature on DataStream Stats with no index name specified ([#338](https://github.com/opensearch-project/opensearch-go/pull/338))
-- Fixed GetSourceRequest `Source` field and deprecated the `Source` parameter ([#402](https://github.com/opensearch-project/opensearch-go/pull/402))
+- Corrects AWSv4 signature on DataStream `Stats` with no index name specified ([#338](https://github.com/opensearch-project/opensearch-go/pull/338))
+- Fixes GetSourceRequest `Source` field and deprecated the `Source` parameter ([#402](https://github.com/opensearch-project/opensearch-go/pull/402))
 - Corrects developer guide summary with golang version 1.20 ([#434](https://github.com/opensearch-project/opensearch-go/pull/434))
 
-### Security
-
-## [2.3.0]
 ### Dependencies
 
-- Bumps `github.com/aws/aws-sdk-go` from 1.44.180 to 1.44.263
-- Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.4 to 1.18.0
-- Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.8 to 1.18.25
-- Bumps `github.com/stretchr/testify` from 1.8.1 to 1.8.2
+- Bumps `github.com/aws/aws-sdk-go` from 1.44.263 to 1.48.13
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.18.0 to 1.23.5
+- Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.25 to 1.25.11
+- Bumps `github.com/stretchr/testify` from 1.8.2 to 1.8.4
+- Bumps `golang.org/x/net` from 0.7.0 to 0.17.0
+- Bumps `github.com/golangci/golangci-lint-action` from 1.53.3 to 1.54.2
+
+## [2.3.0]
 
 ### Added
 
@@ -108,45 +106,48 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Uses `[]string` instead of `string` in `SnapshotDeleteRequest` ([#237](https://github.com/opensearch-project/opensearch-go/pull/237))
 - Updates workflows to reduce CI time, consolidate OpenSearch versions, update compatibility matrix ([#242](https://github.com/opensearch-project/opensearch-go/pull/242))
-- Moved @svencowart to emeritus maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
-- Read, close and replace the http Reponse Body ([#300](https://github.com/opensearch-project/opensearch-go/pull/300))
+- Moves @svencowart to emeritus maintainers ([#270](https://github.com/opensearch-project/opensearch-go/pull/270))
+- Reads, closes and replaces the http Reponse Body ([#300](https://github.com/opensearch-project/opensearch-go/pull/300))
 
-### Deprecated
-### Removed
 ### Fixed
 
 - Corrects curl logging to emit the correct URL destination ([#101](https://github.com/opensearch-project/opensearch-go/pull/101))
 
-### Security
+### Dependencies
+
+- Bumps `github.com/aws/aws-sdk-go` from 1.44.180 to 1.44.263
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.4 to 1.18.0
+- Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.18.8 to 1.18.25
+- Bumps `github.com/stretchr/testify` from 1.8.1 to 1.8.2
 
 ## [2.2.0]
+
+### Added
+
+- Adds Github workflow for changelog verification ([#172](https://github.com/opensearch-project/opensearch-go/pull/172))
+- Adds Go Documentation link for the client ([#182](https://github.com/opensearch-project/opensearch-go/pull/182))
+- Adds support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216))
+
+### Removed
+
+- Removes info call before performing every request ([#219](https://github.com/opensearch-project/opensearch-go/pull/219))
+
+### Fixed
+
+- Renames the sequence number struct tag to if_seq_no to fix optimistic concurrency control ([#166](https://github.com/opensearch-project/opensearch-go/pull/166))
+- Fixes `RetryOnConflict` on bulk indexer ([#215](https://github.com/opensearch-project/opensearch-go/pull/215))
+
 ### Dependencies
+
 - Bumps `github.com/aws/aws-sdk-go-v2` from 1.17.1 to 1.17.3
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.17.10 to 1.18.8
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.176 to 1.44.180
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.132 to 1.44.180
-
-### Added
-- Github workflow for changelog verification ([#172](https://github.com/opensearch-project/opensearch-go/pull/172))
-- Add Go Documentation link for the client ([#182](https://github.com/opensearch-project/opensearch-go/pull/182))
-- Support for Amazon OpenSearch Serverless ([#216](https://github.com/opensearch-project/opensearch-go/pull/216))
-
-### Dependencies
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-### Changed
-### Deprecated
-### Removed
-- Remove info call before performing every request ([#219](https://github.com/opensearch-project/opensearch-go/pull/219))
-
-### Fixed
- - Renamed the sequence number struct tag to if_seq_no to fix optimistic concurrency control ([#166](https://github.com/opensearch-project/opensearch-go/pull/166))
- - Fix `RetryOnConflict` on bulk indexer ([#215](https://github.com/opensearch-project/opensearch-go/pull/215))
-
-### Security
-
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v3.1.0...HEAD
+[3.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.3.0...v3.0.0
 [2.3.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.1.0...v2.2.0
