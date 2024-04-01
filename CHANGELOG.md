@@ -17,6 +17,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+- Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.3 to 1.26.1
 
 ## [3.1.0]
 
