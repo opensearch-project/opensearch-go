@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v3"
 	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
@@ -34,11 +35,10 @@ func TestIndexClient(t *testing.T) {
 	t.Run("Request Empty", func(t *testing.T) {
 		resp, err := client.Index(nil, opensearchapi.IndexReq{})
 		assert.NotNil(t, err)
-		var osError opensearchapi.StringError
-		ok := errors.As(err, &osError)
+		var osError *opensearch.StringError
+		require.True(t, errors.As(err, &osError))
 		assert.Equal(t, http.StatusMethodNotAllowed, osError.Status)
 		assert.Contains(t, osError.Err, "Incorrect HTTP method for uri")
-		assert.True(t, ok)
 		assert.NotNil(t, resp)
 		assert.NotNil(t, resp.Inspect())
 	})
@@ -46,9 +46,8 @@ func TestIndexClient(t *testing.T) {
 	t.Run("Request Index only", func(t *testing.T) {
 		resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index})
 		assert.NotNil(t, err)
-		var osError opensearchapi.Error
-		ok := errors.As(err, &osError)
-		assert.True(t, ok)
+		var osError *opensearch.StructError
+		require.True(t, errors.As(err, &osError))
 		assert.Equal(t, "parse_exception", osError.Err.Type)
 		assert.Equal(t, "request body is required", osError.Err.Reason)
 		assert.NotNil(t, resp)
