@@ -325,3 +325,8 @@ func addrsToURLs(addrs []string) ([]*url.URL, error) {
 
 	return urls, nil
 }
+
+// ToPointer converts any value to a pointer, mainly used for request parameters
+func ToPointer[V any](value V) *V {
+	return &value
+}
