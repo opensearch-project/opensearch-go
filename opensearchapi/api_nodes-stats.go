@@ -704,4 +704,9 @@ type NodesStatsAdmissionControl struct {
 			RejectionCount json.RawMessage `json:"rejection_count"`
 		} `json:"transport"`
 	} `json:"global_cpu_usage"`
+	GlobalIOUsage struct {
+		Transport struct {
+			RejectionCount json.RawMessage `json:"rejection_count"`
+		} `json:"transport"`
+	} `json:"global_io_usage"`
 }

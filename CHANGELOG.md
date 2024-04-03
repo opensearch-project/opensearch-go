@@ -5,8 +5,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+- Adds GlobalIOUsage struct for nodes stats ([#506]((https://github.com/opensearch-project/opensearch-go/pull/506))
 
 ### Changed
+- Use docker compose v2 instead of v1 ([#506]((https://github.com/opensearch-project/opensearch-go/pull/506))
 
 ### Deprecated
 

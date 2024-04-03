@@ -10,7 +10,7 @@ To start the cluster, run the following command:
 
 ```bash
   cd /path/to/docker-compose.yml
-  docker-compose up -d
+  docker compose up -d
 ```
 
 Let's create a client instance to access this cluster:
@@ -258,5 +258,5 @@ Notice that we are passing `ignore unavailable` to the request. This tells the s
 All resources created in this guide are automatically deleted when the cluster is stopped. You can stop the cluster by running the following command:
 
 ```bash
-  docker-compose down -v
+  docker compose down -v
 ```

@@ -194,13 +194,13 @@ godoc: ## Display documentation for the package
 	godoc --http=localhost:6060 --play
 
 cluster.build:
-	docker-compose --project-directory .ci/opensearch build;
+	docker compose --project-directory .ci/opensearch build;
 
 cluster.start:
-	docker-compose --project-directory .ci/opensearch up -d ;
+	docker compose --project-directory .ci/opensearch up -d ;
 
 cluster.stop:
-	docker-compose --project-directory .ci/opensearch down ;
+	docker compose --project-directory .ci/opensearch down ;
 
 
 cluster.clean: ## Remove unused Docker volumes and networks
