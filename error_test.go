@@ -30,8 +30,7 @@ func TestError(t *testing.T) {
 			resp := &opensearch.Response{
 				StatusCode: http.StatusBadRequest,
 				Body: io.NopCloser(
-					strings.NewReader(`
-					{
+					strings.NewReader(`{
 						"error":{
 							"root_cause":[{
 								"type":"resource_already_exists_exception",
@@ -68,8 +67,7 @@ func TestError(t *testing.T) {
 		t.Run("Unmarshal errors", func(t *testing.T) {
 			t.Run("dummy", func(t *testing.T) {
 				reader := io.NopCloser(
-					strings.NewReader(`
-					{
+					strings.NewReader(`{
 						"status": "400"
 					}`),
 				)
@@ -85,8 +83,7 @@ func TestError(t *testing.T) {
 			})
 			t.Run("string", func(t *testing.T) {
 				reader := io.NopCloser(
-					strings.NewReader(`
-					{
+					strings.NewReader(`{
 						"error": 0,
 						"status": 500
 					}`),
@@ -108,8 +105,7 @@ func TestError(t *testing.T) {
 		resp := &opensearch.Response{
 			StatusCode: http.StatusMethodNotAllowed,
 			Body: io.NopCloser(
-				strings.NewReader(`
-					{
+				strings.NewReader(`{
 						"error": "Incorrect HTTP method for uri [/_doc] and method [POST], allowed: [HEAD, DELETE, PUT, GET]",
 						"status":405
 					}`),
@@ -128,8 +124,7 @@ func TestError(t *testing.T) {
 		resp := &opensearch.Response{
 			StatusCode: http.StatusBadRequest,
 			Body: io.NopCloser(
-				strings.NewReader(`
-					{
+				strings.NewReader(`{
 					  "error": "no handler found for uri [/_plugins/_security/xxx] and method [GET]"
 					}`),
 			),
@@ -146,8 +141,7 @@ func TestError(t *testing.T) {
 		resp := &opensearch.Response{
 			StatusCode: http.StatusBadRequest,
 			Body: io.NopCloser(
-				strings.NewReader(`
-					{
+				strings.NewReader(`{
 					  "status": "error",
 					  "reason": "Invalid configuration",
 					  "invalid_keys": {
@@ -188,20 +182,12 @@ func TestError(t *testing.T) {
 			WantedErrors []error
 		}{
 			{
-				Name: "response for StringError",
+				Name: "Non JSON error",
 				Resp: &opensearch.Response{
 					StatusCode: http.StatusMethodNotAllowed,
-					Body:       io.NopCloser(strings.NewReader(`"Test - Trigger an error"`)),
+					Body:       io.NopCloser(strings.NewReader(`Test - Trigger an error`)),
 				},
-				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody},
-			},
-			{
-				Name: "response string",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusForbidden,
-					Body:       io.NopCloser(strings.NewReader(`"Test - Trigger an error"`)),
-				},
-				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody},
+				WantedErrors: []error{opensearch.ErrNonJSONError},
 			},
 			{
 				Name: "error field object",
@@ -212,12 +198,20 @@ func TestError(t *testing.T) {
 				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody, opensearch.ErrUnknownOpensearchError},
 			},
 			{
-				Name: "response json",
+				Name: "unknown json",
 				Resp: &opensearch.Response{
 					StatusCode: http.StatusNotFound,
 					Body:       io.NopCloser(strings.NewReader(`{"_index":"index","_id":"2","matched":false}`)),
 				},
 				WantedErrors: []error{opensearch.ErrUnknownOpensearchError},
+			},
+			{
+				Name: "unauthorized",
+				Resp: &opensearch.Response{
+					StatusCode: http.StatusUnauthorized,
+					Body:       io.NopCloser(strings.NewReader(http.StatusText(http.StatusUnauthorized))),
+				},
+				WantedErrors: []error{opensearch.ErrUnauthorized},
 			},
 			{
 				Name: "io read error",
@@ -231,6 +225,14 @@ func TestError(t *testing.T) {
 				Name:         "empty body",
 				Resp:         &opensearch.Response{StatusCode: http.StatusBadRequest},
 				WantedErrors: []error{opensearch.ErrUnexpectedEmptyBody},
+			},
+			{
+				Name: "unmarshal error",
+				Resp: &opensearch.Response{
+					StatusCode: http.StatusNotFound,
+					Body:       io.NopCloser(strings.NewReader(`"test"`)),
+				},
+				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody},
 			},
 		}
 

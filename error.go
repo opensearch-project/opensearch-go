@@ -129,6 +129,14 @@ func ParseError(resp *Response) error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrReadBody, err)
 	}
+
+	if !json.Valid(body) {
+		if resp.StatusCode == http.StatusUnauthorized {
+			return ErrUnauthorized
+		}
+		return ErrNonJSONError
+	}
+
 	var testResp struct {
 		Status  any `json:"status"`
 		Error   any `json:"error"`
