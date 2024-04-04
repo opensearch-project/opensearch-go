@@ -31,7 +31,6 @@ package opensearch_test
 import (
 	"context"
 	"crypto/tls"
-	"github.com/stretchr/testify/require"
 	"log"
 	"net"
 	"net/http"
@@ -40,6 +39,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v3"
 	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
