@@ -141,8 +141,9 @@ type ResponseShards struct {
 
 // ResponseShardsFailure is a sub type of ReponseShards containing information about a failed shard
 type ResponseShardsFailure struct {
-	Shard  int `json:"shard"`
-	Index  any `json:"index"`
+	Shard  int    `json:"shard"`
+	Index  any    `json:"index"`
+	Node   string `json:"node"`
 	Reason struct {
 		Type   string `json:"type"`
 		Reason string `json:"reason"`
