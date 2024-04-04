@@ -80,7 +80,7 @@ type SearchResp struct {
 	response     *opensearch.Response
 }
 
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+// Inspect returns the Inspect type containing the raw *opensearch.Response
 func (r SearchResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
@@ -91,6 +91,7 @@ type SearchHit struct {
 	ID          string                  `json:"_id"`
 	Score       float32                 `json:"_score"`
 	Source      json.RawMessage         `json:"_source"`
+	Fields      json.RawMessage         `json:"fields"`
 	Type        string                  `json:"_type"` // Deprecated field
 	Sort        []any                   `json:"sort"`
 	Explanation *DocumentExplainDetails `json:"_explanation"`

@@ -71,4 +71,21 @@ func TestSearch(t *testing.T) {
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotNil(t, resp.Hits.Hits[0].Explanation)
 	})
+
+	t.Run("request with retrieve specific fields", func(t *testing.T) {
+		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		  "query": {
+			"match": {
+			  "foo": "bar"
+			}
+		  },
+		  "fields": [
+			"foo"
+		  ],
+		  "_source": false
+		}`)})
+		require.Nil(t, err)
+		assert.NotEmpty(t, resp.Hits.Hits)
+		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
+	})
 }
