@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 )
 
 // Error vars
@@ -119,7 +118,7 @@ func (e *StructError) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// PraseError tries to parse the opensearch api error into an custom error
+// ParseError tries to parse the opensearch error into an custom error
 func ParseError(resp *Response) error {
 	if resp.Body == nil {
 		return fmt.Errorf("%w, status: %s", ErrUnexpectedEmptyBody, resp.Status())
@@ -129,22 +128,56 @@ func ParseError(resp *Response) error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrReadBody, err)
 	}
-
-	if resp.StatusCode == http.StatusMethodNotAllowed {
-		var apiError StringError
-		if err = json.Unmarshal(body, &apiError); err != nil {
-			return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
-		}
-		return apiError
+	var testResp struct {
+		Status  any `json:"status"`
+		Error   any `json:"error"`
+		Message any `json:"message"`
+		Reason  any `json:"reason"`
 	}
-
-	// ToDo: Parse 404 errors separate as they are not in one standard format
-	// https://github.com/opensearch-project/OpenSearch/issues/9988
-
-	var apiError Error
-	if err = json.Unmarshal(body, &apiError); err != nil {
+	if err = json.Unmarshal(body, &testResp); err != nil {
 		return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
 	}
 
-	return apiError
+	// Check for errors where status is a number
+	if _, ok := testResp.Status.(float64); ok {
+		// Check for errors where error is a string
+		if _, ok := testResp.Error.(string); ok {
+			var apiError StringError
+			return parseError(body, &apiError)
+		}
+		// Check for errors where error is a struct
+		if _, ok := testResp.Error.(map[string]any); ok {
+			var apiError StructError
+			return parseError(body, &apiError)
+		}
+	}
+
+	// Check for errors where status is a string
+	if _, ok := testResp.Status.(string); ok {
+		// Check for erros where message is a string
+		if _, ok := testResp.Message.(string); ok {
+			var apiError MessageError
+			return parseError(body, &apiError)
+		}
+		// Check for errors where reason is a string
+		if _, ok := testResp.Reason.(string); ok {
+			var apiError ReasonError
+			return parseError(body, &apiError)
+		}
+	}
+
+	// Check for errors that only contain the error field
+	if testResp.Status == nil && testResp.Message == nil && testResp.Reason == nil && testResp.Error != nil {
+		var apiError Error
+		return parseError(body, &apiError)
+	}
+
+	return fmt.Errorf("%w: %s", ErrUnknownOpensearchError, string(body))
+}
+
+func parseError(body []byte, errStruct error) error {
+	if err := json.Unmarshal(body, &errStruct); err != nil {
+		return fmt.Errorf("%w: %w: %s", ErrJSONUnmarshalBody, err, string(body))
+	}
+	return errStruct
 }
