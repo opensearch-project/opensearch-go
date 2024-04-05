@@ -26,11 +26,7 @@ jobs:
           for attempt in `seq 25`; do sleep 5; \
           if curl -s localhost:9200; \
           then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
-      - run: make test-integ race=true coverage=true
-      - uses: codecov/codecov-action@v4
-        with:
-          file: tmp/integ.cov
-          flags: integration
+      - run: make test-integ race=true
 
   secured:
     name: Tests against secure cluster
@@ -54,4 +50,8 @@ jobs:
           for attempt in `seq 25`; do sleep 5; \
           if curl -s -ku admin:myStrongPassword123! https://localhost:9200; \
           then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
-      - run: make cluster.get-cert test-integ-secure
+      - run: make cluster.get-cert test-integ-secure race=true coverage=true
+      - uses: codecov/codecov-action@v4
+        with:
+          file: tmp/integ.cov
+          flags: integration
