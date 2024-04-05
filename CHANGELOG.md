@@ -8,6 +8,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds GlobalIOUsage struct for nodes stats ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Adds the `Explanation` field containing the document explain details to the `SearchHit` struct. ([#504](https://github.com/opensearch-project/opensearch-go/pull/504))
 - Adds the `Fields` field containing the document fields to the `SearchHit` struct. ([#508](https://github.com/opensearch-project/opensearch-go/pull/508))
+- Adds new error types ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
 
 ### Changed
 - Use docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))

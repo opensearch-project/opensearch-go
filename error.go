@@ -20,10 +20,55 @@ var (
 	ErrReadBody               = errors.New("failed to read body")
 	ErrJSONUnmarshalBody      = errors.New("failed to json unmarshal body")
 	ErrUnknownOpensearchError = errors.New("opensearch error response could not be parsed as error")
+	ErrNonJSONError           = errors.New("error is not in json format")
+	ErrUnauthorized           = errors.New(http.StatusText(http.StatusUnauthorized))
 )
 
-// Error represents the Opensearch API error response
+// Error represents an Opensearch error with only an error field
 type Error struct {
+	Err string `json:"error"`
+}
+
+// Error returns a string
+func (e Error) Error() string {
+	return fmt.Sprintf("error: %s", e.Err)
+}
+
+// StringError represnets an Opensearch error where error is a string
+type StringError struct {
+	Err    string `json:"error"`
+	Status int    `json:"status"`
+}
+
+// Error returns a string
+func (e StringError) Error() string {
+	return fmt.Sprintf("status: %d, error: %s", e.Status, e.Err)
+}
+
+// ReasonError represents an Opensearch error with a reason field
+type ReasonError struct {
+	Reason string `json:"reason"`
+	Status string `json:"status"`
+}
+
+// Error returns a string
+func (e ReasonError) Error() string {
+	return fmt.Sprintf("status: %s, reason: %s", e.Status, e.Reason)
+}
+
+// MessageError represents an Opensearch error with a message field
+type MessageError struct {
+	Message string `json:"message"`
+	Status  string `json:"status"`
+}
+
+// Error returns a string
+func (e MessageError) Error() string {
+	return fmt.Sprintf("status: %s, message: %s", e.Status, e.Message)
+}
+
+// StructError represents an Opensearch error with a detailed error struct
+type StructError struct {
 	Err    Err `json:"error"`
 	Status int `json:"status"`
 }
@@ -45,39 +90,24 @@ type RootCause struct {
 	IndexUUID string `json:"index_uuid,omitempty"`
 }
 
-// StringError represnets an Opensearch API Error with a string as error
-type StringError struct {
-	Err    string `json:"error"`
-	Status int    `json:"status"`
-}
-
 // Error returns a string
-func (e Error) Error() string {
+func (e StructError) Error() string {
 	return fmt.Sprintf("status: %d, type: %s, reason: %s, root_cause: %s", e.Status, e.Err.Type, e.Err.Reason, e.Err.RootCause)
 }
 
-// Error returns a string
-func (e StringError) Error() string {
-	return fmt.Sprintf("status: %d, error: %s", e.Status, e.Err)
-}
-
-// UnmarshalJSON is a custom unmarshal function for Error returning custom errors in special cases
-func (e *Error) UnmarshalJSON(b []byte) error {
+// UnmarshalJSON is a custom unmarshal function for StructError returning custom errors in special cases
+func (e *StructError) UnmarshalJSON(b []byte) error {
 	var dummy struct {
 		Err    json.RawMessage `json:"error"`
 		Status int             `json:"status"`
 	}
 	if err := json.Unmarshal(b, &dummy); err != nil {
-		return fmt.Errorf("%w: %s", err, b)
-	}
-
-	if len(dummy.Err) == 0 {
-		return fmt.Errorf("%w: %s", ErrUnknownOpensearchError, b)
+		return err
 	}
 
 	var osErr Err
 	if err := json.Unmarshal(dummy.Err, &osErr); err != nil {
-		return StringError{Status: dummy.Status, Err: string(dummy.Err)}
+		return &StringError{Status: dummy.Status, Err: string(dummy.Err)}
 	}
 	if dummy.Status == 0 || (osErr.Type == "" && osErr.Reason == "") {
 		return fmt.Errorf("%w: %s", ErrUnknownOpensearchError, b)
