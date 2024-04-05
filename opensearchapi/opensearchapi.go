@@ -148,3 +148,18 @@ type ResponseShardsFailure struct {
 		Reason string `json:"reason"`
 	} `json:"reason"`
 }
+
+// FailuresCause contains information about failure cause
+type FailuresCause struct {
+	Type   string `json:"type"`
+	Reason string `json:"reason"`
+	NodeID string `json:"node_id"`
+	Cause  *struct {
+		Type   string `json:"type"`
+		Reason string `json:"reason"`
+		Cause  *struct {
+			Type   string  `json:"type"`
+			Reason *string `json:"reason"`
+		} `json:"caused_by,omitempty"`
+	} `json:"caused_by,omitempty"`
+}
