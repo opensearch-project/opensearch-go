@@ -26,6 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: npm i -g npm@8 && npm i -g prettier
+        run: npm i -g prettier
       - name: Check markdown files
         run: prettier --prose-wrap never --check **/*.md
