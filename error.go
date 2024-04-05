@@ -10,6 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 )
 
 // Error vars
@@ -85,4 +87,34 @@ func (e *Error) UnmarshalJSON(b []byte) error {
 	e.Status = dummy.Status
 
 	return nil
+}
+
+// PraseError tries to parse the opensearch api error into an custom error
+func ParseError(resp *Response) error {
+	if resp.Body == nil {
+		return fmt.Errorf("%w, status: %s", ErrUnexpectedEmptyBody, resp.Status())
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrReadBody, err)
+	}
+
+	if resp.StatusCode == http.StatusMethodNotAllowed {
+		var apiError StringError
+		if err = json.Unmarshal(body, &apiError); err != nil {
+			return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
+		}
+		return apiError
+	}
+
+	// ToDo: Parse 404 errors separate as they are not in one standard format
+	// https://github.com/opensearch-project/OpenSearch/issues/9988
+
+	var apiError Error
+	if err = json.Unmarshal(body, &apiError); err != nil {
+		return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
+	}
+
+	return apiError
 }

@@ -13,6 +13,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Use docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Updates go version to 1.21 ([#509](https://github.com/opensearch-project/opensearch-go/pull/509))
 - Moved Error structs from opensearchapi to opensearch package ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Move parseError function from opensearchapi to opensearch package as ParseError ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
 
 ### Deprecated
 
