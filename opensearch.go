@@ -56,9 +56,6 @@ const (
 // Version returns the package version as a string.
 const Version = version.Client
 
-// SupportedElasticVersion defines the supported major elasticsearch version
-const SupportedElasticVersion = 7
-
 // Error vars
 var (
 	ErrCreateClient                        = errors.New("cannot create client")
@@ -110,17 +107,6 @@ type Config struct {
 // Client represents the OpenSearch client.
 type Client struct {
 	Transport opensearchtransport.Interface
-}
-
-type esVersion struct {
-	Number       string `json:"number"`
-	BuildFlavor  string `json:"build_flavor"`
-	Distribution string `json:"distribution"`
-}
-
-type info struct {
-	Version esVersion `json:"version"`
-	Tagline string    `json:"tagline"`
 }
 
 // NewDefaultClient creates a new client with default options.
@@ -215,24 +201,6 @@ func NewClient(cfg Config) (*Client, error) {
 
 func getAddressFromEnvironment() []string {
 	return addrsFromEnvironment(envOpenSearchURL)
-}
-
-// checkCompatibleInfo validates the information given by OpenSearch
-func checkCompatibleInfo(info info) error {
-	major, _, _, err := ParseVersion(info.Version.Number)
-	if err != nil {
-		return err
-	}
-
-	if info.Version.Distribution == openSearch {
-		return nil
-	}
-
-	if major != SupportedElasticVersion {
-		return errors.New(unsupportedProduct)
-	}
-
-	return nil
 }
 
 // ParseVersion returns an int64 representation of version.
