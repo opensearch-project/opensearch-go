@@ -163,3 +163,11 @@ type FailuresCause struct {
 		} `json:"caused_by,omitempty"`
 	} `json:"caused_by,omitempty"`
 }
+
+// FailuresShard contains information about shard failures
+type FailuresShard struct {
+	Shard  int           `json:"shard"`
+	Index  string        `json:"index"`
+	Status string        `json:"status"`
+	Reason FailuresCause `json:"reason"`
+}
