@@ -5,12 +5,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
-- Adds GlobalIOUsage struct for nodes stats ([#506]((https://github.com/opensearch-project/opensearch-go/pull/506)))
-
+- Adds GlobalIOUsage struct for nodes stats ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Adds the `Explanation` field containing the document explain details to the `SearchHit` struct. ([#504](https://github.com/opensearch-project/opensearch-go/pull/504))
 - Adds the `Fields` field containing the document fields to the `SearchHit` struct. ([#508](https://github.com/opensearch-project/opensearch-go/pull/508))
+
 ### Changed
-- Use docker compose v2 instead of v1 ([#506]((https://github.com/opensearch-project/opensearch-go/pull/506))
+- Use docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Updates go version to 1.21 ([#509](https://github.com/opensearch-project/opensearch-go/pull/509))
 
 ### Deprecated
 
@@ -22,6 +23,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 - Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.3 to 1.26.1
+- Bumps `github.com/wI2L/jsondiff` from 0.4.0 to 0.5.1
 
 ## [3.1.0]
 
