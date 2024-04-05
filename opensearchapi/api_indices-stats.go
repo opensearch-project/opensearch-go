@@ -63,9 +63,10 @@ func (r IndicesStatsResp) Inspect() Inspect {
 
 // IndicesStatsShards is a sub type of IndicesStatsResp containing information about how many shards got requested
 type IndicesStatsShards struct {
-	Total      int `json:"total"`
-	Successful int `json:"successful"`
-	Failed     int `json:"failed"`
+	Total      int             `json:"total"`
+	Successful int             `json:"successful"`
+	Failed     int             `json:"failed"`
+	Failures   []FailuresShard `json:"failures"`
 }
 
 // IndicesStatsDocs is a sub type of IndicesStatsInfo containing stats about the index documents

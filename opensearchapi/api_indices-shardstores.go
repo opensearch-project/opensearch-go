@@ -49,6 +49,7 @@ type IndicesShardStoresResp struct {
 			Stores []json.RawMessage `json:"stores"`
 		} `json:"shards"`
 	} `json:"indices"`
+	Failures []FailuresShard `json:"failures"`
 	response *opensearch.Response
 }
 

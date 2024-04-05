@@ -81,7 +81,8 @@ type DocumentDeleteByQueryRethrottleResp struct {
 			} `json:"resource_stats"`
 		} `json:"tasks"`
 	} `json:"nodes"`
-	response *opensearch.Response
+	NodeFailures []FailuresCause `json:"node_failures"`
+	response     *opensearch.Response
 }
 
 // DocumentDeleteByQueryRethrottleResourceInfo is a sub type of DocumentDeleteByQueryRethrottleResp containing resource stats
