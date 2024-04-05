@@ -34,11 +34,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var called bool
@@ -75,28 +76,16 @@ func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestClientConfiguration(t *testing.T) {
 	t.Run("With empty", func(t *testing.T) {
 		c, err := NewDefaultClient()
-		if err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-
+		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-
-		if u != defaultURL {
-			t.Errorf("Unexpected URL, want=%s, got=%s", defaultURL, u)
-		}
+		assert.Equal(t, u, defaultURL)
 	})
 
 	t.Run("With URL from Addresses", func(t *testing.T) {
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: &mockTransp{}})
-		if err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
-
+		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-
-		if u != "http://localhost:8080" {
-			t.Errorf("Unexpected URL, want=http://localhost:8080, got=%s", u)
-		}
+		assert.Equal(t, u, "http://localhost:8080")
 	})
 
 	t.Run("With URL from OPENSEARCH_URL", func(t *testing.T) {
@@ -104,15 +93,9 @@ func TestClientConfiguration(t *testing.T) {
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		c, err := NewClient(Config{Transport: &mockTransp{}})
-		if err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-
+		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-
-		if u != "http://opensearch.com" {
-			t.Errorf("Unexpected URL, want=http://opensearch.com, got=%s", u)
-		}
+		assert.Equal(t, u, "http://opensearch.com")
 	})
 
 	t.Run("With URL from environment and cfg.Addresses", func(t *testing.T) {
@@ -120,34 +103,24 @@ func TestClientConfiguration(t *testing.T) {
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: &mockTransp{}})
-		if err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
-
+		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-
-		if u != "http://localhost:8080" {
-			t.Errorf("Unexpected URL, want=http://localhost:8080, got=%s", u)
-		}
+		assert.Equal(t, u, "http://localhost:8080")
 	})
 
 	t.Run("With invalid URL", func(t *testing.T) {
 		u := ":foo"
 		_, err := NewClient(Config{Addresses: []string{u}})
 
-		if err == nil {
-			t.Errorf("Expected error for URL %q, got %v", u, err)
-		}
+		assert.Error(t, err)
 	})
 
 	t.Run("With invalid URL from environment", func(t *testing.T) {
 		os.Setenv(envOpenSearchURL, ":foobar")
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
-		c, err := NewDefaultClient()
-		if err == nil {
-			t.Errorf("Expected error, got: %+v", c)
-		}
+		_, err := NewDefaultClient()
+		assert.Error(t, err)
 	})
 
 	t.Run("With skip check", func(t *testing.T) {
@@ -162,31 +135,23 @@ func TestClientConfiguration(t *testing.T) {
 					},
 				},
 			})
-		if err != nil {
-			t.Errorf("Unexpected error, got: %+v", err)
-		}
+		assert.NoError(t, err)
 	})
 }
 
 func TestClientInterface(t *testing.T) {
 	t.Run("Transport", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: &mockTransp{}})
-		if err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
+		require.NoError(t, err)
 
-		if called != false {
-			t.Errorf("Unexpected call to transport by client")
-		}
+		assert.False(t, called, "Unexpected call to transport by client")
 
 		res, err := c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
 		if err == nil && res != nil && res.Body != nil {
 			res.Body.Close()
 		}
 
-		if called != true {
-			t.Errorf("Expected client to call transport")
-		}
+		assert.True(t, called, "Expected client to call transport")
 	})
 }
 
@@ -238,51 +203,34 @@ func TestAddrsToURLs(t *testing.T) {
 			res, err := addrsToURLs(tc.addrs)
 
 			if tc.err != nil {
-				if err == nil {
-					t.Errorf("Expected error, got: %v", err)
-				}
-				match, _ := regexp.MatchString(tc.err.Error(), err.Error())
-				if !match {
-					t.Errorf("Expected err [%s] to match: %s", err.Error(), tc.err.Error())
-				}
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.err.Error())
 			}
 
 			for i := range tc.urls {
-				if res[i].Scheme != tc.urls[i].Scheme {
-					t.Errorf("%s: Unexpected scheme, want=%s, got=%s", tc.name, tc.urls[i].Scheme, res[i].Scheme)
-				}
+				assert.Equal(t, tc.urls[i].Scheme, res[i].Scheme, tc.name)
 			}
 			for i := range tc.urls {
-				if res[i].Host != tc.urls[i].Host {
-					t.Errorf("%s: Unexpected host, want=%s, got=%s", tc.name, tc.urls[i].Host, res[i].Host)
-				}
+				assert.Equal(t, tc.urls[i].Host, res[i].Host, tc.name)
 			}
 			for i := range tc.urls {
-				if res[i].Path != tc.urls[i].Path {
-					t.Errorf("%s: Unexpected path, want=%s, got=%s", tc.name, tc.urls[i].Path, res[i].Path)
-				}
+				assert.Equal(t, tc.urls[i].Path, res[i].Path, tc.name)
 			}
 		})
 	}
 }
 
 func TestVersion(t *testing.T) {
-	if Version == "" {
-		t.Error("Version is empty")
-	}
+	require.NotEmpty(t, Version)
 }
 
 func TestClientMetrics(t *testing.T) {
 	c, _ := NewClient(Config{EnableMetrics: true, Transport: &mockTransp{}})
 
 	m, err := c.Metrics()
-	if err != nil {
-		t.Fatalf("Unexpected error: %v", err)
-	}
+	require.Nil(t, err)
 
-	if m.Requests > 1 {
-		t.Errorf("Unexpected output: %s", m)
-	}
+	assert.LessOrEqual(t, m.Requests, 1, m)
 }
 
 func TestParseElasticsearchVersion(t *testing.T) {
@@ -329,20 +277,15 @@ func TestParseElasticsearchVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1, got2, err := ParseVersion(tt.version)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseVersion() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			major, minor, patch, err := ParseVersion(tt.version)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
-			if got != tt.major {
-				t.Errorf("ParseVersion() got = %v, want %v", got, tt.major)
-			}
-			if got1 != tt.minor {
-				t.Errorf("ParseVersion() got1 = %v, want %v", got1, tt.minor)
-			}
-			if got2 != tt.patch {
-				t.Errorf("ParseVersion() got2 = %v, want %v", got2, tt.patch)
-			}
+			assert.Equal(t, major, tt.major)
+			assert.Equal(t, minor, tt.minor)
+			assert.Equal(t, patch, tt.patch)
 		})
 	}
 }
