@@ -11,6 +11,7 @@ services:
       args:
         - SECURE_INTEGRATION=${SECURE_INTEGRATION:-false}
         - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
+        - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
     environment:
       - discovery.type=single-node
       - bootstrap.memory_lock=true
