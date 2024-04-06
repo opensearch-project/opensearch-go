@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -73,19 +74,39 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with retrieve specific fields", func(t *testing.T) {
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
-		  "query": {
-			"match": {
-			  "foo": "bar"
-			}
-		  },
-		  "fields": [
-			"foo"
-		  ],
-		  "_source": false
-		}`)})
+		resp, err := client.Search(
+			nil,
+			&opensearchapi.SearchReq{
+				Indices: []string{index},
+				Body: strings.NewReader(`{
+				"query": {
+					"match": {
+						"foo": "bar"
+					}
+				},
+				"fields": [
+					"foo"
+				],
+			"_source": false
+			}`),
+			},
+		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
+	})
+
+	t.Run("url path", func(t *testing.T) {
+		req := &opensearchapi.SearchReq{}
+		httpReq, err := req.GetRequest()
+		assert.Nil(t, err)
+		require.NotNil(t, httpReq)
+		assert.Equal(t, "/_search", httpReq.URL.Path)
+
+		req = &opensearchapi.SearchReq{Indices: []string{index}}
+		httpReq, err = req.GetRequest()
+		assert.Nil(t, err)
+		require.NotNil(t, httpReq)
+		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
 }
