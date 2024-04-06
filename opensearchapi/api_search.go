@@ -89,6 +89,7 @@ func (r SearchResp) Inspect() Inspect {
 type SearchHit struct {
 	Index       string                  `json:"_index"`
 	ID          string                  `json:"_id"`
+	Routing     string                  `json:"_routing"`
 	Score       float32                 `json:"_score"`
 	Source      json.RawMessage         `json:"_source"`
 	Fields      json.RawMessage         `json:"fields"`
