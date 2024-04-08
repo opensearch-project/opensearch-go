@@ -29,6 +29,7 @@
 package opensearch
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -37,13 +38,15 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"testing/iotest"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
 )
 
-var called bool
+var called int
 
 type mockTransp struct {
 	RoundTripFunc func(*http.Request) (*http.Response, error)
@@ -60,8 +63,8 @@ var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 		  }
 		}`))
 		response.Header.Add("Content-Type", "application/json")
-	} else {
-		called = true
+	} else if req.URL.Path == "/test" {
+		called++
 	}
 
 	return response, nil
@@ -206,14 +209,14 @@ func TestClientInterfe(t *testing.T) {
 		c, err := NewClient(Config{Transport: &mockTransp{}})
 		require.NoError(t, err)
 
-		assert.False(t, called, "Unexpected call to transport by client")
+		call := called
 
-		res, err := c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
+		res, err := c.Perform(&http.Request{URL: &url.URL{Path: "/test"}, Header: make(http.Header)})
 		if err == nil && res != nil && res.Body != nil {
 			res.Body.Close()
 		}
 
-		assert.True(t, called, "Expected client to call transport")
+		assert.True(t, called-1 == call, "Expected client to call transport")
 	})
 
 	t.Run("Do()", func(t *testing.T) {
@@ -221,7 +224,7 @@ func TestClientInterfe(t *testing.T) {
 		require.NoError(t, err)
 
 		req := testReq{}
-		resp, err := c.Do(nil, req, nil)
+		resp, err := c.Do(context.TODO(), req, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 	})
@@ -231,7 +234,7 @@ func TestClientInterfe(t *testing.T) {
 		require.NoError(t, err)
 
 		req := testReq{Error: true}
-		resp, err := c.Do(nil, req, nil)
+		resp, err := c.Do(context.TODO(), req, nil)
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 	})
@@ -244,9 +247,35 @@ func TestClientInterfe(t *testing.T) {
 			Version int `json:"version"`
 		}
 		req := testReq{Path: "/"}
-		resp, err := c.Do(nil, req, &failStr{})
+		resp, err := c.Do(context.TODO(), req, &failStr{})
 		require.Error(t, err)
 		assert.ErrorIs(t, err, ErrJSONUnmarshalBody)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("Do() io read error", func(t *testing.T) {
+		c, err := NewClient(
+			Config{
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						return &http.Response{
+								StatusCode: http.StatusOK,
+								Body:       io.NopCloser(iotest.ErrReader(errors.New("io reader test"))),
+							},
+							nil
+					},
+				},
+			},
+		)
+		require.NoError(t, err)
+
+		type failStr struct {
+			Version int `json:"version"`
+		}
+		req := testReq{}
+		resp, err := c.Do(context.TODO(), req, &failStr{})
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrReadBody)
 		assert.NotNil(t, resp)
 	})
 }
