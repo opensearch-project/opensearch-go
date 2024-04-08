@@ -32,7 +32,7 @@ const IndexName = "go-test-index1"
 
 func main() {
 	if err := example(); err != nil {
-		fmt.Println(fmt.Sprintf("Error: %s", err))
+		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -64,8 +64,8 @@ func example() error {
 	fmt.Printf("Cluster INFO:\n  Cluster Name: %s\n  Cluster UUID: %s\n  Version Number: %s\n", infoResp.ClusterName, infoResp.ClusterUUID, infoResp.Version.Number)
 
 	// Define index mapping.
-        // Note: these particular settings (eg, shards/replicas)
-        // will have no effect in AWS OpenSearch Serverless
+	// Note: these particular settings (eg, shards/replicas)
+	// will have no effect in AWS OpenSearch Serverless
 	mapping := strings.NewReader(`{
 	    "settings": {
 	        "index": {
@@ -77,12 +77,12 @@ func example() error {
 	// Create an index with non-default settings.
 	var opensearchError opensearchapi.Error
 	createIndexResponse, err := client.Indices.Create(
-        ctx,
-	    opensearchapi.IndicesCreateReq{
-	        Index: IndexName,
-            Body:  mapping,
-	    },
-    )
+		ctx,
+		opensearchapi.IndicesCreateReq{
+			Index: IndexName,
+			Body:  mapping,
+		},
+	)
 	// Load err into opensearchapi.Error to access the fields and tolerate if the index already exists
 	if err != nil {
 		if errors.As(err, &opensearchError) {
@@ -108,13 +108,16 @@ func example() error {
 
 	docId := "1"
 	insertResp, err := client.Index(
-        ctx,
-	    opensearchapi.IndexReq{
-	        Index:      IndexName,
-	        DocumentID: docId,
-            Body:       opensearchutil.NewJSONReader(&document),
-	    }
-    )
+		ctx,
+		opensearchapi.IndexReq{
+			Index:      IndexName,
+			DocumentID: docId,
+			Body:       opensearchutil.NewJSONReader(&document),
+			Params: opensearchapi.IndexParams{
+				Refresh: "true",
+			},
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -122,7 +125,7 @@ func example() error {
 
 	// Search for the document.
 	content := strings.NewReader(`{
-	    "size": 5,
+		"size": 5,
 	    "query": {
 	        "multi_match": {
 	            "query": "miller",
@@ -132,14 +135,16 @@ func example() error {
 	}`)
 
 	searchResp, err := client.Search(
-        ctx,
-	    &opensearchapi.SearchReq{
-	        Body: content,
-	    }
-    )
+		ctx,
+		&opensearchapi.SearchReq{
+			Body: content,
+		},
+	)
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Search hits: %v\n", searchResp.Hits.Total.Value)
+
 	if searchResp.Hits.Total.Value > 0 {
 		indices := make([]string, 0)
 		for _, hit := range searchResp.Hits.Hits {
@@ -156,27 +161,26 @@ func example() error {
 		fmt.Printf("Search indices: %s\n", strings.Join(indices, ","))
 	}
 
-	/*
-		// Delete the document.
-		deleteReq := opensearchapi.DeleteReq{
-			Index:      IndexName,
-			DocumentID: docId,
-		}
+	// Delete the document.
+	deleteReq := opensearchapi.DocumentDeleteReq{
+		Index:      IndexName,
+		DocumentID: docId,
+	}
 
-		deleteResponse, err := client.Indices.Delete(ctx, deleteReq)
-		if err != nil {
-			return err
-		}
-		fmt.Println("deleting document")
-		fmt.Println(deleteResponse)
-	*/
-	// Delete previously created index.
-
-	deleteIndexResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Index: []string{IndexName}})
+	deleteResponse, err := client.Document.Delete(ctx, deleteReq)
 	if err != nil {
 		return err
 	}
-	fmt.Println(fmt.Sprintf("Deleted index: %t", deleteIndexResp.Acknowledged))
+	fmt.Printf("Deleted document: %t\n", deleteResponse.Result == "deleted")
+
+	// Delete previously created index.
+	deleteIndex := opensearchapi.IndicesDeleteReq{Indices: []string{IndexName}}
+
+	deleteIndexResp, err := client.Indices.Delete(ctx, deleteIndex)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Deleted index: %t\n", deleteIndexResp.Acknowledged)
 
 	// Try to delete the index again which failes as it does not exist
 	// Load err into opensearchapi.Error to access the fields and tolerate if the index is missing
