@@ -137,6 +137,42 @@ func TestClientConfiguration(t *testing.T) {
 			})
 		assert.NoError(t, err)
 	})
+
+	t.Run("With User:Password", func(t *testing.T) {
+		c, err := NewClient(
+			Config{
+				Addresses: []string{"http://admin:admin@localhost:8080//"},
+				Transport: &mockTransp{},
+			},
+		)
+		require.NoError(t, err)
+		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		assert.Equal(t, u, "http://admin:admin@localhost:8080")
+	})
+
+	t.Run("With DiscoverNodes on start", func(t *testing.T) {
+		c, err := NewClient(
+			Config{
+				Addresses:            []string{"http://localhost:8080//"},
+				Transport:            &mockTransp{},
+				DiscoverNodesOnStart: true,
+			},
+		)
+		require.NoError(t, err)
+		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		assert.Equal(t, u, "http://localhost:8080")
+	})
+
+	t.Run("With failing creation", func(t *testing.T) {
+		_, err := NewClient(
+			Config{
+				Addresses: []string{"http://admin:admin@localhost:8080//"},
+				Transport: &mockTransp{},
+				CACert:    []byte{1},
+			},
+		)
+		assert.ErrorIs(t, err, ErrCreateTransport)
+	})
 }
 
 func TestClientInterface(t *testing.T) {
