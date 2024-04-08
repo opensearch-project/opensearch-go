@@ -30,6 +30,7 @@ package opensearch
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -71,6 +72,31 @@ func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
 		return defaultRoundTripFunc(req)
 	}
 	return t.RoundTripFunc(req)
+}
+
+type testReq struct {
+	Method  string
+	Path    string
+	Body    io.Reader
+	Params  map[string]string
+	Error   bool
+	Headers http.Header
+}
+
+func (r testReq) GetRequest() (*http.Request, error) {
+	if r.Error {
+		return nil, fmt.Errorf("test error")
+	}
+	if r.Method == "" {
+		r.Method = http.MethodGet
+	}
+	return BuildRequest(
+		r.Method,
+		r.Path,
+		r.Body,
+		r.Params,
+		r.Headers,
+	)
 }
 
 func TestClientConfiguration(t *testing.T) {
@@ -175,8 +201,8 @@ func TestClientConfiguration(t *testing.T) {
 	})
 }
 
-func TestClientInterface(t *testing.T) {
-	t.Run("Transport", func(t *testing.T) {
+func TestClientInterfe(t *testing.T) {
+	t.Run("Perform()", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: &mockTransp{}})
 		require.NoError(t, err)
 
@@ -188,6 +214,40 @@ func TestClientInterface(t *testing.T) {
 		}
 
 		assert.True(t, called, "Expected client to call transport")
+	})
+
+	t.Run("Do()", func(t *testing.T) {
+		c, err := NewClient(Config{Transport: &mockTransp{}})
+		require.NoError(t, err)
+
+		req := testReq{}
+		resp, err := c.Do(nil, req, nil)
+		assert.NoError(t, err)
+		assert.NotNil(t, resp)
+	})
+
+	t.Run("Do() GetRequest error", func(t *testing.T) {
+		c, err := NewClient(Config{Transport: &mockTransp{}})
+		require.NoError(t, err)
+
+		req := testReq{Error: true}
+		resp, err := c.Do(nil, req, nil)
+		assert.Error(t, err)
+		assert.Nil(t, resp)
+	})
+
+	t.Run("Do() Unmarshal error", func(t *testing.T) {
+		c, err := NewClient(Config{Transport: &mockTransp{}})
+		require.NoError(t, err)
+
+		type failStr struct {
+			Version int `json:"version"`
+		}
+		req := testReq{Path: "/"}
+		resp, err := c.Do(nil, req, &failStr{})
+		require.Error(t, err)
+		assert.ErrorIs(t, err, ErrJSONUnmarshalBody)
+		assert.NotNil(t, resp)
 	})
 }
 

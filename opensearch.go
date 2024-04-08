@@ -262,13 +262,13 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer interface{}) (
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return response, fmt.Errorf("failed to read the response body, status: %d, err: %w", resp.StatusCode, err)
+			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
 		}
 
 		response.Body = io.NopCloser(bytes.NewReader(data))
 
 		if err := json.Unmarshal(data, dataPointer); err != nil {
-			return response, fmt.Errorf("failed to parse body into the pointer, status: %d, body: %s, err: %w", resp.StatusCode, data, err)
+			return response, fmt.Errorf("%w, status: %d, body: %s, err: %w", ErrJSONUnmarshalBody, resp.StatusCode, data, err)
 		}
 	}
 
