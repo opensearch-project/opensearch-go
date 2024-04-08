@@ -1,13 +1,34 @@
 - [Upgrading Opensearch GO Client](#upgrading-opensearch-go-client)
-  - [Upgraading to >= 3.0.0](#upgrading-to->=-3.0.0)
+  - [Upgrading to >= 4.0.0](#upgrading-to->=-4.0.0)
+    - [error types](#error-types)
+  - [Upgrading to >= 3.0.0](#upgrading-to->=-3.0.0)
     - [client creation](#client-creation)
     - [requests](#requests)
     - [responses](#responses)
     - [error handing](#error-handling)
-  - [Upgraading to >= 2.3.0](#upgrading-to->=-2.3.0)
+  - [Upgrading to >= 2.3.0](#upgrading-to->=-2.3.0)
     - [snapshot delete](#snapshot-delete)
 
 # Upgrading Opensearch GO Client
+
+## Upgrading to >= 4.0.0
+
+Version 4.0.0 moved the error types, added with 3.0.0, from opensearchapi to opensearch, renamed them and added new error types.
+
+### Error Types
+
+Before 4.0.0:
+Error types:
+- `opensearchapi.Error`
+- `opensearchapi.StringError`
+
+With 4.0.0:
+Error types
+- `opensearch.Error`
+- `opensearch.StringError`
+- `opensearch.ReasonError`
+- `opensearch.MessageError`
+- `opensearch.StructError` (which was the `opensearchapi.Error`)
 
 ## Upgrading to >= 3.0.0
 

@@ -8,10 +8,7 @@ package opensearchapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -109,43 +106,13 @@ func (c *Client) do(ctx context.Context, req opensearch.Request, dataPointer any
 
 	if resp.IsError() {
 		if dataPointer != nil {
-			return resp, parseError(resp)
+			return resp, opensearch.ParseError(resp)
 		} else {
 			return resp, fmt.Errorf("status: %s", resp.Status())
 		}
 	}
 
 	return resp, nil
-}
-
-// praseError tries to parse the opensearch api error into an custom error
-func parseError(resp *opensearch.Response) error {
-	if resp.Body == nil {
-		return fmt.Errorf("%w, status: %s", ErrUnexpectedEmptyBody, resp.Status())
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrReadBody, err)
-	}
-
-	if resp.StatusCode == http.StatusMethodNotAllowed {
-		var apiError StringError
-		if err = json.Unmarshal(body, &apiError); err != nil {
-			return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
-		}
-		return apiError
-	}
-
-	// ToDo: Parse 404 errors separate as they are not in one standard format
-	// https://github.com/opensearch-project/OpenSearch/issues/9988
-
-	var apiError Error
-	if err = json.Unmarshal(body, &apiError); err != nil {
-		return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
-	}
-
-	return apiError
 }
 
 // formatDuration converts duration to a string in the format
