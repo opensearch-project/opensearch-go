@@ -47,7 +47,7 @@ func example() error {
 				},
 				Addresses: []string{"https://localhost:9200"},
 				Username:  "admin", // For testing only. Don't store credentials in code.
-				Password:  "admin",
+				Password:  "myStrongPassword123!",
 			},
 		},
 	)
