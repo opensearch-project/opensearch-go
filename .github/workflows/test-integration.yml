@@ -27,7 +27,7 @@ jobs:
           if curl -s localhost:9200; \
           then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
       - run: make test-integ race=true coverage=true
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           file: tmp/integ.cov
           flags: integration

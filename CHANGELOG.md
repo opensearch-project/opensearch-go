@@ -19,6 +19,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Change ParseError function to do type assertion to determine error type ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Removed unused structs and functions from opensearch ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
 - Adjust and extent opensearch tests for better coverage ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Bump codecov action version to v4 ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
 
 ### Deprecated
 
