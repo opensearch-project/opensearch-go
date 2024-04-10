@@ -62,9 +62,10 @@ func (r NodesStatsReq) GetRequest() (*http.Request, error) {
 // NodesStatsResp represents the returned struct of the /_nodes response
 type NodesStatsResp struct {
 	NodesInfo struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresCause `json:"failures"`
 	} `json:"_nodes"`
 	ClusterName string                `json:"cluster_name"`
 	Nodes       map[string]NodesStats `json:"nodes"`

@@ -47,9 +47,10 @@ func (r IndicesValidateQueryReq) GetRequest() (*http.Request, error) {
 // IndicesValidateQueryResp represents the returned struct of the index shrink response
 type IndicesValidateQueryResp struct {
 	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
 	Valid        bool    `json:"valid"`
 	Error        *string `json:"error"`

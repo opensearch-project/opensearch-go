@@ -46,8 +46,12 @@ type IndicesBlockResp struct {
 	Acknowledged       bool `json:"acknowledged"`
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 	Indices            []struct {
-		Name    string `json:"name"`
-		Blocked bool   `json:"blocked"`
+		Name         string `json:"name"`
+		Blocked      bool   `json:"blocked"`
+		FailedShards []struct {
+			ID       int             `json:"id"`
+			Failures []FailuresShard `json:"failures"`
+		} `json:"failed_shards"`
 	} `json:"indices"`
 	response *opensearch.Response
 }

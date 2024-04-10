@@ -31,9 +31,10 @@ func (r TasksListReq) GetRequest() (*http.Request, error) {
 
 // TasksListResp represents the returned struct of the index create response
 type TasksListResp struct {
-	Nodes    map[string]TasksListNodes `json:"nodes"`
-	Tasks    map[string]TasksListTask  `json:"tasks"` // tasks is returned when group_by is set to none or parents
-	response *opensearch.Response
+	Nodes        map[string]TasksListNodes `json:"nodes"`
+	Tasks        map[string]TasksListTask  `json:"tasks"` // tasks is returned when group_by is set to none or parents
+	NodeFailures []FailuresCause           `json:"node_failures"`
+	response     *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse

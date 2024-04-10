@@ -44,9 +44,10 @@ func (r IndicesSegmentsReq) GetRequest() (*http.Request, error) {
 // IndicesSegmentsResp represents the returned struct of the index shrink response
 type IndicesSegmentsResp struct {
 	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
 	Indices map[string]struct {
 		Shards map[string][]IndicesSegmentsShards `json:"shards"`

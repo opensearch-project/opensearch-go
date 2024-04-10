@@ -49,6 +49,12 @@ type DataStreamStatsResp struct {
 		Total      int `json:"total"`
 		Successful int `json:"successful"`
 		Failed     int `json:"failed"`
+		Failures   []struct {
+			Shard  int           `json:"shard"`
+			Index  string        `json:"index"`
+			Status string        `json:"status"`
+			Reason FailuresCause `json:"reason"`
+		} `json:"failures"`
 	} `json:"_shards"`
 	DataStreamCount     int                      `json:"data_stream_count"`
 	BackingIndices      int                      `json:"backing_indices"`
