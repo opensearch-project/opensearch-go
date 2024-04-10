@@ -142,6 +142,10 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if res.Body == nil {
+		return nil, fmt.Errorf("unexpected empty body")
+	}
 	defer res.Body.Close()
 
 	if res.StatusCode > http.StatusOK {
