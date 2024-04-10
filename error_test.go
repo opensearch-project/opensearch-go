@@ -182,6 +182,14 @@ func TestError(t *testing.T) {
 			WantedErrors []error
 		}{
 			{
+				Name: "Too many requests",
+				Resp: &opensearch.Response{
+					StatusCode: http.StatusTooManyRequests,
+					Body:       io.NopCloser(strings.NewReader(`429 Too Many Requests /testindex/_bulk`)),
+				},
+				WantedErrors: []error{opensearch.ErrTooManyRequests},
+			},
+			{
 				Name: "Non JSON error",
 				Resp: &opensearch.Response{
 					StatusCode: http.StatusMethodNotAllowed,

@@ -22,6 +22,7 @@ var (
 	ErrUnknownOpensearchError = errors.New("opensearch error response could not be parsed as error")
 	ErrNonJSONError           = errors.New("error is not in json format")
 	ErrUnauthorized           = errors.New(http.StatusText(http.StatusUnauthorized))
+	ErrTooManyRequests        = errors.New(http.StatusText(http.StatusTooManyRequests))
 )
 
 // Error represents an Opensearch error with only an error field
@@ -131,10 +132,14 @@ func ParseError(resp *Response) error {
 	}
 
 	if !json.Valid(body) {
-		if resp.StatusCode == http.StatusUnauthorized {
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
 			return ErrUnauthorized
+		case http.StatusTooManyRequests:
+			return ErrTooManyRequests
+		default:
+			return ErrNonJSONError
 		}
-		return ErrNonJSONError
 	}
 
 	var testResp struct {
