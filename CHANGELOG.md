@@ -12,19 +12,23 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds the `Failures` field to opensearchapi structs ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
 
 ### Changed
-- Use docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Uses docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Updates go version to 1.21 ([#509](https://github.com/opensearch-project/opensearch-go/pull/509))
-- Moved Error structs from opensearchapi to opensearch package ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
-- Move parseError function from opensearchapi to opensearch package as ParseError ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
-- Change ParseError function to do type assertion to determine error type ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
-- Changed bulk error/reason field and some cat response fields to pointer as they can be nil ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
+- Moves Error structs from opensearchapi to opensearch package ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Moves parseError function from opensearchapi to opensearch package as ParseError ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Changes ParseError function to do type assertion to determine error type ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Removes unused structs and functions from opensearch ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Adjusts and extent opensearch tests for better coverage ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Bumps codecov action version to v4 ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Changes bulk error/reason field and some cat response fields to pointer as they can be nil ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Fix search request missing a slash when no indices are given ([#470](https://github.com/opensearch-project/opensearch-go/pull/469))
+- Fixes search request missing a slash when no indices are given ([#470](https://github.com/opensearch-project/opensearch-go/pull/469))
+- Fixes opensearchtransport check for nil response body ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
 
 ### Security
 
