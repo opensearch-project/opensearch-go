@@ -197,10 +197,16 @@ cluster.build:
 	docker compose --project-directory .ci/opensearch build;
 
 cluster.start:
-	docker compose --project-directory .ci/opensearch up -d ;
+	docker compose --project-directory .ci/opensearch up -d;
 
 cluster.stop:
-	docker compose --project-directory .ci/opensearch down ;
+	docker compose --project-directory .ci/opensearch down;
+
+cluster.get-cert:
+	@if [[ -v SECURE_INTEGRATION ]] && [[ $$SECURE_INTEGRATION == "true" ]]; then \
+		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk.pem admin.pem && \
+		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk-key.pem admin.key; \
+	fi
 
 
 cluster.clean: ## Remove unused Docker volumes and networks

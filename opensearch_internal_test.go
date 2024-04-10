@@ -414,3 +414,9 @@ func TestParseElasticsearchVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestToPointer(t *testing.T) {
+	testPointer := ToPointer(true)
+	assert.NotNil(t, testPointer)
+	assert.True(t, *testPointer)
+}
