@@ -75,7 +75,6 @@ func example() error {
 	}`)
 
 	// Create an index with non-default settings.
-	var opensearchError opensearchapi.Error
 	createIndexResponse, err := client.Indices.Create(
 		ctx,
 		opensearchapi.IndicesCreateReq{
@@ -83,7 +82,10 @@ func example() error {
 			Body:  mapping,
 		},
 	)
-	// Load err into opensearchapi.Error to access the fields and tolerate if the index already exists
+
+	var opensearchError *opensearch.StructError
+
+	// Load err into opensearch.Error to access the fields and tolerate if the index already exists
 	if err != nil {
 		if errors.As(err, &opensearchError) {
 			if opensearchError.Err.Type != "resource_already_exists_exception" {
@@ -182,13 +184,14 @@ func example() error {
 	}
 	fmt.Printf("Deleted index: %t\n", deleteIndexResp.Acknowledged)
 
-	// Try to delete the index again which failes as it does not exist
-	// Load err into opensearchapi.Error to access the fields and tolerate if the index is missing
+	// Try to delete the index again which fails as it does not exist
 	_, err = client.Indices.Delete(ctx, deleteIndex)
+
+	// Load err into opensearchapi.Error to access the fields and tolerate if the index is missing
 	if err != nil {
 		if errors.As(err, &opensearchError) {
 			if opensearchError.Err.Type != "index_not_found_exception" {
-				return nil
+				return err
 			}
 		} else {
 			return err
@@ -196,6 +199,7 @@ func example() error {
 	}
 	return nil
 }
+
 ```
 
 ## Amazon OpenSearch Service
