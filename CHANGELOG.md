@@ -41,7 +41,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Dependencies
 - Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.3 to 1.26.1
 - Bumps `github.com/wI2L/jsondiff` from 0.4.0 to 0.5.1
-- Bumps `github.com/aws/aws-sdk-go` from 1.50.36 to 1.51.16
+- Bumps `github.com/aws/aws-sdk-go` from 1.50.36 to 1.51.17
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.27.7 to 1.27.11
 
 ## [3.1.0]
