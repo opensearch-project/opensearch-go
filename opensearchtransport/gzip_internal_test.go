@@ -6,7 +6,7 @@
 
 //go:build !integration
 
-package opensearchtransport_test
+package opensearchtransport
 
 import (
 	"compress/gzip"
