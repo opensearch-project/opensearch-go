@@ -28,7 +28,6 @@ package opensearchtransport
 
 import (
 	"bytes"
-	"compress/gzip"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -111,7 +110,8 @@ type Client struct {
 	discoverNodesInterval time.Duration
 	discoverNodesTimer    *time.Timer
 
-	compressRequestBody bool
+	compressRequestBody  bool
+	pooledGzipCompressor *gzipCompressor
 
 	metrics *metrics
 
@@ -211,6 +211,10 @@ func New(cfg Config) (*Client, error) {
 		})
 	}
 
+	if cfg.CompressRequestBody {
+		client.pooledGzipCompressor = newGzipCompressor()
+	}
+
 	return &client, nil
 }
 
@@ -234,18 +238,14 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 	if req.Body != nil && req.Body != http.NoBody {
 		if c.compressRequestBody {
-			var buf bytes.Buffer
-			zw := gzip.NewWriter(&buf)
-			if _, err := io.Copy(zw, req.Body); err != nil {
+			buf, err := c.pooledGzipCompressor.compress(req.Body)
+			defer c.pooledGzipCompressor.collectBuffer(buf)
+			if err != nil {
 				return nil, fmt.Errorf("failed to compress request body: %w", err)
-			}
-			if err := zw.Close(); err != nil {
-				return nil, fmt.Errorf("failed to compress request body (during close): %w", err)
 			}
 
 			req.GetBody = func() (io.ReadCloser, error) {
-				r := buf
-				return io.NopCloser(&r), nil
+				return io.NopCloser(buf), nil
 			}
 			//nolint:errcheck // error is always nil
 			req.Body, _ = req.GetBody()
