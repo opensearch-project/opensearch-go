@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 )
 
 // Error vars
@@ -20,8 +19,6 @@ var (
 	ErrReadBody               = errors.New("failed to read body")
 	ErrJSONUnmarshalBody      = errors.New("failed to json unmarshal body")
 	ErrUnknownOpensearchError = errors.New("opensearch error response could not be parsed as error")
-	ErrNonJSONError           = errors.New("error is not in json format")
-	ErrUnauthorized           = errors.New(http.StatusText(http.StatusUnauthorized))
 )
 
 // Error represents an Opensearch error with only an error field
@@ -131,10 +128,7 @@ func ParseError(resp *Response) error {
 	}
 
 	if !json.Valid(body) {
-		if resp.StatusCode == http.StatusUnauthorized {
-			return ErrUnauthorized
-		}
-		return ErrNonJSONError
+		return fmt.Errorf("%s", body)
 	}
 
 	var testResp struct {

@@ -182,14 +182,6 @@ func TestError(t *testing.T) {
 			WantedErrors []error
 		}{
 			{
-				Name: "Non JSON error",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusMethodNotAllowed,
-					Body:       io.NopCloser(strings.NewReader(`Test - Trigger an error`)),
-				},
-				WantedErrors: []error{opensearch.ErrNonJSONError},
-			},
-			{
 				Name: "error field object",
 				Resp: &opensearch.Response{
 					StatusCode: http.StatusForbidden,
@@ -204,14 +196,6 @@ func TestError(t *testing.T) {
 					Body:       io.NopCloser(strings.NewReader(`{"_index":"index","_id":"2","matched":false}`)),
 				},
 				WantedErrors: []error{opensearch.ErrUnknownOpensearchError},
-			},
-			{
-				Name: "unauthorized",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusUnauthorized,
-					Body:       io.NopCloser(strings.NewReader(http.StatusText(http.StatusUnauthorized))),
-				},
-				WantedErrors: []error{opensearch.ErrUnauthorized},
 			},
 			{
 				Name: "io read error",
@@ -244,5 +228,24 @@ func TestError(t *testing.T) {
 				}
 			})
 		}
+
+		t.Run("unauthorized", func(t *testing.T) {
+			resp := &opensearch.Response{
+				StatusCode: http.StatusUnauthorized,
+				Body:       io.NopCloser(strings.NewReader(http.StatusText(http.StatusUnauthorized))),
+			}
+			assert.True(t, resp.IsError())
+			err := opensearch.ParseError(resp)
+			assert.Equal(t, err.Error(), http.StatusText(http.StatusUnauthorized))
+		})
+		t.Run("too many requests", func(t *testing.T) {
+			resp := &opensearch.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Body:       io.NopCloser(strings.NewReader("429 Too Many Requests /testindex/_bulk")),
+			}
+			assert.True(t, resp.IsError())
+			err := opensearch.ParseError(resp)
+			assert.Equal(t, err.Error(), "429 Too Many Requests /testindex/_bulk")
+		})
 	})
 }
