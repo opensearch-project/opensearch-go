@@ -44,6 +44,7 @@ type DocumentGetResp struct {
 	Found       bool            `json:"found"`
 	Type        string          `json:"_type"` // Deprecated field
 	Source      json.RawMessage `json:"_source"`
+	Fields      json.RawMessage `json:"fields"`
 	response    *opensearch.Response
 }
 
