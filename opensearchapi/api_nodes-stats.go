@@ -691,6 +691,9 @@ type NodesStatsResourceUsageStats struct {
 	Timestamp                int64  `json:"timestamp"`
 	CPUUtilizationPercent    string `json:"cpu_utilization_percent"`
 	MemoryUtilizationPercent string `json:"memory_utilization_percent"`
+	IOUsageStats             struct {
+		MaxIOUtilizationPercent string `json:"max_io_utilization_percent"`
+	} `json:"io_usage_stats"`
 }
 
 // NodesStatsSegmentReplicationBackpressure is a sub type of NodesStats containing information about segment replication backpressure
