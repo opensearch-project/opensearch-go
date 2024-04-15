@@ -22,13 +22,17 @@ test: test-unit
 test-integ:  ## Run integration tests
 	@printf "\033[2m→ Running integration tests...\033[0m\n"
 	$(eval testintegtags += "integration")
+	$(eval testintegpath = "./...")
 ifdef multinode
 	$(eval testintegtags += "multinode")
 endif
 ifdef race
 	$(eval testintegargs += "-race")
 endif
-	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=1h" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
+ifdef unreleased
+	$(eval testintegpath = "./opensearchapi/...")
+endif
+	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=1h" "$(testintegpath)" "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
 	@mkdir -p $(PWD)/tmp/integration
 	@echo "go test -v" $(testintegargs); \
 	go test -v $(testintegargs);
