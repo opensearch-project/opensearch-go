@@ -22,19 +22,19 @@ import (
 
 func TestScrollClient(t *testing.T) {
 	client, err := ostest.NewClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	search, err := client.Search(
 		nil,
 		&opensearchapi.SearchReq{
-			Indices: []string{"test*"},
+			Indices: []string{"*"},
 			Params:  opensearchapi.SearchParams{Scroll: 5 * time.Minute},
 		},
 	)
-	require.Nil(t, err)
-	require.NotNil(t, search.ScrollID)
+	require.NoError(t, err)
+	require.NotNil(t, search.ScrollID, "ScrollID is nil")
 
 	type scrollTests struct {
 		Name    string
@@ -86,11 +86,11 @@ func TestScrollClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
