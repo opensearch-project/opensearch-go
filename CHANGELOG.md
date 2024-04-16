@@ -30,6 +30,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adjust workflows to work with security plugin ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
 - Updates USER_GUIDE.md and /_samples/ ([#518](https://github.com/opensearch-project/opensearch-go/pull/518))
 - Updates opensearchtransport.Client to use pooled gzip writer and buffer ([#521](https://github.com/opensearch-project/opensearch-go/pull/521))
+- Use go:build tags for testing ([#52?](https://github.com/opensearch-project/opensearch-go/pull/52?))
 
 ### Deprecated
 
