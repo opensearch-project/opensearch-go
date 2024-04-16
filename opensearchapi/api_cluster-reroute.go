@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ClusterRerouteReq represents possible options for the /_cluster/reroute request

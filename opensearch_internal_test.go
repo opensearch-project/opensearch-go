@@ -43,7 +43,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 var called int

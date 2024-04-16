@@ -42,8 +42,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3/internal/version"
-	"github.com/opensearch-project/opensearch-go/v3/signer"
+	"github.com/opensearch-project/opensearch-go/v4/internal/version"
+	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
 const (

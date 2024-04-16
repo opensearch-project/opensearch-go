@@ -14,10 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/plugins/ism"
-	osismtest "github.com/opensearch-project/opensearch-go/v3/plugins/ism/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
+	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
 )
 
 func TestPoliciesClient(t *testing.T) {

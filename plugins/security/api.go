@@ -10,7 +10,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Config represents the client configuration

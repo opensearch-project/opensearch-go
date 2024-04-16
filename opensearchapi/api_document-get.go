@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // DocumentGetReq represents possible options for the /<Index>/_doc/<DocumentID> get request

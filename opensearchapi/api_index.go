@@ -12,7 +12,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Index executes a /_doc request with the given IndexReq

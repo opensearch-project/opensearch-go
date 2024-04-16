@@ -9,7 +9,7 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ScriptLanguageReq represents possible options for the delete script request

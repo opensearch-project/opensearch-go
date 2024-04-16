@@ -15,9 +15,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/plugins/security"
-	ossectest "github.com/opensearch-project/opensearch-go/v3/plugins/security/internal/test"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
+	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
 func TestTenantsClient(t *testing.T) {

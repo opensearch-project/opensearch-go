@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ScriptDeleteReq represents possible options for the delete script request

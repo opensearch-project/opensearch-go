@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // UpdateByQuery executes a /_update_by_query request with the optional UpdateByQueryReq

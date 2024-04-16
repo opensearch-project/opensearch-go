@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Search executes a /_search request with the optional SearchReq

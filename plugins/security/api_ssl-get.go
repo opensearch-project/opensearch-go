@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // SSLGetReq represents possible options for the ssl/certs get request

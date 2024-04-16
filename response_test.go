@@ -31,7 +31,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 func TestResponse(t *testing.T) {

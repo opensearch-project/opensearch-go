@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // RolesPutReq represents possible options for the roles put request

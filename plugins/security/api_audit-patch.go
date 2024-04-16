@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // AuditPatchReq represents possible options for the audit patch request

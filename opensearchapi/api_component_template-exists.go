@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ComponentTemplateExistsReq represents possible options for the _component_template exists request

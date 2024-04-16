@@ -42,10 +42,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 func TestClientTransport(t *testing.T) {

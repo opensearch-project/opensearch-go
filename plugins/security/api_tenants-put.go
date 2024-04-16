@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // TenantsPutReq represents possible options for the tenants put request

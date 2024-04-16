@@ -11,7 +11,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // AccountPutReq represents possible options for the account put request

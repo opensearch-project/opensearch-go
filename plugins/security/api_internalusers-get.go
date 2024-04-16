@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // InternalUsersGetReq represents possible options for the internal users get request

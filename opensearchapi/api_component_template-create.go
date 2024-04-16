@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ComponentTemplateCreateReq represents possible options for the _component_template create request

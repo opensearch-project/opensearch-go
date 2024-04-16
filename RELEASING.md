@@ -34,7 +34,7 @@ Repositories create consistent release labels, such as `v1.0.0`, `v1.1.0` and `v
 The release process is standard across repositories in this org and is run by a release manager volunteering from amongst [MAINTAINERS](MAINTAINERS.md).
 
 1. Ensure that the version in [version.go](internal/version/version.go) is correct for the next release. 
-2. For major version releases, ensure that all references are up-to-date, e.g. `github.com/opensearch-project/opensearch-go/v3`, see [opensearch-go#444](https://github.com/opensearch-project/opensearch-go/pull/444).
+2. For major version releases, ensure that all references are up-to-date, e.g. `github.com/opensearch-project/opensearch-go/v4`, see [opensearch-go#444](https://github.com/opensearch-project/opensearch-go/pull/444).
 3. Edit the [CHANGELOG](CHANGELOG.md) and replace the `Unreleased` section with the version about to be released.
 4. Add a comparison link to the new version at the bottom of the [CHANGELOG](CHANGELOG.md).
 5. Create a pull request with the changes into `main`, e.g. [opensearch-go#443](https://github.com/opensearch-project/opensearch-go/pull/443).

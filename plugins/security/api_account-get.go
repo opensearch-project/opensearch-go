@@ -9,7 +9,7 @@ package security
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // AccountGetReq represents possible options for the account get request

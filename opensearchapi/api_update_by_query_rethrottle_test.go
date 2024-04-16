@@ -17,10 +17,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
 func TestUpdateByQueryRethrottle(t *testing.T) {

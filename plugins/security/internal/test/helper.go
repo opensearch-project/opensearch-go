@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/plugins/security"
+	"github.com/opensearch-project/opensearch-go/v4"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 )
 
 // Response is a dummy interface to run tests with Inspect()

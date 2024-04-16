@@ -16,8 +16,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 func main() {
