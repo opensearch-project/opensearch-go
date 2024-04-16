@@ -6,6 +6,8 @@
 //
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
+//
+//go:build !integration
 
 package awsv2_test
 
