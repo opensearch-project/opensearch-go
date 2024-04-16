@@ -55,7 +55,7 @@ jobs:
         run: |
           export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
           export SECURE_INTEGRATION=${{ matrix.secured }}
-          make cluster.get-cert test-integ race=true
+          make cluster.get-cert test-integ-core test-integ-plugins race=true
 
       - name: Stop the OpenSearch cluster
         run: |
