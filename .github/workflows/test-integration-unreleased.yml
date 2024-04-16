@@ -65,7 +65,7 @@ jobs:
 
       - name: Integration test
         working-directory: go-client
-        run: make test-integ race=true
+        run: make test-integ race=true unreleased=true
         env:
           OPENSEARCH_GO_SKIP_JSON_COMPARE: true
       
