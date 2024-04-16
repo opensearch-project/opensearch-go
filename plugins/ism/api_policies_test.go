@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 //
-//go:build integration
+//go:build integration && (plugins || plugin_index_management)
 
 package ism_test
 
