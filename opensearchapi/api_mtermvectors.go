@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // MTermvectors executes a /_mtermvectors request with the required MTermvectorsReq

@@ -9,7 +9,7 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // CatMasterReq represent possible options for the /_cat/master request

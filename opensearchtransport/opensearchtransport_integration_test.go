@@ -38,9 +38,9 @@ import (
 	"strings"
 	"testing"
 
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
 var (

@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // SearchShards executes a /_search request with the optional SearchShardsReq

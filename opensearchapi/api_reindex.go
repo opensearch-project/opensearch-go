@@ -12,7 +12,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Reindex executes a / request with the optional ReindexReq

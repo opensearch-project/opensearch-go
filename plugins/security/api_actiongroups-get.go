@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ActionGroupsGetReq represents possible options for the actiongroups get request

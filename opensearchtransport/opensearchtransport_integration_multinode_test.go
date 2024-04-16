@@ -35,7 +35,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 var (

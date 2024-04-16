@@ -22,7 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/opensearch-project/opensearch-go/v3/signer/awsv2"
+	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
 )
 
 func getCredentialProvider() aws.CredentialsProviderFunc {

@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // DocumentExplainReq represents possible options for the /<Index>/_explain/<DocumentID> request

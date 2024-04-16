@@ -10,7 +10,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // FlushCache executes a flush cache request with the optional FlushCacheReq

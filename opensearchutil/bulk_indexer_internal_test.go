@@ -44,9 +44,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 var infoBody = `{

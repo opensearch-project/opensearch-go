@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	ossectest "github.com/opensearch-project/opensearch-go/v3/plugins/security/internal/test"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
 func TestFlushCache(t *testing.T) {

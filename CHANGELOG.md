@@ -2,7 +2,7 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [4.0.0]
 
 ### Added
 - Adds GlobalIOUsage struct for nodes stats ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
@@ -14,7 +14,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds security plugin ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
 - Adds security settings to container for security testing ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
 - Adds cluster.get-certs to copy admin certs out of the container ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
-- Adds the `Fields` field containing stored fields to the `DocumentGetResp` struct (#526)[https://github.com/opensearch-project/opensearch-go/pull/526]
+- Adds the `Fields` field containing stored fields to the `DocumentGetResp` struct ([#526](https://github.com/opensearch-project/opensearch-go/pull/526))
 - Adds ism plugin ([#524](https://github.com/opensearch-project/opensearch-go/pull/524))
 
 ### Changed
@@ -193,7 +193,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v3.1.0...HEAD
+[4.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.3.0...v3.0.0
 [2.3.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.2.0...v2.3.0

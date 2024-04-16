@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/stretchr/testify/assert"
 
-	osaws "github.com/opensearch-project/opensearch-go/v3/signer/aws"
+	osaws "github.com/opensearch-project/opensearch-go/v4/signer/aws"
 )
 
 func TestConstants(t *testing.T) {

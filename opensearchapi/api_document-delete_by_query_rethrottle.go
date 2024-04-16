@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // DocumentDeleteByQueryRethrottleReq represents possible options for the /_delete_by_query/<index>/_rethrottle request

@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wI2L/jsondiff"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case

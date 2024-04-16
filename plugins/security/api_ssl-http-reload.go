@@ -9,7 +9,7 @@ package security
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // SSLHTTPReloadReq represents possible options for the http ssl reload request

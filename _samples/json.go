@@ -13,8 +13,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 const IndexName = "go-test-index1"
