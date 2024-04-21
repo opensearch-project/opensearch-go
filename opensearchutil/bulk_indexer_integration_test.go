@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build integration
+//go:build integration && (core || opensearchutil)
 
 package opensearchutil_test
 
@@ -37,11 +37,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3"
-	osapitest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
 func TestBulkIndexerIntegration(t *testing.T) {

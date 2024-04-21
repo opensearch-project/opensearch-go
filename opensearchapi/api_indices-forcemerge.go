@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesForcemergeReq represents possible options for the <index>/_forcemerge request
@@ -44,9 +44,10 @@ func (r IndicesForcemergeReq) GetRequest() (*http.Request, error) {
 // IndicesForcemergeResp represents the returned struct of the flush indices response
 type IndicesForcemergeResp struct {
 	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
 	response *opensearch.Response
 }

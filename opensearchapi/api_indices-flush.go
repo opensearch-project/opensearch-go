@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesFlushReq represents possible options for the flush indices request
@@ -44,9 +44,10 @@ func (r IndicesFlushReq) GetRequest() (*http.Request, error) {
 // IndicesFlushResp represents the returned struct of the flush indices response
 type IndicesFlushResp struct {
 	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
 	response *opensearch.Response
 }

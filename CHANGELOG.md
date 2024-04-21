@@ -5,14 +5,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
-- Adds GlobalIOUsage struct for nodes stats ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
-- Adds the `Explanation` field containing the document explain details to the `SearchHit` struct. ([#504](https://github.com/opensearch-project/opensearch-go/pull/504))
-- Adds the `Fields` field containing the document fields to the `SearchHit` struct. ([#508](https://github.com/opensearch-project/opensearch-go/pull/508))
-- Adds the `Routing` field in SearchHit interface. ([#516](https://github.com/opensearch-project/opensearch-go/pull/516))
 
 ### Changed
-- Use docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
-- Updates go version to 1.21 ([#509](https://github.com/opensearch-project/opensearch-go/pull/509))
 
 ### Deprecated
 
@@ -23,9 +17,52 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+
+## [4.0.0]
+
+### Added
+- Adds GlobalIOUsage struct for nodes stats ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Adds the `Explanation` field containing the document explain details to the `SearchHit` struct. ([#504](https://github.com/opensearch-project/opensearch-go/pull/504))
+- Adds new error types ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Adds handling of non json errors to ParseError ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Adds the `Failures` field to opensearchapi structs ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
+- Adds the `Fields` field containing the document fields to the `SearchHit` struct. ([#508](https://github.com/opensearch-project/opensearch-go/pull/508))
+- Adds security plugin ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
+- Adds security settings to container for security testing ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
+- Adds cluster.get-certs to copy admin certs out of the container ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
+- Adds the `Fields` field containing stored fields to the `DocumentGetResp` struct ([#526](https://github.com/opensearch-project/opensearch-go/pull/526))
+- Adds ism plugin ([#524](https://github.com/opensearch-project/opensearch-go/pull/524))
+- Adds the `Routing` field in SearchHit interface. ([#516](https://github.com/opensearch-project/opensearch-go/pull/516))
+
+### Changed
+- Uses docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Updates go version to 1.21 ([#509](https://github.com/opensearch-project/opensearch-go/pull/509))
+- Moves Error structs from opensearchapi to opensearch package ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Moves parseError function from opensearchapi to opensearch package as ParseError ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Changes ParseError function to do type assertion to determine error type ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
+- Removes unused structs and functions from opensearch ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Adjusts and extent opensearch tests for better coverage ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Bumps codecov action version to v4 ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+- Changes bulk error/reason field and some cat response fields to pointer as they can be nil ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
+- Adjust workflows to work with security plugin ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
+- Updates USER_GUIDE.md and /_samples/ ([#518](https://github.com/opensearch-project/opensearch-go/pull/518))
+- Updates opensearchtransport.Client to use pooled gzip writer and buffer ([#521](https://github.com/opensearch-project/opensearch-go/pull/521))
+- Use go:build tags for testing ([#52?](https://github.com/opensearch-project/opensearch-go/pull/52?))
+
+### Deprecated
+
+### Removed
+
+### Fixed
+- Fixes search request missing a slash when no indices are given ([#470](https://github.com/opensearch-project/opensearch-go/pull/469))
+- Fixes opensearchtransport check for nil response body ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
+
+### Security
+
+### Dependencies
 - Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.3 to 1.26.1
 - Bumps `github.com/wI2L/jsondiff` from 0.4.0 to 0.5.1
-- Bumps `github.com/aws/aws-sdk-go` from 1.50.36 to 1.51.16
+- Bumps `github.com/aws/aws-sdk-go` from 1.50.36 to 1.51.21
 - Bumps `github.com/aws/aws-sdk-go-v2/config` from 1.27.7 to 1.27.11
 
 ## [3.1.0]
@@ -81,6 +118,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adjusts tests to new opensearchapi functions and structs ([#421](https://github.com/opensearch-project/opensearch-go/pull/421))
 - Changes codecov to comment code coverage to each PR ([#410](https://github.com/opensearch-project/opensearch-go/pull/410))
 - Changes module version from v2 to v3 ([#444](https://github.com/opensearch-project/opensearch-go/pull/444))
+- Handle unexpected non-json errors with the response body ([#523](https://github.com/opensearch-project/opensearch-go/pull/523))
 
 ### Deprecated
 
@@ -172,7 +210,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v3.1.0...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v4.0.0...HEAD
+[4.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.3.0...v3.0.0
 [2.3.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.2.0...v2.3.0

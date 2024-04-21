@@ -40,6 +40,9 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDiscovery(t *testing.T) {
@@ -80,7 +83,6 @@ func TestDiscovery(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ERROR: %s", err)
 		}
-		fmt.Printf("NodesInfo: %+v\n", nodes)
 
 		if len(nodes) != 4 {
 			t.Errorf("Unexpected number of nodes, want=4, got=%d", len(nodes))
@@ -106,6 +108,24 @@ func TestDiscovery(t *testing.T) {
 				}
 			}
 		}
+	})
+
+	t.Run("getNodesInfo() empty Body", func(t *testing.T) {
+		newRoundTripper := func() http.RoundTripper {
+			return &mockTransp{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Header: http.Header{}}, nil
+				},
+			}
+		}
+
+		u, _ := url.Parse("http://localhost:8080")
+		tp, err := New(Config{URLs: []*url.URL{u}, Transport: newRoundTripper()})
+		require.NoError(t, err)
+
+		_, err = tp.getNodesInfo()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unexpected empty body")
 	})
 
 	t.Run("DiscoverNodes()", func(t *testing.T) {

@@ -9,7 +9,7 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // CatNodeAttrsReq represent possible options for the /_cat/nodeattrs request
@@ -39,7 +39,7 @@ type CatNodeAttrsResp struct {
 type CatNodeAttrsItemResp struct {
 	Node  string `json:"node"`
 	ID    string `json:"id"`
-	PID   int    `json:"pid,string"`
+	PID   *int   `json:"pid,string"`
 	Host  string `json:"host"`
 	IP    string `json:"ip"`
 	Port  int    `json:"port,string"`

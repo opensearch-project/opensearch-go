@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // NodesReloadSecurityReq represents possible options for the /_nodes request
@@ -51,9 +51,10 @@ func (r NodesReloadSecurityReq) GetRequest() (*http.Request, error) {
 // NodesReloadSecurityResp represents the returned struct of the /_nodes response
 type NodesReloadSecurityResp struct {
 	NodesInfo struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresCause `json:"failures"`
 	} `json:"_nodes"`
 	ClusterName string `json:"cluster_name"`
 	Nodes       map[string]struct {

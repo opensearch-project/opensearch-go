@@ -8,14 +8,11 @@ package opensearchapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Config represents the client configuration
@@ -109,43 +106,13 @@ func (c *Client) do(ctx context.Context, req opensearch.Request, dataPointer any
 
 	if resp.IsError() {
 		if dataPointer != nil {
-			return resp, parseError(resp)
+			return resp, opensearch.ParseError(resp)
 		} else {
 			return resp, fmt.Errorf("status: %s", resp.Status())
 		}
 	}
 
 	return resp, nil
-}
-
-// praseError tries to parse the opensearch api error into an custom error
-func parseError(resp *opensearch.Response) error {
-	if resp.Body == nil {
-		return fmt.Errorf("%w, status: %s", ErrUnexpectedEmptyBody, resp.Status())
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrReadBody, err)
-	}
-
-	if resp.StatusCode == http.StatusMethodNotAllowed {
-		var apiError StringError
-		if err = json.Unmarshal(body, &apiError); err != nil {
-			return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
-		}
-		return apiError
-	}
-
-	// ToDo: Parse 404 errors separate as they are not in one standard format
-	// https://github.com/opensearch-project/OpenSearch/issues/9988
-
-	var apiError Error
-	if err = json.Unmarshal(body, &apiError); err != nil {
-		return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
-	}
-
-	return apiError
 }
 
 // formatDuration converts duration to a string in the format
@@ -174,10 +141,34 @@ type ResponseShards struct {
 
 // ResponseShardsFailure is a sub type of ReponseShards containing information about a failed shard
 type ResponseShardsFailure struct {
-	Shard  int `json:"shard"`
-	Index  any `json:"index"`
+	Shard  int    `json:"shard"`
+	Index  any    `json:"index"`
+	Node   string `json:"node"`
 	Reason struct {
 		Type   string `json:"type"`
 		Reason string `json:"reason"`
 	} `json:"reason"`
+}
+
+// FailuresCause contains information about failure cause
+type FailuresCause struct {
+	Type   string `json:"type"`
+	Reason string `json:"reason"`
+	NodeID string `json:"node_id"`
+	Cause  *struct {
+		Type   string `json:"type"`
+		Reason string `json:"reason"`
+		Cause  *struct {
+			Type   string  `json:"type"`
+			Reason *string `json:"reason"`
+		} `json:"caused_by,omitempty"`
+	} `json:"caused_by,omitempty"`
+}
+
+// FailuresShard contains information about shard failures
+type FailuresShard struct {
+	Shard  int           `json:"shard"`
+	Index  string        `json:"index"`
+	Status string        `json:"status"`
+	Reason FailuresCause `json:"reason"`
 }

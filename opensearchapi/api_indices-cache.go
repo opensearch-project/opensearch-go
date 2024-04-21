@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesClearCacheReq represents possible options for the index clear cache request
@@ -45,9 +45,10 @@ func (r IndicesClearCacheReq) GetRequest() (*http.Request, error) {
 // IndicesClearCacheResp represents the returned struct of the index clear cache response
 type IndicesClearCacheResp struct {
 	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
 	response *opensearch.Response
 }

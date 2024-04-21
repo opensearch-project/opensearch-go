@@ -36,7 +36,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 type FakeTransport struct {

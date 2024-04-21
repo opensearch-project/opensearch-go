@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // ClusterStatsReq represents possible options for the /_cluster/stats request
@@ -46,9 +46,10 @@ func (r ClusterStatsReq) GetRequest() (*http.Request, error) {
 // ClusterStatsResp represents the returned struct of the ClusterStatsReq response
 type ClusterStatsResp struct {
 	NodesInfo struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresCause `json:"failures"`
 	} `json:"_nodes"`
 	ClusterName string              `json:"cluster_name"`
 	ClusterUUID string              `json:"cluster_uuid"`

@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesValidateQueryReq represents possible options for the index shrink request
@@ -47,9 +47,10 @@ func (r IndicesValidateQueryReq) GetRequest() (*http.Request, error) {
 // IndicesValidateQueryResp represents the returned struct of the index shrink response
 type IndicesValidateQueryResp struct {
 	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
 	Valid        bool    `json:"valid"`
 	Error        *string `json:"error"`

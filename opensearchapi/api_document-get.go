@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // DocumentGetReq represents possible options for the /<Index>/_doc/<DocumentID> get request
@@ -44,6 +44,7 @@ type DocumentGetResp struct {
 	Found       bool            `json:"found"`
 	Type        string          `json:"_type"` // Deprecated field
 	Source      json.RawMessage `json:"_source"`
+	Fields      json.RawMessage `json:"fields"`
 	response    *opensearch.Response
 }
 

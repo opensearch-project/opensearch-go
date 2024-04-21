@@ -41,9 +41,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v3/internal/version"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v3/signer"
+	"github.com/opensearch-project/opensearch-go/v4/internal/version"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
 const (
@@ -55,9 +55,6 @@ const (
 
 // Version returns the package version as a string.
 const Version = version.Client
-
-// SupportedElasticVersion defines the supported major elasticsearch version
-const SupportedElasticVersion = 7
 
 // Error vars
 var (
@@ -110,17 +107,6 @@ type Config struct {
 // Client represents the OpenSearch client.
 type Client struct {
 	Transport opensearchtransport.Interface
-}
-
-type esVersion struct {
-	Number       string `json:"number"`
-	BuildFlavor  string `json:"build_flavor"`
-	Distribution string `json:"distribution"`
-}
-
-type info struct {
-	Version esVersion `json:"version"`
-	Tagline string    `json:"tagline"`
 }
 
 // NewDefaultClient creates a new client with default options.
@@ -217,24 +203,6 @@ func getAddressFromEnvironment() []string {
 	return addrsFromEnvironment(envOpenSearchURL)
 }
 
-// checkCompatibleInfo validates the information given by OpenSearch
-func checkCompatibleInfo(info info) error {
-	major, _, _, err := ParseVersion(info.Version.Number)
-	if err != nil {
-		return err
-	}
-
-	if info.Version.Distribution == openSearch {
-		return nil
-	}
-
-	if major != SupportedElasticVersion {
-		return errors.New(unsupportedProduct)
-	}
-
-	return nil
-}
-
 // ParseVersion returns an int64 representation of version.
 func ParseVersion(version string) (int64, int64, int64, error) {
 	reVersion := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)`)
@@ -294,13 +262,13 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer interface{}) (
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {
 		data, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return response, fmt.Errorf("failed to read the response body, status: %d, err: %w", resp.StatusCode, err)
+			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
 		}
 
 		response.Body = io.NopCloser(bytes.NewReader(data))
 
 		if err := json.Unmarshal(data, dataPointer); err != nil {
-			return response, fmt.Errorf("failed to parse body into the pointer, status: %d, body: %s, err: %w", resp.StatusCode, data, err)
+			return response, fmt.Errorf("%w, status: %d, body: %s, err: %w", ErrJSONUnmarshalBody, resp.StatusCode, data, err)
 		}
 	}
 
@@ -356,4 +324,9 @@ func addrsToURLs(addrs []string) ([]*url.URL, error) {
 	}
 
 	return urls, nil
+}
+
+// ToPointer converts any value to a pointer, mainly used for request parameters
+func ToPointer[V any](value V) *V {
+	return &value
 }

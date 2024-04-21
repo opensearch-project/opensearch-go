@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Bulk executes a /_bulk request with the needed BulkReq
@@ -96,8 +96,8 @@ type BulkRespItem struct {
 				End    int `json:"end"`
 			} `json:"position,omitempty"`
 			Cause *struct {
-				Type   string `json:"type"`
-				Reason string `json:"reason"`
+				Type   string  `json:"type"`
+				Reason *string `json:"reason"`
 			} `json:"caused_by"`
 		} `json:"caused_by,omitempty"`
 	} `json:"error,omitempty"`

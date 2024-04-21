@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // TasksCancelReq represents possible options for the index create request
@@ -43,8 +43,9 @@ func (r TasksCancelReq) GetRequest() (*http.Request, error) {
 
 // TasksCancelResp represents the returned struct of the index create response
 type TasksCancelResp struct {
-	Nodes    map[string]TaskCancel `json:"nodes"`
-	response *opensearch.Response
+	Nodes        map[string]TaskCancel `json:"nodes"`
+	NodeFailures []FailuresCause       `json:"node_failures"`
+	response     *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse

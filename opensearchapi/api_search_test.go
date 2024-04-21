@@ -4,20 +4,21 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 //
-//go:build integration
+//go:build integration && (core || opensearchapi)
 
 package opensearchapi_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 )
 
 func TestSearch(t *testing.T) {
@@ -73,20 +74,40 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with retrieve specific fields", func(t *testing.T) {
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
-		  "query": {
-			"match": {
-			  "foo": "bar"
-			}
-		  },
-		  "fields": [
-			"foo"
-		  ],
-		  "_source": false
-		}`)})
+		resp, err := client.Search(
+			nil,
+			&opensearchapi.SearchReq{
+				Indices: []string{index},
+				Body: strings.NewReader(`{
+				"query": {
+					"match": {
+						"foo": "bar"
+					}
+				},
+				"fields": [
+					"foo"
+				],
+			"_source": false
+			}`),
+			},
+		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
+	})
+
+	t.Run("url path", func(t *testing.T) {
+		req := &opensearchapi.SearchReq{}
+		httpReq, err := req.GetRequest()
+		assert.Nil(t, err)
+		require.NotNil(t, httpReq)
+		assert.Equal(t, "/_search", httpReq.URL.Path)
+
+		req = &opensearchapi.SearchReq{Indices: []string{index}}
+		httpReq, err = req.GetRequest()
+		assert.Nil(t, err)
+		require.NotNil(t, httpReq)
+		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
 }
 

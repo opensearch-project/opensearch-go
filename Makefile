@@ -21,7 +21,7 @@ test: test-unit
 
 test-integ:  ## Run integration tests
 	@printf "\033[2m→ Running integration tests...\033[0m\n"
-	$(eval testintegtags += "integration")
+	$(eval testintegtags += "integration,core,plugins")
 ifdef multinode
 	$(eval testintegtags += "multinode")
 endif
@@ -36,8 +36,21 @@ ifdef coverage
 	@go tool covdata textfmt -i=$(PWD)/tmp/integration -o $(PWD)/tmp/integ.cov
 endif
 
+test-integ-core:  ## Run base integration tests
+	@make test-integ testintegtags=integration,core
+
+test-integ-plugins:  ## Run plugin integration tests
+	@make test-integ testintegtags=integration,plugins
+
 test-integ-secure: ##Run secure integration tests
 	@SECURE_INTEGRATION=true make test-integ
+
+test-integ-core-secure:  ## Run secure base integration tests
+	@SECURE_INTEGRATION=true make test-integ testintegtags=integration,core
+
+test-integ-plugins-secure:  ## Run secure plugin integration tests
+	@SECURE_INTEGRATION=true make test-integ testintegtags=integration,plugins
+
 
 test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
@@ -197,10 +210,16 @@ cluster.build:
 	docker compose --project-directory .ci/opensearch build;
 
 cluster.start:
-	docker compose --project-directory .ci/opensearch up -d ;
+	docker compose --project-directory .ci/opensearch up -d;
 
 cluster.stop:
-	docker compose --project-directory .ci/opensearch down ;
+	docker compose --project-directory .ci/opensearch down;
+
+cluster.get-cert:
+	@if [[ -v SECURE_INTEGRATION ]] && [[ $$SECURE_INTEGRATION == "true" ]]; then \
+		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk.pem admin.pem && \
+		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk-key.pem admin.key; \
+	fi
 
 
 cluster.clean: ## Remove unused Docker volumes and networks

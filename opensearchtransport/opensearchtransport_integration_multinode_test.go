@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build integration && multinode
+//go:build integration && (core || opensearchtransport) && multinode
 
 package opensearchtransport_test
 
@@ -35,7 +35,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 var (

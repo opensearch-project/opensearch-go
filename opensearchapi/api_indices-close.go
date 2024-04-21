@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesCloseReq represents possible options for the index close request
@@ -37,7 +37,10 @@ type IndicesCloseResp struct {
 	Acknowledged       bool `json:"acknowledged"`
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 	Indices            map[string]struct {
-		Closed bool `json:"closed"`
+		Closed       bool `json:"closed"`
+		FailedShards map[string]struct {
+			Failures []FailuresShard `json:"failures"`
+		} `json:"failed_shards"`
 	} `json:"indices"`
 	response *opensearch.Response
 }

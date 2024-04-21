@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // NodesStatsReq represents possible options for the /_nodes request
@@ -62,9 +62,10 @@ func (r NodesStatsReq) GetRequest() (*http.Request, error) {
 // NodesStatsResp represents the returned struct of the /_nodes response
 type NodesStatsResp struct {
 	NodesInfo struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
+		Total      int             `json:"total"`
+		Successful int             `json:"successful"`
+		Failed     int             `json:"failed"`
+		Failures   []FailuresCause `json:"failures"`
 	} `json:"_nodes"`
 	ClusterName string                `json:"cluster_name"`
 	Nodes       map[string]NodesStats `json:"nodes"`
@@ -690,6 +691,9 @@ type NodesStatsResourceUsageStats struct {
 	Timestamp                int64  `json:"timestamp"`
 	CPUUtilizationPercent    string `json:"cpu_utilization_percent"`
 	MemoryUtilizationPercent string `json:"memory_utilization_percent"`
+	IOUsageStats             struct {
+		MaxIOUtilizationPercent string `json:"max_io_utilization_percent"`
+	} `json:"io_usage_stats"`
 }
 
 // NodesStatsSegmentReplicationBackpressure is a sub type of NodesStats containing information about segment replication backpressure

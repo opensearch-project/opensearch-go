@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesShardStoresReq represents possible options for the index shrink request
@@ -49,6 +49,7 @@ type IndicesShardStoresResp struct {
 			Stores []json.RawMessage `json:"stores"`
 		} `json:"shards"`
 	} `json:"indices"`
+	Failures []FailuresShard `json:"failures"`
 	response *opensearch.Response
 }
 

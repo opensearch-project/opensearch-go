@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 //
-//go:build integration
+//go:build integration && (core || opensearchapi)
 
 package opensearchapi_test
 
@@ -17,10 +17,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v3/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v3/opensearchapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v3/opensearchutil"
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
 func TestDocumentClient(t *testing.T) {
@@ -392,6 +392,45 @@ func TestDocumentClient(t *testing.T) {
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
 			ostest.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
+		})
+		t.Run("Fields", func(t *testing.T) {
+			_, err := client.Indices.Mapping.Put(nil,
+				opensearchapi.MappingPutReq{
+					Indices: []string{index},
+					Body: strings.NewReader(`{
+						"properties": {
+							"foo-stored": {
+								"type": "text",
+								"store":true
+							}
+						}
+					}`),
+				})
+			require.Nil(t, err)
+			_, err = client.Document.Create(
+				nil,
+				opensearchapi.DocumentCreateReq{
+					Index:      index,
+					Body:       strings.NewReader(`{"foo-stored": "bar"}`),
+					DocumentID: "test-stored-field",
+				},
+			)
+			require.Nil(t, err)
+			res, err := client.Document.Get(
+				nil,
+				opensearchapi.DocumentGetReq{
+					Index:      index,
+					DocumentID: "test-stored-field",
+					Params: opensearchapi.DocumentGetParams{
+						StoredFields: []string{"foo-stored"},
+					},
+				},
+			)
+			require.Nil(t, err)
+			require.NotNil(t, res)
+			assert.NotNil(t, res.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			assert.NotEmpty(t, res.Fields)
 		})
 	})
 }

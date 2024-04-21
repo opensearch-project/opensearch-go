@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // IndicesStatsReq represents possible options for the index shrink request
@@ -63,9 +63,10 @@ func (r IndicesStatsResp) Inspect() Inspect {
 
 // IndicesStatsShards is a sub type of IndicesStatsResp containing information about how many shards got requested
 type IndicesStatsShards struct {
-	Total      int `json:"total"`
-	Successful int `json:"successful"`
-	Failed     int `json:"failed"`
+	Total      int             `json:"total"`
+	Successful int             `json:"successful"`
+	Failed     int             `json:"failed"`
+	Failures   []FailuresShard `json:"failures"`
 }
 
 // IndicesStatsDocs is a sub type of IndicesStatsInfo containing stats about the index documents

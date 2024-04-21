@@ -172,4 +172,4 @@ issues:
       path: opensearchtransport/opensearchtransport.go
     - linters:
         - dupl
-      path: (-params\.go|api_indices|api_dangling\.go|api_point_in_time\.go|rethrottle\.go|api_cat-.*\.go)
+      path: (-params\.go|api_indices|api_dangling\.go|api_point_in_time\.go|rethrottle\.go|api_cat-.*\.go|plugins/security/api_\w+.go|plugins/security/api_.*-patch.go)

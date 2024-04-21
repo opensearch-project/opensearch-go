@@ -7,11 +7,14 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 func main() {
@@ -22,7 +25,19 @@ func main() {
 }
 
 func example() error {
-	client, err := opensearchapi.NewDefaultClient()
+	// Initialize the client with SSL/TLS enabled.
+	client, err := opensearchapi.NewClient(
+		opensearchapi.Config{
+			Client: opensearch.Config{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
+				},
+				Addresses: []string{"https://localhost:9200"},
+				Username:  "admin", // For testing only. Don't store credentials in code.
+				Password:  "myStrongPassword123!",
+			},
+		},
+	)
 	if err != nil {
 		return err
 	}

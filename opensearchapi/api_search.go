@@ -14,7 +14,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // Search executes a /_search request with the optional SearchReq
@@ -49,7 +49,7 @@ func (r SearchReq) GetRequest() (*http.Request, error) {
 	if len(r.Indices) > 0 {
 		path = fmt.Sprintf("/%s/_search", strings.Join(r.Indices, ","))
 	} else {
-		path = "_search"
+		path = "/_search"
 	}
 
 	return opensearch.BuildRequest(

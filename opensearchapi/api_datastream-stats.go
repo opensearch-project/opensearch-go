@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 // DataStreamStatsReq represents possible options for the _data_stream stats request
@@ -49,6 +49,12 @@ type DataStreamStatsResp struct {
 		Total      int `json:"total"`
 		Successful int `json:"successful"`
 		Failed     int `json:"failed"`
+		Failures   []struct {
+			Shard  int           `json:"shard"`
+			Index  string        `json:"index"`
+			Status string        `json:"status"`
+			Reason FailuresCause `json:"reason"`
+		} `json:"failures"`
 	} `json:"_shards"`
 	DataStreamCount     int                      `json:"data_stream_count"`
 	BackingIndices      int                      `json:"backing_indices"`
