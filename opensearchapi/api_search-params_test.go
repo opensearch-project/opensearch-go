@@ -6,6 +6,8 @@
 //
 // Modifications Copyright OpenSearch Contributors. See
 // GitHub history for details.
+//
+//go:build !integration
 
 //nolint:testpackage // to test unexported get() method
 package opensearchapi
