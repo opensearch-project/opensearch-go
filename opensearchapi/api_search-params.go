@@ -59,6 +59,7 @@ type SearchParams struct {
 	RestTotalHitsAsInt         *bool
 	Routing                    []string
 	Scroll                     time.Duration
+	SearchPipeline             string
 	SearchType                 string
 	SeqNoPrimaryTerm           *bool
 	Size                       *int
@@ -181,6 +182,10 @@ func (r SearchParams) get() map[string]string {
 
 	if r.Scroll != 0 {
 		params["scroll"] = formatDuration(r.Scroll)
+	}
+
+	if r.SearchPipeline != "" {
+		params["search_pipeline"] = r.SearchPipeline
 	}
 
 	if r.SearchType != "" {
