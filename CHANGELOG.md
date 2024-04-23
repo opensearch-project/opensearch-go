@@ -21,6 +21,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 - Bump `github.com/aws/aws-sdk-go` from 1.51.21 to 1.51.26 ([#534](https://github.com/opensearch-project/opensearch-go/pull/534))
+- Bump `github.com/wI2L/jsondiff` from 0.5.1 to 0.5.2 ([#535](https://github.com/opensearch-project/opensearch-go/pull/535))
 
 ## [4.0.0]
 
