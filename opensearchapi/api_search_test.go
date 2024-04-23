@@ -30,9 +30,10 @@ func TestSearch(t *testing.T) {
 	_, err = client.Index(
 		nil,
 		opensearchapi.IndexReq{
-			Index:  index,
-			Body:   strings.NewReader(`{"foo": "bar"}`),
-			Params: opensearchapi.IndexParams{Refresh: "true"},
+			DocumentID: "foo",
+			Index:      index,
+			Body:       strings.NewReader(`{"foo": "bar"}`),
+			Params:     opensearchapi.IndexParams{Refresh: "true", Routing: "foo"},
 		},
 	)
 	require.Nil(t, err)
@@ -109,28 +110,6 @@ func TestSearch(t *testing.T) {
 		require.NotNil(t, httpReq)
 		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
-}
-
-func TestSearchWithRouting(t *testing.T) {
-	client, err := ostest.NewClient()
-	require.Nil(t, err)
-
-	index := "test-index-search"
-
-	_, err = client.Index(
-		nil,
-		opensearchapi.IndexReq{
-			DocumentID: "foo",
-			Index:      index,
-			Body:       strings.NewReader(`{"foo": "bar"}`),
-			Params:     opensearchapi.IndexParams{Refresh: "true", Routing: "foo"},
-		},
-	)
-	require.Nil(t, err)
-	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
-	})
-
 	t.Run("request to retrieve response with routing key", func(t *testing.T) {
 		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 		  "query": {

@@ -5,6 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+- Adds the `Routing` field in SearchHit interface. ([#516](https://github.com/opensearch-project/opensearch-go/pull/516))
 
 ### Changed
 
@@ -32,7 +33,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds cluster.get-certs to copy admin certs out of the container ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
 - Adds the `Fields` field containing stored fields to the `DocumentGetResp` struct ([#526](https://github.com/opensearch-project/opensearch-go/pull/526))
 - Adds ism plugin ([#524](https://github.com/opensearch-project/opensearch-go/pull/524))
-- Adds the `Routing` field in SearchHit interface. ([#516](https://github.com/opensearch-project/opensearch-go/pull/516))
 
 ### Changed
 - Uses docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
