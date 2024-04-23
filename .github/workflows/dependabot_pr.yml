@@ -17,17 +17,16 @@ jobs:
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
       - name: GitHub App token
-        id: github_app_token
-        uses: tibdex/github-app-token@v2.1.0
+        id: app-token
+        uses: actions/create-github-app-token@v1
         with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PRIVATE_KEY }}
-          installation_retrieval_mode: 22958780
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Check out code
         uses: actions/checkout@v4
         with:
-          token: ${{ steps.github_app_token.outputs.token }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Update the changelog
         uses: dangoslen/dependabot-changelog-helper@v3
