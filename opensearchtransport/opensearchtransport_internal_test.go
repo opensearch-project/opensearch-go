@@ -31,6 +31,8 @@ package opensearchtransport
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -846,6 +848,38 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		if end < expectedDuration {
 			t.Errorf("Unexpected duration, want=>%s, got=%s", expectedDuration, end)
+		}
+	})
+
+	t.Run("Delay the retry with retry on timeout and context deadline", func(t *testing.T) {
+		var i int
+		u, _ := url.Parse("http://foo.bar")
+		tp, _ := New(Config{
+			EnableRetryOnTimeout: true,
+			MaxRetries:           100,
+			RetryBackoff:         func(i int) time.Duration { return time.Hour },
+			URLs:                 []*url.URL{u},
+			Transport: &mockTransp{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					i++
+					<-req.Context().Done()
+					return nil, req.Context().Err()
+				},
+			},
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+		ctx, cancel := context.WithTimeout(req.Context(), 50*time.Millisecond)
+		defer cancel()
+		req = req.WithContext(ctx)
+
+		//nolint:bodyclose // Mock response does not have a body to close
+		_, err := tp.Perform(req)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("expected context.DeadlineExceeded, got %s", err)
+		}
+		if i != 1 {
+			t.Fatalf("unexpected number of requests: expected 1, got %d", i)
 		}
 	})
 }

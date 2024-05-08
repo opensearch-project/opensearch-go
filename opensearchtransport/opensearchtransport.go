@@ -383,7 +383,18 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 		// Delay the retry if a backoff function is configured
 		if c.retryBackoff != nil {
-			time.Sleep(c.retryBackoff(i + 1))
+			var cancelled bool
+			timer := time.NewTimer(c.retryBackoff(i + 1))
+			select {
+			case <-req.Context().Done():
+				timer.Stop()
+				err = req.Context().Err()
+				cancelled = true
+			case <-timer.C:
+			}
+			if cancelled {
+				break
+			}
 		}
 	}
 	// Read, close and replace the http response body to close the connection
