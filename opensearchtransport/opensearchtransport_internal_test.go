@@ -882,6 +882,54 @@ func TestTransportPerformRetries(t *testing.T) {
 			t.Fatalf("unexpected number of requests: expected 1, got %d", i)
 		}
 	})
+
+	t.Run("Don't backoff after the last retry", func(t *testing.T) {
+		var (
+			i          int
+			j          int
+			numReqs    = 5
+			numRetries = numReqs - 1
+		)
+
+		u, _ := url.Parse("http://foo.bar")
+		tp, _ := New(Config{
+			MaxRetries: numRetries,
+			URLs:       []*url.URL{u, u, u},
+			Transport: &mockTransp{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				},
+			},
+
+			// A simple incremental backoff function
+			//
+			RetryBackoff: func(i int) time.Duration {
+				j++
+				d := time.Millisecond
+				fmt.Printf("Attempt: %d | Sleeping for %s...\n", i, d)
+				return d
+			},
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+
+		//nolint:bodyclose // Mock response does not have a body to close
+		_, err := tp.Perform(req)
+		if err == nil {
+			t.Fatalf("Expected error, got: %v", err)
+		}
+
+		if i != numReqs {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", numReqs, i)
+		}
+
+		if j != numRetries {
+			t.Errorf("Unexpected number of backoffs, want=>%d, got=%d", numRetries, j)
+		}
+	})
 }
 
 func TestURLs(t *testing.T) {
