@@ -27,17 +27,14 @@ func main() {
 
 func example() error {
 	client, err := opensearchapi.NewClient(opensearchapi.Config{
-        // Retry on 429 TooManyRequests statuses as well (502, 503, 504 are default values)
-        //
-        RetryOnStatus: []int{502, 503, 504, 429},
+                // Retry on 429 TooManyRequests statuses as well (502, 503, 504 are default values)
+                RetryOnStatus: []int{502, 503, 504, 429},
 
-        // A simple incremental backoff function
-        //
-        RetryBackoff: func(i int) time.Duration { return time.Duration(i) * 100 * time.Millisecond },
+                // A simple incremental backoff function
+                RetryBackoff: func(i int) time.Duration { return time.Duration(i) * 100 * time.Millisecond },
 
-        // Retry up to 5 attempts (1 initial + 4 retries)
-        //
-        MaxRetries: 4,
+                // Retry up to 5 attempts (1 initial + 4 retries)
+                MaxRetries: 4,
 	})
 	if err != nil {
 		return err
