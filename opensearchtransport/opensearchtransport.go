@@ -245,7 +245,9 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			}
 
 			req.GetBody = func() (io.ReadCloser, error) {
-				return io.NopCloser(buf), nil
+				// We have to return a new reader each time so that retries don't read from an already-consumed body.
+				reader := bytes.NewReader(buf.Bytes())
+				return io.NopCloser(reader), nil
 			}
 			//nolint:errcheck // error is always nil
 			req.Body, _ = req.GetBody()
@@ -258,8 +260,9 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 				//nolint:errcheck // ignored as this is only for logging
 				buf.ReadFrom(req.Body)
 				req.GetBody = func() (io.ReadCloser, error) {
-					r := buf
-					return io.NopCloser(&r), nil
+					// Return a new reader each time
+					reader := bytes.NewReader(buf.Bytes())
+					return io.NopCloser(reader), nil
 				}
 				//nolint:errcheck // error is always nil
 				req.Body, _ = req.GetBody()

@@ -689,6 +689,47 @@ func TestTransportPerformRetries(t *testing.T) {
 		}
 	})
 
+	t.Run("Reset request body during retry with request body compression", func(t *testing.T) {
+		var bodies []string
+		u, _ := url.Parse("https://foo.com/bar")
+		tp, _ := New(
+			Config{
+				URLs:                []*url.URL{u},
+				CompressRequestBody: true,
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						body, err := io.ReadAll(req.Body)
+						if err != nil {
+							panic(err)
+						}
+						bodies = append(bodies, string(body))
+						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+					},
+				},
+			},
+		)
+
+		foobar := "FOOBAR"
+		foobarGzipped := "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xffr\xf3\xf7wr\f\x02\x04\x00\x00\xff\xff\x13\xd8\x0en\x06\x00\x00\x00"
+
+		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(foobar))
+		//nolint:bodyclose // Mock response does not have a body to close
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		_ = res
+
+		if n := len(bodies); n != 4 {
+			t.Fatalf("expected 4 requests, got %d", n)
+		}
+		for i, body := range bodies {
+			if body != foobarGzipped {
+				t.Fatalf("request %d body: expected %q, got %q", i, foobarGzipped, body)
+			}
+		}
+	})
+
 	t.Run("Don't retry request on regular error", func(t *testing.T) {
 		var i int
 
