@@ -710,7 +710,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		)
 
 		foobar := "FOOBAR"
-		foobar_gzipped := "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xffr\xf3\xf7wr\f\x02\x04\x00\x00\xff\xff\x13\xd8\x0en\x06\x00\x00\x00"
+		foobarGzipped := "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xffr\xf3\xf7wr\f\x02\x04\x00\x00\xff\xff\x13\xd8\x0en\x06\x00\x00\x00"
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(foobar))
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -724,8 +724,8 @@ func TestTransportPerformRetries(t *testing.T) {
 			t.Fatalf("expected 4 requests, got %d", n)
 		}
 		for i, body := range bodies {
-			if body != foobar_gzipped {
-				t.Fatalf("request %d body: expected %q, got %q", i, foobar_gzipped, body)
+			if body != foobarGzipped {
+				t.Fatalf("request %d body: expected %q, got %q", i, foobarGzipped, body)
 			}
 		}
 	})
