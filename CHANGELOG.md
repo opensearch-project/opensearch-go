@@ -22,7 +22,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
-- Bump `github.com/aws/aws-sdk-go` from 1.51.21 to 1.53.1 ([#534](https://github.com/opensearch-project/opensearch-go/pull/534), [#537](https://github.com/opensearch-project/opensearch-go/pull/537), [#538](https://github.com/opensearch-project/opensearch-go/pull/538), [#545](https://github.com/opensearch-project/opensearch-go/pull/545))
+- Bump `github.com/aws/aws-sdk-go` from 1.51.21 to 1.53.6 ([#534](https://github.com/opensearch-project/opensearch-go/pull/534), [#537](https://github.com/opensearch-project/opensearch-go/pull/537), [#538](https://github.com/opensearch-project/opensearch-go/pull/538), [#545](https://github.com/opensearch-project/opensearch-go/pull/545), [#550](https://github.com/opensearch-project/opensearch-go/pull/550))
 - Bump `github.com/wI2L/jsondiff` from 0.5.1 to 0.5.2 ([#535](https://github.com/opensearch-project/opensearch-go/pull/535))
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.27.11 to 1.27.13 ([#546](https://github.com/opensearch-project/opensearch-go/pull/546))
 
