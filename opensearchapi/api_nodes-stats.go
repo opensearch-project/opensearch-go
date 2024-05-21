@@ -166,6 +166,7 @@ type NodesStatsIndices struct {
 		SuggestTotal                int     `json:"suggest_total"`
 		SuggestTimeInMillis         int     `json:"suggest_time_in_millis"`
 		SuggestCurrent              int     `json:"suggest_current"`
+		IdleReactivateCountTotal    int     `json:"search_idle_reactivate_count_total"`
 		Request                     struct {
 			DfsPreQuery NodesStatsIndicesSearchRequest `json:"dfs_pre_query"`
 			Query       NodesStatsIndicesSearchRequest `json:"query"`

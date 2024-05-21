@@ -64,11 +64,12 @@ type ConfigDynamic struct {
 
 // ConfigDynamicKibana is a sub type of ConfigDynamic containing security settings for kibana
 type ConfigDynamicKibana struct {
-	MultitenancyEnabled  bool    `json:"multitenancy_enabled"`
-	PrivateTenantEnabled *bool   `json:"private_tenant_enabled,omitempty"`
-	DefaultTenant        *string `json:"default_tenant,omitempty"`
-	ServerUsername       string  `json:"server_username"`
-	Index                string  `json:"index"`
+	MultitenancyEnabled  bool     `json:"multitenancy_enabled"`
+	PrivateTenantEnabled *bool    `json:"private_tenant_enabled,omitempty"`
+	DefaultTenant        *string  `json:"default_tenant,omitempty"`
+	ServerUsername       string   `json:"server_username"`
+	Index                string   `json:"index"`
+	SignInOptions        []string `json:"sign_in_options,omitempty"`
 }
 
 // ConfigDynamicHTTP is a sub type of ConfigDynamic containing security settings for HTTP
