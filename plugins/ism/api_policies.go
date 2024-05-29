@@ -255,6 +255,7 @@ type PolicyStateTransitionCondition struct {
 	Cron           *PolicyStateTransitionConditionCron `json:"cron,omitempty"`
 }
 
+// PolicyStateTransitionConditionCron is a sub type of PolicyStateTransitionCondition containing a cron expression and timezone
 type PolicyStateTransitionConditionCron struct {
 	Expression string `json:"expression"`
 	Timezone   string `json:"timezone"`
