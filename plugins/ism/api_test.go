@@ -9,6 +9,7 @@
 package ism_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -257,4 +258,51 @@ func TestClient(t *testing.T) {
 		})
 	})
 
+	t.Run("Put Policy with Transitions Conditions", func(t *testing.T) {
+		testRetentionPolicy := "testRetentionPolicy"
+		t.Cleanup(func() {
+			client.Policies.Delete(context.Background(), ism.PoliciesDeleteReq{Policy: testRetentionPolicy})
+		})
+		transitions := []ism.PolicyStateTransition{
+			{
+				StateName: "delete",
+				Conditions: &ism.PolicyStateTransitionCondition{
+					MinIndexAge: "1h",
+				},
+			},
+		}
+		_, err = client.Policies.Put(
+			context.Background(),
+			ism.PoliciesPutReq{
+				Policy: testRetentionPolicy,
+				Body: ism.PoliciesPutBody{
+					Policy: ism.PolicyBody{
+						Description:  "test policy with transitions conditions",
+						DefaultState: "test-transitions",
+						States: []ism.PolicyState{
+							{
+								Name:        "test-transitions",
+								Transitions: &transitions,
+							},
+							{
+								Name: "delete",
+								Actions: []ism.PolicyStateAction{
+									{
+										Delete: &ism.PolicyStateDelete{},
+									},
+								},
+							},
+						},
+						Template: []ism.Template{
+							{
+								IndexPatterns: []string{"test-transitions"},
+								Priority:      21,
+							},
+						},
+					},
+				},
+			},
+		)
+		require.Nil(t, err)
+	})
 }

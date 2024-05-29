@@ -246,17 +246,22 @@ type PolicyStateRollup struct {
 	} `json:"ism_rollup"`
 }
 
-// PolicyStateTransition is a sub type of PolicyState containing information about transitios to other states
+// PolicyStateTransitionCondition is a sub type of PolicyStateTransition containing conditions for a transition
+type PolicyStateTransitionCondition struct {
+	MinIndexAge    string                              `json:"min_index_age,omitempty"`
+	MinRolloverAge string                              `json:"min_rollover_age,omitempty"`
+	MinDocCount    int                                 `json:"min_doc_count,omitempty"`
+	MinSize        string                              `json:"min_size,omitempty"`
+	Cron           *PolicyStateTransitionConditionCron `json:"cron,omitempty"`
+}
+
+type PolicyStateTransitionConditionCron struct {
+	Expression string `json:"expression"`
+	Timezone   string `json:"timezone"`
+}
+
+// PolicyStateTransition is a sub type of PolicyState containing information about transition to other states
 type PolicyStateTransition struct {
-	StateName  string `json:"state_name"`
-	Conditions []struct {
-		MinIndexAge    string `json:"min_index_age,omitempty"`
-		MinRolloverAge string `json:"min_rollover_age,omitempty"`
-		MinDocCount    int    `json:"min_doc_count,omitempty"`
-		MinSize        string `json:"min_size,omitempty"`
-		Cron           *struct {
-			Expression string `json:"expression"`
-			Timezone   string `json:"timezone"`
-		} `json:"cron,omitempty"`
-	} `json:"conditions"`
+	StateName  string                          `json:"state_name"`
+	Conditions *PolicyStateTransitionCondition `json:"conditions"`
 }
