@@ -24,7 +24,7 @@ func (c rolesClient) Get(ctx context.Context, req *RolesGetReq) (RolesGetResp, e
 		data RolesGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data.Roles); err != nil {
 		return data, err
 	}
 
