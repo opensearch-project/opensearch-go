@@ -111,6 +111,7 @@ type NodesStats struct {
 	SegmentReplicationBackpressure NodesStatsSegmentReplicationBackpressure `json:"segment_replication_backpressure"`
 	Repositories                   []json.RawMessage                        `json:"repositories"`
 	AdmissionControl               NodesStatsAdmissionControl               `json:"admission_control"`
+	Caches                         NodesStatsCaches                         `json:"caches"`
 }
 
 // NodesStatsIndices is a sub type of NodesStats representing Indices information of the node
@@ -702,7 +703,7 @@ type NodesStatsSegmentReplicationBackpressure struct {
 	TotalRejectedRequests int `json:"total_rejected_requests"`
 }
 
-// NodesStatsAdmissionControl is a sub of NodesStats
+// NodesStatsAdmissionControl is a sub type of NodesStats
 type NodesStatsAdmissionControl struct {
 	GlobalCPUUsage struct {
 		Transport struct {
@@ -714,4 +715,16 @@ type NodesStatsAdmissionControl struct {
 			RejectionCount json.RawMessage `json:"rejection_count"`
 		} `json:"transport"`
 	} `json:"global_io_usage"`
+}
+
+// NodesStatsCaches is a sub type of NodesStats
+type NodesStatsCaches struct {
+	RequestCache struct {
+		SizeInBytes int    `json:"size_in_bytes"`
+		Evictions   int    `json:"evictions"`
+		HitCount    int    `json:"hit_count"`
+		MissCount   int    `json:"miss_count"`
+		ItemCount   int    `json:"item_count"`
+		StoreName   string `json:"store_name"`
+	} `json:"request_cache"`
 }
