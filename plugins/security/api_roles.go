@@ -74,7 +74,7 @@ func (c rolesClient) Patch(ctx context.Context, req RolesPatchReq) (RolesPatchRe
 type RolesIndexPermission struct {
 	IndexPatterns  []string `json:"index_patterns,omitempty"`
 	DLS            string   `json:"dls,omitempty"`
-	FLS            string   `json:"fls,omitempty"`
+	FLS            []string `json:"fls,omitempty"`
 	MaskedFields   []string `json:"masked_fields,omitempty"`
 	AllowedActions []string `json:"allowed_actions,omitempty"`
 }
