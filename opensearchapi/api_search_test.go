@@ -128,4 +128,42 @@ func TestSearch(t *testing.T) {
 		assert.NotEmpty(t, resp.Hits.Hits[0].Routing)
 		assert.Equal(t, "foo", resp.Hits.Hits[0].Routing)
 	})
+
+	t.Run("with seq_no and primary_term", func(t *testing.T) {
+		seqNoPrimaryTerm := true
+		resp, err := client.Search(nil, &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body:    strings.NewReader(""),
+			Params: opensearchapi.SearchParams{
+				SeqNoPrimaryTerm: &seqNoPrimaryTerm,
+			},
+		})
+		require.Nil(t, err)
+		assert.NotNil(t, resp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotEmpty(t, resp.Hits.Hits)
+		for _, hit := range resp.Hits.Hits {
+			assert.NotNil(t, hit.SeqNo)
+			assert.NotNil(t, hit.PrimaryTerm)
+		}
+	})
+
+	t.Run("without seq_no and primary_term", func(t *testing.T) {
+		seqNoPrimaryTerm := false
+		resp, err := client.Search(nil, &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body:    strings.NewReader(""),
+			Params: opensearchapi.SearchParams{
+				SeqNoPrimaryTerm: &seqNoPrimaryTerm,
+			},
+		})
+		require.Nil(t, err)
+		assert.NotNil(t, resp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotEmpty(t, resp.Hits.Hits)
+		for _, hit := range resp.Hits.Hits {
+			assert.Nil(t, hit.SeqNo)
+			assert.Nil(t, hit.PrimaryTerm)
+		}
+	})
 }

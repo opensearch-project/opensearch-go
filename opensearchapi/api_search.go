@@ -96,4 +96,6 @@ type SearchHit struct {
 	Type        string                  `json:"_type"` // Deprecated field
 	Sort        []any                   `json:"sort"`
 	Explanation *DocumentExplainDetails `json:"_explanation"`
+	SeqNo       *int                    `json:"_seq_no"`
+	PrimaryTerm *int                    `json:"_primary_term"`
 }
