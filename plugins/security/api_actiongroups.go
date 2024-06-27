@@ -24,7 +24,7 @@ func (c actiongroupsClient) Get(ctx context.Context, req *ActionGroupsGetReq) (A
 		data ActionGroupsGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data.Groups); err != nil {
 		return data, err
 	}
 

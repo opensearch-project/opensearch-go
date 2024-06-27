@@ -24,7 +24,7 @@ func (c rolesClient) Get(ctx context.Context, req *RolesGetReq) (RolesGetResp, e
 		data RolesGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data.Roles); err != nil {
 		return data, err
 	}
 
@@ -68,19 +68,4 @@ func (c rolesClient) Patch(ctx context.Context, req RolesPatchReq) (RolesPatchRe
 	}
 
 	return data, nil
-}
-
-// RolesIndexPermission contains index permissions and is used for Get and Put requests
-type RolesIndexPermission struct {
-	IndexPatterns  []string `json:"index_patterns,omitempty"`
-	DLS            string   `json:"dls,omitempty"`
-	FLS            string   `json:"fls,omitempty"`
-	MaskedFields   []string `json:"masked_fields,omitempty"`
-	AllowedActions []string `json:"allowed_actions,omitempty"`
-}
-
-// RolesTenantPermission contains tenant permissions and is used for Get and Put requests
-type RolesTenantPermission struct {
-	TenantPatterns []string `json:"tenant_patterns,omitempty"`
-	AllowedActions []string `json:"allowed_actions,omitempty"`
 }

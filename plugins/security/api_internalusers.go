@@ -24,7 +24,7 @@ func (c internalusersClient) Get(ctx context.Context, req *InternalUsersGetReq) 
 		data InternalUsersGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data.Users); err != nil {
 		return data, err
 	}
 

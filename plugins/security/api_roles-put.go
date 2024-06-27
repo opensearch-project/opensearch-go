@@ -58,3 +58,18 @@ type RolesPutResp struct {
 func (r RolesPutResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
+
+// RolesIndexPermission contains index permissions and is used for Get and Put requests
+type RolesIndexPermission struct {
+	IndexPatterns  []string `json:"index_patterns,omitempty"`
+	DLS            string   `json:"dls,omitempty"`
+	FLS            []string `json:"fls,omitempty"`
+	MaskedFields   []string `json:"masked_fields,omitempty"`
+	AllowedActions []string `json:"allowed_actions,omitempty"`
+}
+
+// RolesTenantPermission contains tenant permissions and is used for Get and Put requests
+type RolesTenantPermission struct {
+	TenantPatterns []string `json:"tenant_patterns,omitempty"`
+	AllowedActions []string `json:"allowed_actions,omitempty"`
+}

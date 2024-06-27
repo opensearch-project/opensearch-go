@@ -140,7 +140,7 @@ func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Re
 		operations := make([]jsondiff.Operation, 0)
 		for _, operation := range patch {
 			// different opensearch version added more field, only check if we miss some fields
-			if operation.Type != "add" {
+			if operation.Type != "add" || (operation.Type == "add" && operation.Path == "") {
 				operations = append(operations, operation)
 			}
 		}

@@ -60,7 +60,7 @@ func (c mappingClient) Field(ctx context.Context, req *MappingFieldReq) (*Mappin
 		data MappingFieldResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
 		return &data, err
 	}
 
