@@ -52,11 +52,26 @@ func (r RolesGetResp) Inspect() Inspect {
 
 // RolesGetItem is a sub type of RolesGetResp containing information about a role
 type RolesGetItem struct {
-	Reserved           bool                    `json:"reserved"`
-	Hidden             bool                    `json:"hidden"`
-	Description        string                  `json:"description"`
-	ClusterPermissions []string                `json:"cluster_permissions"`
-	IndexPermissions   []RolesIndexPermission  `json:"index_permissions"`
-	TenantPermissions  []RolesTenantPermission `json:"tenant_permissions"`
-	Statis             bool                    `json:"static"`
+	Reserved           bool                       `json:"reserved"`
+	Hidden             bool                       `json:"hidden"`
+	Description        string                     `json:"description"`
+	ClusterPermissions []string                   `json:"cluster_permissions"`
+	IndexPermissions   []RolesGetIndexPermission  `json:"index_permissions"`
+	TenantPermissions  []RolesGetTenantPermission `json:"tenant_permissions"`
+	Statis             bool                       `json:"static"`
+}
+
+// RolesGetIndexPermission contains index permissions and is used for Get and Put requests
+type RolesGetIndexPermission struct {
+	IndexPatterns  []string `json:"index_patterns"`
+	DLS            string   `json:"dls"`
+	FLS            []string `json:"fls"`
+	MaskedFields   []string `json:"masked_fields"`
+	AllowedActions []string `json:"allowed_actions"`
+}
+
+// RolesGetTenantPermission contains tenant permissions and is used for Get and Put requests
+type RolesGetTenantPermission struct {
+	TenantPatterns []string `json:"tenant_patterns"`
+	AllowedActions []string `json:"allowed_actions"`
 }
