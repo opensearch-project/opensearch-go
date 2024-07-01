@@ -31,6 +31,8 @@ package opensearchtransport
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -846,6 +848,86 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		if end < expectedDuration {
 			t.Errorf("Unexpected duration, want=>%s, got=%s", expectedDuration, end)
+		}
+	})
+
+	t.Run("Delay the retry with retry on timeout and context deadline", func(t *testing.T) {
+		var i int
+		u, _ := url.Parse("http://foo.bar")
+		tp, _ := New(Config{
+			EnableRetryOnTimeout: true,
+			MaxRetries:           100,
+			RetryBackoff:         func(i int) time.Duration { return time.Hour },
+			URLs:                 []*url.URL{u},
+			Transport: &mockTransp{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					i++
+					<-req.Context().Done()
+					return nil, req.Context().Err()
+				},
+			},
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+		ctx, cancel := context.WithTimeout(req.Context(), 50*time.Millisecond)
+		defer cancel()
+		req = req.WithContext(ctx)
+
+		//nolint:bodyclose // Mock response does not have a body to close
+		_, err := tp.Perform(req)
+		if !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("expected context.DeadlineExceeded, got %s", err)
+		}
+		if i != 1 {
+			t.Fatalf("unexpected number of requests: expected 1, got %d", i)
+		}
+	})
+
+	t.Run("Don't backoff after the last retry", func(t *testing.T) {
+		var (
+			i          int
+			j          int
+			numReqs    = 5
+			numRetries = numReqs - 1
+		)
+
+		u, _ := url.Parse("http://foo.bar")
+		tp, _ := New(Config{
+			MaxRetries: numRetries,
+			URLs:       []*url.URL{u, u, u},
+			Transport: &mockTransp{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				},
+			},
+
+			// A simple incremental backoff function
+			//
+			RetryBackoff: func(i int) time.Duration {
+				j++
+				d := time.Millisecond
+				fmt.Printf("Attempt: %d | Sleeping for %s...\n", i, d)
+				return d
+			},
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+
+		//nolint:bodyclose // Mock response does not have a body to close
+		_, err := tp.Perform(req)
+		if err == nil {
+			t.Fatalf("Expected error, got: %v", err)
+		}
+
+		if i != numReqs {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", numReqs, i)
+		}
+
+		if j != numRetries {
+			t.Errorf("Unexpected number of backoffs, want=>%d, got=%d", numRetries, j)
 		}
 	})
 }
