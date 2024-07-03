@@ -2,6 +2,22 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+
+### Dependencies
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [4.1.0]
 
 ### Added
@@ -230,6 +246,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v4.1.0...HEAD
 [4.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.1.0...v4.0.0
 [3.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...v3.1.0
