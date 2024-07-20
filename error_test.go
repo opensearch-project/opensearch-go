@@ -120,6 +120,22 @@ func TestError(t *testing.T) {
 		_ = fmt.Sprintf("%s", testError)
 	})
 
+	t.Run("StringErrorUnknownJSON", func(t *testing.T) {
+		resp := &opensearch.Response{
+			StatusCode: http.StatusNotFound,
+			Body: io.NopCloser(
+				strings.NewReader(`{"_index":"index","_id":"2","matched":false}`),
+			),
+		}
+		assert.True(t, resp.IsError())
+		err := opensearch.ParseError(resp)
+		var testError *opensearch.StringError
+		require.True(t, errors.As(err, &testError))
+		assert.Equal(t, http.StatusNotFound, testError.Status)
+		assert.Contains(t, testError.Err, "{\"_index\":\"index\",\"_id\":\"2\",\"matched\":false}")
+		_ = fmt.Sprintf("%s", testError)
+	})
+
 	t.Run("Error", func(t *testing.T) {
 		resp := &opensearch.Response{
 			StatusCode: http.StatusBadRequest,
@@ -188,14 +204,6 @@ func TestError(t *testing.T) {
 					Body:       io.NopCloser(strings.NewReader(`{"error":{"test": "test"},"status":403}`)),
 				},
 				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody, opensearch.ErrUnknownOpensearchError},
-			},
-			{
-				Name: "unknown json",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusNotFound,
-					Body:       io.NopCloser(strings.NewReader(`{"_index":"index","_id":"2","matched":false}`)),
-				},
-				WantedErrors: []error{opensearch.ErrUnknownOpensearchError},
 			},
 			{
 				Name: "io read error",

@@ -175,7 +175,7 @@ func ParseError(resp *Response) error {
 		return parseError(body, &apiError)
 	}
 
-	return fmt.Errorf("%w: %s", ErrUnknownOpensearchError, string(body))
+	return &StringError{Status: resp.StatusCode, Err: string(body)}
 }
 
 func parseError(body []byte, errStruct error) error {
