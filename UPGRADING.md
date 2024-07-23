@@ -11,6 +11,46 @@
 
 # Upgrading Opensearch GO Client
 
+## Upgrading to >= 5.0.0
+Version 5.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.
+
+Before 5.0.0:
+```go
+docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
+if err != nil {
+	fmt.Println(err)
+	
+	if !errors.Is(err, opensearch.ErrJSONUnmarshalBody) && docDelResp != nil {
+		resp := docDelResp.Inspect().Response
+		// get http status
+		fmt.Println(resp.StatusCode)
+		body := strings.TrimPrefix(err.Error(), "opensearch error response could not be parsed as error: ")
+		errResp := opensearchapi.DocumentDeleteResp{}
+		json.Unmarshal([]byte(body), &errResp) 
+		// extract result field from the body 
+		fmt.Println(errResp.Result)
+	}
+}
+```
+
+After 5.0.0:
+```go
+docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
+if err != nil {
+	// parse into *opensearch.StringError
+	var myStringErr *opensearch.StringError
+	if errors.As(err, &myStringErr) {
+		// get http status
+		fmt.Println(myStringErr.Status)
+		errResp := opensearchapi.DocumentDeleteResp{}
+		json.Unmarshal([]byte(myStringErr.Err), &errResp)
+		// extract result field from the body
+		fmt.Println(errResp.Result)
+	}
+}
+```
+
+
 ## Upgrading to >= 4.0.0
 
 Version 4.0.0 moved the error types, added with 3.0.0, from opensearchapi to opensearch, renamed them and added new error types.
