@@ -3,7 +3,7 @@ module github.com/opensearch-project/opensearch-go/v4
 go 1.21
 
 require (
-	github.com/aws/aws-sdk-go v1.54.19
+	github.com/aws/aws-sdk-go v1.55.4
 	github.com/aws/aws-sdk-go-v2 v1.30.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.27
 	github.com/stretchr/testify v1.9.0
