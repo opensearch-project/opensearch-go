@@ -14,13 +14,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        opensearch_ref: [ '1.x', '2.x', 'main' ]
+        entry:
+          - { branch: "1.x", java-version: "11" }
+          - { branch: "2.x", java-version: "17" }
+          - { branch: "main", java-version: "17" }
     steps:
       - name: Checkout OpenSearch
         uses: actions/checkout@v4
         with:
           repository: opensearch-project/OpenSearch
-          ref: ${{ matrix.entry.opensearch_ref }}
+          ref: ${{ matrix.entry.branch }}
           path: opensearch
 
       - name: Get OpenSearch branch top
@@ -34,6 +37,11 @@ jobs:
         with:
           path: opensearch/distribution/archives/linux-tar/build/distributions
           key: ${{ steps.get-key.outputs.key }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ matrix.entry.java-version }}
 
       - name: Assemble OpenSearch
         if: steps.cache-restore.outputs.cache-hit != 'true'
@@ -53,7 +61,7 @@ jobs:
           tar xf opensearch-min-*
           ./opensearch-*/bin/opensearch -Epath.repo=/usr/share/opensearch/mnt &
           for attempt in {1..20}; do sleep 5; if curl -s localhost:9200; then echo '=====> ready'; break; fi; echo '=====> waiting...'; done
-      
+
       - name: Checkout Go Client
         uses: actions/checkout@v4
         with:
@@ -61,18 +69,18 @@ jobs:
 
       - name: Setup Go
         uses: actions/setup-go@v5
-        with: { go-version-file: 'go-client/go.mod' }
+        with: { go-version-file: "go-client/go.mod" }
 
       - name: Integration test
         working-directory: go-client
         run: make test-integ-core race=true
         env:
           OPENSEARCH_GO_SKIP_JSON_COMPARE: true
-      
+
       - name: Save server logs
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: opensearch-logs-${{ matrix.opensearch_ref }}-go-${{ matrix.python-version }}
+          name: opensearch-logs-${{ matrix.entry.branch }}
           path: |
             opensearch/distribution/archives/linux-tar/build/distributions/**/logs/*
