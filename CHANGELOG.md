@@ -9,7 +9,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bump `github.com/aws/aws-sdk-go` from 1.54.12 to 1.55.5 ([#583](https://github.com/opensearch-project/opensearch-go/pull/583), [#590](https://github.com/opensearch-project/opensearch-go/pull/590), [#595](https://github.com/opensearch-project/opensearch-go/pull/595), [#596](https://github.com/opensearch-project/opensearch-go/pull/596))
 
 ### Added
-- Adds the `Suggest` field to the `SearchResp` struct. ([#602](https://github.com/opensearch-project/opensearch-go/pull/602))
+- Adds `Suggest` to `SearchResp` ([#602](https://github.com/opensearch-project/opensearch-go/pull/602))
 
 ### Changed
 
