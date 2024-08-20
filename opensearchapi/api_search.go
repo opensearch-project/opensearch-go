@@ -74,9 +74,10 @@ type SearchResp struct {
 		MaxScore float32     `json:"max_score"`
 		Hits     []SearchHit `json:"hits"`
 	} `json:"hits"`
-	Errors       bool            `json:"errors"`
-	Aggregations json.RawMessage `json:"aggregations"`
-	ScrollID     *string         `json:"_scroll_id,omitempty"`
+	Errors       bool                 `json:"errors"`
+	Aggregations json.RawMessage      `json:"aggregations"`
+	ScrollID     *string              `json:"_scroll_id,omitempty"`
+	Suggest      map[string][]Suggest `json:"suggest,omitempty"`
 	response     *opensearch.Response
 }
 
@@ -98,4 +99,18 @@ type SearchHit struct {
 	Explanation *DocumentExplainDetails `json:"_explanation"`
 	SeqNo       *int                    `json:"_seq_no"`
 	PrimaryTerm *int                    `json:"_primary_term"`
+}
+
+// Suggest is a sub type of SearchResp containing information of the suggest field
+type Suggest struct {
+	Text    string `json:"text"`
+	Offset  int    `json:"offset"`
+	Length  int    `json:"length"`
+	Options []struct {
+		Text         string  `json:"text"`
+		Score        float32 `json:"score"`
+		Freq         int     `json:"freq"`
+		Highlighted  string  `json:"highlighted"`
+		CollateMatch bool    `json:"collate_match"`
+	} `json:"options"`
 }
