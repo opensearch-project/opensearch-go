@@ -366,7 +366,7 @@ func TestCatClient(t *testing.T) {
 	for catType, value := range testCases {
 		t.Run(catType, func(t *testing.T) {
 			if catType == "ClusterManager" {
-				ostest.SkipIfBelowVersion(t, client, 1, 3, catType)
+				ostest.SkipIfBelowVersion(t, client, 2, 0, catType)
 			}
 			for _, testCase := range value {
 				t.Run(testCase.Name, func(t *testing.T) {
@@ -399,7 +399,7 @@ func TestCatClient(t *testing.T) {
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Allocations, resp.Inspect().Response)
 		})
 		t.Run("ClusterManager", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, client, 1, 3, "ClusterManager")
+			ostest.SkipIfBelowVersion(t, client, 2, 0, "ClusterManager")
 			resp, err := client.Cat.ClusterManager(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
