@@ -166,4 +166,19 @@ func TestSearch(t *testing.T) {
 			assert.Nil(t, hit.PrimaryTerm)
 		}
 	})
+
+	t.Run("request with suggest", func(t *testing.T) {
+		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+			"suggest": {
+			  "text": "bar",
+			  "my-suggest": {
+			    "term": {
+				  "field": "foo"
+				}
+			  }
+			}
+		  }`)})
+		require.Nil(t, err)
+		assert.NotEmpty(t, resp.Suggest)
+	})
 }
