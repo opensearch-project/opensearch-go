@@ -105,7 +105,7 @@ func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion
 	t.Helper()
 	major, patch, _, err := GetVersion(client)
 	assert.Nil(t, err)
-	if major <= majorVersion && patch <= patchVersion {
+	if major < majorVersion || (major == majorVersion && patch < patchVersion) {
 		t.Skipf("Skiping %s as version %d.%d.x does not support this endpoint", testName, major, patch)
 	}
 }

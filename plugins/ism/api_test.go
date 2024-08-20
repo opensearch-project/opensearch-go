@@ -243,14 +243,14 @@ func TestClient(t *testing.T) {
 			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with validate_action", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, osClient, 2, 3, "Explain with validate_action")
+			ostest.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
 			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true, ValidateAction: true}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with show_policy", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, osClient, 1, 2, "Explain with validate_action")
+			ostest.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
 			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
