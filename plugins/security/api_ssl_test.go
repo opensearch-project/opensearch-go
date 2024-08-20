@@ -30,7 +30,7 @@ func TestSSLClient(t *testing.T) {
 	osAPIclient, err := ostest.NewClient()
 	require.Nil(t, err)
 
-	ostest.SkipIfBelowVersion(t, osAPIclient, 1, 3, "SSLClient")
+	ostest.SkipIfBelowVersion(t, osAPIclient, 2, 0, "SSLClient")
 
 	clientTLSCert, err := tls.LoadX509KeyPair("../../admin.pem", "../../admin.key")
 	require.Nil(t, err)
@@ -114,7 +114,7 @@ func TestSSLClient(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
 					if strings.HasSuffix(value.Name, "Reload") && strings.Contains(testCase.Name, "request") {
-						ostest.SkipIfBelowVersion(t, osAPIclient, 2, 7, value.Name)
+						ostest.SkipIfBelowVersion(t, osAPIclient, 2, 8, value.Name)
 					}
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
