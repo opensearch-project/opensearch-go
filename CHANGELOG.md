@@ -12,6 +12,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `Suggest` to `SearchResp` ([#602](https://github.com/opensearch-project/opensearch-go/pull/602))
 
 ### Changed
+- Split SnapshotGetResp into sub structs  ([#603](https://github.com/opensearch-project/opensearch-go/pull/603))
 
 ### Deprecated
 
