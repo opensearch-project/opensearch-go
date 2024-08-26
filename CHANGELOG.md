@@ -16,6 +16,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 
 ### Removed
+- Remove workflow tests against gotip ([#604](https://github.com/opensearch-project/opensearch-go/pull/604))
 
 ### Fixed
 
