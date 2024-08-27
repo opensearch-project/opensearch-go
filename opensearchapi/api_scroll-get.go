@@ -46,8 +46,9 @@ type ScrollGetResp struct {
 		MaxScore float32     `json:"max_score"`
 		Hits     []SearchHit `json:"hits"`
 	} `json:"hits"`
-	ScrollID        *string `json:"_scroll_id,omitempty"`
-	TerminatedEarly bool    `json:"terminated_early"`
+	ScrollID        *string  `json:"_scroll_id,omitempty"`
+	TerminatedEarly bool     `json:"terminated_early"`
+	MaxScore        *float32 `json:"max_score"`
 	response        *opensearch.Response
 }
 
