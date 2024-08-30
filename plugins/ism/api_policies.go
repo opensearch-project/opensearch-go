@@ -264,5 +264,5 @@ type PolicyStateTransitionConditionCron struct {
 // PolicyStateTransition is a sub type of PolicyState containing information about transition to other states
 type PolicyStateTransition struct {
 	StateName  string                          `json:"state_name"`
-	Conditions *PolicyStateTransitionCondition `json:"conditions"`
+	Conditions *PolicyStateTransitionCondition `json:"conditions,omitempty"`
 }
