@@ -69,10 +69,41 @@ func TestPoliciesClient(t *testing.T) {
 												Source: "The index {{ctx.index}} failed during policy execution.",
 											},
 										},
-										DefaultState: "test",
+										DefaultState: "transition",
 										States: []ism.PolicyState{
 											ism.PolicyState{
-												Name: "test",
+												Name: "allocation",
+												Actions: []ism.PolicyStateAction{
+													ism.PolicyStateAction{
+														Allocation: &ism.PolicyStateAllocation{
+															Require: map[string]string{"temp": "warm"},
+															Include: map[string]string{"test": "warm"},
+															Exclude: map[string]string{"test2": "warm"},
+															WaitFor: opensearch.ToPointer(true),
+														},
+													},
+												},
+												Transitions: &[]ism.PolicyStateTransition{
+													ism.PolicyStateTransition{
+														StateName: "transition",
+													},
+												},
+											},
+											ism.PolicyState{
+												Name: "transition",
+												Actions: []ism.PolicyStateAction{
+													ism.PolicyStateAction{
+														Close: &ism.PolicyStateClose{},
+													},
+												},
+												Transitions: &[]ism.PolicyStateTransition{
+													ism.PolicyStateTransition{
+														StateName: "delete",
+													},
+												},
+											},
+											ism.PolicyState{
+												Name: "delete",
 												Actions: []ism.PolicyStateAction{
 													ism.PolicyStateAction{
 														Delete: &ism.PolicyStateDelete{},

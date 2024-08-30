@@ -13,6 +13,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Removed
 
 ### Fixed
+- Fix ISM Transition to omitempty Conditions field ([#609](https://github.com/opensearch-project/opensearch-go/pull/609))
+- Fix ISM Allocation field types ([#609](https://github.com/opensearch-project/opensearch-go/pull/609))
 
 ### Security
 

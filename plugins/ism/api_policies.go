@@ -226,10 +226,10 @@ type PolicyStateIndexPriority struct {
 
 // PolicyStateAllocation represents the allocation action
 type PolicyStateAllocation struct {
-	Require string `json:"require,omitempty"`
-	Include string `json:"include,omitempty"`
-	Exclude string `json:"exclude,omitempty"`
-	WaitFor string `json:"wait_for,omitempty"`
+	Require map[string]string `json:"require,omitempty"`
+	Include map[string]string `json:"include,omitempty"`
+	Exclude map[string]string `json:"exclude,omitempty"`
+	WaitFor *bool             `json:"wait_for,omitempty"`
 }
 
 // PolicyStateRollup represents the rollup action
@@ -264,5 +264,5 @@ type PolicyStateTransitionConditionCron struct {
 // PolicyStateTransition is a sub type of PolicyState containing information about transition to other states
 type PolicyStateTransition struct {
 	StateName  string                          `json:"state_name"`
-	Conditions *PolicyStateTransitionCondition `json:"conditions"`
+	Conditions *PolicyStateTransitionCondition `json:"conditions,omitempty"`
 }
