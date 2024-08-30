@@ -72,10 +72,20 @@ func TestPoliciesClient(t *testing.T) {
 										DefaultState: "transition",
 										States: []ism.PolicyState{
 											ism.PolicyState{
-												Name: "delete",
+												Name: "allocation",
 												Actions: []ism.PolicyStateAction{
 													ism.PolicyStateAction{
-														Delete: &ism.PolicyStateDelete{},
+														Allocation: &ism.PolicyStateAllocation{
+															Require: map[string]string{"temp": "warm"},
+															Include: map[string]string{"test": "warm"},
+															Exclude: map[string]string{"test2": "warm"},
+															WaitFor: opensearch.ToPointer(true),
+														},
+													},
+												},
+												Transitions: &[]ism.PolicyStateTransition{
+													ism.PolicyStateTransition{
+														StateName: "transition",
 													},
 												},
 											},
@@ -89,6 +99,14 @@ func TestPoliciesClient(t *testing.T) {
 												Transitions: &[]ism.PolicyStateTransition{
 													ism.PolicyStateTransition{
 														StateName: "delete",
+													},
+												},
+											},
+											ism.PolicyState{
+												Name: "delete",
+												Actions: []ism.PolicyStateAction{
+													ism.PolicyStateAction{
+														Delete: &ism.PolicyStateDelete{},
 													},
 												},
 											},
