@@ -27,6 +27,8 @@ func TestPoliciesClient(t *testing.T) {
 	failingClient, err := osismtest.CreateFailingClient()
 	require.Nil(t, err)
 
+	t.Cleanup(func() { client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: "test2"}) })
+
 	var putResp ism.PoliciesPutResp
 
 	type policiesTests struct {
@@ -52,7 +54,7 @@ func TestPoliciesClient(t *testing.T) {
 									Policy: ism.PolicyBody{
 										Description: "test",
 										ErrorNotification: &ism.PolicyErrorNotification{
-											Destination: ism.NotificationDestination{
+											Destination: &ism.NotificationDestination{
 												CustomWebhook: &ism.NotificationDestinationCustomWebhook{
 													Host:         "exmaple.com",
 													Scheme:       "https",
@@ -113,7 +115,7 @@ func TestPoliciesClient(t *testing.T) {
 										},
 										Template: []ism.Template{
 											ism.Template{
-												IndexPatterns: []string{"*test*"},
+												IndexPatterns: []string{"test"},
 												Priority:      20,
 											},
 										},
@@ -122,6 +124,47 @@ func TestPoliciesClient(t *testing.T) {
 							},
 						)
 						return putResp, err
+					},
+				},
+				{
+					Name: "Create with Channel",
+					Results: func() (osismtest.Response, error) {
+						return client.Policies.Put(
+							nil,
+							ism.PoliciesPutReq{
+								Policy: "test2",
+								Body: ism.PoliciesPutBody{
+									Policy: ism.PolicyBody{
+										Description: "test",
+										ErrorNotification: &ism.PolicyErrorNotification{
+											Channel: &ism.NotificationChannel{
+												ID: "test",
+											},
+											MessageTemplate: ism.NotificationMessageTemplate{
+												Source: "The index {{ctx.index}} failed during policy execution.",
+											},
+										},
+										DefaultState: "delete",
+										States: []ism.PolicyState{
+											ism.PolicyState{
+												Name: "delete",
+												Actions: []ism.PolicyStateAction{
+													ism.PolicyStateAction{
+														Delete: &ism.PolicyStateDelete{},
+													},
+												},
+											},
+										},
+										Template: []ism.Template{
+											ism.Template{
+												IndexPatterns: []string{"test2"},
+												Priority:      21,
+											},
+										},
+									},
+								},
+							},
+						)
 					},
 				},
 				{
