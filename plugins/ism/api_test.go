@@ -45,7 +45,7 @@ func TestClient(t *testing.T) {
 				Policy: ism.PolicyBody{
 					Description: "test",
 					ErrorNotification: &ism.PolicyErrorNotification{
-						Destination: ism.NotificationDestination{
+						Destination: &ism.NotificationDestination{
 							CustomWebhook: &ism.NotificationDestinationCustomWebhook{
 								Host:         "exmaple.com",
 								Scheme:       "https",
@@ -76,7 +76,7 @@ func TestClient(t *testing.T) {
 					Template: []ism.Template{
 						ism.Template{
 							IndexPatterns: []string{"test"},
-							Priority:      20,
+							Priority:      22,
 						},
 					},
 				},
