@@ -80,9 +80,14 @@ type PolicyBody struct {
 
 // PolicyErrorNotification is a sub type of PolicyBody containing information about error notification
 type PolicyErrorNotification struct {
-	Channel         string                      `json:"channel,omitempty"`
-	Destination     NotificationDestination     `json:"destination,omitempty"`
+	Channel         *NotificationChannel        `json:"channel,omitempty"`
+	Destination     *NotificationDestination    `json:"destination,omitempty"`
 	MessageTemplate NotificationMessageTemplate `json:"message_template"`
+}
+
+// NotificationChannel is a sub type of PolicyErrorNotification containing the channel id
+type NotificationChannel struct {
+	ID string `json:"id"`
 }
 
 // NotificationDestination is a sub type of PolicyErrorNotification containing information about notification destinations

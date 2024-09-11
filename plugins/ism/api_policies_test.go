@@ -24,14 +24,21 @@ func TestPoliciesClient(t *testing.T) {
 	client, err := osismtest.NewClient()
 	require.Nil(t, err)
 
+	osClient, err := ostest.NewClient()
+	require.Nil(t, err)
+
 	failingClient, err := osismtest.CreateFailingClient()
 	require.Nil(t, err)
+
+	testPolicy1 := "test"
+	testPolicy2 := "test2"
+	t.Cleanup(func() { client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicy2}) })
 
 	var putResp ism.PoliciesPutResp
 
 	type policiesTests struct {
 		Name    string
-		Results func() (osismtest.Response, error)
+		Results func(*testing.T) (osismtest.Response, error)
 	}
 
 	testCases := []struct {
@@ -43,16 +50,16 @@ func TestPoliciesClient(t *testing.T) {
 			Tests: []policiesTests{
 				{
 					Name: "Create",
-					Results: func() (osismtest.Response, error) {
+					Results: func(t *testing.T) (osismtest.Response, error) {
 						putResp, err = client.Policies.Put(
 							nil,
 							ism.PoliciesPutReq{
-								Policy: "test",
+								Policy: testPolicy1,
 								Body: ism.PoliciesPutBody{
 									Policy: ism.PolicyBody{
 										Description: "test",
 										ErrorNotification: &ism.PolicyErrorNotification{
-											Destination: ism.NotificationDestination{
+											Destination: &ism.NotificationDestination{
 												CustomWebhook: &ism.NotificationDestinationCustomWebhook{
 													Host:         "exmaple.com",
 													Scheme:       "https",
@@ -113,7 +120,7 @@ func TestPoliciesClient(t *testing.T) {
 										},
 										Template: []ism.Template{
 											ism.Template{
-												IndexPatterns: []string{"*test*"},
+												IndexPatterns: []string{"test"},
 												Priority:      20,
 											},
 										},
@@ -125,14 +132,56 @@ func TestPoliciesClient(t *testing.T) {
 					},
 				},
 				{
+					Name: "Create with Channel",
+					Results: func(t *testing.T) (osismtest.Response, error) {
+						ostest.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
+						return client.Policies.Put(
+							nil,
+							ism.PoliciesPutReq{
+								Policy: testPolicy2,
+								Body: ism.PoliciesPutBody{
+									Policy: ism.PolicyBody{
+										Description: "test",
+										ErrorNotification: &ism.PolicyErrorNotification{
+											Channel: &ism.NotificationChannel{
+												ID: "test",
+											},
+											MessageTemplate: ism.NotificationMessageTemplate{
+												Source: "The index {{ctx.index}} failed during policy execution.",
+											},
+										},
+										DefaultState: "delete",
+										States: []ism.PolicyState{
+											ism.PolicyState{
+												Name: "delete",
+												Actions: []ism.PolicyStateAction{
+													ism.PolicyStateAction{
+														Delete: &ism.PolicyStateDelete{},
+													},
+												},
+											},
+										},
+										Template: []ism.Template{
+											ism.Template{
+												IndexPatterns: []string{"test2"},
+												Priority:      21,
+											},
+										},
+									},
+								},
+							},
+						)
+					},
+				},
+				{
 					Name: "Update",
-					Results: func() (osismtest.Response, error) {
+					Results: func(t *testing.T) (osismtest.Response, error) {
 						putResp.Policy.Policy.ErrorNotification.Destination.CustomWebhook = nil
 						putResp.Policy.Policy.ErrorNotification.Destination.Slack = &ism.NotificationDestinationURL{URL: "https://example.com"}
 						return client.Policies.Put(
 							nil,
 							ism.PoliciesPutReq{
-								Policy: "test",
+								Policy: testPolicy1,
 								Params: ism.PoliciesPutParams{IfSeqNo: opensearch.ToPointer(putResp.SeqNo), IfPrimaryTerm: opensearch.ToPointer(putResp.PrimaryTerm)},
 								Body: ism.PoliciesPutBody{
 									Policy: putResp.Policy.Policy,
@@ -143,7 +192,7 @@ func TestPoliciesClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func(t *testing.T) (osismtest.Response, error) {
 						return failingClient.Policies.Put(nil, ism.PoliciesPutReq{})
 					},
 				},
@@ -154,19 +203,19 @@ func TestPoliciesClient(t *testing.T) {
 			Tests: []policiesTests{
 				{
 					Name: "without request",
-					Results: func() (osismtest.Response, error) {
+					Results: func(t *testing.T) (osismtest.Response, error) {
 						return client.Policies.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (osismtest.Response, error) {
-						return client.Policies.Get(nil, &ism.PoliciesGetReq{Policy: "test"})
+					Results: func(t *testing.T) (osismtest.Response, error) {
+						return client.Policies.Get(nil, &ism.PoliciesGetReq{Policy: testPolicy1})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func(t *testing.T) (osismtest.Response, error) {
 						return failingClient.Policies.Get(nil, nil)
 					},
 				},
@@ -177,13 +226,13 @@ func TestPoliciesClient(t *testing.T) {
 			Tests: []policiesTests{
 				{
 					Name: "with request",
-					Results: func() (osismtest.Response, error) {
-						return client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: "test"})
+					Results: func(t *testing.T) (osismtest.Response, error) {
+						return client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicy1})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func(t *testing.T) (osismtest.Response, error) {
 						return failingClient.Policies.Delete(nil, ism.PoliciesDeleteReq{})
 					},
 				},
@@ -194,7 +243,7 @@ func TestPoliciesClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, err := testCase.Results(t)
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
