@@ -5,6 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+- Adds ISM Alias action ([#615](https://github.com/opensearch-project/opensearch-go/pull/615))
 
 ### Changed
 

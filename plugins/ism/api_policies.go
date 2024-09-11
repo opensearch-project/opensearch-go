@@ -72,7 +72,7 @@ type PolicyBody struct {
 	Description       string                   `json:"description,omitempty"`
 	LastUpdatedTime   int64                    `json:"last_updated_time,omitempty"`
 	SchemaVersion     int                      `json:"schema_version,omitempty"`
-	ErrorNotification *PolicyErrorNotification `json:"error_notification,omitempty"`
+	ErrorNotification *PolicyErrorNotification `json:"error_notification"`
 	DefaultState      string                   `json:"default_state"`
 	States            []PolicyState            `json:"states"`
 	Template          []Template               `json:"ism_template,omitempty"`
@@ -146,6 +146,7 @@ type PolicyStateAction struct {
 	IndexPriority *PolicyStateIndexPriority `json:"index_priority,omitempty"`
 	Allocation    *PolicyStateAllocation    `json:"allocation,omitempty"`
 	Rollup        *PolicyStateRollup        `json:"rollup,omitempty"`
+	Alias         *PolicyStateAlias         `json:"alias,omitempty"`
 }
 
 // Template is a sub type of PolicyBody containing information about the ims template
@@ -270,4 +271,20 @@ type PolicyStateTransitionConditionCron struct {
 type PolicyStateTransition struct {
 	StateName  string                          `json:"state_name"`
 	Conditions *PolicyStateTransitionCondition `json:"conditions,omitempty"`
+}
+
+// PolicyStateAlias represents the Alias action
+type PolicyStateAlias struct {
+	Actions []PolicyStateAliasAction `json:"actions"`
+}
+
+// PolicyStateAliasAction is a sub type of PolicyStateAlias defining to add or remove aliases
+type PolicyStateAliasAction struct {
+	Add    *PolicyStateAliasName `json:"add,omitempty"`
+	Remove *PolicyStateAliasName `json:"remove,omitempty"`
+}
+
+// PolicyStateAliasName is a sub type of PolicyStateAliasAction defining the list of aliases
+type PolicyStateAliasName struct {
+	Aliases []string `json:"aliases"`
 }
