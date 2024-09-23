@@ -19,11 +19,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
-// Response is a dummy interface to run tests with Inspect()
-type Response interface {
-	Inspect() opensearchapi.Inspect
-}
-
 // CreateFailingClient returns an opensearchapi.Client that always return 400 with an empty object as body
 func CreateFailingClient() (*opensearchapi.Client, error) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,20 +32,10 @@ func CreateFailingClient() (*opensearchapi.Client, error) {
 	return opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
 }
 
-// VerifyInspect validates the returned opensearchapi.Inspect type
-func VerifyInspect(t *testing.T, inspect opensearchapi.Inspect) {
+// VerifyResponse validates the returned opensearchapi.Response type
+func VerifyResponse(t *testing.T, response *opensearch.Response) {
 	t.Helper()
-	assert.NotEmpty(t, inspect)
-	assert.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
-	assert.NotEmpty(t, inspect.Response.Body)
-}
-
-// DummyInspect is a struct to match the Response interface that is used for testing
-type DummyInspect struct {
-	Response *opensearch.Response
-}
-
-// Inspect is a fuction of DummyInspect use to match the Response interface
-func (r DummyInspect) Inspect() opensearchapi.Inspect {
-	return opensearchapi.Inspect{Response: r.Response}
+	assert.NotNil(t, response)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	assert.NotEmpty(t, response.Body)
 }

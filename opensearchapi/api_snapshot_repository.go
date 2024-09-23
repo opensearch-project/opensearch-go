@@ -8,6 +8,8 @@ package opensearchapi
 
 import (
 	"context"
+
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type repositoryClient struct {
@@ -15,69 +17,79 @@ type repositoryClient struct {
 }
 
 // Create executes a put repository request with the required SnapshotRepositoryCreateReq
-func (c repositoryClient) Create(ctx context.Context, req SnapshotRepositoryCreateReq) (*SnapshotRepositoryCreateResp, error) {
-	var (
-		data SnapshotRepositoryCreateResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c repositoryClient) Create(
+	ctx context.Context,
+	req SnapshotRepositoryCreateReq,
+) (*SnapshotRepositoryCreateResp, *opensearch.Response, error) {
+	var data SnapshotRepositoryCreateResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Delete executes a delete repository request with the required SnapshotRepositoryDeleteReq
-func (c repositoryClient) Delete(ctx context.Context, req SnapshotRepositoryDeleteReq) (*SnapshotRepositoryDeleteResp, error) {
-	var (
-		data SnapshotRepositoryDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c repositoryClient) Delete(
+	ctx context.Context,
+	req SnapshotRepositoryDeleteReq,
+) (*SnapshotRepositoryDeleteResp, *opensearch.Response, error) {
+	var data SnapshotRepositoryDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Get executes a get repository request with the optional SnapshotRepositoryGetReq
-func (c repositoryClient) Get(ctx context.Context, req *SnapshotRepositoryGetReq) (*SnapshotRepositoryGetResp, error) {
+func (c repositoryClient) Get(
+	ctx context.Context,
+	req *SnapshotRepositoryGetReq,
+) (*SnapshotRepositoryGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &SnapshotRepositoryGetReq{}
 	}
-	var (
-		data SnapshotRepositoryGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Repos); err != nil {
-		return &data, err
+	var data SnapshotRepositoryGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Repos)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Cleanup executes a cleanup repository request with the required SnapshotRepositoryCleanupReq
-func (c repositoryClient) Cleanup(ctx context.Context, req SnapshotRepositoryCleanupReq) (*SnapshotRepositoryCleanupResp, error) {
-	var (
-		data SnapshotRepositoryCleanupResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c repositoryClient) Cleanup(
+	ctx context.Context,
+	req SnapshotRepositoryCleanupReq,
+) (*SnapshotRepositoryCleanupResp, *opensearch.Response, error) {
+	var data SnapshotRepositoryCleanupResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Verify executes a verify repository request with the required SnapshotRepositoryVerifyReq
-func (c repositoryClient) Verify(ctx context.Context, req SnapshotRepositoryVerifyReq) (*SnapshotRepositoryVerifyResp, error) {
-	var (
-		data SnapshotRepositoryVerifyResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c repositoryClient) Verify(
+	ctx context.Context,
+	req SnapshotRepositoryVerifyReq,
+) (*SnapshotRepositoryVerifyResp, *opensearch.Response, error) {
+	var data SnapshotRepositoryVerifyResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }

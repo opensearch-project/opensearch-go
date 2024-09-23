@@ -53,7 +53,7 @@ func ExampleNewDefaultClient() {
 		log.Fatalf("Error creating the client: %s\n", err)
 	}
 
-	_, err = client.Info(ctx, nil)
+	_, _, err = client.Info(ctx, nil)
 	if err != nil {
 		log.Fatalf("Error getting the response: %s\n", err)
 	}

@@ -38,10 +38,4 @@ type SnapshotRepositoryCleanupResp struct {
 		DeletedBytes int `json:"deleted_bytes"`
 		DeletedBlobs int `json:"deleted_blobs"`
 	} `json:"results"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SnapshotRepositoryCleanupResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

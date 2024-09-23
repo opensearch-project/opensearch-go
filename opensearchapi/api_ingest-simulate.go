@@ -46,11 +46,5 @@ func (r IngestSimulateReq) GetRequest() (*http.Request, error) {
 
 // IngestSimulateResp represents the returned struct of the index create response
 type IngestSimulateResp struct {
-	Docs     []json.RawMessage `json:"docs"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IngestSimulateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Docs []json.RawMessage `json:"docs"`
 }

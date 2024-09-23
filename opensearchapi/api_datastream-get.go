@@ -45,12 +45,6 @@ func (r DataStreamGetReq) GetRequest() (*http.Request, error) {
 // DataStreamGetResp represents the returned struct of the _data_stream get response
 type DataStreamGetResp struct {
 	DataStreams []DataStreamGetDetails `json:"data_streams"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DataStreamGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // DataStreamGetDetails is a sub type if DataStreamGetResp containing information about a data stream

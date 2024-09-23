@@ -41,8 +41,7 @@ func (r CatIndicesReq) GetRequest() (*http.Request, error) {
 
 // CatIndicesResp represents the returned struct of the /_cat/indices response
 type CatIndicesResp struct {
-	Indices  []CatIndexResp
-	response *opensearch.Response
+	Indices []CatIndexResp
 }
 
 // CatIndexResp represents one index of the CatIndicesResp
@@ -193,11 +192,4 @@ type CatIndexResp struct {
 	MemoryTotal                          string  `json:"memory.total"`
 	PrimaryMemoryTotal                   string  `json:"pri.memory.total"`
 	SearchThrottled                      bool    `json:"search.throttled,string"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatIndicesResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

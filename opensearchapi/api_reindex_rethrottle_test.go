@@ -70,7 +70,7 @@ func TestReindexRethrottle(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	reindex, err := client.Reindex(
+	reindex, _, err := client.Reindex(
 		nil,
 		opensearchapi.ReindexReq{
 			Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s","size":1},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
@@ -82,7 +82,7 @@ func TestReindexRethrottle(t *testing.T) {
 	)
 	require.Nil(t, err)
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.ReindexRethrottle(
+		resp, httpResp, err := client.ReindexRethrottle(
 			nil,
 			opensearchapi.ReindexRethrottleReq{
 				TaskID: reindex.Task,
@@ -91,16 +91,18 @@ func TestReindexRethrottle(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.ReindexRethrottle(nil, opensearchapi.ReindexRethrottleReq{})
+		resp, httpResp, err := failingClient.ReindexRethrottle(nil, opensearchapi.ReindexRethrottleReq{})
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, resp)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

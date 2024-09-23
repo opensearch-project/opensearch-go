@@ -53,22 +53,24 @@ func TestBulkClient(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
-			res, err := client.Bulk(
+			res, httpResp, err := client.Bulk(
 				nil,
 				test.Request,
 			)
 			require.Nil(t, err)
-			assert.NotEmpty(t, res)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			assert.NotNil(t, res)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 		})
 	}
-	t.Run("inspect", func(t *testing.T) {
+	t.Run("with failing request", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Bulk(nil, opensearchapi.BulkReq{Index: index})
-		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		res, httpResp, err := failingClient.Bulk(nil, opensearchapi.BulkReq{Index: index})
+		require.NotNil(t, err)
+		require.NotNil(t, httpResp)
+		require.Nil(t, res)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

@@ -36,10 +36,4 @@ func (r IndicesOpenReq) GetRequest() (*http.Request, error) {
 type IndicesOpenResp struct {
 	Acknowledged       bool `json:"acknowledged"`
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
-	response           *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesOpenResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

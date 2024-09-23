@@ -37,12 +37,6 @@ func (r ClusterRerouteReq) GetRequest() (*http.Request, error) {
 type ClusterRerouteResp struct {
 	Acknowledged bool                `json:"acknowledged"`
 	State        ClusterRerouteState `json:"state"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterRerouteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterRerouteState is a sub type of ClusterRerouteResp containing information about the cluster and cluster routing

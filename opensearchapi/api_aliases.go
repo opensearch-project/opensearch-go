@@ -15,16 +15,15 @@ import (
 )
 
 // Aliases executes an /_aliases request with the required AliasesReq
-func (c Client) Aliases(ctx context.Context, req AliasesReq) (*AliasesResp, error) {
-	var (
-		data AliasesResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) Aliases(ctx context.Context, req AliasesReq) (*AliasesResp, *opensearch.Response, error) {
+	var data AliasesResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // AliasesReq represents possible options for the / request
@@ -49,10 +48,4 @@ func (r AliasesReq) GetRequest() (*http.Request, error) {
 // AliasesResp represents the returned struct of the / response
 type AliasesResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AliasesResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

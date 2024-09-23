@@ -42,7 +42,6 @@ func (r CatRecoveryReq) GetRequest() (*http.Request, error) {
 // CatRecoveryResp represents the returned struct of the /_cat/recovery response
 type CatRecoveryResp struct {
 	Recovery []CatRecoveryItemResp
-	response *opensearch.Response
 }
 
 // CatRecoveryItemResp represents one index of the CatRecoveryResp
@@ -73,11 +72,4 @@ type CatRecoveryItemResp struct {
 	TranslogOps          int    `json:"translog_ops,string"`
 	TranslogOpsRecovered int    `json:"translog_ops_recovered,string"`
 	TranslogOpsPercent   string `json:"translog_ops_percent"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatRecoveryResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

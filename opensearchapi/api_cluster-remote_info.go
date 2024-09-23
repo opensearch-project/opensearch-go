@@ -32,12 +32,6 @@ func (r ClusterRemoteInfoReq) GetRequest() (*http.Request, error) {
 // ClusterRemoteInfoResp represents the returned struct of the ClusterRemoteInfoReq response
 type ClusterRemoteInfoResp struct {
 	Clusters map[string]ClusterRemoteInfoDetails
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterRemoteInfoResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterRemoteInfoDetails is a sub type of ClusterRemoteInfoResp contains information about a remote connection

@@ -101,7 +101,7 @@ func TestClientTransport(t *testing.T) {
 
 			go func(i int) {
 				defer wg.Done()
-				_, err := client.Info(nil, nil)
+				_, _, err := client.Info(nil, nil)
 				if err != nil {
 					t.Errorf("Unexpected error: %s", err)
 				}
@@ -119,7 +119,7 @@ func TestClientTransport(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
 
-		_, err = client.Info(ctx, nil)
+		_, _, err = client.Info(ctx, nil)
 		if err == nil {
 			t.Fatal("Expected 'context deadline exceeded' error")
 		}
@@ -147,7 +147,7 @@ func TestClientTransport(t *testing.T) {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
-		_, err = client.Info(nil, nil)
+		_, _, err = client.Info(nil, nil)
 		if err == nil {
 			t.Fatalf("Expected error, but got: %v", err)
 		}
@@ -188,7 +188,7 @@ func TestClientCustomTransport(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
+			_, _, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -224,7 +224,7 @@ func TestClientCustomTransport(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
+			_, _, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -269,7 +269,7 @@ func TestClientReplaceTransport(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
+			_, _, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -288,7 +288,7 @@ func TestClientAPI(t *testing.T) {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		res, err := client.Info(nil, nil)
+		res, _, err := client.Info(nil, nil)
 		if err != nil {
 			log.Fatalf("Error getting the response: %s\n", err)
 		}

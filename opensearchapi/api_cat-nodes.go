@@ -31,8 +31,7 @@ func (r CatNodesReq) GetRequest() (*http.Request, error) {
 
 // CatNodesResp represents the returned struct of the /_cat/nodes response
 type CatNodesResp struct {
-	Nodes    []CatNodesItemResp
-	response *opensearch.Response
+	Nodes []CatNodesItemResp
 }
 
 // CatNodesItemResp represents one index of the CatNodesResp
@@ -136,11 +135,4 @@ type CatNodesItemResp struct {
 	SuggestCurrent                  *int    `json:"suggest.current,string"`
 	SuggestTime                     *string `json:"suggest.time"`
 	SuggestTotal                    *int    `json:"suggest.total,string"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatNodesResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

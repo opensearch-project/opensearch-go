@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"strings"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestDataStreamClient(t *testing.T) {
 
 	dataStream := "data-stream-test"
 
-	_, err = client.IndexTemplate.Create(
+	_, _, err = client.IndexTemplate.Create(
 		nil,
 		opensearchapi.IndexTemplateCreateReq{
 			IndexTemplate: dataStream,
@@ -39,7 +40,7 @@ func TestDataStreamClient(t *testing.T) {
 
 	type dataStreamTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -51,13 +52,13 @@ func TestDataStreamClient(t *testing.T) {
 			Tests: []dataStreamTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.DataStream.Create(nil, opensearchapi.DataStreamCreateReq{DataStream: dataStream})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.DataStream.Create(nil, opensearchapi.DataStreamCreateReq{DataStream: dataStream})
 					},
 				},
@@ -68,13 +69,13 @@ func TestDataStreamClient(t *testing.T) {
 			Tests: []dataStreamTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.DataStream.Get(nil, &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.DataStream.Get(nil, nil)
 					},
 				},
@@ -85,13 +86,13 @@ func TestDataStreamClient(t *testing.T) {
 			Tests: []dataStreamTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.DataStream.Stats(nil, &opensearchapi.DataStreamStatsReq{DataStreams: []string{dataStream}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.DataStream.Stats(nil, nil)
 					},
 				},
@@ -102,13 +103,13 @@ func TestDataStreamClient(t *testing.T) {
 			Tests: []dataStreamTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.DataStream.Delete(nil, opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.DataStream.Delete(nil, opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
 					},
 				},
@@ -119,16 +120,17 @@ func TestDataStreamClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						assert.NotNil(t, httpResp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						require.NotNil(t, resp)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 					}
 				})
 			}

@@ -501,7 +501,7 @@ func (w *worker) flush(ctx context.Context) error {
 		Header: w.bi.config.Header,
 	}
 
-	blk, err = w.bi.config.Client.Bulk(ctx, req)
+	blk, _, err = w.bi.config.Client.Bulk(ctx, req)
 	if err != nil {
 		atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
 		if w.bi.config.OnError != nil {

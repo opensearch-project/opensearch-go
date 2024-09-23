@@ -23,26 +23,29 @@ func TestInfo(t *testing.T) {
 	client, err := ostest.NewClient()
 	require.Nil(t, err)
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.Info(nil, nil)
+		resp, httpResp, err := client.Info(nil, nil)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.Info(nil, &opensearchapi.InfoReq{})
+		resp, httpResp, err := client.Info(nil, &opensearchapi.InfoReq{})
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Info(nil, nil)
+		res, httpResp, err := failingClient.Info(nil, nil)
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

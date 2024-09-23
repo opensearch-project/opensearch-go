@@ -70,12 +70,6 @@ type TasksGetResp struct {
 			} `json:"thread_info"`
 		} `json:"resource_stats"`
 	} `json:"task"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TasksGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // TasksGetDetails is a sub type of TasksGetResp containing information about an index template

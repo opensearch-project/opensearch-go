@@ -69,12 +69,6 @@ type NodesStatsResp struct {
 	} `json:"_nodes"`
 	ClusterName string                `json:"cluster_name"`
 	Nodes       map[string]NodesStats `json:"nodes"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r NodesStatsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // NodesStats is a map item of NodesStatsResp representing all values of a node

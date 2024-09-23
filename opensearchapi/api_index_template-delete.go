@@ -35,10 +35,4 @@ func (r IndexTemplateDeleteReq) GetRequest() (*http.Request, error) {
 // IndexTemplateDeleteResp represents the returned struct of the index create response
 type IndexTemplateDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndexTemplateDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

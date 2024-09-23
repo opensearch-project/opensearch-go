@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func TestNodes(t *testing.T) {
 
 	type nodesTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -39,19 +40,19 @@ func TestNodes(t *testing.T) {
 			Tests: []nodesTests{
 				{
 					Name: "without request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.Stats(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.Stats(nil, &opensearchapi.NodesStatsReq{NodeID: []string{"*"}, Metric: []string{"indices"}, IndexMetric: []string{"store"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Nodes.Stats(nil, nil)
 					},
 				},
@@ -62,19 +63,19 @@ func TestNodes(t *testing.T) {
 			Tests: []nodesTests{
 				{
 					Name: "without request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.Info(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.Info(nil, &opensearchapi.NodesInfoReq{NodeID: []string{"*"}, Metrics: []string{"settings", "os"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Nodes.Info(nil, nil)
 					},
 				},
@@ -85,35 +86,26 @@ func TestNodes(t *testing.T) {
 			Tests: []nodesTests{
 				{
 					Name: "without request",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = client.Nodes.HotThreads(nil, nil)
-						return resp, err
+					Results: func() (any, *opensearch.Response, error) {
+						httpResp, err := client.Nodes.HotThreads(nil, nil)
+
+						return nil, httpResp, err
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = client.Nodes.HotThreads(nil, &opensearchapi.NodesHotThreadsReq{NodeID: []string{"*"}})
-						return resp, err
+					Results: func() (any, *opensearch.Response, error) {
+						httpResp, err := client.Nodes.HotThreads(nil, &opensearchapi.NodesHotThreadsReq{NodeID: []string{"*"}})
+
+						return nil, httpResp, err
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = failingClient.Nodes.HotThreads(nil, nil)
-						return resp, err
+					Results: func() (any, *opensearch.Response, error) {
+						httpResp, err := failingClient.Nodes.HotThreads(nil, nil)
+
+						return nil, httpResp, err
 					},
 				},
 			},
@@ -123,19 +115,19 @@ func TestNodes(t *testing.T) {
 			Tests: []nodesTests{
 				{
 					Name: "without request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.ReloadSecurity(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.ReloadSecurity(nil, &opensearchapi.NodesReloadSecurityReq{NodeID: []string{"*"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Nodes.ReloadSecurity(nil, nil)
 					},
 				},
@@ -146,19 +138,19 @@ func TestNodes(t *testing.T) {
 			Tests: []nodesTests{
 				{
 					Name: "without request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.Usage(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Nodes.Usage(nil, &opensearchapi.NodesUsageReq{NodeID: []string{"*"}, Metrics: []string{"*"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Nodes.Usage(nil, nil)
 					},
 				},
@@ -169,17 +161,20 @@ func TestNodes(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						assert.NotNil(t, httpResp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "HotThreads" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							require.NotNil(t, resp)
+						}
+						assert.NotNil(t, httpResp)
+						if value.Name != "HotThreads" {
+							ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 						}
 					}
 				})

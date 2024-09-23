@@ -48,10 +48,4 @@ type IndicesRefreshResp struct {
 		Successful int `json:"successful"`
 		Failed     int `json:"failed"`
 	} `json:"_shards"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesRefreshResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

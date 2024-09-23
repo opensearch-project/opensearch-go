@@ -35,10 +35,4 @@ func (r DanglingDeleteReq) GetRequest() (*http.Request, error) {
 // DanglingDeleteResp represents the returned struct of the delete dangling response
 type DanglingDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DanglingDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

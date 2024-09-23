@@ -42,7 +42,6 @@ func (r CatSegmentsReq) GetRequest() (*http.Request, error) {
 // CatSegmentsResp represents the returned struct of the /_cat/segments response
 type CatSegmentsResp struct {
 	Segments []CatSegmentResp
-	response *opensearch.Response
 }
 
 // CatSegmentResp represents one index of the CatSegmentsResp
@@ -62,11 +61,4 @@ type CatSegmentResp struct {
 	Searchable  bool   `json:"searchable,string"`
 	Version     string `json:"version"`
 	Compound    bool   `json:"compound,string"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatSegmentsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

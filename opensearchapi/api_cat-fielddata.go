@@ -42,7 +42,6 @@ func (r CatFieldDataReq) GetRequest() (*http.Request, error) {
 // CatFieldDataResp represents the returned struct of the /_cat/fielddata response
 type CatFieldDataResp struct {
 	FieldData []CatFieldDataItemResp
-	response  *opensearch.Response
 }
 
 // CatFieldDataItemResp represents one index of the CatFieldDataResp
@@ -53,11 +52,4 @@ type CatFieldDataItemResp struct {
 	Node  string `json:"node"`
 	Field string `json:"field"`
 	Size  string `json:"size"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatFieldDataResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

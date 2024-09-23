@@ -36,10 +36,4 @@ type ScriptLanguageResp struct {
 		Language string   `json:"language"`
 		Contexts []string `json:"contexts"`
 	} `json:"language_contexts"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScriptLanguageResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

@@ -41,8 +41,7 @@ func (r CatCountReq) GetRequest() (*http.Request, error) {
 
 // CatCountsResp represents the returned struct of the /_cat/count response
 type CatCountsResp struct {
-	Counts   []CatCountResp
-	response *opensearch.Response
+	Counts []CatCountResp
 }
 
 // CatCountResp represents one index of the CatCountResp
@@ -50,11 +49,4 @@ type CatCountResp struct {
 	Epoch     int    `json:"epoch,string"`
 	Timestamp string `json:"timestamp"`
 	Count     int    `json:"count,string"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatCountsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

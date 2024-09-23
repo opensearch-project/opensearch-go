@@ -54,12 +54,6 @@ type SnapshotStatusResp struct {
 			} `json:"shards"`
 		} `json:"indices"`
 	} `json:"snapshots"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SnapshotStatusResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // SnapshotStatusShardsStats is a sub type of SnapshotStatusResp containing information about shard stats

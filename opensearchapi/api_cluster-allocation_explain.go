@@ -71,12 +71,6 @@ type ClusterAllocationExplainResp struct {
 	AllocateExplanation          string                             `json:"allocate_explanation"`
 	NodeAllocationDecisions      []ClusterAllocationNodeDecisions   `json:"node_allocation_decisions"`
 	CanRebalanceClusterDecisions []ClusterAllocationExplainDeciders `json:"can_rebalance_cluster_decisions"`
-	response                     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterAllocationExplainResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterAllocationCurrentNode is a sub type of ClusterAllocationExplainResp containing information of the node the shard is on

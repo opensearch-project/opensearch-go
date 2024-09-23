@@ -17,131 +17,129 @@ type clusterClient struct {
 }
 
 // AllocationExplain executes a /_cluster/allocation/explain request with the optional ClusterAllocationExplainReq
-func (c clusterClient) AllocationExplain(ctx context.Context, req *ClusterAllocationExplainReq) (*ClusterAllocationExplainResp, error) {
+func (c clusterClient) AllocationExplain(
+	ctx context.Context,
+	req *ClusterAllocationExplainReq,
+) (*ClusterAllocationExplainResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterAllocationExplainReq{}
 	}
 
-	var (
-		data ClusterAllocationExplainResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterAllocationExplainResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Health executes a /_cluster/health request with the optional ClusterHealthReq
-func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq) (*ClusterHealthResp, error) {
+func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq) (*ClusterHealthResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterHealthReq{}
 	}
 
-	var (
-		data ClusterHealthResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterHealthResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // PendingTasks executes a /_cluster/pending_tasks request with the optional ClusterPendingTasksReq
-func (c clusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTasksReq) (*ClusterPendingTasksResp, error) {
+func (c clusterClient) PendingTasks(
+	ctx context.Context,
+	req *ClusterPendingTasksReq,
+) (*ClusterPendingTasksResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterPendingTasksReq{}
 	}
 
-	var (
-		data ClusterPendingTasksResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterPendingTasksResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // GetSettings executes a /_cluster/settings request with the optional ClusterGetSettingsReq
-func (c clusterClient) GetSettings(ctx context.Context, req *ClusterGetSettingsReq) (*ClusterGetSettingsResp, error) {
+func (c clusterClient) GetSettings(ctx context.Context, req *ClusterGetSettingsReq) (*ClusterGetSettingsResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterGetSettingsReq{}
 	}
 
-	var (
-		data ClusterGetSettingsResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterGetSettingsResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // PutSettings executes a /_cluster/settings request with the required ClusterPutSettingsReq
-func (c clusterClient) PutSettings(ctx context.Context, req ClusterPutSettingsReq) (*ClusterPutSettingsResp, error) {
-	var (
-		data ClusterPutSettingsResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c clusterClient) PutSettings(ctx context.Context, req ClusterPutSettingsReq) (*ClusterPutSettingsResp, *opensearch.Response, error) {
+	var data ClusterPutSettingsResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // State executes a /_cluster/state request with the optional ClusterStateReq
-func (c clusterClient) State(ctx context.Context, req *ClusterStateReq) (*ClusterStateResp, error) {
+func (c clusterClient) State(ctx context.Context, req *ClusterStateReq) (*ClusterStateResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterStateReq{}
 	}
 
-	var (
-		data ClusterStateResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterStateResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Stats executes a /_cluster/stats request with the optional ClusterStatsReq
-func (c clusterClient) Stats(ctx context.Context, req *ClusterStatsReq) (*ClusterStatsResp, error) {
+func (c clusterClient) Stats(ctx context.Context, req *ClusterStatsReq) (*ClusterStatsResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterStatsReq{}
 	}
 
-	var (
-		data ClusterStatsResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterStatsResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Reroute executes a /_cluster/reroute request with the required ClusterRerouteReq
-func (c clusterClient) Reroute(ctx context.Context, req ClusterRerouteReq) (*ClusterRerouteResp, error) {
-	var (
-		data ClusterRerouteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c clusterClient) Reroute(ctx context.Context, req ClusterRerouteReq) (*ClusterRerouteResp, *opensearch.Response, error) {
+	var data ClusterRerouteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // PostVotingConfigExclusions executes a /_cluster/voting_config_exclusions request with the optional ClusterPostVotingConfigExclusionsReq
@@ -178,64 +176,66 @@ func (c clusterClient) DeleteVotingConfigExclusions(
 }
 
 // PutDecommission executes a /_cluster/decommission/awareness request with the optional ClusterPutDecommissionReq
-func (c clusterClient) PutDecommission(ctx context.Context, req ClusterPutDecommissionReq) (*ClusterPutDecommissionResp, error) {
-	var (
-		data ClusterPutDecommissionResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c clusterClient) PutDecommission(
+	ctx context.Context,
+	req ClusterPutDecommissionReq,
+) (*ClusterPutDecommissionResp, *opensearch.Response, error) {
+	var data ClusterPutDecommissionResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // DeleteDecommission executes a /_cluster/decommission/awareness request with the optional ClusterDeleteDecommissionReq
 func (c clusterClient) DeleteDecommission(
 	ctx context.Context,
 	req *ClusterDeleteDecommissionReq,
-) (*ClusterDeleteDecommissionResp, error) {
+) (*ClusterDeleteDecommissionResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterDeleteDecommissionReq{}
 	}
 
-	var (
-		data ClusterDeleteDecommissionResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ClusterDeleteDecommissionResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // GetDecommission executes a /_cluster/decommission/awareness request with the optional ClusterGetDecommissionReq
-func (c clusterClient) GetDecommission(ctx context.Context, req ClusterGetDecommissionReq) (*ClusterGetDecommissionResp, error) {
-	var (
-		data ClusterGetDecommissionResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Values); err != nil {
-		return &data, err
+func (c clusterClient) GetDecommission(
+	ctx context.Context,
+	req ClusterGetDecommissionReq,
+) (*ClusterGetDecommissionResp, *opensearch.Response, error) {
+	var data ClusterGetDecommissionResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // RemoteInfo executes a /_remote/info request with the optional ClusterRemoteInfoReq
-func (c clusterClient) RemoteInfo(ctx context.Context, req *ClusterRemoteInfoReq) (*ClusterRemoteInfoResp, error) {
+func (c clusterClient) RemoteInfo(ctx context.Context, req *ClusterRemoteInfoReq) (*ClusterRemoteInfoResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ClusterRemoteInfoReq{}
 	}
 
-	var (
-		data ClusterRemoteInfoResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Clusters); err != nil {
-		return &data, err
+	var data ClusterRemoteInfoResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }

@@ -60,12 +60,6 @@ type DataStreamStatsResp struct {
 	BackingIndices      int                      `json:"backing_indices"`
 	TotalStoreSizeBytes int64                    `json:"total_store_size_bytes"`
 	DataStreams         []DataStreamStatsDetails `json:"data_streams"`
-	response            *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DataStreamStatsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // DataStreamStatsDetails is a sub type of DataStreamStatsResp containing information about a data stream

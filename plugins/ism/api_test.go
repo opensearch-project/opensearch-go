@@ -86,7 +86,7 @@ func TestClient(t *testing.T) {
 	require.Nil(t, err)
 
 	t.Cleanup(func() { osClient.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: testIndex}) })
-	_, err = osClient.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: testIndex[0]})
+	_, _, err = osClient.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: testIndex[0]})
 	require.Nil(t, err)
 
 	type clientTests struct {

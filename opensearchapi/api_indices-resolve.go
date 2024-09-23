@@ -49,10 +49,4 @@ type IndicesResolveResp struct {
 		BackingIndices []string `json:"backing_indices"`
 		TimestampField string   `json:"timestamp_field"`
 	} `json:"data_streams"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesResolveResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

@@ -43,12 +43,6 @@ type DocumentExplainResp struct {
 	Type        string                 `json:"_type"` // Deprecated field
 	Matched     bool                   `json:"matched"`
 	Explanation DocumentExplainDetails `json:"explanation"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DocumentExplainResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // DocumentExplainDetails is a sub type of DocumentExplainResp containing information about why a query does what it does

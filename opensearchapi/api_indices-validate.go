@@ -61,10 +61,4 @@ type IndicesValidateQueryResp struct {
 		Explanation *string `json:"explanation"`
 		Error       *string `json:"error"`
 	} `json:"explanations"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesValidateQueryResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

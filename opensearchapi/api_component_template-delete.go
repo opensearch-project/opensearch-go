@@ -35,10 +35,4 @@ func (r ComponentTemplateDeleteReq) GetRequest() (*http.Request, error) {
 // ComponentTemplateDeleteResp represents the returned struct of the _component_template delete response
 type ComponentTemplateDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ComponentTemplateDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

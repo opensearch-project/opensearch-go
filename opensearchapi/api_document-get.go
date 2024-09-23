@@ -45,10 +45,4 @@ type DocumentGetResp struct {
 	Type        string          `json:"_type"` // Deprecated field
 	Source      json.RawMessage `json:"_source"`
 	Fields      json.RawMessage `json:"fields"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DocumentGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
