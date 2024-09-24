@@ -175,6 +175,7 @@ type NodesStatsIndices struct {
 			DfsQuery    NodesStatsIndicesSearchRequest `json:"dfs_query"`
 			Expand      NodesStatsIndicesSearchRequest `json:"expand"`
 			CanMatch    NodesStatsIndicesSearchRequest `json:"can_match"`
+			Took        NodesStatsIndicesSearchRequest `json:"took"`
 		} `json:"request"`
 	} `json:"search"`
 	Merges struct {
