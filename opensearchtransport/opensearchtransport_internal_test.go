@@ -64,9 +64,13 @@ type mockSigner struct {
 	SampleKey   string
 	SampleValue string
 	ReturnError bool
+	testHook    func(*http.Request)
 }
 
 func (m *mockSigner) SignRequest(req *http.Request) error {
+	if m.testHook != nil {
+		m.testHook(req)
+	}
 	if m.ReturnError {
 		return fmt.Errorf("invalid data")
 	}
@@ -729,6 +733,47 @@ func TestTransportPerformRetries(t *testing.T) {
 			if body != foobarGzipped {
 				t.Fatalf("request %d body: expected %q, got %q", i, foobarGzipped, body)
 			}
+		}
+	})
+
+	t.Run("Signer can sign correctly during retry", func(t *testing.T) {
+		u, _ := url.Parse("https://foo.com/bar")
+		signer := mockSigner{}
+		callsToSigner := 0
+		expectedBody := "FOOBAR"
+
+		signer.testHook = func(req *http.Request) {
+			callsToSigner++
+			body, err := io.ReadAll(req.Body)
+			if err != nil {
+				panic(err)
+			}
+			if string(body) != expectedBody {
+				t.Fatalf("request %d body: expected %q, got %q", callsToSigner, expectedBody, body)
+			}
+		}
+
+		tp, _ := New(
+			Config{
+				URLs:   []*url.URL{u},
+				Signer: &signer,
+				Transport: &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+					},
+				},
+			},
+		)
+
+		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(expectedBody))
+		//nolint:bodyclose // Mock response does not have a body to close
+		_, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+
+		if callsToSigner != 4 {
+			t.Fatalf("expected 4 requests, got %d", callsToSigner)
 		}
 	})
 

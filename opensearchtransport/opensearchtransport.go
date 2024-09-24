@@ -292,16 +292,16 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		c.setReqURL(conn.URL, req)
 		c.setReqAuth(conn.URL, req)
 
-		if err = c.signRequest(req); err != nil {
-			return nil, fmt.Errorf("failed to sign request: %w", err)
-		}
-
 		if !c.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
 			body, err := req.GetBody()
 			if err != nil {
 				return nil, fmt.Errorf("cannot get request body: %w", err)
 			}
 			req.Body = body
+		}
+
+		if err = c.signRequest(req); err != nil {
+			return nil, fmt.Errorf("failed to sign request: %w", err)
 		}
 
 		// Set up time measures and execute the request
