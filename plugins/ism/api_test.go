@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4"
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
@@ -37,7 +38,7 @@ func TestClient(t *testing.T) {
 	testIndex := []string{"test_policy"}
 
 	t.Cleanup(func() { client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicy}) })
-	_, err = client.Policies.Put(
+	_, _, err = client.Policies.Put(
 		nil,
 		ism.PoliciesPutReq{
 			Policy: testPolicy,
@@ -91,14 +92,14 @@ func TestClient(t *testing.T) {
 
 	type clientTests struct {
 		Name    string
-		Results func() (osismtest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	waitFor := func() error {
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
+			resp, _, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
 			if err != nil {
 				return err
 			}
@@ -117,19 +118,19 @@ func TestClient(t *testing.T) {
 			Tests: []clientTests{
 				{
 					Name: "okay",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Add(nil, ism.AddReq{Indices: testIndex, Body: ism.AddBody{PolicyID: testPolicy}})
 					},
 				},
 				{
 					Name: "failure",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Add(nil, ism.AddReq{Indices: testIndex, Body: ism.AddBody{PolicyID: testPolicy}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Add(nil, ism.AddReq{})
 					},
 				},
@@ -140,13 +141,13 @@ func TestClient(t *testing.T) {
 			Tests: []clientTests{
 				{
 					Name: "without body",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Explain(nil, &ism.ExplainReq{})
 					},
 				},
@@ -157,13 +158,13 @@ func TestClient(t *testing.T) {
 			Tests: []clientTests{
 				{
 					Name: "with request",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Change(nil, ism.ChangeReq{Indices: testIndex, Body: ism.ChangeBody{PolicyID: testPolicy, State: "delete"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Change(nil, ism.ChangeReq{})
 					},
 				},
@@ -174,19 +175,19 @@ func TestClient(t *testing.T) {
 			Tests: []clientTests{
 				{
 					Name: "without body",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Retry(nil, ism.RetryReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "with body",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Retry(nil, ism.RetryReq{Indices: testIndex, Body: &ism.RetryBody{State: "test"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Retry(nil, ism.RetryReq{})
 					},
 				},
@@ -197,13 +198,13 @@ func TestClient(t *testing.T) {
 			Tests: []clientTests{
 				{
 					Name: "with request",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Remove(nil, ism.RemoveReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Remove(nil, ism.RemoveReq{})
 					},
 				},
@@ -214,17 +215,17 @@ func TestClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						osismtest.VerifyInspect(t, res.Inspect())
+						osismtest.VerifyResponse(t, httpResp)
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Explain" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 						if value.Name == "Add" && testCase.Name == "failure" {
 							err = waitFor()
@@ -237,24 +238,24 @@ func TestClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Explain", func(t *testing.T) {
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
+			resp, httpResp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, &resp, httpResp)
 		})
 		t.Run("Explain with validate_action", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true, ValidateAction: true}})
+			resp, httpResp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true, ValidateAction: true}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, &resp, httpResp)
 		})
 		t.Run("Explain with show_policy", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
+			resp, httpResp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, &resp, httpResp)
 		})
 	})
 
@@ -271,7 +272,7 @@ func TestClient(t *testing.T) {
 				},
 			},
 		}
-		_, err = client.Policies.Put(
+		_, _, err = client.Policies.Put(
 			context.Background(),
 			ism.PoliciesPutReq{
 				Policy: testRetentionPolicy,

@@ -21,11 +21,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 )
 
-// Response is a dummy interface to run tests with Inspect()
-type Response interface {
-	Inspect() ism.Inspect
-}
-
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case
 func NewClient() (*ism.Client, error) {
 	config, err := ClientConfig()
@@ -74,10 +69,10 @@ func CreateFailingClient() (*ism.Client, error) {
 	return ism.NewClient(ism.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
 }
 
-// VerifyInspect validates the returned ism.Inspect type
-func VerifyInspect(t *testing.T, inspect ism.Inspect) {
+// VerifyResponse validates the returned opensearch.Response type
+func VerifyResponse(t *testing.T, response *opensearch.Response) {
 	t.Helper()
-	assert.NotEmpty(t, inspect)
-	assert.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
-	assert.NotEmpty(t, inspect.Response.Body)
+	assert.NotEmpty(t, response)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	assert.NotEmpty(t, response.Body)
 }

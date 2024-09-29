@@ -39,10 +39,11 @@ func TestPoliciesClient(t *testing.T) {
 	})
 
 	var putResp ism.PoliciesPutResp
+	var httpResp *opensearch.Response
 
 	type policiesTests struct {
 		Name    string
-		Results func(*testing.T) (osismtest.Response, error)
+		Results func(*testing.T) (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -54,8 +55,8 @@ func TestPoliciesClient(t *testing.T) {
 			Tests: []policiesTests{
 				{
 					Name: "Create",
-					Results: func(t *testing.T) (osismtest.Response, error) {
-						putResp, err = client.Policies.Put(
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
+						putResp, httpResp, err = client.Policies.Put(
 							nil,
 							ism.PoliciesPutReq{
 								Policy: testPolicy,
@@ -132,12 +133,12 @@ func TestPoliciesClient(t *testing.T) {
 								},
 							},
 						)
-						return putResp, err
+						return putResp, httpResp, err
 					},
 				},
 				{
 					Name: "Create with Channel",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						ostest.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
 						return client.Policies.Put(
 							nil,
@@ -179,7 +180,7 @@ func TestPoliciesClient(t *testing.T) {
 				},
 				{
 					Name: "Create with Alias",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						ostest.SkipIfBelowVersion(t, osClient, 2, 4, "policy with alias action")
 						return client.Policies.Put(
 							nil,
@@ -222,7 +223,7 @@ func TestPoliciesClient(t *testing.T) {
 				},
 				{
 					Name: "Update",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						putResp.Policy.Policy.ErrorNotification.Destination.CustomWebhook = nil
 						putResp.Policy.Policy.ErrorNotification.Destination.Slack = &ism.NotificationDestinationURL{URL: "https://example.com"}
 						return client.Policies.Put(
@@ -239,7 +240,7 @@ func TestPoliciesClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						return failingClient.Policies.Put(nil, ism.PoliciesPutReq{})
 					},
 				},
@@ -250,19 +251,19 @@ func TestPoliciesClient(t *testing.T) {
 			Tests: []policiesTests{
 				{
 					Name: "without request",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						return client.Policies.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						return client.Policies.Get(nil, &ism.PoliciesGetReq{Policy: testPolicy})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						return failingClient.Policies.Get(nil, nil)
 					},
 				},
@@ -273,13 +274,13 @@ func TestPoliciesClient(t *testing.T) {
 			Tests: []policiesTests{
 				{
 					Name: "with request",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						return client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicy})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func(t *testing.T) (osismtest.Response, error) {
+					Results: func(t *testing.T) (any, *opensearch.Response, error) {
 						return failingClient.Policies.Delete(nil, ism.PoliciesDeleteReq{})
 					},
 				},
@@ -290,16 +291,16 @@ func TestPoliciesClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results(t)
+					res, httpResp, err := testCase.Results(t)
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						osismtest.VerifyInspect(t, res.Inspect())
+						osismtest.VerifyResponse(t, httpResp)
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 					}
 				})
 			}
