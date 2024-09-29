@@ -41,13 +41,7 @@ func (r InternalUsersGetReq) GetRequest() (*http.Request, error) {
 
 // InternalUsersGetResp represents the returned struct of the internal users get response
 type InternalUsersGetResp struct {
-	Users    map[string]InternalUsersGetItem
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r InternalUsersGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Users map[string]InternalUsersGetItem
 }
 
 // InternalUsersGetItem is a sub type of InternalUsersGetResp containing information about a user

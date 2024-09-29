@@ -9,6 +9,7 @@
 package security_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,7 +29,7 @@ func TestHealthClient(t *testing.T) {
 
 	type healthTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -40,13 +41,13 @@ func TestHealthClient(t *testing.T) {
 			Tests: []healthTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Health(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Health(nil, nil)
 					},
 				},
@@ -57,16 +58,16 @@ func TestHealthClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 					}
 				})
 			}

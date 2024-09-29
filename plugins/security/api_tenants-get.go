@@ -41,13 +41,7 @@ func (r TenantsGetReq) GetRequest() (*http.Request, error) {
 
 // TenantsGetResp represents the returned struct of the tenants get response
 type TenantsGetResp struct {
-	Tenants  map[string]TenantsGetItem
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TenantsGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Tenants map[string]TenantsGetItem
 }
 
 // TenantsGetItem is a sub type of TenantsGetResp containing information about a tenant

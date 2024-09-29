@@ -34,12 +34,6 @@ type ConfigGetResp struct {
 	Config struct {
 		Dynamic ConfigDynamic `json:"dynamic"`
 	} `json:"config"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ConfigGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ConfigDynamic represents the opensearch security config and is sub type of ConfigGetResp and ConfigPutBody

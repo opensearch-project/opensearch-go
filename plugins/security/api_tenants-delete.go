@@ -33,12 +33,6 @@ func (r TenantsDeleteReq) GetRequest() (*http.Request, error) {
 
 // TenantsDeleteResp represents the returned struct of the tenants delete response
 type TenantsDeleteResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TenantsDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

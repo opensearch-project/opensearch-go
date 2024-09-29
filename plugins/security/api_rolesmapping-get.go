@@ -42,12 +42,6 @@ func (r RolesMappingGetReq) GetRequest() (*http.Request, error) {
 // RolesMappingGetResp represents the returned struct of the rolesmapping get response
 type RolesMappingGetResp struct {
 	RolesMapping map[string]RolesMappingGetItem
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RolesMappingGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // RolesMappingGetItem is a sub type of RolesMappingGetResp containing information about a role

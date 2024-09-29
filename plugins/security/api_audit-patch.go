@@ -39,14 +39,8 @@ func (r AuditPatchReq) GetRequest() (*http.Request, error) {
 
 // AuditPatchResp represents the returned struct of the audit patch response
 type AuditPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AuditPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // AuditPatchBody represents the request body for the audit patch request

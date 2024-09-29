@@ -41,14 +41,8 @@ func (r ActionGroupsPutReq) GetRequest() (*http.Request, error) {
 
 // ActionGroupsPutResp represents the returned struct of the actiongroups put response
 type ActionGroupsPutResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ActionGroupsPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // ActionGroupsPutBody represents the request body for the action groups put request

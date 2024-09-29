@@ -9,6 +9,7 @@
 package security_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func TestAuditClient(t *testing.T) {
 
 	type auditTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -43,14 +44,13 @@ func TestAuditClient(t *testing.T) {
 			Tests: []auditTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
-						getResp, err := client.Audit.Get(nil, nil)
-						return getResp, err
+					Results: func() (any, *opensearch.Response, error) {
+						return client.Audit.Get(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Audit.Get(nil, nil)
 					},
 				},
@@ -61,7 +61,7 @@ func TestAuditClient(t *testing.T) {
 			Tests: []auditTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Audit.Put(
 							nil,
 							security.AuditPutReq{
@@ -76,7 +76,7 @@ func TestAuditClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Audit.Put(nil, security.AuditPutReq{})
 					},
 				},
@@ -87,7 +87,7 @@ func TestAuditClient(t *testing.T) {
 			Tests: []auditTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Audit.Patch(
 							nil,
 							security.AuditPatchReq{
@@ -104,7 +104,7 @@ func TestAuditClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Audit.Patch(nil, security.AuditPatchReq{})
 					},
 				},
@@ -115,16 +115,16 @@ func TestAuditClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 					}
 				})
 			}

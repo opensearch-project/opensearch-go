@@ -33,12 +33,6 @@ func (r SSLGetReq) GetRequest() (*http.Request, error) {
 type SSLGetResp struct {
 	HTTPCerts     []SSLCertItem `json:"http_certificates_list"`
 	TransportCert []SSLCertItem `json:"transport_certificates_list"`
-	response      *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SSLGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // SSLCertItem is a sub type of SSLGetResp containing information about a cert

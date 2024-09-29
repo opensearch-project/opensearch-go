@@ -33,12 +33,6 @@ func (r ActionGroupsDeleteReq) GetRequest() (*http.Request, error) {
 
 // ActionGroupsDeleteResp represents the returned struct of the actiongroups delete response
 type ActionGroupsDeleteResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ActionGroupsDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

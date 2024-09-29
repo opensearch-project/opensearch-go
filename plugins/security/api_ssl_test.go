@@ -10,6 +10,7 @@ package security_test
 
 import (
 	"crypto/tls"
+	"github.com/opensearch-project/opensearch-go/v4"
 	"net/http"
 	"strings"
 	"testing"
@@ -50,7 +51,7 @@ func TestSSLClient(t *testing.T) {
 
 	type sslTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -62,13 +63,13 @@ func TestSSLClient(t *testing.T) {
 			Tests: []sslTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.SSL.HTTPReload(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.SSL.HTTPReload(nil, &security.SSLHTTPReloadReq{})
 					},
 				},
@@ -79,13 +80,13 @@ func TestSSLClient(t *testing.T) {
 			Tests: []sslTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.SSL.TransportReload(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.SSL.TransportReload(nil, &security.SSLTransportReloadReq{})
 					},
 				},
@@ -96,13 +97,13 @@ func TestSSLClient(t *testing.T) {
 			Tests: []sslTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.SSL.Get(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.SSL.Get(nil, nil)
 					},
 				},
@@ -116,16 +117,16 @@ func TestSSLClient(t *testing.T) {
 					if strings.HasSuffix(value.Name, "Reload") && strings.Contains(testCase.Name, "request") {
 						ostest.SkipIfBelowVersion(t, osAPIclient, 2, 8, value.Name)
 					}
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 					}
 				})
 			}

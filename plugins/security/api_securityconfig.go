@@ -8,6 +8,7 @@ package security
 
 import (
 	"context"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type securityconfigClient struct {
@@ -15,44 +16,41 @@ type securityconfigClient struct {
 }
 
 // Get executes a get securityconfig request with the optional ConfigGetReq
-func (c securityconfigClient) Get(ctx context.Context, req *ConfigGetReq) (ConfigGetResp, error) {
+func (c securityconfigClient) Get(ctx context.Context, req *ConfigGetReq) (ConfigGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ConfigGetReq{}
 	}
 
-	var (
-		data ConfigGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+	var data ConfigGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Put executes a put securityconfig request with the required ConfigPutReq
-func (c securityconfigClient) Put(ctx context.Context, req ConfigPutReq) (ConfigPutResp, error) {
-	var (
-		data ConfigPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c securityconfigClient) Put(ctx context.Context, req ConfigPutReq) (ConfigPutResp, *opensearch.Response, error) {
+	var data ConfigPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Patch executes a patch securityconfig request with the required ConfigPatchReq
-func (c securityconfigClient) Patch(ctx context.Context, req ConfigPatchReq) (ConfigPatchResp, error) {
-	var (
-		data ConfigPatchResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c securityconfigClient) Patch(ctx context.Context, req ConfigPatchReq) (ConfigPatchResp, *opensearch.Response, error) {
+	var data ConfigPatchResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
