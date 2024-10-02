@@ -338,7 +338,8 @@ func (w *worker) run() {
 			w.mu.Lock()
 
 			if w.bi.config.DebugLogger != nil {
-				w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action, item.DocumentID)
+				w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
+					item.DocumentID)
 			}
 
 			if err := w.writeMeta(item); err != nil {
@@ -503,11 +504,7 @@ func (w *worker) flush(ctx context.Context) error {
 
 	blk, err = w.bi.config.Client.Bulk(ctx, req)
 	if err != nil {
-		atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
-		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(ctx, fmt.Errorf("flush: %w", err))
-		}
-		return fmt.Errorf("flush: %w", err)
+		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
 	}
 
 	for i, blkItem := range blk.Items {
@@ -520,7 +517,7 @@ func (w *worker) flush(ctx context.Context) error {
 		item = w.items[i]
 		// The OpenSearch bulk response contains an array of maps like this:
 		//   [ { "index": { ... } }, { "create": { ... } }, ... ]
-		// We range over the map, to set the first key and value as "op" and "info".
+		// We range over the map, to set the last key and value as "op" and "info".
 		for k, v := range blkItem {
 			op = k
 			info = v
@@ -547,6 +544,20 @@ func (w *worker) flush(ctx context.Context) error {
 			if item.OnSuccess != nil {
 				item.OnSuccess(ctx, item, info)
 			}
+		}
+	}
+
+	return err
+}
+
+func (w *worker) handleBulkError(ctx context.Context, err error) error {
+	atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
+
+	// info (the response item) will be empty since the bulk request failed
+	var info opensearchapi.BulkRespItem
+	for i := range w.items {
+		if item := w.items[i]; item.OnFailure != nil {
+			item.OnFailure(ctx, item, info, err)
 		}
 	}
 
