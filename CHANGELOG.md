@@ -19,6 +19,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix ISM Allocation field types ([#609](https://github.com/opensearch-project/opensearch-go/pull/609))
 - Fix ISM Error Notification types ([#612](https://github.com/opensearch-project/opensearch-go/pull/612))
 - Fix signer receiving drained body on retries ([#620](https://github.com/opensearch-project/opensearch-go/pull/620))
+- Fix Bulk Index Items not executing failure callbacks on bulk request failure ([#626](https://github.com/opensearch-project/opensearch-go/issues/626))
 
 ### Security
 
