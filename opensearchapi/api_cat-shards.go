@@ -41,8 +41,7 @@ func (r CatShardsReq) GetRequest() (*http.Request, error) {
 
 // CatShardsResp represents the returned struct of the /_cat/shards response
 type CatShardsResp struct {
-	Shards   []CatShardResp
-	response *opensearch.Response
+	Shards []CatShardResp
 }
 
 // CatShardResp represents one index of the CatShardsResp
@@ -127,11 +126,4 @@ type CatShardResp struct {
 	PathData                       *string `json:"path.data"`
 	PathState                      *string `json:"path.state"`
 	DocsDeleted                    *int    `json:"docs.deleted,string"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatShardsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

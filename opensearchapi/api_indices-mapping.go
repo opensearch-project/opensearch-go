@@ -21,50 +21,47 @@ type mappingClient struct {
 }
 
 // Get executes a get mapping request with the required MappingGetReq
-func (c mappingClient) Get(ctx context.Context, req *MappingGetReq) (*MappingGetResp, error) {
+func (c mappingClient) Get(ctx context.Context, req *MappingGetReq) (*MappingGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &MappingGetReq{}
 	}
 
-	var (
-		data MappingGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
-		return &data, err
+	var data MappingGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Indices)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Put executes a put mapping request with the required MappingPutReq
-func (c mappingClient) Put(ctx context.Context, req MappingPutReq) (*MappingPutResp, error) {
-	var (
-		data MappingPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c mappingClient) Put(ctx context.Context, req MappingPutReq) (*MappingPutResp, *opensearch.Response, error) {
+	var data MappingPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Field executes a field mapping request with the optional MappingFieldReq
-func (c mappingClient) Field(ctx context.Context, req *MappingFieldReq) (*MappingFieldResp, error) {
+func (c mappingClient) Field(ctx context.Context, req *MappingFieldReq) (*MappingFieldResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &MappingFieldReq{}
 	}
 
-	var (
-		data MappingFieldResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
-		return &data, err
+	var data MappingFieldResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Indices)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // MappingGetReq represents possible options for the mapping get request
@@ -100,12 +97,6 @@ type MappingGetResp struct {
 	Indices map[string]struct {
 		Mappings json.RawMessage `json:"mappings"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MappingGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // MappingPutReq represents possible options for the mapping put request
@@ -139,12 +130,6 @@ func (r MappingPutReq) GetRequest() (*http.Request, error) {
 // MappingPutResp represents the returned struct of the mapping put response
 type MappingPutResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MappingPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // MappingFieldReq represents possible options for the mapping field request
@@ -183,10 +168,4 @@ type MappingFieldResp struct {
 	Indices map[string]struct {
 		Mappings json.RawMessage `json:"mappings"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MappingFieldResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

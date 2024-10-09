@@ -30,7 +30,7 @@ func TestActiongroupsClient(t *testing.T) {
 
 	type actiongroupsTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -42,19 +42,19 @@ func TestActiongroupsClient(t *testing.T) {
 			Tests: []actiongroupsTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.ActionGroups.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.ActionGroups.Get(nil, &security.ActionGroupsGetReq{ActionGroup: "write"})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.ActionGroups.Get(nil, nil)
 					},
 				},
@@ -65,7 +65,7 @@ func TestActiongroupsClient(t *testing.T) {
 			Tests: []actiongroupsTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.ActionGroups.Put(
 							nil,
 							security.ActionGroupsPutReq{
@@ -81,7 +81,7 @@ func TestActiongroupsClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.ActionGroups.Put(nil, security.ActionGroupsPutReq{})
 					},
 				},
@@ -92,13 +92,13 @@ func TestActiongroupsClient(t *testing.T) {
 			Tests: []actiongroupsTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.ActionGroups.Delete(nil, security.ActionGroupsDeleteReq{ActionGroup: "test"})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.ActionGroups.Delete(nil, security.ActionGroupsDeleteReq{})
 					},
 				},
@@ -109,7 +109,7 @@ func TestActiongroupsClient(t *testing.T) {
 			Tests: []actiongroupsTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.ActionGroups.Patch(
 							nil,
 							security.ActionGroupsPatchReq{
@@ -127,7 +127,7 @@ func TestActiongroupsClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.ActionGroups.Patch(nil, security.ActionGroupsPatchReq{})
 					},
 				},
@@ -138,17 +138,17 @@ func TestActiongroupsClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 					}
 				})
@@ -157,10 +157,10 @@ func TestActiongroupsClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.ActionGroups.Get(nil, nil)
+			resp, httpResp, err := client.ActionGroups.Get(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Groups, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Groups, httpResp)
 		})
 	})
 }

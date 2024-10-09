@@ -62,7 +62,6 @@ type ClusterStateResp struct {
 	} `json:"blocks"`
 	Nodes        map[string]ClusterStateNodes `json:"nodes"`
 	Metadata     ClusterStateMetaData         `json:"metadata"`
-	response     *opensearch.Response
 	RoutingTable struct {
 		Indices map[string]struct {
 			Shards map[string][]ClusterStateRoutingIndex `json:"shards"`
@@ -81,11 +80,6 @@ type ClusterStateResp struct {
 	Restore struct {
 		Snapshots []json.RawMessage `json:"snapshots"`
 	} `json:"restore"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterStateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterStateBlocksIndex is a sub type of ClusterStateResp

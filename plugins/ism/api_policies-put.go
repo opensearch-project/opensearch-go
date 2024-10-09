@@ -49,12 +49,6 @@ type PoliciesPutResp struct {
 	Policy      struct {
 		Policy PolicyBody `json:"policy"`
 	} `json:"policy"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r PoliciesPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // PoliciesPutBody represents the request body for the policies put request

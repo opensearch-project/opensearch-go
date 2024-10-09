@@ -35,10 +35,4 @@ func (r IndicesDeleteReq) GetRequest() (*http.Request, error) {
 // IndicesDeleteResp represents the returned struct of the delete indices response
 type IndicesDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

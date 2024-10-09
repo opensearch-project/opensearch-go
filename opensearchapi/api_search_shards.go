@@ -16,20 +16,19 @@ import (
 )
 
 // SearchShards executes a /_search request with the optional SearchShardsReq
-func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*SearchShardsResp, error) {
+func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*SearchShardsResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &SearchShardsReq{}
 	}
 
-	var (
-		data SearchShardsResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data SearchShardsResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // SearchShardsReq represents possible options for the /_search request
@@ -90,10 +89,4 @@ type SearchShardsResp struct {
 			ID string `json:"id"`
 		} `json:"allocation_id"`
 	} `json:"shards"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SearchShardsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

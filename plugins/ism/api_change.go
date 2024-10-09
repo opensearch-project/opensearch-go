@@ -17,16 +17,15 @@ import (
 )
 
 // Change executes a change policy request with the required ChangeReq
-func (c Client) Change(ctx context.Context, req ChangeReq) (ChangeResp, error) {
-	var (
-		data ChangeResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+func (c Client) Change(ctx context.Context, req ChangeReq) (ChangeResp, *opensearch.Response, error) {
+	var data ChangeResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // ChangeReq represents possible options for the change policy request
@@ -67,12 +66,6 @@ type ChangeResp struct {
 	UpdatedIndices int           `json:"updated_indices"`
 	Failures       bool          `json:"failures"`
 	FailedIndices  []FailedIndex `json:"failed_indices"`
-	response       *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ChangeResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ChangeBody represents the request body for the change policy request

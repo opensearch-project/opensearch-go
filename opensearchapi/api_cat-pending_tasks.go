@@ -32,7 +32,6 @@ func (r CatPendingTasksReq) GetRequest() (*http.Request, error) {
 // CatPendingTasksResp represents the returned struct of the /_cat/pending_tasks response
 type CatPendingTasksResp struct {
 	PendingTasks []CatPendingTaskResp
-	response     *opensearch.Response
 }
 
 // CatPendingTaskResp represents one index of the CatPendingTasksResp
@@ -41,11 +40,4 @@ type CatPendingTaskResp struct {
 	TimeInQueue string `json:"timeInQueue"`
 	Priority    string `json:"priority"`
 	Source      string `json:"source"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatPendingTasksResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

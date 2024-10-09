@@ -16,16 +16,15 @@ import (
 )
 
 // ReindexRethrottle executes a / request with the optional ReindexRethrottleReq
-func (c Client) ReindexRethrottle(ctx context.Context, req ReindexRethrottleReq) (*ReindexRethrottleResp, error) {
-	var (
-		data ReindexRethrottleResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) ReindexRethrottle(ctx context.Context, req ReindexRethrottleReq) (*ReindexRethrottleResp, *opensearch.Response, error) {
+	var data ReindexRethrottleResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // ReindexRethrottleReq represents possible options for the / request
@@ -108,10 +107,4 @@ type ReindexRethrottleResp struct {
 		} `json:"tasks"`
 	} `json:"nodes"`
 	NodeFailures []FailuresCause `json:"node_failures"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ReindexRethrottleResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

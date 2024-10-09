@@ -35,10 +35,4 @@ func (r ScriptDeleteReq) GetRequest() (*http.Request, error) {
 // ScriptDeleteResp represents the returned struct of the delete script response
 type ScriptDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScriptDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

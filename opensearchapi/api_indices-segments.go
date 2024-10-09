@@ -52,12 +52,6 @@ type IndicesSegmentsResp struct {
 	Indices map[string]struct {
 		Shards map[string][]IndicesSegmentsShards `json:"shards"`
 	} `json:"indices"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesSegmentsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // IndicesSegmentsShards is a sub type of IndicesSegmentsResp containing information about a shard

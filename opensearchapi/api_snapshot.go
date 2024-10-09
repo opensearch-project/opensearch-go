@@ -6,7 +6,11 @@
 
 package opensearchapi
 
-import "context"
+import (
+	"context"
+
+	"github.com/opensearch-project/opensearch-go/v4"
+)
 
 type snapshotClient struct {
 	apiClient  *Client
@@ -14,79 +18,73 @@ type snapshotClient struct {
 }
 
 // Create executes a creade snapshot request with the required SnapshotCreateReq
-func (c snapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*SnapshotCreateResp, error) {
-	var (
-		data SnapshotCreateResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c snapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*SnapshotCreateResp, *opensearch.Response, error) {
+	var data SnapshotCreateResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Delete executes a delete snapshot request with the required SnapshotDeleteReq
-func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*SnapshotDeleteResp, error) {
-	var (
-		data SnapshotDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*SnapshotDeleteResp, *opensearch.Response, error) {
+	var data SnapshotDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Get executes a get snapshot request with the required SnapshotGetReq
-func (c snapshotClient) Get(ctx context.Context, req SnapshotGetReq) (*SnapshotGetResp, error) {
-	var (
-		data SnapshotGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c snapshotClient) Get(ctx context.Context, req SnapshotGetReq) (*SnapshotGetResp, *opensearch.Response, error) {
+	var data SnapshotGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Clone executes a snapshot clone request with the required SnapshotCloneReq
-func (c snapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*SnapshotCloneResp, error) {
-	var (
-		data SnapshotCloneResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c snapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*SnapshotCloneResp, *opensearch.Response, error) {
+	var data SnapshotCloneResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Restore executes a snapshot restore request with the required SnapshotRestoreReq
-func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*SnapshotRestoreResp, error) {
-	var (
-		data SnapshotRestoreResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*SnapshotRestoreResp, *opensearch.Response, error) {
+	var data SnapshotRestoreResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Status executes a snapshot status request with the required SnapshotStatusReq
-func (c snapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*SnapshotStatusResp, error) {
-	var (
-		data SnapshotStatusResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c snapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*SnapshotStatusResp, *opensearch.Response, error) {
+	var data SnapshotStatusResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }

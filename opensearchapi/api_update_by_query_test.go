@@ -31,7 +31,7 @@ func TestUpdateByQuery(t *testing.T) {
 	})
 
 	for i := 1; i <= 2; i++ {
-		_, err = client.Document.Create(
+		_, _, err = client.Document.Create(
 			nil,
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
@@ -44,7 +44,7 @@ func TestUpdateByQuery(t *testing.T) {
 	}
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.UpdateByQuery(
+		resp, httpResp, err := client.UpdateByQuery(
 			nil,
 			opensearchapi.UpdateByQueryReq{
 				Indices: []string{testIndex},
@@ -53,16 +53,18 @@ func TestUpdateByQuery(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.UpdateByQuery(nil, opensearchapi.UpdateByQueryReq{})
+		res, httpResp, err := failingClient.UpdateByQuery(nil, opensearchapi.UpdateByQueryReq{})
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

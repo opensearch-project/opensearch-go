@@ -48,10 +48,4 @@ type PoliciesGetResp struct {
 	PrimaryTerm   *int        `json:"_primary_term,omitempty"`
 	Version       *int        `json:"_version,omitempty"`
 	Policy        *PolicyBody `json:"policy,omitempty"`
-	response      *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r PoliciesGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

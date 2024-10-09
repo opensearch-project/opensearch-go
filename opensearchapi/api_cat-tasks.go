@@ -31,8 +31,7 @@ func (r CatTasksReq) GetRequest() (*http.Request, error) {
 
 // CatTasksResp represents the returned struct of the /_cat/tasks response
 type CatTasksResp struct {
-	Tasks    []CatTaskResp
-	response *opensearch.Response
+	Tasks []CatTaskResp
 }
 
 // CatTaskResp represents one index of the CatTasksResp
@@ -52,11 +51,4 @@ type CatTaskResp struct {
 	Node          string `json:"node"`
 	Version       string `json:"version"`
 	XOpaqueID     string `json:"x_opaque_id"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatTasksResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

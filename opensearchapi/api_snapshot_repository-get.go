@@ -48,10 +48,4 @@ type SnapshotRepositoryGetResp struct {
 		Type     string            `json:"type"`
 		Settings map[string]string `json:"settings"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SnapshotRepositoryGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

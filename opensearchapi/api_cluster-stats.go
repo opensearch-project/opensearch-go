@@ -57,12 +57,6 @@ type ClusterStatsResp struct {
 	Status      string              `json:"status"`
 	Indices     ClusterStatsIndices `json:"indices"`
 	Nodes       ClusterStatsNodes   `json:"nodes"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterStatsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterStatsIndices is a sub type of ClusterStatsResp containing cluster information about indices

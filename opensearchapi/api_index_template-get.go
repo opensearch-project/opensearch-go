@@ -37,12 +37,6 @@ func (r IndexTemplateGetReq) GetRequest() (*http.Request, error) {
 // IndexTemplateGetResp represents the returned struct of the index create response
 type IndexTemplateGetResp struct {
 	IndexTemplates []IndexTemplateGetDetails `json:"index_templates"`
-	response       *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndexTemplateGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // IndexTemplateGetDetails is a sub type of IndexTemplateGetResp containing information about an index template

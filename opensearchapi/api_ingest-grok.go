@@ -32,10 +32,4 @@ func (r IngestGrokReq) GetRequest() (*http.Request, error) {
 // IngestGrokResp represents the returned struct of the index create response
 type IngestGrokResp struct {
 	Patterns map[string]string `json:"patterns"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IngestGrokResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

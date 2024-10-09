@@ -49,14 +49,8 @@ func (r NodesDNPatchReq) GetRequest() (*http.Request, error) {
 
 // NodesDNPatchResp represents the returned struct of the nodesdn patch response
 type NodesDNPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r NodesDNPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // NodesDNPatchBody represents the request body for the nodesdn patch request

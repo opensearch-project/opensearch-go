@@ -20,42 +20,39 @@ type aliasClient struct {
 }
 
 // Delete executes a delete alias request with the required AliasDeleteReq
-func (c aliasClient) Delete(ctx context.Context, req AliasDeleteReq) (*AliasDeleteResp, error) {
-	var (
-		data AliasDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c aliasClient) Delete(ctx context.Context, req AliasDeleteReq) (*AliasDeleteResp, *opensearch.Response, error) {
+	var data AliasDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Get executes a get alias request with the required AliasGetReq
-func (c aliasClient) Get(ctx context.Context, req AliasGetReq) (*AliasGetResp, error) {
-	var (
-		data AliasGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
-		return &data, err
+func (c aliasClient) Get(ctx context.Context, req AliasGetReq) (*AliasGetResp, *opensearch.Response, error) {
+	var data AliasGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Indices)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Put executes a put alias request with the required AliasPutReq
-func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, error) {
-	var (
-		data AliasPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, *opensearch.Response, error) {
+	var data AliasPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Exists executes an exists alias request with the required AliasExistsReq
@@ -95,12 +92,6 @@ func (r AliasDeleteReq) GetRequest() (*http.Request, error) {
 // AliasDeleteResp represents the returned struct of the alias delete response
 type AliasDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AliasDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // AliasGetReq represents possible options for the alias get request
@@ -137,12 +128,6 @@ type AliasGetResp struct {
 	Indices map[string]struct {
 		Aliases map[string]json.RawMessage `json:"aliases"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AliasGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // AliasPutReq represents possible options for the alias put request
@@ -176,12 +161,6 @@ func (r AliasPutReq) GetRequest() (*http.Request, error) {
 // AliasPutResp represents the returned struct of the alias put response
 type AliasPutResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AliasPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // AliasExistsReq represents possible options for the alias exists request

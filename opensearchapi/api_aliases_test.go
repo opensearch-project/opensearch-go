@@ -29,30 +29,31 @@ func TestAliases(t *testing.T) {
 			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 		})
 
-		_, err = client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, _, err = client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("with request", func(t *testing.T) {
-			resp, err := client.Aliases(
+			resp, httpResp, err := client.Aliases(
 				nil,
 				opensearchapi.AliasesReq{
 					Body: strings.NewReader(`{"actions":[{"add":{"index":"test-aliases","alias":"logs"}},{"remove":{"index":"test-aliases","alias":"logs"}}]}`),
 				},
 			)
 			require.Nil(t, err)
-			require.NotEmpty(t, resp)
-			require.NotEmpty(t, resp.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			require.NotNil(t, resp)
+			require.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 
-		t.Run("inspect", func(t *testing.T) {
+		t.Run("with failing request", func(t *testing.T) {
 			failingClient, err := osapitest.CreateFailingClient()
 			require.Nil(t, err)
 
-			res, err := failingClient.Aliases(nil, opensearchapi.AliasesReq{})
+			res, httpResp, err := failingClient.Aliases(nil, opensearchapi.AliasesReq{})
 			require.NotNil(t, err)
-			require.NotNil(t, res)
-			osapitest.VerifyInspect(t, res.Inspect())
+			require.NotNil(t, httpResp)
+			require.Nil(t, res)
+			osapitest.VerifyResponse(t, httpResp)
 		})
 	})
 }

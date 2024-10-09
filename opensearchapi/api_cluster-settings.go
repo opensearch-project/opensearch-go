@@ -36,12 +36,6 @@ type ClusterGetSettingsResp struct {
 	Persistent json.RawMessage `json:"persistent"`
 	Transient  json.RawMessage `json:"transient"`
 	Defaults   json.RawMessage `json:"defaults"`
-	response   *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterGetSettingsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterPutSettingsReq represents possible options for the /_cluster/settings request
@@ -67,10 +61,4 @@ type ClusterPutSettingsResp struct {
 	Acknowledged bool            `json:"acknowledged"`
 	Persistent   json.RawMessage `json:"persistent"`
 	Transient    json.RawMessage `json:"transient"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterPutSettingsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

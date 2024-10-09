@@ -30,7 +30,7 @@ func TestMTermvectors(t *testing.T) {
 		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
-	_, err = client.Indices.Create(
+	_, _, err = client.Indices.Create(
 		nil,
 		opensearchapi.IndicesCreateReq{
 			Index: testIndex,
@@ -73,7 +73,7 @@ func TestMTermvectors(t *testing.T) {
 	require.Nil(t, err)
 	docs := []string{`{"fullname":"John Doe","text":"test test test "}`, `{"fullname":"Jane Doe","text":"Another test ..."}`}
 	for i, doc := range docs {
-		_, err = client.Document.Create(
+		_, _, err = client.Document.Create(
 			nil,
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
@@ -86,7 +86,7 @@ func TestMTermvectors(t *testing.T) {
 	}
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.MTermvectors(
+		resp, httpResp, err := client.MTermvectors(
 			nil,
 			opensearchapi.MTermvectorsReq{
 				Index: testIndex,
@@ -95,16 +95,18 @@ func TestMTermvectors(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.MTermvectors(nil, opensearchapi.MTermvectorsReq{})
+		res, httpResp, err := failingClient.MTermvectors(nil, opensearchapi.MTermvectorsReq{})
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

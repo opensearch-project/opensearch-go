@@ -30,12 +30,6 @@ func (r SSLHTTPReloadReq) GetRequest() (*http.Request, error) {
 
 // SSLHTTPReloadResp represents the returned struct of the http ssl reload response
 type SSLHTTPReloadResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SSLHTTPReloadResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

@@ -47,10 +47,4 @@ type IndexTemplateSimulateIndexResp struct {
 		Name          string   `json:"name"`
 		IndexPatterns []string `json:"index_patterns"`
 	} `json:"overlapping"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndexTemplateSimulateIndexResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

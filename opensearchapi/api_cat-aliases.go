@@ -41,8 +41,7 @@ func (r CatAliasesReq) GetRequest() (*http.Request, error) {
 
 // CatAliasesResp represents the returned struct of the /_cat/aliases response
 type CatAliasesResp struct {
-	Aliases  []CatAliasResp
-	response *opensearch.Response
+	Aliases []CatAliasResp
 }
 
 // CatAliasResp represents one index of the CatAliasesResp
@@ -53,11 +52,4 @@ type CatAliasResp struct {
 	RoutingIndex  string `json:"routing.index"`
 	RoutingSearch string `json:"routing.search"`
 	IsWriteIndex  string `json:"is_write_index"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatAliasesResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

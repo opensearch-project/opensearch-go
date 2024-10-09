@@ -39,10 +39,4 @@ type AccountGetResp struct {
 	UserRequestedTenant *string         `json:"user_requested_tenant"`
 	Tennants            map[string]bool `json:"tenants"`
 	Roles               []string        `json:"roles"`
-	response            *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AccountGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

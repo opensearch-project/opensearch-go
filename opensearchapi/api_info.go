@@ -14,20 +14,19 @@ import (
 )
 
 // Info executes a / request with the optional InfoReq
-func (c Client) Info(ctx context.Context, req *InfoReq) (*InfoResp, error) {
+func (c Client) Info(ctx context.Context, req *InfoReq) (*InfoResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &InfoReq{}
 	}
 
-	var (
-		data InfoResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data InfoResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // InfoReq represents possible options for the / request
@@ -63,11 +62,5 @@ type InfoResp struct {
 		MinimumWireCompatibilityVersion  string `json:"minimum_wire_compatibility_version"`
 		MinimumIndexCompatibilityVersion string `json:"minimum_index_compatibility_version"`
 	} `json:"version"`
-	Tagline  string `json:"tagline"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r InfoResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Tagline string `json:"tagline"`
 }

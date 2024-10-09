@@ -31,8 +31,7 @@ func (r CatHealthReq) GetRequest() (*http.Request, error) {
 
 // CatHealthResp represents the returned struct of the /_cat/health response
 type CatHealthResp struct {
-	Health   []CatHealthItemResp
-	response *opensearch.Response
+	Health []CatHealthItemResp
 }
 
 // CatHealthItemResp represents one index of the CatHealthResp
@@ -53,11 +52,4 @@ type CatHealthItemResp struct {
 	PendingTasks             int    `json:"pending_tasks,string"`
 	MaxTaskWaitTime          string `json:"max_task_wait_time"`
 	ActiveShardsPercent      string `json:"active_shards_percent"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatHealthResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

@@ -60,10 +60,4 @@ type ClusterHealthResp struct {
 	NumberOfInFlightFetch       int     `json:"number_of_in_flight_fetch"`
 	TaskMaxWaitingInQueueMillis int     `json:"task_max_waiting_in_queue_millis"`
 	ActiveShardsPercentAsNumber float64 `json:"active_shards_percent_as_number"`
-	response                    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterHealthResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
