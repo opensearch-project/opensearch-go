@@ -79,6 +79,10 @@ type SearchResp struct {
 	ScrollID     *string              `json:"_scroll_id,omitempty"`
 	Suggest      map[string][]Suggest `json:"suggest,omitempty"`
 	response     *opensearch.Response
+	Total        struct {
+		Value    int    `json:"value"`
+		Relation string `json:"relation"`
+	} `json:"total"`
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

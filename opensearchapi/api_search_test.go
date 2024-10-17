@@ -181,4 +181,17 @@ func TestSearch(t *testing.T) {
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 	})
+
+	t.Run("request with track_total_hits", func(t *testing.T) {
+		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		  "track_total_hits": true, 
+		  "query": {
+			"match": {
+			  "foo": "bar"
+			}
+		  }
+		}`)})
+		require.Nil(t, err)
+		assert.NotZero(t, resp.Total.Value)
+	})
 }
