@@ -9,6 +9,7 @@
 package security_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func TestInternalUsersClient(t *testing.T) {
 
 	type internalusersTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -43,7 +44,7 @@ func TestInternalUsersClient(t *testing.T) {
 			Tests: []internalusersTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.InternalUsers.Put(
 							nil,
 							security.InternalUsersPutReq{
@@ -57,7 +58,7 @@ func TestInternalUsersClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.InternalUsers.Put(nil, security.InternalUsersPutReq{})
 					},
 				},
@@ -68,19 +69,19 @@ func TestInternalUsersClient(t *testing.T) {
 			Tests: []internalusersTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.InternalUsers.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.InternalUsers.Get(nil, &security.InternalUsersGetReq{User: testUser})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.InternalUsers.Get(nil, nil)
 					},
 				},
@@ -91,13 +92,13 @@ func TestInternalUsersClient(t *testing.T) {
 			Tests: []internalusersTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.InternalUsers.Delete(nil, security.InternalUsersDeleteReq{User: testUser})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.InternalUsers.Delete(nil, security.InternalUsersDeleteReq{User: testUser})
 					},
 				},
@@ -108,7 +109,7 @@ func TestInternalUsersClient(t *testing.T) {
 			Tests: []internalusersTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.InternalUsers.Patch(
 							nil,
 							security.InternalUsersPatchReq{
@@ -131,7 +132,7 @@ func TestInternalUsersClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.InternalUsers.Patch(nil, security.InternalUsersPatchReq{})
 					},
 				},
@@ -142,17 +143,17 @@ func TestInternalUsersClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 					}
 				})
@@ -161,10 +162,10 @@ func TestInternalUsersClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.InternalUsers.Get(nil, nil)
+			resp, httpResp, err := client.InternalUsers.Get(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Users, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Users, httpResp)
 		})
 	})
 }

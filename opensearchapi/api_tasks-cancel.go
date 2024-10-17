@@ -45,12 +45,6 @@ func (r TasksCancelReq) GetRequest() (*http.Request, error) {
 type TasksCancelResp struct {
 	Nodes        map[string]TaskCancel `json:"nodes"`
 	NodeFailures []FailuresCause       `json:"node_failures"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TasksCancelResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // TaskCancel is a sub type of TaskCancelResp containing information about a node the task was running on

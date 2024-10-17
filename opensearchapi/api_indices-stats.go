@@ -50,15 +50,9 @@ func (r IndicesStatsReq) GetRequest() (*http.Request, error) {
 
 // IndicesStatsResp represents the returned struct of the index shrink response
 type IndicesStatsResp struct {
-	Shards   IndicesStatsShards  `json:"_shards"`
-	All      IndicesStatsAll     `json:"_all"`
-	Indices  IndicesStatsIndices `json:"indices"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesStatsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Shards  IndicesStatsShards  `json:"_shards"`
+	All     IndicesStatsAll     `json:"_all"`
+	Indices IndicesStatsIndices `json:"indices"`
 }
 
 // IndicesStatsShards is a sub type of IndicesStatsResp containing information about how many shards got requested

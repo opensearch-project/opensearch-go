@@ -40,10 +40,4 @@ type ScriptGetResp struct {
 		Lang   string `json:"lang"`
 		Source string `json:"source"`
 	} `json:"script"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScriptGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

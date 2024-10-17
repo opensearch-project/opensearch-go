@@ -49,14 +49,8 @@ func (r TenantsPatchReq) GetRequest() (*http.Request, error) {
 
 // TenantsPatchResp represents the returned struct of the tenants patch response
 type TenantsPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TenantsPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // TenantsPatchBody represents the request body for the tenants patch request

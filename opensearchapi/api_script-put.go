@@ -48,10 +48,4 @@ func (r ScriptPutReq) GetRequest() (*http.Request, error) {
 // ScriptPutResp represents the returned struct of the put script response
 type ScriptPutResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScriptPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

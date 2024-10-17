@@ -33,12 +33,6 @@ func (r RolesDeleteReq) GetRequest() (*http.Request, error) {
 
 // RolesDeleteResp represents the returned struct of the roles delete response
 type RolesDeleteResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RolesDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

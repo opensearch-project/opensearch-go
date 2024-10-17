@@ -14,20 +14,19 @@ import (
 )
 
 // Health executes a get health request with the optional HealthReq
-func (c Client) Health(ctx context.Context, req *HealthReq) (HealthResp, error) {
+func (c Client) Health(ctx context.Context, req *HealthReq) (HealthResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &HealthReq{}
 	}
 
-	var (
-		data HealthResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+	var data HealthResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // HealthReq represents possible options for the health get request
@@ -48,13 +47,7 @@ func (r HealthReq) GetRequest() (*http.Request, error) {
 
 // HealthResp represents the returned struct of the health get response
 type HealthResp struct {
-	Message  *string `json:"message"`
-	Mode     string  `json:"mode"`
-	Status   string  `json:"status"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r HealthResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Message *string `json:"message"`
+	Mode    string  `json:"mode"`
+	Status  string  `json:"status"`
 }

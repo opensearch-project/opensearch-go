@@ -52,11 +52,5 @@ type IndicesCountResp struct {
 		Skipped    int `json:"skipped"`
 		Failed     int `json:"failed"`
 	} `json:"_shards"`
-	Count    int `json:"count"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesCountResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Count int `json:"count"`
 }

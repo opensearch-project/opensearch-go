@@ -10,6 +10,7 @@ package security_test
 
 import (
 	"fmt"
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,7 +47,7 @@ func TestRolesMappingClient(t *testing.T) {
 
 	type rolesmappingTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -58,7 +59,7 @@ func TestRolesMappingClient(t *testing.T) {
 			Tests: []rolesmappingTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.RolesMapping.Put(
 							nil,
 							security.RolesMappingPutReq{
@@ -74,7 +75,7 @@ func TestRolesMappingClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.RolesMapping.Put(nil, security.RolesMappingPutReq{})
 					},
 				},
@@ -85,19 +86,19 @@ func TestRolesMappingClient(t *testing.T) {
 			Tests: []rolesmappingTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.RolesMapping.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.RolesMapping.Get(nil, &security.RolesMappingGetReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.RolesMapping.Get(nil, nil)
 					},
 				},
@@ -108,13 +109,13 @@ func TestRolesMappingClient(t *testing.T) {
 			Tests: []rolesmappingTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.RolesMapping.Delete(nil, security.RolesMappingDeleteReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.RolesMapping.Delete(nil, security.RolesMappingDeleteReq{Role: testRole})
 					},
 				},
@@ -125,7 +126,7 @@ func TestRolesMappingClient(t *testing.T) {
 			Tests: []rolesmappingTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.RolesMapping.Patch(
 							nil,
 							security.RolesMappingPatchReq{
@@ -150,7 +151,7 @@ func TestRolesMappingClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.RolesMapping.Patch(nil, security.RolesMappingPatchReq{})
 					},
 				},
@@ -161,20 +162,20 @@ func TestRolesMappingClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						if err != nil {
 							fmt.Println(err)
 						}
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 					}
 				})
@@ -183,10 +184,10 @@ func TestRolesMappingClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.RolesMapping.Get(nil, nil)
+			resp, httpResp, err := client.RolesMapping.Get(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.RolesMapping, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.RolesMapping, httpResp)
 		})
 	})
 }

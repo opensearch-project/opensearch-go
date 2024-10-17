@@ -16,16 +16,15 @@ import (
 )
 
 // Bulk executes a /_bulk request with the needed BulkReq
-func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
-	var (
-		data BulkResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, *opensearch.Response, error) {
+	var data BulkResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // BulkReq represents possible options for the /_bulk request
@@ -60,10 +59,9 @@ func (r BulkReq) GetRequest() (*http.Request, error) {
 
 // BulkResp represents the returned struct of the /_bulk response
 type BulkResp struct {
-	Took     int                       `json:"took"`
-	Errors   bool                      `json:"errors"`
-	Items    []map[string]BulkRespItem `json:"items"`
-	response *opensearch.Response
+	Took   int                       `json:"took"`
+	Errors bool                      `json:"errors"`
+	Items  []map[string]BulkRespItem `json:"items"`
 }
 
 // BulkRespItem represents an item of the BulkResp
@@ -101,9 +99,4 @@ type BulkRespItem struct {
 			} `json:"caused_by"`
 		} `json:"caused_by,omitempty"`
 	} `json:"error,omitempty"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r BulkResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

@@ -16,20 +16,19 @@ import (
 )
 
 // Explain executes a explain policy request with the optional ExplainReq
-func (c Client) Explain(ctx context.Context, req *ExplainReq) (ExplainResp, error) {
+func (c Client) Explain(ctx context.Context, req *ExplainReq) (ExplainResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ExplainReq{}
 	}
 
-	var (
-		data ExplainResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+	var data ExplainResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // ExplainReq represents possible options for the explain policy request
@@ -64,12 +63,6 @@ func (r ExplainReq) GetRequest() (*http.Request, error) {
 type ExplainResp struct {
 	Indices             map[string]ExplainItem
 	TotalManagedIndices int `json:"total_managed_indices"`
-	response            *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ExplainResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ExplainItem is a sub type of ExplainResp containing information about the policy attached to the index

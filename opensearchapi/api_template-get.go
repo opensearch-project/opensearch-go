@@ -37,12 +37,6 @@ func (r TemplateGetReq) GetRequest() (*http.Request, error) {
 // TemplateGetResp represents the returned struct of the index create response
 type TemplateGetResp struct {
 	Templates map[string]TemplateGetDetails
-	response  *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TemplateGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // TemplateGetDetails is a sub type of TemplateGetResp containing information about an index template

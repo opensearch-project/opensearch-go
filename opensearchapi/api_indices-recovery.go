@@ -84,12 +84,6 @@ type IndicesRecoveryResp struct {
 			} `json:"verify_index"`
 		} `json:"shards"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesRecoveryResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // IndicesRecoveryNodeInfo is a sub type of IndicesRecoveryResp represeing Node information

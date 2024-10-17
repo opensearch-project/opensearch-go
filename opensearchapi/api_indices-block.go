@@ -53,10 +53,4 @@ type IndicesBlockResp struct {
 			Failures []FailuresShard `json:"failures"`
 		} `json:"failed_shards"`
 	} `json:"indices"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesBlockResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

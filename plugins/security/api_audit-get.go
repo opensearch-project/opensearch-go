@@ -32,10 +32,4 @@ func (r AuditGetReq) GetRequest() (*http.Request, error) {
 type AuditGetResp struct {
 	ReadOnly []string    `json:"_readonly"`
 	Config   AuditConfig `json:"config"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AuditGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

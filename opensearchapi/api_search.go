@@ -18,20 +18,19 @@ import (
 )
 
 // Search executes a /_search request with the optional SearchReq
-func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error) {
+func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &SearchReq{}
 	}
 
-	var (
-		data SearchResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data SearchResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // SearchReq represents possible options for the /_search request
@@ -78,12 +77,6 @@ type SearchResp struct {
 	Aggregations json.RawMessage      `json:"aggregations"`
 	ScrollID     *string              `json:"_scroll_id,omitempty"`
 	Suggest      map[string][]Suggest `json:"suggest,omitempty"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Response
-func (r SearchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // SearchHit is a sub type of SearchResp containing information of the search hit with an unparsed Source field

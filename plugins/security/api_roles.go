@@ -8,6 +8,7 @@ package security
 
 import (
 	"context"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type rolesClient struct {
@@ -15,57 +16,53 @@ type rolesClient struct {
 }
 
 // Get executes a get roles request with the optional RolesGetReq
-func (c rolesClient) Get(ctx context.Context, req *RolesGetReq) (RolesGetResp, error) {
+func (c rolesClient) Get(ctx context.Context, req *RolesGetReq) (RolesGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &RolesGetReq{}
 	}
 
-	var (
-		data RolesGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Roles); err != nil {
-		return data, err
+	var data RolesGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Roles)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Put executes a put roles request with the required RolesPutReq
-func (c rolesClient) Put(ctx context.Context, req RolesPutReq) (RolesPutResp, error) {
-	var (
-		data RolesPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c rolesClient) Put(ctx context.Context, req RolesPutReq) (RolesPutResp, *opensearch.Response, error) {
+	var data RolesPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Delete executes a delete roles request with the required RolesDeleteReq
-func (c rolesClient) Delete(ctx context.Context, req RolesDeleteReq) (RolesDeleteResp, error) {
-	var (
-		data RolesDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c rolesClient) Delete(ctx context.Context, req RolesDeleteReq) (RolesDeleteResp, *opensearch.Response, error) {
+	var data RolesDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Patch executes a patch roles request with the required RolesPatchReq
-func (c rolesClient) Patch(ctx context.Context, req RolesPatchReq) (RolesPatchResp, error) {
-	var (
-		data RolesPatchResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c rolesClient) Patch(ctx context.Context, req RolesPatchReq) (RolesPatchResp, *opensearch.Response, error) {
+	var data RolesPatchResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }

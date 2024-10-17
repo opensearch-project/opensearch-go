@@ -82,16 +82,10 @@ type DocumentDeleteByQueryRethrottleResp struct {
 		} `json:"tasks"`
 	} `json:"nodes"`
 	NodeFailures []FailuresCause `json:"node_failures"`
-	response     *opensearch.Response
 }
 
 // DocumentDeleteByQueryRethrottleResourceInfo is a sub type of DocumentDeleteByQueryRethrottleResp containing resource stats
 type DocumentDeleteByQueryRethrottleResourceInfo struct {
 	CPUTimeInNanos int `json:"cpu_time_in_nanos"`
 	MemoryInBytes  int `json:"memory_in_bytes"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DocumentDeleteByQueryRethrottleResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

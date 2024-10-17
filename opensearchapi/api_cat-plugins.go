@@ -31,8 +31,7 @@ func (r CatPluginsReq) GetRequest() (*http.Request, error) {
 
 // CatPluginsResp represents the returned struct of the /_cat/plugins response
 type CatPluginsResp struct {
-	Plugins  []CatPluginResp
-	response *opensearch.Response
+	Plugins []CatPluginResp
 }
 
 // CatPluginResp represents one index of the CatPluginsResp
@@ -42,11 +41,4 @@ type CatPluginResp struct {
 	Component   string `json:"component,omitempty"`
 	Version     string `json:"version,omitempty"`
 	Description string `json:"description,omitempty"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatPluginsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

@@ -17,16 +17,15 @@ import (
 )
 
 // MTermvectors executes a /_mtermvectors request with the required MTermvectorsReq
-func (c Client) MTermvectors(ctx context.Context, req MTermvectorsReq) (*MTermvectorsResp, error) {
-	var (
-		data MTermvectorsResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) MTermvectors(ctx context.Context, req MTermvectorsReq) (*MTermvectorsResp, *opensearch.Response, error) {
+	var data MTermvectorsResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // MTermvectorsReq represents possible options for the /_mtermvectors request
@@ -68,10 +67,4 @@ type MTermvectorsResp struct {
 		Type        string          `json:"_type"` // Deprecated field
 		TermVectors json.RawMessage `json:"term_vectors"`
 	} `json:"docs"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MTermvectorsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

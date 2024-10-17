@@ -53,10 +53,4 @@ type DocumentDeleteResp struct {
 	} `json:"_shards"`
 	SeqNo       int `json:"_seq_no"`
 	PrimaryTerm int `json:"_primary_term"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DocumentDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

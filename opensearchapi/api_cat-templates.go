@@ -42,7 +42,6 @@ func (r CatTemplatesReq) GetRequest() (*http.Request, error) {
 // CatTemplatesResp represents the returned struct of the /_cat/templates response
 type CatTemplatesResp struct {
 	Templates []CatTemplateResp
-	response  *opensearch.Response
 }
 
 // CatTemplateResp represents one index of the CatTemplatesResp
@@ -52,11 +51,4 @@ type CatTemplateResp struct {
 	Order         int     `json:"order,string"`
 	Version       *string `json:"version"`
 	ComposedOf    string  `json:"composed_of"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatTemplatesResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

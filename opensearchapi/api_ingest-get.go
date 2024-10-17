@@ -40,10 +40,4 @@ type IngestGetResp struct {
 		Description string                       `json:"description"`
 		Processors  []map[string]json.RawMessage `json:"processors"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IngestGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

@@ -16,16 +16,15 @@ import (
 )
 
 // Reindex executes a / request with the optional ReindexReq
-func (c Client) Reindex(ctx context.Context, req ReindexReq) (*ReindexResp, error) {
-	var (
-		data ReindexResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) Reindex(ctx context.Context, req ReindexReq) (*ReindexResp, *opensearch.Response, error) {
+	var data ReindexResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // ReindexReq represents possible options for the / request
@@ -67,10 +66,4 @@ type ReindexResp struct {
 	ThrottledUntilMillis int               `json:"throttled_until_millis"`
 	Failures             []json.RawMessage `json:"failures"`
 	Task                 string            `json:"task"`
-	response             *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ReindexResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

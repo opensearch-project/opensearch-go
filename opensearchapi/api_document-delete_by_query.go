@@ -55,10 +55,4 @@ type DocumentDeleteByQueryResp struct {
 	ThrottledUntilMillis int               `json:"throttled_until_millis"`
 	Failures             []json.RawMessage `json:"failures"`       // Unknow struct, open an issue with an example response so we can add it
 	Task                 string            `json:"task,omitempty"` // Needed when wait_for_completion is set to false
-	response             *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DocumentDeleteByQueryResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

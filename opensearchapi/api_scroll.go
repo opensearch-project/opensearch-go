@@ -8,6 +8,8 @@ package opensearchapi
 
 import (
 	"context"
+
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type scrollClient struct {
@@ -15,27 +17,25 @@ type scrollClient struct {
 }
 
 // Delete executes a delete scroll request with the required ScrollDeleteReq
-func (c scrollClient) Delete(ctx context.Context, req ScrollDeleteReq) (*ScrollDeleteResp, error) {
-	var (
-		data ScrollDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c scrollClient) Delete(ctx context.Context, req ScrollDeleteReq) (*ScrollDeleteResp, *opensearch.Response, error) {
+	var data ScrollDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Get executes a get scroll request with the required ScrollGetReq
-func (c scrollClient) Get(ctx context.Context, req ScrollGetReq) (*ScrollGetResp, error) {
-	var (
-		data ScrollGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c scrollClient) Get(ctx context.Context, req ScrollGetReq) (*ScrollGetResp, *opensearch.Response, error) {
+	var data ScrollGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }

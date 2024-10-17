@@ -17,16 +17,18 @@ import (
 )
 
 // RenderSearchTemplate executes a /_render/template request with the required RenderSearchTemplateReq
-func (c Client) RenderSearchTemplate(ctx context.Context, req RenderSearchTemplateReq) (*RenderSearchTemplateResp, error) {
-	var (
-		data RenderSearchTemplateResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) RenderSearchTemplate(
+	ctx context.Context,
+	req RenderSearchTemplateReq,
+) (*RenderSearchTemplateResp, *opensearch.Response, error) {
+	var data RenderSearchTemplateResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // RenderSearchTemplateReq represents possible options for the /_render/template request
@@ -60,10 +62,4 @@ func (r RenderSearchTemplateReq) GetRequest() (*http.Request, error) {
 // RenderSearchTemplateResp represents the returned struct of the /_render/template response
 type RenderSearchTemplateResp struct {
 	TemplateOutput json.RawMessage `json:"template_output"`
-	response       *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RenderSearchTemplateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

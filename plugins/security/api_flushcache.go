@@ -14,20 +14,19 @@ import (
 )
 
 // FlushCache executes a flush cache request with the optional FlushCacheReq
-func (c Client) FlushCache(ctx context.Context, req *FlushCacheReq) (FlushCacheResp, error) {
+func (c Client) FlushCache(ctx context.Context, req *FlushCacheReq) (FlushCacheResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &FlushCacheReq{}
 	}
 
-	var (
-		data FlushCacheResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+	var data FlushCacheResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // FlushCacheReq represents possible options for the clush cache request
@@ -48,12 +47,6 @@ func (r FlushCacheReq) GetRequest() (*http.Request, error) {
 
 // FlushCacheResp represents the returned struct of the flush cache response
 type FlushCacheResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r FlushCacheResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

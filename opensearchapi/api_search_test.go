@@ -27,7 +27,7 @@ func TestSearch(t *testing.T) {
 
 	index := "test-index-search"
 
-	_, err = client.Index(
+	_, _, err = client.Index(
 		nil,
 		opensearchapi.IndexReq{
 			DocumentID: "foo",
@@ -42,18 +42,20 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.Search(nil, nil)
+		resp, httpResp, err := client.Search(nil, nil)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		assert.NotEmpty(t, resp.Hits.Hits)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
+		resp, httpResp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		assert.NotEmpty(t, resp.Hits.Hits)
 	})
 
@@ -61,21 +63,22 @@ func TestSearch(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Search(nil, nil)
+		res, httpResp, err := failingClient.Search(nil, nil)
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 
 	t.Run("request with explain", func(t *testing.T) {
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(""), Params: opensearchapi.SearchParams{Explain: opensearchapi.ToPointer(true)}})
+		resp, _, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(""), Params: opensearchapi.SearchParams{Explain: opensearchapi.ToPointer(true)}})
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotNil(t, resp.Hits.Hits[0].Explanation)
 	})
 
 	t.Run("request with retrieve specific fields", func(t *testing.T) {
-		resp, err := client.Search(
+		resp, _, err := client.Search(
 			nil,
 			&opensearchapi.SearchReq{
 				Indices: []string{index},
@@ -111,7 +114,7 @@ func TestSearch(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
 	t.Run("request to retrieve response with routing key", func(t *testing.T) {
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, _, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 		  "query": {
 			"match": {
 			  "foo": "bar"
@@ -131,7 +134,7 @@ func TestSearch(t *testing.T) {
 
 	t.Run("with seq_no and primary_term", func(t *testing.T) {
 		seqNoPrimaryTerm := true
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{
+		resp, httpResp, err := client.Search(nil, &opensearchapi.SearchReq{
 			Indices: []string{index},
 			Body:    strings.NewReader(""),
 			Params: opensearchapi.SearchParams{
@@ -140,7 +143,8 @@ func TestSearch(t *testing.T) {
 		})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		for _, hit := range resp.Hits.Hits {
 			assert.NotNil(t, hit.SeqNo)
@@ -150,7 +154,7 @@ func TestSearch(t *testing.T) {
 
 	t.Run("without seq_no and primary_term", func(t *testing.T) {
 		seqNoPrimaryTerm := false
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{
+		resp, httpResp, err := client.Search(nil, &opensearchapi.SearchReq{
 			Indices: []string{index},
 			Body:    strings.NewReader(""),
 			Params: opensearchapi.SearchParams{
@@ -159,7 +163,8 @@ func TestSearch(t *testing.T) {
 		})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		for _, hit := range resp.Hits.Hits {
 			assert.Nil(t, hit.SeqNo)
@@ -168,7 +173,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with suggest", func(t *testing.T) {
-		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, _, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 			"suggest": {
 			  "text": "bar",
 			  "my-suggest": {

@@ -38,10 +38,4 @@ func (r SnapshotRepositoryCreateReq) GetRequest() (*http.Request, error) {
 // SnapshotRepositoryCreateResp represents the returned struct of the index create response
 type SnapshotRepositoryCreateResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SnapshotRepositoryCreateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

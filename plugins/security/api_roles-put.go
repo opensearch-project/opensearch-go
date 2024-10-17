@@ -49,14 +49,8 @@ type RolesPutBody struct {
 
 // RolesPutResp represents the returned struct of the roles put response
 type RolesPutResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RolesPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // RolesIndexPermission contains index permissions and is used for Get and Put requests

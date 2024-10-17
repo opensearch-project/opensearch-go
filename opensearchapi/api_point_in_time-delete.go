@@ -55,10 +55,4 @@ type PointInTimeDeleteResp struct {
 		PitID      string `json:"pit_id"`
 		Successful bool   `json:"successful"`
 	} `json:"pits"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r PointInTimeDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

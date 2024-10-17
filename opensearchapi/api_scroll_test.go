@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func TestScrollClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	search, err := client.Search(
+	search, _, err := client.Search(
 		nil,
 		&opensearchapi.SearchReq{
 			Indices: []string{"*"},
@@ -38,7 +39,7 @@ func TestScrollClient(t *testing.T) {
 
 	type scrollTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -50,13 +51,13 @@ func TestScrollClient(t *testing.T) {
 			Tests: []scrollTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Scroll.Get(nil, opensearchapi.ScrollGetReq{ScrollID: *search.ScrollID})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Scroll.Get(nil, opensearchapi.ScrollGetReq{})
 					},
 				},
@@ -67,13 +68,13 @@ func TestScrollClient(t *testing.T) {
 			Tests: []scrollTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Scroll.Delete(nil, opensearchapi.ScrollDeleteReq{ScrollIDs: []string{"_all"}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Scroll.Delete(nil, opensearchapi.ScrollDeleteReq{})
 					},
 				},
@@ -84,16 +85,17 @@ func TestScrollClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.Error(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						assert.NotNil(t, httpResp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.NoError(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						require.NotNil(t, resp)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 					}
 				})
 			}
