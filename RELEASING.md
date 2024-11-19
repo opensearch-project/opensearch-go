@@ -33,14 +33,14 @@ Repositories create consistent release labels, such as `v1.0.0`, `v1.1.0` and `v
 
 The release process is standard across repositories in this org and is run by a release manager volunteering from amongst [MAINTAINERS](MAINTAINERS.md).
 
-1. Ensure that the version in [version.go](internal/version/version.go) is correct for the next release. 
+1. Ensure that the version in [version.go](internal/version/version.go) is correct for the next release. The example here releases version 4.3.0.
 2. For major version releases, ensure that all references are up-to-date, e.g. `github.com/opensearch-project/opensearch-go/v4`, see [opensearch-go#444](https://github.com/opensearch-project/opensearch-go/pull/444).
 3. Edit the [CHANGELOG](CHANGELOG.md) and replace the `Unreleased` section with the version about to be released.
 4. Add a comparison link to the new version at the bottom of the [CHANGELOG](CHANGELOG.md).
 5. Create a pull request with the changes into `main`, e.g. [opensearch-go#443](https://github.com/opensearch-project/opensearch-go/pull/443).
-6. Create a tag, e.g. `v3.0.1`, and push it to the GitHub repo. This [makes the new version available](https://go.dev/doc/modules/publishing) on [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v3).
+6. Create a tag, e.g. `v4.3.0`, and push it to the GitHub repo. This [makes the new version available](https://go.dev/doc/modules/publishing) on [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4).
 7. Draft and publish a [new GitHub release](https://github.com/opensearch-project/opensearch-go/releases/new) from the newly created tag.
-8. Create a new `Unreleased` section in the [CHANGELOG](CHANGELOG.md), increment version in [version.go](internal/version/version.go) to the next developer iteration (e.g. `3.0.2`), and make a pull request with this change into `main`, e.g. [opensearch-go#448](https://github.com/opensearch-project/opensearch-go/pull/448).
+8. Create a new `Unreleased` section in the [CHANGELOG](CHANGELOG.md), increment version in [version.go](internal/version/version.go) to the next developer iteration (e.g. `4.3.1`), and make a pull request with this change into `main`, e.g. [opensearch-go#448](https://github.com/opensearch-project/opensearch-go/pull/448).
     ```
     ## [Unreleased]
 
@@ -58,3 +58,4 @@ The release process is standard across repositories in this org and is run by a 
 
     ### Dependencies
     ```
+9. Run `go list` with the new version to refresh [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4), e.g. `go list -m github.com/opensearch-project/opensearch-go/v4@v4.3.0`.
