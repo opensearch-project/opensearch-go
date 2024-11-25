@@ -17,6 +17,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+- Bump `github.com/stretchr/testify` from 1.9.0 to 1.10.0 ([#644](https://github.com/opensearch-project/opensearch-go/pull/644))
 
 ## [4.3.0]
 
