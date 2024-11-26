@@ -40,13 +40,7 @@ func (r ActionGroupsGetReq) GetRequest() (*http.Request, error) {
 
 // ActionGroupsGetResp represents the returned struct of the actiongroups get response
 type ActionGroupsGetResp struct {
-	Groups   map[string]ActionGroupsGet
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ActionGroupsGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Groups map[string]ActionGroupsGet
 }
 
 // ActionGroupsGet is a sub type of ActionGroupsGetResp represeting information about an action group

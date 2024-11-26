@@ -32,7 +32,6 @@ func (r CatNodeAttrsReq) GetRequest() (*http.Request, error) {
 // CatNodeAttrsResp represents the returned struct of the /_cat/nodeattrs response
 type CatNodeAttrsResp struct {
 	NodeAttrs []CatNodeAttrsItemResp
-	response  *opensearch.Response
 }
 
 // CatNodeAttrsItemResp represents one index of the CatNodeAttrsResp
@@ -45,11 +44,4 @@ type CatNodeAttrsItemResp struct {
 	Port  int    `json:"port,string"`
 	Attr  string `json:"attr"`
 	Value string `json:"value"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatNodeAttrsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

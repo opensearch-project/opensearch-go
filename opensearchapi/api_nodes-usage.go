@@ -62,12 +62,6 @@ type NodesUsageResp struct {
 	} `json:"_nodes"`
 	ClusterName string                `json:"cluster_name"`
 	Nodes       map[string]NodesUsage `json:"nodes"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r NodesUsageResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // NodesUsage is a sub type of NodesUsageResp containing stats about rest api actions

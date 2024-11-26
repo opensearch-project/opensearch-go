@@ -9,6 +9,7 @@
 package security_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestAccountClient(t *testing.T) {
 
 	type accountTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -44,13 +45,13 @@ func TestAccountClient(t *testing.T) {
 			Tests: []accountTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Account.Get(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Account.Get(nil, nil)
 					},
 				},
@@ -61,12 +62,11 @@ func TestAccountClient(t *testing.T) {
 			Tests: []accountTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
-						var nilResp ossectest.Response
+					Results: func() (any, *opensearch.Response, error) {
 						// Get new client config
 						config, err := ossectest.ClientConfig()
 						if err != nil {
-							return nilResp, err
+							return nil, nil, err
 						}
 
 						// Set password to a "strong" password
@@ -74,7 +74,7 @@ func TestAccountClient(t *testing.T) {
 						config.Client.Username = testUser
 
 						// Create the test user
-						_, err = client.InternalUsers.Put(
+						_, _, err = client.InternalUsers.Put(
 							nil,
 							security.InternalUsersPutReq{
 								User: config.Client.Username,
@@ -84,13 +84,13 @@ func TestAccountClient(t *testing.T) {
 							},
 						)
 						if err != nil {
-							return nilResp, err
+							return nil, nil, err
 						}
 
 						// Create a new client with the test user
 						usrClient, err := security.NewClient(*config)
 						if err != nil {
-							return nilResp, err
+							return nil, nil, err
 						}
 
 						// Run the change password request we want to test
@@ -107,7 +107,7 @@ func TestAccountClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Account.Put(nil, security.AccountPutReq{})
 					},
 				},
@@ -118,16 +118,16 @@ func TestAccountClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 					}
 				})
 			}

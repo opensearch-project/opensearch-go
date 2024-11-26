@@ -15,16 +15,15 @@ import (
 )
 
 // Remove executes a remove policy request with the required RemoveReq
-func (c Client) Remove(ctx context.Context, req RemoveReq) (RemoveResp, error) {
-	var (
-		data RemoveResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+func (c Client) Remove(ctx context.Context, req RemoveReq) (RemoveResp, *opensearch.Response, error) {
+	var data RemoveResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // RemoveReq represents possible options for the remove policy request
@@ -59,10 +58,4 @@ type RemoveResp struct {
 	UpdatedIndices int           `json:"updated_indices"`
 	Failures       bool          `json:"failures"`
 	FailedIndices  []FailedIndex `json:"failed_indices"`
-	response       *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RemoveResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

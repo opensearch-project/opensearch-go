@@ -33,44 +33,46 @@ func TestIndexClient(t *testing.T) {
 	})
 
 	t.Run("Request Empty", func(t *testing.T) {
-		resp, err := client.Index(nil, opensearchapi.IndexReq{})
+		resp, httpResp, err := client.Index(nil, opensearchapi.IndexReq{})
 		assert.NotNil(t, err)
 		var osError *opensearch.StringError
 		require.True(t, errors.As(err, &osError))
 		assert.Equal(t, http.StatusMethodNotAllowed, osError.Status)
 		assert.Contains(t, osError.Err, "Incorrect HTTP method for uri")
-		assert.NotNil(t, resp)
-		assert.NotNil(t, resp.Inspect())
+		assert.Nil(t, resp)
+		assert.NotNil(t, httpResp)
 	})
 
 	t.Run("Request Index only", func(t *testing.T) {
-		resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index})
+		resp, httpResp, err := client.Index(nil, opensearchapi.IndexReq{Index: index})
 		assert.NotNil(t, err)
 		var osError *opensearch.StructError
 		require.True(t, errors.As(err, &osError))
 		assert.Equal(t, "parse_exception", osError.Err.Type)
 		assert.Equal(t, "request body is required", osError.Err.Reason)
-		assert.NotNil(t, resp)
-		assert.NotNil(t, resp.Inspect())
+		assert.Nil(t, resp)
+		assert.NotNil(t, httpResp)
 	})
 
 	t.Run("Request with DocID", func(t *testing.T) {
 		for _, result := range []string{"created", "updated"} {
 			body := strings.NewReader("{}")
-			resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body, DocumentID: "test"})
+			resp, httpResp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body, DocumentID: "test"})
 			require.Nil(t, err)
 			require.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			require.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 			assert.Equal(t, result, resp.Result)
 		}
 	})
 
 	t.Run("Request without DocID", func(t *testing.T) {
 		body := strings.NewReader("{}")
-		resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body})
+		resp, httpResp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body})
 		require.Nil(t, err)
 		require.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		require.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		assert.Equal(t, index, resp.Index)
 		assert.Equal(t, "created", resp.Result)
 	})
@@ -79,9 +81,10 @@ func TestIndexClient(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Index(nil, opensearchapi.IndexReq{Index: index})
+		res, httpResp, err := failingClient.Index(nil, opensearchapi.IndexReq{Index: index})
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

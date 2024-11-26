@@ -32,7 +32,6 @@ func (r CatClusterManagerReq) GetRequest() (*http.Request, error) {
 // CatClusterManagersResp represents the returned struct of the /_cat/cluster_manager response
 type CatClusterManagersResp struct {
 	ClusterManagers []CatClusterManagerResp
-	response        *opensearch.Response
 }
 
 // CatClusterManagerResp represents one index of the CatClusterManagerResp
@@ -41,11 +40,4 @@ type CatClusterManagerResp struct {
 	Host string `json:"host"`
 	IP   string `json:"ip"`
 	Node string `json:"node"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatClusterManagersResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

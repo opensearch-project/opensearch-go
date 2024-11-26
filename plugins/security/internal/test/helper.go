@@ -22,11 +22,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 )
 
-// Response is a dummy interface to run tests with Inspect()
-type Response interface {
-	Inspect() security.Inspect
-}
-
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case
 func NewClient() (*security.Client, error) {
 	config, err := ClientConfig()
@@ -75,10 +70,10 @@ func CreateFailingClient() (*security.Client, error) {
 	return security.NewClient(security.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
 }
 
-// VerifyInspect validates the returned security.Inspect type
-func VerifyInspect(t *testing.T, inspect security.Inspect) {
+// VerifyResponse validates the returned security.Inspect type
+func VerifyResponse(t *testing.T, response *opensearch.Response) {
 	t.Helper()
-	assert.NotEmpty(t, inspect)
-	assert.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
-	assert.NotEmpty(t, inspect.Response.Body)
+	assert.NotEmpty(t, response)
+	assert.Equal(t, http.StatusBadRequest, response.StatusCode)
+	assert.NotEmpty(t, response.Body)
 }

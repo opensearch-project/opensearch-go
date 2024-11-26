@@ -35,10 +35,4 @@ func (r DanglingImportReq) GetRequest() (*http.Request, error) {
 // DanglingImportResp represents the returned struct of thedangling import response
 type DanglingImportResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DanglingImportResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

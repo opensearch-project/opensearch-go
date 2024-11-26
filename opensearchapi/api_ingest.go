@@ -8,6 +8,8 @@ package opensearchapi
 
 import (
 	"context"
+
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type ingestClient struct {
@@ -15,74 +17,69 @@ type ingestClient struct {
 }
 
 // Create executes a creade ingest request with the required IngestCreateReq
-func (c ingestClient) Create(ctx context.Context, req IngestCreateReq) (*IngestCreateResp, error) {
-	var (
-		data IngestCreateResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c ingestClient) Create(ctx context.Context, req IngestCreateReq) (*IngestCreateResp, *opensearch.Response, error) {
+	var data IngestCreateResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Delete executes a delete ingest request with the required IngestDeleteReq
-func (c ingestClient) Delete(ctx context.Context, req IngestDeleteReq) (*IngestDeleteResp, error) {
-	var (
-		data IngestDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c ingestClient) Delete(ctx context.Context, req IngestDeleteReq) (*IngestDeleteResp, *opensearch.Response, error) {
+	var data IngestDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Get executes a get ingest request with the optional IngestGetReq
-func (c ingestClient) Get(ctx context.Context, req *IngestGetReq) (*IngestGetResp, error) {
+func (c ingestClient) Get(ctx context.Context, req *IngestGetReq) (*IngestGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &IngestGetReq{}
 	}
 
-	var (
-		data IngestGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Pipelines); err != nil {
-		return &data, err
+	var data IngestGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Pipelines)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Simulate executes a stats ingest request with the optional IngestSimulateReq
-func (c ingestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*IngestSimulateResp, error) {
-	var (
-		data IngestSimulateResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c ingestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*IngestSimulateResp, *opensearch.Response, error) {
+	var data IngestSimulateResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Grok executes a get ingest request with the optional IngestGrokReq
-func (c ingestClient) Grok(ctx context.Context, req *IngestGrokReq) (*IngestGrokResp, error) {
+func (c ingestClient) Grok(ctx context.Context, req *IngestGrokReq) (*IngestGrokResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &IngestGrokReq{}
 	}
 
-	var (
-		data IngestGrokResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data IngestGrokResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }

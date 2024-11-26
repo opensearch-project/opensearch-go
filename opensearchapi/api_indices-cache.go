@@ -50,10 +50,4 @@ type IndicesClearCacheResp struct {
 		Failed     int             `json:"failed"`
 		Failures   []FailuresShard `json:"failures"`
 	} `json:"_shards"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesClearCacheResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

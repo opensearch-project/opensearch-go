@@ -34,7 +34,6 @@ func (r CatSnapshotsReq) GetRequest() (*http.Request, error) {
 // CatSnapshotsResp represents the returned struct of the /_cat/snapshots response
 type CatSnapshotsResp struct {
 	Snapshots []CatSnapshotResp
-	response  *opensearch.Response
 }
 
 // CatSnapshotResp represents one index of the CatSnapshotsResp
@@ -51,11 +50,4 @@ type CatSnapshotResp struct {
 	FailedShards     int    `json:"failed_shards,string"`
 	TotalShards      int    `json:"total_shards,string"`
 	Reason           string `json:"reason"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatSnapshotsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

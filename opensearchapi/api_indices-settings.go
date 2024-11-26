@@ -21,32 +21,31 @@ type settingsClient struct {
 }
 
 // Get executes a get settings request with the required SettingsGetReq
-func (c settingsClient) Get(ctx context.Context, req *SettingsGetReq) (*SettingsGetResp, error) {
+func (c settingsClient) Get(ctx context.Context, req *SettingsGetReq) (*SettingsGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &SettingsGetReq{}
 	}
-	var (
-		data SettingsGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
-		return &data, err
+
+	var data SettingsGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Indices)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Put executes a put settings request with the required SettingsPutReq
-func (c settingsClient) Put(ctx context.Context, req SettingsPutReq) (*SettingsPutResp, error) {
-	var (
-		data SettingsPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c settingsClient) Put(ctx context.Context, req SettingsPutReq) (*SettingsPutResp, *opensearch.Response, error) {
+	var data SettingsPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // SettingsGetReq represents possible options for the settings get request
@@ -88,12 +87,6 @@ type SettingsGetResp struct {
 	Indices map[string]struct {
 		Settings json.RawMessage `json:"settings"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SettingsGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // SettingsPutReq represents possible options for the settings put request
@@ -127,10 +120,4 @@ func (r SettingsPutReq) GetRequest() (*http.Request, error) {
 // SettingsPutResp represents the returned struct of the settings put response
 type SettingsPutResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SettingsPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

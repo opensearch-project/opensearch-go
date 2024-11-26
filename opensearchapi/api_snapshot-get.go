@@ -41,12 +41,6 @@ func (r SnapshotGetReq) GetRequest() (*http.Request, error) {
 // SnapshotGetResp represents the returned struct of the index create response
 type SnapshotGetResp struct {
 	Snapshots []SnapshotGet `json:"snapshots"`
-	response  *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SnapshotGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // SnapshotGet is a sub type of SnapshotGetResp represeting a single snapshot

@@ -49,14 +49,8 @@ func (r InternalUsersPatchReq) GetRequest() (*http.Request, error) {
 
 // InternalUsersPatchResp represents the returned struct of the internalusers patch response
 type InternalUsersPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r InternalUsersPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // InternalUsersPatchBody represents the request body for the internalusers patch request

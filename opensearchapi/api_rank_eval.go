@@ -17,16 +17,15 @@ import (
 )
 
 // RankEval executes a /_rank_eval request with the required RankEvalReq
-func (c Client) RankEval(ctx context.Context, req RankEvalReq) (*RankEvalResp, error) {
-	var (
-		data RankEvalResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) RankEval(ctx context.Context, req RankEvalReq) (*RankEvalResp, *opensearch.Response, error) {
+	var data RankEvalResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // RankEvalReq represents possible options for the /_rank_eval request
@@ -63,10 +62,4 @@ type RankEvalResp struct {
 	MetricScore float64         `json:"metric_score"`
 	Details     json.RawMessage `json:"details"`
 	Failures    json.RawMessage `json:"failures"`
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RankEvalResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

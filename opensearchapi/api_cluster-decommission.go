@@ -43,12 +43,6 @@ func (r ClusterPutDecommissionReq) GetRequest() (*http.Request, error) {
 // ClusterPutDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
 type ClusterPutDecommissionResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterPutDecommissionResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterDeleteDecommissionReq represents possible options for the /_cluster/decommission/awareness request
@@ -71,12 +65,6 @@ func (r ClusterDeleteDecommissionReq) GetRequest() (*http.Request, error) {
 // ClusterDeleteDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
 type ClusterDeleteDecommissionResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterDeleteDecommissionResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ClusterGetDecommissionReq represents possible options for the /_cluster/decommission/awareness request
@@ -106,11 +94,5 @@ func (r ClusterGetDecommissionReq) GetRequest() (*http.Request, error) {
 
 // ClusterGetDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
 type ClusterGetDecommissionResp struct {
-	Values   map[string]string
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterGetDecommissionResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Values map[string]string
 }

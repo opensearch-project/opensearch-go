@@ -39,14 +39,8 @@ func (r ConfigPatchReq) GetRequest() (*http.Request, error) {
 
 // ConfigPatchResp represents the returned struct of the securityconfig patch response
 type ConfigPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ConfigPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // ConfigPatchBody represents the request body for the securityconfig patch request

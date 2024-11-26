@@ -16,16 +16,15 @@ import (
 )
 
 // Index executes a /_doc request with the given IndexReq
-func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
-	var (
-		data IndexResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, *opensearch.Response, error) {
+	var data IndexResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // IndexReq represents possible options for the /_doc request
@@ -72,10 +71,4 @@ type IndexResp struct {
 	SeqNo       int    `json:"_seq_no"`
 	PrimaryTerm int    `json:"_primary_term"`
 	Type        string `json:"_type"` // Deprecated field
-	response    *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndexResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

@@ -35,10 +35,4 @@ func (r DataStreamDeleteReq) GetRequest() (*http.Request, error) {
 // DataStreamDeleteResp represents the returned struct of the _data_stream delete response
 type DataStreamDeleteResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DataStreamDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

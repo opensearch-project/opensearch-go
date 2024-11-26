@@ -36,10 +36,4 @@ type PointInTimeGetResp struct {
 		CreationTime int    `json:"creation_time"`
 		KeepAlive    int64  `json:"keep_alive"`
 	} `json:"pits"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r PointInTimeGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

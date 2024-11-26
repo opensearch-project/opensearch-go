@@ -35,10 +35,4 @@ func (r DataStreamCreateReq) GetRequest() (*http.Request, error) {
 // DataStreamCreateResp represents the returned struct of the _data_stream create response
 type DataStreamCreateResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DataStreamCreateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

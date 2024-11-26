@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ func TestPointInTimeClient(t *testing.T) {
 
 	type pointInTimeTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -43,9 +44,9 @@ func TestPointInTimeClient(t *testing.T) {
 			Tests: []pointInTimeTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						keepAlive, _ := time.ParseDuration("5m")
-						resp, err := client.PointInTime.Create(
+						resp, httpResp, err := client.PointInTime.Create(
 							nil,
 							opensearchapi.PointInTimeCreateReq{
 								Indices: []string{"*"},
@@ -53,12 +54,12 @@ func TestPointInTimeClient(t *testing.T) {
 							},
 						)
 						pitID = resp.PitID
-						return resp, err
+						return resp, httpResp, err
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.PointInTime.Create(nil, opensearchapi.PointInTimeCreateReq{})
 					},
 				},
@@ -69,13 +70,13 @@ func TestPointInTimeClient(t *testing.T) {
 			Tests: []pointInTimeTests{
 				{
 					Name: "without request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.PointInTime.Get(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.PointInTime.Get(nil, nil)
 					},
 				},
@@ -86,13 +87,13 @@ func TestPointInTimeClient(t *testing.T) {
 			Tests: []pointInTimeTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.PointInTime.Delete(nil, opensearchapi.PointInTimeDeleteReq{PitID: []string{pitID}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.PointInTime.Delete(nil, opensearchapi.PointInTimeDeleteReq{})
 					},
 				},
@@ -103,16 +104,17 @@ func TestPointInTimeClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						assert.NotNil(t, httpResp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						require.NotNil(t, resp)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 					}
 				})
 			}

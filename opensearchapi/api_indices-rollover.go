@@ -54,10 +54,4 @@ type IndicesRolloverResp struct {
 	RolledOver         bool            `json:"rolled_over"`
 	DryRun             bool            `json:"dry_run"`
 	Conditions         map[string]bool `json:"conditions"`
-	response           *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesRolloverResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

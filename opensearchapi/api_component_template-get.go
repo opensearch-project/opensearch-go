@@ -44,12 +44,6 @@ func (r ComponentTemplateGetReq) GetRequest() (*http.Request, error) {
 // ComponentTemplateGetResp represents the returned struct of the index create response
 type ComponentTemplateGetResp struct {
 	ComponentTemplates []ComponentTemplateGetDetails `json:"component_templates"`
-	response           *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ComponentTemplateGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // ComponentTemplateGetDetails is a sub type of ComponentTemplateGetResp containing information about component template

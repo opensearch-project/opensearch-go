@@ -17,16 +17,15 @@ import (
 )
 
 // MGet executes a /_mget request with the optional MGetReq
-func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
-	var (
-		data MGetResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, *opensearch.Response, error) {
+	var data MGetResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // MGetReq represents possible options for the /_mget request
@@ -69,10 +68,4 @@ type MGetResp struct {
 		Type        string          `json:"_type"`
 		Source      json.RawMessage `json:"_source"`
 	} `json:"docs"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

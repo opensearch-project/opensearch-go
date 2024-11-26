@@ -9,6 +9,7 @@ package ism
 import (
 	"context"
 	"encoding/json"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type policiesClient struct {
@@ -16,46 +17,43 @@ type policiesClient struct {
 }
 
 // Get executes a get policies request with the optional PoliciesGetReq
-func (c policiesClient) Get(ctx context.Context, req *PoliciesGetReq) (PoliciesGetResp, error) {
+func (c policiesClient) Get(ctx context.Context, req *PoliciesGetReq) (PoliciesGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &PoliciesGetReq{}
 	}
 
-	var (
-		data PoliciesGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+	var data PoliciesGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Put executes a put policies request with the required PoliciesPutReq
-func (c policiesClient) Put(ctx context.Context, req PoliciesPutReq) (PoliciesPutResp, error) {
-	var (
-		data PoliciesPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c policiesClient) Put(ctx context.Context, req PoliciesPutReq) (PoliciesPutResp, *opensearch.Response, error) {
+	var data PoliciesPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Delete executes a delete policies request with the required PoliciesDeleteReq
-func (c policiesClient) Delete(ctx context.Context, req PoliciesDeleteReq) (PoliciesDeleteResp, error) {
-	var (
-		data PoliciesDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c policiesClient) Delete(ctx context.Context, req PoliciesDeleteReq) (PoliciesDeleteResp, *opensearch.Response, error) {
+	var data PoliciesDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Policy is a sub type of PoliciesGetResp represeting information about an action group

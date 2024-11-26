@@ -46,12 +46,6 @@ type TenantsPutBody struct {
 
 // TenantsPutResp represents the returned struct of the tenants put response
 type TenantsPutResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TenantsPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }

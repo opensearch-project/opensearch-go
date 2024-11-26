@@ -31,13 +31,7 @@ func (r ClusterPendingTasksReq) GetRequest() (*http.Request, error) {
 
 // ClusterPendingTasksResp represents the returned struct of the  ClusterPendingTasksReq response
 type ClusterPendingTasksResp struct {
-	Tasks    []ClusterPendingTasksItem `json:"tasks"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ClusterPendingTasksResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Tasks []ClusterPendingTasksItem `json:"tasks"`
 }
 
 // ClusterPendingTasksItem is a sub type if ClusterPendingTasksResp containing information about a task

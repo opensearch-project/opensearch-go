@@ -43,10 +43,4 @@ type NodesDNGetResp struct {
 	DistinguishedNames map[string]struct {
 		NodesDN []string `json:"nodes_dn"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r NodesDNGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

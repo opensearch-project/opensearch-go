@@ -17,46 +17,52 @@ type componentTemplateClient struct {
 }
 
 // Create executes a creade componentTemplate request with the required ComponentTemplateCreateReq
-func (c componentTemplateClient) Create(ctx context.Context, req ComponentTemplateCreateReq) (*ComponentTemplateCreateResp, error) {
-	var (
-		data ComponentTemplateCreateResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c componentTemplateClient) Create(
+	ctx context.Context,
+	req ComponentTemplateCreateReq,
+) (*ComponentTemplateCreateResp, *opensearch.Response, error) {
+	var data ComponentTemplateCreateResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Delete executes a delete componentTemplate request with the required ComponentTemplateDeleteReq
-func (c componentTemplateClient) Delete(ctx context.Context, req ComponentTemplateDeleteReq) (*ComponentTemplateDeleteResp, error) {
-	var (
-		data ComponentTemplateDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c componentTemplateClient) Delete(
+	ctx context.Context,
+	req ComponentTemplateDeleteReq,
+) (*ComponentTemplateDeleteResp, *opensearch.Response, error) {
+	var data ComponentTemplateDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Get executes a get componentTemplate request with the optional ComponentTemplateGetReq
-func (c componentTemplateClient) Get(ctx context.Context, req *ComponentTemplateGetReq) (*ComponentTemplateGetResp, error) {
+func (c componentTemplateClient) Get(
+	ctx context.Context,
+	req *ComponentTemplateGetReq,
+) (*ComponentTemplateGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &ComponentTemplateGetReq{}
 	}
 
-	var (
-		data ComponentTemplateGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data ComponentTemplateGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Exists executes a exists componentTemplate request with the required ComponentTemplatExistsReq
