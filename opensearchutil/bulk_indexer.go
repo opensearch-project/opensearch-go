@@ -458,7 +458,7 @@ func (w *worker) writeBody(item *BulkIndexerItem) error {
 
 // flush writes out the worker buffer; it must be called under a lock.
 func (w *worker) flush(ctx context.Context) error {
-	ctx := context.WithValue(ctx, WorkerCtxKey, w.id)
+	ctx = context.WithValue(ctx, WorkerCtxKey, w.id)
 	if w.bi.config.OnFlushStart != nil {
 		ctx = w.bi.config.OnFlushStart(ctx)
 	}
