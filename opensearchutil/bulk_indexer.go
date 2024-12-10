@@ -41,7 +41,13 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
-const defaultFlushInterval = 30 * time.Second
+// WorkerIdCtxKeyType is a context value type to get the worker ID from the context in flush callbacks
+type WorkerIdCtxKeyType string
+
+const (
+	WorkerCtxKey WorkerIdCtxKeyType = "workerId"
+	defaultFlushInterval = 30 * time.Second
+)
 
 // BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
 type BulkIndexer interface {
@@ -452,6 +458,7 @@ func (w *worker) writeBody(item *BulkIndexerItem) error {
 
 // flush writes out the worker buffer; it must be called under a lock.
 func (w *worker) flush(ctx context.Context) error {
+	ctx := context.WithValue(ctx, WorkerCtxKey, w.id)
 	if w.bi.config.OnFlushStart != nil {
 		ctx = w.bi.config.OnFlushStart(ctx)
 	}
