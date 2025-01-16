@@ -99,6 +99,7 @@ type SearchHit struct {
 	Explanation *DocumentExplainDetails `json:"_explanation"`
 	SeqNo       *int                    `json:"_seq_no"`
 	PrimaryTerm *int                    `json:"_primary_term"`
+	Highlight   map[string][]string     `json:"highlight"`
 }
 
 // Suggest is a sub type of SearchResp containing information of the suggest field
