@@ -207,7 +207,7 @@ godoc: ## Display documentation for the package
 	godoc --http=localhost:6060 --play
 
 cluster.build:
-	docker compose --project-directory .ci/opensearch build;
+	docker compose --project-directory .ci/opensearch build --pull;
 
 cluster.start:
 	docker compose --project-directory .ci/opensearch up -d;
