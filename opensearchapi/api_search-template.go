@@ -62,6 +62,7 @@ type SearchTemplateResp struct {
 	Took    int            `json:"took"`
 	Timeout bool           `json:"timed_out"`
 	Shards  ResponseShards `json:"_shards"`
+	Status  int            `json:"status"`
 	Hits    struct {
 		Total struct {
 			Value    int    `json:"value"`
