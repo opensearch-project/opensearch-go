@@ -112,6 +112,7 @@ type NodesStats struct {
 	Repositories                   []json.RawMessage                        `json:"repositories"`
 	AdmissionControl               NodesStatsAdmissionControl               `json:"admission_control"`
 	Caches                         NodesStatsCaches                         `json:"caches"`
+	RemoteStore                    NodeStatsRemoteStore                     `json:"remote_store"`
 }
 
 // NodesStatsIndices is a sub type of NodesStats representing Indices information of the node
@@ -728,4 +729,9 @@ type NodesStatsCaches struct {
 		ItemCount   int    `json:"item_count"`
 		StoreName   string `json:"store_name"`
 	} `json:"request_cache"`
+}
+
+// NodeStatsRemoteStore is a sub type of NodesStats
+type NodeStatsRemoteStore struct {
+	LastSuccessfulFetchOfPinnedTimestamps int `json:"last_successful_fetch_of_pinned_timestamps"`
 }
