@@ -181,4 +181,28 @@ func TestSearch(t *testing.T) {
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 	})
+
+	t.Run("request with highlight", func(t *testing.T) {
+		resp, err := client.Search(
+			nil,
+			&opensearchapi.SearchReq{
+				Indices: []string{index},
+				Body: strings.NewReader(`{
+					"query": {
+						"match": {
+							"foo": "bar"
+						}
+					},
+					"highlight": {
+						"fields": {
+							"foo": {}
+						}
+					}
+				}`),
+			},
+		)
+		require.Nil(t, err)
+		assert.NotEmpty(t, resp.Hits.Hits)
+		assert.Equal(t, map[string][]string{"foo": []string{"<em>bar</em>"}}, resp.Hits.Hits[0].Highlight)
+	})
 }
