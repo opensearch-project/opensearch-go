@@ -19,6 +19,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 - Bump `github.com/aws/aws-sdk-go` from 1.55.5 to 1.55.6 ([#657](https://github.com/opensearch-project/opensearch-go/pull/657))
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.27.43 to 1.29.1 ([#655](https://github.com/opensearch-project/opensearch-go/pull/655))
 
 ## [4.3.0]
 
