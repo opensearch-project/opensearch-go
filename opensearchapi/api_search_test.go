@@ -205,4 +205,26 @@ func TestSearch(t *testing.T) {
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.Equal(t, map[string][]string{"foo": []string{"<em>bar</em>"}}, resp.Hits.Hits[0].Highlight)
 	})
+
+	t.Run("request with matched queries", func(t *testing.T) {
+		resp, err := client.Search(
+			nil,
+			&opensearchapi.SearchReq{
+				Indices: []string{index},
+				Body: strings.NewReader(`{
+					"query": {
+						"match": {
+							"foo": {
+								"query": "bar",
+							},
+							"_name": "test"
+						}
+					}
+				}`),
+			},
+		)
+		require.Nil(t, err)
+		assert.NotEmpty(t, resp.Hits.Hits)
+		assert.Equal(t, []string{"test"}, resp.Hits.Hits[0].MatchedQueries)
+	})
 }
