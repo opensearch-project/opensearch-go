@@ -215,7 +215,7 @@ func TestSearch(t *testing.T) {
 					"query": {
 						"match": {
 							"foo": {
-								"query": "bar",
+								"query": "bar"
 							},
 							"_name": "test"
 						}
