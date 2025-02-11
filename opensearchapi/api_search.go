@@ -88,18 +88,19 @@ func (r SearchResp) Inspect() Inspect {
 
 // SearchHit is a sub type of SearchResp containing information of the search hit with an unparsed Source field
 type SearchHit struct {
-	Index       string                  `json:"_index"`
-	ID          string                  `json:"_id"`
-	Routing     string                  `json:"_routing"`
-	Score       float32                 `json:"_score"`
-	Source      json.RawMessage         `json:"_source"`
-	Fields      json.RawMessage         `json:"fields"`
-	Type        string                  `json:"_type"` // Deprecated field
-	Sort        []any                   `json:"sort"`
-	Explanation *DocumentExplainDetails `json:"_explanation"`
-	SeqNo       *int                    `json:"_seq_no"`
-	PrimaryTerm *int                    `json:"_primary_term"`
-	Highlight   map[string][]string     `json:"highlight"`
+	Index          string                  `json:"_index"`
+	ID             string                  `json:"_id"`
+	Routing        string                  `json:"_routing"`
+	Score          float32                 `json:"_score"`
+	Source         json.RawMessage         `json:"_source"`
+	Fields         json.RawMessage         `json:"fields"`
+	Type           string                  `json:"_type"` // Deprecated field
+	Sort           []any                   `json:"sort"`
+	Explanation    *DocumentExplainDetails `json:"_explanation"`
+	SeqNo          *int                    `json:"_seq_no"`
+	PrimaryTerm    *int                    `json:"_primary_term"`
+	Highlight      map[string][]string     `json:"highlight"`
+	MatchedQueries []string                `json:"matched_queries"`
 }
 
 // Suggest is a sub type of SearchResp containing information of the suggest field
