@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/aws/aws-sdk-go-v2 v1.36.1
 	github.com/aws/aws-sdk-go-v2/config v1.27.43
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/wI2L/jsondiff v0.6.1
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 )
