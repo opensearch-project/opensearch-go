@@ -63,10 +63,4 @@ type SnapshotCreateResp struct {
 			Successful int `json:"successful"`
 		} `json:"shards"`
 	} `json:"snapshot"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SnapshotCreateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

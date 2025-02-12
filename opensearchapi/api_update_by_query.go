@@ -18,16 +18,15 @@ import (
 )
 
 // UpdateByQuery executes a /_update_by_query request with the optional UpdateByQueryReq
-func (c Client) UpdateByQuery(ctx context.Context, req UpdateByQueryReq) (*UpdateByQueryResp, error) {
-	var (
-		data UpdateByQueryResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) UpdateByQuery(ctx context.Context, req UpdateByQueryReq) (*UpdateByQueryResp, *opensearch.Response, error) {
+	var data UpdateByQueryResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // UpdateByQueryReq represents possible options for the /_update_by_query request
@@ -71,10 +70,4 @@ type UpdateByQueryResp struct {
 	Failures             []json.RawMessage `json:"failures"`
 	Type                 string            `json:"_type"` // Deprecated field
 	Task                 string            `json:"task"`
-	response             *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r UpdateByQueryResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

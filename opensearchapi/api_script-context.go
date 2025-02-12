@@ -42,10 +42,4 @@ type ScriptContextResp struct {
 			} `json:"params"`
 		} `json:"methods"`
 	} `json:"contexts"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScriptContextResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

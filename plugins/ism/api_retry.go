@@ -18,16 +18,15 @@ import (
 )
 
 // Retry executes a retry policy request with the required RetryReq
-func (c Client) Retry(ctx context.Context, req RetryReq) (RetryResp, error) {
-	var (
-		data RetryResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+func (c Client) Retry(ctx context.Context, req RetryReq) (RetryResp, *opensearch.Response, error) {
+	var data RetryResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // RetryReq represents possible options for the retry policy request
@@ -72,12 +71,6 @@ type RetryResp struct {
 	UpdatedIndices int           `json:"updated_indices"`
 	Failures       bool          `json:"failures"`
 	FailedIndices  []FailedIndex `json:"failed_indices"`
-	response       *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RetryResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // RetryBody represents the request body for the retry policy request

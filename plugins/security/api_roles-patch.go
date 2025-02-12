@@ -49,14 +49,8 @@ func (r RolesPatchReq) GetRequest() (*http.Request, error) {
 
 // RolesPatchResp represents the returned struct of the roles patch response
 type RolesPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RolesPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // RolesPatchBody represents the request body for the roles patch request

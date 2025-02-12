@@ -38,10 +38,4 @@ func (r IndexTemplateCreateReq) GetRequest() (*http.Request, error) {
 // IndexTemplateCreateResp represents the returned struct of the index create response
 type IndexTemplateCreateResp struct {
 	Acknowledged bool `json:"acknowledged"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndexTemplateCreateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

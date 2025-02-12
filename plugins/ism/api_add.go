@@ -17,16 +17,15 @@ import (
 )
 
 // Add executes a add policy request with the required AddReq
-func (c Client) Add(ctx context.Context, req AddReq) (AddResp, error) {
-	var (
-		data AddResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return data, err
+func (c Client) Add(ctx context.Context, req AddReq) (AddResp, *opensearch.Response, error) {
+	var data AddResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // AddReq represents possible options for the add policy request
@@ -67,12 +66,6 @@ type AddResp struct {
 	UpdatedIndices int           `json:"updated_indices"`
 	Failures       bool          `json:"failures"`
 	FailedIndices  []FailedIndex `json:"failed_indices"`
-	response       *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AddResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // AddBody represents the request body for the add policy request

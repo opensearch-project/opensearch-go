@@ -16,16 +16,15 @@ import (
 )
 
 // MSearch executes a /_msearch request with the optional MSearchReq
-func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, error) {
-	var (
-		data MSearchResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, *opensearch.Response, error) {
+	var data MSearchResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // MSearchReq represents possible options for the /_msearch request
@@ -74,10 +73,4 @@ type MSearchResp struct {
 		} `json:"hits"`
 		Status int `json:"status"`
 	} `json:"responses"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MSearchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

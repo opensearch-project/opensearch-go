@@ -10,6 +10,7 @@ package security_test
 
 import (
 	"fmt"
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestTenantsClient(t *testing.T) {
 
 	type tenantsTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -44,7 +45,7 @@ func TestTenantsClient(t *testing.T) {
 			Tests: []tenantsTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Tenants.Put(
 							nil,
 							security.TenantsPutReq{
@@ -58,7 +59,7 @@ func TestTenantsClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Tenants.Put(nil, security.TenantsPutReq{})
 					},
 				},
@@ -69,19 +70,19 @@ func TestTenantsClient(t *testing.T) {
 			Tests: []tenantsTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Tenants.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Tenants.Get(nil, &security.TenantsGetReq{Tenant: testTenant})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Tenants.Get(nil, nil)
 					},
 				},
@@ -92,13 +93,13 @@ func TestTenantsClient(t *testing.T) {
 			Tests: []tenantsTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Tenants.Delete(nil, security.TenantsDeleteReq{Tenant: testTenant})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Tenants.Delete(nil, security.TenantsDeleteReq{Tenant: testTenant})
 					},
 				},
@@ -109,7 +110,7 @@ func TestTenantsClient(t *testing.T) {
 			Tests: []tenantsTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Tenants.Patch(
 							nil,
 							security.TenantsPatchReq{
@@ -132,7 +133,7 @@ func TestTenantsClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Tenants.Patch(nil, security.TenantsPatchReq{})
 					},
 				},
@@ -143,20 +144,20 @@ func TestTenantsClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						if err != nil {
 							fmt.Println(err)
 						}
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 					}
 				})
@@ -165,10 +166,10 @@ func TestTenantsClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Tenants.Get(nil, nil)
+			resp, httpResp, err := client.Tenants.Get(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Tenants, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Tenants, httpResp)
 		})
 	})
 }

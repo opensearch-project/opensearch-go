@@ -16,16 +16,15 @@ import (
 )
 
 // MSearchTemplate executes a /_msearch request with the optional MSearchTemplateReq
-func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*MSearchTemplateResp, error) {
-	var (
-		data MSearchTemplateResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*MSearchTemplateResp, *opensearch.Response, error) {
+	var data MSearchTemplateResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // MSearchTemplateReq represents possible options for the /_msearch request
@@ -74,10 +73,4 @@ type MSearchTemplateResp struct {
 		} `json:"hits"`
 		Status int `json:"status"`
 	} `json:"responses"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r MSearchTemplateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

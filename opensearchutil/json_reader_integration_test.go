@@ -56,7 +56,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 			Title string `json:"title"`
 		}{Title: "Foo Bar"}
 
-		_, err = client.Index(ctx, opensearchapi.IndexReq{Index: "test", Body: opensearchutil.NewJSONReader(&doc), Params: opensearchapi.IndexParams{Refresh: "true"}})
+		_, _, err = client.Index(ctx, opensearchapi.IndexReq{Index: "test", Body: opensearchutil.NewJSONReader(&doc), Params: opensearchapi.IndexParams{Refresh: "true"}})
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
@@ -72,7 +72,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 			Indices: []string{"test"},
 			Body:    opensearchutil.NewJSONReader(&query),
 		}
-		res, err := client.Search(ctx, req)
+		res, _, err := client.Search(ctx, req)
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}

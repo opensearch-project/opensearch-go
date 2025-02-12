@@ -39,12 +39,9 @@ func TestPing(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		var (
-			resp osapitest.DummyInspect
-		)
-		resp.Response, err = failingClient.Ping(nil, nil)
+		httpResp, err := failingClient.Ping(nil, nil)
 		assert.NotNil(t, err)
-		assert.NotNil(t, resp)
-		osapitest.VerifyInspect(t, resp.Inspect())
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

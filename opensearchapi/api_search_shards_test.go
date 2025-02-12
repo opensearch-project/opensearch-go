@@ -25,7 +25,7 @@ func TestSearchShards(t *testing.T) {
 
 	index := "test-index-search-shards"
 
-	_, err = client.Indices.Create(
+	_, _, err = client.Indices.Create(
 		nil,
 		opensearchapi.IndicesCreateReq{
 			Index: index,
@@ -37,26 +37,29 @@ func TestSearchShards(t *testing.T) {
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.SearchShards(nil, nil)
+		resp, httpResp, err := client.SearchShards(nil, nil)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.SearchShards(nil, &opensearchapi.SearchShardsReq{Indices: []string{index}})
+		resp, httpResp, err := client.SearchShards(nil, &opensearchapi.SearchShardsReq{Indices: []string{index}})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.SearchShards(nil, nil)
+		res, httpResp, err := failingClient.SearchShards(nil, nil)
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

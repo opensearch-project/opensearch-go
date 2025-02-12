@@ -45,12 +45,6 @@ type AccountPutBody struct {
 
 // AccountPutResp represents the returned struct of the account put response
 type AccountPutResp struct {
-	Message  string `json:"message"`
-	Status   string `json:"status"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r AccountPutResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Message string `json:"message"`
+	Status  string `json:"status"`
 }

@@ -10,6 +10,7 @@ package security_test
 
 import (
 	"crypto/tls"
+	"github.com/opensearch-project/opensearch-go/v4"
 	"net/http"
 	"testing"
 
@@ -46,7 +47,7 @@ func TestSecurityConfigClient(t *testing.T) {
 
 	type securityconfigTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -58,15 +59,15 @@ func TestSecurityConfigClient(t *testing.T) {
 			Tests: []securityconfigTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
-						resp, err := client.SecurityConfig.Get(nil, nil)
+					Results: func() (any, *opensearch.Response, error) {
+						resp, httpResp, err := client.SecurityConfig.Get(nil, nil)
 						putBody = resp.Config.Dynamic
-						return resp, err
+						return resp, httpResp, err
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.SecurityConfig.Get(nil, nil)
 					},
 				},
@@ -77,7 +78,7 @@ func TestSecurityConfigClient(t *testing.T) {
 			Tests: []securityconfigTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.SecurityConfig.Put(
 							nil,
 							security.ConfigPutReq{
@@ -88,7 +89,7 @@ func TestSecurityConfigClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.SecurityConfig.Put(nil, security.ConfigPutReq{})
 					},
 				},
@@ -99,7 +100,7 @@ func TestSecurityConfigClient(t *testing.T) {
 			Tests: []securityconfigTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.SecurityConfig.Patch(
 							nil,
 							security.ConfigPatchReq{
@@ -121,7 +122,7 @@ func TestSecurityConfigClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.SecurityConfig.Patch(nil, security.ConfigPatchReq{})
 					},
 				},
@@ -132,16 +133,16 @@ func TestSecurityConfigClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
+						ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 					}
 				})
 			}

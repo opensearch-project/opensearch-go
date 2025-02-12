@@ -42,7 +42,6 @@ func (r CatAllocationReq) GetRequest() (*http.Request, error) {
 // CatAllocationsResp represents the returned struct of the /_cat/allocation response
 type CatAllocationsResp struct {
 	Allocations []CatAllocationResp
-	response    *opensearch.Response
 }
 
 // CatAllocationResp represents one index of the CatAllocationResp
@@ -57,11 +56,4 @@ type CatAllocationResp struct {
 	Host        *string `json:"host"`
 	IP          *string `json:"ip"`
 	Node        string  `json:"node"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatAllocationsResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

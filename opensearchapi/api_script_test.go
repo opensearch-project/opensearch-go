@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"strings"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestScriptClient(t *testing.T) {
 
 	type scriptTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -42,7 +43,7 @@ func TestScriptClient(t *testing.T) {
 			Tests: []scriptTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Script.Put(
 							nil,
 							opensearchapi.ScriptPutReq{
@@ -54,7 +55,7 @@ func TestScriptClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Script.Put(nil, opensearchapi.ScriptPutReq{ScriptID: scriptID})
 					},
 				},
@@ -65,13 +66,13 @@ func TestScriptClient(t *testing.T) {
 			Tests: []scriptTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Script.Get(nil, opensearchapi.ScriptGetReq{ScriptID: scriptID})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Script.Get(nil, opensearchapi.ScriptGetReq{ScriptID: scriptID})
 					},
 				},
@@ -82,13 +83,13 @@ func TestScriptClient(t *testing.T) {
 			Tests: []scriptTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
 					},
 				},
@@ -99,13 +100,13 @@ func TestScriptClient(t *testing.T) {
 			Tests: []scriptTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Script.Context(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Script.Context(nil, nil)
 					},
 				},
@@ -116,13 +117,13 @@ func TestScriptClient(t *testing.T) {
 			Tests: []scriptTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Script.Language(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Script.Language(nil, nil)
 					},
 				},
@@ -133,7 +134,7 @@ func TestScriptClient(t *testing.T) {
 			Tests: []scriptTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Script.PainlessExecute(
 							nil,
 							opensearchapi.ScriptPainlessExecuteReq{Body: strings.NewReader(`{"script":{"source":"(params.x + params.y)/ 2","params":{"x":80,"y":100}}}`)},
@@ -142,7 +143,7 @@ func TestScriptClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Script.PainlessExecute(
 							nil,
 							opensearchapi.ScriptPainlessExecuteReq{Body: strings.NewReader(`{"script":{"source":"(params.x + params.y)/ 2","params":{"x":80,"y":100}}}`)},
@@ -159,15 +160,16 @@ func TestScriptClient(t *testing.T) {
 			}
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						assert.NotNil(t, httpResp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, resp)
+						assert.NotNil(t, httpResp)
 					}
 				})
 			}
@@ -176,7 +178,7 @@ func TestScriptClient(t *testing.T) {
 
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Put", func(t *testing.T) {
-			resp, err := client.Script.Put(
+			resp, httpResp, err := client.Script.Put(
 				nil,
 				opensearchapi.ScriptPutReq{
 					ScriptID: scriptID,
@@ -185,41 +187,47 @@ func TestScriptClient(t *testing.T) {
 			)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Script.Get(nil, opensearchapi.ScriptGetReq{ScriptID: scriptID})
+			resp, httpResp, err := client.Script.Get(nil, opensearchapi.ScriptGetReq{ScriptID: scriptID})
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 		t.Run("Delete", func(t *testing.T) {
-			resp, err := client.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
+			resp, httpResp, err := client.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 		t.Run("Context", func(t *testing.T) {
-			resp, err := client.Script.Context(nil, nil)
+			resp, httpResp, err := client.Script.Context(nil, nil)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 		t.Run("Language", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, client, 2, 4, "Language")
-			resp, err := client.Script.Language(nil, nil)
+			resp, httpResp, err := client.Script.Language(nil, nil)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 		t.Run("PainlessExecute", func(t *testing.T) {
-			resp, err := client.Script.PainlessExecute(
+			resp, httpResp, err := client.Script.PainlessExecute(
 				nil,
 				opensearchapi.ScriptPainlessExecuteReq{Body: strings.NewReader(`{"script":{"source":"(params.x + params.y)/ 2","params":{"x":80,"y":100}}}`)},
 			)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			assert.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 		})
 	})
 }

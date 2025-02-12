@@ -8,6 +8,7 @@ package security
 
 import (
 	"context"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type tenantsClient struct {
@@ -15,57 +16,53 @@ type tenantsClient struct {
 }
 
 // Get executes a get tenants request with the optional TenantsGetReq
-func (c tenantsClient) Get(ctx context.Context, req *TenantsGetReq) (TenantsGetResp, error) {
+func (c tenantsClient) Get(ctx context.Context, req *TenantsGetReq) (TenantsGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &TenantsGetReq{}
 	}
 
-	var (
-		data TenantsGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Tenants); err != nil {
-		return data, err
+	var data TenantsGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data.Tenants)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Put executes a put tenants request with the required TenantsPutReq
-func (c tenantsClient) Put(ctx context.Context, req TenantsPutReq) (TenantsPutResp, error) {
-	var (
-		data TenantsPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c tenantsClient) Put(ctx context.Context, req TenantsPutReq) (TenantsPutResp, *opensearch.Response, error) {
+	var data TenantsPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Delete executes a delete tenants request with the required TenantsDeleteReq
-func (c tenantsClient) Delete(ctx context.Context, req TenantsDeleteReq) (TenantsDeleteResp, error) {
-	var (
-		data TenantsDeleteResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c tenantsClient) Delete(ctx context.Context, req TenantsDeleteReq) (TenantsDeleteResp, *opensearch.Response, error) {
+	var data TenantsDeleteResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Patch executes a patch tenants request with the required TenantsPatchReq
-func (c tenantsClient) Patch(ctx context.Context, req TenantsPatchReq) (TenantsPatchResp, error) {
-	var (
-		data TenantsPatchResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c tenantsClient) Patch(ctx context.Context, req TenantsPatchReq) (TenantsPatchResp, *opensearch.Response, error) {
+	var data TenantsPatchResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }

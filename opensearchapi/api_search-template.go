@@ -16,16 +16,15 @@ import (
 )
 
 // SearchTemplate executes a /_search request with the optional SearchTemplateReq
-func (c Client) SearchTemplate(ctx context.Context, req SearchTemplateReq) (*SearchTemplateResp, error) {
-	var (
-		data SearchTemplateResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) SearchTemplate(ctx context.Context, req SearchTemplateReq) (*SearchTemplateResp, *opensearch.Response, error) {
+	var data SearchTemplateResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // SearchTemplateReq represents possible options for the /_search request
@@ -71,10 +70,4 @@ type SearchTemplateResp struct {
 		MaxScore *float32    `json:"max_score"`
 		Hits     []SearchHit `json:"hits"`
 	} `json:"hits"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r SearchTemplateResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

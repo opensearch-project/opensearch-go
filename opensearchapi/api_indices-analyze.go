@@ -70,12 +70,6 @@ type IndicesAnalyzeResp struct {
 		Tokenfilters   []IndicesAnalyzeTokenfilters `json:"tokenfilters"`
 		Analyzer       IndicesAnalyzeInfo           `json:"analyzer"`
 	} `json:"detail"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesAnalyzeResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // IndicesAnalyzeToken is a sut type of IndicesAnalyzeResp containing information about analyzer token

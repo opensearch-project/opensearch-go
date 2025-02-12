@@ -42,7 +42,6 @@ func (r CatThreadPoolReq) GetRequest() (*http.Request, error) {
 // CatThreadPoolResp represents the returned struct of the /_cat/thread_pool response
 type CatThreadPoolResp struct {
 	ThreadPool []CatThreadPoolItemResp
-	response   *opensearch.Response
 }
 
 // CatThreadPoolItemResp represents one index of the CatThreadPoolResp
@@ -68,11 +67,4 @@ type CatThreadPoolItemResp struct {
 	Size            *int    `json:"size,string"`
 	KeepAlive       *string `json:"keep_alive"`
 	TotalWaitTime   string  `json:"total_wait_time"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatThreadPoolResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

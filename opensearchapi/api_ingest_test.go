@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4"
 	"strings"
 	"testing"
 
@@ -30,7 +31,7 @@ func TestIngestClient(t *testing.T) {
 
 	type ingestTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -42,7 +43,7 @@ func TestIngestClient(t *testing.T) {
 			Tests: []ingestTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Ingest.Create(
 							nil,
 							opensearchapi.IngestCreateReq{
@@ -54,7 +55,7 @@ func TestIngestClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Ingest.Create(nil, opensearchapi.IngestCreateReq{})
 					},
 				},
@@ -65,13 +66,13 @@ func TestIngestClient(t *testing.T) {
 			Tests: []ingestTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Ingest.Get(nil, &opensearchapi.IngestGetReq{PipelineIDs: []string{ingest}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Ingest.Get(nil, nil)
 					},
 				},
@@ -82,13 +83,13 @@ func TestIngestClient(t *testing.T) {
 			Tests: []ingestTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Ingest.Grok(nil, nil)
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Ingest.Grok(nil, nil)
 					},
 				},
@@ -99,7 +100,7 @@ func TestIngestClient(t *testing.T) {
 			Tests: []ingestTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Ingest.Simulate(
 							nil,
 							opensearchapi.IngestSimulateReq{
@@ -112,7 +113,7 @@ func TestIngestClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Ingest.Simulate(nil, opensearchapi.IngestSimulateReq{})
 					},
 				},
@@ -123,13 +124,13 @@ func TestIngestClient(t *testing.T) {
 			Tests: []ingestTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Ingest.Delete(nil, opensearchapi.IngestDeleteReq{PipelineID: ingest})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Ingest.Delete(nil, opensearchapi.IngestDeleteReq{PipelineID: ingest})
 					},
 				},
@@ -140,17 +141,17 @@ func TestIngestClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, resp)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 						}
 					}
 				})
@@ -162,7 +163,7 @@ func TestIngestClient(t *testing.T) {
 			t.Cleanup(func() {
 				failingClient.Ingest.Delete(nil, opensearchapi.IngestDeleteReq{PipelineID: ingest})
 			})
-			_, err := client.Ingest.Create(
+			_, _, err := client.Ingest.Create(
 				nil,
 				opensearchapi.IngestCreateReq{
 					PipelineID: ingest,
@@ -171,11 +172,11 @@ func TestIngestClient(t *testing.T) {
 			)
 			require.Nil(t, err)
 
-			resp, err := client.Ingest.Get(nil, nil)
+			resp, httpResp, err := client.Ingest.Get(nil, nil)
 			require.Nil(t, err)
 			require.NotNil(t, resp)
-			require.NotNil(t, resp.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Pipelines, resp.Inspect().Response)
+			require.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Pipelines, httpResp)
 		})
 	})
 }

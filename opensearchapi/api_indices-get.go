@@ -41,10 +41,4 @@ type IndicesGetResp struct {
 		Mappings json.RawMessage     `json:"mappings"`
 		Settings json.RawMessage     `json:"settings"`
 	}
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

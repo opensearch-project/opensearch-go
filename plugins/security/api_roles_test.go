@@ -10,6 +10,7 @@ package security_test
 
 import (
 	"fmt"
+	"github.com/opensearch-project/opensearch-go/v4"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestRolesClient(t *testing.T) {
 
 	type rolesTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -44,7 +45,7 @@ func TestRolesClient(t *testing.T) {
 			Tests: []rolesTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Roles.Put(
 							nil,
 							security.RolesPutReq{
@@ -60,7 +61,7 @@ func TestRolesClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Roles.Put(nil, security.RolesPutReq{})
 					},
 				},
@@ -71,19 +72,19 @@ func TestRolesClient(t *testing.T) {
 			Tests: []rolesTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Roles.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Roles.Get(nil, &security.RolesGetReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Roles.Get(nil, nil)
 					},
 				},
@@ -94,13 +95,13 @@ func TestRolesClient(t *testing.T) {
 			Tests: []rolesTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Roles.Delete(nil, security.RolesDeleteReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Roles.Delete(nil, security.RolesDeleteReq{Role: testRole})
 					},
 				},
@@ -111,7 +112,7 @@ func TestRolesClient(t *testing.T) {
 			Tests: []rolesTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Roles.Patch(
 							nil,
 							security.RolesPatchReq{
@@ -136,7 +137,7 @@ func TestRolesClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Roles.Patch(nil, security.RolesPatchReq{})
 					},
 				},
@@ -147,20 +148,20 @@ func TestRolesClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						if err != nil {
 							fmt.Println(err)
 						}
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 					}
 				})
@@ -169,10 +170,10 @@ func TestRolesClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Roles.Get(nil, nil)
+			resp, httpResp, err := client.Roles.Get(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Roles, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Roles, httpResp)
 		})
 	})
 }

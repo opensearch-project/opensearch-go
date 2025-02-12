@@ -35,11 +35,5 @@ func (r ScriptPainlessExecuteReq) GetRequest() (*http.Request, error) {
 
 // ScriptPainlessExecuteResp represents the returned struct of the delete script response
 type ScriptPainlessExecuteResp struct {
-	Result   json.RawMessage `json:"result"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScriptPainlessExecuteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Result json.RawMessage `json:"result"`
 }

@@ -65,7 +65,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	updatebyquery, err := client.UpdateByQuery(
+	updatebyquery, _, err := client.UpdateByQuery(
 		nil,
 		opensearchapi.UpdateByQueryReq{
 			Indices: []string{testIndex},
@@ -78,7 +78,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 	)
 	require.Nil(t, err)
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.UpdateByQueryRethrottle(
+		resp, httpResp, err := client.UpdateByQueryRethrottle(
 			nil,
 			opensearchapi.UpdateByQueryRethrottleReq{
 				TaskID: updatebyquery.Task,
@@ -87,16 +87,18 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.UpdateByQueryRethrottle(nil, opensearchapi.UpdateByQueryRethrottleReq{})
+		res, httpResp, err := failingClient.UpdateByQueryRethrottle(nil, opensearchapi.UpdateByQueryRethrottleReq{})
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

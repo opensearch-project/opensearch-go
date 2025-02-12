@@ -52,10 +52,4 @@ type DanglingGetResp struct {
 		CreationDateMillis int64    `json:"creation_date_millis"`
 		NodeIds            []string `json:"node_ids"`
 	} `json:"dangling_indices"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DanglingGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

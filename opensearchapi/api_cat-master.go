@@ -31,8 +31,7 @@ func (r CatMasterReq) GetRequest() (*http.Request, error) {
 
 // CatMasterResp represents the returned struct of the /_cat/master response
 type CatMasterResp struct {
-	Master   []CatMasterItemResp
-	response *opensearch.Response
+	Master []CatMasterItemResp
 }
 
 // CatMasterItemResp represents one index of the CatMasterResp
@@ -41,11 +40,4 @@ type CatMasterItemResp struct {
 	Host string `json:"host"`
 	IP   string `json:"ip"`
 	Node string `json:"node"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatMasterResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

@@ -36,11 +36,5 @@ func (r DocumentSourceReq) GetRequest() (*http.Request, error) {
 
 // DocumentSourceResp represents the returned struct of the /<Index>/_source/<DocumentID> get response
 type DocumentSourceResp struct {
-	Source   json.RawMessage
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r DocumentSourceResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Source json.RawMessage
 }

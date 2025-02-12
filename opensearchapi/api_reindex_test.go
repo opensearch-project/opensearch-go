@@ -72,7 +72,7 @@ func TestReindex(t *testing.T) {
 	}
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.Reindex(
+		resp, httpResp, err := client.Reindex(
 			nil,
 			opensearchapi.ReindexReq{
 				Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s"},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
@@ -80,11 +80,12 @@ func TestReindex(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("with request but dont wait", func(t *testing.T) {
-		resp, err := client.Reindex(
+		resp, httpResp, err := client.Reindex(
 			nil,
 			opensearchapi.ReindexReq{
 				Body:   strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s"},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
@@ -93,16 +94,18 @@ func TestReindex(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		assert.NotNil(t, httpResp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Reindex(nil, opensearchapi.ReindexReq{})
+		res, httpResp, err := failingClient.Reindex(nil, opensearchapi.ReindexReq{})
 		assert.NotNil(t, err)
-		assert.NotNil(t, res)
-		osapitest.VerifyInspect(t, res.Inspect())
+		assert.Nil(t, res)
+		assert.NotNil(t, httpResp)
+		osapitest.VerifyResponse(t, httpResp)
 	})
 }

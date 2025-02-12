@@ -49,10 +49,4 @@ type ScrollGetResp struct {
 	ScrollID        *string  `json:"_scroll_id,omitempty"`
 	TerminatedEarly bool     `json:"terminated_early"`
 	MaxScore        *float32 `json:"max_score"`
-	response        *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScrollGetResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

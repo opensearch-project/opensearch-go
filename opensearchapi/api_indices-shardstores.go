@@ -50,10 +50,4 @@ type IndicesShardStoresResp struct {
 		} `json:"shards"`
 	} `json:"indices"`
 	Failures []FailuresShard `json:"failures"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesShardStoresResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

@@ -9,6 +9,7 @@ package security
 import (
 	"context"
 	"encoding/json"
+	"github.com/opensearch-project/opensearch-go/v4"
 )
 
 type auditClient struct {
@@ -16,46 +17,43 @@ type auditClient struct {
 }
 
 // Get executes a get audit request with the optional AuditGetReq
-func (c auditClient) Get(ctx context.Context, req *AuditGetReq) (AuditGetResp, error) {
+func (c auditClient) Get(ctx context.Context, req *AuditGetReq) (AuditGetResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &AuditGetReq{}
 	}
 
-	var (
-		data AuditGetResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+	var data AuditGetResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Put executes a put audit request with the required AuditPutReq
-func (c auditClient) Put(ctx context.Context, req AuditPutReq) (AuditPutResp, error) {
-	var (
-		data AuditPutResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c auditClient) Put(ctx context.Context, req AuditPutReq) (AuditPutResp, *opensearch.Response, error) {
+	var data AuditPutResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // Patch executes a patch audit request with the required AuditPatchReq
-func (c auditClient) Patch(ctx context.Context, req AuditPatchReq) (AuditPatchResp, error) {
-	var (
-		data AuditPatchResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return data, err
+func (c auditClient) Patch(ctx context.Context, req AuditPatchReq) (AuditPatchResp, *opensearch.Response, error) {
+	var data AuditPatchResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return data, resp, err
 	}
 
-	return data, nil
+	return data, resp, nil
 }
 
 // AuditConfig represents the security audit config uses for Put and Get request

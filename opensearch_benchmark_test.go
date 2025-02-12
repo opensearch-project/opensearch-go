@@ -120,7 +120,7 @@ func BenchmarkClientAPI(b *testing.B) {
 		b.ResetTimer()
 
 		for i := 0; i < b.N; i++ {
-			if _, err := client.Info(ctx, nil); err != nil {
+			if _, _, err := client.Info(ctx, nil); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
@@ -149,7 +149,7 @@ func BenchmarkClientAPI(b *testing.B) {
 				},
 			}
 
-			_, err := client.Index(ctx, req)
+			_, _, err := client.Index(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
@@ -172,7 +172,7 @@ func BenchmarkClientAPI(b *testing.B) {
 		}
 
 		for i := 0; i < b.N; i++ {
-			_, err := client.Search(ctx, req)
+			_, _, err := client.Search(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
@@ -200,7 +200,7 @@ func BenchmarkClientAPI(b *testing.B) {
 					Timeout: 100,
 				},
 			}
-			if _, err := client.Bulk(ctx, req); err != nil {
+			if _, _, err := client.Bulk(ctx, req); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}

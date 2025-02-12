@@ -32,18 +32,10 @@ func (r CatRepositoriesReq) GetRequest() (*http.Request, error) {
 // CatRepositoriesResp represents the returned struct of the /_cat/repositories response
 type CatRepositoriesResp struct {
 	Repositories []CatRepositorieResp
-	response     *opensearch.Response
 }
 
 // CatRepositorieResp represents one index of the CatRepositoriesResp
 type CatRepositorieResp struct {
 	ID   string `json:"id"`
 	Type string `json:"type"`
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r CatRepositoriesResp) Inspect() Inspect {
-	return Inspect{
-		Response: r.response,
-	}
 }

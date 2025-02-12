@@ -17,37 +17,35 @@ type nodesClient struct {
 }
 
 // Stats executes a /_nodes/_stats request with the optional NodesStatsReq
-func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStatsResp, error) {
+func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStatsResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &NodesStatsReq{}
 	}
 
-	var (
-		data NodesStatsResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data NodesStatsResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Info executes a /_nodes request with the optional NodesInfoReq
-func (c nodesClient) Info(ctx context.Context, req *NodesInfoReq) (*NodesInfoResp, error) {
+func (c nodesClient) Info(ctx context.Context, req *NodesInfoReq) (*NodesInfoResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &NodesInfoReq{}
 	}
 
-	var (
-		data NodesInfoResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data NodesInfoResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // HotThreads executes a /_nodes/hot_threads request with the optional NodesHotThreadsReq
@@ -59,35 +57,36 @@ func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*
 }
 
 // ReloadSecurity executes a /_nodes/reload_secure_settings request with the optional NodesReloadSecurityReq
-func (c nodesClient) ReloadSecurity(ctx context.Context, req *NodesReloadSecurityReq) (*NodesReloadSecurityResp, error) {
+func (c nodesClient) ReloadSecurity(
+	ctx context.Context,
+	req *NodesReloadSecurityReq,
+) (*NodesReloadSecurityResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &NodesReloadSecurityReq{}
 	}
 
-	var (
-		data NodesReloadSecurityResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data NodesReloadSecurityResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // Usage executes a /_nodes/usage request with the optional NodesUsageReq
-func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsageResp, error) {
+func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsageResp, *opensearch.Response, error) {
 	if req == nil {
 		req = &NodesUsageReq{}
 	}
 
-	var (
-		data NodesUsageResp
-		err  error
-	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
-		return &data, err
+	var data NodesUsageResp
+
+	resp, err := c.apiClient.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4"
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
@@ -30,7 +31,7 @@ func TestTemplateClient(t *testing.T) {
 
 	type templateTests struct {
 		Name    string
-		Results func() (osapitest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -42,7 +43,7 @@ func TestTemplateClient(t *testing.T) {
 			Tests: []templateTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Template.Create(
 							nil,
 							opensearchapi.TemplateCreateReq{
@@ -54,7 +55,7 @@ func TestTemplateClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Template.Create(nil, opensearchapi.TemplateCreateReq{Template: template})
 					},
 				},
@@ -65,13 +66,13 @@ func TestTemplateClient(t *testing.T) {
 			Tests: []templateTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Template.Get(nil, &opensearchapi.TemplateGetReq{Templates: []string{template}})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Template.Get(nil, nil)
 					},
 				},
@@ -82,24 +83,18 @@ func TestTemplateClient(t *testing.T) {
 			Tests: []templateTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = client.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
-						return resp, err
+					Results: func() (any, *opensearch.Response, error) {
+						httpResp, err := client.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
+
+						return nil, httpResp, err
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = failingClient.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
-						return resp, err
+					Results: func() (any, *opensearch.Response, error) {
+						httpResp, err := failingClient.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
+
+						return nil, httpResp, err
 					},
 				},
 			},
@@ -109,13 +104,13 @@ func TestTemplateClient(t *testing.T) {
 			Tests: []templateTests{
 				{
 					Name: "with request",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.Template.Delete(nil, opensearchapi.TemplateDeleteReq{Template: template})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.Template.Delete(nil, opensearchapi.TemplateDeleteReq{Template: template})
 					},
 				},
@@ -126,17 +121,20 @@ func TestTemplateClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					resp, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+						assert.Nil(t, resp)
+						assert.NotNil(t, httpResp)
+						osapitest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						if value.Name != "Exists" {
+							require.NotNil(t, resp)
+						}
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" && value.Name != "Exists" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, resp, httpResp)
 						}
 					}
 				})
@@ -145,7 +143,7 @@ func TestTemplateClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			_, err := client.Template.Create(
+			_, _, err := client.Template.Create(
 				nil,
 				opensearchapi.TemplateCreateReq{
 					Template: template,
@@ -153,11 +151,11 @@ func TestTemplateClient(t *testing.T) {
 				},
 			)
 			require.Nil(t, err)
-			resp, err := client.Template.Get(nil, &opensearchapi.TemplateGetReq{Templates: []string{template}})
+			resp, httpResp, err := client.Template.Get(nil, &opensearchapi.TemplateGetReq{Templates: []string{template}})
 			require.Nil(t, err)
 			require.NotNil(t, resp)
-			require.NotNil(t, resp.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
+			require.NotNil(t, httpResp)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.Templates, httpResp)
 		})
 	})
 }

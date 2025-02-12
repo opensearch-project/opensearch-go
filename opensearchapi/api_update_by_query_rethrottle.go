@@ -16,16 +16,18 @@ import (
 )
 
 // UpdateByQueryRethrottle executes a / request with the optional UpdateByQueryRethrottleReq
-func (c Client) UpdateByQueryRethrottle(ctx context.Context, req UpdateByQueryRethrottleReq) (*UpdateByQueryRethrottleResp, error) {
-	var (
-		data UpdateByQueryRethrottleResp
-		err  error
-	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
-		return &data, err
+func (c Client) UpdateByQueryRethrottle(
+	ctx context.Context,
+	req UpdateByQueryRethrottleReq,
+) (*UpdateByQueryRethrottleResp, *opensearch.Response, error) {
+	var data UpdateByQueryRethrottleResp
+
+	resp, err := c.do(ctx, req, &data)
+	if err != nil {
+		return nil, resp, err
 	}
 
-	return &data, nil
+	return &data, resp, nil
 }
 
 // UpdateByQueryRethrottleReq represents possible options for the / request
@@ -108,10 +110,4 @@ type UpdateByQueryRethrottleResp struct {
 		} `json:"tasks"`
 	} `json:"nodes"`
 	NodeFailures []FailuresCause `json:"node_failures"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r UpdateByQueryRethrottleResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

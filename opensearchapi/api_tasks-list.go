@@ -34,12 +34,6 @@ type TasksListResp struct {
 	Nodes        map[string]TasksListNodes `json:"nodes"`
 	Tasks        map[string]TasksListTask  `json:"tasks"` // tasks is returned when group_by is set to none or parents
 	NodeFailures []FailuresCause           `json:"node_failures"`
-	response     *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r TasksListResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }
 
 // TasksListNodes is a sub type of TaskListResp containing information about a node and the tasks running on it

@@ -10,6 +10,7 @@ package security_test
 
 import (
 	"crypto/tls"
+	"github.com/opensearch-project/opensearch-go/v4"
 	"net/http"
 	"testing"
 
@@ -44,7 +45,7 @@ func TestNodesDNClient(t *testing.T) {
 
 	type nodesdnTests struct {
 		Name    string
-		Results func() (ossectest.Response, error)
+		Results func() (any, *opensearch.Response, error)
 	}
 
 	testCases := []struct {
@@ -56,7 +57,7 @@ func TestNodesDNClient(t *testing.T) {
 			Tests: []nodesdnTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.NodesDN.Put(
 							nil,
 							security.NodesDNPutReq{
@@ -70,7 +71,7 @@ func TestNodesDNClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.NodesDN.Put(nil, security.NodesDNPutReq{})
 					},
 				},
@@ -81,19 +82,19 @@ func TestNodesDNClient(t *testing.T) {
 			Tests: []nodesdnTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.NodesDN.Get(nil, nil)
 					},
 				},
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.NodesDN.Get(nil, &security.NodesDNGetReq{Cluster: "test"})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.NodesDN.Get(nil, nil)
 					},
 				},
@@ -104,13 +105,13 @@ func TestNodesDNClient(t *testing.T) {
 			Tests: []nodesdnTests{
 				{
 					Name: "without request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.NodesDN.Delete(nil, security.NodesDNDeleteReq{Cluster: "test"})
 					},
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.NodesDN.Delete(nil, security.NodesDNDeleteReq{Cluster: "test"})
 					},
 				},
@@ -121,7 +122,7 @@ func TestNodesDNClient(t *testing.T) {
 			Tests: []nodesdnTests{
 				{
 					Name: "with request",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return client.NodesDN.Patch(
 							nil,
 							security.NodesDNPatchReq{
@@ -144,7 +145,7 @@ func TestNodesDNClient(t *testing.T) {
 				},
 				{
 					Name: "inspect",
-					Results: func() (ossectest.Response, error) {
+					Results: func() (any, *opensearch.Response, error) {
 						return failingClient.NodesDN.Patch(nil, security.NodesDNPatchReq{})
 					},
 				},
@@ -155,17 +156,17 @@ func TestNodesDNClient(t *testing.T) {
 		t.Run(value.Name, func(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
+					res, httpResp, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
 						assert.NotNil(t, res)
-						ossectest.VerifyInspect(t, res.Inspect())
+						ossectest.VerifyResponse(t, httpResp)
 					} else {
 						require.Nil(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						assert.NotNil(t, httpResp)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							ostest.CompareRawJSONwithParsedJSON(t, res, httpResp)
 						}
 					}
 				})
@@ -174,10 +175,10 @@ func TestNodesDNClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.NodesDN.Get(nil, nil)
+			resp, httpResp, err := client.NodesDN.Get(nil, nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.DistinguishedNames, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp.DistinguishedNames, httpResp)
 		})
 	})
 }

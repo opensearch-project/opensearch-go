@@ -49,14 +49,8 @@ func (r ActionGroupsPatchReq) GetRequest() (*http.Request, error) {
 
 // ActionGroupsPatchResp represents the returned struct of the actiongroups patch response
 type ActionGroupsPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ActionGroupsPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // ActionGroupsPatchBody represents the request body for the action groups patch request

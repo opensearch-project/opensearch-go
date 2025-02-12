@@ -53,10 +53,4 @@ type IndicesFieldCapsResp struct {
 		Aggregatable bool     `json:"aggregatable"`
 		Indices      []string `json:"indices"`
 	} `json:"fields"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesFieldCapsResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

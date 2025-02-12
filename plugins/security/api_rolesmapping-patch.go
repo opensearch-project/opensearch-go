@@ -49,14 +49,8 @@ func (r RolesMappingPatchReq) GetRequest() (*http.Request, error) {
 
 // RolesMappingPatchResp represents the returned struct of the rolesmapping patch response
 type RolesMappingPatchResp struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	response *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r RolesMappingPatchResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // RolesMappingPatchBody represents the request body for the rolesmapping patch request

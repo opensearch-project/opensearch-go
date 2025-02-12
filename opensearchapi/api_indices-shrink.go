@@ -41,10 +41,4 @@ type IndicesShrinkResp struct {
 	Acknowledged       bool   `json:"acknowledged"`
 	ShardsAcknowledged bool   `json:"shards_acknowledged"`
 	Index              string `json:"index"`
-	response           *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r IndicesShrinkResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

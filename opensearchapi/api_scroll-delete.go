@@ -47,10 +47,4 @@ func (r ScrollDeleteReq) GetRequest() (*http.Request, error) {
 type ScrollDeleteResp struct {
 	NumFreed  int  `json:"num_freed"`
 	Succeeded bool `json:"succeeded"`
-	response  *opensearch.Response
-}
-
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
-func (r ScrollDeleteResp) Inspect() Inspect {
-	return Inspect{Response: r.response}
 }

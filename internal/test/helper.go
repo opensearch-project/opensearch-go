@@ -93,7 +93,7 @@ func GetPassword() (string, error) {
 
 // GetVersion gets cluster info and returns version as int's
 func GetVersion(client *opensearchapi.Client) (int64, int64, int64, error) {
-	resp, err := client.Info(context.Background(), nil)
+	resp, _, err := client.Info(context.Background(), nil)
 	if err != nil {
 		return 0, 0, 0, err
 	}
