@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Adds `Highlight` field to `SearchHit` ([#654](https://github.com/opensearch-project/opensearch-go/pull/654))
 - Adds `MatchedQueries` field to `SearchHit` ([#663](https://github.com/opensearch-project/opensearch-go/pull/663))
+- Adds support for Opensearch 2.19 ([#668](https://github.com/opensearch-project/opensearch-go/pull/668))
 
 ### Changed
 

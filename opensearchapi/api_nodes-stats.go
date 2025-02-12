@@ -139,13 +139,14 @@ type NodesStatsIndices struct {
 		DocStatus            map[string]int `json:"doc_status"`
 	} `json:"indexing"`
 	Get struct {
-		Total               int `json:"total"`
-		TimeInMillis        int `json:"time_in_millis"`
-		ExistsTotal         int `json:"exists_total"`
-		ExistsTimeInMillis  int `json:"exists_time_in_millis"`
-		MissingTotal        int `json:"missing_total"`
-		MissingTimeInMillis int `json:"missing_time_in_millis"`
-		Current             int `json:"current"`
+		Total               int    `json:"total"`
+		TimeInMillis        int    `json:"time_in_millis"`
+		ExistsTotal         int    `json:"exists_total"`
+		ExistsTimeInMillis  int    `json:"exists_time_in_millis"`
+		MissingTotal        int    `json:"missing_total"`
+		MissingTimeInMillis int    `json:"missing_time_in_millis"`
+		Current             int    `json:"current"`
+		GetTime             string `json:"getTime"`
 	} `json:"get"`
 	Search struct {
 		OpenContexts                int     `json:"open_contexts"`

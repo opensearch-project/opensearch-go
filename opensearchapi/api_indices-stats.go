@@ -98,13 +98,14 @@ type IndicesStatsIndexing struct {
 
 // IndicesStatsGet is a sub type of IndicesStatsInfo containing stats about index get
 type IndicesStatsGet struct {
-	Total               int `json:"total"`
-	TimeInMillis        int `json:"time_in_millis"`
-	ExistsTotal         int `json:"exists_total"`
-	ExistsTimeInMillis  int `json:"exists_time_in_millis"`
-	MissingTotal        int `json:"missing_total"`
-	MissingTimeInMillis int `json:"missing_time_in_millis"`
-	Current             int `json:"current"`
+	Total               int    `json:"total"`
+	TimeInMillis        int    `json:"time_in_millis"`
+	ExistsTotal         int    `json:"exists_total"`
+	ExistsTimeInMillis  int    `json:"exists_time_in_millis"`
+	MissingTotal        int    `json:"missing_total"`
+	MissingTimeInMillis int    `json:"missing_time_in_millis"`
+	Current             int    `json:"current"`
+	GetTime             string `json:"getTime"`
 }
 
 // IndicesStatsSearch is a sub type of IndicesStatsInfo containing stats about index search
