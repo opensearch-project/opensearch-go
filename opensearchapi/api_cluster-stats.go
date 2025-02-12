@@ -249,15 +249,16 @@ type ClusterStatsNodes struct {
 		CacheReservedInBytes int   `json:"cache_reserved_in_bytes"`
 	} `json:"fs"`
 	Plugins []struct {
-		Name                string   `json:"name"`
-		Version             string   `json:"version"`
-		OpensearchVersion   string   `json:"opensearch_version"`
-		JavaVersion         string   `json:"java_version"`
-		Description         string   `json:"description"`
-		Classname           string   `json:"classname"`
-		CustomFoldername    *string  `json:"custom_foldername"`
-		ExtendedPlugins     []string `json:"extended_plugins"`
-		HasNativeController bool     `json:"has_native_controller"`
+		Name                    string   `json:"name"`
+		Version                 string   `json:"version"`
+		OpensearchVersion       string   `json:"opensearch_version"`
+		JavaVersion             string   `json:"java_version"`
+		Description             string   `json:"description"`
+		Classname               string   `json:"classname"`
+		CustomFoldername        *string  `json:"custom_foldername"`
+		ExtendedPlugins         []string `json:"extended_plugins"`
+		OptionalExtendedPlugins []string `json:"optional_extended_plugins"`
+		HasNativeController     bool     `json:"has_native_controller"`
 	} `json:"plugins"`
 	NetworkTypes struct {
 		TransportTypes map[string]int `json:"transport_types"`
