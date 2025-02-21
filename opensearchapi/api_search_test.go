@@ -27,12 +27,28 @@ func TestSearch(t *testing.T) {
 
 	index := "test-index-search"
 
+	_, err = client.Indices.Create(
+		nil,
+		opensearchapi.IndicesCreateReq{
+			Index: index,
+			Body: strings.NewReader(`{
+				"mappings": {
+					"properties": {
+						"baz": {
+							"type": "nested"
+						}
+					}
+				}
+			}`),
+		},
+	)
+	require.Nil(t, err)
 	_, err = client.Index(
 		nil,
 		opensearchapi.IndexReq{
 			DocumentID: "foo",
 			Index:      index,
-			Body:       strings.NewReader(`{"foo": "bar"}`),
+			Body:       strings.NewReader(`{"foo": "bar", "baz": [{"foo": "bar"}]}`),
 			Params:     opensearchapi.IndexParams{Refresh: "true", Routing: "foo"},
 		},
 	)
@@ -226,5 +242,32 @@ func TestSearch(t *testing.T) {
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.Equal(t, []string{"test"}, resp.Hits.Hits[0].MatchedQueries)
+	})
+
+	t.Run("request with inner hits", func(t *testing.T) {
+		resp, err := client.Search(
+			nil,
+			&opensearchapi.SearchReq{
+				Indices: []string{index},
+				Body: strings.NewReader(`{
+					"query": {
+						"nested": {
+							"path": "baz",
+							"query": {
+								"match": {
+									"baz.foo": "test"
+								}
+							},
+							"inner_hits": {}
+						}
+					}
+				}`),
+			},
+		)
+		require.Nil(t, err)
+		assert.NotEmpty(t, resp.Hits.Hits)
+		assert.NotEmpty(t, resp.Hits.Hits[0].InnerHits)
+		assert.NotNil(t, resp.Hits.Hits[0].InnerHits["baz"])
+		assert.NotEmpty(t, resp.Hits.Hits[0].InnerHits["baz"].Hits.Hits)
 	})
 }
