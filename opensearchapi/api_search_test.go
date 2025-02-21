@@ -48,7 +48,7 @@ func TestSearch(t *testing.T) {
 		opensearchapi.IndexReq{
 			DocumentID: "foo",
 			Index:      index,
-			Body:       strings.NewReader(`{"foo": "bar", "baz": [{"foo": "bar"}]}`),
+			Body:       strings.NewReader(`{"foo": "bar", "baz": [{"foo": "test"}]}`),
 			Params:     opensearchapi.IndexParams{Refresh: "true", Routing: "foo"},
 		},
 	)
