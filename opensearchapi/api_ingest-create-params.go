@@ -26,7 +26,10 @@
 
 package opensearchapi
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // IngestCreateParams represents possible parameters for the IngestCreateReq
 type IngestCreateParams struct {
@@ -37,6 +40,7 @@ type IngestCreateParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r IngestCreateParams) get() map[string]string {
@@ -64,6 +68,10 @@ func (r IngestCreateParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

@@ -28,6 +28,7 @@ package opensearchapi
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,6 +41,7 @@ type AliasDeleteParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r AliasDeleteParams) get() map[string]string {
@@ -69,6 +71,10 @@ func (r AliasDeleteParams) get() map[string]string {
 		params["error_trace"] = "true"
 	}
 
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
+	}
+
 	return params
 }
 
@@ -82,6 +88,7 @@ type AliasGetParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r AliasGetParams) get() map[string]string {
@@ -115,6 +122,10 @@ func (r AliasGetParams) get() map[string]string {
 		params["error_trace"] = "true"
 	}
 
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
+	}
+
 	return params
 }
 
@@ -127,6 +138,7 @@ type AliasPutParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r AliasPutParams) get() map[string]string {
@@ -156,6 +168,10 @@ func (r AliasPutParams) get() map[string]string {
 		params["error_trace"] = "true"
 	}
 
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
+	}
+
 	return params
 }
 
@@ -169,6 +185,7 @@ type AliasExistsParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r AliasExistsParams) get() map[string]string {
@@ -200,6 +217,10 @@ func (r AliasExistsParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

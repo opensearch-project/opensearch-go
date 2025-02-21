@@ -68,6 +68,7 @@ func TestSearchParams_get(t *testing.T) {
 		Pretty                     bool
 		Human                      bool
 		ErrorTrace                 bool
+		FilterPath                 []string
 	}
 	tests := []struct {
 		name   string
@@ -94,6 +95,7 @@ func TestSearchParams_get(t *testing.T) {
 				ErrorTrace:                 false,
 				ExpandWildcards:            "open,hidden",
 				Explain:                    ToPointer(true),
+				FilterPath:                 []string{"field1", "field2"},
 				From:                       ToPointer(30),
 				Human:                      false,
 				IgnoreThrottled:            ToPointer(true),
@@ -145,6 +147,7 @@ func TestSearchParams_get(t *testing.T) {
 				"docvalue_fields":               "title,date",
 				"expand_wildcards":              "open,hidden",
 				"explain":                       "true",
+				"filter_path":                   "field1,field2",
 				"from":                          "30",
 				"ignore_throttled":              "true",
 				"ignore_unavailable":            "true",
@@ -192,6 +195,7 @@ func TestSearchParams_get(t *testing.T) {
 				DocvalueFields:             tt.fields.DocvalueFields,
 				ExpandWildcards:            tt.fields.ExpandWildcards,
 				Explain:                    tt.fields.Explain,
+				FilterPath:                 tt.fields.FilterPath,
 				From:                       tt.fields.From,
 				IgnoreThrottled:            tt.fields.IgnoreThrottled,
 				IgnoreUnavailable:          tt.fields.IgnoreUnavailable,
