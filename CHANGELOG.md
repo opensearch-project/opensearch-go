@@ -8,6 +8,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
 
 ### Changed
+- Updates Go version to 1.24 ([#600](https://github.com/opensearch-project/opensearch-go/pull/600))
+- Replace `golang.org/x/exp/slices` usage with built-in `slices` ([#600](https://github.com/opensearch-project/opensearch-go/pull/600))
 ### Deprecated
 ### Removed
 ### Fixed
