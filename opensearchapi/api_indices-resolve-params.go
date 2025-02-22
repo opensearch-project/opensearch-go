@@ -26,6 +26,8 @@
 
 package opensearchapi
 
+import "strings"
+
 // IndicesResolveParams represents possible parameters for the IndicesResolveReq
 type IndicesResolveParams struct {
 	ExpandWildcards string
@@ -33,6 +35,7 @@ type IndicesResolveParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r IndicesResolveParams) get() map[string]string {
@@ -52,6 +55,10 @@ func (r IndicesResolveParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

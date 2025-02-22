@@ -26,11 +26,14 @@
 
 package opensearchapi
 
+import "strings"
+
 // ScriptPainlessExecuteParams represents possible parameters for the ScriptPainlessExecuteReq
 type ScriptPainlessExecuteParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r ScriptPainlessExecuteParams) get() map[string]string {
@@ -46,6 +49,10 @@ func (r ScriptPainlessExecuteParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

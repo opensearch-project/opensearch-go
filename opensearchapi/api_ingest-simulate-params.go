@@ -26,7 +26,10 @@
 
 package opensearchapi
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // IngestSimulateParams represents possible parameters for the IngestSimulateReq
 type IngestSimulateParams struct {
@@ -35,6 +38,7 @@ type IngestSimulateParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r IngestSimulateParams) get() map[string]string {
@@ -54,6 +58,10 @@ func (r IngestSimulateParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

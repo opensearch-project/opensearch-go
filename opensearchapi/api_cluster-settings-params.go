@@ -28,6 +28,7 @@ package opensearchapi
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -42,6 +43,7 @@ type ClusterGetSettingsParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r ClusterGetSettingsParams) get() map[string]string {
@@ -79,6 +81,10 @@ func (r ClusterGetSettingsParams) get() map[string]string {
 		params["error_trace"] = "true"
 	}
 
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
+	}
+
 	return params
 }
 
@@ -92,6 +98,7 @@ type ClusterPutSettingsParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r ClusterPutSettingsParams) get() map[string]string {
@@ -123,6 +130,10 @@ func (r ClusterPutSettingsParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

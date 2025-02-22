@@ -27,6 +27,7 @@
 package opensearchapi
 
 import (
+	"strings"
 	"time"
 )
 
@@ -39,6 +40,7 @@ type ScriptDeleteParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r ScriptDeleteParams) get() map[string]string {
@@ -66,6 +68,10 @@ func (r ScriptDeleteParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params
