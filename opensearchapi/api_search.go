@@ -63,17 +63,10 @@ func (r SearchReq) GetRequest() (*http.Request, error) {
 
 // SearchResp represents the returned struct of the /_search response
 type SearchResp struct {
-	Took    int            `json:"took"`
-	Timeout bool           `json:"timed_out"`
-	Shards  ResponseShards `json:"_shards"`
-	Hits    struct {
-		Total struct {
-			Value    int    `json:"value"`
-			Relation string `json:"relation"`
-		} `json:"total"`
-		MaxScore float32     `json:"max_score"`
-		Hits     []SearchHit `json:"hits"`
-	} `json:"hits"`
+	Took         int                  `json:"took"`
+	Timeout      bool                 `json:"timed_out"`
+	Shards       ResponseShards       `json:"_shards"`
+	Hits         SearchHits           `json:"hits"`
 	Errors       bool                 `json:"errors"`
 	Aggregations json.RawMessage      `json:"aggregations"`
 	ScrollID     *string              `json:"_scroll_id,omitempty"`
@@ -86,14 +79,27 @@ func (r SearchResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
+// SearchHits is a list of SearchHit with Total and MaxScore fields
+type SearchHits struct {
+	Total struct {
+		Value    int    `json:"value"`
+		Relation string `json:"relation"`
+	} `json:"total"`
+	MaxScore float32     `json:"max_score"`
+	Hits     []SearchHit `json:"hits"`
+}
+
 // SearchHit is a sub type of SearchResp containing information of the search hit with an unparsed Source field
 type SearchHit struct {
-	Index          string                  `json:"_index"`
-	ID             string                  `json:"_id"`
-	Routing        string                  `json:"_routing"`
-	Score          float32                 `json:"_score"`
-	Source         json.RawMessage         `json:"_source"`
-	Fields         json.RawMessage         `json:"fields"`
+	Index     string          `json:"_index"`
+	ID        string          `json:"_id"`
+	Routing   string          `json:"_routing"`
+	Score     float32         `json:"_score"`
+	Source    json.RawMessage `json:"_source"`
+	Fields    json.RawMessage `json:"fields"`
+	InnerHits map[string]struct {
+		Hits SearchHits `json:"hits"`
+	} `json:"inner_hits"`
 	Type           string                  `json:"_type"` // Deprecated field
 	Sort           []any                   `json:"sort"`
 	Explanation    *DocumentExplainDetails `json:"_explanation"`
