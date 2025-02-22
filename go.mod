@@ -8,7 +8,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.6
 	github.com/stretchr/testify v1.10.0
 	github.com/wI2L/jsondiff v0.6.1
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
 )
 
 require (
