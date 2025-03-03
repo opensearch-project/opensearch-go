@@ -1,10 +1,11 @@
 module github.com/opensearch-project/opensearch-go/v4
 
 go 1.21
+toolchain go1.22.5
 
 require (
 	github.com/aws/aws-sdk-go v1.55.6
-	github.com/aws/aws-sdk-go-v2 v1.36.1
+	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.6
 	github.com/stretchr/testify v1.10.0
 	github.com/wI2L/jsondiff v0.6.1
