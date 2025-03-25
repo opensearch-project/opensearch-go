@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
 - Adds `FilterPath` param ([#673](https://github.com/opensearch-project/opensearch-go/pull/673))
+- Adds the action to reload the search analyzers to the ISM plugin ([#686](https://github.com/opensearch-project/opensearch-go/pull/686))
 
 ### Changed
 ### Deprecated
