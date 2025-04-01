@@ -37,6 +37,7 @@ func (r IndicesGetReq) GetRequest() (*http.Request, error) {
 // IndicesGetResp represents the returned struct of the get indices response
 type IndicesGetResp struct {
 	Indices map[string]struct {
+                DataStream *string `json:"data_stream"`
 		Aliases  map[string]struct{} `json:"aliases"`
 		Mappings json.RawMessage     `json:"mappings"`
 		Settings json.RawMessage     `json:"settings"`
