@@ -69,7 +69,7 @@ type Policy struct {
 // PolicyBody is a sub type of Policy containing information about the policy
 type PolicyBody struct {
 	PolicyID          string                   `json:"policy_id,omitempty"`
-	Description       string                   `json:"description,omitempty"`
+	Description       string                   `json:"description"`
 	LastUpdatedTime   int64                    `json:"last_updated_time,omitempty"`
 	SchemaVersion     int                      `json:"schema_version,omitempty"`
 	ErrorNotification *PolicyErrorNotification `json:"error_notification"`
@@ -241,7 +241,7 @@ type PolicyStateAllocation struct {
 // PolicyStateRollup represents the rollup action
 type PolicyStateRollup struct {
 	ISMRollup struct {
-		Description string            `json:"description,omitempty"`
+		Description string            `json:"description"`
 		TargetIndex string            `json:"target_index"`
 		PageSize    string            `json:"page_size"`
 		Dimensions  []json.RawMessage `json:"dimensions"`
