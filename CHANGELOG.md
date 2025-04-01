@@ -3,6 +3,7 @@
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+- Adds `new field to the struct to support data streams` ([#684](https://github.com/opensearch-project/opensearch-go/issues/684)) 
 ### Dependencies
 ### Added
 - Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
