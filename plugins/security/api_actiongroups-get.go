@@ -55,6 +55,6 @@ type ActionGroupsGet struct {
 	Hidden         bool     `json:"hidden"`
 	AllowedActions []string `json:"allowed_actions"`
 	Static         bool     `json:"static"`
-	Description    string   `json:"description,omitempty"`
+	Description    string   `json:"description"`
 	Type           string   `json:"type,omitempty"`
 }

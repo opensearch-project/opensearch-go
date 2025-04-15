@@ -55,5 +55,5 @@ func (r ActionGroupsPutResp) Inspect() Inspect {
 type ActionGroupsPutBody struct {
 	AllowedActions []string `json:"allowed_actions"`
 	Type           *string  `json:"type,omitempty"`
-	Description    *string  `json:"description,omitempty"`
+	Description    *string  `json:"description"`
 }

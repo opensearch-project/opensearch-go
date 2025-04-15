@@ -41,7 +41,7 @@ type CatPluginResp struct {
 	Name        string `json:"name,omitempty"`
 	Component   string `json:"component,omitempty"`
 	Version     string `json:"version,omitempty"`
-	Description string `json:"description,omitempty"`
+	Description string `json:"description"`
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Reponse
