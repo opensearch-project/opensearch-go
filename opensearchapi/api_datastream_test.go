@@ -135,3 +135,30 @@ func TestDataStreamClient(t *testing.T) {
 		})
 	}
 }
+func TestDataStreamLifecycle(t *testing.T) {
+	client := setupTestClient(t)
+
+	// Ensure the DataStream is deleted before starting the test
+	client.Indices.Delete([]string{"test-datastream"}, nil)
+
+	// Create the DataStream
+	_, err := client.Indices.CreateDataStream("test-datastream", nil)
+	if err != nil {
+		t.Fatalf("failed to create data stream: %s", err)
+	}
+
+	// Cleanup the DataStream after the test
+	t.Cleanup(func() {
+		client.Indices.Delete([]string{"test-datastream"}, nil)
+	})
+
+	// validate the DataStream
+	resp, err := client.Indices.Get([]string{"test-datastream"}, nil)
+	if err != nil {
+		t.Fatalf("failed to get data stream: %s", err)
+	}
+
+	if _, exists := resp.Indices["test-datastream"]; !exists {
+		t.Errorf("expected data stream 'test-datastream' to exist")
+	}
+}
