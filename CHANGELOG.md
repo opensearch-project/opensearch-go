@@ -9,6 +9,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds `FilterPath` param ([#673](https://github.com/opensearch-project/opensearch-go/pull/673))
 
 ### Changed
+- Changed log formatted examples code ([#694](https://github.com/opensearch-project/opensearch-go/pull/694))
+
 ### Deprecated
 ### Removed
 ### Fixed
