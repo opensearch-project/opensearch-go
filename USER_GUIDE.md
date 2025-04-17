@@ -371,7 +371,7 @@ func example() error {
 		return err
 	}
 
-	fmt.Printf("deleted index: %#v", delResp.Acknowledged)
+	fmt.Printf("deleted index: %#v\n", delResp.Acknowledged)
 	return nil
 }
 
