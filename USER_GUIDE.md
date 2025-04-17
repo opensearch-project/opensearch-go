@@ -237,7 +237,7 @@ const IndexName = "go-test-index1"
 
 func main() {
 	if err := example(); err != nil {
-		fmt.Printf("Error: %s", err)
+		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
 	}
 }
