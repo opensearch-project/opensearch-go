@@ -364,7 +364,7 @@ func example() error {
 		return err
 	}
 
-	fmt.Printf("created index: %s", createResp.Index)
+	fmt.Printf("created index: %s\n", createResp.Index)
 
 	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
 	if err != nil {
