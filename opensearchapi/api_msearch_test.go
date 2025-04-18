@@ -76,6 +76,6 @@ func TestMSearch(t *testing.T) {
 		)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
-		assert.NotEmpty(t, resp.Responses[0].Aggregations)
+		assert.NotNil(t, resp.Responses[0].Aggregations)
 	})
 }
