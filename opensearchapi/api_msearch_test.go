@@ -65,4 +65,17 @@ func TestMSearch(t *testing.T) {
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
+
+	t.Run("with aggs request", func(t *testing.T) {
+		resp, err := client.MSearch(
+			nil,
+			opensearchapi.MSearchReq{
+				Indices: []string{testIndex},
+				Body:    strings.NewReader("{}\n{\"aggs\":{\"foo\":{\"terms\":{\"field\":\"foo\"}}}}\n"),
+			},
+		)
+		require.Nil(t, err)
+		assert.NotNil(t, resp)
+		assert.NotNil(t, resp.Responses[0].Aggregations)
+	})
 }
