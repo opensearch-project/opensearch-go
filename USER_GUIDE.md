@@ -237,7 +237,7 @@ const IndexName = "go-test-index1"
 
 func main() {
 	if err := example(); err != nil {
-		fmt.Println(fmt.Sprintf("Error: %s", err))
+		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -364,14 +364,14 @@ func example() error {
 		return err
 	}
 
-	fmt.Println("created index: %s", createResp.Index)
+	fmt.Printf("created index: %s\n", createResp.Index)
 
 	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("deleted index: %#v", delResp.Acknowledged)
+	fmt.Printf("deleted index: %#v\n", delResp.Acknowledged)
 	return nil
 }
 
