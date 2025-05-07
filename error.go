@@ -128,7 +128,7 @@ func ParseError(resp *Response) error {
 	}
 
 	if !json.Valid(body) {
-		return fmt.Errorf("%s", body)
+		return fmt.Errorf("invalid body: %q", body)
 	}
 
 	var testResp struct {
