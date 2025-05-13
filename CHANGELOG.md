@@ -12,6 +12,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 - Bump golang version to 1.22 ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
 - Change ChangeCatRecoveryItemResp Byte fields from int to string ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
+- Test against Opensearch 3.0, drop Opensearch 1.x ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
 ### Deprecated
 ### Removed
 ### Fixed
