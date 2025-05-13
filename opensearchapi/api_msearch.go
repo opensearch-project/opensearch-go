@@ -8,6 +8,7 @@ package opensearchapi
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -72,7 +73,8 @@ type MSearchResp struct {
 			MaxScore float32     `json:"max_score"`
 			Hits     []SearchHit `json:"hits"`
 		} `json:"hits"`
-		Status int `json:"status"`
+		Status       int             `json:"status"`
+		Aggregations json.RawMessage `json:"aggregations"`
 	} `json:"responses"`
 	response *opensearch.Response
 }
