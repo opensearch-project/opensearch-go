@@ -5,6 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 ### Dependencies
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.6 to 1.29.14 ([#692](https://github.com/opensearch-project/opensearch-go/pull/692))
+- Bump `github.com/wI2L/jsondiff` from 0.6.1 to 0.7.0 ([#700](https://github.com/opensearch-project/opensearch-go/pull/700))
 ### Added
 - Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
 - Adds `FilterPath` param ([#673](https://github.com/opensearch-project/opensearch-go/pull/673))
