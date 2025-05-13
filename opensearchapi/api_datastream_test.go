@@ -36,6 +36,9 @@ func TestDataStreamClient(t *testing.T) {
 		},
 	)
 	require.Nil(t, err)
+	t.Cleanup(func() {
+		client.IndexTemplate.Delete(nil, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
+	})
 
 	type dataStreamTests struct {
 		Name    string

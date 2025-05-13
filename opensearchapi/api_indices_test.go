@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -31,15 +32,32 @@ func TestIndicesClient(t *testing.T) {
 	indexSplit := "test-indices-split"
 	indexShrink := "test-indices-shrink"
 	indexRollover := "test-indices-rollover"
-	alias := "test-indices-alias"
 	testIndices := []string{index, indexClone, indexSplit, indexShrink, indexRollover}
-	_, err = client.Indices.Delete(
+
+	alias := "test-indices-alias"
+	dataStream := "test-datastream-get"
+
+	_, err = client.IndexTemplate.Create(
 		nil,
-		opensearchapi.IndicesDeleteReq{
-			Indices: testIndices,
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		opensearchapi.IndexTemplateCreateReq{
+			IndexTemplate: dataStream,
+			Body:          strings.NewReader(`{"index_patterns":["test-datastream-get"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
 		},
 	)
+	require.Nil(t, err)
+
+	t.Cleanup(func() {
+		client.Indices.Delete(
+			nil,
+			opensearchapi.IndicesDeleteReq{
+				Indices: testIndices,
+				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+			},
+		)
+		client.DataStream.Delete(nil, opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
+		client.IndexTemplate.Delete(nil, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
+	})
+	_, err = client.DataStream.Create(nil, opensearchapi.DataStreamCreateReq{DataStream: dataStream})
 	require.Nil(t, err)
 
 	type indicesTests struct {
@@ -209,6 +227,23 @@ func TestIndicesClient(t *testing.T) {
 						)
 						resp.Response, err = failingClient.Indices.Alias.Exists(nil, opensearchapi.AliasExistsReq{Indices: []string{index}, Alias: []string{alias}})
 						return resp, err
+					},
+				},
+			},
+		},
+		{
+			Name: "DataSteam Indice Get",
+			Tests: []indicesTests{
+				{
+					Name: "with request",
+					Results: func() (osapitest.Response, error) {
+						return client.Indices.Get(nil, opensearchapi.IndicesGetReq{Indices: []string{fmt.Sprintf(".ds-%s-000001", dataStream)}})
+					},
+				},
+				{
+					Name: "inspect",
+					Results: func() (osapitest.Response, error) {
+						return failingClient.Indices.Get(nil, opensearchapi.IndicesGetReq{Indices: []string{fmt.Sprintf(".ds-%s-000001", dataStream)}})
 					},
 				},
 			},
