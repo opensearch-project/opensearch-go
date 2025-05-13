@@ -35,7 +35,7 @@ func TestMSearch(t *testing.T) {
 			nil,
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
-				Body:       strings.NewReader(`{"foo": "bar"}`),
+				Body:       strings.NewReader(`{"foo": "bar", "number": 1}`),
 				DocumentID: strconv.Itoa(i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
@@ -64,5 +64,18 @@ func TestMSearch(t *testing.T) {
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
+	})
+
+	t.Run("with aggs request", func(t *testing.T) {
+		resp, err := client.MSearch(
+			nil,
+			opensearchapi.MSearchReq{
+				Indices: []string{testIndex},
+				Body:    strings.NewReader("{}\n{\"aggs\":{\"number_terms\":{\"terms\":{\"field\":\"number\"}}}}\n"),
+			},
+		)
+		require.Nil(t, err)
+		assert.NotNil(t, resp)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 }
