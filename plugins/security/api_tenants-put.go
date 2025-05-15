@@ -41,7 +41,7 @@ func (r TenantsPutReq) GetRequest() (*http.Request, error) {
 
 // TenantsPutBody is the request body for the TenantsPutReq
 type TenantsPutBody struct {
-	Description string `json:"description,omitempty"`
+	Description string `json:"description"`
 }
 
 // TenantsPutResp represents the returned struct of the tenants put response
