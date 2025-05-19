@@ -194,6 +194,7 @@ type ClusterStatsNodes struct {
 		Master              int `json:"master"`
 		RemoteClusterClient int `json:"remote_cluster_client"`
 		Search              int `json:"search"`
+		Warm                int `json:"warm"`
 	} `json:"count"`
 	Versions []string `json:"versions"`
 	Os       struct {
