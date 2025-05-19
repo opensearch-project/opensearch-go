@@ -72,6 +72,7 @@ type SearchShardsResp struct {
 	Shards  [][]struct {
 		State                    string  `json:"state"`
 		Primary                  bool    `json:"primary"`
+		SearchOnly               bool    `json:"searchOnly"`
 		Node                     string  `json:"node"`
 		RelocatingNode           *string `json:"relocating_node"`
 		Shard                    int     `json:"shard"`
