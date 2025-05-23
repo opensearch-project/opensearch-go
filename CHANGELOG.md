@@ -17,6 +17,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bump golang version to 1.22 ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
 - Change ChangeCatRecoveryItemResp Byte fields from int to string ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
 - Changed log formatted examples code ([#694](https://github.com/opensearch-project/opensearch-go/pull/694))
+- Improve the error reporting of invalid body response ([#699](https://github.com/opensearch-project/opensearch-go/pull/699))
 
 ### Deprecated
 ### Removed
