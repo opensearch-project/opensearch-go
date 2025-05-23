@@ -41,7 +41,7 @@ func (r RolesPutReq) GetRequest() (*http.Request, error) {
 
 // RolesPutBody represents the request body for RolesPutReq
 type RolesPutBody struct {
-	Description        string                  `json:"description,omitempty"`
+	Description        string                  `json:"description"`
 	ClusterPermissions []string                `json:"cluster_permissions,omitempty"`
 	IndexPermissions   []RolesIndexPermission  `json:"index_permissions,omitempty"`
 	TenantPermissions  []RolesTenantPermission `json:"tenant_permissions,omitempty"`

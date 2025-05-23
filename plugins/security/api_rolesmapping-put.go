@@ -45,7 +45,7 @@ type RolesMappingPutBody struct {
 	Users           []string `json:"users,omitempty"`
 	BackendRoles    []string `json:"backend_roles,omitempty"`
 	AndBackendRoles []string `json:"and_backend_roles,omitempty"`
-	Description     string   `json:"description,omitempty"`
+	Description     string   `json:"description"`
 }
 
 // RolesMappingPutResp represents the returned struct of the rolesmapping put response

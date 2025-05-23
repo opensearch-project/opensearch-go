@@ -45,7 +45,7 @@ type InternalUsersPutBody struct {
 	Hash          string            `json:"hash,omitempty"`
 	BackendRoles  []string          `json:"backend_roles,omitempty"`
 	Attributes    map[string]string `json:"attributes,omitempty"`
-	Description   string            `json:"description,omitempty"`
+	Description   string            `json:"description"`
 	SecurityRoles []string          `json:"opendistro_security_roles,omitempty"`
 }
 
