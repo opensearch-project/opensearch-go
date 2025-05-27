@@ -9,6 +9,7 @@ package opensearchapi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -156,6 +157,9 @@ type AliasPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasPutReq) GetRequest() (*http.Request, error) {
+	if len(r.Indices) == 0 {
+		return nil, fmt.Errorf("at least one index must be specified for alias operation")
+	}
 	indices := strings.Join(r.Indices, ",")
 
 	var path strings.Builder
