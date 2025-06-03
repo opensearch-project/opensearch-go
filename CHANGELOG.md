@@ -2,11 +2,13 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [4.5.0]
+
 ### Dependencies
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.6 to 1.29.14 ([#692](https://github.com/opensearch-project/opensearch-go/pull/692))
 - Bump `github.com/aws/aws-sdk-go` from 1.55.6 to 1.55.7 ([#696](https://github.com/opensearch-project/opensearch-go/pull/696))
 - Bump `github.com/wI2L/jsondiff` from 0.6.1 to 0.7.0 ([#700](https://github.com/opensearch-project/opensearch-go/pull/700))
+
 ### Added
 - Adds DataStream field to IndicesGetResp struct ([#701](https://github.com/opensearch-project/opensearch-go/pull/701))
 - Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
@@ -20,8 +22,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Improve the error reporting of invalid body response ([#699](https://github.com/opensearch-project/opensearch-go/pull/699))
 
 ### Deprecated
+
 ### Removed
+
 ### Fixed
+
 ### Security
 
 ## [4.4.0]
@@ -324,7 +329,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v4.4.0...HEAD
+[4.5.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.1.0...v4.2.0
