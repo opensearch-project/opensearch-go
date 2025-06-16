@@ -5,6 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Dependencies
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.14 to 1.29.15 ([#707](https://github.com/opensearch-project/opensearch-go/pull/707))
 
 ### Added
 - Adds new fields for Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
