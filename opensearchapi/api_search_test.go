@@ -36,6 +36,14 @@ func TestSearch(t *testing.T) {
 					"properties": {
 						"baz": {
 							"type": "nested"
+						},
+						"foo": {
+							"type": "text",
+							"fields": {
+								"suggestions": {
+									"type": "completion"
+								}
+							}
 						}
 					}
 				}
@@ -196,6 +204,28 @@ func TestSearch(t *testing.T) {
 		  }`)})
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Suggest)
+	})
+
+		t.Run("request with completion suggest", func(t *testing.T) {
+		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+			"suggest": {
+			  "my-suggest": {
+			  	"text": "bar",
+				"completion": {
+					"field": "foo.suggestions",
+					"skip_duplicates": true
+				} 
+			  }
+			}
+		  }`)})
+		require.Nil(t, err)
+		assert.NotEmpty(t, resp.Suggest)
+		assert.NotEmpty(t, resp.Suggest["my-suggest"])
+		for _,suggestion := range resp.Suggest["my-suggest"] {
+			assert.Equal(t, suggestion.Text, "bar")
+			assert.NotEmpty(t, suggestion.Options)
+			assert.Equal(t, suggestion.Options[0].Text, "bar")
+		}
 	})
 
 	t.Run("request with highlight", func(t *testing.T) {

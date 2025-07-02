@@ -111,14 +111,23 @@ type SearchHit struct {
 
 // Suggest is a sub type of SearchResp containing information of the suggest field
 type Suggest struct {
-	Text    string `json:"text"`
-	Offset  int    `json:"offset"`
-	Length  int    `json:"length"`
-	Options []struct {
-		Text         string  `json:"text"`
-		Score        float32 `json:"score"`
-		Freq         int     `json:"freq"`
-		Highlighted  string  `json:"highlighted"`
-		CollateMatch bool    `json:"collate_match"`
-	} `json:"options"`
+	Text    string           `json:"text"`
+	Offset  int              `json:"offset"`
+	Length  int              `json:"length"`
+	Options []SuggestOptions `json:"options"`
+}
+
+// SuggestOptions is a sub type of Suggest field containing information about suggest options
+type SuggestOptions struct {
+	Text            string              `json:"text"`
+	Index           string              `json:"_index"`
+	Type            string              `json:"_type"`
+	ID              string              `json:"_id"`
+	Score           float64             `json:"score"`  // term suggesters uses "score"
+	ScoreUnderscore float64             `json:"_score"` // completion and context suggesters uses "_score"
+	Freq            int                 `json:"freq"`
+	Highlighted     string              `json:"highlighted"`
+	CollateMatch    bool                `json:"collate_match"`
+	Source          json.RawMessage     `json:"_source"`
+	Contexts        map[string][]string `json:"contexts,omitempty"`
 }
