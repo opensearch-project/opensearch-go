@@ -244,7 +244,7 @@ func TestError(t *testing.T) {
 			}
 			assert.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
-			assert.Equal(t, err.Error(), http.StatusText(http.StatusUnauthorized))
+			assert.True(t, errors.Is(err, opensearch.ErrJSONUnmarshalBody))
 		})
 		t.Run("too many requests", func(t *testing.T) {
 			resp := &opensearch.Response{
@@ -253,7 +253,7 @@ func TestError(t *testing.T) {
 			}
 			assert.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
-			assert.Equal(t, err.Error(), "429 Too Many Requests /testindex/_bulk")
+			assert.True(t, errors.Is(err, opensearch.ErrJSONUnmarshalBody))
 		})
 	})
 }

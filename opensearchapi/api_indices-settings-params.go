@@ -28,6 +28,7 @@ package opensearchapi
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -45,6 +46,7 @@ type SettingsGetParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r SettingsGetParams) get() map[string]string {
@@ -94,6 +96,10 @@ func (r SettingsGetParams) get() map[string]string {
 		params["error_trace"] = "true"
 	}
 
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
+	}
+
 	return params
 }
 
@@ -111,6 +117,7 @@ type SettingsPutParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r SettingsPutParams) get() map[string]string {
@@ -158,6 +165,10 @@ func (r SettingsPutParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

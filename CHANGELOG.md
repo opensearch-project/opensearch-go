@@ -3,17 +3,53 @@
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
+
 ### Dependencies
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.14 to 1.29.17 ([#707](https://github.com/opensearch-project/opensearch-go/pull/707), [#711](https://github.com/opensearch-project/opensearch-go/pull/711))
+- Bump `github.com/aws/aws-sdk-go-v2` from 1.36.4 to 1.36.5 ([#710](https://github.com/opensearch-project/opensearch-go/pull/710))
+
 ### Added
-- Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
+- Adds new fields for Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
 
 ### Changed
+- Test against Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
+- Add more SuggestOptions to SearchResp ([#713](https://github.com/opensearch-project/opensearch-go/pull/713))
 - Updates Go version to 1.24 ([#674](https://github.com/opensearch-project/opensearch-go/pull/674))
 - Replace `golang.org/x/exp/slices` usage with built-in `slices` ([#674](https://github.com/opensearch-project/opensearch-go/pull/674))
 
 ### Deprecated
+
 ### Removed
+
 ### Fixed
+
+### Security
+
+## [4.5.0]
+
+### Dependencies
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.6 to 1.29.14 ([#692](https://github.com/opensearch-project/opensearch-go/pull/692))
+- Bump `github.com/aws/aws-sdk-go` from 1.55.6 to 1.55.7 ([#696](https://github.com/opensearch-project/opensearch-go/pull/696))
+- Bump `github.com/wI2L/jsondiff` from 0.6.1 to 0.7.0 ([#700](https://github.com/opensearch-project/opensearch-go/pull/700))
+
+### Added
+- Adds DataStream field to IndicesGetResp struct ([#701](https://github.com/opensearch-project/opensearch-go/pull/701))
+- Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
+- Adds `FilterPath` param ([#673](https://github.com/opensearch-project/opensearch-go/pull/673))
+- Adds `Aggregations` field to `MSearchResp` ([#690](https://github.com/opensearch-project/opensearch-go/pull/690))
+
+### Changed
+- Bump golang version to 1.22 ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
+- Change ChangeCatRecoveryItemResp Byte fields from int to string ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
+- Changed log formatted examples code ([#694](https://github.com/opensearch-project/opensearch-go/pull/694))
+- Improve the error reporting of invalid body response ([#699](https://github.com/opensearch-project/opensearch-go/pull/699))
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 ### Security
 
 ## [4.4.0]
@@ -316,7 +352,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v4.4.0...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.4.0...v4.5.0
 [4.4.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.3.0...v4.4.0
 [4.3.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.2.0...v4.3.0
 [4.2.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.1.0...v4.2.0

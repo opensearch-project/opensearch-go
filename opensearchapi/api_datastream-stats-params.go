@@ -26,7 +26,10 @@
 
 package opensearchapi
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // DataStreamStatsParams represents possible parameters for the DataStreamCreateReq
 type DataStreamStatsParams struct {
@@ -35,6 +38,7 @@ type DataStreamStatsParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r DataStreamStatsParams) get() map[string]string {
@@ -54,6 +58,10 @@ func (r DataStreamStatsParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

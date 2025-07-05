@@ -9,8 +9,8 @@ jobs:
       fail-fast: false
       matrix:
         entry:
-          - { branch: '1.x', java-version: '11' }
           - { branch: '2.x', java-version: '17' }
+#         - { branch: '3.x', java-version: '21' }
           - { branch: 'main', java-version: '21' }
     steps:
       - name: Checkout OpenSearch

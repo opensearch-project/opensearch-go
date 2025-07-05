@@ -28,6 +28,7 @@ package opensearchapi
 
 import (
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -40,6 +41,7 @@ type ClusterPostVotingConfigExclusionsParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r ClusterPostVotingConfigExclusionsParams) get() map[string]string {
@@ -69,6 +71,10 @@ func (r ClusterPostVotingConfigExclusionsParams) get() map[string]string {
 		params["error_trace"] = "true"
 	}
 
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
+	}
+
 	return params
 }
 
@@ -79,6 +85,7 @@ type ClusterDeleteVotingConfigExclusionsParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r ClusterDeleteVotingConfigExclusionsParams) get() map[string]string {
@@ -98,6 +105,10 @@ func (r ClusterDeleteVotingConfigExclusionsParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

@@ -16,12 +16,12 @@ RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then \
         echo "plugins.security.unsupported.restapi.allow_securityconfig_modification: true"  | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         echo "plugins.security.ssl_cert_reload_enabled: true" | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }; \
-        if [ $(version $OPENSEARCH_VERSION) -ge $(version "2.8.0") ] || [ $OPENSEARCH_VERSION == "latest" ]; then \
+        if [ $(version $OPENSEARCH_VERSION) -ge $(version "2.8.0") ] || [ "$OPENSEARCH_VERSION" == "latest" ]; then \
           echo "plugins.security.restapi.admin.enabled: true" | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         fi \
       fi
 
 HEALTHCHECK --start-period=20s --interval=30s \
-  CMD curl -sf -retry 5 --max-time 5 --retry-delay 5 --retry-max-time 30 \
+  CMD curl -sf --retry 5 --max-time 5 --retry-delay 5 --retry-max-time 30 --retry-all-errors \
   $(if $SECURE_INTEGRATION; then echo "--cert config/kirk.pem --key config/kirk-key.pem -k https://"; fi)"localhost:9200" \
   || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'

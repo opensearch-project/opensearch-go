@@ -66,10 +66,10 @@ type CatRecoveryItemResp struct {
 	FilesRecovered       int    `json:"files_recovered,string"`
 	FilesPercent         string `json:"files_percent"`
 	FilesTotal           int    `json:"files_total,string"`
-	Bytes                int    `json:"bytes,string"`
-	BytesRecovered       int    `json:"bytes_recovered,string"`
+	Bytes                string `json:"bytes"`
+	BytesRecovered       string `json:"bytes_recovered"`
 	BytesPercent         string `json:"bytes_percent"`
-	BytesTotal           int    `json:"bytes_total,string"`
+	BytesTotal           string `json:"bytes_total"`
 	TranslogOps          int    `json:"translog_ops,string"`
 	TranslogOpsRecovered int    `json:"translog_ops_recovered,string"`
 	TranslogOpsPercent   string `json:"translog_ops_percent"`

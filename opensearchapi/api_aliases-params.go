@@ -26,7 +26,10 @@
 
 package opensearchapi
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // AliasesParams represents possible parameters for the AliasesReq
 type AliasesParams struct {
@@ -37,6 +40,7 @@ type AliasesParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r AliasesParams) get() map[string]string {
@@ -64,6 +68,10 @@ func (r AliasesParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	return params

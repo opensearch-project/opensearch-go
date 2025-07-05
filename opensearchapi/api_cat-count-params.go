@@ -40,6 +40,7 @@ type CatCountParams struct {
 	Pretty     bool
 	Human      bool
 	ErrorTrace bool
+	FilterPath []string
 }
 
 func (r CatCountParams) get() map[string]string {
@@ -67,6 +68,10 @@ func (r CatCountParams) get() map[string]string {
 
 	if r.ErrorTrace {
 		params["error_trace"] = "true"
+	}
+
+	if len(r.FilterPath) > 0 {
+		params["filter_path"] = strings.Join(r.FilterPath, ",")
 	}
 
 	params["format"] = "json"

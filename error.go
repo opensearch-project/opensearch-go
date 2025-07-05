@@ -127,10 +127,6 @@ func ParseError(resp *Response) error {
 		return fmt.Errorf("%w: %w", ErrReadBody, err)
 	}
 
-	if !json.Valid(body) {
-		return fmt.Errorf("%s", body)
-	}
-
 	var testResp struct {
 		Status  any `json:"status"`
 		Error   any `json:"error"`
