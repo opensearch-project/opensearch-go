@@ -37,15 +37,33 @@ func getCredentialProvider() aws.CredentialsProviderFunc {
 	}
 }
 
+const (
+	testRegion = "us-west-2"
+)
+
 func TestV4SignerAwsSdkV2(t *testing.T) {
+	currentRegion := os.Getenv("AWS_REGION")
+
+	os.Setenv("AWS_REGION", testRegion)
+
+	defaultRegion := os.Getenv("AWS_DEFAULT_REGION")
+
+	os.Unsetenv("AWS_DEFAULT_REGION")
+
+	t.Cleanup(func() {
+		os.Setenv("AWS_DEFAULT_REGION", defaultRegion)
+		os.Setenv("AWS_REGION", currentRegion)
+	})
+
 	t.Run("sign request failed due to no region found", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
 		assert.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
-		os.Setenv("AWS_REGION", "")
-		defer func() {
+		os.Unsetenv("AWS_REGION")
+		t.Cleanup(func() {
 			os.Setenv("AWS_REGION", region)
-		}()
+		})
+
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithCredentialsProvider(
 				getCredentialProvider(),
@@ -54,6 +72,8 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
+		awsCfg.Region = "" // Ensure region is empty to trigger error
+
 		signer, err := awsv2.NewSigner(awsCfg)
 		assert.NoError(t, err)
 		err = signer.SignRequest(req)
@@ -61,14 +81,15 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		assert.EqualErrorf(
 			t, err, "aws region cannot be empty", "unexpected error")
 	})
+
 	t.Run("sign request success", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
 		assert.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
-		defer func() {
+		t.Cleanup(func() {
 			os.Setenv("AWS_REGION", region)
-		}()
+		})
 
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),
@@ -85,10 +106,44 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		assert.NoError(t, err)
 
 		q := req.Header
+		assert.Equal(t, "localhost:9200", req.Host)
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
 		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
+
+	t.Run("with signature port override", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
+		if assert.NoError(t, err) && assert.Equal(t, "localhost:9200", req.Host) {
+			region := os.Getenv("AWS_REGION")
+			os.Setenv("AWS_REGION", "us-west-2")
+			defer func() {
+				os.Setenv("AWS_REGION", region)
+			}()
+			awsCfg, err := config.LoadDefaultConfig(context.TODO(),
+				config.WithRegion("us-west-2"),
+				config.WithCredentialsProvider(
+					getCredentialProvider(),
+				),
+			)
+			if assert.NoError(t, err) {
+				signer, err := awsv2.NewSigner(awsCfg)
+				if assert.NoError(t, err) {
+					signer.OverrideSigningPort(443)
+					err = signer.SignRequest(req)
+					if assert.NoError(t, err) {
+						q := req.Header
+						// Should have stripped off the port given it was 443 (80 would have also gotten removed)
+						assert.Equal(t, "localhost", req.Host)
+						assert.NotEmpty(t, q.Get("Authorization"))
+						assert.NotEmpty(t, q.Get("X-Amz-Date"))
+						assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
+					}
+				}
+			}
+		}
+	})
+
 	t.Run("sign request success with body", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
@@ -96,9 +151,9 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		assert.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
-		defer func() {
+		t.Cleanup(func() {
 			os.Setenv("AWS_REGION", region)
-		}()
+		})
 
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),
@@ -126,9 +181,9 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		assert.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
-		defer func() {
+		t.Cleanup(func() {
 			os.Setenv("AWS_REGION", region)
-		}()
+		})
 
 		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
 			config.WithRegion("us-west-2"),

@@ -35,8 +35,9 @@ const emptyBodySHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991
 
 // Signer is an interface that will implement opensearchtransport.Signer
 type Signer struct {
-	session session.Session
-	service string
+	session       session.Session
+	service       string
+	signaturePort uint16 // 0-65535
 }
 
 // NewSigner returns an instance of Signer for configured for Amazon OpenSearch Service.
@@ -62,8 +63,17 @@ func NewSignerWithService(opts session.Options, service string) (*Signer, error)
 	}, nil
 }
 
+func (s *Signer) OverrideSigningPort(port uint16) {
+	s.signaturePort = port
+}
+
 // SignRequest signs the request using SigV4.
 func (s Signer) SignRequest(req *http.Request) error {
+	if s.signaturePort > 0 {
+		req.URL.Host = fmt.Sprintf("%s:%d", req.URL.Hostname(), s.signaturePort)
+		req.Host = req.URL.Host
+	}
+
 	return sign(req, s.session.Config.Region, s.service, v4.NewSigner(s.session.Config.Credentials))
 }
 

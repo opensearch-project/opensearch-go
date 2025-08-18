@@ -41,6 +41,7 @@ func TestV4Signer(t *testing.T) {
 				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
 			},
 		}
+
 		signer, err := osaws.NewSigner(sessionOptions)
 		assert.NoError(t, err)
 
@@ -65,6 +66,34 @@ func TestV4Signer(t *testing.T) {
 		assert.NoError(t, err)
 
 		q := req.Header
+		assert.NotEmpty(t, q.Get("Authorization"))
+		assert.NotEmpty(t, q.Get("X-Amz-Date"))
+		assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
+	})
+
+	t.Run("sign request success - port override", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "localhost:9200", req.Host)
+
+		sessionOptions := session.Options{
+			Config: aws.Config{
+				Region:      aws.String("us-west-2"),
+				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
+			},
+		}
+
+		signer, err := osaws.NewSigner(sessionOptions)
+		assert.NoError(t, err)
+
+		signer.OverrideSigningPort(443)
+
+		err = signer.SignRequest(req)
+		assert.NoError(t, err)
+
+		q := req.Header
+
+		assert.Equal(t, "localhost", req.Host) // should have been stripped off given we used a common port
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
 		assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
