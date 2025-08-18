@@ -63,6 +63,8 @@ func NewSignerWithService(opts session.Options, service string) (*Signer, error)
 	}, nil
 }
 
+// OverrideSigningPort allows setting a custom signing por
+// useful when going through an SSH Tunnel which would cause a signature mismatch
 func (s *Signer) OverrideSigningPort(port uint16) {
 	s.signaturePort = port
 }
