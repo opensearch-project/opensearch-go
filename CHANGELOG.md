@@ -10,7 +10,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - Adds new fields for Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
-- Allows users to override signing port ([#717](https://github.com/opensearch-project/opensearch-go/pull/702))
+- Allow users to override signing port ([#717](https://github.com/opensearch-project/opensearch-go/pull/702))
 
 ### Changed
 - Test against Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
