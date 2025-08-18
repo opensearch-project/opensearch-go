@@ -72,8 +72,7 @@ func (s *Signer) OverrideSigningPort(port uint16) {
 // SignRequest signs the request using SigV4.
 func (s Signer) SignRequest(req *http.Request) error {
 	if s.signaturePort > 0 {
-		req.URL.Host = fmt.Sprintf("%s:%d", req.URL.Hostname(), s.signaturePort)
-		req.Host = req.URL.Host
+		req.Host = fmt.Sprintf("%s:%d", req.URL.Hostname(), s.signaturePort)
 	}
 
 	return sign(req, s.session.Config.Region, s.service, v4.NewSigner(s.session.Config.Credentials))

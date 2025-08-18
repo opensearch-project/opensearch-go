@@ -77,8 +77,7 @@ func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 	}
 
 	if s.signaturePort > 0 {
-		r.URL.Host = fmt.Sprintf("%s:%d", r.URL.Hostname(), s.signaturePort)
-		r.Host = r.URL.Host
+		r.Host = fmt.Sprintf("%s:%d", r.URL.Hostname(), s.signaturePort)
 	}
 
 	if len(s.awsCfg.Region) == 0 {
