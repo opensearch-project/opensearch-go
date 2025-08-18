@@ -91,9 +91,10 @@ func TestV4Signer(t *testing.T) {
 		err = signer.SignRequest(req)
 		assert.NoError(t, err)
 
+		assert.Equal(t, "localhost", req.Host) // should have been stripped off given we used a common port
+
 		q := req.Header
 
-		assert.Equal(t, "localhost", req.Host) // should have been stripped off given we used a common port
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
 		assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))

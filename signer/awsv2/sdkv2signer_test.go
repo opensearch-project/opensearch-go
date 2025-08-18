@@ -114,34 +114,36 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 
 	t.Run("with signature port override", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		if assert.NoError(t, err) && assert.Equal(t, "localhost:9200", req.Host) {
-			region := os.Getenv("AWS_REGION")
-			os.Setenv("AWS_REGION", "us-west-2")
-			defer func() {
-				os.Setenv("AWS_REGION", region)
-			}()
-			awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-				config.WithRegion("us-west-2"),
-				config.WithCredentialsProvider(
-					getCredentialProvider(),
-				),
-			)
-			if assert.NoError(t, err) {
-				signer, err := awsv2.NewSigner(awsCfg)
-				if assert.NoError(t, err) {
-					signer.OverrideSigningPort(443)
-					err = signer.SignRequest(req)
-					if assert.NoError(t, err) {
-						q := req.Header
-						// Should have stripped off the port given it was 443 (80 would have also gotten removed)
-						assert.Equal(t, "localhost", req.Host)
-						assert.NotEmpty(t, q.Get("Authorization"))
-						assert.NotEmpty(t, q.Get("X-Amz-Date"))
-						assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
-					}
-				}
-			}
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, "localhost:9200", req.Host)
+
+		region := os.Getenv("AWS_REGION")
+		os.Setenv("AWS_REGION", "us-west-2")
+		t.Cleanup(func() {
+			os.Setenv("AWS_REGION", region)
+		})
+
+		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion("us-west-2"),
+			config.WithCredentialsProvider(
+				getCredentialProvider(),
+			),
+		)
+		assert.NoError(t, err)
+
+		signer, err := awsv2.NewSigner(awsCfg)
+		assert.NoError(t, err)
+
+		signer.OverrideSigningPort(443)
+		err = signer.SignRequest(req)
+		assert.NoError(t, err)
+
+		// Should have stripped off the port given it was 443 (80 would have also gotten removed)
+		assert.Equal(t, "localhost", req.Host)
+		q := req.Header
+		assert.NotEmpty(t, q.Get("Authorization"))
+		assert.NotEmpty(t, q.Get("X-Amz-Date"))
+		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body", func(t *testing.T) {
