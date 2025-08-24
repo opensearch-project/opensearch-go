@@ -64,6 +64,7 @@ func (r SearchReq) GetRequest() (*http.Request, error) {
 // SearchResp represents the returned struct of the /_search response
 type SearchResp struct {
 	Took         int                  `json:"took"`
+	PhaseTook    *PhaseTook           `json:"phase_took,omitempty"`
 	Timeout      bool                 `json:"timed_out"`
 	Shards       ResponseShards       `json:"_shards"`
 	Hits         SearchHits           `json:"hits"`
@@ -130,4 +131,14 @@ type SuggestOptions struct {
 	CollateMatch    bool                `json:"collate_match"`
 	Source          json.RawMessage     `json:"_source"`
 	Contexts        map[string][]string `json:"contexts,omitempty"`
+}
+
+// PhaseTook is the phase-level took time values in milliseconds
+type PhaseTook struct {
+	DFSPreQuery int `json:"dfs-pre-query"`
+	Query       int `json:"query"`
+	Fetch       int `json:"fetch"`
+	DFSQuery    int `json:"dfs_query"`
+	Expand      int `json:"expand"`
+	CanMatch    int `json:"can_match"`
 }

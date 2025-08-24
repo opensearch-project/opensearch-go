@@ -206,7 +206,7 @@ func TestSearch(t *testing.T) {
 		assert.NotEmpty(t, resp.Suggest)
 	})
 
-		t.Run("request with completion suggest", func(t *testing.T) {
+	t.Run("request with completion suggest", func(t *testing.T) {
 		resp, err := client.Search(nil, &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 			"suggest": {
 			  "my-suggest": {
@@ -221,7 +221,7 @@ func TestSearch(t *testing.T) {
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 		assert.NotEmpty(t, resp.Suggest["my-suggest"])
-		for _,suggestion := range resp.Suggest["my-suggest"] {
+		for _, suggestion := range resp.Suggest["my-suggest"] {
 			assert.Equal(t, suggestion.Text, "bar")
 			assert.NotEmpty(t, suggestion.Options)
 			assert.Equal(t, suggestion.Options[0].Text, "bar")
@@ -299,5 +299,30 @@ func TestSearch(t *testing.T) {
 		assert.NotEmpty(t, resp.Hits.Hits[0].InnerHits)
 		assert.NotNil(t, resp.Hits.Hits[0].InnerHits["baz"])
 		assert.NotEmpty(t, resp.Hits.Hits[0].InnerHits["baz"].Hits.Hits)
+	})
+
+	t.Run("request with phase took", func(t *testing.T) {
+		resp, err := client.Search(
+			nil,
+			&opensearchapi.SearchReq{
+				Indices: []string{index},
+				Body: strings.NewReader(`{
+				"query": {
+					"match": {
+						"foo": "bar"
+					}
+				},
+				"fields": [
+					"foo"
+				],
+			"_source": false
+			}`),
+				Params: opensearchapi.SearchParams{
+					PhaseTook: true,
+				},
+			},
+		)
+		require.Nil(t, err)
+		assert.NotNil(t, resp.PhaseTook)
 	})
 }
