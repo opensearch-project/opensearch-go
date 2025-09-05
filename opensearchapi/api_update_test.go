@@ -67,3 +67,39 @@ func TestUpdate(t *testing.T) {
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }
+
+func TestUpdateResp_WithSource(t *testing.T) {
+    data := `{
+        "_index": "test",
+        "_id": "1",
+        "_version": 1,
+        "result": "noop",
+        "_shards": {"total":1,"successful":1,"failed":0},
+        "_seq_no": 1,
+        "_primary_term": 1,
+        "get": {
+            "_index": "test",
+            "_id": "1",
+            "_version": 1,
+            "_seq_no": 1,
+            "_primary_term": 1,
+            "found": true,
+            "_source": {"foo":"bar"}
+        }
+    }`
+
+    var resp UpdateResp
+    err := json.Unmarshal([]byte(data), &resp)
+    if err != nil {
+        t.Fatalf("unexpected error: %v", err)
+    }
+
+    if resp.Get == nil || !resp.Get.Found {
+        t.Fatalf("expected get field to be present and found=true")
+    }
+
+    expected := `{"foo":"bar"}`
+    if string(resp.Get.Source) != expected {
+        t.Errorf("expected %s, got %s", expected, string(resp.Get.Source))
+    }
+}
