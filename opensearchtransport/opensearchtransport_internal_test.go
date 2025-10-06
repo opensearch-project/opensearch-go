@@ -42,6 +42,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
 var _ = fmt.Print
@@ -65,6 +67,7 @@ type mockSigner struct {
 	SampleValue string
 	ReturnError bool
 	testHook    func(*http.Request)
+	signer.Signer
 }
 
 func (m *mockSigner) SignRequest(req *http.Request) error {
