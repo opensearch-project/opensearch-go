@@ -34,18 +34,20 @@ const (
 )
 
 type awsSdkV2Signer struct {
-	service string
-	signer  *awsSignerV4.Signer
-	awsCfg  aws.Config
+	service       string
+	signer        *awsSignerV4.Signer
+	awsCfg        aws.Config
+	signaturePort uint16
+	opts          []func(options *awsSignerV4.SignerOptions)
 }
 
 // NewSigner returns an instance of Signer for AWS OpenSearchService
-func NewSigner(cfg aws.Config) (signer.Signer, error) {
-	return NewSignerWithService(cfg, openSearchService)
+func NewSigner(cfg aws.Config, opts ...func(options *awsSignerV4.SignerOptions)) (signer.Signer, error) {
+	return NewSignerWithService(cfg, openSearchService, opts...)
 }
 
 // NewSignerWithService returns an instance of Signer for given service
-func NewSignerWithService(cfg aws.Config, service string) (signer.Signer, error) {
+func NewSignerWithService(cfg aws.Config, service string, opts ...func(options *awsSignerV4.SignerOptions)) (signer.Signer, error) {
 	if len(strings.TrimSpace(service)) < 1 {
 		return nil, errors.New("service cannot be empty")
 	}
@@ -54,7 +56,14 @@ func NewSignerWithService(cfg aws.Config, service string) (signer.Signer, error)
 		service: service,
 		signer:  awsSignerV4.NewSigner(),
 		awsCfg:  cfg,
+		opts:    opts,
 	}, nil
+}
+
+// OverrideSigningPort allows setting a custom signing por
+// useful when going through an SSH Tunnel which would cause a signature mismatch
+func (s *awsSdkV2Signer) OverrideSigningPort(signaturePort uint16) {
+	s.signaturePort = signaturePort
 }
 
 // SignRequest adds headers to the request
@@ -65,6 +74,10 @@ func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 	creds, err := s.awsCfg.Credentials.Retrieve(ctx)
 	if err != nil {
 		return err
+	}
+
+	if s.signaturePort > 0 {
+		r.Host = fmt.Sprintf("%s:%d", r.URL.Hostname(), s.signaturePort)
 	}
 
 	if len(s.awsCfg.Region) == 0 {
@@ -78,7 +91,7 @@ func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
 		return err
 	}
 
-	return s.signer.SignHTTP(ctx, creds, r, hash, s.service, s.awsCfg.Region, t)
+	return s.signer.SignHTTP(ctx, creds, r, hash, s.service, s.awsCfg.Region, t, s.opts...)
 }
 
 func hexEncodedSha256OfRequest(r *http.Request) (string, error) {
