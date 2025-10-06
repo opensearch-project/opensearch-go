@@ -31,10 +31,9 @@ package opensearchutil_test
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
-
-	"golang.org/x/exp/slices"
 
 	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
