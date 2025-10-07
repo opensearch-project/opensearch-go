@@ -135,7 +135,7 @@ type SuggestOptions struct {
 
 // PhaseTook is the phase-level took time values in milliseconds
 type PhaseTook struct {
-	DFSPreQuery int `json:"dfs-pre-query"`
+	DFSPreQuery int `json:"dfs_pre_query"`
 	Query       int `json:"query"`
 	Fetch       int `json:"fetch"`
 	DFSQuery    int `json:"dfs_query"`
