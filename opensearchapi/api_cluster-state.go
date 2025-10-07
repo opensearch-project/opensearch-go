@@ -83,7 +83,7 @@ type ClusterStateResp struct {
 	} `json:"restore"`
 }
 
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+// Inspect returns the Inspect type containing the raw *opensearch.Response
 func (r ClusterStateResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
