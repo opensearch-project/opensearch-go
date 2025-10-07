@@ -157,7 +157,7 @@ issues:
       path: _test\.go
     - linters:
         - goconst
-      path: opensearchapi\/api_
+      path: -params\.go
     - linters:
         - errcheck
       text: "Error return value of `debugLogger.Logf` is not checked"
