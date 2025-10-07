@@ -20,6 +20,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Updates Go version to 1.24 ([#674](https://github.com/opensearch-project/opensearch-go/pull/674))
 - Replace `golang.org/x/exp/slices` usage with built-in `slices` ([#674](https://github.com/opensearch-project/opensearch-go/pull/674))
 - Update golangci-linter to 1.64.8 ([#740](https://github.com/opensearch-project/opensearch-go/pull/740))
+- Change MaxScore to pointer ([#740](https://github.com/opensearch-project/opensearch-go/pull/740))
 
 ### Deprecated
 

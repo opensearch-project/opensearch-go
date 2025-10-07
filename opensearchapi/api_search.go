@@ -86,7 +86,7 @@ type SearchHits struct {
 		Value    int    `json:"value"`
 		Relation string `json:"relation"`
 	} `json:"total"`
-	MaxScore float32     `json:"max_score"`
+	MaxScore *float32    `json:"max_score"`
 	Hits     []SearchHit `json:"hits"`
 }
 
