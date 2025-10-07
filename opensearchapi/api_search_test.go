@@ -302,6 +302,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with phase took", func(t *testing.T) {
+		ostest.SkipIfBelowVersion(t, client, 2, 12, "request with phase took")
 		resp, err := client.Search(
 			nil,
 			&opensearchapi.SearchReq{
