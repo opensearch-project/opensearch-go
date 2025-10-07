@@ -69,6 +69,7 @@ func TestSearchParams_get(t *testing.T) {
 		Human                      bool
 		ErrorTrace                 bool
 		FilterPath                 []string
+		PhaseTook                  bool
 	}
 	tests := []struct {
 		name   string
@@ -131,6 +132,7 @@ func TestSearchParams_get(t *testing.T) {
 				TrackTotalHits:             1000,
 				TypedKeys:                  ToPointer(true),
 				Version:                    ToPointer(true),
+				PhaseTook:                  true,
 			},
 			want: map[string]string{
 				"_source":                       "title,date",
@@ -178,6 +180,7 @@ func TestSearchParams_get(t *testing.T) {
 				"track_total_hits":              "1000",
 				"typed_keys":                    "true",
 				"version":                       "true",
+				"phase_took":                    "true",
 			},
 		},
 	}
@@ -229,6 +232,7 @@ func TestSearchParams_get(t *testing.T) {
 				TrackTotalHits:             tt.fields.TrackTotalHits,
 				TypedKeys:                  tt.fields.TypedKeys,
 				Version:                    tt.fields.Version,
+				PhaseTook:                  tt.fields.PhaseTook,
 				Pretty:                     tt.fields.Pretty,
 				Human:                      tt.fields.Human,
 				ErrorTrace:                 tt.fields.ErrorTrace,
