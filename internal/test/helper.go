@@ -38,11 +38,7 @@ func NewClient() (*opensearchapi.Client, error) {
 
 // IsSecure returns true when SECURE_INTEGRATION env is set to true
 func IsSecure() bool {
-	//nolint:gosimple // Getenv returns string not bool, if clause is needed
-	if os.Getenv("SECURE_INTEGRATION") == "true" {
-		return true
-	}
-	return false
+	return os.Getenv("SECURE_INTEGRATION") == "true"
 }
 
 // ClientConfig returns an opensearchapi.Config for secure opensearch

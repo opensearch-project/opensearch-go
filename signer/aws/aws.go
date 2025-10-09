@@ -30,7 +30,6 @@ const OpenSearchService = "es"
 // OpenSearchServerless Amazon OpenSearch Serverless Name
 const OpenSearchServerless = "aoss"
 
-//nolint:gosec // static empty Body
 const emptyBodySHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 
 // Signer is an interface that will implement opensearchtransport.Signer

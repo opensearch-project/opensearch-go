@@ -169,7 +169,7 @@ func TestTransportBodyClose(t *testing.T) {
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		t.Fatalf("Failed to read the reponse body: %s", err)
+		t.Fatalf("Failed to read the response body: %s", err)
 	}
 	if body == nil || len(body) == 0 {
 		t.Fatalf("Unexpected response body:\n%s", body)

@@ -94,7 +94,7 @@ type SearchShardsResp struct {
 	response *opensearch.Response
 }
 
-// Inspect returns the Inspect type containing the raw *opensearch.Reponse
+// Inspect returns the Inspect type containing the raw *opensearch.Response
 func (r SearchShardsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
