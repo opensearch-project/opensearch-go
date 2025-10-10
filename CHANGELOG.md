@@ -13,6 +13,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds new fields for Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
 - Allow users to override signing port ([#721](https://github.com/opensearch-project/opensearch-go/pull/721))
 - Add `phase_took` features supported from OpenSearch 2.12 ([#722](https://github.com/opensearch-project/opensearch-go/pull/722))
+- Adds the action to refresh the search analyzers to the ISM plugin ([#686](https://github.com/opensearch-project/opensearch-go/pull/686))
 
 ### Changed
 - Test against Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
