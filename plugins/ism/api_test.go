@@ -209,6 +209,23 @@ func TestClient(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "RefreshSearchAnalyzers",
+			Tests: []clientTests{
+				{
+					Name: "with request",
+					Results: func() (osismtest.Response, error) {
+						return client.RefreshSearchAnalyzers(nil, ism.RefreshSearchAnalyzersReq{Indices: testIndex})
+					},
+				},
+				{
+					Name: "inspect",
+					Results: func() (osismtest.Response, error) {
+						return failingClient.RefreshSearchAnalyzers(nil, ism.RefreshSearchAnalyzersReq{Indices: []string{"*"}})
+					},
+				},
+			},
+		},
 	}
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
