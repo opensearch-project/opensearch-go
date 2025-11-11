@@ -64,6 +64,51 @@ func TestError(t *testing.T) {
 			_ = fmt.Sprintf("%s", err)
 		})
 
+		t.Run("CausedBy", func(t *testing.T) {
+			resp := &opensearch.Response{
+				StatusCode: http.StatusBadRequest,
+				Body: io.NopCloser(
+					strings.NewReader(`{
+						"error":{
+							"root_cause":[{
+								"type":"illegal_argument_exception",
+								"reason":"composable template [posts] template after composition is invalid"
+							}],
+							"type":"illegal_argument_exception",
+							"reason":"composable template [posts] template after composition is invalid",
+							"caused_by":{
+								"type":"illegal_argument_exception",
+								"reason":"Custom analyzer [mm_analyzer] failed to find filter under name [test_filter]",
+								"caused_by":{
+									"type":"illegal_argument_exception",
+									"reason":"test caused by"
+								}
+							}
+						},
+						"status":400
+					}`),
+				),
+			}
+			assert.True(t, resp.IsError())
+			err := opensearch.ParseError(resp)
+			var testError *opensearch.StructError
+			require.True(t, errors.As(err, &testError))
+			assert.Equal(t, http.StatusBadRequest, testError.Status)
+			assert.Equal(t, "illegal_argument_exception", testError.Err.Type)
+			assert.Equal(t, "composable template [posts] template after composition is invalid", testError.Err.Reason)
+			assert.NotNil(t, testError.Err.RootCause)
+			assert.Equal(t, "illegal_argument_exception", testError.Err.RootCause[0].Type)
+			assert.Equal(t, "composable template [posts] template after composition is invalid", testError.Err.RootCause[0].Reason)
+			assert.NotNil(t, testError.Err.CausedBy)
+			assert.Equal(t, "illegal_argument_exception", testError.Err.CausedBy.Type)
+			assert.Equal(t, "Custom analyzer [mm_analyzer] failed to find filter under name [test_filter]", testError.Err.CausedBy.Reason)
+			assert.NotNil(t, testError.Err.CausedBy.CausedBy)
+			assert.Equal(t, "illegal_argument_exception", testError.Err.CausedBy.CausedBy.Type)
+			assert.Equal(t, "test caused by", testError.Err.CausedBy.CausedBy.Reason)
+			assert.Nil(t, testError.Err.CausedBy.CausedBy.CausedBy)
+			_ = fmt.Sprintf("%s", err)
+		})
+
 		t.Run("Unmarshal errors", func(t *testing.T) {
 			t.Run("dummy", func(t *testing.T) {
 				reader := io.NopCloser(
