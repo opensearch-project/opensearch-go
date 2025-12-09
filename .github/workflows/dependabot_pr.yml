@@ -24,12 +24,12 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Update the changelog
-        uses: dangoslen/dependabot-changelog-helper@v3
+        uses: dangoslen/dependabot-changelog-helper@v4
         with:
           version: 'Unreleased'
       
@@ -40,7 +40,7 @@ jobs:
         run: prettier --prose-wrap never --write **/*.md
 
       - name: Commit the changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Update changelog"
           branch: ${{ github.head_ref }}

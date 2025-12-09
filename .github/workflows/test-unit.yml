@@ -14,15 +14,15 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with: { go-version-file: 'go.mod' }
       - run: go version
       - run: make test-unit race=true
         if: matrix.os != 'ubuntu-latest'
       - run: make test-unit race=true coverage=true
         if: matrix.os == 'ubuntu-latest'
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
           file: tmp/unit.cov
           flags: unit
@@ -32,8 +32,8 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with: { go-version-file: 'go.mod' }
       - run: go version
       - run: make test-bench
