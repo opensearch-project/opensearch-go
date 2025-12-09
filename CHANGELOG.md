@@ -22,6 +22,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Replace `golang.org/x/exp/slices` usage with built-in `slices` ([#674](https://github.com/opensearch-project/opensearch-go/pull/674))
 - Update golangci-linter to 1.64.8 ([#740](https://github.com/opensearch-project/opensearch-go/pull/740))
 - Change MaxScore to pointer ([#740](https://github.com/opensearch-project/opensearch-go/pull/740))
+- Update workflow action ([#760](https://github.com/opensearch-project/opensearch-go/pull/760))
+- Migrate to golangci-lint v2 ([#760](https://github.com/opensearch-project/opensearch-go/pull/760))
 
 ### Deprecated
 
