@@ -29,6 +29,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 - Missing "caused by" information in StructError ([#752](https://github.com/opensearch-project/opensearch-go/pull/752))
+- Add missing `ignore_unavailable`, `allow_no_indices`, and `expand_wildcards` params to MSearch ([#757](https://github.com/opensearch-project/opensearch-go/pull/757))
 
 ### Security
 
