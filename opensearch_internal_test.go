@@ -55,7 +55,8 @@ type mockTransp struct {
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
 
-	if req.URL.Path == "/" {
+	switch req.URL.Path {
+	case "/":
 		response.Body = io.NopCloser(strings.NewReader(`{
 		  "version" : {
 			"number" : "1.0.0",
@@ -63,7 +64,7 @@ var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 		  }
 		}`))
 		response.Header.Add("Content-Type", "application/json")
-	} else if req.URL.Path == "/test" {
+	case "/test":
 		called++
 	}
 

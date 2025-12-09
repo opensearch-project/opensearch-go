@@ -79,7 +79,7 @@ func TestBulkIndexer(t *testing.T) {
 
 			countReqs int
 			testfile  string
-			numItems  = 6
+			numItems  uint64 = 6
 		)
 
 		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
@@ -117,7 +117,7 @@ func TestBulkIndexer(t *testing.T) {
 
 		bi, _ := NewBulkIndexer(cfg)
 
-		for i := 1; i <= numItems; i++ {
+		for i := 1; i <= int(numItems); i++ {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
@@ -141,12 +141,12 @@ func TestBulkIndexer(t *testing.T) {
 		stats := bi.Stats()
 
 		// added = numitems
-		if stats.NumAdded != uint64(numItems) {
+		if stats.NumAdded != numItems {
 			t.Errorf("Unexpected NumAdded: want=%d, got=%d", numItems, stats.NumAdded)
 		}
 
 		// flushed = numitems - 1x conflict + 1x not_found
-		if stats.NumFlushed != uint64(numItems-2) {
+		if stats.NumFlushed != numItems-2 {
 			t.Errorf("Unexpected NumFlushed: want=%d, got=%d", numItems-2, stats.NumFlushed)
 		}
 
@@ -295,11 +295,11 @@ func TestBulkIndexer(t *testing.T) {
 			successfulItemBodies []string
 			failedItemBodies     []string
 
-			numItems             = 4
-			numFailed            = 2
-			bodyContent, _       = os.ReadFile("testdata/bulk_response_2.json")
-			bodyFailureCount     = make(map[string]int)
-			bodiesExpectedToFail = map[string]struct{}{
+			numItems             uint64 = 4
+			numFailed            uint64 = 2
+			bodyContent, _              = os.ReadFile("testdata/bulk_response_2.json")
+			bodyFailureCount            = make(map[string]int)
+			bodiesExpectedToFail        = map[string]struct{}{
 				`{"title":"bar"}`: {},
 				`{"title":"baz"}`: {},
 			}
@@ -405,7 +405,7 @@ func TestBulkIndexer(t *testing.T) {
 
 		stats := bi.Stats()
 
-		if stats.NumAdded != uint64(numItems) {
+		if stats.NumAdded != numItems {
 			t.Errorf("Unexpected NumAdded: %d", stats.NumAdded)
 		}
 
@@ -433,7 +433,7 @@ func TestBulkIndexer(t *testing.T) {
 			t.Errorf("Expected failure callbacks for the following item bodies: %v", bodiesExpectedToFail)
 		}
 
-		if stats.NumFailed != uint64(numFailed) {
+		if stats.NumFailed != numFailed {
 			t.Errorf("Unexpected NumFailed: %d", stats.NumFailed)
 		}
 
@@ -449,11 +449,11 @@ func TestBulkIndexer(t *testing.T) {
 			t.Errorf("Unexpected NumUpdated: %d", stats.NumUpdated)
 		}
 
-		if countSuccessful != uint64(numItems-numFailed) {
+		if countSuccessful != numItems-numFailed {
 			t.Errorf("Unexpected countSuccessful: %d", countSuccessful)
 		}
 
-		if countFailed != uint64(numFailed) {
+		if countFailed != numFailed {
 			t.Errorf("Unexpected countFailed: %d", countFailed)
 		}
 
@@ -575,7 +575,7 @@ func TestBulkIndexer(t *testing.T) {
 			wg sync.WaitGroup
 
 			countReqs int
-			numItems  = 2
+			numItems  uint64 = 2
 		)
 
 		cfg := opensearchapi.Config{
@@ -631,7 +631,7 @@ func TestBulkIndexer(t *testing.T) {
 
 		bi, _ := NewBulkIndexer(biCfg)
 
-		for i := 1; i <= numItems; i++ {
+		for i := 1; i <= int(numItems); i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -653,11 +653,11 @@ func TestBulkIndexer(t *testing.T) {
 
 		stats := bi.Stats()
 
-		if stats.NumAdded != uint64(numItems) {
+		if stats.NumAdded != numItems {
 			t.Errorf("Unexpected NumAdded: want=%d, got=%d", numItems, stats.NumAdded)
 		}
 
-		if stats.NumFlushed != uint64(numItems) {
+		if stats.NumFlushed != numItems {
 			t.Errorf("Unexpected NumFlushed: want=%d, got=%d", numItems, stats.NumFlushed)
 		}
 
@@ -809,11 +809,11 @@ func TestBulkIndexer(t *testing.T) {
 
 	t.Run("Items Failure Callbacks Executed On Bulk Failure", func(t *testing.T) {
 		var (
-			numItems          = 5
-			idsExpectedToFail = make(map[string]struct{}, numItems)
-			idsFailureCount   = make(map[string]int)
+			numItems          uint64 = 5
+			idsExpectedToFail        = make(map[string]struct{}, numItems)
+			idsFailureCount          = make(map[string]int)
 
-			onErrorCallCount int
+			onErrorCallCount uint64
 			wg               sync.WaitGroup
 		)
 
@@ -853,8 +853,8 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		})
 
-		wg.Add(numItems)
-		for i := 0; i < numItems; i++ {
+		wg.Add(int(numItems))
+		for i := 0; i < int(numItems); i++ {
 			id := fmt.Sprintf("id_%d", i)
 			idsExpectedToFail[id] = struct{}{}
 			if err := bi.Add(ctx, BulkIndexerItem{
@@ -904,7 +904,7 @@ func TestBulkIndexer(t *testing.T) {
 			t.Errorf("Expected failure callbacks for the following item IDs: %v", idsExpectedToFail)
 		}
 
-		if stats.NumFailed != uint64(numItems) {
+		if stats.NumFailed != numItems {
 			t.Errorf("Expected NumFailed to be %d, got %d", numItems, stats.NumFailed)
 		}
 	})
