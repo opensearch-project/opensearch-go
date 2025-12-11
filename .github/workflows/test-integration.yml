@@ -54,5 +54,6 @@ jobs:
       - run: make cluster.get-cert test-integ-core test-integ-plugins race=true coverage=true
       - uses: codecov/codecov-action@v5
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           file: tmp/integ.cov
           flags: integration
