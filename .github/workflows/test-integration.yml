@@ -55,5 +55,5 @@ jobs:
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: tmp/integ.cov
+          files: tmp/integ.cov
           flags: integration
