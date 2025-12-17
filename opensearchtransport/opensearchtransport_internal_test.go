@@ -88,7 +88,7 @@ func TestTransport(t *testing.T) {
 	t.Run("Interface", func(t *testing.T) {
 		tp, _ := New(Config{})
 		var _ Interface = tp
-		var _ http.RoundTripper = tp.transport
+		_ = tp.transport
 	})
 
 	t.Run("Default", func(t *testing.T) {

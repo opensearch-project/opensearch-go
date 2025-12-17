@@ -33,9 +33,9 @@ jobs:
           - { opensearch_version: 2.19.2 }
           - { opensearch_version: 3.0.0 }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with: { go-version-file: 'go.mod' }
 
       - run: go version

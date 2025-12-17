@@ -11,8 +11,8 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with: { go-version-file: 'go.mod' }
       - run: go version
       - name: Increase system limits
@@ -35,8 +35,8 @@ jobs:
     env:
       SECURE_INTEGRATION: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
         with: { go-version-file: 'go.mod' }
       - run: go version
       - name: Increase system limits
@@ -52,7 +52,8 @@ jobs:
           if curl -s -ku admin:myStrongPassword123! https://localhost:9200; \
           then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
       - run: make cluster.get-cert test-integ-core test-integ-plugins race=true coverage=true
-      - uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v5
         with:
-          file: tmp/integ.cov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: tmp/integ.cov
           flags: integration
