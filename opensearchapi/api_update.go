@@ -61,9 +61,10 @@ type UpdateResp struct {
 		Successful int `json:"successful"`
 		Failed     int `json:"failed"`
 	} `json:"_shards"`
-	SeqNo       int    `json:"_seq_no"`
-	PrimaryTerm int    `json:"_primary_term"`
-	Type        string `json:"_type"` // Deprecated field
+	SeqNo       int              `json:"_seq_no"`
+	PrimaryTerm int              `json:"_primary_term"`
+	Type        string           `json:"_type"` // Deprecated field
+	Get         *DocumentGetResp `json:"get,omitempty"`
 	response    *opensearch.Response
 }
 
