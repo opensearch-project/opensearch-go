@@ -47,6 +47,7 @@ func TestUpdate(t *testing.T) {
 		resp, err := client.Update(
 			nil,
 			opensearchapi.UpdateReq{
+				Params:     opensearchapi.UpdateParams{Source: true},
 				Index:      testIndex,
 				DocumentID: "1",
 				Body:       strings.NewReader(`{"script":{"source":"ctx._source.counter += params.count","lang":"painless","params":{"count":4}}}`),
