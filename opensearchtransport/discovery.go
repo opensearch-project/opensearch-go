@@ -70,24 +70,34 @@ func (c *Client) DiscoverNodes() error {
 	}
 
 	for _, node := range nodes {
-		var isClusterManagerOnlyNode bool
-
-		if len(node.Roles) == 1 && (node.Roles[0] == "master" || node.Roles[0] == "cluster_manager") {
-			isClusterManagerOnlyNode = true
+		// Skip nodes that have master/cluster_manager role but no data role.
+		// These are dedicated master nodes and should not receive client traffic.
+		// We check for absence of data role rather than checking if master is the
+		// only role, because master nodes often have additional roles like
+		// remote_cluster_client (enabled by default).
+		var hasMasterRole, hasDataRole bool
+		for _, role := range node.Roles {
+			if role == "master" || role == "cluster_manager" {
+				hasMasterRole = true
+			}
+			if role == "data" {
+				hasDataRole = true
+			}
 		}
+		skipNode := hasMasterRole && !hasDataRole
 
 		if debugLogger != nil {
 			var skip string
-			if isClusterManagerOnlyNode {
+			if skipNode {
 				skip = "; [SKIP]"
 			}
 
 			debugLogger.Logf("Discovered node [%s]; %s; roles=%s%s\n", node.Name, node.URL, node.Roles, skip)
 		}
 
-		// Skip cluster_manager only nodes
+		// Skip master/cluster_manager nodes that don't have a data role
 		// TODO: Move logic to Selector?
-		if isClusterManagerOnlyNode {
+		if skipNode {
 			continue
 		}
 

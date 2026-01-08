@@ -505,6 +505,106 @@ func TestDiscovery(t *testing.T) {
 					false, 2,
 				},
 			},
+			{
+				"Master with remote_cluster_client but no data role should not be selected",
+				fields{
+					Nodes: map[string]Node{
+						"es1": {
+							URL: "http://es1:9200",
+							Roles: []string{
+								"master",
+								"remote_cluster_client",
+							},
+						},
+						"es2": {
+							URL: "http://es2:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"master",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+						"es3": {
+							URL: "http://es3:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"master",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+					},
+				},
+
+				wants{
+					false, 2,
+				},
+			},
+			{
+				"Cluster_manager with remote_cluster_client but no data role should not be selected",
+				fields{
+					Nodes: map[string]Node{
+						"es1": {
+							URL: "http://es1:9200",
+							Roles: []string{
+								"cluster_manager",
+								"remote_cluster_client",
+							},
+						},
+						"es2": {
+							URL: "http://es2:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+						"es3": {
+							URL: "http://es3:9200",
+							Roles: []string{
+								"data",
+								"data_cold",
+								"data_content",
+								"data_frozen",
+								"data_hot",
+								"data_warm",
+								"ingest",
+								"cluster_manager",
+								"ml",
+								"remote_cluster_client",
+								"transform",
+							},
+						},
+					},
+				},
+
+				wants{
+					false, 2,
+				},
+			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
