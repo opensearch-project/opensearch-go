@@ -31,7 +31,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Removed
 
 ### Fixed
-- Fix node discovery to filter master/cluster_manager nodes that have additional roles like `remote_cluster_client` but no `data` role ([#XXX](https://github.com/opensearch-project/opensearch-go/pull/XXX))
+- Fix node discovery to filter master/cluster_manager nodes that have additional roles like `remote_cluster_client` but no `data` role ([#766](https://github.com/opensearch-project/opensearch-go/pull/766))
 - Missing "caused by" information in StructError ([#752](https://github.com/opensearch-project/opensearch-go/pull/752))
 - Add missing `ignore_unavailable`, `allow_no_indices`, and `expand_wildcards` params to MSearch ([#757](https://github.com/opensearch-project/opensearch-go/pull/757))
 - Fix `UpdateResp` to correctly parse the `get` field when `_source` is requested in update operations. ([#739](https://github.com/opensearch-project/opensearch-go/pull/739))
