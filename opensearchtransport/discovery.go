@@ -101,6 +101,19 @@ const (
 // roleSet represents a set of node roles for efficient O(1) role lookups.
 type roleSet map[string]struct{}
 
+// workRoles defines node roles that perform actual work (data processing, storage, or search).
+// Used to distinguish dedicated cluster managers from nodes that handle client requests.
+// This matches the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS logic.
+//
+//nolint:gochecknoglobals // This global constant defines the standard work roles
+var workRoles = []string{
+	RoleData,   // stores and retrieves data
+	RoleIngest, // processes incoming data
+	RoleWarm,   // handles warm/cold data storage
+	RoleSearch, // dedicated search processing
+	RoleML,     // machine learning tasks
+}
+
 // newRoleSet creates a roleSet from a slice of role names.
 func newRoleSet(roles []string) roleSet {
 	rs := make(roleSet, len(roles))
@@ -121,44 +134,28 @@ func (rs roleSet) has(roleName string) bool {
 	return exists
 }
 
-// validate checks for role compatibility issues and logs warnings.
-// This implements validation logic similar to DiscoveryNodeRole.validateRole()
-func (rs roleSet) validate(roles []string, nodeName string) error {
-	hasSearch := rs.has(RoleSearch)
-	hasWarm := rs.has(RoleWarm)
-
-	// Validate warm role compatibility (warm nodes can coexist with data roles)
-	if hasWarm && hasSearch {
-		return fmt.Errorf("node [%s] cannot have both %q and %q roles - use %q for searchable snapshots in OpenSearch 3.0+",
-			nodeName, RoleWarm, RoleSearch, RoleWarm)
+// toSlice converts the roleSet back to a []string slice for compatibility.
+// The roles are sorted alphabetically for consistent ordering.
+func (rs roleSet) toSlice() []string {
+	if len(rs) == 0 {
+		return nil
 	}
 
-	// Check search role exclusivity (search nodes cannot have other roles)
-	// Note: This validation remains for backward compatibility with pre-3.0 clusters
-	if hasSearch && len(roles) > 1 {
-		return fmt.Errorf("node [%s] has %q role which cannot be combined with other roles: %v",
-			nodeName, RoleSearch, roles)
-	}
-
-	// Log deprecation warning for master role usage (check original roles, not roleSet)
-	if slices.Contains(roles, RoleMaster) {
-		if debugLogger != nil {
-			debugLogger.Logf("DEPRECATION WARNING: Node [%s] uses deprecated %q role. Please use %q role instead to promote inclusive language\n",
-				nodeName, RoleMaster, RoleClusterManager)
+	roles := make([]string, 0, len(rs))
+	for role := range rs {
+		// Skip the internal cluster_manager alias added for deprecated master role
+		if role == RoleClusterManager {
+			// Check if this was added as an alias for deprecated master role
+			if _, hasMaster := rs[RoleMaster]; hasMaster {
+				continue // Skip the alias, keep only the original master role
+			}
 		}
+		roles = append(roles, role)
 	}
 
-	// Log deprecation warning for search role usage in OpenSearch 3.0+
-	if hasSearch {
-		if debugLogger != nil {
-			debugLogger.Logf("DEPRECATION WARNING: Node [%s] uses %q role. As of OpenSearch 3.0, "+
-				"searchable snapshots functionality requires %q role instead. "+
-				"Consider migrating to %q role for future compatibility\n",
-				nodeName, RoleSearch, RoleWarm, RoleWarm)
-		}
-	}
-
-	return nil
+	// Sort roles alphabetically for consistent ordering
+	slices.Sort(roles)
+	return roles
 }
 
 // isDedicatedClusterManager implements the logic from upstream Java client
@@ -170,14 +167,6 @@ func (rs roleSet) isDedicatedClusterManager() bool {
 	// Must be cluster manager eligible first
 	if !rs.has(RoleClusterManager) {
 		return false
-	}
-
-	workRoles := []string{
-		RoleData,   // stores and retrieves data
-		RoleIngest, // processes incoming data
-		RoleWarm,   // handles warm/cold data storage
-		RoleSearch, // dedicated search processing
-		RoleML,     // machine learning tasks
 	}
 
 	return !slices.ContainsFunc(workRoles, rs.has)
@@ -194,6 +183,7 @@ type nodeInfo struct {
 	Name       string   `json:"name"`
 	URL        *url.URL `json:"url"`
 	Roles      []string `json:"roles"`
+	roleSet    roleSet
 	Attributes map[string]any `json:"attributes"`
 	HTTP       struct {
 		PublishAddress string `json:"publish_address"`
@@ -238,7 +228,7 @@ func (c *Client) DiscoverNodes() error {
 			URL:        node.URL,
 			ID:         node.ID,
 			Name:       node.Name,
-			Roles:      node.Roles,
+			Roles:      newRoleSet(node.Roles),
 			Attributes: node.Attributes,
 		})
 	}
@@ -269,9 +259,7 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 		return nil, err
 	}
 
-	c.mu.Lock()
-	conn, err := c.mu.pool.Next()
-	c.mu.Unlock()
+	conn, err := getConnectionFromPool(c, req)
 	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
 		return nil, err

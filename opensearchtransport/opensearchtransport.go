@@ -54,6 +54,24 @@ const (
 
 var reGoVersion = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 
+// getConnectionFromPoolWithLock gets a connection using request routing if supported, otherwise basic Next().
+// Caller must hold appropriate locks on the client.
+func getConnectionFromPoolWithLock(pool ConnectionPool, req *http.Request) (*Connection, error) {
+	switch p := pool.(type) {
+	case RequestRoutingConnectionPool:
+		return p.NextForRequest(req)
+	default:
+		return pool.Next()
+	}
+}
+
+// getConnectionFromPool gets a connection and handles client locking internally.
+func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return getConnectionFromPoolWithLock(c.mu.pool, req)
+}
+
 // Interface defines the interface for HTTP client.
 type Interface interface {
 	Perform(*http.Request) (*http.Response, error)
@@ -113,8 +131,6 @@ type Client struct {
 	maxRetries            int
 	retryBackoff          func(attempt int) time.Duration
 	discoverNodesInterval time.Duration
-
-	includeDedicatedClusterManagers bool
 
 	includeDedicatedClusterManagers bool
 
@@ -292,9 +308,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		)
 
 		// Get connection from the pool
-		c.mu.RLock()
-		conn, err = c.mu.pool.Next()
-		c.mu.RUnlock()
+		conn, err = getConnectionFromPool(c, req)
 		if err != nil {
 			if c.logger != nil {
 				c.logRoundTrip(req, nil, err, time.Time{}, time.Duration(0))
