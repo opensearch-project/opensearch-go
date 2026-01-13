@@ -15,8 +15,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 func main() {
@@ -27,12 +30,42 @@ func main() {
 }
 
 func example() error {
+	// Basic client setup
 	client, err := opensearchapi.NewDefaultClient()
 	if err != nil {
 		return err
 	}
 
 	ctx := context.Background()
+```
+
+### Advanced Setup: Optimized for Bulk Operations
+
+For high-throughput bulk operations, you can configure the client to automatically route requests to appropriate nodes:
+
+```go
+	// Advanced client setup with smart routing for mixed workloads
+	advancedClient, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{"http://localhost:9200"},
+
+		// Enable node discovery to find all cluster nodes
+		DiscoverNodesOnStart:  true,
+		DiscoverNodesInterval: 5 * time.Minute,
+
+		// Configure smart routing: bulk operations go to ingest nodes, searches go to data nodes
+		Selector: opensearchtransport.NewSmartSelector(
+			opensearchtransport.NewRoundRobinSelector(),
+		),
+	})
+	if err != nil {
+		return err
+	}
+
+	// This client will automatically route operations to appropriate nodes:
+	// - Bulk operations -> ingest nodes
+	// - Search operations -> data nodes
+	// - Other operations -> round-robin
+	_ = advancedClient
 ```
 
 Next, create an index named `movies` and another named `books` with the default settings:
@@ -216,6 +249,84 @@ The following code shows an example on how to look for errors in the response:
 		}
 	}
 ```
+
+## Performance Optimization for Bulk Operations
+
+### Automatic Ingest Node Routing
+
+For production environments with dedicated ingest nodes, you can optimize bulk operation performance by routing requests to the most appropriate nodes:
+
+```go
+	// Create a client optimized for bulk operations
+	bulkClient, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{"http://localhost:9200"},
+
+		// Enable node discovery
+		DiscoverNodesOnStart:  true,
+		DiscoverNodesInterval: 5 * time.Minute,
+
+		// Use smart selector for automatic operation routing
+		Selector: opensearchtransport.NewSmartSelector(
+			opensearchtransport.NewRoundRobinSelector(),
+		),
+	})
+	if err != nil {
+		return err
+	}
+
+	// This bulk request will automatically route to ingest nodes
+	bulkResp, err := bulkClient.Bulk(
+		ctx,
+		opensearchapi.BulkReq{
+			Body: strings.NewReader(`{ "index": { "_index": "movies", "_id": "perf-1" } }
+{ "title": "High Performance Bulk", "year": 2024 }
+{ "index": { "_index": "movies", "_id": "perf-2" } }
+{ "title": "Optimized Ingest", "year": 2024 }
+`),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Optimized bulk completed with %d items\n", len(bulkResp.Items))
+```
+
+### Choosing the Right Selector
+
+You can choose different routing strategies based on your cluster setup:
+
+```go
+	// Create a fallback selector (round-robin)
+	fallbackSelector := opensearchtransport.NewRoundRobinSelector()
+
+	// Option 1: Prefer ingest nodes, fallback to any available node
+	ingestPreferred := opensearchtransport.NewRoleBasedSelector(
+		opensearchtransport.WithRequiredRoles(opensearchtransport.RoleIngest),
+		opensearchtransport.WithFallback(fallbackSelector),
+	)
+
+	// Option 2: Only use ingest nodes, fail if none available (strict mode)
+	ingestOnly := opensearchtransport.NewRoleBasedSelector(
+		opensearchtransport.WithRequiredRoles(opensearchtransport.RoleIngest),
+		opensearchtransport.WithStrictMode(),
+	)
+
+	// Option 3: Automatically detect operation type and route appropriately
+	smartSelector := opensearchtransport.NewSmartSelector(fallbackSelector)
+
+	// Option 4: Use the generic selector for custom role combinations
+	customSelector := opensearchtransport.NewRoleBasedSelector(
+		opensearchtransport.WithRequiredRoles(opensearchtransport.RoleIngest),
+		opensearchtransport.WithExcludedRoles(opensearchtransport.RoleClusterManager),
+		opensearchtransport.WithFallback(fallbackSelector),
+	)
+```
+
+The smart selector automatically detects different operation types:
+- **Bulk operations** (`/_bulk`) -> Routes to ingest nodes
+- **Ingest pipeline operations** (`/_ingest/`) -> Routes to ingest nodes
+- **Search operations** (`/_search`) -> Routes to data nodes
+- **Other operations** -> Uses default routing
 
 ## Cleanup
 

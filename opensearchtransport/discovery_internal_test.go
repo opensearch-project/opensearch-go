@@ -32,6 +32,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -820,11 +821,11 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 		{
 			"OpenSearch 3.X compliant setup",
 			map[string][]string{
-				"dedicated-cm": {RoleClusterManager},      // should be skipped
-				"data-hot":     {RoleData, RoleIngest},    // should be included
-				"data-warm":    {RoleWarm, RoleData},      // should be included
-				"search-node":  {RoleSearch},              // should be included
-				"coordinating": {RoleCoordinatingOnly},    // should be included
+				"dedicated-cm": {RoleClusterManager},   // should be skipped
+				"data-hot":     {RoleData, RoleIngest}, // should be included
+				"data-warm":    {RoleWarm, RoleData},   // should be included
+				"search-node":  {RoleSearch},           // should be included
+				"coordinating": {RoleCoordinatingOnly}, // should be included
 			},
 			[]string{"data-hot", "data-warm", "search-node", "coordinating"},
 			[]string{"dedicated-cm"},
@@ -1017,4 +1018,308 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
+}
+
+// TestGenericRoleBasedSelector tests the new generic role-based selector
+func TestGenericRoleBasedSelector(t *testing.T) {
+	connections := []*Connection{
+		{Name: "data-node", Roles: []string{RoleData}},
+		{Name: "ingest-node", Roles: []string{RoleIngest}},
+		{Name: "data-ingest-node", Roles: []string{RoleData, RoleIngest}},
+		{Name: "cluster-manager-node", Roles: []string{RoleClusterManager}},
+		{Name: "coordinating-node", Roles: []string{}}, // No specific roles
+	}
+
+	fallback := &mockSelector{}
+
+	t.Run("Generic selector with required roles", func(t *testing.T) {
+		// Create a selector that requires either data or ingest roles
+		selector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleData, RoleIngest),
+		)
+
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		// Should match one of: data-node, ingest-node, or data-ingest-node
+		assert.Contains(t, []string{"data-node", "ingest-node", "data-ingest-node"}, conn.Name)
+	})
+
+	t.Run("Generic selector with excluded roles", func(t *testing.T) {
+		// Create a selector that excludes cluster manager roles
+		selector := NewRoleBasedSelector(
+			WithExcludedRoles(RoleClusterManager),
+		)
+
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		// Should NOT be the cluster-manager-node
+		assert.NotEqual(t, "cluster-manager-node", conn.Name)
+	})
+
+	t.Run("Generic selector strict mode", func(t *testing.T) {
+		// Create a strict selector that only allows warm nodes
+		selector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleWarm),
+			WithStrictMode(),
+		)
+
+		conn, err := selector.Select(connections)
+		assert.Error(t, err)
+		assert.Nil(t, conn)
+		assert.Contains(t, err.Error(), "no connections found matching required roles")
+	})
+
+	t.Run("Options pattern flexibility", func(t *testing.T) {
+		// Test that options pattern allows flexible configuration
+		ingestSelector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleIngest),
+			WithFallback(fallback),
+		)
+
+		strictIngestSelector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleWarm), // Try warm nodes (which don't exist)
+			WithStrictMode(),
+		)
+
+		conn1, err1 := ingestSelector.Select(connections)
+		conn2, err2 := strictIngestSelector.Select(connections)
+
+		assert.NoError(t, err1)
+		assert.Error(t, err2) // Strict mode should fail with no warm nodes
+		assert.Nil(t, conn2)
+		// Fallback selector should return ingest-capable nodes
+		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn1.Name)
+	})
+}
+
+// TestRoleBasedSelectors tests the role-based selector with various configurations
+func TestRoleBasedSelectors(t *testing.T) {
+	// Create test connections with different roles
+	connections := []*Connection{
+		{Name: "data-node", Roles: []string{RoleData}},
+		{Name: "ingest-node", Roles: []string{RoleIngest}},
+		{Name: "data-ingest-node", Roles: []string{RoleData, RoleIngest}},
+		{Name: "cluster-manager-node", Roles: []string{RoleClusterManager}},
+		{Name: "warm-node", Roles: []string{RoleWarm}},
+		{Name: "search-node", Roles: []string{RoleSearch}},
+		{Name: "coordinating-node", Roles: []string{}}, // No specific roles
+	}
+
+	// Mock fallback selector that just returns the first connection
+	fallback := &mockSelector{}
+
+	t.Run("IngestPreferred", func(t *testing.T) {
+		selector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleIngest),
+			WithFallback(fallback),
+		)
+
+		// Should prefer ingest nodes
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		// Should get either "ingest-node" or "data-ingest-node"
+		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
+
+		// Should fall back when no ingest nodes available
+		dataOnlyConns := []*Connection{connections[0], connections[3]} // data and cluster-manager
+		conn, err = selector.Select(dataOnlyConns)
+		assert.NoError(t, err)
+		assert.Equal(t, "data-node", conn.Name) // Fallback should work
+	})
+
+	t.Run("DataPreferred", func(t *testing.T) {
+		selector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleData),
+			WithFallback(fallback),
+		)
+
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		// Should get a data-capable node
+		assert.Contains(t, []string{"data-node", "data-ingest-node"}, conn.Name)
+	})
+
+	t.Run("WarmPreferred", func(t *testing.T) {
+		selector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleWarm),
+			WithFallback(fallback),
+		)
+
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		assert.Equal(t, "warm-node", conn.Name)
+
+		// Should fall back when no warm nodes available
+		noWarmConns := []*Connection{connections[0], connections[1]} // data and ingest
+		conn, err = selector.Select(noWarmConns)
+		assert.NoError(t, err)
+		assert.Equal(t, "data-node", conn.Name) // Fallback should work
+	})
+
+	t.Run("IngestOnly", func(t *testing.T) {
+		selector := NewRoleBasedSelector(
+			WithRequiredRoles(RoleIngest),
+			WithStrictMode(),
+		)
+
+		// Should work when ingest nodes are available
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
+
+		// Should fail when no ingest nodes available (strict mode)
+		dataOnlyConns := []*Connection{connections[0], connections[3]} // data and cluster-manager
+		conn, err = selector.Select(dataOnlyConns)
+		assert.Error(t, err)
+		assert.Nil(t, conn)
+		assert.Contains(t, err.Error(), "no connections found matching required roles")
+	})
+}
+
+// TestSmartSelector tests the request-aware smart selector
+func TestSmartSelector(t *testing.T) {
+	// Create test connections
+	connections := []*Connection{
+		{Name: "data-node", Roles: []string{RoleData}},
+		{Name: "ingest-node", Roles: []string{RoleIngest}},
+		{Name: "data-ingest-node", Roles: []string{RoleData, RoleIngest}},
+	}
+
+	fallback := &mockSelector{}
+	selector := NewSmartSelector(fallback)
+
+	t.Run("IngestOperationRouting", func(t *testing.T) {
+		req := &mockRequest{
+			method: "POST",
+			path:   "/my-index/_bulk",
+		}
+
+		conn, err := selector.SelectForRequest(connections, req)
+		assert.NoError(t, err)
+		// Should route to ingest-capable node for bulk operations
+		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
+	})
+
+	t.Run("SearchOperationRouting", func(t *testing.T) {
+		req := &mockRequest{
+			method: "POST",
+			path:   "/my-index/_search",
+		}
+
+		conn, err := selector.SelectForRequest(connections, req)
+		assert.NoError(t, err)
+		// Should route to data-capable node for search operations
+		assert.Contains(t, []string{"data-node", "data-ingest-node"}, conn.Name)
+	})
+
+	t.Run("DefaultOperationRouting", func(t *testing.T) {
+		req := &mockRequest{
+			method: "GET",
+			path:   "/_cluster/health",
+		}
+
+		conn, err := selector.SelectForRequest(connections, req)
+		assert.NoError(t, err)
+		// Should use default routing
+		assert.Equal(t, "data-node", conn.Name) // Mock selector returns first connection
+	})
+
+	t.Run("BasicSelectorInterface", func(t *testing.T) {
+		// Test that SmartSelector implements basic Selector interface
+		conn, err := selector.Select(connections)
+		assert.NoError(t, err)
+		assert.Equal(t, "data-node", conn.Name) // Should use default selector
+	})
+}
+
+// TestRequestAwareConnectionPool tests the enhanced connection pool
+func TestRequestAwareConnectionPool(t *testing.T) {
+	connections := []*Connection{
+		{Name: "data-node", Roles: []string{RoleData}},
+		{Name: "ingest-node", Roles: []string{RoleIngest}},
+	}
+
+	smartSelector := NewSmartSelector(&mockSelector{})
+	pool := NewConnectionPool(connections, smartSelector)
+
+	racp, ok := pool.(RequestAwareConnectionPool)
+	assert.True(t, ok, "Should implement RequestAwareConnectionPool")
+
+	t.Run("NextForRequest", func(t *testing.T) {
+		req := &mockRequest{
+			method: "POST",
+			path:   "/my-index/_bulk",
+		}
+
+		conn, err := racp.NextForRequest(req)
+		assert.NoError(t, err)
+		assert.Equal(t, "ingest-node", conn.Name) // Should route to ingest node for bulk
+	})
+
+	t.Run("BackwardCompatibilityNext", func(t *testing.T) {
+		conn, err := pool.Next()
+		assert.NoError(t, err)
+		assert.Equal(t, "data-node", conn.Name) // Default behavior
+	})
+}
+
+// TestOperationDetection tests the operation detection logic
+func TestOperationDetection(t *testing.T) {
+	tests := []struct {
+		method   string
+		path     string
+		isIngest bool
+		isSearch bool
+	}{
+		// Ingest operations
+		{"POST", "/my-index/_bulk", true, false},
+		{"PUT", "/_ingest/pipeline/my-pipeline", true, false},
+		{"POST", "/_ingest/pipeline/_simulate", true, false},
+
+		// Search operations
+		{"GET", "/my-index/_search", false, true},
+		{"POST", "/my-index/_search", false, true},
+		{"GET", "/_search", false, true},
+		{"POST", "/_msearch", false, true},
+		{"GET", "/my-index/_doc/1", false, true},
+
+		// Other operations
+		{"GET", "/_cluster/health", false, false},
+		{"PUT", "/my-index", false, false},
+		{"DELETE", "/my-index", false, false},
+		{"GET", "/_cat/indices", false, false},
+	}
+
+	for _, test := range tests {
+		t.Run(test.method+"_"+test.path, func(t *testing.T) {
+			assert.Equal(t, test.isIngest, isIngestOperation(test.path, test.method))
+			assert.Equal(t, test.isSearch, isSearchOperation(test.path, test.method))
+		})
+	}
+}
+
+// Mock implementations for testing
+
+type mockSelector struct{}
+
+func (s *mockSelector) Select(connections []*Connection) (*Connection, error) {
+	if len(connections) == 0 {
+		return nil, errors.New("no connections")
+	}
+	return connections[0], nil // Always return first connection
+}
+
+type mockRequest struct {
+	method  string
+	path    string
+	headers map[string]string
+}
+
+func (r *mockRequest) GetMethod() string { return r.method }
+func (r *mockRequest) GetPath() string   { return r.path }
+func (r *mockRequest) GetHeaders() map[string]string {
+	if r.headers == nil {
+		return make(map[string]string)
+	}
+	return r.headers
 }

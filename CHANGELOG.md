@@ -7,6 +7,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - Enhanced cluster readiness checking for improved test reliability: `ostest.NewClient()` now includes readiness validation (health + cluster state + nodes info)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
+- Request-aware connection routing for improved performance and service availability ([#770](https://github.com/opensearch-project/opensearch-go/pull/770))
+  - `RequestAwareSelector` interface for operation-based node selection
+  - Role-based selector with flexible options pattern: `NewRoleBasedSelector()` with `WithRequiredRoles()`, `WithExcludedRoles()`, `WithStrictMode()`, `WithFallback()` options
+  - `SmartSelector` with automatic operation detection for bulk and search requests
+  - Automatic routing of bulk operations to ingest nodes and search operations to data nodes
 
 ### Changed
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
