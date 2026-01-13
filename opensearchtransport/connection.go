@@ -33,7 +33,9 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -48,6 +50,24 @@ const (
 var (
 	ErrNoConnections = errors.New("no connections available")
 )
+
+// NodeFilter defines a function type for filtering connections based on their properties.
+type NodeFilter func(*Connection) bool
+
+// RequestAwareSelector extends the basic Selector interface to support request-aware node selection.
+// This allows selectors to make routing decisions based on the request being performed.
+type RequestAwareSelector interface {
+	Selector // Embed existing interface for backward compatibility
+	SelectForRequest([]*Connection, Request) (*Connection, error)
+}
+
+// Request represents a request that can be used for routing decisions.
+// This interface allows selectors to examine request properties without importing opensearchapi.
+type Request interface {
+	GetMethod() string
+	GetPath() string
+	GetHeaders() map[string]string
+}
 
 // NodeFilter defines a function type for filtering connections based on their properties.
 type NodeFilter func(*Connection) bool
@@ -208,10 +228,12 @@ type statusConnectionPool struct {
 
 // Compile-time checks to ensure interface compliance
 var (
-	_ ConnectionPool = (*singleConnectionPool)(nil)
+	_ ConnectionPool             = (*singleConnectionPool)(nil)
+	_ RequestAwareConnectionPool = (*singleConnectionPool)(nil)
 
-	_ ConnectionPool = (*statusConnectionPool)(nil)
-	_ rwLocker       = (*statusConnectionPool)(nil)
+	_ ConnectionPool             = (*statusConnectionPool)(nil)
+	_ RequestAwareConnectionPool = (*statusConnectionPool)(nil)
+	_ rwLocker                   = (*statusConnectionPool)(nil)
 )
 
 // NewConnectionPool creates and returns a default connection pool.
@@ -236,6 +258,12 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 
 // Next returns the connection from pool.
 func (cp *singleConnectionPool) Next() (*Connection, error) {
+	return cp.connection, nil
+}
+
+// NextForRequest returns the connection from pool (request-aware version).
+// For single connection pools, this behaves the same as Next().
+func (cp *singleConnectionPool) NextForRequest(req Request) (*Connection, error) {
 	return cp.connection, nil
 }
 
@@ -281,6 +309,32 @@ func (cp *statusConnectionPool) Next() (*Connection, error) {
 		c := cp.tryZombieWithLock()
 		return c, nil
 	}
+}
+
+// NextForRequest returns a connection from pool optimized for the request, or an error.
+func (cp *statusConnectionPool) NextForRequest(req Request) (*Connection, error) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	// Return next live connection using request-aware selection if available
+	if len(cp.mu.live) > 0 {
+		// Try request-aware selection first
+		if ras, ok := cp.selector.(RequestAwareSelector); ok {
+			return ras.SelectForRequest(cp.mu.live, req)
+		}
+		// Fall back to basic selection
+		return cp.selector.Select(cp.mu.live)
+	} else if len(cp.mu.dead) > 0 {
+		// No live connection is available, resurrect one of the dead ones.
+		c := cp.mu.dead[len(cp.mu.dead)-1]
+		cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		cp.resurrectWithLock(c, false)
+		return c, nil
+	}
+
+	return nil, errors.New("no connection available")
 }
 
 // OnSuccess marks the connection as successful.
@@ -562,4 +616,220 @@ func (c *Connection) String() string {
 	}
 
 	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", c.URL, time.Since(deadAt), c.failures.Load())
+}
+
+// Role-based node selector implementations
+
+// RoleBasedSelector filters connections based on node roles and applies a fallback selector.
+type RoleBasedSelector struct {
+	requiredRoles []string // Nodes must have at least one of these roles
+	excludedRoles []string // Nodes must not have any of these roles
+	fallback      Selector // Fallback selector for load balancing among filtered nodes
+	allowFallback bool     // If true, use any node if no role-matching nodes are available
+}
+
+// RoleBasedSelectorOption configures a role-based selector.
+type RoleBasedSelectorOption func(*RoleBasedSelector)
+
+// WithRequiredRoles specifies roles that nodes must have.
+func WithRequiredRoles(roles ...string) RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		s.requiredRoles = append(s.requiredRoles, roles...)
+	}
+}
+
+// WithExcludedRoles specifies roles that nodes must not have.
+func WithExcludedRoles(roles ...string) RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		s.excludedRoles = append(s.excludedRoles, roles...)
+	}
+}
+
+// WithStrictMode disables fallback when no matching nodes are found.
+func WithStrictMode() RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		s.allowFallback = false
+	}
+}
+
+// WithFallback sets the fallback selector used when no role-matching nodes are available.
+func WithFallback(fallback Selector) RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		s.fallback = fallback
+	}
+}
+
+// NewRoleBasedSelector creates a role-based connection selector with the specified options.
+// If no fallback is provided via WithFallback, a round-robin selector is used by default.
+func NewRoleBasedSelector(opts ...RoleBasedSelectorOption) *RoleBasedSelector {
+	s := &RoleBasedSelector{
+		allowFallback: true,                    // Default to allowing fallback
+		fallback:      NewRoundRobinSelector(), // Default fallback
+	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	return s
+}
+
+// Select filters connections based on role requirements and applies fallback selection.
+func (s *RoleBasedSelector) Select(connections []*Connection) (*Connection, error) {
+	if len(connections) == 0 {
+		return nil, ErrNoConnections
+	}
+
+	// Filter connections based on role requirements
+	filtered := s.filterByRoles(connections)
+
+	// If we have role-matching nodes, use them
+	if len(filtered) > 0 {
+		return s.fallback.Select(filtered)
+	}
+
+	// If no role-matching nodes and fallback is allowed, use any available node
+	if s.allowFallback {
+		return s.fallback.Select(connections)
+	}
+
+	// Strict mode: no fallback allowed
+	return nil, fmt.Errorf("no connections found matching required roles: %v (available connections: %d)",
+		s.requiredRoles, len(connections))
+}
+
+// filterByRoles filters connections based on required and excluded roles.
+func (s *RoleBasedSelector) filterByRoles(connections []*Connection) []*Connection {
+	filtered := make([]*Connection, 0, len(connections))
+
+	for _, conn := range connections {
+		// Check if connection has at least one required role
+		hasRequiredRole := len(s.requiredRoles) == 0 // If no required roles, all nodes qualify
+		if !hasRequiredRole {
+			for _, role := range conn.Roles {
+				if slices.Contains(s.requiredRoles, role) {
+					hasRequiredRole = true
+					break
+				}
+			}
+		}
+
+		if !hasRequiredRole {
+			continue
+		}
+
+		// Check if connection has any excluded roles
+		hasExcludedRole := false
+		for _, role := range conn.Roles {
+			if slices.Contains(s.excludedRoles, role) {
+				hasExcludedRole = true
+				break
+			}
+		}
+
+		if hasExcludedRole {
+			continue
+		}
+
+		filtered = append(filtered, conn)
+	}
+
+	return filtered
+}
+
+// SmartSelector examines request properties to route to optimal nodes.
+type SmartSelector struct {
+	ingestSelector  Selector // Used for ingest operations
+	searchSelector  Selector // Used for search operations
+	defaultSelector Selector // Used for other operations
+}
+
+// NewSmartSelector creates a request-aware selector that routes based on operation type.
+func NewSmartSelector(defaultFallback Selector) *SmartSelector {
+	return &SmartSelector{
+		ingestSelector: NewRoleBasedSelector(
+			WithRequiredRoles(RoleIngest),
+			WithFallback(defaultFallback),
+		),
+		searchSelector: NewRoleBasedSelector(
+			WithRequiredRoles(RoleData),
+			WithFallback(defaultFallback),
+		),
+		defaultSelector: defaultFallback,
+	}
+}
+
+// Select implements the basic Selector interface using default routing.
+func (s *SmartSelector) Select(connections []*Connection) (*Connection, error) {
+	return s.defaultSelector.Select(connections)
+}
+
+// SelectForRequest implements RequestAwareSelector to route based on request properties.
+func (s *SmartSelector) SelectForRequest(connections []*Connection, req Request) (*Connection, error) {
+	if len(connections) == 0 {
+		return nil, ErrNoConnections
+	}
+
+	// Route based on request path and method
+	path := req.GetPath()
+	method := req.GetMethod()
+
+	// Ingest operations - prefer ingest-capable nodes
+	if isIngestOperation(path, method) {
+		return s.ingestSelector.Select(connections)
+	}
+
+	// Search operations - prefer data nodes
+	if isSearchOperation(path, method) {
+		return s.searchSelector.Select(connections)
+	}
+
+	// Default routing for other operations
+	return s.defaultSelector.Select(connections)
+}
+
+// isIngestOperation determines if a request is an ingest operation.
+func isIngestOperation(path, method string) bool {
+	if method != "POST" && method != "PUT" {
+		return false
+	}
+
+	// Ingest pipeline operations
+	if strings.Contains(path, "/_ingest/") {
+		return true
+	}
+
+	// Bulk operations (often involve ingest pipelines)
+	if strings.HasSuffix(path, "/_bulk") {
+		return true
+	}
+
+	// Document indexing with pipeline parameter would need header inspection
+	// This is a basic implementation - can be enhanced based on requirements
+
+	return false
+}
+
+// isSearchOperation determines if a request is a search operation.
+func isSearchOperation(path, method string) bool {
+	if method != "GET" && method != "POST" {
+		return false
+	}
+
+	// Search operations
+	if strings.HasSuffix(path, "/_search") || strings.HasPrefix(path, "/_search/") {
+		return true
+	}
+
+	// Multi-search
+	if strings.HasSuffix(path, "/_msearch") {
+		return true
+	}
+
+	// Document retrieval
+	if method == "GET" && !strings.HasPrefix(path, "/_") {
+		return true
+	}
+
+	return false
 }

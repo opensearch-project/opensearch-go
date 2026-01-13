@@ -296,3 +296,4 @@ func main() {
     // 5. Log deprecation warnings for old role names
 }
 ```
+
