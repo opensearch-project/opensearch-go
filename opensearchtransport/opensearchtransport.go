@@ -83,6 +83,13 @@ type Config struct {
 
 	DiscoverNodesInterval time.Duration
 
+	// IncludeDedicatedClusterManagers includes dedicated cluster manager nodes in request routing.
+	// When false (default), dedicated cluster manager nodes are excluded from client requests,
+	// following best practices and matching the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS behavior.
+	// When true, all nodes including dedicated cluster managers can receive client requests.
+	// Default: false (excludes dedicated cluster managers for better performance)
+	IncludeDedicatedClusterManagers bool
+
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -106,6 +113,8 @@ type Client struct {
 	maxRetries            int
 	retryBackoff          func(attempt int) time.Duration
 	discoverNodesInterval time.Duration
+
+	includeDedicatedClusterManagers bool
 
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
@@ -175,6 +184,8 @@ func New(cfg Config) (*Client, error) {
 		maxRetries:            cfg.MaxRetries,
 		retryBackoff:          cfg.RetryBackoff,
 		discoverNodesInterval: cfg.DiscoverNodesInterval,
+
+		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
 
 		compressRequestBody: cfg.CompressRequestBody,
 

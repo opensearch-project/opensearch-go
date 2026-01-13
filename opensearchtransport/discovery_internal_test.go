@@ -564,3 +564,457 @@ func TestDiscovery(t *testing.T) {
 		}
 	})
 }
+
+// TestRoleConstants verifies that role constants match expected values
+func TestRoleConstants(t *testing.T) {
+	assert.Equal(t, "data", RoleData)
+	assert.Equal(t, "ingest", RoleIngest)
+	assert.Equal(t, "master", RoleMaster)
+	assert.Equal(t, "cluster_manager", RoleClusterManager)
+	assert.Equal(t, "remote_cluster_client", RoleRemoteClusterClient)
+	assert.Equal(t, "search", RoleSearch)
+	assert.Equal(t, "warm", RoleWarm)
+	assert.Equal(t, "ml", RoleML)
+	assert.Equal(t, "coordinating_only", RoleCoordinatingOnly)
+}
+
+// TestNewRoleSet verifies efficient role set creation
+func TestNewRoleSet(t *testing.T) {
+	tests := []struct {
+		name  string
+		roles []string
+		want  roleSet
+	}{
+		{
+			"empty roles",
+			[]string{},
+			roleSet{},
+		},
+		{
+			"single role",
+			[]string{RoleData},
+			roleSet{RoleData: {}},
+		},
+		{
+			"multiple roles",
+			[]string{RoleData, RoleIngest, RoleClusterManager},
+			roleSet{
+				RoleData:           {},
+				RoleIngest:         {},
+				RoleClusterManager: {},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := newRoleSet(tt.roles)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestRoleSetHas verifies O(1) role lookups
+func TestRoleSetHas(t *testing.T) {
+	rs := newRoleSet([]string{RoleData, RoleClusterManager, RoleIngest})
+
+	assert.True(t, rs.has(RoleData))
+	assert.True(t, rs.has(RoleClusterManager))
+	assert.True(t, rs.has(RoleIngest))
+	assert.False(t, rs.has(RoleMaster))
+	assert.False(t, rs.has(RoleSearch))
+	assert.False(t, rs.has("nonexistent"))
+}
+
+// TestRoleCheckFunctions verifies role-specific check functions
+func TestRoleCheckFunctions(t *testing.T) {
+	tests := []struct {
+		name                 string
+		roles                []string
+		expectClusterManager bool
+		expectData           bool
+		expectIngest         bool
+		expectSearch         bool
+		expectWarm           bool
+	}{
+		{
+			"cluster manager eligible with cluster_manager role",
+			[]string{RoleClusterManager},
+			true, false, false, false, false,
+		},
+		{
+			"cluster manager eligible with deprecated master role",
+			[]string{RoleMaster},
+			true, false, false, false, false,
+		},
+		{
+			"data node",
+			[]string{RoleData},
+			false, true, false, false, false,
+		},
+		{
+			"ingest node",
+			[]string{RoleIngest},
+			false, false, true, false, false,
+		},
+		{
+			"search node",
+			[]string{RoleSearch},
+			false, false, false, true, false,
+		},
+		{
+			"warm node",
+			[]string{RoleWarm},
+			false, false, false, false, true,
+		},
+		{
+			"mixed roles",
+			[]string{RoleData, RoleIngest, RoleClusterManager},
+			true, true, true, false, false,
+		},
+		{
+			"warm and data roles",
+			[]string{RoleWarm, RoleData},
+			false, true, false, false, true,
+		},
+		{
+			"no roles",
+			[]string{},
+			false, false, false, false, false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newRoleSet(tt.roles)
+
+			// Check cluster manager eligibility
+			isClusterManagerEligible := rs.has(RoleMaster) || rs.has(RoleClusterManager)
+			assert.Equal(t, tt.expectClusterManager, isClusterManagerEligible)
+			assert.Equal(t, tt.expectData, rs.has(RoleData))
+			assert.Equal(t, tt.expectIngest, rs.has(RoleIngest))
+			assert.Equal(t, tt.expectSearch, rs.has(RoleSearch))
+			assert.Equal(t, tt.expectWarm, rs.has(RoleWarm))
+		})
+	}
+}
+
+// TestShouldSkipDedicatedClusterManagers verifies upstream-compatible node selection
+func TestShouldSkipDedicatedClusterManagers(t *testing.T) {
+	tests := []struct {
+		name       string
+		roles      []string
+		shouldSkip bool
+	}{
+		{
+			"cluster_manager only - should skip",
+			[]string{RoleClusterManager},
+			true,
+		},
+		{
+			"master only - should skip (deprecated)",
+			[]string{RoleMaster},
+			true,
+		},
+		{
+			"cluster_manager with data - should not skip",
+			[]string{RoleClusterManager, RoleData},
+			false,
+		},
+		{
+			"cluster_manager with ingest - should not skip",
+			[]string{RoleClusterManager, RoleIngest},
+			false,
+		},
+		{
+			"cluster_manager with warm - should not skip (OpenSearch 3.0 searchable snapshots)",
+			[]string{RoleClusterManager, RoleWarm},
+			false,
+		},
+		{
+			"cluster_manager with data and ingest - should not skip",
+			[]string{RoleClusterManager, RoleData, RoleIngest},
+			false,
+		},
+		{
+			"data only - should not skip",
+			[]string{RoleData},
+			false,
+		},
+		{
+			"ingest only - should not skip",
+			[]string{RoleIngest},
+			false,
+		},
+		{
+			"search only - should not skip",
+			[]string{RoleSearch},
+			false,
+		},
+		{
+			"warm only - should not skip",
+			[]string{RoleWarm},
+			false,
+		},
+		{
+			"warm and data - should not skip",
+			[]string{RoleWarm, RoleData},
+			false,
+		},
+		{
+			"ml only - should not skip",
+			[]string{RoleML},
+			false,
+		},
+		{
+			"cluster_manager with ml - should not skip",
+			[]string{RoleClusterManager, RoleML},
+			false,
+		},
+		{
+			"master with remote_cluster_client - should skip",
+			[]string{RoleMaster, RoleRemoteClusterClient},
+			true,
+		},
+		{
+			"cluster_manager with remote_cluster_client - should skip",
+			[]string{RoleClusterManager, RoleRemoteClusterClient},
+			true,
+		},
+		{
+			"no roles - should not skip",
+			[]string{},
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rs := newRoleSet(tt.roles)
+			result := rs.isDedicatedClusterManager()
+			assert.Equal(t, tt.shouldSkip, result)
+		})
+	}
+}
+
+// TestDiscoverNodesWithNewRoleValidation verifies the enhanced discovery behavior
+func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
+	tests := []struct {
+		name            string
+		nodes           map[string][]string // nodeName -> roles
+		expectedNodes   []string            // nodes that should be included
+		expectedSkipped []string            // nodes that should be skipped
+	}{
+		{
+			"mixed node types with validation",
+			map[string][]string{
+				"cm-only":     {RoleClusterManager},           // should be skipped
+				"master-only": {RoleMaster},                   // should be skipped
+				"data-node":   {RoleData},                     // should be included
+				"mixed-good":  {RoleClusterManager, RoleData}, // should be included
+				"search-only": {RoleSearch},                   // should be included
+			},
+			[]string{"data-node", "mixed-good", "search-only"},
+			[]string{"cm-only", "master-only"},
+		},
+		{
+			"OpenSearch 3.X compliant setup",
+			map[string][]string{
+				"dedicated-cm": {RoleClusterManager},   // should be skipped
+				"data-hot":     {RoleData, RoleIngest}, // should be included
+				"data-warm":    {RoleWarm, RoleData},   // should be included
+				"search-node":  {RoleSearch},           // should be included
+				"coordinating": {RoleCoordinatingOnly}, // should be included
+			},
+			[]string{"data-hot", "data-warm", "search-node", "coordinating"},
+			[]string{"dedicated-cm"},
+		},
+		{
+			"cluster manager and remote cluster client filtering",
+			map[string][]string{
+				"cm-rcc":    {RoleClusterManager, RoleRemoteClusterClient}, // should be skipped
+				"cm-data":   {RoleClusterManager, RoleData},                // should be included
+				"rcc-only":  {RoleRemoteClusterClient},                     // should be included
+				"data-node": {RoleData},                                    // should be included
+			},
+			[]string{"cm-data", "rcc-only", "data-node"},
+			[]string{"cm-rcc"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock transport that returns our test nodes
+			newRoundTripper := func() http.RoundTripper {
+				return &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						nodes := make(map[string]map[string]nodeInfo)
+						nodes["nodes"] = make(map[string]nodeInfo)
+
+						for name, roles := range tt.nodes {
+							nodes["nodes"][name] = nodeInfo{
+								ID:    name + "-id",
+								Name:  name,
+								Roles: roles,
+							}
+						}
+
+						b, _ := json.Marshal(nodes)
+						return &http.Response{
+							Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+							StatusCode:    http.StatusOK,
+							ContentLength: int64(len(b)),
+							Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+							Body:          io.NopCloser(bytes.NewReader(b)),
+						}, nil
+					},
+				}
+			}
+
+			u, _ := url.Parse("http://localhost:9200")
+			c, err := New(Config{
+				URLs:      []*url.URL{u},
+				Transport: newRoundTripper(),
+			})
+			require.NoError(t, err)
+
+			// Perform discovery
+			err = c.DiscoverNodes()
+			assert.NoError(t, err)
+
+			// Verify results
+			pool, ok := c.mu.pool.(*statusConnectionPool)
+			require.True(t, ok, "Expected statusConnectionPool")
+
+			// Check that expected nodes are included
+			actualNodes := make(map[string]bool)
+			for _, conn := range pool.mu.live {
+				actualNodes[conn.Name] = true
+			}
+
+			assert.Equal(t, len(tt.expectedNodes), len(actualNodes),
+				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
+
+			for _, expectedNode := range tt.expectedNodes {
+				assert.True(t, actualNodes[expectedNode],
+					"Expected node %q to be included but it wasn't", expectedNode)
+			}
+
+			for _, skippedNode := range tt.expectedSkipped {
+				assert.False(t, actualNodes[skippedNode],
+					"Expected node %q to be skipped but it was included", skippedNode)
+			}
+		})
+	}
+}
+
+// TestIncludeDedicatedClusterManagersConfiguration verifies the configurable behavior
+func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
+	tests := []struct {
+		name                            string
+		includeDedicatedClusterManagers bool
+		nodes                           map[string][]string // nodeName -> roles
+		expectedIncluded                []string            // nodes that should be included
+		expectedExcluded                []string            // nodes that should be excluded
+	}{
+		{
+			name:                            "IncludeDedicatedClusterManagers enabled - includes all nodes",
+			includeDedicatedClusterManagers: true,
+			nodes: map[string][]string{
+				"cm-only":   {RoleClusterManager},
+				"data-node": {RoleData},
+			},
+			expectedIncluded: []string{"cm-only", "data-node"},
+			expectedExcluded: []string{},
+		},
+		{
+			name:                            "IncludeDedicatedClusterManagers disabled (default) - excludes dedicated CM nodes",
+			includeDedicatedClusterManagers: false,
+			nodes: map[string][]string{
+				"cm-only":   {RoleClusterManager},
+				"data-node": {RoleData},
+				"dummy":     {RoleData}, // Add second node to avoid single connection pool
+			},
+			expectedIncluded: []string{"data-node", "dummy"},
+			expectedExcluded: []string{"cm-only"},
+		},
+		{
+			name:                            "Mixed roles with CM always included regardless of setting",
+			includeDedicatedClusterManagers: false,
+			nodes: map[string][]string{
+				"cm-data": {RoleClusterManager, RoleData},
+				"dummy":   {RoleData}, // Add second node to avoid single connection pool
+			},
+			expectedIncluded: []string{"cm-data", "dummy"},
+			expectedExcluded: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock transport
+			newRoundTripper := func() http.RoundTripper {
+				return &mockTransp{
+					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+						nodes := make(map[string]map[string]nodeInfo)
+						nodes["nodes"] = make(map[string]nodeInfo)
+
+						for name, roles := range tt.nodes {
+							nodes["nodes"][name] = nodeInfo{
+								ID:    name + "-id",
+								Name:  name,
+								Roles: roles,
+							}
+						}
+
+						b, _ := json.Marshal(nodes)
+						return &http.Response{
+							Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+							StatusCode:    http.StatusOK,
+							ContentLength: int64(len(b)),
+							Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+							Body:          io.NopCloser(bytes.NewReader(b)),
+						}, nil
+					},
+				}
+			}
+
+			u, _ := url.Parse("http://localhost:9200")
+			c, err := New(Config{
+				URLs:                            []*url.URL{u},
+				Transport:                       newRoundTripper(),
+				IncludeDedicatedClusterManagers: tt.includeDedicatedClusterManagers,
+			})
+			require.NoError(t, err)
+
+			// Perform discovery
+			err = c.DiscoverNodes()
+			assert.NoError(t, err)
+
+			// Verify results
+			pool, ok := c.mu.pool.(*statusConnectionPool)
+			require.True(t, ok, "Expected statusConnectionPool")
+
+			// Check included nodes
+			actualNodes := make(map[string]bool)
+			for _, conn := range pool.mu.live {
+				actualNodes[conn.Name] = true
+			}
+
+			for _, expectedNode := range tt.expectedIncluded {
+				assert.True(t, actualNodes[expectedNode],
+					"Expected node %q to be included but it wasn't", expectedNode)
+			}
+
+			for _, excludedNode := range tt.expectedExcluded {
+				assert.False(t, actualNodes[excludedNode],
+					"Expected node %q to be excluded but it was included", excludedNode)
+			}
+
+			// Verify total count
+			expectedTotal := len(tt.expectedIncluded)
+			assert.Equal(t, expectedTotal, len(actualNodes),
+				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
+		})
+	}
+}
