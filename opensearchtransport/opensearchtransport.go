@@ -116,6 +116,8 @@ type Client struct {
 
 	includeDedicatedClusterManagers bool
 
+	includeDedicatedClusterManagers bool
+
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
 
