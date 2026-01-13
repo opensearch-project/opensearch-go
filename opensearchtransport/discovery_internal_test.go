@@ -820,11 +820,11 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 		{
 			"OpenSearch 3.X compliant setup",
 			map[string][]string{
-				"dedicated-cm": {RoleClusterManager},   // should be skipped
-				"data-hot":     {RoleData, RoleIngest}, // should be included
-				"data-warm":    {RoleWarm, RoleData},   // should be included
-				"search-node":  {RoleSearch},           // should be included
-				"coordinating": {RoleCoordinatingOnly}, // should be included
+				"dedicated-cm": {RoleClusterManager},      // should be skipped
+				"data-hot":     {RoleData, RoleIngest},    // should be included
+				"data-warm":    {RoleWarm, RoleData},      // should be included
+				"search-node":  {RoleSearch},              // should be included
+				"coordinating": {RoleCoordinatingOnly},    // should be included
 			},
 			[]string{"data-hot", "data-warm", "search-node", "coordinating"},
 			[]string{"dedicated-cm"},
