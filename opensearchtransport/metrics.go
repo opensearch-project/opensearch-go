@@ -32,6 +32,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -70,11 +71,20 @@ type ConnectionMetric struct {
 
 // metrics represents the inner state of metrics.
 type metrics struct {
-	sync.RWMutex
+	requests atomic.Int64
+	failures atomic.Int64
 
-	requests  int
-	failures  int
-	responses map[int]int
+	mu struct {
+		sync.RWMutex
+		responses map[int]int
+	}
+}
+
+// incrementResponse increments the counter for the given status code.
+func (m *metrics) incrementResponse(statusCode int) {
+	m.mu.Lock()
+	m.mu.responses[statusCode]++
+	m.mu.Unlock()
 }
 
 // Metrics returns the transport metrics.
@@ -82,33 +92,43 @@ func (c *Client) Metrics() (Metrics, error) {
 	if c.metrics == nil {
 		return Metrics{}, errors.New("transport metrics not enabled")
 	}
-	c.metrics.RLock()
-	defer c.metrics.RUnlock()
 
-	if lockable, ok := c.pool.(sync.Locker); ok {
+	// Build responses map with pre-allocated capacity (READ operation)
+	c.metrics.mu.RLock()
+	responses := make(map[int]int, len(c.metrics.mu.responses))
+	for statusCode, count := range c.metrics.mu.responses {
+		responses[statusCode] = count
+	}
+	c.metrics.mu.RUnlock()
+
+	if lockable, ok := c.mu.pool.(sync.Locker); ok {
 		lockable.Lock()
 		defer lockable.Unlock()
 	}
 
 	m := Metrics{
-		Requests:  c.metrics.requests,
-		Failures:  c.metrics.failures,
-		Responses: c.metrics.responses,
+		Requests:  int(c.metrics.requests.Load()),
+		Failures:  int(c.metrics.failures.Load()),
+		Responses: responses,
 	}
 
-	if pool, ok := c.pool.(connectionable); ok {
+	if pool, ok := c.mu.pool.(connectionable); ok {
 		connections := pool.connections()
-		for idx, c := range connections {
-			c.Lock()
+		for _, c := range connections {
+			c.mu.Lock()
+			isDead := c.mu.isDead
+			deadSince := c.mu.deadSince
+			c.mu.Unlock()
 
 			cm := ConnectionMetric{
 				URL:      c.URL.String(),
-				IsDead:   c.IsDead,
-				Failures: c.Failures,
+				IsDead:   isDead,
+				Failures: int(c.failures.Load()),
 			}
 
-			if !c.DeadSince.IsZero() {
-				cm.DeadSince = &connections[idx].DeadSince
+			if !deadSince.IsZero() {
+				deadSinceCopy := deadSince
+				cm.DeadSince = &deadSinceCopy
 			}
 
 			if c.ID != "" {
@@ -124,7 +144,6 @@ func (c *Client) Metrics() (Metrics, error) {
 			}
 
 			m.Connections = append(m.Connections, cm)
-			c.Unlock()
 		}
 	}
 

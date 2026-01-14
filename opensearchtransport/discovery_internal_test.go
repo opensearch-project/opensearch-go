@@ -134,16 +134,16 @@ func TestDiscovery(t *testing.T) {
 
 		tp.DiscoverNodes()
 
-		pool, ok := tp.pool.(*statusConnectionPool)
+		pool, ok := tp.mu.pool.(*statusConnectionPool)
 		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.pool)
+			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.pool)
 		}
 
-		if len(pool.live) != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.live))
+		if len(pool.mu.live) != 2 {
+			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.mu.live))
 		}
 
-		for _, conn := range pool.live {
+		for _, conn := range pool.mu.live {
 			switch conn.Name {
 			case "es1":
 				if conn.URL.String() != "http://127.0.0.1:10001" {
@@ -174,16 +174,16 @@ func TestDiscovery(t *testing.T) {
 
 		tp.DiscoverNodes()
 
-		pool, ok := tp.pool.(*statusConnectionPool)
+		pool, ok := tp.mu.pool.(*statusConnectionPool)
 		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.pool)
+			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.pool)
 		}
 
-		if len(pool.live) != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.live))
+		if len(pool.mu.live) != 2 {
+			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.mu.live))
 		}
 
-		for _, conn := range pool.live {
+		for _, conn := range pool.mu.live {
 			switch conn.Name {
 			case "es1":
 				if conn.URL.String() != "https://127.0.0.1:10001" {
@@ -207,17 +207,17 @@ func TestDiscovery(t *testing.T) {
 
 		tp, _ := New(Config{URLs: []*url.URL{u}, DiscoverNodesInterval: 10 * time.Millisecond})
 
-		tp.Lock()
-		numURLs = len(tp.pool.URLs())
-		tp.Unlock()
+		tp.mu.Lock()
+		numURLs = len(tp.mu.pool.URLs())
+		tp.mu.Unlock()
 		if numURLs != 1 {
 			t.Errorf("Unexpected number of nodes, want=1, got=%d", numURLs)
 		}
 
 		time.Sleep(18 * time.Millisecond) // Wait until (*Client).scheduleDiscoverNodes()
-		tp.Lock()
-		numURLs = len(tp.pool.URLs())
-		tp.Unlock()
+		tp.mu.Lock()
+		numURLs = len(tp.mu.pool.URLs())
+		tp.mu.Unlock()
 		if numURLs != 2 {
 			t.Errorf("Unexpected number of nodes, want=2, got=%d", numURLs)
 		}
@@ -508,7 +508,7 @@ func TestDiscovery(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				var urls []*url.URL
+				urls := make([]*url.URL, 0, len(tt.args.Nodes))
 				for _, node := range tt.args.Nodes {
 					u, _ := url.Parse(node.URL)
 					urls = append(urls, u)
@@ -542,16 +542,16 @@ func TestDiscovery(t *testing.T) {
 				})
 				c.DiscoverNodes()
 
-				pool, ok := c.pool.(*statusConnectionPool)
+				pool, ok := c.mu.pool.(*statusConnectionPool)
 				if !ok {
-					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.pool)
+					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.pool)
 				}
 
-				if len(pool.live) != tt.want.wantsNConn {
-					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.live))
+				if len(pool.mu.live) != tt.want.wantsNConn {
+					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.mu.live))
 				}
 
-				for _, conn := range pool.live {
+				for _, conn := range pool.mu.live {
 					if !reflect.DeepEqual(tt.args.Nodes[conn.ID].Roles, conn.Roles) {
 						t.Errorf("Unexpected roles for node %s, want=%s, got=%s", conn.Name, tt.args.Nodes[conn.ID], conn.Roles)
 					}

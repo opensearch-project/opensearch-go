@@ -92,8 +92,6 @@ type Config struct {
 
 // Client represents the HTTP client.
 type Client struct {
-	sync.Mutex
-
 	urls      []*url.URL
 	username  string
 	password  string
@@ -108,7 +106,6 @@ type Client struct {
 	maxRetries            int
 	retryBackoff          func(attempt int) time.Duration
 	discoverNodesInterval time.Duration
-	discoverNodesTimer    *time.Timer
 
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
@@ -118,8 +115,13 @@ type Client struct {
 	transport http.RoundTripper
 	logger    Logger
 	selector  Selector
-	pool      ConnectionPool
 	poolFunc  func([]*Connection, Selector) ConnectionPool
+
+	mu struct {
+		sync.RWMutex
+		pool               ConnectionPool
+		discoverNodesTimer *time.Timer
+	}
 }
 
 // New creates new transport client.
@@ -185,9 +187,9 @@ func New(cfg Config) (*Client, error) {
 	client.userAgent = initUserAgent()
 
 	if client.poolFunc != nil {
-		client.pool = client.poolFunc(conns, client.selector)
+		client.mu.pool = client.poolFunc(conns, client.selector)
 	} else {
-		client.pool = NewConnectionPool(conns, client.selector)
+		client.mu.pool = NewConnectionPool(conns, client.selector)
 	}
 
 	if cfg.EnableDebugLogger {
@@ -195,12 +197,13 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	if cfg.EnableMetrics {
-		client.metrics = &metrics{responses: make(map[int]int)}
+		client.metrics = &metrics{}
+		client.metrics.mu.responses = make(map[int]int)
 		// TODO(karmi): Type assertion to interface
-		if pool, ok := client.pool.(*singleConnectionPool); ok {
+		if pool, ok := client.mu.pool.(*singleConnectionPool); ok {
 			pool.metrics = client.metrics
 		}
-		if pool, ok := client.pool.(*statusConnectionPool); ok {
+		if pool, ok := client.mu.pool.(*statusConnectionPool); ok {
 			pool.metrics = client.metrics
 		}
 	}
@@ -227,9 +230,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 	// Record metrics, when enabled
 	if c.metrics != nil {
-		c.metrics.Lock()
-		c.metrics.requests++
-		c.metrics.Unlock()
+		c.metrics.requests.Add(1)
 	}
 
 	// Update request
@@ -278,9 +279,9 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		)
 
 		// Get connection from the pool
-		c.Lock()
-		conn, err = c.pool.Next()
-		c.Unlock()
+		c.mu.RLock()
+		conn, err = c.mu.pool.Next()
+		c.mu.RUnlock()
 		if err != nil {
 			if c.logger != nil {
 				c.logRoundTrip(req, nil, err, time.Time{}, time.Duration(0))
@@ -321,16 +322,14 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		if err != nil {
 			// Record metrics, when enabled
 			if c.metrics != nil {
-				c.metrics.Lock()
-				c.metrics.failures++
-				c.metrics.Unlock()
+				c.metrics.failures.Add(1)
 			}
 
 			// Report the connection as unsuccessful
-			c.Lock()
+			c.mu.Lock()
 			//nolint:errcheck // Questionable if the function even returns an error
-			c.pool.OnFailure(conn)
-			c.Unlock()
+			c.mu.pool.OnFailure(conn)
+			c.mu.Unlock()
 
 			// Retry on EOF errors
 			if errors.Is(err, io.EOF) {
@@ -346,15 +345,13 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			}
 		} else {
 			// Report the connection as succesfull
-			c.Lock()
-			c.pool.OnSuccess(conn)
-			c.Unlock()
+			c.mu.Lock()
+			c.mu.pool.OnSuccess(conn)
+			c.mu.Unlock()
 		}
 
 		if res != nil && c.metrics != nil {
-			c.metrics.Lock()
-			c.metrics.responses[res.StatusCode]++
-			c.metrics.Unlock()
+			c.metrics.incrementResponse(res.StatusCode)
 		}
 
 		// Retry on configured response statuses
@@ -412,7 +409,9 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 // URLs returns a list of transport URLs.
 func (c *Client) URLs() []*url.URL {
-	return c.pool.URLs()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.mu.pool.URLs()
 }
 
 func (c *Client) setReqURL(u *url.URL, req *http.Request) {
