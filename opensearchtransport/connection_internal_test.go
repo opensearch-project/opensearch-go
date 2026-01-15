@@ -259,14 +259,17 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		conn.mu.Lock()
-		if !conn.mu.isDead {
-			t.Errorf("Expected the connection to be dead; %s", conn)
+		isDead := conn.mu.isDead
+		deadSince := conn.mu.deadSince
+		conn.mu.Unlock()
+
+		if !isDead {
+			t.Errorf("Expected the connection to be dead")
 		}
 
-		if conn.mu.deadSince.IsZero() {
-			t.Errorf("Unexpected value for DeadSince: %s", conn.mu.deadSince)
+		if deadSince.IsZero() {
+			t.Errorf("Unexpected value for DeadSince: %s", deadSince)
 		}
-		conn.mu.Unlock()
 
 		pool.mu.Lock()
 		defer pool.mu.Unlock()
@@ -340,8 +343,8 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		isDead := conn.mu.isDead
 		conn.mu.Unlock()
 
-		if conn.mu.isDead {
-			t.Errorf("Expected connection to be dead, got: %s", conn)
+		if isDead {
+			t.Errorf("Expected connection to be live, got dead=true")
 		}
 
 		if len(pool.mu.dead) != 0 {
@@ -404,7 +407,10 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		}()
 
 		conn := pool.mu.dead[0]
-		pool.scheduleResurrect(conn)
+		conn.mu.RLock()
+		deadSince := conn.mu.deadSince
+		conn.mu.RUnlock()
+		pool.scheduleResurrect(conn, deadSince)
 		time.Sleep(50 * time.Millisecond)
 
 		pool.mu.Lock()
@@ -439,7 +445,7 @@ func TestConnection(t *testing.T) {
 		}
 
 		if !match {
-			t.Errorf("Unexpected output: %s", conn)
+			t.Errorf("Unexpected output: %s", conn.String())
 		}
 	})
 }

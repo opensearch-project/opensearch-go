@@ -55,6 +55,14 @@ type ConnectionPool interface {
 	URLs() []*url.URL            // URLs returns the list of URLs of available connections.
 }
 
+// rwLocker defines the interface for connection pools that support read-write locking.
+// This allows for more efficient concurrent access when only read operations are needed.
+type rwLocker interface {
+	sync.Locker // Embeds Lock() and Unlock() methods
+	RLock()
+	RUnlock()
+}
+
 // Connection represents a connection to a node.
 type Connection struct {
 	URL        *url.URL
@@ -98,8 +106,10 @@ type roundRobinSelector struct {
 
 // Compile-time checks to ensure interface compliance
 var (
-	_ ConnectionPool = (*statusConnectionPool)(nil)
 	_ ConnectionPool = (*singleConnectionPool)(nil)
+
+	_ ConnectionPool = (*statusConnectionPool)(nil)
+	_ rwLocker       = (*statusConnectionPool)(nil)
 )
 
 // NewConnectionPool creates and returns a default connection pool.
@@ -120,6 +130,7 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
 	pool.mu.live = conns
+	pool.mu.dead = []*Connection{}
 	return pool
 }
 
@@ -199,16 +210,26 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	}
 
 	c.markAsDeadWithLock()
-	cp.scheduleResurrect(c)
+	deadSince := c.mu.deadSince
 	c.mu.Unlock()
+
+	cp.scheduleResurrect(c, deadSince)
 
 	// Push item to dead list and sort slice by number of failures
 	cp.mu.dead = append(cp.mu.dead, c)
+
+	// Sort by failure count for resurrection prioritization.
+	// CONCURRENCY TRADEOFF: Atomic loads are used without additional locking during sort,
+	// allowing failure counts to change mid-sort and resulting in slightly inconsistent
+	// ordering. This design prioritizes common-case latency over absolute correctness
+	// during failure scenarios. While failure counts could be snapshotted before sorting,
+	// the list ordering is not guaranteed to remain perfectly sorted by failure count
+	// between operations, making "mostly correct" sorting with atomics acceptable.
+	// Any temporary misordering self-corrects on subsequent failure events.
 	sort.Slice(cp.mu.dead, func(i, j int) bool {
 		c1 := cp.mu.dead[i]
 		c2 := cp.mu.dead[j]
 
-		// Use atomic loads for failure counts - no locking needed
 		failures1 := c1.failures.Load()
 		failures2 := c2.failures.Load()
 
@@ -261,6 +282,30 @@ func (cp *statusConnectionPool) connections() []*Connection {
 	return conns
 }
 
+// RLock acquires a read lock on the connection pool.
+// Implements rwLocker interface for efficient concurrent read access.
+func (cp *statusConnectionPool) RLock() {
+	cp.mu.RLock()
+}
+
+// RUnlock releases the read lock on the connection pool.
+// Implements rwLocker interface for efficient concurrent read access.
+func (cp *statusConnectionPool) RUnlock() {
+	cp.mu.RUnlock()
+}
+
+// Lock acquires a write lock on the connection pool.
+// Implements rwLocker interface (via embedded sync.Locker).
+func (cp *statusConnectionPool) Lock() {
+	cp.mu.Lock()
+}
+
+// Unlock releases the write lock on the connection pool.
+// Implements rwLocker interface (via embedded sync.Locker).
+func (cp *statusConnectionPool) Unlock() {
+	cp.mu.Unlock()
+}
+
 // resurrect adds the connection to the list of available connections.
 // When removeDead is true, it also removes it from the dead list.
 //
@@ -294,16 +339,12 @@ func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool
 }
 
 // scheduleResurrect schedules the connection to be resurrected.
-func (cp *statusConnectionPool) scheduleResurrect(c *Connection) {
+func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.Time) {
 	failures := c.failures.Load()
 	factor := min(failures-1, int64(cp.resurrectTimeoutFactorCutoff))
 	timeout := time.Duration(cp.resurrectTimeoutInitial.Seconds() * math.Exp2(float64(factor)) * float64(time.Second))
 
 	if debugLogger != nil {
-		c.mu.RLock()
-		deadSince := c.mu.deadSince
-		c.mu.RUnlock()
-
 		debugLogger.Logf(
 			"Resurrect %s (failures=%d, factor=%d, timeout=%s) in %s\n",
 			c.URL,

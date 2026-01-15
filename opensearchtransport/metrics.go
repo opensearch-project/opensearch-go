@@ -101,9 +101,10 @@ func (c *Client) Metrics() (Metrics, error) {
 	}
 	c.metrics.mu.RUnlock()
 
-	if lockable, ok := c.mu.pool.(sync.Locker); ok {
-		lockable.Lock()
-		defer lockable.Unlock()
+	// Acquire read lock on pool since we're only reading connection state
+	if rwLock, ok := c.mu.pool.(rwLocker); ok {
+		rwLock.RLock()
+		defer rwLock.RUnlock()
 	}
 
 	m := Metrics{
