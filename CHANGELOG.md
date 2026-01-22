@@ -17,6 +17,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
+- Fix nodes API compatibility with OpenSearch 3.1.0+ by adding phase_results_processors field
+- Fix cluster pending tasks API compatibility with OpenSearch 3.1.0+ by adding time_in_execution fields
 
 ### Security
 
