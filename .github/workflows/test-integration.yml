@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   GITHUB_ACTIONS: true
-  OPENSEARCH_VERSION: 2.19.2
+  OPENSEARCH_VERSION: 2.19.4
 
 jobs:
   test:
