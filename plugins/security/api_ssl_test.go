@@ -27,7 +27,7 @@ func TestSSLClient(t *testing.T) {
 	config, err := ossectest.ClientConfig()
 	require.Nil(t, err)
 
-	osAPIclient, err := ostest.NewClient()
+	osAPIclient, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	ostest.SkipIfBelowVersion(t, osAPIclient, 2, 0, "SSLClient")

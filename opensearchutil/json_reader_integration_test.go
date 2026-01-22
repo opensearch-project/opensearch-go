@@ -44,7 +44,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
 		ctx := context.Background()
 
-		client, err := osapitest.NewClient()
+		client, err := osapitest.NewClient(t)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}

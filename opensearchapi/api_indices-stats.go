@@ -115,6 +115,7 @@ type IndicesStatsSearch struct {
 	QueryTotal                  int     `json:"query_total"`
 	QueryTimeInMillis           int     `json:"query_time_in_millis"`
 	QueryCurrent                int     `json:"query_current"`
+	QueryFailed                 int     `json:"query_failed"` // Available in OpenSearch 3.3.0+
 	ConcurrentQueryTotal        int     `json:"concurrent_query_total"`
 	ConcurrentQueryTimeInMillis int     `json:"concurrent_query_time_in_millis"`
 	ConcurrentQueryCurrent      int     `json:"concurrent_query_current"`
@@ -122,6 +123,7 @@ type IndicesStatsSearch struct {
 	StartreeQueryTotal          int     `json:"startree_query_total"`          // Available in OpenSearch 3.2.0+
 	StartreeQueryTimeInMillis   int     `json:"startree_query_time_in_millis"` // Available in OpenSearch 3.2.0+
 	StartreeQueryCurrent        int     `json:"startree_query_current"`        // Available in OpenSearch 3.2.0+
+	StartreeQueryFailed         int     `json:"startree_query_failed"`         // Available in OpenSearch 3.3.0+
 	FetchTotal                  int     `json:"fetch_total"`
 	FetchTimeInMillis           int     `json:"fetch_time_in_millis"`
 	FetchCurrent                int     `json:"fetch_current"`

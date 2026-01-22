@@ -5,6 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+- Enhanced cluster readiness checking for improved test reliability: `ostest.NewClient()` now includes readiness validation (health + cluster state + nodes info)
 
 ### Changed
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
@@ -17,13 +18,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
-- Fix nodes API compatibility with OpenSearch 3.1.0+ by adding phase_results_processors field
-- Fix cluster pending tasks API compatibility with OpenSearch 3.1.0+ by adding time_in_execution fields
-- Fix nodes stats API compatibility with OpenSearch 3.2.0+ by adding max_last_index_request_timestamp and startree query fields
-- Fix indices stats API compatibility with OpenSearch 3.2.0+ by adding max_last_index_request_timestamp and startree query fields
-- Fix cat APIs compatibility with OpenSearch 3.2.0+ by adding indexing timestamp and startree query fields
+- Fix OpenSearch 3.1.0+ API compatibility by adding phase_results_processors field to nodes API and time_in_execution fields to cluster pending tasks API
+- Fix OpenSearch 3.2.0+ API compatibility by adding max_last_index_request_timestamp and startree query fields across nodes stats, indices stats, and cat APIs, plus settings field to security plugin health API
+- Fix OpenSearch 3.3.0+ API compatibility by adding neural_search breaker, query_failed and startree_query_failed search fields, search pipeline system_generated fields across multiple APIs, plus ingestion_status field to cluster state API and jwks_uri field to security config API
+- Fix OpenSearch 3.4.0+ API compatibility by adding warmer fields to merges section, parallelism field to thread pool, and status_counter field across multiple APIs
+- Fix cat indices API field naming compatibility across OpenSearch versions by using forward-compatible field names (PrimarySearchStartreeQuery*) that match the corrected 3.3.0+ naming, with fallback support for the temporary 3.2.0 field names
+- Fix cat APIs data type compatibility by changing byte fields from int to string to properly handle values like "0b"
 - Fix floating point precision loss in nodes stats concurrent_avg_slice_count field by changing from float32 to float64
-- Fix security plugin health API compatibility with OpenSearch 3.2.0+ by adding settings field
 
 ### Security
 

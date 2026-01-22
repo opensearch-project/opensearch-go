@@ -21,7 +21,7 @@ import (
 )
 
 func TestScrollClient(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)

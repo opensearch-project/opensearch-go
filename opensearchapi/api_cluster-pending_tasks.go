@@ -48,6 +48,6 @@ type ClusterPendingTasksItem struct {
 	TimeInQueueMillis     int    `json:"time_in_queue_millis"`
 	TimeInQueue           string `json:"time_in_queue"`
 	TimeInExecutionMillis int    `json:"time_in_execution_millis"` // Available in OpenSearch 3.1.0+
-	TimeInExecution       string `json:"time_in_execution"`       // Available in OpenSearch 3.1.0+
+	TimeInExecution       string `json:"time_in_execution"`        // Available in OpenSearch 3.1.0+
 	Executing             bool   `json:"executing"`
 }

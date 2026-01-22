@@ -21,7 +21,7 @@ import (
 )
 
 func TestScriptClient(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)

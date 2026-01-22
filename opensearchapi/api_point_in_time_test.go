@@ -21,7 +21,7 @@ import (
 )
 
 func TestPointInTimeClient(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 	ostest.SkipIfBelowVersion(t, client, 2, 4, "Point_In_Time")
 	failingClient, err := osapitest.CreateFailingClient()

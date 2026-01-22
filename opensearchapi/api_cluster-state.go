@@ -174,7 +174,8 @@ type ClusterStateMetaDataIndex struct {
 		MetConditions map[string]string `json:"met_conditions"`
 		Time          int               `json:"time"`
 	} `json:"rollover_info"`
-	System bool `json:"system"`
+	System          bool            `json:"system"`
+	IngestionStatus json.RawMessage `json:"ingestion_status"` // Available in OpenSearch 3.3.0+
 }
 
 // ClusterStateMetaDataStream is a sub type of ClusterStateMetaData containing information about a data stream

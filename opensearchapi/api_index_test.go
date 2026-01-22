@@ -24,7 +24,7 @@ import (
 )
 
 func TestIndexClient(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	index := "test-index-test"

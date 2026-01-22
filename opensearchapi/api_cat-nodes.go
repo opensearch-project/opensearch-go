@@ -118,6 +118,7 @@ type CatNodesItemResp struct {
 	SearchQueryCurrent              *int    `json:"search.query_current,string"`
 	SearchQueryTime                 *string `json:"search.query_time"`
 	SearchQueryTotal                *int    `json:"search.query_total,string"`
+	SearchQueryFailed               *int    `json:"search.query_failed,string"` // Available in OpenSearch 3.3.0+
 	SearchConcurrentQueryCurrent    *int    `json:"search.concurrent_query_current,string"`
 	SearchConcurrentQueryTime       *string `json:"search.concurrent_query_time"`
 	SearchConcurrentQueryTotal      *int    `json:"search.concurrent_query_total,string"`
@@ -125,6 +126,7 @@ type CatNodesItemResp struct {
 	SearchStartreeQueryCurrent      *int    `json:"search.startree_query_current,string"` // Available in OpenSearch 3.2.0+
 	SearchStartreeQueryTime         *string `json:"search.startree_query_time"`           // Available in OpenSearch 3.2.0+
 	SearchStartreeQueryTotal        *int    `json:"search.startree_query_total,string"`   // Available in OpenSearch 3.2.0+
+	SearchStartreeQueryFailed       *int    `json:"search.startree_query_failed,string"`  // Available in OpenSearch 3.3.0+
 	SearchScrollCurrent             *int    `json:"search.scroll_current,string"`
 	SearchScrollTime                *string `json:"search.scroll_time"`
 	SearchScrollTotal               *int    `json:"search.scroll_total,string"`

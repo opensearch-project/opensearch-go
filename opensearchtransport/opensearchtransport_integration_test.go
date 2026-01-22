@@ -107,7 +107,7 @@ func TestTransportHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get client config: %s", err)
 	}
-	if config != nil {
+	if ostest.IsSecure() {
 		u, _ := url.Parse("https://localhost:9200")
 		tp, _ = opensearchtransport.New(opensearchtransport.Config{
 			URLs:      []*url.URL{u},
@@ -146,7 +146,7 @@ func TestTransportBodyClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get client config: %s", err)
 	}
-	if config != nil {
+	if ostest.IsSecure() {
 		u, _ := url.Parse("https://localhost:9200")
 		tp, _ = opensearchtransport.New(opensearchtransport.Config{
 			URLs:      []*url.URL{u},
@@ -192,7 +192,7 @@ func TestTransportCompression(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get client config: %s", err)
 	}
-	if config != nil {
+	if ostest.IsSecure() {
 		u, _ := url.Parse("https://localhost:9200")
 		transport, _ = opensearchtransport.New(opensearchtransport.Config{
 			URLs:                []*url.URL{u},

@@ -24,7 +24,7 @@ func TestPoliciesClient(t *testing.T) {
 	client, err := osismtest.NewClient()
 	require.Nil(t, err)
 
-	osClient, err := ostest.NewClient()
+	osClient, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	failingClient, err := osismtest.CreateFailingClient()
