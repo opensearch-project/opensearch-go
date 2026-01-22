@@ -126,17 +126,18 @@ type NodesStatsIndices struct {
 		ReservedInBytes int `json:"reserved_in_bytes"`
 	} `json:"store"`
 	Indexing struct {
-		IndexTotal           int            `json:"index_total"`
-		IndexTimeInMillis    int            `json:"index_time_in_millis"`
-		IndexCurrent         int            `json:"index_current"`
-		IndexFailed          int            `json:"index_failed"`
-		DeleteTotal          int            `json:"delete_total"`
-		DeleteTimeInMillis   int            `json:"delete_time_in_millis"`
-		DeleteCurrent        int            `json:"delete_current"`
-		NoopUpdateTotal      int            `json:"noop_update_total"`
-		IsThrottled          bool           `json:"is_throttled"`
-		ThrottleTimeInMillis int            `json:"throttle_time_in_millis"`
-		DocStatus            map[string]int `json:"doc_status"`
+		IndexTotal                   int            `json:"index_total"`
+		IndexTimeInMillis            int            `json:"index_time_in_millis"`
+		IndexCurrent                 int            `json:"index_current"`
+		IndexFailed                  int            `json:"index_failed"`
+		DeleteTotal                  int            `json:"delete_total"`
+		DeleteTimeInMillis           int            `json:"delete_time_in_millis"`
+		DeleteCurrent                int            `json:"delete_current"`
+		NoopUpdateTotal              int            `json:"noop_update_total"`
+		IsThrottled                  bool           `json:"is_throttled"`
+		ThrottleTimeInMillis         int            `json:"throttle_time_in_millis"`
+		DocStatus                    map[string]int `json:"doc_status"`
+		MaxLastIndexRequestTimestamp int64          `json:"max_last_index_request_timestamp"` // Available in OpenSearch 3.2.0+
 	} `json:"indexing"`
 	Get struct {
 		Total               int    `json:"total"`
@@ -156,7 +157,10 @@ type NodesStatsIndices struct {
 		ConcurrentQueryTotal        int     `json:"concurrent_query_total"`
 		ConcurrentQueryTimeInMillis int     `json:"concurrent_query_time_in_millis"`
 		ConcurrentQueryCurrent      int     `json:"concurrent_query_current"`
-		ConcurrentAVGSliceCount     float32 `json:"concurrent_avg_slice_count"`
+		ConcurrentAVGSliceCount     float64 `json:"concurrent_avg_slice_count"`
+		StartreeQueryTotal          int     `json:"startree_query_total"`          // Available in OpenSearch 3.2.0+
+		StartreeQueryTimeInMillis   int     `json:"startree_query_time_in_millis"` // Available in OpenSearch 3.2.0+
+		StartreeQueryCurrent        int     `json:"startree_query_current"`        // Available in OpenSearch 3.2.0+
 		FetchTotal                  int     `json:"fetch_total"`
 		FetchTimeInMillis           int     `json:"fetch_time_in_millis"`
 		FetchCurrent                int     `json:"fetch_current"`

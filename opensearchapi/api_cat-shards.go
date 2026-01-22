@@ -106,6 +106,9 @@ type CatShardResp struct {
 	SearchConcurrentQueryTime      *string `json:"search.concurrent_query_time"`
 	SearchConcurrentQueryTotal     *int    `json:"search.concurrent_query_total,string"`
 	SearchConcurrentAvgSliceCount  *string `json:"search.concurrent_avg_slice_count"`
+	SearchStartreeQueryCurrent     *int    `json:"search.startree_query_current,string"` // Available in OpenSearch 3.2.0+
+	SearchStartreeQueryTime        *string `json:"search.startree_query_time"`           // Available in OpenSearch 3.2.0+
+	SearchStartreeQueryTotal       *int    `json:"search.startree_query_total,string"`   // Available in OpenSearch 3.2.0+
 	SearchScrollCurrent            *int    `json:"search.scroll_current,string"`
 	SearchScrollTime               *string `json:"search.scroll_time"`
 	SearchScrollTotal              *int    `json:"search.scroll_total,string"`

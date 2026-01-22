@@ -19,6 +19,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
 - Fix nodes API compatibility with OpenSearch 3.1.0+ by adding phase_results_processors field
 - Fix cluster pending tasks API compatibility with OpenSearch 3.1.0+ by adding time_in_execution fields
+- Fix nodes stats API compatibility with OpenSearch 3.2.0+ by adding max_last_index_request_timestamp and startree query fields
+- Fix indices stats API compatibility with OpenSearch 3.2.0+ by adding max_last_index_request_timestamp and startree query fields
+- Fix cat APIs compatibility with OpenSearch 3.2.0+ by adding indexing timestamp and startree query fields
+- Fix floating point precision loss in nodes stats concurrent_avg_slice_count field by changing from float32 to float64
+- Fix security plugin health API compatibility with OpenSearch 3.2.0+ by adding settings field
 
 ### Security
 

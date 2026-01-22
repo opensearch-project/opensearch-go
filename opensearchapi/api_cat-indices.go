@@ -156,6 +156,12 @@ type CatIndexResp struct {
 	PrimarySearchConcurrentQueryTotal    *int    `json:"pri.search.concurrent_query_total,string"`
 	SearchConcurrentAvgSliceCount        *string `json:"search.concurrent_avg_slice_count"`
 	PrimarySearchConcurrentAvgSliceCount *string `json:"pri.search.concurrent_avg_slice_count"`
+	SearchStartreeQueryCurrent           *int    `json:"search.startree_query_current,string"`     // Available in OpenSearch 3.2.0+
+	PrimaryStartreeQueryCurrent          *int    `json:"pri.search.startree.query_current,string"` // Available in OpenSearch 3.2.0+
+	SearchStartreeQueryTime              *string `json:"search.startree_query_time"`               // Available in OpenSearch 3.2.0+
+	PrimaryStartreeQueryTime             *string `json:"pri.search.startree.query_time"`           // Available in OpenSearch 3.2.0+
+	SearchStartreeQueryTotal             *string `json:"search.startree_query_total"`              // Available in OpenSearch 3.2.0+
+	PrimaryStartreeQueryTotal            *string `json:"pri.search.startree.query_total"`          // Available in OpenSearch 3.2.0+
 	SearchScrollCurrent                  *int    `json:"search.scroll_current,string"`
 	PrimarySearchScrollCurrent           *int    `json:"pri.search.scroll_current,string"`
 	SearchScrollTime                     *string `json:"search.scroll_time"`
@@ -193,6 +199,8 @@ type CatIndexResp struct {
 	MemoryTotal                          string  `json:"memory.total"`
 	PrimaryMemoryTotal                   string  `json:"pri.memory.total"`
 	SearchThrottled                      bool    `json:"search.throttled,string"`
+	LastIndexRequestTimestamp            *string `json:"last_index_request_timestamp"`        // Available in OpenSearch 3.2.0+
+	LastIndexRequestTimestampString      *string `json:"last_index_request_timestamp_string"` // Available in OpenSearch 3.2.0+
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response
