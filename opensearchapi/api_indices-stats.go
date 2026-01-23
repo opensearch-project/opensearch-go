@@ -152,6 +152,17 @@ type IndicesStatsMerges struct {
 	TotalThrottledTimeInMillis        int   `json:"total_throttled_time_in_millis"`
 	TotalAutoThrottleInBytes          int   `json:"total_auto_throttle_in_bytes"`
 	UnreferencedFileCleanupsPerformed int   `json:"unreferenced_file_cleanups_performed"`
+	// Warmer field added in OpenSearch 3.4.0+
+	Warmer *struct {
+		TotalInvocationsCount  int `json:"total_invocations_count"`
+		TotalTimeMillis        int `json:"total_time_millis"`
+		TotalFailureCount      int `json:"total_failure_count"`
+		TotalBytesSent         int `json:"total_bytes_sent"`
+		TotalBytesReceived     int `json:"total_bytes_received"`
+		TotalSendTimeMillis    int `json:"total_send_time_millis"`
+		TotalReceiveTimeMillis int `json:"total_receive_time_millis"`
+		OngoingCount           int `json:"ongoing_count"`
+	} `json:"warmer,omitempty"`
 }
 
 // IndicesStatsRefresh is a sub type of IndicesStatsInfo containing stats about index refresh

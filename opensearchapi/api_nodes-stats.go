@@ -198,6 +198,17 @@ type NodesStatsIndices struct {
 		TotalThrottledTimeInMillis        int `json:"total_throttled_time_in_millis"`
 		TotalAutoThrottleInBytes          int `json:"total_auto_throttle_in_bytes"`
 		UnreferencedFileCleanupsPerformed int `json:"unreferenced_file_cleanups_performed"`
+		// Warmer field added in OpenSearch 3.4.0+
+		Warmer *struct {
+			TotalInvocationsCount  int `json:"total_invocations_count"`
+			TotalTimeMillis        int `json:"total_time_millis"`
+			TotalFailureCount      int `json:"total_failure_count"`
+			TotalBytesSent         int `json:"total_bytes_sent"`
+			TotalBytesReceived     int `json:"total_bytes_received"`
+			TotalSendTimeMillis    int `json:"total_send_time_millis"`
+			TotalReceiveTimeMillis int `json:"total_receive_time_millis"`
+			OngoingCount           int `json:"ongoing_count"`
+		} `json:"warmer,omitempty"`
 	} `json:"merges"`
 	Refresh struct {
 		Total                     int `json:"total"`
@@ -311,6 +322,19 @@ type NodesStatsIndices struct {
 		CurrentAsTarget      int `json:"current_as_target"`
 		ThrottleTimeInMillis int `json:"throttle_time_in_millis"`
 	} `json:"recovery"`
+	// StatusCounter field added in OpenSearch 3.4.0+
+	StatusCounter *struct {
+		DocStatus struct {
+			Success       int `json:"success"`
+			UserError     int `json:"user_error"`
+			SystemFailure int `json:"system_failure"`
+		} `json:"doc_status"`
+		SearchResponseStatus struct {
+			Success       int `json:"success"`
+			UserError     int `json:"user_error"`
+			SystemFailure int `json:"system_failure"`
+		} `json:"search_response_status"`
+	} `json:"status_counter,omitempty"`
 }
 
 // NodesStatsOS is a sub type of NodesStats representing operating system information of the node
