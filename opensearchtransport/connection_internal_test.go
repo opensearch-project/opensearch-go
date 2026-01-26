@@ -41,7 +41,7 @@ func TestSingleConnectionPoolNext(t *testing.T) {
 			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 		}
 
-		for i := 0; i < 7; i++ {
+		for range 7 {
 			c, err := pool.Next()
 			if err != nil {
 				t.Errorf("Unexpected error: %s", err)
@@ -121,7 +121,7 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		}
 
 		var expected string
-		for i := 0; i < 11; i++ {
+		for i := range 11 {
 			c, err := pool.Next()
 			if err != nil {
 				t.Errorf("Unexpected error: %s", err)

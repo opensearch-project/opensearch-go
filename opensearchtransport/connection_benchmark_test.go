@@ -134,7 +134,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	b.ReportAllocs()
 
 	conns := make([]*Connection, 1000)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		conns[i] = &Connection{URL: &url.URL{Scheme: "http", Host: fmt.Sprintf("foo%d", i)}}
 	}
 

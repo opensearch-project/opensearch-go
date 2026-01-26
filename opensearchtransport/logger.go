@@ -54,8 +54,8 @@ type Logger interface {
 
 // DebuggingLogger defines the interface for a debugging logger.
 type DebuggingLogger interface {
-	Log(a ...interface{}) error
-	Logf(format string, a ...interface{}) error
+	Log(a ...any) error
+	Logf(format string, a ...any) error
 }
 
 // TextLogger prints the log message in plain text.
@@ -400,13 +400,13 @@ func (l *JSONLogger) RequestBodyEnabled() bool { return l.EnableRequestBody }
 func (l *JSONLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 
 // Log prints the arguments to output in default format.
-func (l *debuggingLogger) Log(a ...interface{}) error {
+func (l *debuggingLogger) Log(a ...any) error {
 	_, err := fmt.Fprint(l.Output, a...)
 	return err
 }
 
 // Logf prints formats the arguments and prints them to output.
-func (l *debuggingLogger) Logf(format string, a ...interface{}) error {
+func (l *debuggingLogger) Logf(format string, a ...any) error {
 	_, err := fmt.Fprintf(l.Output, format, a...)
 	return err
 }

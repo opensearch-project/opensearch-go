@@ -29,6 +29,7 @@ package opensearchtransport
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 	"sync"
@@ -96,9 +97,7 @@ func (c *Client) Metrics() (Metrics, error) {
 	// Build responses map with pre-allocated capacity (READ operation)
 	c.metrics.mu.RLock()
 	responses := make(map[int]int, len(c.metrics.mu.responses))
-	for statusCode, count := range c.metrics.mu.responses {
-		responses[statusCode] = count
-	}
+	maps.Copy(responses, c.metrics.mu.responses)
 	c.metrics.mu.RUnlock()
 
 	// Acquire read lock on pool since we're only reading connection state

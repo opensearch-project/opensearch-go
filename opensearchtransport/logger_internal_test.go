@@ -72,7 +72,7 @@ func TestTransportLogger(t *testing.T) {
 			// Logger: io.Discard,
 		})
 
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -229,7 +229,7 @@ func TestTransportLogger(t *testing.T) {
 
 		var output string
 		stripANSI := regexp.MustCompile("(?sm)\x1b\\[.+?m([^\x1b]+?)|\x1b\\[0m")
-		for _, v := range strings.Split(dst.String(), "\n") {
+		for v := range strings.SplitSeq(dst.String(), "\n") {
 			if v != "" {
 				output += stripANSI.ReplaceAllString(v, "$1")
 				if !strings.HasSuffix(output, "\n") {
@@ -323,12 +323,12 @@ func TestTransportLogger(t *testing.T) {
 			t.Fatalf("Expected 1 line, got %d", len(lines))
 		}
 
-		var j map[string]interface{}
+		var j map[string]any
 		if err := json.Unmarshal([]byte(output), &j); err != nil {
 			t.Errorf("Error decoding JSON: %s", err)
 		}
 
-		domain := j["url"].(map[string]interface{})["domain"]
+		domain := j["url"].(map[string]any)["domain"]
 		if domain != "foo" {
 			t.Errorf("Unexpected JSON output: %s", domain)
 		}
@@ -367,12 +367,12 @@ func TestTransportLogger(t *testing.T) {
 			t.Fatalf("Expected 1 line, got %d", len(lines))
 		}
 
-		var j map[string]interface{}
+		var j map[string]any
 		if err := json.Unmarshal([]byte(output), &j); err != nil {
 			t.Errorf("Error decoding JSON: %s", err)
 		}
 
-		body := j["http"].(map[string]interface{})["request"].(map[string]interface{})["body"].(string)
+		body := j["http"].(map[string]any)["request"].(map[string]any)["body"].(string)
 		if !strings.Contains(body, "query") {
 			t.Errorf("Unexpected JSON output: %s", body)
 		}

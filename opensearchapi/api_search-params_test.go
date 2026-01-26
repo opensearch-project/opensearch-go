@@ -50,7 +50,7 @@ func TestSearchParams_get(t *testing.T) {
 		SeqNoPrimaryTerm           *bool
 		Size                       *int
 		Sort                       []string
-		Source                     interface{}
+		Source                     any
 		SourceExcludes             []string
 		SourceIncludes             []string
 		Stats                      []string
@@ -62,7 +62,7 @@ func TestSearchParams_get(t *testing.T) {
 		TerminateAfter             *int
 		Timeout                    time.Duration
 		TrackScores                *bool
-		TrackTotalHits             interface{}
+		TrackTotalHits             any
 		TypedKeys                  *bool
 		Version                    *bool
 		Pretty                     bool

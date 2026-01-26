@@ -237,7 +237,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 }
 
 // Do gets and performs the request. It also tries to parse the response into the dataPointer
-func (c *Client) Do(ctx context.Context, req Request, dataPointer interface{}) (*Response, error) {
+func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Response, error) {
 	httpReq, err := req.GetRequest()
 	if err != nil {
 		return nil, err
