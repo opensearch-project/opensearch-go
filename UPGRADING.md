@@ -11,10 +11,10 @@
 
 # Upgrading Opensearch GO Client
 
-## Upgrading to >= 5.0.0
-Version 5.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.
+## Upgrading to >= 4.0.0
+Version 4.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.
 
-Before 5.0.0:
+Before 4.0.0:
 ```go
 docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
 if err != nil {
@@ -33,7 +33,7 @@ if err != nil {
 }
 ```
 
-After 5.0.0:
+After 4.0.0:
 ```go
 docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
 if err != nil {
