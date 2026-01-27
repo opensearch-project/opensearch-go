@@ -5,6 +5,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
+* Added `NumFailedToAdd` to `BulkIndexerStats` to correctly track items dropped due to client-side errors (e.g., context timeout) ([#784](https://github.com/opensearch-project/opensearch-go/pull/784))
 
 ### Changed
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))

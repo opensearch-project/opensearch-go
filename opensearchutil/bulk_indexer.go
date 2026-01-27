@@ -92,14 +92,15 @@ type BulkIndexerConfig struct {
 
 // BulkIndexerStats represents the indexer statistics.
 type BulkIndexerStats struct {
-	NumAdded    uint64
-	NumFlushed  uint64
-	NumFailed   uint64
-	NumIndexed  uint64
-	NumCreated  uint64
-	NumUpdated  uint64
-	NumDeleted  uint64
-	NumRequests uint64
+	NumAdded       uint64
+	NumFailedToAdd uint64
+	NumFlushed     uint64
+	NumFailed      uint64
+	NumIndexed     uint64
+	NumCreated     uint64
+	NumUpdated     uint64
+	NumDeleted     uint64
+	NumRequests    uint64
 }
 
 // BulkIndexerItem represents an indexer item.
@@ -153,14 +154,15 @@ type bulkIndexer struct {
 }
 
 type bulkIndexerStats struct {
-	numAdded    uint64
-	numFlushed  uint64
-	numFailed   uint64
-	numIndexed  uint64
-	numCreated  uint64
-	numUpdated  uint64
-	numDeleted  uint64
-	numRequests uint64
+	numAdded       uint64
+	numFailedToAdd uint64
+	numFlushed     uint64
+	numFailed      uint64
+	numIndexed     uint64
+	numCreated     uint64
+	numUpdated     uint64
+	numDeleted     uint64
+	numRequests    uint64
 }
 
 // NewBulkIndexer creates a new bulk indexer.
@@ -200,15 +202,15 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 //
 // Adding an item after a call to Close() will panic.
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
-	atomic.AddUint64(&bi.stats.numAdded, 1)
-
 	select {
 	case <-ctx.Done():
+		atomic.AddUint64(&bi.stats.numFailedToAdd, 1)
 		if bi.config.OnError != nil {
 			bi.config.OnError(ctx, ctx.Err())
 		}
 		return ctx.Err()
 	case bi.queue <- item:
+		atomic.AddUint64(&bi.stats.numAdded, 1)
 	}
 
 	return nil
@@ -251,14 +253,15 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 // Stats returns indexer statistics.
 func (bi *bulkIndexer) Stats() BulkIndexerStats {
 	return BulkIndexerStats{
-		NumAdded:    atomic.LoadUint64(&bi.stats.numAdded),
-		NumFlushed:  atomic.LoadUint64(&bi.stats.numFlushed),
-		NumFailed:   atomic.LoadUint64(&bi.stats.numFailed),
-		NumIndexed:  atomic.LoadUint64(&bi.stats.numIndexed),
-		NumCreated:  atomic.LoadUint64(&bi.stats.numCreated),
-		NumUpdated:  atomic.LoadUint64(&bi.stats.numUpdated),
-		NumDeleted:  atomic.LoadUint64(&bi.stats.numDeleted),
-		NumRequests: atomic.LoadUint64(&bi.stats.numRequests),
+		NumAdded:       atomic.LoadUint64(&bi.stats.numAdded),
+		NumFailedToAdd: atomic.LoadUint64(&bi.stats.numFailedToAdd),
+		NumFlushed:     atomic.LoadUint64(&bi.stats.numFlushed),
+		NumFailed:      atomic.LoadUint64(&bi.stats.numFailed),
+		NumIndexed:     atomic.LoadUint64(&bi.stats.numIndexed),
+		NumCreated:     atomic.LoadUint64(&bi.stats.numCreated),
+		NumUpdated:     atomic.LoadUint64(&bi.stats.numUpdated),
+		NumDeleted:     atomic.LoadUint64(&bi.stats.numDeleted),
+		NumRequests:    atomic.LoadUint64(&bi.stats.numRequests),
 	}
 }
 
