@@ -26,7 +26,7 @@
 
 //go:build !integration
 
-//nolint:testpackage // Can't be testpackage, because it tests the function resurrect()
+//nolint:testpackage // Can't be testpackage, because it tests the function resurrectWithLock()
 package opensearchtransport
 
 import (
@@ -118,12 +118,16 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 }
 
 func createStatusConnectionPool(conns []*Connection) *statusConnectionPool {
-	return &statusConnectionPool{
-		live:                         conns,
-		selector:                     &roundRobinSelector{curr: -1},
+	s := &roundRobinSelector{}
+	s.curr.Store(-1)
+
+	pool := &statusConnectionPool{
+		selector:                     s,
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
+	pool.mu.live = conns
+	return pool
 }
 
 func BenchmarkStatusConnectionPool(b *testing.B) {
@@ -277,9 +281,9 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 			}
 
 			for i := 0; i < b.N; i++ {
-				pool.Lock()
-				pool.resurrect(c, true)
-				pool.Unlock()
+				pool.mu.Lock()
+				pool.resurrectWithLock(c, true)
+				pool.mu.Unlock()
 			}
 		})
 
@@ -296,9 +300,9 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 				}
 
 				for pb.Next() {
-					pool.Lock()
-					pool.resurrect(c, true)
-					pool.Unlock()
+					pool.mu.Lock()
+					pool.resurrectWithLock(c, true)
+					pool.mu.Unlock()
 				}
 			})
 		})
@@ -316,9 +320,9 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 				}
 
 				for pb.Next() {
-					pool.Lock()
-					pool.resurrect(c, true)
-					pool.Unlock()
+					pool.mu.Lock()
+					pool.resurrectWithLock(c, true)
+					pool.mu.Unlock()
 				}
 			})
 		})

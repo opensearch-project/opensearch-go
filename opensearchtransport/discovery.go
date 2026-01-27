@@ -100,19 +100,19 @@ func (c *Client) DiscoverNodes() error {
 		})
 	}
 
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if lockable, ok := c.pool.(sync.Locker); ok {
+	if lockable, ok := c.mu.pool.(sync.Locker); ok {
 		lockable.Lock()
 		defer lockable.Unlock()
 	}
 
 	if c.poolFunc != nil {
-		c.pool = c.poolFunc(conns, c.selector)
+		c.mu.pool = c.poolFunc(conns, c.selector)
 	} else {
 		// TODO: Replace only live connections, leave dead scheduled for resurrect?
-		c.pool = NewConnectionPool(conns, c.selector)
+		c.mu.pool = NewConnectionPool(conns, c.selector)
 	}
 
 	return nil
@@ -126,9 +126,9 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 		return nil, err
 	}
 
-	c.Lock()
-	conn, err := c.pool.Next()
-	c.Unlock()
+	c.mu.Lock()
+	conn, err := c.mu.pool.Next()
+	c.mu.Unlock()
 	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
 		return nil, err
@@ -211,14 +211,14 @@ func (c *Client) scheduleDiscoverNodes() {
 	//nolint:errcheck // errors are logged inside the function
 	go c.DiscoverNodes()
 
-	c.Lock()
-	defer c.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	if c.discoverNodesTimer != nil {
-		c.discoverNodesTimer.Stop()
+	if c.mu.discoverNodesTimer != nil {
+		c.mu.discoverNodesTimer.Stop()
 	}
 
-	c.discoverNodesTimer = time.AfterFunc(c.discoverNodesInterval, func() {
+	c.mu.discoverNodesTimer = time.AfterFunc(c.discoverNodesInterval, func() {
 		c.scheduleDiscoverNodes()
 	})
 }

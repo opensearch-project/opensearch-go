@@ -182,11 +182,11 @@ func TestTransportConnectionPool(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
 
-		if _, ok := tp.pool.(*singleConnectionPool); !ok {
+		if _, ok := tp.mu.pool.(*singleConnectionPool); !ok {
 			t.Errorf("Expected connection to be singleConnectionPool, got: %T", tp)
 		}
 
-		conn, err := tp.pool.Next()
+		conn, err := tp.mu.pool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -207,11 +207,11 @@ func TestTransportConnectionPool(t *testing.T) {
 			{Scheme: "http", Host: "foo2"},
 		}})
 
-		if _, ok := tp.pool.(*statusConnectionPool); !ok {
+		if _, ok := tp.mu.pool.(*statusConnectionPool); !ok {
 			t.Errorf("Expected connection to be statusConnectionPool, got: %T", tp)
 		}
 
-		conn, err = tp.pool.Next()
+		conn, err = tp.mu.pool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -219,7 +219,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected URL, want=foo1, got=%s", conn.URL)
 		}
 
-		conn, err = tp.pool.Next()
+		conn, err = tp.mu.pool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -227,7 +227,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected URL, want=http://foo2, got=%s", conn.URL)
 		}
 
-		conn, err = tp.pool.Next()
+		conn, err = tp.mu.pool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -276,22 +276,22 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 			},
 		})
 
-		if _, ok := tp.pool.(*CustomConnectionPool); !ok {
-			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.pool)
+		if _, ok := tp.mu.pool.(*CustomConnectionPool); !ok {
+			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.mu.pool)
 		}
 
-		conn, err := tp.pool.Next()
+		conn, err := tp.mu.pool.Next()
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		if conn.URL == nil {
 			t.Errorf("Empty connection URL: %+v", conn)
 		}
-		if err := tp.pool.OnFailure(conn); err != nil {
+		if err := tp.mu.pool.OnFailure(conn); err != nil {
 			t.Errorf("Error removing the %q connection: %s", conn.URL, err)
 		}
-		if len(tp.pool.URLs()) != 1 {
-			t.Errorf("Unexpected number of connections in pool: %q", tp.pool)
+		if len(tp.mu.pool.URLs()) != 1 {
+			t.Errorf("Unexpected number of connections in pool: %q", tp.mu.pool)
 		}
 	})
 }

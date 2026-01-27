@@ -33,6 +33,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 )
@@ -51,10 +52,12 @@ func TestMetrics(t *testing.T) {
 			},
 		)
 
-		tp.metrics.requests = 3
-		tp.metrics.failures = 4
-		tp.metrics.responses[200] = 1
-		tp.metrics.responses[404] = 2
+		tp.metrics.requests.Store(3)
+		tp.metrics.failures.Store(4)
+		tp.metrics.mu.Lock()
+		tp.metrics.mu.responses[200] = 1
+		tp.metrics.mu.responses[404] = 2
+		tp.metrics.mu.Unlock()
 
 		req, _ := http.NewRequest(http.MethodHead, "/", nil)
 		resp, err := tp.Perform(req)
@@ -120,5 +123,30 @@ func TestMetrics(t *testing.T) {
 		if !match {
 			t.Errorf("Unexpected output: %s", m)
 		}
+	})
+
+	t.Run("incrementResponse method", func(t *testing.T) {
+		m := &metrics{
+			mu: struct {
+				sync.RWMutex
+				responses map[int]int
+			}{
+				responses: make(map[int]int),
+			},
+		}
+
+		// Test incrementResponse method directly
+		m.incrementResponse(200)
+		m.incrementResponse(404)
+		m.incrementResponse(200) // increment same code again
+
+		m.mu.RLock()
+		if m.mu.responses[200] != 2 {
+			t.Errorf("Expected 2 responses for status 200, got %d", m.mu.responses[200])
+		}
+		if m.mu.responses[404] != 1 {
+			t.Errorf("Expected 1 response for status 404, got %d", m.mu.responses[404])
+		}
+		m.mu.RUnlock()
 	})
 }
