@@ -462,7 +462,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -504,7 +505,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -546,7 +548,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -634,7 +637,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -789,7 +793,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -824,7 +829,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
