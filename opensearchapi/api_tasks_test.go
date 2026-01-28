@@ -27,16 +27,16 @@ import (
 func TestTasksClient(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sourceIndex := "test-tasks-source"
 	destIndex := "test-tasks-dest"
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -85,7 +85,7 @@ func TestTasksClient(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, respReindex)
 
 	type tasksTests struct {
@@ -103,13 +103,13 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Tasks.List(nil, nil)
+						return client.Tasks.List(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.List(nil, nil)
+						return failingClient.Tasks.List(t.Context(), nil)
 					},
 				},
 			},
@@ -120,13 +120,13 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Tasks.Get(nil, opensearchapi.TasksGetReq{TaskID: respReindex.Task})
+						return client.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{TaskID: respReindex.Task})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.Get(nil, opensearchapi.TasksGetReq{})
+						return failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{})
 					},
 				},
 			},
@@ -137,13 +137,13 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Tasks.Cancel(nil, opensearchapi.TasksCancelReq{TaskID: respReindex.Task})
+						return client.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{TaskID: respReindex.Task})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.Cancel(nil, opensearchapi.TasksCancelReq{})
+						return failingClient.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{})
 					},
 				},
 			},
@@ -155,11 +155,11 @@ func TestTasksClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" && value.Name != "Exists" {

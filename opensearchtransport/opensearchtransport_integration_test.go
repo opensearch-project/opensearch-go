@@ -43,9 +43,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
-var (
-	_ = fmt.Print
-)
+var _ = fmt.Print
 
 func TestTransportRetries(t *testing.T) {
 	var counter int
@@ -71,7 +69,7 @@ func TestTransportRetries(t *testing.T) {
 		t.Run(fmt.Sprintf("Reset the %T request body", body), func(t *testing.T) {
 			counter = 0
 
-			req, err := http.NewRequest("GET", "/", body)
+			req, err := http.NewRequest(http.MethodGet, "/", body)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -118,7 +116,7 @@ func TestTransportHeaders(t *testing.T) {
 		})
 	}
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Perform(req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
@@ -156,7 +154,7 @@ func TestTransportBodyClose(t *testing.T) {
 		})
 	}
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Perform(req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
@@ -171,7 +169,7 @@ func TestTransportBodyClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read the response body: %s", err)
 	}
-	if body == nil || len(body) == 0 {
+	if len(body) == 0 {
 		t.Fatalf("Unexpected response body:\n%s", body)
 	}
 }

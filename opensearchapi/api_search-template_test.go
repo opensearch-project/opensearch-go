@@ -23,16 +23,16 @@ import (
 
 func TestSearchTemplate(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := "test-search-template"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -40,28 +40,28 @@ func TestSearchTemplate(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.SearchTemplate(
-			nil,
+			t.Context(),
 			opensearchapi.SearchTemplateReq{
 				Indices: []string{testIndex},
 				Body:    strings.NewReader(`{"source":{"query":{"exists":{"field":"{{field}}"}}},"params":{"field":"foo"}}`),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.SearchTemplate(nil, opensearchapi.SearchTemplateReq{})
-		assert.NotNil(t, err)
+		res, err := failingClient.SearchTemplate(t.Context(), opensearchapi.SearchTemplateReq{})
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

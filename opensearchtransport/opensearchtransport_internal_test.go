@@ -464,6 +464,7 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -507,6 +508,7 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -550,6 +552,7 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -637,8 +640,10 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs:                  []*url.URL{u, u, u},
+				MaxRetries:            3,                 // Be explicit about retries
+				URLs:                  []*url.URL{u},     // Use single URL to avoid connection resurrection
 				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 				Transport: &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 						i++
@@ -862,8 +867,9 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numReqs,
-			URLs:       []*url.URL{u, u, u},
+			MaxRetries:  numReqs,
+			URLs:        []*url.URL{u},     // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 			Transport: &mockTransp{
 				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 					i++
@@ -950,8 +956,9 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numRetries,
-			URLs:       []*url.URL{u, u, u},
+			MaxRetries:  numRetries,
+			URLs:        []*url.URL{u},     // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 			Transport: &mockTransp{
 				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
 					i++

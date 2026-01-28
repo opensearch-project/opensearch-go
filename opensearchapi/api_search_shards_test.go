@@ -9,6 +9,8 @@
 package opensearchapi_test
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -21,41 +23,41 @@ import (
 
 func TestSearchShards(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	index := "test-index-search-shards"
+	index := fmt.Sprintf("test-index-search-shards-%d", rand.Int63())
 
 	_, err = client.Indices.Create(
-		nil,
+		t.Context(),
 		opensearchapi.IndicesCreateReq{
 			Index: index,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.SearchShards(nil, nil)
-		require.Nil(t, err)
+		resp, err := client.SearchShards(t.Context(), nil)
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.SearchShards(nil, &opensearchapi.SearchShardsReq{Indices: []string{index}})
-		require.Nil(t, err)
+		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.SearchShards(nil, nil)
-		assert.NotNil(t, err)
+		res, err := failingClient.SearchShards(t.Context(), nil)
+		assert.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

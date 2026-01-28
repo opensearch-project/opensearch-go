@@ -1,5 +1,8 @@
 SHELL := /bin/bash
 
+# Tool versions
+GOLANGCI_LINT_VERSION := v2.8.0
+
 ##@ Format project using goimports tool
 format:
 	goimports -w .;
@@ -236,7 +239,7 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker system prune --volumes --force
 
 linters:
-	docker run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/v2.7.2:/root/.cache -w /app golangci/golangci-lint:v2.7.2 golangci-lint run --timeout=5m -v
+	docker run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/$(GOLANGCI_LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --fix --build-tags "integration core" --timeout=5m -v ./...
 
 workflow: ## Run all github workflow commands here sequentially
 

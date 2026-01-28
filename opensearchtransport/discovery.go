@@ -200,12 +200,30 @@ func (c *Client) DiscoverNodes() error {
 		if debugLogger != nil {
 			debugLogger.Logf("Attempting health check for discovered node [%q] %q\n", node.Name, node.URL)
 		}
-		version, err := c.isHealthyOpenSearchNode(node.URL)
+
+		ctx, cancel := context.WithTimeout(context.Background(), defaultHealthCheckTimeout)
+		resp, err := c.defaultHealthCheck(ctx, node.URL)
+		cancel()
+
 		if err != nil {
 			if debugLogger != nil {
 				debugLogger.Logf("Health check failed for node [%q] %q: %s; [SKIP]\n", node.Name, node.URL, err)
 			}
 			continue
+		}
+
+		// Extract version for logging
+		version := "unknown"
+		if resp != nil && resp.Body != nil {
+			if body, readErr := io.ReadAll(resp.Body); readErr == nil {
+				resp.Body.Close()
+				var info OpenSearchInfo
+				if jsonErr := json.Unmarshal(body, &info); jsonErr == nil && info.Version.Number != "" {
+					version = info.Version.Number
+				}
+			} else if resp.Body != nil {
+				resp.Body.Close()
+			}
 		}
 
 		if debugLogger != nil {
@@ -245,7 +263,7 @@ func (c *Client) DiscoverNodes() error {
 
 	// Set up health check function for pools that support it
 	if pool, ok := c.mu.pool.(*statusConnectionPool); ok {
-		pool.healthCheck = c.isHealthyOpenSearchNode
+		pool.healthCheck = c.defaultHealthCheck
 	}
 
 	return nil

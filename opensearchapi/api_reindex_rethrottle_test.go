@@ -27,14 +27,14 @@ import (
 func TestReindexRethrottle(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sourceIndex := "test-reindex-rethrottle-source"
 	destIndex := "test-reindex-rethrottle-dest"
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -44,7 +44,7 @@ func TestReindexRethrottle(t *testing.T) {
 
 	for _, index := range testIndices {
 		client.Indices.Create(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesCreateReq{
 				Index: index,
 				Body:  strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
@@ -71,7 +71,7 @@ func TestReindexRethrottle(t *testing.T) {
 	}
 
 	reindex, err := client.Reindex(
-		nil,
+		t.Context(),
 		opensearchapi.ReindexReq{
 			Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s","size":1},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
 			Params: opensearchapi.ReindexParams{
@@ -80,26 +80,26 @@ func TestReindexRethrottle(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.ReindexRethrottle(
-			nil,
+			t.Context(),
 			opensearchapi.ReindexRethrottleReq{
 				TaskID: reindex.Task,
 				Params: opensearchapi.ReindexRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(40)},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.ReindexRethrottle(nil, opensearchapi.ReindexRethrottleReq{})
-		assert.NotNil(t, err)
+		res, err := failingClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{})
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

@@ -29,9 +29,13 @@
 package opensearchtransport
 
 import (
+	"context"
+	"encoding/json"
+	"io"
 	"net/url"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestHealthCheckIntegration(t *testing.T) {
@@ -55,15 +59,32 @@ func TestHealthCheckIntegration(t *testing.T) {
 	}
 
 	t.Run("Health check against real OpenSearch", func(t *testing.T) {
-		version, err := client.isHealthyOpenSearchNode(u)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		resp, err := client.defaultHealthCheck(ctx, u)
 		if err != nil {
 			t.Fatalf("Health check failed: %v", err)
 		}
 
+		// Extract version for logging
+		version := "unknown"
+		if resp != nil && resp.Body != nil {
+			if body, readErr := io.ReadAll(resp.Body); readErr == nil {
+				resp.Body.Close()
+				var info OpenSearchInfo
+				if jsonErr := json.Unmarshal(body, &info); jsonErr == nil && info.Version.Number != "" {
+					version = info.Version.Number
+				}
+			} else if resp.Body != nil {
+				resp.Body.Close()
+			}
+		}
+
 		t.Logf("OpenSearch version: %s", version)
 
-		if version == "" {
-			t.Error("Version should not be empty")
+		if version == "" || version == "unknown" {
+			t.Error("Version should not be empty or unknown")
 		}
 	})
 

@@ -29,6 +29,8 @@
 package opensearchtransport
 
 import (
+	"context"
+	"net/http"
 	"net/url"
 	"regexp"
 	"testing"
@@ -541,11 +543,19 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 			minimumResurrectTimeout:      0, // Allow immediate resurrection for test
 			jitterScale:                  defaultJitterScale,
 			// Mock health check function that always succeeds for tests
-			healthCheck: func(u *url.URL) (string, error) {
+			healthCheck: func(ctx context.Context, u *url.URL) (*http.Response, error) {
 				t.Logf("Health check called for %s", u)
 				// Signal completion after health check
 				defer close(done)
-				return "2.0.0", nil
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Proto:      "HTTP/1.1",
+					ProtoMajor: 1,
+					ProtoMinor: 1,
+					Header:     make(http.Header),
+					Body:       http.NoBody,
+				}, nil
 			},
 		}
 		pool.mu.live = []*Connection{}

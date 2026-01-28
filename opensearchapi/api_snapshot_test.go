@@ -24,9 +24,9 @@ import (
 
 func TestSnapshotClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testRepo := "test-repository"
 	testSnapshot := "test-snapshot"
@@ -34,12 +34,24 @@ func TestSnapshotClient(t *testing.T) {
 	testIndex := "test-snapshot"
 
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		// Clean up snapshots first (snapshots must be deleted before repositories)
+		client.Snapshot.Delete(t.Context(), opensearchapi.SnapshotDeleteReq{
+			Repo:      testRepo,
+			Snapshots: []string{testSnapshot, testCloneSnapshot},
+		})
+
+		// Clean up repository
+		client.Snapshot.Repository.Delete(t.Context(), opensearchapi.SnapshotRepositoryDeleteReq{
+			Repos: []string{testRepo},
+		})
+
+		// Clean up test index
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -47,7 +59,7 @@ func TestSnapshotClient(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	type snapshotTests struct {
@@ -65,7 +77,7 @@ func TestSnapshotClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Snapshot.Repository.Create(
-							nil,
+							t.Context(),
 							opensearchapi.SnapshotRepositoryCreateReq{
 								Repo: testRepo,
 								Body: strings.NewReader(`{"type":"fs","settings":{"location":"/usr/share/opensearch/mnt"}}`),
@@ -76,7 +88,7 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Repository.Create(nil, opensearchapi.SnapshotRepositoryCreateReq{})
+						return failingClient.Snapshot.Repository.Create(t.Context(), opensearchapi.SnapshotRepositoryCreateReq{})
 					},
 				},
 			},
@@ -87,13 +99,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Repository.Get(nil, &opensearchapi.SnapshotRepositoryGetReq{Repos: []string{testRepo}})
+						return client.Snapshot.Repository.Get(t.Context(), &opensearchapi.SnapshotRepositoryGetReq{Repos: []string{testRepo}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Repository.Get(nil, nil)
+						return failingClient.Snapshot.Repository.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -104,13 +116,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Repository.Cleanup(nil, opensearchapi.SnapshotRepositoryCleanupReq{Repo: testRepo})
+						return client.Snapshot.Repository.Cleanup(t.Context(), opensearchapi.SnapshotRepositoryCleanupReq{Repo: testRepo})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Repository.Cleanup(nil, opensearchapi.SnapshotRepositoryCleanupReq{})
+						return failingClient.Snapshot.Repository.Cleanup(t.Context(), opensearchapi.SnapshotRepositoryCleanupReq{})
 					},
 				},
 			},
@@ -121,13 +133,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Repository.Verify(nil, opensearchapi.SnapshotRepositoryVerifyReq{Repo: testRepo})
+						return client.Snapshot.Repository.Verify(t.Context(), opensearchapi.SnapshotRepositoryVerifyReq{Repo: testRepo})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Repository.Verify(nil, opensearchapi.SnapshotRepositoryVerifyReq{})
+						return failingClient.Snapshot.Repository.Verify(t.Context(), opensearchapi.SnapshotRepositoryVerifyReq{})
 					},
 				},
 			},
@@ -139,7 +151,7 @@ func TestSnapshotClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Snapshot.Create(
-							nil,
+							t.Context(),
 							opensearchapi.SnapshotCreateReq{
 								Repo:     testRepo,
 								Snapshot: testSnapshot,
@@ -152,7 +164,7 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Create(nil, opensearchapi.SnapshotCreateReq{})
+						return failingClient.Snapshot.Create(t.Context(), opensearchapi.SnapshotCreateReq{})
 					},
 				},
 			},
@@ -164,7 +176,7 @@ func TestSnapshotClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Snapshot.Clone(
-							nil,
+							t.Context(),
 							opensearchapi.SnapshotCloneReq{
 								Repo:           testRepo,
 								Snapshot:       testSnapshot,
@@ -177,7 +189,7 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Clone(nil, opensearchapi.SnapshotCloneReq{})
+						return failingClient.Snapshot.Clone(t.Context(), opensearchapi.SnapshotCloneReq{})
 					},
 				},
 			},
@@ -188,13 +200,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Get(nil, opensearchapi.SnapshotGetReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
+						return client.Snapshot.Get(t.Context(), opensearchapi.SnapshotGetReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Get(nil, opensearchapi.SnapshotGetReq{})
+						return failingClient.Snapshot.Get(t.Context(), opensearchapi.SnapshotGetReq{})
 					},
 				},
 			},
@@ -205,9 +217,9 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+						client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 						return client.Snapshot.Restore(
-							nil,
+							t.Context(),
 							opensearchapi.SnapshotRestoreReq{
 								Repo:     testRepo,
 								Snapshot: testSnapshot,
@@ -218,7 +230,7 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Restore(nil, opensearchapi.SnapshotRestoreReq{})
+						return failingClient.Snapshot.Restore(t.Context(), opensearchapi.SnapshotRestoreReq{})
 					},
 				},
 			},
@@ -229,13 +241,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Status(nil, opensearchapi.SnapshotStatusReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
+						return client.Snapshot.Status(t.Context(), opensearchapi.SnapshotStatusReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Status(nil, opensearchapi.SnapshotStatusReq{})
+						return failingClient.Snapshot.Status(t.Context(), opensearchapi.SnapshotStatusReq{})
 					},
 				},
 			},
@@ -246,13 +258,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Delete(nil, opensearchapi.SnapshotDeleteReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
+						return client.Snapshot.Delete(t.Context(), opensearchapi.SnapshotDeleteReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Delete(nil, opensearchapi.SnapshotDeleteReq{})
+						return failingClient.Snapshot.Delete(t.Context(), opensearchapi.SnapshotDeleteReq{})
 					},
 				},
 			},
@@ -263,13 +275,13 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Repository.Delete(nil, opensearchapi.SnapshotRepositoryDeleteReq{Repos: []string{testRepo}})
+						return client.Snapshot.Repository.Delete(t.Context(), opensearchapi.SnapshotRepositoryDeleteReq{Repos: []string{testRepo}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Repository.Delete(nil, opensearchapi.SnapshotRepositoryDeleteReq{})
+						return failingClient.Snapshot.Repository.Delete(t.Context(), opensearchapi.SnapshotRepositoryDeleteReq{})
 					},
 				},
 			},
@@ -281,11 +293,11 @@ func TestSnapshotClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Repository Get" {
@@ -298,20 +310,20 @@ func TestSnapshotClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		_, err := client.Snapshot.Repository.Create(
-			nil,
+			t.Context(),
 			opensearchapi.SnapshotRepositoryCreateReq{
 				Repo: testRepo,
 				Body: strings.NewReader(`{"type":"fs","settings":{"location":"/usr/share/opensearch/mnt"}}`),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		t.Cleanup(func() {
-			client.Snapshot.Repository.Delete(nil, opensearchapi.SnapshotRepositoryDeleteReq{Repos: []string{testRepo}})
+			client.Snapshot.Repository.Delete(t.Context(), opensearchapi.SnapshotRepositoryDeleteReq{Repos: []string{testRepo}})
 		})
 
 		t.Run("Repository Get", func(t *testing.T) {
-			resp, err := client.Snapshot.Repository.Get(nil, &opensearchapi.SnapshotRepositoryGetReq{Repos: []string{testRepo}})
-			require.Nil(t, err)
+			resp, err := client.Snapshot.Repository.Get(t.Context(), &opensearchapi.SnapshotRepositoryGetReq{Repos: []string{testRepo}})
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Repos, resp.Inspect().Response)
 		})

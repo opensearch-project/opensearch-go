@@ -61,11 +61,11 @@ func waitForServerReady(t *testing.T, addr string, timeout time.Duration) error 
 
 func TestStatusConnectionPool(t *testing.T) {
 	var (
+		numServers  = 3
 		server      *http.Server
 		servers     []*http.Server
-		serverURLs  []*url.URL
-		serverHosts []string
-		numServers  = 3
+		serverURLs  = make([]*url.URL, 0, numServers)
+		serverHosts = make([]string, 0, numServers)
 
 		defaultHandler = func(w http.ResponseWriter, r *http.Request) {
 			// Return proper OpenSearch root endpoint JSON response
@@ -134,12 +134,12 @@ func TestStatusConnectionPool(t *testing.T) {
 	pool.resurrectTimeoutInitial = time.Second
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
@@ -157,12 +157,12 @@ func TestStatusConnectionPool(t *testing.T) {
 	}
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
@@ -197,12 +197,12 @@ func TestStatusConnectionPool(t *testing.T) {
 	time.Sleep(1250 * time.Millisecond)
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}

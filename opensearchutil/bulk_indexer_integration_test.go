@@ -31,6 +31,7 @@ package opensearchutil_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -303,7 +304,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					if err != nil {
 						t.Fatalf("Unexpected error: %s", err)
 					}
-					if res.StatusCode != 200 {
+					if res.StatusCode != http.StatusOK {
 						t.Errorf("Expected indices to exist, but got a [%s] response", res.Status())
 					}
 				})

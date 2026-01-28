@@ -72,9 +72,9 @@ func TestDanglingClient(t *testing.T) {
 	}))
 
 	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type danglingTests struct {
 		Name    string
@@ -92,7 +92,7 @@ func TestDanglingClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Dangling.Import(
-							nil,
+							t.Context(),
 							opensearchapi.DanglingImportReq{
 								IndexUUID: "indexUUID",
 								Params:    opensearchapi.DanglingImportParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
@@ -103,7 +103,7 @@ func TestDanglingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Dangling.Import(nil, opensearchapi.DanglingImportReq{IndexUUID: "indexUUID"})
+						return failingClient.Dangling.Import(t.Context(), opensearchapi.DanglingImportReq{IndexUUID: "indexUUID"})
 					},
 				},
 			},
@@ -114,13 +114,13 @@ func TestDanglingClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Dangling.Get(nil, &opensearchapi.DanglingGetReq{})
+						return client.Dangling.Get(t.Context(), &opensearchapi.DanglingGetReq{})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Dangling.Get(nil, nil)
+						return failingClient.Dangling.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -132,7 +132,7 @@ func TestDanglingClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Dangling.Delete(
-							nil,
+							t.Context(),
 							opensearchapi.DanglingDeleteReq{
 								IndexUUID: "indexUUID",
 								Params:    opensearchapi.DanglingDeleteParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
@@ -143,7 +143,7 @@ func TestDanglingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Dangling.Delete(nil, opensearchapi.DanglingDeleteReq{IndexUUID: "indexUUID"})
+						return failingClient.Dangling.Delete(t.Context(), opensearchapi.DanglingDeleteReq{IndexUUID: "indexUUID"})
 					},
 				},
 			},
@@ -155,11 +155,11 @@ func TestDanglingClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 					}
@@ -170,32 +170,32 @@ func TestDanglingClient(t *testing.T) {
 
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Dangling.Get(nil, nil)
-			require.Nil(t, err)
+			resp, err := client.Dangling.Get(t.Context(), nil)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Dangling.Delete(
-				nil,
+				t.Context(),
 				opensearchapi.DanglingDeleteReq{
 					IndexUUID: "indexUUID",
 					Params:    opensearchapi.DanglingDeleteParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Import", func(t *testing.T) {
 			resp, err := client.Dangling.Import(
-				nil,
+				t.Context(),
 				opensearchapi.DanglingImportReq{
 					IndexUUID: "indexUUID",
 					Params:    opensearchapi.DanglingImportParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})

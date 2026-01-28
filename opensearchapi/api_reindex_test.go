@@ -27,14 +27,14 @@ import (
 func TestReindex(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sourceIndex := "test-reindex-source"
 	destIndex := "test-reindex-dest"
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -44,7 +44,7 @@ func TestReindex(t *testing.T) {
 
 	for _, index := range testIndices {
 		client.Indices.Create(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesCreateReq{
 				Index: index,
 				Body:  strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
@@ -73,35 +73,35 @@ func TestReindex(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.Reindex(
-			nil,
+			t.Context(),
 			opensearchapi.ReindexReq{
 				Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s"},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request but dont wait", func(t *testing.T) {
 		resp, err := client.Reindex(
-			nil,
+			t.Context(),
 			opensearchapi.ReindexReq{
 				Body:   strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s"},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
 				Params: opensearchapi.ReindexParams{WaitForCompletion: opensearchapi.ToPointer(false)},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.Reindex(nil, opensearchapi.ReindexReq{})
-		assert.NotNil(t, err)
+		res, err := failingClient.Reindex(t.Context(), opensearchapi.ReindexReq{})
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

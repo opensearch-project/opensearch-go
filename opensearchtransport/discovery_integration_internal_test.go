@@ -274,7 +274,7 @@ func TestDiscovery(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = tp.getNodesInfo()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected empty body")
 	})
 

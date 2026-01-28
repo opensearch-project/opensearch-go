@@ -49,13 +49,20 @@ func TestJSONReaderIntegration(t *testing.T) {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{"test"}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
+		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
+			Indices: []string{"test"},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		})
 
 		doc := struct {
 			Title string `json:"title"`
 		}{Title: "Foo Bar"}
 
-		_, err = client.Index(ctx, opensearchapi.IndexReq{Index: "test", Body: opensearchutil.NewJSONReader(&doc), Params: opensearchapi.IndexParams{Refresh: "true"}})
+		_, err = client.Index(ctx, opensearchapi.IndexReq{
+			Index:  "test",
+			Body:   opensearchutil.NewJSONReader(&doc),
+			Params: opensearchapi.IndexParams{Refresh: "true"},
+		})
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
@@ -75,7 +82,10 @@ func TestJSONReaderIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
-		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, func(c opensearchapi.SearchHit) bool { return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar") }) {
+		containsFooBar := func(c opensearchapi.SearchHit) bool {
+			return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar")
+		}
+		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, containsFooBar) {
 			t.Errorf("Unexpected response: %v", res)
 		}
 	})

@@ -101,6 +101,14 @@ type Config struct {
 	SkipConnectionShuffle bool // Default: false, set true to disable connection randomization
 >>>>>>> cf32ffa (Implement connection pool health probes and fix discovery tests)
 
+	// Health check function for connection pool health validation.
+	// When nil (default), uses the built-in health check that validates OpenSearch
+	// nodes with GET / requests. Use NoOpHealthCheck to disable health checking.
+	// Returns the HTTP response on success, or an error on failure.
+	// A nil response with nil error indicates success (used by NoOpHealthCheck).
+	// Callers can extract version info, status codes, or other data from the response.
+	HealthCheck func(ctx context.Context, url *url.URL) (*http.Response, error)
+
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -236,7 +244,7 @@ func New(cfg Config) (*Client, error) {
 
 	// Set up health check function for pools that support it
 	if pool, ok := client.mu.pool.(*statusConnectionPool); ok {
-		pool.healthCheck = client.isHealthyOpenSearchNode
+		pool.healthCheck = client.defaultHealthCheck
 	}
 
 	if cfg.EnableDebugLogger {
@@ -585,16 +593,24 @@ type OpenSearchInfo struct {
 	} `json:"version"`
 }
 
-// isHealthyOpenSearchNode validates that the target URL is responding as an OpenSearch node
+// NoOpHealthCheck is a no-operation health check that always succeeds.
+// This can be used to disable health checking while maintaining the function signature.
+// Returns nil, nil to indicate success without creating response objects.
+func NoOpHealthCheck(ctx context.Context, url *url.URL) (*http.Response, error) {
+	return nil, nil //nolint:nilnil // Intentional no-op behavior
+}
+
+// defaultHealthCheck validates that the target URL is responding as an OpenSearch node
 // by making a GET / request and verifying basic response structure.
-func (c *Client) isHealthyOpenSearchNode(url *url.URL) (string, error) {
-	// Create request with short timeout for health checks
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+// This is the built-in health check implementation with a default timeout.
+func (c *Client) defaultHealthCheck(ctx context.Context, url *url.URL) (*http.Response, error) {
+	// Add timeout for default health check, respecting parent context cancellation
+	healthCtx, cancel := context.WithTimeout(ctx, defaultHealthCheckTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/", nil)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	// Set up the request similar to regular requests
@@ -605,38 +621,40 @@ func (c *Client) isHealthyOpenSearchNode(url *url.URL) (string, error) {
 	// Execute the request
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 	if res == nil {
-		return "", fmt.Errorf("%w: nil response", errHealthCheckFailed)
+		return nil, fmt.Errorf("%w: nil response", errHealthCheckFailed)
 	}
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
+		return nil, fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
 	}
 
 	// Read and parse the response
 	if res.Body == nil {
-		return "", fmt.Errorf("%w: nil response body", errHealthCheckFailed)
+		return nil, fmt.Errorf("%w: nil response body", errHealthCheckFailed)
 	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
+	res.Body.Close()
 
 	var info OpenSearchInfo
 	if err := json.Unmarshal(body, &info); err != nil {
-		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	// Minimal validation - just check that core fields exist
 	if info.Name == "" || info.ClusterName == "" || info.Version.Number == "" {
-		return "", fmt.Errorf("%w: invalid response structure", errHealthCheckFailed)
+		return nil, fmt.Errorf("%w: invalid response structure", errHealthCheckFailed)
 	}
 
-	// Return the version number for potential future use
-	return info.Version.Number, nil
+	// Restore body for caller and return the response
+	res.Body = io.NopCloser(bytes.NewReader(body))
+	return res, nil
 }

@@ -31,6 +31,7 @@ package opensearch_test
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -101,7 +102,7 @@ func TestClientTransport(t *testing.T) {
 
 			go func(i int) {
 				defer wg.Done()
-				_, err := client.Info(nil, nil)
+				_, err := client.Info(t.Context(), nil)
 				if err != nil {
 					t.Errorf("Unexpected error: %s", err)
 				}
@@ -147,11 +148,12 @@ func TestClientTransport(t *testing.T) {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
-		_, err = client.Info(nil, nil)
+		_, err = client.Info(t.Context(), nil)
 		if err == nil {
 			t.Fatalf("Expected error, but got: %v", err)
 		}
-		if _, ok := err.(*net.OpError); !ok {
+		opError := &net.OpError{}
+		if errors.As(err, &opError) {
 			t.Fatalf("Expected net.OpError, but got: %T", err)
 		}
 	})
@@ -170,10 +172,10 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestClientCustomTransport(t *testing.T) {
 	t.Run("Customized", func(t *testing.T) {
 		client, err := opensearchapi.NewDefaultClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		cfg, err := ostest.ClientConfig()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		if cfg != nil {
 			cfg.Client.Transport = &CustomTransport{
@@ -184,11 +186,11 @@ func TestClientCustomTransport(t *testing.T) {
 				},
 			}
 			client, err = opensearchapi.NewClient(*cfg)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
+			_, err := client.Info(t.Context(), nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -224,7 +226,7 @@ func TestClientCustomTransport(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
+			_, err := client.Info(t.Context(), nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -269,7 +271,7 @@ func TestClientReplaceTransport(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
+			_, err := client.Info(t.Context(), nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -288,7 +290,7 @@ func TestClientAPI(t *testing.T) {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		res, err := client.Info(nil, nil)
+		res, err := client.Info(t.Context(), nil)
 		if err != nil {
 			log.Fatalf("Error getting the response: %s\n", err)
 		}

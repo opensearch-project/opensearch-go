@@ -22,17 +22,17 @@ import (
 
 func TestClusterClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	index := "test-cluster-indices"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
-	_, err = client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
-	require.Nil(t, err)
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
+	require.NoError(t, err)
 
 	type clusterTest struct {
 		Name    string
@@ -40,190 +40,190 @@ func TestClusterClient(t *testing.T) {
 	}
 
 	testCases := map[string][]clusterTest{
-		"AllocationExplain": []clusterTest{
+		"AllocationExplain": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.AllocationExplain(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.AllocationExplain(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.AllocationExplain(nil, &opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{Index: index, Shard: 0, Primary: true}})
+					return client.Cluster.AllocationExplain(t.Context(), &opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{Index: index, Shard: 0, Primary: true}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.AllocationExplain(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.AllocationExplain(t.Context(), nil) },
 			},
 		},
-		"Health": []clusterTest{
+		"Health": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.Health(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.Health(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.Health(nil, &opensearchapi.ClusterHealthReq{})
+					return client.Cluster.Health(t.Context(), &opensearchapi.ClusterHealthReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.Health(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.Health(t.Context(), nil) },
 			},
 		},
-		"PendingTasks": []clusterTest{
+		"PendingTasks": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.PendingTasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.PendingTasks(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.PendingTasks(nil, &opensearchapi.ClusterPendingTasksReq{})
+					return client.Cluster.PendingTasks(t.Context(), &opensearchapi.ClusterPendingTasksReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.PendingTasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.PendingTasks(t.Context(), nil) },
 			},
 		},
-		"GetSettings": []clusterTest{
+		"GetSettings": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.GetSettings(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.GetSettings(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.GetSettings(nil, &opensearchapi.ClusterGetSettingsReq{})
+					return client.Cluster.GetSettings(t.Context(), &opensearchapi.ClusterGetSettingsReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.GetSettings(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.GetSettings(t.Context(), nil) },
 			},
 		},
-		"PutSettings": []clusterTest{
+		"PutSettings": {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.PutSettings(nil, opensearchapi.ClusterPutSettingsReq{Body: strings.NewReader(`{"transient":{"indices":{"recovery":{"max_bytes_per_sec":null}}}}`)})
+					return client.Cluster.PutSettings(t.Context(), opensearchapi.ClusterPutSettingsReq{Body: strings.NewReader(`{"transient":{"indices":{"recovery":{"max_bytes_per_sec":null}}}}`)})
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.PutSettings(nil, opensearchapi.ClusterPutSettingsReq{})
+					return failingClient.Cluster.PutSettings(t.Context(), opensearchapi.ClusterPutSettingsReq{})
 				},
 			},
 		},
-		"Reroute": []clusterTest{
+		"Reroute": {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.Reroute(nil, opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
+					return client.Cluster.Reroute(t.Context(), opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.Reroute(nil, opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
+					return failingClient.Cluster.Reroute(t.Context(), opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
 				},
 			},
 		},
-		"State": []clusterTest{
+		"State": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.State(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.State(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.State(nil, &opensearchapi.ClusterStateReq{Metrics: []string{"_all"}})
+					return client.Cluster.State(t.Context(), &opensearchapi.ClusterStateReq{Metrics: []string{"_all"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.State(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.State(t.Context(), nil) },
 			},
 		},
-		"Stats": []clusterTest{
+		"Stats": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.Stats(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.Stats(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.Stats(nil, &opensearchapi.ClusterStatsReq{NodeFilters: []string{"data:true"}})
+					return client.Cluster.Stats(t.Context(), &opensearchapi.ClusterStatsReq{NodeFilters: []string{"data:true"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.Stats(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.Stats(t.Context(), nil) },
 			},
 		},
-		"PutDecommission": []clusterTest{
+		"PutDecommission": {
 			/* Needs node awarness attr to work
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.PutDecommission(nil, opensearchapi.ClusterPutDecommissionReq{AwarenessAttrName: "test", AwarenessAttrValue: "test"})
+					return client.Cluster.PutDecommission(t.Context(), opensearchapi.ClusterPutDecommissionReq{AwarenessAttrName: "test", AwarenessAttrValue: "test"})
 				},
 			},
 			*/
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.PutDecommission(nil, opensearchapi.ClusterPutDecommissionReq{AwarenessAttrName: "test", AwarenessAttrValue: "test"})
+					return failingClient.Cluster.PutDecommission(t.Context(), opensearchapi.ClusterPutDecommissionReq{AwarenessAttrName: "test", AwarenessAttrValue: "test"})
 				},
 			},
 		},
-		"GetDecommission": []clusterTest{
+		"GetDecommission": {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.GetDecommission(nil, opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
+					return client.Cluster.GetDecommission(t.Context(), opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.GetDecommission(nil, opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
+					return failingClient.Cluster.GetDecommission(t.Context(), opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
 				},
 			},
 		},
-		"DeleteDecommission": []clusterTest{
+		"DeleteDecommission": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.DeleteDecommission(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.DeleteDecommission(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.DeleteDecommission(nil, &opensearchapi.ClusterDeleteDecommissionReq{})
+					return client.Cluster.DeleteDecommission(t.Context(), &opensearchapi.ClusterDeleteDecommissionReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.DeleteDecommission(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.DeleteDecommission(t.Context(), nil) },
 			},
 		},
-		"RemoteInfo": []clusterTest{
+		"RemoteInfo": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.RemoteInfo(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.RemoteInfo(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.RemoteInfo(nil, &opensearchapi.ClusterRemoteInfoReq{})
+					return client.Cluster.RemoteInfo(t.Context(), &opensearchapi.ClusterRemoteInfoReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.RemoteInfo(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cluster.RemoteInfo(t.Context(), nil) },
 			},
 		},
 	}
@@ -236,11 +236,11 @@ func TestClusterClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						assert.Nil(t, err)
+						require.NoError(t, err)
 						assert.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)

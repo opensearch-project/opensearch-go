@@ -23,15 +23,15 @@ import (
 
 func TestMTermvectors(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := "test-mtermvectors"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	_, err = client.Indices.Create(
-		nil,
+		t.Context(),
 		opensearchapi.IndicesCreateReq{
 			Index: testIndex,
 			Body: strings.NewReader(`{ "mappings": {
@@ -70,11 +70,11 @@ func TestMTermvectors(t *testing.T) {
 }`),
 		},
 	)
-	require.Nil(t, err)
-	docs := []string{`{"fullname":"John Doe","text":"test test test "}`, `{"fullname":"Jane Doe","text":"Another test ..."}`}
+	require.NoError(t, err)
+	docs := []string{"{\"fullname\":\"John Doe\",\"text\":\"test test \"}", `{"fullname":"Jane Doe","text":"Another test ..."}`}
 	for i, doc := range docs {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(doc),
@@ -82,28 +82,28 @@ func TestMTermvectors(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.MTermvectors(
-			nil,
+			t.Context(),
 			opensearchapi.MTermvectorsReq{
 				Index: testIndex,
 				Body:  strings.NewReader(`{"ids":[1,2]}`),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.MTermvectors(nil, opensearchapi.MTermvectorsReq{})
-		assert.NotNil(t, err)
+		res, err := failingClient.MTermvectors(t.Context(), opensearchapi.MTermvectorsReq{})
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
