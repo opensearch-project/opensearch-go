@@ -99,7 +99,6 @@ type Config struct {
 	// Connection pool configuration
 	MinHealthyConnections int  // Default: 1, proactively open connections on startup only
 	SkipConnectionShuffle bool // Default: false, set true to disable connection randomization
->>>>>>> cf32ffa (Implement connection pool health probes and fix discovery tests)
 
 	// Health check function for connection pool health validation.
 	// When nil (default), uses the built-in health check that validates OpenSearch
