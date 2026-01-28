@@ -10,40 +10,40 @@ package opensearchapi_test
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestIndicesClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	randSuffix := rand.Int63()
-	index := fmt.Sprintf("test-indices-create-%d", randSuffix)
-	indexClone := fmt.Sprintf("test-indices-clone-%d", randSuffix)
-	indexSplit := fmt.Sprintf("test-indices-split-%d", randSuffix)
-	indexShrink := fmt.Sprintf("test-indices-shrink-%d", randSuffix)
-	indexRollover := fmt.Sprintf("test-indices-rollover-%d", randSuffix)
+	index := testutil.MustUniqueString(t, "test-indices-create")
+	indexClone := testutil.MustUniqueString(t, "test-indices-clone")
+	indexSplit := testutil.MustUniqueString(t, "test-indices-split")
+	indexShrink := testutil.MustUniqueString(t, "test-indices-shrink")
+	indexRollover := testutil.MustUniqueString(t, "test-indices-rollover")
 	testIndices := []string{index, indexClone, indexSplit, indexShrink, indexRollover}
 
-	alias := fmt.Sprintf("test-indices-alias-%d", randSuffix)
-	dataStream := fmt.Sprintf("test-datastream-get-%d", randSuffix)
+	alias := testutil.MustUniqueString(t, "test-indices-alias")
+	dataStream := testutil.MustUniqueString(t, "test-datastream-get")
 
 	_, err = client.IndexTemplate.Create(
 		t.Context(),
 		opensearchapi.IndexTemplateCreateReq{
 			IndexTemplate: dataStream,
-			Body:          strings.NewReader(fmt.Sprintf(`{"index_patterns":["%s"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`, dataStream)),
+			Body: strings.NewReader(fmt.Sprintf(
+				`{"index_patterns":["%s"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`,
+				dataStream)),
 		},
 	)
 	require.NoError(t, err)
@@ -138,13 +138,15 @@ func TestIndicesClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Indices.Analyze(t.Context(), opensearchapi.IndicesAnalyzeReq{Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard"}})
+						return client.Indices.Analyze(t.Context(),
+							opensearchapi.IndicesAnalyzeReq{Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Indices.Analyze(t.Context(), opensearchapi.IndicesAnalyzeReq{Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard"}})
+						return failingClient.Indices.Analyze(t.Context(),
+							opensearchapi.IndicesAnalyzeReq{Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard"}})
 					},
 				},
 			},
@@ -216,7 +218,8 @@ func TestIndicesClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Indices.Alias.Exists(t.Context(), opensearchapi.AliasExistsReq{Indices: []string{index}, Alias: []string{alias}})
+						resp.Response, err = client.Indices.Alias.Exists(
+							t.Context(), opensearchapi.AliasExistsReq{Indices: []string{index}, Alias: []string{alias}})
 						return resp, err
 					},
 				},
@@ -227,7 +230,8 @@ func TestIndicesClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Indices.Alias.Exists(t.Context(), opensearchapi.AliasExistsReq{Indices: []string{index}, Alias: []string{alias}})
+						resp.Response, err = failingClient.Indices.Alias.Exists(
+							t.Context(), opensearchapi.AliasExistsReq{Indices: []string{index}, Alias: []string{alias}})
 						return resp, err
 					},
 				},
@@ -245,7 +249,8 @@ func TestIndicesClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Indices.Get(t.Context(), opensearchapi.IndicesGetReq{Indices: []string{fmt.Sprintf(".ds-%s-000001", dataStream)}})
+						return failingClient.Indices.Get(t.Context(),
+							opensearchapi.IndicesGetReq{Indices: []string{fmt.Sprintf(".ds-%s-000001", dataStream)}})
 					},
 				},
 			},
@@ -273,13 +278,15 @@ func TestIndicesClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Indices.Alias.Delete(t.Context(), opensearchapi.AliasDeleteReq{Indices: []string{indexRollover}, Alias: []string{alias}})
+						return client.Indices.Alias.Delete(t.Context(),
+							opensearchapi.AliasDeleteReq{Indices: []string{indexRollover}, Alias: []string{alias}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Indices.Alias.Delete(t.Context(), opensearchapi.AliasDeleteReq{Indices: []string{indexRollover}, Alias: []string{alias}})
+						return failingClient.Indices.Alias.Delete(t.Context(),
+							opensearchapi.AliasDeleteReq{Indices: []string{indexRollover}, Alias: []string{alias}})
 					},
 				},
 			},
@@ -290,13 +297,15 @@ func TestIndicesClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{Indices: []string{index}, Body: strings.NewReader(`{"properties":{"test":{"type":"text"}}}`)})
+						return client.Indices.Mapping.Put(t.Context(),
+							opensearchapi.MappingPutReq{Indices: []string{index}, Body: strings.NewReader(`{"properties":{"test":{"type":"text"}}}`)})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{Indices: []string{index}, Body: strings.NewReader(`{"properties":{"test":{"type":"text"}}}`)})
+						return failingClient.Indices.Mapping.Put(t.Context(),
+							opensearchapi.MappingPutReq{Indices: []string{index}, Body: strings.NewReader(`{"properties":{"test":{"type":"text"}}}`)})
 					},
 				},
 			},
@@ -330,7 +339,8 @@ func TestIndicesClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{Indices: []string{index}, Fields: []string{"*"}})
+						return failingClient.Indices.Mapping.Field(t.Context(),
+							&opensearchapi.MappingFieldReq{Indices: []string{index}, Fields: []string{"*"}})
 					},
 				},
 			},
@@ -341,13 +351,15 @@ func TestIndicesClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Indices.Settings.Put(t.Context(), opensearchapi.SettingsPutReq{Indices: []string{index}, Body: strings.NewReader(`{"number_of_replicas":0}`)})
+						return client.Indices.Settings.Put(t.Context(),
+							opensearchapi.SettingsPutReq{Indices: []string{index}, Body: strings.NewReader(`{"number_of_replicas":0}`)})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Indices.Settings.Put(t.Context(), opensearchapi.SettingsPutReq{Indices: []string{index}, Body: strings.NewReader(`{"number_of_replicas":1}`)})
+						return failingClient.Indices.Settings.Put(t.Context(),
+							opensearchapi.SettingsPutReq{Indices: []string{index}, Body: strings.NewReader(`{"number_of_replicas":1}`)})
 					},
 				},
 			},
@@ -713,7 +725,7 @@ func TestIndicesClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.Error(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -740,97 +752,101 @@ func TestIndicesClient(t *testing.T) {
 			resp, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Block", func(t *testing.T) {
 			resp, err := client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{index}, Block: "write"})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Analyze", func(t *testing.T) {
-			resp, err := client.Indices.Analyze(t.Context(), opensearchapi.IndicesAnalyzeReq{Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard", Explain: true}})
+			resp, err := client.Indices.Analyze(t.Context(),
+				opensearchapi.IndicesAnalyzeReq{Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard", Explain: true}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("ClearCache", func(t *testing.T) {
 			resp, err := client.Indices.ClearCache(t.Context(), &opensearchapi.IndicesClearCacheReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Alias Put", func(t *testing.T) {
 			resp, err := client.Indices.Alias.Put(t.Context(), opensearchapi.AliasPutReq{Indices: []string{index}, Alias: alias})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Alias Get", func(t *testing.T) {
 			resp, err := client.Indices.Alias.Get(t.Context(), opensearchapi.AliasGetReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Rollover", func(t *testing.T) {
 			resp, err := client.Indices.Rollover(t.Context(), opensearchapi.IndicesRolloverReq{Alias: alias, Index: indexRollover})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Alias Delete", func(t *testing.T) {
-			resp, err := client.Indices.Alias.Delete(t.Context(), opensearchapi.AliasDeleteReq{Indices: []string{indexRollover}, Alias: []string{alias}})
+			resp, err := client.Indices.Alias.Delete(t.Context(),
+				opensearchapi.AliasDeleteReq{Indices: []string{indexRollover}, Alias: []string{alias}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Mapping Put", func(t *testing.T) {
-			resp, err := client.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{Indices: []string{index}, Body: strings.NewReader(`{"properties":{"test":{"type":"text"}}}`)})
+			resp, err := client.Indices.Mapping.Put(t.Context(),
+				opensearchapi.MappingPutReq{Indices: []string{index}, Body: strings.NewReader(`{"properties":{"test":{"type":"text"}}}`)})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Mapping Get", func(t *testing.T) {
 			resp, err := client.Indices.Mapping.Get(t.Context(), &opensearchapi.MappingGetReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Mapping Field", func(t *testing.T) {
 			resp, err := client.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{Fields: []string{"*"}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Settings Put", func(t *testing.T) {
-			resp, err := client.Indices.Settings.Put(t.Context(), opensearchapi.SettingsPutReq{Indices: []string{index}, Body: strings.NewReader(`{"number_of_replicas":1}`)})
+			resp, err := client.Indices.Settings.Put(t.Context(),
+				opensearchapi.SettingsPutReq{Indices: []string{index}, Body: strings.NewReader(`{"number_of_replicas":1}`)})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Settings Get", func(t *testing.T) {
 			resp, err := client.Indices.Settings.Get(t.Context(), &opensearchapi.SettingsGetReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Flush", func(t *testing.T) {
 			resp, err := client.Indices.Flush(t.Context(), &opensearchapi.IndicesFlushReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Forcemerge", func(t *testing.T) {
 			resp, err := client.Indices.Forcemerge(t.Context(), &opensearchapi.IndicesForcemergeReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Clone", func(t *testing.T) {
 			resp, err := client.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: index, Target: indexClone})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Split", func(t *testing.T) {
 			resp, err := client.Indices.Split(
@@ -843,7 +859,7 @@ func TestIndicesClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Shrink", func(t *testing.T) {
 			resp, err := client.Indices.Shrink(
@@ -856,43 +872,43 @@ func TestIndicesClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.Indices.Get(t.Context(), opensearchapi.IndicesGetReq{Indices: []string{index, indexClone}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Recovery", func(t *testing.T) {
 			resp, err := client.Indices.Recovery(t.Context(), &opensearchapi.IndicesRecoveryReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Refresh", func(t *testing.T) {
 			resp, err := client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Segments", func(t *testing.T) {
 			resp, err := client.Indices.Segments(t.Context(), nil)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("ShardStores", func(t *testing.T) {
 			resp, err := client.Indices.ShardStores(t.Context(), nil)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Stats", func(t *testing.T) {
 			resp, err := client.Indices.Stats(t.Context(), nil)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("ValidateQuery", func(t *testing.T) {
 			resp, err := client.Indices.ValidateQuery(
@@ -906,13 +922,13 @@ func TestIndicesClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Count", func(t *testing.T) {
 			resp, err := client.Indices.Count(t.Context(), nil)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("FieldCaps", func(t *testing.T) {
 			resp, err := client.Indices.FieldCaps(
@@ -923,31 +939,31 @@ func TestIndicesClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Resolve", func(t *testing.T) {
 			resp, err := client.Indices.Resolve(t.Context(), opensearchapi.IndicesResolveReq{Indices: []string{"*"}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Close", func(t *testing.T) {
 			resp, err := client.Indices.Close(t.Context(), opensearchapi.IndicesCloseReq{Index: index})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Open", func(t *testing.T) {
 			resp, err := client.Indices.Open(t.Context(), opensearchapi.IndicesOpenReq{Index: index})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: testIndices})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 	})
 }

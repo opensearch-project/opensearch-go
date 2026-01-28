@@ -15,18 +15,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
 func TestActiongroupsClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	client, err := ossectest.NewClient()
-	require.Nil(t, err)
+	testutil.SkipIfNotSecure(t)
+	client, err := ossectest.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type actiongroupsTests struct {
 		Name    string
@@ -113,13 +113,14 @@ func TestActiongroupsClient(t *testing.T) {
 						return client.ActionGroups.Patch(
 							nil,
 							security.ActionGroupsPatchReq{
-								Body: security.ActionGroupsPatchBody{security.ActionGroupsPatchBodyItem{
-									OP:   "add",
-									Path: "/test",
-									Value: security.ActionGroupsPutBody{
-										AllowedActions: []string{"indices:data/read/msearch*", "indices:admin/mapping/put"},
+								Body: security.ActionGroupsPatchBody{
+									security.ActionGroupsPatchBodyItem{
+										OP:   "add",
+										Path: "/test",
+										Value: security.ActionGroupsPutBody{
+											AllowedActions: []string{"indices:data/read/msearch*", "indices:admin/mapping/put"},
+										},
 									},
-								},
 								},
 							},
 						)
@@ -128,7 +129,7 @@ func TestActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Patch(nil, security.ActionGroupsPatchReq{})
+						return failingClient.ActionGroups.Patch(t.Context(), security.ActionGroupsPatchReq{})
 					},
 				},
 			},
@@ -140,15 +141,15 @@ func TestActiongroupsClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -157,10 +158,10 @@ func TestActiongroupsClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.ActionGroups.Get(nil, nil)
-			assert.Nil(t, err)
+			resp, err := client.ActionGroups.Get(t.Context(), nil)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Groups, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Groups, resp.Inspect().Response)
 		})
 	})
 }

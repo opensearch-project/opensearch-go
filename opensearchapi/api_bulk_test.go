@@ -16,13 +16,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestBulkClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
 	index := "test-bulk"
@@ -45,7 +45,8 @@ func TestBulkClient(t *testing.T) {
 			Name: "without index",
 			Request: opensearchapi.BulkReq{
 				Body: strings.NewReader(
-					fmt.Sprintf("{\"index\": {\"_index\": \"%s\"}}\n{\"test\": 1234}\n{\"create\": {\"_index\": \"%s\"}}\n{\"test\": 5678}\n", index, index),
+					fmt.Sprintf("{\"index\": {\"_index\": \"%s\"}}\n{\"test\": 1234}\n"+
+						"{\"create\": {\"_index\": \"%s\"}}\n{\"test\": 5678}\n", index, index),
 				),
 			},
 		},
@@ -59,7 +60,7 @@ func TestBulkClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotEmpty(t, res)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 	}
 	t.Run("inspect", func(t *testing.T) {
@@ -67,7 +68,7 @@ func TestBulkClient(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{Index: index})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

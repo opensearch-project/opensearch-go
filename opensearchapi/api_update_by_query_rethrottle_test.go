@@ -17,15 +17,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestUpdateByQueryRethrottle(t *testing.T) {
 	t.Parallel()
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
 	testIndex := "test-updatebyquery-rethrottle-source"
@@ -51,6 +51,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
+	require.NoError(t, err)
 	for i := 1; i <= 60; i++ {
 		err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 			Action:     "index",
@@ -78,6 +79,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 	)
 	require.NoError(t, err)
 	t.Run("with request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.UpdateByQueryRethrottle(
 			t.Context(),
 			opensearchapi.UpdateByQueryRethrottleReq{
@@ -87,15 +89,16 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
+		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
 		require.NoError(t, err)
 
 		res, err := failingClient.UpdateByQueryRethrottle(t.Context(), opensearchapi.UpdateByQueryRethrottleReq{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

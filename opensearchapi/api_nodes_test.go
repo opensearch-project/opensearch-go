@@ -14,13 +14,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestNodes(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -46,7 +46,8 @@ func TestNodes(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Stats(t.Context(), &opensearchapi.NodesStatsReq{NodeID: []string{"*"}, Metric: []string{"indices"}, IndexMetric: []string{"store"}})
+						return client.Nodes.Stats(t.Context(),
+							&opensearchapi.NodesStatsReq{NodeID: []string{"*"}, Metric: []string{"indices"}, IndexMetric: []string{"store"}})
 					},
 				},
 				{
@@ -171,7 +172,7 @@ func TestNodes(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.Error(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -179,7 +180,7 @@ func TestNodes(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "HotThreads" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})

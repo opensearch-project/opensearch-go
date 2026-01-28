@@ -9,8 +9,6 @@
 package opensearchapi_test
 
 import (
-	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,16 +16,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestUpdateByQuery(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	testIndex := fmt.Sprintf("test-update-by-query-%d", rand.Int63())
+	testIndex := testutil.MustUniqueString(t, "test-update-by-query")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
@@ -55,7 +53,7 @@ func TestUpdateByQuery(t *testing.T) {
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
@@ -63,7 +61,7 @@ func TestUpdateByQuery(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.UpdateByQuery(t.Context(), opensearchapi.UpdateByQueryReq{})
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

@@ -12,10 +12,15 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 func TestHealthCheckConfiguration(t *testing.T) {
-	serverURL, _ := url.Parse("http://localhost:9200")
+	serverURL := &url.URL{
+		Scheme: mockhttp.DefaultOpenSearchSchemeInsecure,
+		Host:   mockhttp.DefaultOpenSearchHost + ":9200",
+	}
 
 	t.Run("Default health check (nil)", func(t *testing.T) {
 		// When HealthCheck is nil (or omitted), the built-in health check is used

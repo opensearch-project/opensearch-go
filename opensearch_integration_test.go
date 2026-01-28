@@ -44,15 +44,16 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestClientTransport(t *testing.T) {
 	/*
 		t.Run("Persistent", func(t *testing.T) {
-			client, err := ostest.NewClient(t)
+			client, err := testutil.NewClient(t)
 			if err != nil {
 				t.Fatalf("Error creating the client: %s", err)
 			}
@@ -91,7 +92,7 @@ func TestClientTransport(t *testing.T) {
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		client, err := ostest.NewClient(t)
+		client, err := testutil.NewClient(t)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -100,7 +101,7 @@ func TestClientTransport(t *testing.T) {
 			wg.Add(1)
 			time.Sleep(10 * time.Millisecond)
 
-			go func(i int) {
+			go func(_ int) {
 				defer wg.Done()
 				_, err := client.Info(t.Context(), nil)
 				if err != nil {
@@ -112,7 +113,7 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		client, err := ostest.NewClient(t)
+		client, err := testutil.NewClient(t)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s", err)
 		}
@@ -174,7 +175,7 @@ func TestClientCustomTransport(t *testing.T) {
 		client, err := opensearchapi.NewDefaultClient()
 		require.NoError(t, err)
 
-		cfg, err := ostest.ClientConfig()
+		cfg, err := testutil.ClientConfig(t)
 		require.NoError(t, err)
 
 		if cfg != nil {
@@ -204,11 +205,11 @@ func TestClientCustomTransport(t *testing.T) {
 			},
 			Transport: http.DefaultTransport,
 		})
-		config, err := ostest.ClientConfig()
+		config, err := testutil.ClientConfig(t)
 		if err != nil {
 			t.Fatalf("Error getting config: %s", err)
 		}
-		if ostest.IsSecure() {
+		if testutil.IsSecure(t) {
 			tp, _ = opensearchtransport.New(opensearchtransport.Config{
 				URLs: []*url.URL{
 					{Scheme: "https", Host: "localhost:9200"},
@@ -234,36 +235,37 @@ func TestClientCustomTransport(t *testing.T) {
 	})
 }
 
-type ReplacedTransport struct {
-	counter uint64
+type TestTransport struct {
+	counter atomic.Uint64
+	t       *testing.T
 }
 
-func (t *ReplacedTransport) Perform(req *http.Request) (*http.Response, error) {
+func (tr *TestTransport) Perform(req *http.Request) (*http.Response, error) {
 	req.URL.Scheme = "http"
 	req.URL.Host = "localhost:9200"
-	config, err := ostest.ClientConfig()
+	config, err := testutil.ClientConfig(tr.t)
 	if err != nil {
 		return nil, err
 	}
-	if ostest.IsSecure() {
+	if testutil.IsSecure(tr.t) {
 		req.URL.Scheme = "https"
 		req.SetBasicAuth(config.Client.Username, config.Client.Password)
 	}
 
-	atomic.AddUint64(&t.counter, 1)
+	tr.counter.Add(1)
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	return transport.RoundTrip(req)
 }
 
-func (t *ReplacedTransport) Count() uint64 {
-	return atomic.LoadUint64(&t.counter)
+func (tr *TestTransport) Count() uint64 {
+	return tr.counter.Load()
 }
 
 func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
-		tr := &ReplacedTransport{}
+		tr := &TestTransport{t: t}
 		client := opensearchapi.Client{
 			Client: &opensearch.Client{
 				Transport: tr,
@@ -285,7 +287,7 @@ func TestClientReplaceTransport(t *testing.T) {
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		client, err := ostest.NewClient(t)
+		client, err := testutil.NewClient(t)
 		if err != nil {
 			log.Fatalf("Error creating the client: %s\n", err)
 		}

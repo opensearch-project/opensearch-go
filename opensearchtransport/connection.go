@@ -28,8 +28,10 @@ package opensearchtransport
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand/v2"
 	"net/http"
@@ -55,6 +57,13 @@ var (
 	ErrNoConnections = errors.New("no connections available")
 )
 
+// healthCheckInfo represents the minimal structure needed to extract version from health check response
+type healthCheckInfo struct {
+	Version struct {
+		Number string `json:"number"`
+	} `json:"version"`
+}
+
 // Selector defines the interface for selecting connections from the pool.
 type Selector interface {
 	Select([]*Connection) (*Connection, error)
@@ -72,7 +81,7 @@ type RequestAwareSelector interface {
 type Request interface {
 	GetMethod() string
 	GetPath() string
-	GetHeaders() map[string]string
+	GetHeaders() http.Header
 }
 
 // NodeFilter defines a function type for filtering connections based on their properties.
@@ -107,6 +116,7 @@ type Connection struct {
 	Name       string
 	Roles      []string
 	Attributes map[string]any
+	Version    string // Server version discovered during health check
 
 	failures atomic.Int64
 
@@ -409,11 +419,41 @@ func (cp *statusConnectionPool) performHealthCheck(c *Connection) bool {
 		return false
 	}
 
-	if debugLogger != nil {
-		// Clean up response body if present
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
+	// Try to extract version information from the response
+	if resp == nil || resp.Body == nil {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q\n", c.URL)
 		}
+		return true
+	}
+
+	// Read the response body to extract version information
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	if err != nil {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q\n", c.URL)
+		}
+		return true
+	}
+
+	var info healthCheckInfo
+	if json.Unmarshal(body, &info) != nil || info.Version.Number == "" {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q\n", c.URL)
+		}
+		return true
+	}
+
+	// Log version changes during rolling upgrades (not on initial startup)
+	if debugLogger != nil && c.Version != "" && c.Version != info.Version.Number {
+		debugLogger.Logf("Version changed for %q: %s -> %s\n", c.URL, c.Version, info.Version.Number)
+	}
+	// Update the connection version
+	c.Version = info.Version.Number
+
+	if debugLogger != nil {
 		debugLogger.Logf("Health check passed for %q\n", c.URL)
 	}
 	return true
@@ -542,13 +582,6 @@ func (s *roundRobinSelector) Select(conns []*Connection) (*Connection, error) {
 	next := s.curr.Add(1)
 	index := int(next % int64(len(conns)))
 	return conns[index], nil
-}
-
-// markAsDead marks the connection as dead.
-func (c *Connection) markAsDead() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.markAsDeadWithLock()
 }
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
@@ -751,7 +784,7 @@ func (s *SmartSelector) SelectForRequest(connections []*Connection, req Request)
 
 // isIngestOperation determines if a request is an ingest operation.
 func isIngestOperation(path, method string) bool {
-	if method != "POST" && method != "PUT" {
+	if method != http.MethodPost && method != http.MethodPut {
 		return false
 	}
 
@@ -773,7 +806,7 @@ func isIngestOperation(path, method string) bool {
 
 // isSearchOperation determines if a request is a search operation.
 func isSearchOperation(path, method string) bool {
-	if method != "GET" && method != "POST" {
+	if method != http.MethodGet && method != http.MethodPost {
 		return false
 	}
 

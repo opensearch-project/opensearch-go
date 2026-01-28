@@ -33,22 +33,15 @@ import (
 	"encoding/json"
 	"io"
 	"net/url"
-	"os"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 func TestHealthCheckIntegration(t *testing.T) {
-	// Get OpenSearch URL from environment or use default
-	opensearchURL := os.Getenv("OPENSEARCH_URL")
-	if opensearchURL == "" {
-		opensearchURL = "http://localhost:9200"
-	}
-
-	u, err := url.Parse(opensearchURL)
-	if err != nil {
-		t.Fatalf("Failed to parse OpenSearch URL: %v", err)
-	}
+	// Use standardized URL construction
+	u := mockhttp.GetOpenSearchURL(t)
 
 	// Create a client with default config
 	client, err := New(Config{
@@ -62,13 +55,14 @@ func TestHealthCheckIntegration(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
+		// Make a direct call to the internal defaultHealthCheck method
 		resp, err := client.defaultHealthCheck(ctx, u)
 		if err != nil {
 			t.Fatalf("Health check failed: %v", err)
 		}
 
 		// Extract version for logging
-		version := "unknown"
+		version := versionUnknown
 		if resp != nil && resp.Body != nil {
 			if body, readErr := io.ReadAll(resp.Body); readErr == nil {
 				resp.Body.Close()
@@ -83,7 +77,7 @@ func TestHealthCheckIntegration(t *testing.T) {
 
 		t.Logf("OpenSearch version: %s", version)
 
-		if version == "" || version == "unknown" {
+		if version == "" || version == versionUnknown {
 			t.Error("Version should not be empty or unknown")
 		}
 	})

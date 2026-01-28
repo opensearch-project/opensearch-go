@@ -99,6 +99,11 @@ const (
 	RoleMaster = "master"
 )
 
+const (
+	// versionUnknown is used when the OpenSearch version cannot be determined
+	versionUnknown = "unknown"
+)
+
 // roleSet represents a set of node roles for efficient O(1) role lookups.
 type roleSet map[string]struct{}
 
@@ -202,7 +207,7 @@ func (c *Client) DiscoverNodes() error {
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), defaultHealthCheckTimeout)
-		resp, err := c.defaultHealthCheck(ctx, node.URL)
+		resp, err := c.healthCheck(ctx, node.URL)
 		cancel()
 
 		if err != nil {
@@ -213,7 +218,7 @@ func (c *Client) DiscoverNodes() error {
 		}
 
 		// Extract version for logging
-		version := "unknown"
+		version := versionUnknown
 		if resp != nil && resp.Body != nil {
 			if body, readErr := io.ReadAll(resp.Body); readErr == nil {
 				resp.Body.Close()
@@ -263,7 +268,7 @@ func (c *Client) DiscoverNodes() error {
 
 	// Set up health check function for pools that support it
 	if pool, ok := c.mu.pool.(*statusConnectionPool); ok {
-		pool.healthCheck = c.defaultHealthCheck
+		pool.healthCheck = c.healthCheck
 	}
 
 	return nil
@@ -280,6 +285,8 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	c.mu.Lock()
 	conn, err := c.mu.pool.Next()
 	c.mu.Unlock()
+	usedPoolConnection := (err == nil)
+
 	// If no connection is available from pool, fall back to original startup URLs using round-robin
 	if err != nil {
 		if len(c.urls) > 0 {
@@ -307,6 +314,14 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
+		// Report connection failure to the pool if we got the connection from the pool
+		if usedPoolConnection {
+			c.mu.Lock()
+			if poolErr := c.mu.pool.OnFailure(conn); poolErr != nil && debugLogger != nil {
+				debugLogger.Logf("Failed to mark connection as failed: %v\n", poolErr)
+			}
+			c.mu.Unlock()
+		}
 		return nil, err
 	}
 
@@ -342,6 +357,13 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 		node.URL = u
 		out[idx] = node
 		idx++
+	}
+
+	// Report connection success to the pool if we got the connection from the pool
+	if usedPoolConnection {
+		c.mu.Lock()
+		c.mu.pool.OnSuccess(conn)
+		c.mu.Unlock()
 	}
 
 	return out, nil

@@ -35,6 +35,8 @@ import (
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 func TestSingleConnectionPoolNext(t *testing.T) {
@@ -62,10 +64,7 @@ func TestSingleConnectionPoolNextForRequest(t *testing.T) {
 			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 		}
 
-		req := &mockRequest{
-			method: "POST",
-			path:   "/_bulk",
-		}
+		req := mockhttp.NewRequest(t, http.MethodPost, "/_bulk", nil)
 
 		c, err := pool.NextForRequest(req)
 		if err != nil {
@@ -279,10 +278,7 @@ func TestStatusConnectionPoolNextForRequest(t *testing.T) {
 			return []*Connection{conn1, conn2}
 		}()
 
-		req := &mockRequest{
-			method: "POST",
-			path:   "/_bulk",
-		}
+		req := mockhttp.NewRequest(t, http.MethodPost, "/_bulk", nil)
 
 		c, err := pool.NextForRequest(req)
 		if err != nil {
@@ -318,10 +314,7 @@ func TestStatusConnectionPoolNextForRequest(t *testing.T) {
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = []*Connection{}
 
-		req := &mockRequest{
-			method: "GET",
-			path:   "/_search",
-		}
+		req := mockhttp.NewRequest(t, http.MethodGet, "/_search", nil)
 
 		c, err := pool.NextForRequest(req)
 		if err == nil {
@@ -345,7 +338,7 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn.failures.Store(3)
-			conn.markAsDead()
+			conn.markAsDeadWithLock()
 			return []*Connection{conn}
 		}()
 
@@ -477,7 +470,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-			conn.markAsDead()
+			conn.markAsDeadWithLock()
 			return []*Connection{conn}
 		}()
 
@@ -509,12 +502,12 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "bar"}}
-			conn.markAsDead()
+			conn.markAsDeadWithLock()
 			return []*Connection{conn}
 		}()
 
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-		conn.markAsDead()
+		conn.markAsDeadWithLock()
 		conn.mu.Lock()
 		defer conn.mu.Unlock()
 		pool.resurrectWithLock(conn, true)

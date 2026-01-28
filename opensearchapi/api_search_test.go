@@ -10,23 +10,22 @@ package opensearchapi_test
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestSearch(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	index := fmt.Sprintf("test-index-search-%d", rand.Int63())
+	index := testutil.MustUniqueString(t, "test-index-search")
 
 	_, err = client.Indices.Create(
 		t.Context(),
@@ -70,7 +69,7 @@ func TestSearch(t *testing.T) {
 		resp, err := client.Search(t.Context(), nil)
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.NotEmpty(t, resp.Hits.Hits)
 	})
 
@@ -78,7 +77,7 @@ func TestSearch(t *testing.T) {
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.NotEmpty(t, resp.Hits.Hits)
 	})
 
@@ -87,13 +86,17 @@ func TestSearch(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.Search(t.Context(), nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 
 	t.Run("request with explain", func(t *testing.T) {
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(""), Params: opensearchapi.SearchParams{Explain: opensearchapi.ToPointer(true)}})
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body:    strings.NewReader(""),
+			Params:  opensearchapi.SearchParams{Explain: opensearchapi.ToPointer(true)},
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotNil(t, resp.Hits.Hits[0].Explanation)
@@ -125,13 +128,13 @@ func TestSearch(t *testing.T) {
 	t.Run("url path", func(t *testing.T) {
 		req := &opensearchapi.SearchReq{}
 		httpReq, err := req.GetRequest()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, httpReq)
 		assert.Equal(t, "/_search", httpReq.URL.Path)
 
 		req = &opensearchapi.SearchReq{Indices: []string{index}}
 		httpReq, err = req.GetRequest()
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, httpReq)
 		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
@@ -165,7 +168,7 @@ func TestSearch(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		for _, hit := range resp.Hits.Hits {
 			assert.NotNil(t, hit.SeqNo)
@@ -184,7 +187,7 @@ func TestSearch(t *testing.T) {
 		})
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		for _, hit := range resp.Hits.Hits {
 			assert.Nil(t, hit.SeqNo)
@@ -303,7 +306,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with phase took", func(t *testing.T) {
-		ostest.SkipIfBelowVersion(t, client, 2, 12, "request with phase took")
+		testutil.SkipIfBelowVersion(t, client, 2, 12, "request with phase took")
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{

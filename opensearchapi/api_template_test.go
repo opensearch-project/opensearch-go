@@ -15,13 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestTemplateClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestTemplateClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.Error(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -136,7 +136,7 @@ func TestTemplateClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" && value.Name != "Exists" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -157,7 +157,7 @@ func TestTemplateClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
 		})
 	})
 }

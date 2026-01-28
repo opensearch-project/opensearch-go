@@ -15,13 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestIngestClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -47,7 +47,9 @@ func TestIngestClient(t *testing.T) {
 							t.Context(),
 							opensearchapi.IngestCreateReq{
 								PipelineID: ingest,
-								Body:       strings.NewReader(`{"description":"This pipeline processes student data","processors":[{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`),
+								Body: strings.NewReader(`{"description":"This pipeline processes student data","processors":[` +
+									`{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},` +
+									`{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`),
 							},
 						)
 					},
@@ -104,8 +106,9 @@ func TestIngestClient(t *testing.T) {
 							t.Context(),
 							opensearchapi.IngestSimulateReq{
 								PipelineID: ingest,
-								Body:       strings.NewReader(`{"docs":[{"_index":"my-index","_id":"1","_source":{"grad_year":2024,"graduated":false,"name":"John Doe"}}]}`),
-								Params:     opensearchapi.IngestSimulateParams{Verbose: opensearchapi.ToPointer(true), Pretty: true, Human: true, ErrorTrace: true},
+								Body: strings.NewReader(`{"docs":[{"_index":"my-index","_id":"1",` +
+									`"_source":{"grad_year":2024,"graduated":false,"name":"John Doe"}}]}`),
+								Params: opensearchapi.IngestSimulateParams{Verbose: opensearchapi.ToPointer(true), Pretty: true, Human: true, ErrorTrace: true},
 							},
 						)
 					},
@@ -142,7 +145,7 @@ func TestIngestClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.Error(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -150,7 +153,7 @@ func TestIngestClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -166,7 +169,9 @@ func TestIngestClient(t *testing.T) {
 				t.Context(),
 				opensearchapi.IngestCreateReq{
 					PipelineID: ingest,
-					Body:       strings.NewReader(`{"description":"This pipeline processes student data","processors":[{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`),
+					Body: strings.NewReader(`{"description":"This pipeline processes student data","processors":[` +
+						`{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},` +
+						`{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`),
 				},
 			)
 			require.NoError(t, err)
@@ -175,7 +180,7 @@ func TestIngestClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Pipelines, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Pipelines, resp.Inspect().Response)
 		})
 	})
 }

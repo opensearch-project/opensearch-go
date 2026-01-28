@@ -3,6 +3,8 @@ SHELL := /bin/bash
 # Tool versions
 GOLANGCI_LINT_VERSION := v2.8.0
 
+GOLANGCI_LINT_BUILD_TAGS := "integration core plugins plugin_security plugin_index_management multinode"
+
 ##@ Format project using goimports tool
 format:
 	goimports -w .;
@@ -40,32 +42,43 @@ ifdef coverage
 endif
 
 test-integ-core:  ## Run base integration tests
-	@make test-integ testintegtags=integration,core
+	@$(MAKE) test-integ testintegtags=integration,core
 
 test-integ-plugins:  ## Run plugin integration tests
-	@make test-integ testintegtags=integration,plugins
+	@$(MAKE) test-integ testintegtags=integration,plugins
 
 test-integ-secure: ##Run secure integration tests
-	@SECURE_INTEGRATION=true make test-integ
+	@SECURE_INTEGRATION=true $(MAKE) test-integ
 
 test-integ-core-secure:  ## Run secure base integration tests
-	@SECURE_INTEGRATION=true make test-integ testintegtags=integration,core
+	@SECURE_INTEGRATION=true $(MAKE) test-integ testintegtags=integration,core
 
 test-integ-plugins-secure:  ## Run secure plugin integration tests
-	@SECURE_INTEGRATION=true make test-integ testintegtags=integration,plugins
+	@SECURE_INTEGRATION=true $(MAKE) test-integ testintegtags=integration,plugins
 
+test-all:  ## Run all tests with all build tags (unit + integration)
+	@printf "\033[2m→ Running all unit tests...\033[0m\n"
+	@$(MAKE) test-unit
+	@printf "\033[2m→ Running all integration tests with all tags...\033[0m\n"
+	@$(MAKE) test-integ testintegtags=integration,core,plugins,plugin_security,plugin_index_management,multinode
+
+test-race:  ## Run all tests with race detection enabled
+	@printf "\033[2m→ Running all unit tests with race detection...\033[0m\n"
+	@$(MAKE) test-unit race=true
+	@printf "\033[2m→ Running all integration tests with race detection and all tags...\033[0m\n"
+	@$(MAKE) test-integ race=true testintegtags=integration,core,plugins,plugin_security,plugin_index_management,multinode
 
 test-bench:  ## Run benchmarks
 	@printf "\033[2m→ Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem ./...
 
 coverage:  ## Print test coverage report
-	@make gen-coverage
+	@$(MAKE) gen-coverage
 	@go tool cover -func=$(PWD)/tmp/total.cov
 	@printf "\033[0m--------------------------------------------------------------------------------\n\033[0m"
 
 coverage-html: ## Open test coverage report in browser
-	@make gen-coverage
+	@$(MAKE) gen-coverage
 	@go tool cover -html $(PWD)/tmp/total.cov
 
 gen-coverage:  ## Generate test coverage report
@@ -74,16 +87,20 @@ gen-coverage:  ## Generate test coverage report
 	@mkdir tmp
 	@mkdir tmp/unit
 	@mkdir tmp/integration
-	@make test-unit coverage=true
-	@make test-integ coverage=true
-	@make build-coverage
+	@$(MAKE) test-unit coverage=true
+	@$(MAKE) test-integ coverage=true
+	@$(MAKE) build-coverage
 
 build-coverage:
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
 ##@ Development
 lint:  ## Run lint on the package
-	@make linters
+	@$(MAKE) linters
+
+lint.local:  ## Run lint locally (not in Docker) with all build tags
+	@printf "\033[2m→ Running golangci-lint locally with all build tags...\033[0m\n"
+	golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
 
 package := "prettier"
 lint.markdown:
@@ -227,8 +244,8 @@ cluster.scale.3: ## Start full 3-node cluster
 
 cluster.get-cert:
 	@if [[ -v SECURE_INTEGRATION ]] && [[ $$SECURE_INTEGRATION == "true" ]]; then \
-		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk.pem admin.pem && \
-		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk-key.pem admin.key; \
+		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}' | head -1):/usr/share/opensearch/config/kirk.pem admin.pem && \
+		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}' | head -1):/usr/share/opensearch/config/kirk-key.pem admin.key; \
 	fi
 
 
@@ -239,23 +256,23 @@ cluster.clean: ## Remove unused Docker volumes and networks
 	docker system prune --volumes --force
 
 linters:
-	docker run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/$(GOLANGCI_LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --fix --build-tags "integration core" --timeout=5m -v ./...
+	docker run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/$(GOLANGCI_LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
 
 workflow: ## Run all github workflow commands here sequentially
 
 # Lint
-	make lint
+	$(MAKE) lint
 # License Checker
 	.github/check-license-headers.sh
 # Unit Test
-	make test-unit race=true
+	$(MAKE) test-unit race=true
 # Benchmarks Test
-	make test-bench
+	$(MAKE) test-bench
 # Integration Test
 ### OpenSearch
-	make cluster.clean cluster.build cluster.start
-	make test-integ race=true
-	make cluster.stop
+	$(MAKE) cluster.clean cluster.build cluster.start
+	$(MAKE) test-integ race=true
+	$(MAKE) cluster.stop
 
 ##@ Other
 #------------------------------------------------------------------------------
@@ -264,5 +281,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster cluster.clean coverage  godoc lint release test test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster cluster.clean coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
 .SILENT: lint.markdown

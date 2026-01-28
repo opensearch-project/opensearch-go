@@ -138,6 +138,8 @@ type Client struct {
 	minHealthyConnections int
 	skipConnectionShuffle bool
 
+	healthCheck func(ctx context.Context, url *url.URL) (*http.Response, error)
+
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
 
@@ -228,6 +230,13 @@ func New(cfg Config) (*Client, error) {
 
 	client.userAgent = initUserAgent()
 
+	// Set health check function - use configured one or default to built-in health check
+	if cfg.HealthCheck != nil {
+		client.healthCheck = cfg.HealthCheck
+	} else {
+		client.healthCheck = client.defaultHealthCheck
+	}
+
 	// Shuffle connections for load distribution unless disabled
 	if !client.skipConnectionShuffle && len(conns) > 1 {
 		rand.Shuffle(len(conns), func(i, j int) {
@@ -243,7 +252,7 @@ func New(cfg Config) (*Client, error) {
 
 	// Set up health check function for pools that support it
 	if pool, ok := client.mu.pool.(*statusConnectionPool); ok {
-		pool.healthCheck = client.defaultHealthCheck
+		pool.healthCheck = client.healthCheck
 	}
 
 	if cfg.EnableDebugLogger {
@@ -472,10 +481,12 @@ func (c *Client) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 
-	if u.Path != "" {
+	if u.Path != "" && u.Path != "/" {
+		// Only prepend the base path if it's not empty or just "/"
+		// This prevents double slashes like "//" when base URL has trailing slash
 		var b strings.Builder
 		b.Grow(len(u.Path) + len(req.URL.Path))
-		b.WriteString(u.Path)
+		b.WriteString(strings.TrimRight(u.Path, "/")) // Remove trailing slash from base
 		b.WriteString(req.URL.Path)
 		req.URL.Path = b.String()
 	}
@@ -612,7 +623,6 @@ func (c *Client) defaultHealthCheck(ctx context.Context, url *url.URL) (*http.Re
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	// Set up the request similar to regular requests
 	c.setReqURL(url, req)
 	c.setReqAuth(url, req)
 	c.setReqUserAgent(req)
@@ -625,11 +635,11 @@ func (c *Client) defaultHealthCheck(ctx context.Context, url *url.URL) (*http.Re
 	if res == nil {
 		return nil, fmt.Errorf("%w: nil response", errHealthCheckFailed)
 	}
-	if res.Body != nil {
-		defer res.Body.Close()
-	}
 
 	if res.StatusCode != http.StatusOK {
+		if res.Body != nil {
+			res.Body.Close()
+		}
 		return nil, fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
 	}
 
@@ -637,8 +647,10 @@ func (c *Client) defaultHealthCheck(ctx context.Context, url *url.URL) (*http.Re
 	if res.Body == nil {
 		return nil, fmt.Errorf("%w: nil response body", errHealthCheckFailed)
 	}
+
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		res.Body.Close()
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 	res.Body.Close()

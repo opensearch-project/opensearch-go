@@ -10,8 +10,6 @@ package opensearchapi_test
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -19,19 +17,19 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestDocumentClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	index := fmt.Sprintf("test-document-%d", rand.Int63())
+	index := testutil.MustUniqueString(t, "test-document")
 	documentID := "test"
 
 	t.Cleanup(func() { client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}}) })
@@ -120,7 +118,8 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Document.ExistsSource(t.Context(), opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID})
+						resp.Response, err = client.Document.ExistsSource(
+							t.Context(), opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID})
 						return resp, err
 					},
 				},
@@ -131,7 +130,8 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Document.ExistsSource(t.Context(), opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID})
+						resp.Response, err = failingClient.Document.ExistsSource(
+							t.Context(), opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID})
 						return resp, err
 					},
 				},
@@ -365,7 +365,7 @@ func TestDocumentClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if !strings.Contains(value.Name, "Exists") && value.Name != "Source" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -393,7 +393,7 @@ func TestDocumentClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
 		})
 		t.Run("Fields", func(t *testing.T) {
 			_, err := client.Indices.Mapping.Put(t.Context(),
@@ -431,7 +431,7 @@ func TestDocumentClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 			assert.NotEmpty(t, res.Fields)
 		})
 	})

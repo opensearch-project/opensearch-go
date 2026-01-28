@@ -16,22 +16,22 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
 )
 
 func TestClient(t *testing.T) {
 	t.Parallel()
-	client, err := osismtest.NewClient()
-	require.Nil(t, err)
+	client, err := osismtest.NewClient(t)
+	require.NoError(t, err)
 
-	osClient, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	osClient, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := osismtest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testPolicy := "testPolicy"
 	testIndex := []string{"test_policy"}
@@ -64,17 +64,17 @@ func TestClient(t *testing.T) {
 					},
 					DefaultState: "test",
 					States: []ism.PolicyState{
-						ism.PolicyState{
+						{
 							Name: "test",
 							Actions: []ism.PolicyStateAction{
-								ism.PolicyStateAction{
+								{
 									Delete: &ism.PolicyStateDelete{},
 								},
 							},
 						},
 					},
 					Template: []ism.Template{
-						ism.Template{
+						{
 							IndexPatterns: []string{"test"},
 							Priority:      22,
 						},
@@ -83,11 +83,11 @@ func TestClient(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Cleanup(func() { osClient.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: testIndex}) })
 	_, err = osClient.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: testIndex[0]})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type clientTests struct {
 		Name    string
@@ -229,11 +229,12 @@ func TestClient(t *testing.T) {
 	}
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
+			t.Parallel()
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osismtest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -241,7 +242,7 @@ func TestClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Explain" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 						if value.Name == "Add" && testCase.Name == "failure" {
 							err = waitFor()
@@ -253,29 +254,31 @@ func TestClient(t *testing.T) {
 		})
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
+		t.Parallel()
 		t.Run("Explain", func(t *testing.T) {
 			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with validate_action", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
+			testutil.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
 			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true, ValidateAction: true}})
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with show_policy", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
-			assert.Nil(t, err)
+			testutil.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
+			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 	})
 
 	t.Run("Put Policy with Transitions Conditions", func(t *testing.T) {
+		t.Parallel()
 		testRetentionPolicy := "testRetentionPolicy"
 		t.Cleanup(func() {
 			client.Policies.Delete(context.Background(), ism.PoliciesDeleteReq{Policy: testRetentionPolicy})
@@ -320,6 +323,6 @@ func TestClient(t *testing.T) {
 				},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 }

@@ -14,19 +14,20 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestTasksClient(t *testing.T) {
 	t.Parallel()
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -60,6 +61,7 @@ func TestTasksClient(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
+	require.NoError(t, err)
 	for i := 1; i <= 60; i++ {
 		err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 			Action:     "index",
@@ -87,6 +89,18 @@ func TestTasksClient(t *testing.T) {
 	)
 	require.NoError(t, err)
 	assert.NotEmpty(t, respReindex)
+
+	// Helper function to wait for task to be available
+	waitForTask := func(taskID string) error {
+		for range 50 { // Max 5 seconds (50 * 100ms)
+			_, err := client.Tasks.Get(ctx, opensearchapi.TasksGetReq{TaskID: taskID})
+			if err == nil {
+				return nil // Task is available
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+		return fmt.Errorf("task %s not available after polling", taskID)
+	}
 
 	type tasksTests struct {
 		Name    string
@@ -120,6 +134,10 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
+						// Wait for the task to be available before trying to get it
+						if err := waitForTask(respReindex.Task); err != nil {
+							return nil, err
+						}
 						return client.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{TaskID: respReindex.Task})
 					},
 				},
@@ -151,11 +169,13 @@ func TestTasksClient(t *testing.T) {
 	}
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
+			t.Parallel()
 			for _, testCase := range value.Tests {
-				t.Run(testCase.Name, func(t *testing.T) {
+				// Tasks tests must run sequentially to avoid race conditions with task cancellation
+				t.Run(testCase.Name, func(t *testing.T) { //nolint:paralleltest // sequential execution required
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.Error(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -163,7 +183,7 @@ func TestTasksClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" && value.Name != "Exists" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})

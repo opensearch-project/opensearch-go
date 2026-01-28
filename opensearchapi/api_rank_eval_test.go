@@ -9,8 +9,6 @@
 package opensearchapi_test
 
 import (
-	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,16 +16,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestRankEval(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	testIndex := fmt.Sprintf("test-rank_eval-%d", rand.Int63())
+	testIndex := testutil.MustUniqueString(t, "test-rank_eval")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
@@ -50,12 +48,13 @@ func TestRankEval(t *testing.T) {
 			t.Context(),
 			opensearchapi.RankEvalReq{
 				Indices: []string{testIndex},
-				Body:    strings.NewReader(`{"requests":[{"id":"test","request":{"query":{"match_all":{}}},"ratings":[]}],"metric":{"expected_reciprocal_rank":{"maximum_relevance":3,"k":20}}}`),
+				Body: strings.NewReader(`{"requests":[{"id":"test","request":{"query":{"match_all":{}}},"ratings":[]}],` +
+					`"metric":{"expected_reciprocal_rank":{"maximum_relevance":3,"k":20}}}`),
 			},
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {

@@ -44,13 +44,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 var called int
-
-type mockTransp struct {
-	RoundTripFunc func(*http.Request) (*http.Response, error)
-}
 
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
@@ -69,13 +66,6 @@ var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	}
 
 	return response, nil
-}
-
-func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
-	if t.RoundTripFunc == nil {
-		return defaultRoundTripFunc(req)
-	}
-	return t.RoundTripFunc(req)
 }
 
 type testReq struct {
@@ -108,34 +98,34 @@ func TestClientConfiguration(t *testing.T) {
 		c, err := NewDefaultClient()
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, u, defaultURL)
+		assert.Equal(t, defaultURL, u)
 	})
 
 	t.Run("With URL from Addresses", func(t *testing.T) {
-		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: &mockTransp{}})
+		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, u, "http://localhost:8080")
+		assert.Equal(t, "http://localhost:8080", u)
 	})
 
 	t.Run("With URL from OPENSEARCH_URL", func(t *testing.T) {
 		os.Setenv(envOpenSearchURL, "http://opensearch.com")
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
-		c, err := NewClient(Config{Transport: &mockTransp{}})
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, u, "http://opensearch.com")
+		assert.Equal(t, "http://opensearch.com", u)
 	})
 
 	t.Run("With URL from environment and cfg.Addresses", func(t *testing.T) {
 		os.Setenv(envOpenSearchURL, "http://example.com")
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
-		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: &mockTransp{}})
+		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, u, "http://localhost:8080")
+		assert.Equal(t, "http://localhost:8080", u)
 	})
 
 	t.Run("With invalid URL", func(t *testing.T) {
@@ -156,14 +146,12 @@ func TestClientConfiguration(t *testing.T) {
 	t.Run("With skip check", func(t *testing.T) {
 		_, err := NewClient(
 			Config{
-				Transport: &mockTransp{
-					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-						return &http.Response{
-							Header: http.Header{},
-							Body:   io.NopCloser(strings.NewReader("")),
-						}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(request *http.Request) (*http.Response, error) {
+					return &http.Response{
+						Header: http.Header{},
+						Body:   io.NopCloser(strings.NewReader("")),
+					}, nil
+				}),
 			})
 		assert.NoError(t, err)
 	})
@@ -172,32 +160,32 @@ func TestClientConfiguration(t *testing.T) {
 		c, err := NewClient(
 			Config{
 				Addresses: []string{"http://admin:admin@localhost:8080//"},
-				Transport: &mockTransp{},
+				Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
 			},
 		)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, u, "http://admin:admin@localhost:8080")
+		assert.Equal(t, "http://admin:admin@localhost:8080", u)
 	})
 
 	t.Run("With DiscoverNodes on start", func(t *testing.T) {
 		c, err := NewClient(
 			Config{
 				Addresses:            []string{"http://localhost:8080//"},
-				Transport:            &mockTransp{},
+				Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
 				DiscoverNodesOnStart: true,
 			},
 		)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, u, "http://localhost:8080")
+		assert.Equal(t, "http://localhost:8080", u)
 	})
 
 	t.Run("With failing creation", func(t *testing.T) {
 		_, err := NewClient(
 			Config{
 				Addresses: []string{"http://admin:admin@localhost:8080//"},
-				Transport: &mockTransp{},
+				Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
 				CACert:    []byte{1},
 			},
 		)
@@ -207,7 +195,7 @@ func TestClientConfiguration(t *testing.T) {
 
 func TestClientInterfe(t *testing.T) {
 	t.Run("Perform()", func(t *testing.T) {
-		c, err := NewClient(Config{Transport: &mockTransp{}})
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
 		call := called
@@ -217,11 +205,11 @@ func TestClientInterfe(t *testing.T) {
 			res.Body.Close()
 		}
 
-		assert.True(t, called-1 == call, "Expected client to call transport")
+		assert.Equal(t, called-1, call, "Expected client to call transport")
 	})
 
 	t.Run("Do()", func(t *testing.T) {
-		c, err := NewClient(Config{Transport: &mockTransp{}})
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
 		req := testReq{}
@@ -231,7 +219,7 @@ func TestClientInterfe(t *testing.T) {
 	})
 
 	t.Run("Do() GetRequest error", func(t *testing.T) {
-		c, err := NewClient(Config{Transport: &mockTransp{}})
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
 		req := testReq{Error: true}
@@ -241,7 +229,7 @@ func TestClientInterfe(t *testing.T) {
 	})
 
 	t.Run("Do() Unmarshal error", func(t *testing.T) {
-		c, err := NewClient(Config{Transport: &mockTransp{}})
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
 		type failStr struct {
@@ -257,15 +245,13 @@ func TestClientInterfe(t *testing.T) {
 	t.Run("Do() io read error", func(t *testing.T) {
 		c, err := NewClient(
 			Config{
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{
-								StatusCode: http.StatusOK,
-								Body:       io.NopCloser(iotest.ErrReader(errors.New("io reader test"))),
-							},
-							nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{
+							StatusCode: http.StatusOK,
+							Body:       io.NopCloser(iotest.ErrReader(errors.New("io reader test"))),
+						},
+						nil
+				}),
 			},
 		)
 		require.NoError(t, err)
@@ -351,10 +337,10 @@ func TestVersion(t *testing.T) {
 }
 
 func TestClientMetrics(t *testing.T) {
-	c, _ := NewClient(Config{EnableMetrics: true, Transport: &mockTransp{}})
+	c, _ := NewClient(Config{EnableMetrics: true, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 
 	m, err := c.Metrics()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	assert.LessOrEqual(t, m.Requests, 1, m)
 }

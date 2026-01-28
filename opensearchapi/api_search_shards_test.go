@@ -9,23 +9,21 @@
 package opensearchapi_test
 
 import (
-	"fmt"
-	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestSearchShards(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	index := fmt.Sprintf("test-index-search-shards-%d", rand.Int63())
+	index := testutil.MustUniqueString(t, "test-index-search-shards")
 
 	_, err = client.Indices.Create(
 		t.Context(),
@@ -42,14 +40,14 @@ func TestSearchShards(t *testing.T) {
 		resp, err := client.SearchShards(t.Context(), nil)
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
@@ -57,7 +55,7 @@ func TestSearchShards(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.SearchShards(t.Context(), nil)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

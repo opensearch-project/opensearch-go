@@ -10,7 +10,6 @@ package opensearchapi_test
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,22 +17,21 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestSnapshotClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	randomID := rand.Int63()
-	testRepo := fmt.Sprintf("test-repository-%d", randomID)
-	testSnapshot := fmt.Sprintf("test-snapshot-%d", randomID)
-	testCloneSnapshot := fmt.Sprintf("test-snapshot-clone-%d", randomID)
-	testIndex := fmt.Sprintf("test-snapshot-%d", randomID)
+	testRepo := testutil.MustUniqueString(t, "test-repository")
+	testSnapshot := testutil.MustUniqueString(t, "test-snapshot")
+	testCloneSnapshot := testutil.MustUniqueString(t, "test-snapshot-clone")
+	testIndex := testutil.MustUniqueString(t, "test-snapshot")
 
 	t.Cleanup(func() {
 		// Clean up snapshots first (snapshots must be deleted before repositories)
@@ -202,7 +200,8 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Get(t.Context(), opensearchapi.SnapshotGetReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
+						return client.Snapshot.Get(t.Context(),
+							opensearchapi.SnapshotGetReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
 					},
 				},
 				{
@@ -243,7 +242,8 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Status(t.Context(), opensearchapi.SnapshotStatusReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
+						return client.Snapshot.Status(t.Context(),
+							opensearchapi.SnapshotStatusReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
 					},
 				},
 				{
@@ -260,7 +260,8 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Snapshot.Delete(t.Context(), opensearchapi.SnapshotDeleteReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
+						return client.Snapshot.Delete(t.Context(),
+							opensearchapi.SnapshotDeleteReq{Repo: testRepo, Snapshots: []string{testSnapshot, testCloneSnapshot}})
 					},
 				},
 				{
@@ -303,7 +304,7 @@ func TestSnapshotClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Repository Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -327,7 +328,7 @@ func TestSnapshotClient(t *testing.T) {
 			resp, err := client.Snapshot.Repository.Get(t.Context(), &opensearchapi.SnapshotRepositoryGetReq{Repos: []string{testRepo}})
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Repos, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Repos, resp.Inspect().Response)
 		})
 	})
 }

@@ -14,18 +14,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
 func TestAuditClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	client, err := ossectest.NewClient()
-	require.Nil(t, err)
+	testutil.SkipIfNotSecure(t)
+	client, err := ossectest.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	var getResp security.AuditGetResp
 
@@ -89,7 +89,7 @@ func TestAuditClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Audit.Patch(
-							nil,
+							t.Context(),
 							security.AuditPatchReq{
 								Body: security.AuditPatchBody{
 									security.AuditPatchBodyItem{
@@ -105,7 +105,7 @@ func TestAuditClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Audit.Patch(nil, security.AuditPatchReq{})
+						return failingClient.Audit.Patch(t.Context(), security.AuditPatchReq{})
 					},
 				},
 			},
@@ -117,14 +117,14 @@ func TestAuditClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

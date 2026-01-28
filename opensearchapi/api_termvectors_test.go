@@ -9,8 +9,6 @@
 package opensearchapi_test
 
 import (
-	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -18,16 +16,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestTermvectors(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	testIndex := fmt.Sprintf("test-termvectors-%d", rand.Int63())
+	testIndex := testutil.MustUniqueString(t, "test-termvectors")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
@@ -93,12 +91,13 @@ func TestTermvectors(t *testing.T) {
 			opensearchapi.TermvectorsReq{
 				Index:      testIndex,
 				DocumentID: "1",
-				Body:       strings.NewReader(`{"fields":["*"],"offsets":true,"payloads":true,"positions":true,"term_statistics":true,"field_statistics":true}`),
+				Body: strings.NewReader(`{"fields":["*"],"offsets":true,"payloads":true,"positions":true,` +
+					`"term_statistics":true,"field_statistics":true}`),
 			},
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
