@@ -22,6 +22,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
     - Automatic routing of bulk operations (including streaming bulk) to ingest nodes
     - Automatic routing of search operations (search, count, explain, by-query operations) to data nodes
     - Automatic routing of document retrieval operations (get, mget, source, termvectors) to data nodes for read locality
+- Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 
 ### Changed
 

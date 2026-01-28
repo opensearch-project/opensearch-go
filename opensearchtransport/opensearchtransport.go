@@ -333,9 +333,6 @@ func New(cfg Config) (*Client, error) {
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
 		conn := &Connection{URL: u}
-		// Mark initial connections as dead to trigger health validation via resurrection workflow
-		// Discovery will use fallback to startup URLs when pool has no live connections
-		conn.markAsDead()
 		conns[idx] = conn
 	}
 
@@ -415,8 +412,8 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	// Set up health check function for pools that support it
-	if pool, ok := client.pool.(*statusConnectionPool); ok {
-		pool.healthCheck = client.isHealthyOpenSearchNode
+	if pool, ok := client.mu.connectionPool.(*statusConnectionPool); ok {
+		pool.healthCheck = client.defaultHealthCheck
 	}
 
 	if cfg.EnableDebugLogger {

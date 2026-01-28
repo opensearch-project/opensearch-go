@@ -3,9 +3,12 @@
 package opensearchtransport
 
 import (
+	"net/http"
 	"net/url"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestHealthCheckIntegration(t *testing.T) {
@@ -29,15 +32,13 @@ func TestHealthCheckIntegration(t *testing.T) {
 	}
 
 	t.Run("Health check against real OpenSearch", func(t *testing.T) {
-		version, err := client.isHealthyOpenSearchNode(u)
-		if err != nil {
-			t.Fatalf("Health check failed: %v", err)
-		}
-
-		t.Logf("OpenSearch version: %s", version)
-
-		if version == "" {
-			t.Error("Version should not be empty")
+		ctx := t.Context()
+		resp, err := client.defaultHealthCheck(ctx, u)
+		require.NoError(t, err, "Health check should succeed")
+		require.NotNil(t, resp, "Response should not be nil")
+		require.Equal(t, http.StatusOK, resp.StatusCode, "Should return 200 OK")
+		if resp.Body != nil {
+			resp.Body.Close()
 		}
 	})
 

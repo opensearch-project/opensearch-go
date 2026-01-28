@@ -72,7 +72,28 @@ func TestStatusConnectionPool(t *testing.T) {
 		servers    []*http.Server
 		serverURLs = make([]*url.URL, 0, numServers)
 
-		defaultHandler = func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "OK") }
+		defaultHandler = func(w http.ResponseWriter, r *http.Request) {
+			// Return proper OpenSearch root endpoint JSON response
+			w.Header().Set("Content-Type", "application/json")
+			response := `{
+  "name": "test-node",
+  "cluster_name": "test-cluster",
+  "cluster_uuid": "test-cluster-uuid",
+  "version": {
+    "number": "3.4.0",
+    "build_type": "tar",
+    "build_hash": "test-hash",
+    "build_date": "2024-01-01T00:00:00.000Z",
+    "build_snapshot": false,
+    "lucene_version": "9.11.0",
+    "minimum_wire_compatibility_version": "7.10.0",
+    "minimum_index_compatibility_version": "7.0.0",
+    "distribution": "opensearch"
+  },
+  "tagline": "The OpenSearch Project: https://opensearch.org/"
+}`
+			fmt.Fprint(w, response)
+		}
 	)
 
 	for i := 1; i <= numServers; i++ {

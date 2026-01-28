@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -383,8 +384,8 @@ func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connec
 	}
 
 	// Set up health check function for pools that support it
-	if pool, ok := c.pool.(*statusConnectionPool); ok {
-		pool.healthCheck = c.isHealthyOpenSearchNode
+	if pool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+		pool.healthCheck = c.defaultHealthCheck
 	}
 
 	return nil
@@ -499,7 +500,8 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 			}
 
 			// Use round-robin selector to pick a startup URL
-			selector := &roundRobinSelector{curr: -1}
+			selector := &roundRobinSelector{}
+			selector.curr.Store(-1)
 			conn, err = selector.Select(startupConns)
 			if err != nil {
 				return nil, fmt.Errorf("failed to select startup URL: %w", err)
