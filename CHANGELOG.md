@@ -6,11 +6,15 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - Enhanced cluster readiness checking for improved test reliability: `ostest.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+- Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
 
 ### Changed
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
 - Refactor metrics struct to use atomic counters for lock-free request/failure tracking ([#776](https://github.com/opensearch-project/opensearch-go/pull/776))
 - Test against Opensearch 2.19.4, 3.1, 3.3, and 3.4 ([#782](https://github.com/opensearch-project/opensearch-go/pull/782))
+- **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
+  - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
+  - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
 
 ### Deprecated
 
