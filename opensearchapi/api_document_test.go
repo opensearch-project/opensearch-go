@@ -10,6 +10,8 @@ package opensearchapi_test
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -29,7 +31,7 @@ func TestDocumentClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	index := "test-document"
+	index := fmt.Sprintf("test-document-%d", rand.Int63())
 	documentID := "test"
 
 	t.Cleanup(func() { client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}}) })

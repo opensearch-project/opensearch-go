@@ -10,6 +10,7 @@ package opensearchapi_test
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -27,21 +28,22 @@ func TestIndicesClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	index := "test-indices-create"
-	indexClone := "test-indices-clone"
-	indexSplit := "test-indices-split"
-	indexShrink := "test-indices-shrink"
-	indexRollover := "test-indices-rollover"
+	randSuffix := rand.Int63()
+	index := fmt.Sprintf("test-indices-create-%d", randSuffix)
+	indexClone := fmt.Sprintf("test-indices-clone-%d", randSuffix)
+	indexSplit := fmt.Sprintf("test-indices-split-%d", randSuffix)
+	indexShrink := fmt.Sprintf("test-indices-shrink-%d", randSuffix)
+	indexRollover := fmt.Sprintf("test-indices-rollover-%d", randSuffix)
 	testIndices := []string{index, indexClone, indexSplit, indexShrink, indexRollover}
 
-	alias := "test-indices-alias"
-	dataStream := "test-datastream-get"
+	alias := fmt.Sprintf("test-indices-alias-%d", randSuffix)
+	dataStream := fmt.Sprintf("test-datastream-get-%d", randSuffix)
 
 	_, err = client.IndexTemplate.Create(
 		t.Context(),
 		opensearchapi.IndexTemplateCreateReq{
 			IndexTemplate: dataStream,
-			Body:          strings.NewReader(`{"index_patterns":["test-datastream-get"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
+			Body:          strings.NewReader(fmt.Sprintf(`{"index_patterns":["%s"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`, dataStream)),
 		},
 	)
 	require.NoError(t, err)

@@ -9,6 +9,8 @@
 package opensearchapi_test
 
 import (
+	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -25,7 +27,7 @@ func TestMGet(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.NoError(t, err)
 
-	testIndex := "test-mget"
+	testIndex := fmt.Sprintf("test-mget-%d", rand.Int63())
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
