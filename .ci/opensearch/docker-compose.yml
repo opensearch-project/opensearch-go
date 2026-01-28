@@ -36,6 +36,7 @@ services:
       - opensearch-net
     volumes:
       - opensearch-data1:/usr/share/opensearch/data
+      - opensearch-snapshots:/usr/share/opensearch/mnt
     user: opensearch
     ulimits:
       memlock:
@@ -79,6 +80,7 @@ services:
       - opensearch-net
     volumes:
       - opensearch-data2:/usr/share/opensearch/data
+      - opensearch-snapshots:/usr/share/opensearch/mnt
     user: opensearch
     ulimits:
       memlock:
@@ -122,6 +124,7 @@ services:
       - opensearch-net
     volumes:
       - opensearch-data3:/usr/share/opensearch/data
+      - opensearch-snapshots:/usr/share/opensearch/mnt
     user: opensearch
     ulimits:
       memlock:
@@ -136,3 +139,4 @@ volumes:
   opensearch-data1:
   opensearch-data2:
   opensearch-data3:
+  opensearch-snapshots:
