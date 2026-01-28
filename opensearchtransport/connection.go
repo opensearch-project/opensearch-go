@@ -578,12 +578,9 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 		// Add random jitter (0 to clusterTimeout range)
 		// #nosec G404 - Non-cryptographic randomness is acceptable for connection timing jitter
 		jitter := time.Duration(rand.Float64() * float64(clusterTimeout))
-		finalTimeout = jitter
-
-		// Ensure minimum timeout
-		if finalTimeout < cp.minimumResurrectTimeout {
-			finalTimeout = cp.minimumResurrectTimeout
-		}
+		finalTimeout = max(
+			// Ensure minimum timeout
+			jitter, cp.minimumResurrectTimeout)
 	}
 
 	if debugLogger != nil {

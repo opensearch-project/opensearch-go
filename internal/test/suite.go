@@ -52,7 +52,7 @@ func (s *OpenSearchTestSuite) SetupTest() {
 	// Ensure cluster is still healthy before each test
 	ctx := context.Background()
 	_, err := s.Client.Cluster.Health(ctx, nil)
-	require.NoError(s.T(), err, "Cluster health check failed before test")
+	s.Require().NoError(err, "Cluster health check failed before test")
 }
 
 // SkipIfBelowVersion skips the current test if the cluster version is below the specified version
@@ -77,10 +77,12 @@ func (s *OpenSearchTestSuite) Version() string {
 
 // RequireHealthyCluster ensures the cluster is in a healthy state
 func (s *OpenSearchTestSuite) RequireHealthyCluster() {
+	s.T().Helper()
+
 	ctx := context.Background()
 	resp, err := s.Client.Cluster.Health(ctx, nil)
-	require.NoError(s.T(), err, "Failed to get cluster health")
-	require.NotNil(s.T(), resp, "Cluster health response is nil")
+	s.Require().NoError(err, "Failed to get cluster health")
+	s.Require().NotNil(resp, "Cluster health response is nil")
 }
 
 // CleanupIndex ensures an index is deleted, useful for test cleanup

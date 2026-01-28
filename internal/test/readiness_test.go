@@ -193,9 +193,9 @@ func TestHelperFunctions(t *testing.T) {
 		// Test successful version retrieval
 		major, minor, patch, err := ostest.GetVersion(t, client)
 		assert.NoError(t, err, "GetVersion should succeed with valid client")
-		assert.True(t, major >= 1, "Major version should be at least 1")
-		assert.True(t, minor >= 0, "Minor version should be non-negative")
-		assert.True(t, patch >= 0, "Patch version should be non-negative")
+		assert.GreaterOrEqual(t, major, 1, "Major version should be at least 1")
+		assert.GreaterOrEqual(t, minor, 0, "Minor version should be non-negative")
+		assert.GreaterOrEqual(t, patch, 0, "Patch version should be non-negative")
 
 		// ERROR PATH: Test GetVersion with nil client
 		_, _, _, err = ostest.GetVersion(t, nil)
@@ -246,7 +246,7 @@ func (s *ExampleTestSuite) TestClusterHealthWithSuite() {
 	// Suite already has a ready client available as s.Client
 	resp, err := s.Client.Cluster.Health(ctx, nil)
 	s.Require().NoError(err, "Cluster health should work")
-	s.Assert().NotNil(resp, "Response should not be nil")
+	s.NotNil(resp, "Response should not be nil")
 }
 
 func (s *ExampleTestSuite) TestVersionBasedSkipping() {

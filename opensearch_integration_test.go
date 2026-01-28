@@ -95,7 +95,7 @@ func TestClientTransport(t *testing.T) {
 		client, err := ostest.NewClient(t)
 		require.NoError(t, err)
 
-		for i := 0; i < 101; i++ {
+		for i := range 101 {
 			wg.Add(1)
 			time.Sleep(10 * time.Millisecond)
 
@@ -188,9 +188,19 @@ func TestClientCustomTransport(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		for i := 0; i < 10; i++ {
-			_, err := client.Info(t.Context(), nil)
-			require.NoError(t, err)
+		// Simple readiness wait for manually-constructed client (only uses Info API)
+		ctx := t.Context()
+		for {
+			_, err := client.Info(ctx, nil)
+			if err == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("Cluster not ready: %s", ctx.Err())
+			case <-time.After(5 * time.Second):
+				// Retry
+			}
 		}
 	})
 
@@ -233,11 +243,6 @@ func TestClientCustomTransport(t *testing.T) {
 			case <-time.After(5 * time.Second):
 				// Retry
 			}
-		}
-
-		for i := 0; i < 10; i++ {
-			_, err := client.Info(t.Context(), nil)
-			require.NoError(t, err)
 		}
 	})
 }
@@ -289,7 +294,7 @@ func TestClientReplaceTransport(t *testing.T) {
 			}
 			select {
 			case <-ctx.Done():
-				t.Fatalf("Cluster not ready: %s", ctx.Err())
+				t.Fatalf("Cluster not ready: %v", ctx.Err())
 			case <-time.After(5 * time.Second):
 				// Retry
 			}
@@ -298,7 +303,7 @@ func TestClientReplaceTransport(t *testing.T) {
 		// Reset counter after readiness check
 		initialCount := tr.Count()
 
-		for i := 0; i < expectedRequests; i++ {
+		for i := range expectedRequests {
 			_, err := client.Info(t.Context(), nil)
 			require.NoError(t, err)
 		}

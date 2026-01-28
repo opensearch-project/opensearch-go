@@ -1062,7 +1062,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				actualNodes[conn.Name] = true
 			}
 
-			assert.Equal(t, len(tt.expectedNodes), len(actualNodes),
+			assert.Len(t, actualNodes, len(tt.expectedNodes),
 				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
 
 			for _, expectedNode := range tt.expectedNodes {
@@ -1183,7 +1183,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			// Verify total count
 			expectedTotal := len(tt.expectedIncluded)
-			assert.Equal(t, expectedTotal, len(actualNodes),
+			assert.Len(t, actualNodes, expectedTotal,
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
