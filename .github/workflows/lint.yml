@@ -18,7 +18,7 @@ jobs:
         with:
           version: v2.8.0
           only-new-issues: true
-          args: --fix --build-tags "integration core"
+          args: --fix --build-tags "integration core plugins plugin_security plugin_index_management multinode"
 
   prettify:
     name: Prettify

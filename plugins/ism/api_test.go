@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
@@ -23,14 +22,14 @@ import (
 
 func TestClient(t *testing.T) {
 	t.Parallel()
-	client, err := osismtest.NewClient()
-	require.Nil(t, err)
+	client, err := osismtest.NewClient(t)
+	require.NoError(t, err)
 
-	osClient, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	osClient, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := osismtest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testPolicy := testutil.MustUniqueString(t, "test-policy")
 	testIndex := []string{testutil.MustUniqueString(t, "test-policy-index")}
@@ -82,11 +81,11 @@ func TestClient(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	t.Cleanup(func() { osClient.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: testIndex}) })
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: testIndex[0]})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type clientTests struct {
 		Name    string
@@ -100,19 +99,19 @@ func TestClient(t *testing.T) {
 			addIndex := []string{testutil.MustUniqueString(t, "test-add-okay")}
 			t.Cleanup(func() { osClient.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: addIndex}) })
 			_, err := osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: addIndex[0]})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			res, err := client.Add(t.Context(), ism.AddReq{Indices: addIndex, Body: ism.AddBody{PolicyID: testPolicy}})
 			require.NoError(t, err)
 			require.NotNil(t, res)
 			require.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
 			res, err := failingClient.Add(t.Context(), ism.AddReq{})
-			require.NotNil(t, err)
+			require.Error(t, err)
 			require.NotNil(t, res)
 			osismtest.VerifyInspect(t, res.Inspect())
 		})
@@ -222,7 +221,7 @@ func TestClient(t *testing.T) {
 					t.Parallel()
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osismtest.VerifyInspect(t, res.Inspect())
 					} else {
@@ -230,7 +229,7 @@ func TestClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Explain" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -238,14 +237,15 @@ func TestClient(t *testing.T) {
 		})
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
+		t.Parallel()
 		t.Run("Explain", func(t *testing.T) {
 			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex})
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with validate_action", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
+			testutil.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
 			resp, err := client.Explain(
 				t.Context(),
 				&ism.ExplainReq{
@@ -253,20 +253,21 @@ func TestClient(t *testing.T) {
 					Params:  ism.ExplainParams{ShowPolicy: true, ValidateAction: true},
 				},
 			)
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with show_policy", func(t *testing.T) {
-			ostest.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
+			testutil.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
 			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 	})
 
 	t.Run("Put Policy with Transitions Conditions", func(t *testing.T) {
+		t.Parallel()
 		testRetentionPolicy := testutil.MustUniqueString(t, "test-retention-policy")
 		testTransitionsPattern := testutil.MustUniqueString(t, "test-transitions")
 		t.Cleanup(func() {
@@ -312,6 +313,6 @@ func TestClient(t *testing.T) {
 				},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	})
 }

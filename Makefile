@@ -16,6 +16,7 @@ ifdef race
 	$(eval testunitargs += "-race")
 endif
 	$(eval testunitargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/unit")
+	@rm -rf $(PWD)/tmp/unit
 	@mkdir -p $(PWD)/tmp/unit
 	@echo "go test -v" $(testunitargs); \
 	go test -v $(testunitargs);
@@ -27,6 +28,7 @@ test: test-unit
 test-integ:  ## Run integration tests
 	@printf "\033[2m-> Running integration tests...\033[0m\n"
 	$(eval testintegtags += "integration,core,plugins")
+	$(eval testintegdir ?= integration)
 ifdef multinode
 	$(eval testintegtags += "multinode")
 endif
@@ -34,19 +36,20 @@ ifdef race
 	$(eval testintegargs += "-race")
 endif
 	$(eval TEST_PARALLEL ?= $(shell ncpu=$$(go env GOMAXPROCS 2>/dev/null); [ -z "$$ncpu" ] && ncpu=$$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4); parallel=$$((ncpu - 1)); [ $$parallel -lt 1 ] && parallel=1; echo $$parallel))
-	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=10m" "-parallel=$(TEST_PARALLEL)" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
-	@mkdir -p $(PWD)/tmp/integration
+	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=10m" "-parallel=$(TEST_PARALLEL)" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/$(testintegdir)")
+	@rm -rf $(PWD)/tmp/$(testintegdir)
+	@mkdir -p $(PWD)/tmp/$(testintegdir)
 	@echo "go test -v" $(testintegargs); \
 	go test -v $(testintegargs);
 ifdef coverage
-	@go tool covdata textfmt -i=$(PWD)/tmp/integration -o $(PWD)/tmp/integ.cov
+	@go tool covdata textfmt -i=$(PWD)/tmp/$(testintegdir) -o $(PWD)/tmp/$(testintegdir).cov
 endif
 
 test-integ-core:  ## Run base integration tests
-	@$(MAKE) test-integ testintegtags=integration,core
+	@$(MAKE) test-integ testintegtags=integration,core testintegdir=integration-core
 
 test-integ-plugins:  ## Run plugin integration tests
-	@$(MAKE) test-integ testintegtags=integration,plugins
+	@$(MAKE) test-integ testintegtags=integration,plugins testintegdir=integration-plugins
 
 test-integ-secure: ##Run secure integration tests
 	@SECURE_INTEGRATION=true $(MAKE) test-integ
@@ -230,6 +233,7 @@ cluster.build:
 
 cluster.start:
 	@$(MAKE) cluster.docker-up
+	@$(MAKE) cluster.wait-ready
 	@$(MAKE) cluster.get-cert
 
 cluster.stop:
@@ -238,6 +242,7 @@ cluster.stop:
 cluster.docker-build:
 	@# Determine version-specific settings
 	$(eval OPENSEARCH_VERSION ?= latest)
+	$(eval SECURE_INTEGRATION ?= false)
 	$(eval version_major := $(shell \
 		if [ "$(OPENSEARCH_VERSION)" = "latest" ]; then \
 			echo "2"; \
@@ -252,13 +257,14 @@ cluster.docker-build:
 			echo "cluster_manager"; \
 		fi \
 	))
-	@echo "Building OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role)"
+	@echo "Building OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role), secure: $(SECURE_INTEGRATION)"
 	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
 		docker compose --project-directory .ci/opensearch build --pull
 
 cluster.docker-up:
 	@# Determine version-specific settings
 	$(eval OPENSEARCH_VERSION ?= latest)
+	$(eval SECURE_INTEGRATION ?= false)
 	$(eval version_major := $(shell \
 		if [ "$(OPENSEARCH_VERSION)" = "latest" ]; then \
 			echo "2"; \
@@ -273,9 +279,25 @@ cluster.docker-up:
 			echo "cluster_manager"; \
 		fi \
 	))
-	@echo "Starting OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role)"
-	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
-		docker compose --project-directory .ci/opensearch up -d
+	@# Apply cgroup workaround for OpenSearch 2.0.1-2.3.0
+	$(eval java_opts_extra := $(shell \
+		if [ "$(OPENSEARCH_VERSION)" != "latest" ]; then \
+			version() { echo "$$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $$1,$$2,$$3,$$4); }'; }; \
+			v=$$(version $(OPENSEARCH_VERSION)); \
+			v_min=$$(version 2.0.1); \
+			v_max=$$(version 2.3.0); \
+			if [ $$v -ge $$v_min ] && [ $$v -le $$v_max ]; then \
+				echo " -XX:-UseContainerSupport"; \
+			fi; \
+		fi \
+	))
+	@echo "Starting OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role), secure: $(SECURE_INTEGRATION)"
+	export SECURE_INTEGRATION=$(SECURE_INTEGRATION); \
+	export OPENSEARCH_VERSION=$(OPENSEARCH_VERSION); \
+	export OPENSEARCH_MANAGER_ROLE=$(manager_role); \
+	export OPENSEARCH_MANAGER_SETTING=$(manager_role); \
+	export OPENSEARCH_JAVA_OPTS_EXTRA="$(java_opts_extra)"; \
+	docker compose --project-directory .ci/opensearch up -d
 
 cluster.scale.1: ## Start single-node cluster
 	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node2=0 --scale opensearch-node3=0;
@@ -297,6 +319,84 @@ cluster.get-cert:
 		docker cp $$CONTAINER:/usr/share/opensearch/config/kirk-key.pem admin.key; \
 	fi
 
+cluster.wait-ready: ## Poll cluster until health status is green or yellow
+	@printf "\033[2m-> Waiting for cluster to be ready...\033[0m\n"
+	@{ \
+		set -e; \
+		MAX_ATTEMPTS=60; \
+		ATTEMPT=1; \
+		HTTP_URL="http://localhost:9200/_cluster/health"; \
+		HTTPS_URL="https://localhost:9200/_cluster/health"; \
+		HEALTH_URL=""; \
+		CURL_OPTS=""; \
+		VERSION="$${OPENSEARCH_VERSION:-latest}"; \
+		if [ "$$VERSION" = "latest" ]; then \
+			PASSWORD="myStrongPassword123!"; \
+		else \
+			MAJOR=$$(echo "$$VERSION" | cut -d. -f1); \
+			MINOR=$$(echo "$$VERSION" | cut -d. -f2); \
+			if [ $$MAJOR -gt 2 ] || ([ $$MAJOR -eq 2 ] && [ $$MINOR -ge 12 ]); then \
+				PASSWORD="myStrongPassword123!"; \
+			else \
+				PASSWORD="admin"; \
+			fi; \
+		fi; \
+		while [ $$ATTEMPT -le $$MAX_ATTEMPTS ]; do \
+			if [ -z "$$HEALTH_URL" ]; then \
+				if curl -sf "$$HTTP_URL" > /dev/null 2>&1; then \
+					printf "\033[36m→ Detected insecure cluster (HTTP)\033[0m\n"; \
+					HEALTH_URL="$$HTTP_URL"; \
+					CURL_OPTS=""; \
+				elif curl -sf -k -u "admin:$$PASSWORD" "$$HTTPS_URL" > /dev/null 2>&1; then \
+					printf "\033[36m→ Detected secure cluster (HTTPS)\033[0m\n"; \
+					HEALTH_URL="$$HTTPS_URL"; \
+					CURL_OPTS="-k -u admin:$$PASSWORD"; \
+				else \
+					printf "\033[33m⋯ Waiting for cluster to respond (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\033[0m\n"; \
+					ATTEMPT=$$((ATTEMPT + 1)); \
+					sleep 2; \
+					continue; \
+				fi; \
+			fi; \
+			if curl -sf $$CURL_OPTS "$$HEALTH_URL" > /dev/null 2>&1; then \
+				STATUS=$$(curl -sf $$CURL_OPTS "$$HEALTH_URL" | grep -o '"status":"[^"]*"' | cut -d'"' -f4); \
+				if [ "$$STATUS" = "green" ] || [ "$$STATUS" = "yellow" ]; then \
+					printf "\033[32m✓ Cluster is ready (status: $$STATUS) after $$ATTEMPT attempts\033[0m\n"; \
+					INFO_URL="$${HEALTH_URL%%/_cluster/health}"; \
+					CLUSTER_INFO=$$(curl -sf $$CURL_OPTS "$$INFO_URL" 2>/dev/null); \
+					if [ -n "$$CLUSTER_INFO" ]; then \
+						CLUSTER_NAME=$$(echo "$$CLUSTER_INFO" | grep -o '"cluster_name":"[^"]*"' | cut -d'"' -f4); \
+						CLUSTER_VERSION=$$(echo "$$CLUSTER_INFO" | grep -o '"number":"[^"]*"' | head -1 | cut -d'"' -f4); \
+						printf "\033[2m  Cluster: $$CLUSTER_NAME\033[0m\n"; \
+						printf "\033[2m  Version: $$CLUSTER_VERSION\033[0m\n"; \
+						printf "\033[2m  URL:     $$INFO_URL\033[0m\n"; \
+						if [ -n "$$CURL_OPTS" ]; then \
+							printf "\033[2m  Auth:    admin:****\033[0m\n"; \
+						fi; \
+					fi; \
+					exit 0; \
+				fi; \
+				printf "\033[33m⋯ Cluster status: $$STATUS (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\033[0m\n"; \
+			else \
+				printf "\033[33m⋯ Waiting for cluster to respond (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\033[0m\n"; \
+			fi; \
+			ATTEMPT=$$((ATTEMPT + 1)); \
+			sleep 2; \
+		done; \
+		printf "\033[31m✗ Cluster failed to become ready after $$MAX_ATTEMPTS attempts\033[0m\n"; \
+		printf "\033[2m\n--- Diagnostic Information ---\033[0m\n"; \
+		printf "\033[2mDocker containers:\033[0m\n"; \
+		docker compose --project-directory .ci/opensearch ps || true; \
+		printf "\033[2m\nFull logs from all containers:\033[0m\n"; \
+		docker compose --project-directory .ci/opensearch logs || true; \
+		printf "\033[2m\nAttempted URLs:\033[0m\n"; \
+		printf "  HTTP:  $$HTTP_URL\n"; \
+		printf "  HTTPS: $$HTTPS_URL\n"; \
+		printf "\033[2m\nCurl test results:\033[0m\n"; \
+		printf "  HTTP: "; curl -sf "$$HTTP_URL" && echo "✓ OK" || echo "✗ Failed"; \
+		printf "  HTTPS: "; curl -sf -k -u "admin:$$PASSWORD" "$$HTTPS_URL" && echo "✓ OK" || echo "✗ Failed"; \
+		exit 1; \
+	}
 
 cluster.clean: ## Remove unused Docker volumes and networks
 	@printf "\033[2m-> Cleaning up Docker assets...\033[0m\n"

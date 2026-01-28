@@ -12,16 +12,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestDataStreamClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -125,14 +124,14 @@ func TestDataStreamClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.Error(t, err)
-						assert.NotNil(t, res)
+						require.Error(t, err)
+						require.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

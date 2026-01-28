@@ -46,11 +46,11 @@ func (r PointInTimeCreateReq) GetRequest() (*http.Request, error) {
 type PointInTimeCreateResp struct {
 	PitID  string `json:"pit_id"`
 	Shards struct {
-		Total      int                      `json:"total"`
-		Successful int                      `json:"successful"`
-		Skipped    int                      `json:"skipped"`
-		Failed     int                      `json:"failed"`
-		Failures   []ResponseShardsFailure  `json:"failures,omitempty"` // Only present when Failed > 0
+		Total      int                     `json:"total"`
+		Successful int                     `json:"successful"`
+		Skipped    int                     `json:"skipped"`
+		Failed     int                     `json:"failed"`
+		Failures   []ResponseShardsFailure `json:"failures,omitempty"` // Only present when Failed > 0
 	} `json:"_shards"`
 	CreationTime int64 `json:"creation_time"`
 	response     *opensearch.Response

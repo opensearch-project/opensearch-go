@@ -28,12 +28,15 @@ package opensearchtransport
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"math/rand/v2"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -51,6 +54,13 @@ const (
 var (
 	ErrNoConnections = errors.New("no connections available")
 )
+
+// healthCheckInfo represents the minimal structure needed to extract version from health check response
+type healthCheckInfo struct {
+	Version struct {
+		Number string `json:"number"`
+	} `json:"version"`
+}
 
 // NodeFilter defines a function type for filtering connections based on their properties.
 type NodeFilter func(*Connection) bool
@@ -84,6 +94,7 @@ type Connection struct {
 	Name       string
 	Roles      roleSet
 	Attributes map[string]any
+	Version    string // Server version discovered during health check
 
 	failures atomic.Int64
 
@@ -315,7 +326,12 @@ func (cp *statusConnectionPool) OnSuccess(c *Connection) {
 // OnFailure marks the connection as failed.
 func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	cp.mu.Lock()
-	defer cp.mu.Unlock()
+	holdingCPLock := true
+	defer func() {
+		if holdingCPLock {
+			cp.mu.Unlock()
+		}
+	}()
 
 	c.mu.Lock()
 
@@ -333,7 +349,6 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	}
 
 	c.markAsDeadWithLock()
-	deadSince := c.mu.deadSince
 	c.mu.Unlock()
 
 	// Find connection in live list
@@ -376,8 +391,14 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 		return failures1 > failures2
 	})
 
+	// MUST release lock before scheduleResurrect to avoid deadlock:
+	// scheduleResurrect needs cp.mu.RLock(), which blocks if we hold cp.mu.Lock()
+	holdingCPLock = false
+	cp.mu.Unlock()
+
 	// Schedule resurrection after connection has been moved to dead list
-	cp.scheduleResurrect(c, deadSince)
+	// Context is not passed as scheduleResurrect uses time.AfterFunc which cannot be cancelled
+	cp.scheduleResurrect(context.TODO(), c)
 
 	return nil
 }
@@ -431,27 +452,53 @@ func (cp *statusConnectionPool) Unlock() {
 }
 
 // performHealthCheck executes the health check for a connection.
-// Returns true if health check passes, false if it fails (and schedules retry).
-func (cp *statusConnectionPool) performHealthCheck(c *Connection) bool {
-	// Use background context for health check operations
-	// Health checks are independent operations during resurrection
-	ctx := context.Background()
-
+// Returns true if health check passes, false if it fails.
+// Note: This method does not reschedule on failure. The caller (resurrectWithLock) is responsible
+// for ensuring checkStartedAt is reset (via defer), allowing future failures to trigger new checks.
+func (cp *statusConnectionPool) performHealthCheck(ctx context.Context, c *Connection) bool {
 	resp, err := cp.healthCheck(ctx, c.URL)
 	if err != nil {
 		if debugLogger != nil {
-			debugLogger.Logf("Health check failed for %q: %s; will retry later\n", c.URL, err)
+			debugLogger.Logf("Health check failed for %q: %s\n", c.URL, err)
 		}
-		// Schedule retry on health check failure
-		cp.scheduleResurrect(c, c.mu.deadSince)
 		return false
 	}
 
-	if debugLogger != nil {
-		// Clean up response body if present
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
+	// Try to extract version information from the response
+	if resp == nil || resp.Body == nil {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q\n", c.URL)
 		}
+		return true
+	}
+
+	// Read the response body to extract version information
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+
+	if err != nil {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q\n", c.URL)
+		}
+		return true
+	}
+
+	var info healthCheckInfo
+	if json.Unmarshal(body, &info) != nil || info.Version.Number == "" {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q\n", c.URL)
+		}
+		return true
+	}
+
+	// Log version changes during rolling upgrades (not on initial startup)
+	if debugLogger != nil && c.Version != "" && c.Version != info.Version.Number {
+		debugLogger.Logf("Version changed for %q: %s -> %s\n", c.URL, c.Version, info.Version.Number)
+	}
+	// Update the connection version
+	c.Version = info.Version.Number
+
+	if debugLogger != nil {
 		debugLogger.Logf("Health check passed for %q\n", c.URL)
 	}
 	return true
@@ -479,17 +526,6 @@ func (cp *statusConnectionPool) getNextLiveConnWithLock() *Connection {
 //   - Caller must hold both pool lock and connection lock
 //   - Connection should exist in the dead list
 func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
-	if debugLogger != nil {
-		debugLogger.Logf("Attempting to resurrect %q\n", c.URL)
-	}
-
-	// Execute health check if configured
-	if cp.healthCheck != nil {
-		if !cp.performHealthCheck(c) {
-			return // Health check failed, resurrection scheduled
-		}
-	}
-
 	if debugLogger != nil {
 		debugLogger.Logf("Resurrecting %q\n", c.URL)
 	}
@@ -546,20 +582,22 @@ func (cp *statusConnectionPool) tryZombieWithLock() *Connection {
 	return c
 }
 
-// scheduleResurrect schedules the connection to be resurrected using cluster-aware timing.
+// calculateResurrectTimeout calculates the resurrection timeout based on failure count and cluster health.
 // Formula: ((1 - ((total - live) / total)) * total) * jitterScale
 // - All dead: immediate resurrection
 // - Healthy clusters: longer waits with more jitter
 // - Incident scenarios: faster recovery
-func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.Time) {
+func (cp *statusConnectionPool) calculateResurrectTimeout(c *Connection) time.Duration {
 	// Calculate basic exponential backoff factor
 	failures := c.failures.Load()
 	factor := math.Min(float64(failures-1), float64(cp.resurrectTimeoutFactorCutoff))
 	baseTimeout := time.Duration(cp.resurrectTimeoutInitial.Seconds() * math.Exp2(factor) * float64(time.Second))
 
 	// Get cluster health metrics
+	cp.mu.RLock()
 	totalNodes := len(cp.mu.live) + len(cp.mu.dead)
 	liveNodes := len(cp.mu.live)
+	cp.mu.RUnlock()
 
 	var finalTimeout time.Duration
 
@@ -578,42 +616,165 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 		// Add random jitter (0 to clusterTimeout range)
 		// #nosec G404 - Non-cryptographic randomness is acceptable for connection timing jitter
 		jitter := time.Duration(rand.Float64() * float64(clusterTimeout))
-		finalTimeout = max(
-			// Ensure minimum timeout
-			jitter, cp.minimumResurrectTimeout)
+		finalTimeout = max(jitter, cp.minimumResurrectTimeout)
 	}
 
 	if debugLogger != nil {
 		debugLogger.Logf(
-			"Resurrect %q (failures=%d, factor=%1.1f, live=%d, dead=%d, total=%d, base=%s, final=%s) in %s\n",
+			"Resurrect timeout for %q: failures=%d, factor=%1.1f, live=%d, dead=%d, total=%d, base=%s, final=%s\n",
 			c.URL,
 			failures,
 			factor,
 			liveNodes,
-			len(cp.mu.dead),
+			totalNodes-liveNodes,
 			totalNodes,
 			baseTimeout,
 			finalTimeout,
-			deadSince.Add(finalTimeout).Sub(time.Now().UTC()).Truncate(time.Millisecond),
 		)
 	}
 
-	time.AfterFunc(finalTimeout, func() {
-		cp.mu.Lock()
-		defer cp.mu.Unlock()
+	return finalTimeout
+}
 
-		c.mu.Lock()
-		defer c.mu.Unlock()
+// scheduleResurrect schedules the connection to be resurrected using cluster-aware timing.
+func (cp *statusConnectionPool) scheduleResurrect(ctx context.Context, c *Connection) {
+	// Check if a health check is already scheduled for this connection (read lock first)
+	c.mu.RLock()
+	if !c.mu.checkStartedAt.IsZero() {
+		// Health check already in progress
+		c.mu.RUnlock()
+		return
+	}
+	c.mu.RUnlock()
 
-		if c.mu.deadSince.IsZero() {
-			if debugLogger != nil {
-				debugLogger.Logf("Already resurrected %q\n", c.URL)
+	// Upgrade to write lock and re-check
+	c.mu.Lock()
+	if !c.mu.checkStartedAt.IsZero() {
+		// Another goroutine started a health check between our read and write lock
+		c.mu.Unlock()
+		return
+	}
+	// Mark that we're starting a health check
+	c.mu.checkStartedAt = time.Now().UTC()
+	c.mu.Unlock()
+
+	// Spawn goroutine to handle resurrection attempts with retries
+	go func() {
+		// Reset checkStartedAt when done, regardless of outcome
+		defer func() {
+			c.mu.Lock()
+			c.mu.checkStartedAt = time.Time{}
+			c.mu.Unlock()
+		}()
+
+		// Retry loop for health checks
+		for {
+			// Calculate timeout for this attempt
+			timeout := cp.calculateResurrectTimeout(c)
+
+			// Wait for either timeout or context cancellation
+			select {
+			case <-ctx.Done():
+				if debugLogger != nil {
+					debugLogger.Logf("Health check cancelled for %q: %v\n", c.URL, ctx.Err())
+				}
+				return
+			case <-time.After(timeout):
+				// Timeout elapsed, proceed with resurrection attempt
 			}
-			return
-		}
 
-		cp.resurrectWithLock(c)
-	})
+			// Attempt resurrection in a closure so defer executes at iteration end
+			shouldReturn := func() bool {
+				cp.mu.Lock()
+				c.mu.Lock()
+				defer func() {
+					c.mu.Unlock()
+					cp.mu.Unlock()
+				}()
+
+				// Check if connection was removed by DiscoveryUpdate
+				// Connection should be in either live or dead list; if in neither, it was removed
+				if c.mu.deadSince.IsZero() {
+					if debugLogger != nil {
+						debugLogger.Logf("Already resurrected %q\n", c.URL)
+					}
+					return true
+				}
+
+				// Check if connection is still in the pool (live or dead lists)
+				stillInPool := slices.Contains(cp.mu.live, c) || slices.Contains(cp.mu.dead, c)
+				if !stillInPool {
+					if debugLogger != nil {
+						debugLogger.Logf("Connection %q removed from pool by DiscoveryUpdate, stopping health checks\n", c.URL)
+					}
+					return true
+				}
+
+				// Execute health check if configured before resurrecting
+				if cp.healthCheck != nil {
+					if shouldRetry := cp.attemptHealthCheckWithRelock(ctx, c, &stillInPool); shouldRetry != nil {
+						return *shouldRetry
+					}
+				}
+
+				// Health check passed (or no health check configured), resurrect the connection
+				cp.resurrectWithLock(c)
+				return true // Successfully resurrected, exit loop
+			}()
+
+			if shouldReturn {
+				return
+			}
+		}
+	}()
+}
+
+// attemptHealthCheckWithRelock performs a health check with lock management.
+// Returns nil if health check passed and caller should proceed with resurrection.
+// Returns pointer to bool if caller should return: true to exit, false to retry.
+func (cp *statusConnectionPool) attemptHealthCheckWithRelock(ctx context.Context, c *Connection, stillInPool *bool) *bool {
+	// Release locks to perform I/O
+	c.mu.Unlock()
+	cp.mu.Unlock()
+
+	healthCheckPassed := cp.performHealthCheck(ctx, c)
+
+	// Re-acquire locks after health check
+	cp.mu.Lock()
+	c.mu.Lock()
+
+	if !healthCheckPassed {
+		// Health check failed, increment failures and retry with new timeout
+		c.failures.Add(1)
+		if debugLogger != nil {
+			debugLogger.Logf("Health check failed for %q, will retry (failures=%d)\n", c.URL, c.failures.Load())
+		}
+		// Return false to continue loop
+		shouldRetry := false
+		return &shouldRetry
+	}
+
+	// Re-check if connection was resurrected while we were checking
+	if c.mu.deadSince.IsZero() {
+		if debugLogger != nil {
+			debugLogger.Logf("Already resurrected %q during health check\n", c.URL)
+		}
+		shouldReturn := true
+		return &shouldReturn
+	}
+
+	// Re-check if connection is still in pool after health check (live or dead)
+	*stillInPool = slices.Contains(cp.mu.live, c) || slices.Contains(cp.mu.dead, c)
+	if !*stillInPool {
+		if debugLogger != nil {
+			debugLogger.Logf("Connection %q removed from pool during health check, stopping\n", c.URL)
+		}
+		shouldReturn := true
+		return &shouldReturn
+	}
+
+	// Health check passed, proceed with resurrection
+	return nil
 }
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).

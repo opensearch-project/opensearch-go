@@ -10,14 +10,12 @@ package opensearchapi_test
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	ostestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
@@ -41,9 +39,9 @@ func getClusterSize(t *testing.T, client *opensearchapi.Client) int {
 	return nodeCount
 }
 
-func TestIndicesClientNew(t *testing.T) {
+func TestIndicesClient(t *testing.T) {
 	t.Parallel()
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -55,17 +53,17 @@ func TestIndicesClientNew(t *testing.T) {
 	// Standard validation functions
 	validateDefault := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Inspect().Response)
-		ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 	}
 
 	// Factory function for validating APIs with dynamic index names as top-level keys
 	validateDynamicIndexResponse := func(expectedIndexPrefix string, requiredFields ...string) func(*testing.T, osapitest.Response, error) {
 		return func(t *testing.T, res osapitest.Response, err error) {
 			t.Helper()
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, res)
 			require.NotNil(t, res.Inspect().Response)
 
@@ -77,10 +75,10 @@ func TestIndicesClientNew(t *testing.T) {
 			// Parse response body to validate structure
 			body := res.Inspect().Response.Body
 			bodyBytes, err := io.ReadAll(body)
-			require.Nil(t, err, "Failed to read response body")
+			require.NoError(t, err, "Failed to read response body")
 
 			var responseData map[string]any
-			require.Nil(t, json.Unmarshal(bodyBytes, &responseData))
+			require.NoError(t, json.Unmarshal(bodyBytes, &responseData))
 
 			// Find index with matching prefix
 			var foundIndex string
@@ -107,11 +105,17 @@ func TestIndicesClientNew(t *testing.T) {
 
 	dataStream := testutil.MustUniqueString(t, "test-datastream-get")
 
+	indexTemplateBody := `{` +
+		`"index_patterns":["` + dataStream + `"],` +
+		`"template":{"settings":{"index":{"number_of_replicas":"0"}}},` +
+		`"priority":60,` +
+		`"data_stream":{}` +
+		`}`
 	_, err = client.IndexTemplate.Create(
 		t.Context(),
 		opensearchapi.IndexTemplateCreateReq{
 			IndexTemplate: dataStream,
-			Body:          strings.NewReader(fmt.Sprintf(`{"index_patterns":["%s"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`, dataStream)),
+			Body:          strings.NewReader(indexTemplateBody),
 		},
 	)
 	require.NoError(t, err)
@@ -128,10 +132,10 @@ func TestIndicesClientNew(t *testing.T) {
 	// These APIs can't use strict JSON comparison due to dynamic structure
 	validateDynamicResponse := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Inspect().Response)
-		// Skip ostest.CompareRawJSONwithParsedJSON for dynamic structure APIs
+		// Skip testutil.CompareRawJSONwithParsedJSON for dynamic structure APIs
 		// Instead, validate that we got a successful response with expected HTTP status
 		response := res.Inspect().Response
 		require.True(t, response.StatusCode >= 200 && response.StatusCode < 300,
@@ -140,7 +144,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 	validateInspect := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	}
@@ -149,13 +153,13 @@ func TestIndicesClientNew(t *testing.T) {
 		t.Helper()
 		if isSingleNode {
 			// Single-node cluster: shrink should succeed
-			require.Nil(t, err, "Expected Shrink to succeed in single-node cluster")
+			require.NoError(t, err, "Expected Shrink to succeed in single-node cluster")
 			require.NotNil(t, res)
 			require.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		} else {
 			// Multi-node cluster: shrink should fail for various reasons
-			require.NotNil(t, err, "Expected Shrink to fail in multi-node cluster")
+			require.Error(t, err, "Expected Shrink to fail in multi-node cluster")
 			require.NotNil(t, res)
 			require.NotNil(t, res.Inspect().Response)
 
@@ -219,12 +223,12 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create the index first for exists test
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
 			resp, err := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{index}})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.Equal(t, 200, resp.StatusCode)
 		})
@@ -252,7 +256,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
@@ -302,7 +306,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -340,7 +344,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index for alias operations
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Test: Alias Put (must run first to create alias)
 		t.Run("AliasPut", func(t *testing.T) {
@@ -360,6 +364,11 @@ func TestIndicesClientNew(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
 				res, err := client.Indices.Alias.Get(t.Context(), opensearchapi.AliasGetReq{Indices: []string{index}})
 				validateDynamicIndexResponse("test-alias-ops", "aliases")(t, res, err)
+
+				// Test GetIndices() method for coverage
+				indices := res.GetIndices()
+				require.NotNil(t, indices, "GetIndices should return a non-nil map")
+				require.Contains(t, indices, index, "GetIndices should contain the created index")
 			})
 
 			t.Run("inspect", func(t *testing.T) {
@@ -372,7 +381,7 @@ func TestIndicesClientNew(t *testing.T) {
 		t.Run("AliasExists", func(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
 				resp, err := client.Indices.Alias.Exists(t.Context(), opensearchapi.AliasExistsReq{Alias: []string{alias}})
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.NotNil(t, resp)
 			})
 
@@ -495,9 +504,9 @@ func TestIndicesClientNew(t *testing.T) {
 					`{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		_, err = client.DataStream.Create(t.Context(), opensearchapi.DataStreamCreateReq{DataStream: dataStream})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
@@ -531,9 +540,9 @@ func TestIndicesClientNew(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
 				// Create and block source index
 				_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: srcIndex})
-				require.Nil(t, err)
+				require.NoError(t, err)
 				_, err = client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				res, err := client.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: srcIndex, Target: dstIndex})
 				validateDefault(t, res, err)
@@ -563,9 +572,9 @@ func TestIndicesClientNew(t *testing.T) {
 					Index: srcIndex,
 					Body:  strings.NewReader(`{"settings":{"index":{"number_of_shards":1,"number_of_replicas":0}}}`),
 				})
-				require.Nil(t, err)
+				require.NoError(t, err)
 				_, err = client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				res, err := client.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{
 					Index:  srcIndex,
@@ -599,9 +608,15 @@ func TestIndicesClientNew(t *testing.T) {
 					Index: srcIndex,
 					Body:  strings.NewReader(`{"settings":{"index":{"number_of_shards":2,"number_of_replicas":0}}}`),
 				})
-				require.Nil(t, err)
+				require.NoError(t, err)
+
+				// Ensure index exists before proceeding (eventual consistency)
+				resp, err := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{srcIndex}})
+				require.NoError(t, err)
+				require.Equal(t, 200, resp.StatusCode, "Index must exist before blocking")
+
 				_, err = client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				res, err := client.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{
 					Index:  srcIndex,
@@ -632,7 +647,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Test Close (run first, not parallel with Open)
 		t.Run("Close", func(t *testing.T) {
@@ -675,7 +690,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
@@ -704,7 +719,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -740,7 +755,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -776,7 +791,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -811,7 +826,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
@@ -840,7 +855,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Test GetSettings
 		t.Run("GetSettings", func(t *testing.T) {
@@ -891,14 +906,26 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Test GetMapping
 		t.Run("GetMapping", func(t *testing.T) {
 			t.Parallel()
+			t.Run("with_nil_request", func(t *testing.T) {
+				res, err := client.Indices.Mapping.Get(t.Context(), nil)
+				require.NoError(t, err)
+				require.NotNil(t, res)
+				require.NotNil(t, res.Inspect().Response)
+			})
+
 			t.Run("with_request", func(t *testing.T) {
 				res, err := client.Indices.Mapping.Get(t.Context(), &opensearchapi.MappingGetReq{Indices: []string{index}})
 				validateDynamicIndexResponse("test-mapping", "mappings")(t, res, err)
+
+				// Test GetIndices() method for coverage
+				indices := res.GetIndices()
+				require.NotNil(t, indices, "GetIndices should return a non-nil map")
+				require.Contains(t, indices, index, "GetIndices should contain the created index")
 			})
 
 			t.Run("inspect", func(t *testing.T) {
@@ -907,9 +934,8 @@ func TestIndicesClientNew(t *testing.T) {
 			})
 		})
 
-		// Test PutMapping
+		// Test PutMapping (must run before FieldMapping)
 		t.Run("PutMapping", func(t *testing.T) {
-			t.Parallel()
 			t.Run("with_request", func(t *testing.T) {
 				res, err := client.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{
 					Indices: []string{index},
@@ -922,6 +948,38 @@ func TestIndicesClientNew(t *testing.T) {
 				res, err := failingClient.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{
 					Indices: []string{index},
 					Body:    strings.NewReader(`{"properties":{"test_field":{"type":"text"}}}`),
+				})
+				validateInspect(t, res, err)
+			})
+		})
+
+		// Test Field Mapping (requires PutMapping to have run)
+		t.Run("FieldMapping", func(t *testing.T) {
+			t.Run("with_nil_request", func(t *testing.T) {
+				// Nil request is valid code path, but OpenSearch will error because fields are required
+				res, err := client.Indices.Mapping.Field(t.Context(), nil)
+				require.Error(t, err, "OpenSearch should reject empty field list")
+				require.NotNil(t, res)
+				require.NotNil(t, res.Inspect().Response)
+			})
+
+			t.Run("with_request", func(t *testing.T) {
+				res, err := client.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{
+					Indices: []string{index},
+					Fields:  []string{"test_field"},
+				})
+				validateDynamicIndexResponse("test-mapping", "mappings")(t, res, err)
+
+				// Test GetIndices() method for coverage
+				indices := res.GetIndices()
+				require.NotNil(t, indices, "GetIndices should return a non-nil map")
+				require.Contains(t, indices, index, "GetIndices should contain the created index")
+			})
+
+			t.Run("inspect", func(t *testing.T) {
+				res, err := failingClient.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{
+					Indices: []string{index},
+					Fields:  []string{"test_field"},
 				})
 				validateInspect(t, res, err)
 			})
@@ -942,7 +1000,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -978,7 +1036,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -1013,7 +1071,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
@@ -1048,7 +1106,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -1100,7 +1158,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
@@ -1143,7 +1201,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		// Create index first
 		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()

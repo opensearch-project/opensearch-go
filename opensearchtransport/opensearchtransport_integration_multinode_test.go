@@ -35,6 +35,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
@@ -42,19 +43,37 @@ import (
 
 var _ = fmt.Print
 
-// getTestScheme returns http or https based on SECURE_INTEGRATION env var
+// getTestScheme returns http or https based on SECURE_INTEGRATION env var.
+// Defaults to http (insecure) to match Makefile and dev environments.
 func getTestScheme() string {
-	if os.Getenv("SECURE_INTEGRATION") == "true" {
+	val, found := os.LookupEnv("SECURE_INTEGRATION")
+	if !found {
+		return "http" // Default to insecure
+	}
+	isSecure, err := strconv.ParseBool(val)
+	if err != nil {
+		return "http" // Default to insecure on parse error
+	}
+	if isSecure {
 		return "https"
 	}
 	return "http"
 }
 
-// getTestTransport returns an http.RoundTripper configured for secure or insecure mode
+// getTestTransport returns an http.RoundTripper configured for secure or insecure mode.
+// Defaults to insecure to match Makefile and dev environments.
 func getTestTransport() http.RoundTripper {
-	if os.Getenv("SECURE_INTEGRATION") == "true" {
+	val, found := os.LookupEnv("SECURE_INTEGRATION")
+	if !found {
+		return http.DefaultTransport // Default to insecure
+	}
+	isSecure, err := strconv.ParseBool(val)
+	if err != nil {
+		return http.DefaultTransport // Default to insecure on parse error
+	}
+	if isSecure {
 		return &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Intentionally skipping TLS verification for test environments
 		}
 	}
 	return http.DefaultTransport

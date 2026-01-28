@@ -38,10 +38,11 @@ import (
 	"strings"
 	"testing"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	ostestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 var _ = fmt.Print
@@ -53,7 +54,7 @@ func TestTransportRetries(t *testing.T) {
 		counter++
 
 		body, _ := io.ReadAll(r.Body)
-		if testutil.IsDebugEnabled(t) {
+		if ostestutil.IsDebugEnabled(t) {
 			t.Logf("req.Body: %q", string(body))
 		}
 
@@ -84,8 +85,9 @@ func TestTransportRetries(t *testing.T) {
 			defer res.Body.Close()
 
 			body, _ := io.ReadAll(res.Body)
+			res.Body.Close()
 
-			if testutil.IsDebugEnabled(t) {
+			if ostestutil.IsDebugEnabled(t) {
 				t.Logf("> GET %q", req.URL)
 				t.Logf("< %q (tries: %d)", bytes.TrimSpace(body), counter)
 			}
@@ -98,29 +100,29 @@ func TestTransportRetries(t *testing.T) {
 }
 
 func TestTransportHeaders(t *testing.T) {
+	// Ensure cluster is ready by using modern test pattern
+	_, err := testutil.NewClient(t)
+	if err != nil {
+		t.Fatalf("Failed to create client for cluster readiness check: %s", err)
+	}
+
 	hdr := http.Header{}
 	hdr.Set("Accept", "application/yaml")
 
-	u, _ := url.Parse("http://localhost:9200")
-	tp, _ := opensearchtransport.New(opensearchtransport.Config{
-		URLs:   []*url.URL{u},
-		Header: hdr,
-	})
-
-	config, err := ostest.ClientConfig()
+	// Use standardized URL construction and client config
+	u := mockhttp.GetOpenSearchURL(t)
+	config, err := testutil.ClientConfig(t)
 	if err != nil {
 		t.Fatalf("Failed to get client config: %s", err)
 	}
-	if ostest.IsSecure() {
-		u, _ := url.Parse("https://localhost:9200")
-		tp, _ = opensearchtransport.New(opensearchtransport.Config{
-			URLs:      []*url.URL{u},
-			Header:    hdr,
-			Username:  config.Client.Username,
-			Password:  config.Client.Password,
-			Transport: config.Client.Transport,
-		})
-	}
+
+	tp, _ := opensearchtransport.New(opensearchtransport.Config{
+		URLs:      []*url.URL{u},
+		Header:    hdr,
+		Username:  config.Client.Username,
+		Password:  config.Client.Password,
+		Transport: config.Client.Transport,
+	})
 
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Perform(req)
@@ -140,25 +142,25 @@ func TestTransportHeaders(t *testing.T) {
 }
 
 func TestTransportBodyClose(t *testing.T) {
-	u, _ := url.Parse("http://localhost:9200")
+	// Ensure cluster is ready by using modern test pattern
+	_, err := testutil.NewClient(t)
+	if err != nil {
+		t.Fatalf("Failed to create client for cluster readiness check: %s", err)
+	}
 
-	tp, _ := opensearchtransport.New(opensearchtransport.Config{
-		URLs: []*url.URL{u},
-	})
-
-	config, err := ostest.ClientConfig()
+	// Use standardized URL construction and client config
+	u := mockhttp.GetOpenSearchURL(t)
+	config, err := testutil.ClientConfig(t)
 	if err != nil {
 		t.Fatalf("Failed to get client config: %s", err)
 	}
-	if ostest.IsSecure() {
-		u, _ := url.Parse("https://localhost:9200")
-		tp, _ = opensearchtransport.New(opensearchtransport.Config{
-			URLs:      []*url.URL{u},
-			Username:  config.Client.Username,
-			Password:  config.Client.Password,
-			Transport: config.Client.Transport,
-		})
-	}
+
+	tp, _ := opensearchtransport.New(opensearchtransport.Config{
+		URLs:      []*url.URL{u},
+		Username:  config.Client.Username,
+		Password:  config.Client.Password,
+		Transport: config.Client.Transport,
+	})
 
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Perform(req)
@@ -181,33 +183,32 @@ func TestTransportBodyClose(t *testing.T) {
 }
 
 func TestTransportCompression(t *testing.T) {
+	// Ensure cluster is ready by using modern test pattern
+	_, err := testutil.NewClient(t)
+	if err != nil {
+		t.Fatalf("Failed to create client for cluster readiness check: %s", err)
+	}
+
 	var req *http.Request
 	var res *http.Response
-	var err error
 
-	u, _ := url.Parse("http://localhost:9200")
+	// Use standardized URL construction and client config
+	u := mockhttp.GetOpenSearchURL(t)
+	config, err := testutil.ClientConfig(t)
+	if err != nil {
+		t.Fatalf("Failed to get client config: %s", err)
+	}
 
 	transport, _ := opensearchtransport.New(opensearchtransport.Config{
 		URLs:                []*url.URL{u},
 		CompressRequestBody: true,
+		Username:            config.Client.Username,
+		Password:            config.Client.Password,
+		Transport:           config.Client.Transport,
 	})
 
-	config, err := ostest.ClientConfig()
-	if err != nil {
-		t.Fatalf("Failed to get client config: %s", err)
-	}
-	if ostest.IsSecure() {
-		u, _ := url.Parse("https://localhost:9200")
-		transport, _ = opensearchtransport.New(opensearchtransport.Config{
-			URLs:                []*url.URL{u},
-			CompressRequestBody: true,
-			Username:            config.Client.Username,
-			Password:            config.Client.Password,
-			Transport:           config.Client.Transport,
-		})
-	}
-
-	indexName := "/shiny_new_index"
+	// Use unique index name for this test
+	indexName := testutil.MustUniqueString(t, "/transport-compression-test")
 
 	req, _ = http.NewRequest(http.MethodPut, indexName, nil)
 	res, err = transport.Perform(req)
@@ -237,7 +238,9 @@ func TestTransportCompression(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot POST payload: %v", err)
 	}
-	defer res.Body.Close()
+	if res != nil && res.Body != nil {
+		res.Body.Close()
+	}
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Unexpected StatusCode, expected 201, got: %v", res.StatusCode)

@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
@@ -26,7 +25,7 @@ import (
 
 func TestReindexRethrottle(t *testing.T) {
 	t.Parallel()
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
 	sourceIndex := testutil.MustUniqueString(t, "test-reindex-rethrottle-source")
@@ -56,7 +55,7 @@ func TestReindexRethrottle(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	for i := 1; i <= 60; i++ {
 		err := bi.Add(t.Context(), opensearchutil.BulkIndexerItem{
 			Action:     "index",
@@ -93,7 +92,7 @@ func TestReindexRethrottle(t *testing.T) {
 		)
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {

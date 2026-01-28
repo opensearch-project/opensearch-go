@@ -18,7 +18,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 )
 
@@ -28,8 +29,9 @@ type Response interface {
 }
 
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case
-func NewClient() (*security.Client, error) {
-	config, err := ClientConfig()
+func NewClient(t *testing.T) (*security.Client, error) {
+	t.Helper()
+	config, err := ClientConfig(t)
 	if err != nil {
 		return nil, err
 	}
@@ -40,9 +42,13 @@ func NewClient() (*security.Client, error) {
 }
 
 // ClientConfig returns an opensearchapi.Config for secure opensearch
-func ClientConfig() (*security.Config, error) {
-	if ostest.IsSecure() {
-		password, err := ostest.GetPassword()
+func ClientConfig(t *testing.T) (*security.Config, error) {
+	t.Helper()
+	// Use centralized URL construction
+	u := mockhttp.GetOpenSearchURL(t)
+
+	if testutil.IsSecure(t) {
+		password, err := testutil.GetPassword(t)
 		if err != nil {
 			return nil, err
 		}
@@ -51,9 +57,9 @@ func ClientConfig() (*security.Config, error) {
 			Client: opensearch.Config{
 				Username:  "admin",
 				Password:  password,
-				Addresses: []string{"https://localhost:9200"},
+				Addresses: []string{u.String()},
 				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Test environment only
 				},
 			},
 		}, nil

@@ -66,12 +66,16 @@ type ClusterAllocationExplainResp struct {
 		LastAllocationStatus string  `json:"last_allocation_status"`
 		Details              *string `json:"details,omitempty"` // Available since OpenSearch 1.0.0
 	} `json:"unassigned_info"`
-	CanAllocate                  string                             `json:"can_allocate"`
-	CanRemainOnCurrentNode       string                             `json:"can_remain_on_current_node"`
-	CanRebalanceCluster          string                             `json:"can_rebalance_cluster"`
-	CanRebalanceToOtherNode      string                             `json:"can_rebalance_to_other_node"`
-	RebalanceExplanation         string                             `json:"rebalance_explanation"`
-	AllocateExplanation          string                             `json:"allocate_explanation"`
+	CanAllocate             string `json:"can_allocate"`
+	CanRemainOnCurrentNode  string `json:"can_remain_on_current_node"`
+	CanRebalanceCluster     string `json:"can_rebalance_cluster"`
+	CanRebalanceToOtherNode string `json:"can_rebalance_to_other_node"`
+	RebalanceExplanation    string `json:"rebalance_explanation"`
+	AllocateExplanation     string `json:"allocate_explanation"`
+	// Available since OpenSearch 1.0; only present when allocation_status is DELAYED_ALLOCATION
+	ConfiguredDelayInMillis *int64 `json:"configured_delay_in_millis,omitempty"`
+	// Available since OpenSearch 1.0; only present when allocation_status is DELAYED_ALLOCATION
+	RemainingDelayInMillis       *int64                             `json:"remaining_delay_in_millis,omitempty"`
 	NodeAllocationDecisions      []ClusterAllocationNodeDecisions   `json:"node_allocation_decisions"`
 	CanRebalanceClusterDecisions []ClusterAllocationExplainDeciders `json:"can_rebalance_cluster_decisions"`
 	response                     *opensearch.Response

@@ -517,6 +517,16 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
+		// Report connection failure to the pool if we got the connection from the pool
+		// Note: getConnectionFromPool always uses pool, so we always report
+		c.mu.RLock()
+		pool := c.mu.connectionPool
+		c.mu.RUnlock()
+		if pool != nil {
+			if poolErr := pool.OnFailure(conn); poolErr != nil && debugLogger != nil {
+				debugLogger.Logf("Failed to mark connection as failed: %v\n", poolErr)
+			}
+		}
 		return nil, err
 	}
 
@@ -552,6 +562,15 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		node.url = u
 		out[idx] = node
 		idx++
+	}
+
+	// Report connection success to the pool if we got the connection from the pool
+	// Note: getConnectionFromPool always uses pool, so we always report
+	c.mu.RLock()
+	pool := c.mu.connectionPool
+	c.mu.RUnlock()
+	if pool != nil {
+		pool.OnSuccess(conn)
 	}
 
 	return out, nil

@@ -224,6 +224,8 @@ type Client struct {
 	minHealthyConnections int
 	skipConnectionShuffle bool
 
+	healthCheck func(ctx context.Context, url *url.URL) (*http.Response, error)
+
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
 
@@ -395,6 +397,13 @@ func New(cfg Config) (*Client, error) {
 
 	client.userAgent = initUserAgent()
 
+	// Set health check function - use configured one or default to built-in health check
+	if cfg.HealthCheck != nil {
+		client.healthCheck = cfg.HealthCheck
+	} else {
+		client.healthCheck = client.defaultHealthCheck
+	}
+
 	// Shuffle connections for load distribution unless disabled
 	if !client.skipConnectionShuffle && len(conns) > 1 {
 		rand.Shuffle(len(conns), func(i, j int) {
@@ -421,7 +430,7 @@ func New(cfg Config) (*Client, error) {
 
 	// Set up health check function for pools that support it
 	if pool, ok := client.mu.connectionPool.(*statusConnectionPool); ok {
-		pool.healthCheck = client.defaultHealthCheck
+		pool.healthCheck = client.healthCheck
 	}
 
 	if cfg.EnableDebugLogger {
@@ -702,10 +711,12 @@ func (c *Client) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 
-	if u.Path != "" {
+	if u.Path != "" && u.Path != "/" {
+		// Only prepend the base path if it's not empty or just "/"
+		// This prevents double slashes like "//" when base URL has trailing slash
 		var b strings.Builder
 		b.Grow(len(u.Path) + len(req.URL.Path))
-		b.WriteString(u.Path)
+		b.WriteString(strings.TrimRight(u.Path, "/")) // Remove trailing slash from base
 		b.WriteString(req.URL.Path)
 		req.URL.Path = b.String()
 	}

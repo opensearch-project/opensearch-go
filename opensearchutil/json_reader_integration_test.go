@@ -34,16 +34,16 @@ import (
 	"strings"
 	"testing"
 
-	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
 		ctx := t.Context()
 
-		client, err := osapitest.NewClient(t)
+		client, err := testutil.NewClient(t)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}

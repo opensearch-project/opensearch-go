@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
@@ -24,7 +23,7 @@ import (
 )
 
 func TestDocumentClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
@@ -370,7 +369,7 @@ func TestDocumentClient(t *testing.T) {
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if !strings.Contains(value.Name, "Exists") && value.Name != "Source" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -398,7 +397,7 @@ func TestDocumentClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
 		})
 		t.Run("Fields", func(t *testing.T) {
 			// Create unique document ID for this test
@@ -439,7 +438,7 @@ func TestDocumentClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 			assert.NotEmpty(t, res.Fields)
 		})
 	})

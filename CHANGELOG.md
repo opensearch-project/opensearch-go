@@ -6,7 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
-- Enhanced cluster readiness checking for improved test reliability: `ostest.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+- Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
 - Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
 - opensearchutil/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
@@ -44,6 +44,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `opensearch.Config` and `opensearchtransport.Config` now accept optional `Context` and `CancelFunc` fields
   - `opensearchutil.BulkIndexerConfig` now accepts optional `Context` and `CancelFunc` fields
   - Enables proper context propagation for timeouts, cancellation, and graceful shutdown
+  - Role compatibility validation prevents conflicting role assignments (master+cluster_manager, warm+search)
+  - OpenSearch 3.0+ searchable snapshots now use `warm` role instead of deprecated `search` role
+- **BREAKING**: Migrate `signer/aws` package from AWS SDK v1 to AWS SDK v2 due to AWS SDK v1 reaching end-of-support on July 31, 2025
+  - Constructor now takes `aws.Config` instead of `session.Options`
+  - See USER_GUIDE.md for details required to migrate
+  - Users who need access to the existing `signer/awsv2` API can still use it, however they are encouraged to migrate to `signer/aws`
 
 ### Deprecated
 
@@ -323,7 +329,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Updates workflow action versions ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changes integration tests to work with secure and unsecure OpenSearch ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Moves functions from `opensearch/internal/test` to `internal/test` for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Moves functions from `opensearch/internal/test` to `opensearchutil/testutil` for shared test utilities ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changes `custom_foldername` field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changs cat indices Primary and Replica field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Replaces `ioutil` with `io` in examples and integration tests [#495](https://github.com/opensearch-project/opensearch-go/pull/495)

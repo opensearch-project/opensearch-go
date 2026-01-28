@@ -16,18 +16,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
 func TestSecurityConfigClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	config, err := ossectest.ClientConfig()
-	require.Nil(t, err)
+	testutil.SkipIfNotSecure(t)
+	config, err := ossectest.ClientConfig(t)
+	require.NoError(t, err)
 
 	clientTLSCert, err := tls.LoadX509KeyPair("../../admin.pem", "../../admin.key")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	config.Client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -37,10 +37,10 @@ func TestSecurityConfigClient(t *testing.T) {
 	}
 
 	client, err := security.NewClient(*config)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	var putBody security.ConfigDynamic
 
@@ -134,14 +134,14 @@ func TestSecurityConfigClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

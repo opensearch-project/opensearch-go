@@ -49,7 +49,6 @@ func TestPollUntil_Timeout(t *testing.T) {
 	if !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("Expected context.DeadlineExceeded, got: %v", err)
 	}
-	t.Logf("Made %d attempts before timeout", attempts)
 }
 
 func TestPollUntil_CheckError(t *testing.T) {
@@ -130,7 +129,6 @@ func TestPollUntil_ContextCancellation(t *testing.T) {
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Expected context.Canceled, got: %v", err)
 	}
-	t.Logf("Made %d attempts before cancellation", attempts)
 }
 
 func TestPollUntil_WithJitter(t *testing.T) {
@@ -153,6 +151,9 @@ func TestPollUntil_WithJitter(t *testing.T) {
 	if attempts != 3 {
 		t.Fatalf("Expected 3 attempts, got %d", attempts)
 	}
-	// With jitter, timing should vary but be reasonable
-	t.Logf("Completed in %v with jitter", elapsed)
+	// With exponential backoff and jitter, timing should be reasonable
+	// Attempt 0: ~10ms ± 5ms, Attempt 1: ~20ms ± 10ms = ~15-45ms baseline + overhead
+	if elapsed > 100*time.Millisecond {
+		t.Fatalf("Expected completion within 100ms with backoff and jitter, took %v", elapsed)
+	}
 }

@@ -57,7 +57,15 @@ jobs:
             fi
             echo "=====> Attempt $attempt/25 - waiting..."
           done
-      - run: make test-integ-core test-integ-plugins race=true
+      - run: make test-integ-core test-integ-plugins race=true coverage=true
+      - name: Merge coverage files
+        run: |
+          go tool covdata textfmt -i=tmp/integration-core,tmp/integration-plugins -o tmp/integ.cov
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: tmp/integ.cov
+          flags: integration
 
   secured:
     name: Tests against secure cluster
@@ -112,6 +120,9 @@ jobs:
             echo "=====> Attempt $attempt/25 - waiting..."
           done
       - run: make cluster.get-cert test-integ-core test-integ-plugins race=true coverage=true
+      - name: Merge coverage files
+        run: |
+          go tool covdata textfmt -i=tmp/integration-core,tmp/integration-plugins -o tmp/integ.cov
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

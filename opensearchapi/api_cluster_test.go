@@ -14,39 +14,57 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
+const (
+	willErrorPrefix = "WILL_ERROR: "
+)
+
 func TestClusterClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
+	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
 	index := testutil.MustUniqueString(t, "test-cluster-indices")
+	indexWithUnassigned := testutil.MustUniqueString(t, "test-cluster-unassigned")
 	t.Cleanup(func() {
-		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index, indexWithUnassigned}})
 	})
 
+	// Create a regular index
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
+	require.NoError(t, err)
+
+	// Create an index with more replicas than available nodes to ensure unassigned shards
+	// This will create unassigned replica shards that AllocationExplain can analyze
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
+		Index: indexWithUnassigned,
+		Body: strings.NewReader(`{
+			"settings": {
+				"number_of_shards": 1,
+				"number_of_replicas": 10
+			}
+		}`),
+	})
 	require.NoError(t, err)
 
 	// Default validation function for most test cases
 	validateDefault := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Inspect().Response)
-		ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 	}
 
 	// Validation function for "inspect" test cases (failing client)
 	validateInspect := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		require.NotNil(t, err)
+		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	}
@@ -54,62 +72,34 @@ func TestClusterClient(t *testing.T) {
 	// Validation function for AllocationExplain with nil request
 	validateAllocationExplainNil := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		// AllocationExplain with nil request in a healthy cluster should return
-		// "unable to find any unassigned shards" error - this is expected behavior
-		if err != nil {
-			// Check if it's the expected "no unassigned shards" error
-			expectedErr := "unable to find any unassigned shards to explain"
-			if strings.Contains(err.Error(), expectedErr) {
-				// This is expected for a healthy cluster - treat as success
-				require.NotNil(t, res)
-				require.NotNil(t, res.Inspect().Response)
-			} else {
-				t.Errorf("Unexpected error for AllocationExplain: %v", err)
-			}
-		} else {
-			// No error means there were unassigned shards - also valid
-			require.NotNil(t, res)
-			require.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
-		}
+		// AllocationExplain with nil request should succeed now that we have indexWithUnassigned
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 	}
 
 	// Validation function for AllocationExplain with specific shard request (positive case)
 	validateAllocationExplainPositive := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		// This should succeed and return explanation data for the assigned shard
-		require.Nil(t, err)
+		// This should succeed and return explanation data for the shard
+		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Inspect().Response)
-		ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 
 		// Verify we got a successful HTTP response
 		response := res.Inspect().Response
 		require.Equal(t, 200, response.StatusCode, "Expected 200 OK for successful allocation explanation")
 	}
 
-	// Validation function for AllocationExplain with unassigned shard request (tests target_node field)
-	validateAllocationExplainUnassigned := func(t *testing.T, res osapitest.Response, err error) {
+	// Validation function for expected error cases
+	validateExpectedError := func(t *testing.T, res osapitest.Response, err error) {
 		t.Helper()
-		// The unassigned shard request tests our target_node field functionality
-		if err != nil {
-			// Check if it's the expected "no unassigned shards" error
-			expectedErr := "unable to find any unassigned shards to explain"
-			if strings.Contains(err.Error(), expectedErr) {
-				// This is expected for a healthy cluster - treat as success
-				require.NotNil(t, res)
-				require.NotNil(t, res.Inspect().Response)
-				t.Logf("Expected 'no unassigned shards' error in healthy cluster for unassigned shard test: %v", err)
-			} else {
-				// Some other unexpected error
-				t.Errorf("Unexpected error for AllocationExplain unassigned shard test: %v", err)
-			}
-		} else {
-			// No error means there were unassigned shards - test target_node field
-			require.NotNil(t, res)
-			require.NotNil(t, res.Inspect().Response)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
-		}
+		// Test cases that are expected to fail
+		require.Error(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.Inspect().Response)
 	}
 
 	type clusterTest struct {
@@ -126,7 +116,7 @@ func TestClusterClient(t *testing.T) {
 				Validate: validateAllocationExplainNil,
 			},
 			{
-				Name: "with request",
+				Name: "with request - explains specific unassigned replica shard",
 				Results: func() (osapitest.Response, error) {
 					return client.Cluster.AllocationExplain(
 						t.Context(),
@@ -142,20 +132,30 @@ func TestClusterClient(t *testing.T) {
 				Validate: validateAllocationExplainPositive,
 			},
 			{
+				Name: willErrorPrefix + "with request for non-existent index",
+				Results: func() (osapitest.Response, error) {
+					return client.Cluster.AllocationExplain(t.Context(),
+						&opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{
+							Index: "non-existent-index-12345", Shard: 0, Primary: true,
+						}})
+				},
+				Validate: validateExpectedError,
+			},
+			{
 				Name: "with unassigned shard request",
 				Results: func() (osapitest.Response, error) {
 					return client.Cluster.AllocationExplain(
 						t.Context(),
 						&opensearchapi.ClusterAllocationExplainReq{
 							Body: &opensearchapi.ClusterAllocationExplainBody{
-								Index:   index,
+								Index:   indexWithUnassigned,
 								Shard:   0,
 								Primary: false,
 							},
 						},
 					)
 				},
-				Validate: validateAllocationExplainUnassigned,
+				Validate: validateAllocationExplainPositive,
 			},
 			{
 				Name:     "inspect",
@@ -367,7 +367,7 @@ func TestClusterClient(t *testing.T) {
 	for catType, value := range testCases {
 		t.Run(catType, func(t *testing.T) {
 			if strings.Contains(catType, "Decommission") {
-				ostest.SkipIfBelowVersion(t, client, 2, 4, catType)
+				testutil.SkipIfBelowVersion(t, client, 2, 4, catType)
 			}
 			for _, testCase := range value {
 				t.Run(testCase.Name, func(t *testing.T) {

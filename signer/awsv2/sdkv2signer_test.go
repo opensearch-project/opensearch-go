@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
 )
@@ -57,7 +58,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 
 	t.Run("sign request failed due to no region found", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Unsetenv("AWS_REGION")
 		t.Cleanup(func() {
@@ -70,12 +71,12 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 			),
 			config.WithRegion(""),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		awsCfg.Region = "" // Ensure region is empty to trigger error
 
 		signer, err := awsv2.NewSigner(awsCfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = signer.SignRequest(req)
 
 		assert.EqualErrorf(
@@ -84,7 +85,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 
 	t.Run("sign request success", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
 		t.Cleanup(func() {
@@ -97,13 +98,13 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 				getCredentialProvider(),
 			),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		signer, err := awsv2.NewSigner(awsCfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		q := req.Header
 		assert.Equal(t, "localhost:9200", req.Host)
@@ -114,7 +115,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 
 	t.Run("with signature port override", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, "localhost:9200", req.Host)
 
 		region := os.Getenv("AWS_REGION")
@@ -129,14 +130,14 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 				getCredentialProvider(),
 			),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		signer, err := awsv2.NewSigner(awsCfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		signer.OverrideSigningPort(443)
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Should have stripped off the port given it was 443 (80 would have also gotten removed)
 		assert.Equal(t, "localhost", req.Host)
@@ -150,7 +151,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
 			bytes.NewBufferString("some data"))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
 		t.Cleanup(func() {
@@ -163,13 +164,13 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 				getCredentialProvider(),
 			),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		signer, err := awsv2.NewSigner(awsCfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		q := req.Header
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
@@ -180,7 +181,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
 			bytes.NewBufferString("some data"))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
 		t.Cleanup(func() {
@@ -193,14 +194,14 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 				getCredentialProvider(),
 			),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		signer, err := awsv2.NewSignerWithService(awsCfg, "ec")
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		q := req.Header
 		assert.NotEmpty(t, q.Get("Authorization"))
 		assert.NotEmpty(t, q.Get("X-Amz-Date"))
@@ -214,7 +215,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 				getCredentialProvider(),
 			),
 		)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		_, err = awsv2.NewSignerWithService(awsCfg, "")
 		assert.EqualError(t, err, "service cannot be empty")

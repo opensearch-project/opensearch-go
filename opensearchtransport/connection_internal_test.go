@@ -24,12 +24,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build !integration
-
 package opensearchtransport
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -350,10 +349,16 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		// Initialize pool with proper timeout values to prevent immediate resurrection
+		// Initialize pool with health check that prevents resurrection during test
 		pool := &statusConnectionPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
+			jitterScale:                  defaultJitterScale,
+			// Health check that always fails to prevent automatic resurrection during test
+			healthCheck: func(context.Context, *url.URL) (*http.Response, error) {
+				return nil, errors.New("health check disabled for test")
+			},
 		}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
@@ -412,10 +417,16 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		// Initialize pool with proper timeout values to prevent immediate resurrection
+		// Initialize pool with health check that prevents resurrection during test
 		pool := &statusConnectionPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
+			jitterScale:                  defaultJitterScale,
+			// Health check that always fails to prevent automatic resurrection during test
+			healthCheck: func(context.Context, *url.URL) (*http.Response, error) {
+				return nil, errors.New("health check disabled for test")
+			},
 		}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
@@ -501,8 +512,8 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 	})
 
 	t.Run("Schedule resurrect", func(t *testing.T) {
-		// Channel to signal when resurrection is complete
-		done := make(chan struct{})
+		// Channel to signal when health check is called
+		healthCheckCalled := make(chan struct{})
 
 		// Create round-robin selector
 		s := &roundRobinSelector{}
@@ -516,8 +527,8 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 			// Mock health check function that always succeeds for tests
 			healthCheck: func(ctx context.Context, u *url.URL) (*http.Response, error) {
 				t.Logf("Health check called for %s", u)
-				// Signal completion after health check
-				defer close(done)
+				// Signal that health check was called
+				close(healthCheckCalled)
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Status:     "200 OK",
@@ -545,14 +556,14 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		conn := pool.mu.dead[0]
 		t.Logf("Starting resurrection test - dead connections: %d", len(pool.mu.dead))
 
-		conn.mu.RLock()
-		deadSince := conn.mu.deadSince
-		conn.mu.RUnlock()
+		pool.scheduleResurrect(context.Background(), conn)
 
-		pool.scheduleResurrect(conn, deadSince)
+		// Wait for the health check to be called
+		<-healthCheckCalled
 
-		// Wait for the resurrection to actually complete
-		<-done
+		// Give the goroutine time to complete resurrection after health check
+		// The goroutine needs to: reacquire locks, call resurrectWithLock(), and release locks
+		time.Sleep(100 * time.Millisecond)
 
 		pool.mu.Lock()
 		defer pool.mu.Unlock()

@@ -197,10 +197,27 @@ func (r MappingFieldReq) GetRequest() (*http.Request, error) {
 
 // MappingFieldResp represents the returned struct of the mapping field response
 type MappingFieldResp struct {
-	Indices map[string]struct {
-		Mappings json.RawMessage `json:"mappings"`
-	}
 	response *opensearch.Response
+
+	// Direct mapping of index names to their field mappings as top-level keys
+	raw map[string]MappingFieldRespIndex
+}
+
+// MappingFieldRespIndex represents the structure of each index in the field mapping response
+type MappingFieldRespIndex struct {
+	Mappings json.RawMessage `json:"mappings"` // Available since OpenSearch 1.0.0
+}
+
+// GetIndices returns the map of index names to their field mappings
+func (r *MappingFieldResp) GetIndices() map[string]MappingFieldRespIndex {
+	return r.raw
+}
+
+// UnmarshalJSON custom unmarshaling to handle dynamic index names as top-level keys
+func (r *MappingFieldResp) UnmarshalJSON(data []byte) error {
+	// Unmarshal into a map to capture all dynamic index names
+	r.raw = make(map[string]MappingFieldRespIndex)
+	return json.Unmarshal(data, &r.raw)
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

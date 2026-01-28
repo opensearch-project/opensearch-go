@@ -15,18 +15,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
-func TestRolesMappingClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	client, err := ossectest.NewClient()
-	require.Nil(t, err)
+func TestSecurityRolesMappingClient(t *testing.T) {
+	testutil.SkipIfNotSecure(t)
+	client, err := ossectest.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testRole := "test_role"
 	client.Roles.Put(
@@ -36,7 +36,10 @@ func TestRolesMappingClient(t *testing.T) {
 			Body: security.RolesPutBody{
 				Description:        "Test",
 				ClusterPermissions: []string{"cluster_monitor"},
-				IndexPermissions:   []security.RolesIndexPermission{{IndexPatterns: []string{"*"}, AllowedActions: []string{"indices_monitor"}}},
+				IndexPermissions: []security.RolesIndexPermission{{
+					IndexPatterns:  []string{"*"},
+					AllowedActions: []string{"indices_monitor"},
+				}},
 			},
 		},
 	)
@@ -163,18 +166,18 @@ func TestRolesMappingClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
 						if err != nil {
 							fmt.Println(err)
 						}
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -184,9 +187,9 @@ func TestRolesMappingClient(t *testing.T) {
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.RolesMapping.Get(t.Context(), nil)
-			assert.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.RolesMapping, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.RolesMapping, resp.Inspect().Response)
 		})
 	})
 }

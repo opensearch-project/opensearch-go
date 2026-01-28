@@ -39,7 +39,6 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
@@ -168,7 +167,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			},
 		)
 
-		config, err := osapitest.ClientConfig()
+		config, err := testutil.ClientConfig(t)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -197,6 +196,9 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		for _, tt := range c.tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Run(c.name, func(t *testing.T) {
+					ctx, cancel := context.WithCancel(t.Context())
+					defer cancel()
+
 					// Pass client to avoid internal client creation that schedules node discovery
 					bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 						Index:      indexName,
@@ -222,7 +224,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Index:      indexName,
 							Action:     tt.action,
-							DocumentID: strconv.Itoa(i),
+							DocumentID: strconv.FormatUint(uint64(i), 10),
 							Body:       strings.NewReader(tt.body),
 							OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem) {
 								if tptestutil.IsDebugEnabled(t) {
@@ -290,6 +292,9 @@ func TestBulkIndexerIntegration(t *testing.T) {
 				})
 
 				t.Run("Multiple indices", func(t *testing.T) {
+					ctx, cancel := context.WithCancel(t.Context())
+					defer cancel()
+
 					var failureCount int
 					var firstFailureErr error
 
@@ -391,7 +396,6 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 					}
 
-					t.Logf("[Multiple indices] About to check indices existence...")
 					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
 						Indices: []string{"test-index-a", "test-index-b", "test-index-c"},
 					})

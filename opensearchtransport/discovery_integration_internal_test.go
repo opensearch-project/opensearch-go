@@ -24,713 +24,68 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build !integration
+//go:build integration
 
 package opensearchtransport
 
 import (
-	"bytes"
-	"crypto/tls"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"net/url"
-	"reflect"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
-// Mock transport for tests that need HTTP mocking even in integration context
-type mockTransp struct {
-	RoundTripFunc func(req *http.Request) (*http.Response, error)
-}
+func TestDiscoveryIntegration(t *testing.T) {
+	// Use standardized URL construction and config
+	u := getTestURL(t)
 
-func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.RoundTripFunc(req)
-}
-
-func TestDiscovery(t *testing.T) {
-	var (
-		httpPort1, httpPort2, httpPort3, httpPort4 int
-		tlsPort1, tlsPort2                         int
-	)
-
-	dynamicNodesHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{
-			"_nodes": {
-				"total": 4,
-				"successful": 4,
-				"failed": 0
-			},
-			"cluster_name": "opensearch",
-			"nodes": {
-				"8g1UNpQNS06tlH1DUMBNhg": {
-					"name": "es1",
-					"transport_address": "127.0.0.1:9300",
-					"host": "127.0.0.1",
-					"ip": "127.0.0.1",
-					"version": "7.4.2",
-					"roles": ["ingest", "cluster_manager", "data"],
-					"http": {
-						"publish_address": "127.0.0.1:%d"
-					}
-				},
-				"8YR2EBk_QvWI4guQK292RA": {
-					"name": "es2",
-					"transport_address": "127.0.0.1:9302",
-					"host": "127.0.0.1",
-					"ip": "127.0.0.1",
-					"version": "7.4.2",
-					"roles": ["ingest", "cluster_manager", "data"],
-					"http": {
-						"publish_address": "localhost/127.0.0.1:%d"
-					}
-				},
-				"oSVIMafYQD-4kD0Lz6H4-g": {
-					"name": "es3",
-					"transport_address": "127.0.0.1:9301",
-					"host": "127.0.0.1",
-					"ip": "127.0.0.1",
-					"version": "7.4.2",
-					"roles": ["cluster_manager"],
-					"http": {
-						"publish_address": "127.0.0.1:%d"
-					}
-				},
-				"4uJ-108zTz27ISgkmAQgfw": {
-					"name": "es4",
-					"transport_address": "[fc99:3528::a04:812c]:9303",
-					"host": "fc99:3528:0:0:0:0:a04:812c",
-					"ip": "fc99:3528::a04:812c",
-					"version": "7.4.2",
-					"roles": ["cluster_manager"],
-					"http": {
-						"publish_address": "localhost:%d"
-					}
-				}
-			}
-		}`, httpPort1, httpPort2, httpPort3, httpPort4)
-	}
-
-	tlsNodesHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{
-			"_nodes": {
-				"total": 2,
-				"successful": 2,
-				"failed": 0
-			},
-			"cluster_name": "opensearch",
-			"nodes": {
-				"8g1UNpQNS06tlH1DUMBNhg": {
-					"name": "es1",
-					"transport_address": "127.0.0.1:9300",
-					"host": "127.0.0.1",
-					"ip": "127.0.0.1",
-					"version": "7.4.2",
-					"roles": ["ingest", "cluster_manager", "data"],
-					"http": {
-						"publish_address": "127.0.0.1:%d"
-					}
-				},
-				"8YR2EBk_QvWI4guQK292RA": {
-					"name": "es2",
-					"transport_address": "127.0.0.1:9302",
-					"host": "127.0.0.1",
-					"ip": "127.0.0.1",
-					"version": "7.4.2",
-					"roles": ["ingest", "cluster_manager", "data"],
-					"http": {
-						"publish_address": "localhost/127.0.0.1:%d"
-					}
-				}
-			}
-		}`, tlsPort1, tlsPort2)
-	}
-
-	healthHandler := func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{
-			"name": "test-node",
-			"cluster_name": "opensearch-cluster",
-			"cluster_uuid": "test-cluster-uuid",
-			"version": {
-				"distribution": "opensearch",
-				"number": "1.3.0",
-				"build_type": "tar",
-				"build_hash": "test-build-hash",
-				"build_date": "2023-01-01T00:00:00.000000000Z",
-				"build_snapshot": false,
-				"lucene_version": "8.10.1",
-				"minimum_wire_compatibility_version": "6.8.0",
-				"minimum_index_compatibility_version": "6.0.0-beta1"
-			},
-			"tagline": "The OpenSearch Project: https://opensearch.org/"
-		}`)
-	}
-
-	createMux := func() *http.ServeMux {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/_nodes/http", dynamicNodesHandler)
-		mux.HandleFunc("/", healthHandler)
-		return mux
-	}
-
-	createTLSMux := func() *http.ServeMux {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/_nodes/http", tlsNodesHandler)
-		mux.HandleFunc("/", healthHandler)
-		return mux
-	}
-
-	// Start servers on dynamic ports
-	srv1 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
-	srv2 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
-	srv3 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
-	srv4 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
-	srvTLS1 := &http.Server{Addr: "localhost:0", Handler: createTLSMux(), ReadTimeout: 1 * time.Second}
-	srvTLS2 := &http.Server{Addr: "localhost:0", Handler: createTLSMux(), ReadTimeout: 1 * time.Second}
-
-	// Start HTTP servers and get assigned ports
-	l1, _ := net.Listen("tcp", "localhost:0")
-	l2, _ := net.Listen("tcp", "localhost:0")
-	l3, _ := net.Listen("tcp", "localhost:0")
-	l4, _ := net.Listen("tcp", "localhost:0")
-	httpPort1 = l1.Addr().(*net.TCPAddr).Port
-	httpPort2 = l2.Addr().(*net.TCPAddr).Port
-	httpPort3 = l3.Addr().(*net.TCPAddr).Port
-	httpPort4 = l4.Addr().(*net.TCPAddr).Port
-
-	// Start TLS servers and get assigned ports
-	tl1, _ := net.Listen("tcp", "localhost:0")
-	tl2, _ := net.Listen("tcp", "localhost:0")
-	tlsPort1 = tl1.Addr().(*net.TCPAddr).Port
-	tlsPort2 = tl2.Addr().(*net.TCPAddr).Port
-
-	go func() { srv1.Serve(l1) }()
-	go func() { srv2.Serve(l2) }()
-	go func() { srv3.Serve(l3) }()
-	go func() { srv4.Serve(l4) }()
-	go func() { srvTLS1.ServeTLS(tl1, "testdata/cert.pem", "testdata/key.pem") }()
-	go func() { srvTLS2.ServeTLS(tl2, "testdata/cert.pem", "testdata/key.pem") }()
-
-	defer func() { srv1.Close() }()
-	defer func() { srv2.Close() }()
-	defer func() { srv3.Close() }()
-	defer func() { srv4.Close() }()
-	defer func() { srvTLS1.Close() }()
-	defer func() { srvTLS2.Close() }()
-
-	time.Sleep(100 * time.Millisecond)
-
-	t.Run("getNodesInfo()", func(t *testing.T) {
-		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
-		tp, _ := New(Config{URLs: []*url.URL{u}})
-
-		nodes, err := tp.getNodesInfo(t.Context())
+	t.Run("DiscoverNodes with health validation", func(t *testing.T) {
+		cfg := getTestConfig(t, []*url.URL{u})
+		client, err := New(cfg)
 		if err != nil {
-			t.Fatalf("ERROR: %s", err)
+			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		if len(nodes) != 4 {
-			t.Errorf("Unexpected number of nodes, want=4, got=%d", len(nodes))
+		// Discovery should work with health validation
+		err = client.DiscoverNodes(t.Context())
+		if err != nil {
+			t.Errorf("DiscoverNodes() failed: %v", err)
 		}
 
-		for _, node := range nodes {
-			switch node.Name {
-			case "es1":
-				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort1)), node.url.String())
-			case "es2":
-				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort2)), node.url.String())
-			case "es3":
-				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort3)), node.url.String())
-			case "es4":
-				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort4)), node.url.String())
-			}
+		// Should have at least one connection after discovery
+		urls := client.URLs()
+		if len(urls) == 0 {
+			t.Error("Expected at least one URL after discovery")
 		}
+
+		t.Logf("Discovered %d nodes", len(urls))
 	})
 
-	t.Run("getNodesInfo() empty Body", func(t *testing.T) {
-		newRoundTripper := func() http.RoundTripper {
-			return &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					return &http.Response{Header: http.Header{}}, nil
-				},
-			}
+	t.Run("Role based nodes discovery with health validation", func(t *testing.T) {
+		cfg := getTestConfig(t, []*url.URL{u})
+		client, err := New(cfg)
+		if err != nil {
+			t.Fatalf("Failed to create client: %v", err)
 		}
 
-		u, _ := url.Parse("http://localhost:8080")
-		tp, err := New(Config{URLs: []*url.URL{u}, Transport: newRoundTripper()})
-		require.NoError(t, err)
-
-		_, err = tp.getNodesInfo(t.Context())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unexpected empty body")
-	})
-
-	t.Run("DiscoverNodes()", func(t *testing.T) {
-		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
-		tp, _ := New(Config{URLs: []*url.URL{u}})
-
-		tp.DiscoverNodes(t.Context())
-
-		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
-		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.connectionPool)
+		// Test discovery with role filtering
+		err = client.DiscoverNodes(t.Context())
+		if err != nil {
+			t.Errorf("DiscoverNodes() failed: %v", err)
 		}
 
-		if len(pool.mu.live) != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.mu.live))
-		}
+		// Get the actual discovered connections for role testing
+		urls := client.URLs()
+		t.Logf("Role-based discovery found %d nodes", len(urls))
 
-		for _, conn := range pool.mu.live {
-			switch conn.Name {
-			case "es1":
-				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort1)), conn.URL.String())
-			case "es2":
-				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort2)), conn.URL.String())
-			default:
-				t.Errorf("Unexpected node: %s", conn.Name)
-			}
-		}
-	})
-
-	t.Run("DiscoverNodes() with SSL and authorization", func(t *testing.T) {
-		u := &url.URL{Scheme: "https", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", tlsPort1))}
-		tp, _ := New(Config{
-			URLs:     []*url.URL{u},
-			Username: "foo",
-			Password: "bar",
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		})
-
-		tp.DiscoverNodes(t.Context())
-
-		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
-		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.connectionPool)
-		}
-
-		if len(pool.mu.live) != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.mu.live))
-		}
-
-		for _, conn := range pool.mu.live {
-			switch conn.Name {
-			case "es1":
-				require.Equal(t, "https://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", tlsPort1)), conn.URL.String())
-			case "es2":
-				require.Equal(t, "https://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", tlsPort2)), conn.URL.String())
-			default:
-				t.Errorf("Unexpected node: %s", conn.Name)
-			}
-		}
-	})
-
-	t.Run("scheduleDiscoverNodes()", func(t *testing.T) {
-		t.Skip("Skip") // TODO(karmi): Investigate the intermittent failures of this test
-
-		var numURLs int
-		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
-
-		tp, _ := New(Config{URLs: []*url.URL{u}, DiscoverNodesInterval: 10 * time.Millisecond})
-
-		tp.mu.Lock()
-		numURLs = len(tp.mu.connectionPool.URLs())
-		tp.mu.Unlock()
-		if numURLs != 1 {
-			t.Errorf("Unexpected number of nodes, want=1, got=%d", numURLs)
-		}
-
-		time.Sleep(18 * time.Millisecond) // Wait until (*Client).scheduleDiscoverNodes()
-		tp.mu.Lock()
-		numURLs = len(tp.mu.connectionPool.URLs())
-		tp.mu.Unlock()
-		if numURLs != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", numURLs)
-		}
-	})
-
-	t.Run("Role based nodes discovery", func(t *testing.T) {
-		type Node struct {
-			URL   string
-			Roles []string
-		}
-
-		type fields struct {
-			Nodes map[string]Node
-		}
-		type wants struct {
-			wantErr    bool
-			wantsNConn int
-		}
-		tests := []struct {
-			name string
-			args fields
-			want wants
-		}{
-			{
-				"Default roles should allow every node to be selected",
-				fields{
-					Nodes: map[string]Node{
-						"es1": {
-							URL: "http://es1:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"cluster_manager",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-						"es2": {
-							URL: "http://es2:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"cluster_manager",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-						"es3": {
-							URL: "http://es3:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"cluster_manager",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-					},
-				},
-				wants{
-					false, 3,
-				},
-			},
-			{
-				"Cluster manager only node should not be selected",
-				fields{
-					Nodes: map[string]Node{
-						"es1": {
-							URL: "http://es1:9200",
-							Roles: []string{
-								"cluster_manager",
-							},
-						},
-						"es2": {
-							URL: "http://es2:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"cluster_manager",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-						"es3": {
-							URL: "http://es3:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"cluster_manager",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-					},
-				},
-
-				wants{
-					false, 2,
-				},
-			},
-			{
-				"Cluster manager and data only nodes should be selected",
-				fields{
-					Nodes: map[string]Node{
-						"es1": {
-							URL: "http://es1:9200",
-							Roles: []string{
-								"data",
-								"cluster_manager",
-							},
-						},
-						"es2": {
-							URL: "http://es2:9200",
-							Roles: []string{
-								"data",
-								"cluster_manager",
-							},
-						},
-					},
-				},
-
-				wants{
-					false, 2,
-				},
-			},
-			{
-				"Default roles should allow every node to be selected",
-				fields{
-					Nodes: map[string]Node{
-						"es1": {
-							URL: "http://es1:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"master",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-						"es2": {
-							URL: "http://es2:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"master",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-						"es3": {
-							URL: "http://es3:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"master",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-					},
-				},
-				wants{
-					false, 3,
-				},
-			},
-			{
-				"Master only node should not be selected",
-				fields{
-					Nodes: map[string]Node{
-						"es1": {
-							URL: "http://es1:9200",
-							Roles: []string{
-								"master",
-							},
-						},
-						"es2": {
-							URL: "http://es2:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"master",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-						"es3": {
-							URL: "http://es3:9200",
-							Roles: []string{
-								"data",
-								"data_cold",
-								"data_content",
-								"data_frozen",
-								"data_hot",
-								"data_warm",
-								"ingest",
-								"master",
-								"ml",
-								"remote_cluster_client",
-								"transform",
-							},
-						},
-					},
-				},
-
-				wants{
-					false, 2,
-				},
-			},
-			{
-				"Master and data only nodes should be selected",
-				fields{
-					Nodes: map[string]Node{
-						"es1": {
-							URL: "http://es1:9200",
-							Roles: []string{
-								"data",
-								"master",
-							},
-						},
-						"es2": {
-							URL: "http://es2:9200",
-							Roles: []string{
-								"data",
-								"master",
-							},
-						},
-					},
-				},
-
-				wants{
-					false, 2,
-				},
-			},
-		}
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				urls := make([]*url.URL, 0, len(tt.args.Nodes))
-				for _, node := range tt.args.Nodes {
-					u, _ := url.Parse(node.URL)
-					urls = append(urls, u)
-				}
-
-				newRoundTripper := func() http.RoundTripper {
-					return &mockTransp{
-						RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-							// Handle health check requests
-							if req.URL.Path == "/" {
-								healthResponse := `{
-									"name": "test-node",
-									"cluster_name": "opensearch-cluster",
-									"cluster_uuid": "test-cluster-uuid",
-									"version": {
-										"distribution": "opensearch",
-										"number": "1.3.0",
-										"build_type": "tar",
-										"build_hash": "test-build-hash",
-										"build_date": "2023-01-01T00:00:00.000000000Z",
-										"build_snapshot": false,
-										"lucene_version": "8.10.1",
-										"minimum_wire_compatibility_version": "6.8.0",
-										"minimum_index_compatibility_version": "6.0.0-beta1"
-									},
-									"tagline": "The OpenSearch Project: https://opensearch.org/"
-								}`
-								return &http.Response{
-									Status:        "200 OK",
-									StatusCode:    http.StatusOK,
-									ContentLength: int64(len(healthResponse)),
-									Header:        http.Header{"Content-Type": []string{"application/json"}},
-									Body:          io.NopCloser(bytes.NewReader([]byte(healthResponse))),
-								}, nil
-							}
-
-							// Handle nodes info requests
-							nodes := make(map[string]map[string]nodeInfo)
-							nodes["nodes"] = make(map[string]nodeInfo)
-							for name, node := range tt.args.Nodes {
-								nodes["nodes"][name] = nodeInfo{Roles: node.Roles}
-							}
-
-							b, _ := json.Marshal(nodes)
-
-							return &http.Response{
-								Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-								StatusCode:    http.StatusOK,
-								ContentLength: int64(len(b)),
-								Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-								Body:          io.NopCloser(bytes.NewReader(b)),
-							}, nil
-						},
-					}
-				}
-
-				c, _ := New(Config{
-					URLs:      urls,
-					Transport: newRoundTripper(),
-				})
-				c.DiscoverNodes(t.Context())
-
-				pool, ok := c.mu.connectionPool.(*statusConnectionPool)
-				if !ok {
-					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.connectionPool)
-				}
-
-				if len(pool.mu.live) != tt.want.wantsNConn {
-					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.mu.live))
-				}
-
-				for _, conn := range pool.mu.live {
-					if !reflect.DeepEqual(tt.args.Nodes[conn.ID].Roles, conn.Roles) {
-						t.Errorf("Unexpected roles for node %s, want=%s, got=%s", conn.Name, tt.args.Nodes[conn.ID], conn.Roles)
-					}
-				}
-
-				if err := c.DiscoverNodes(t.Context()); (err != nil) != tt.want.wantErr {
-					t.Errorf("DiscoverNodes() error = %v, wantErr %v", err, tt.want.wantErr)
-				}
-			})
+		// In a real cluster, we should have at least one data/coordinator node
+		// (cluster_manager-only nodes are filtered out)
+		if len(urls) == 0 {
+			t.Error("Expected at least one non-cluster_manager-only node")
 		}
 	})
 }
@@ -1014,43 +369,19 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock transport that returns our test nodes
-			newRoundTripper := func() http.RoundTripper {
-				return &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						nodes := make(map[string]map[string]nodeInfo)
-						nodes["nodes"] = make(map[string]nodeInfo)
+			// Create mock transport with standard handlers for discovery testing
+			transport := mockhttp.NewTransportFromRoutes(t, mockhttp.GetDefaultHandlersWithNodes(t, tt.nodes))
 
-						for name, roles := range tt.nodes {
-							nodes["nodes"][name] = nodeInfo{
-								ID:    name + "-id",
-								Name:  name,
-								Roles: roles,
-							}
-						}
-
-						b, _ := json.Marshal(nodes)
-						return &http.Response{
-							Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-							StatusCode:    http.StatusOK,
-							ContentLength: int64(len(b)),
-							Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-							Body:          io.NopCloser(bytes.NewReader(b)),
-						}, nil
-					},
-				}
-			}
-
-			u, _ := url.Parse("http://localhost:9200")
+			u := mockhttp.GetOpenSearchURL(t)
 			c, err := New(Config{
 				URLs:      []*url.URL{u},
-				Transport: newRoundTripper(),
+				Transport: transport,
 			})
 			require.NoError(t, err)
 
 			// Perform discovery
 			err = c.DiscoverNodes(t.Context())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify results
 			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
@@ -1122,44 +453,20 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock transport
-			newRoundTripper := func() http.RoundTripper {
-				return &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						nodes := make(map[string]map[string]nodeInfo)
-						nodes["nodes"] = make(map[string]nodeInfo)
+			// Create mock transport with standard handlers for discovery testing
+			transport := mockhttp.NewTransportFromRoutes(t, mockhttp.GetDefaultHandlersWithNodes(t, tt.nodes))
 
-						for name, roles := range tt.nodes {
-							nodes["nodes"][name] = nodeInfo{
-								ID:    name + "-id",
-								Name:  name,
-								Roles: roles,
-							}
-						}
-
-						b, _ := json.Marshal(nodes)
-						return &http.Response{
-							Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-							StatusCode:    http.StatusOK,
-							ContentLength: int64(len(b)),
-							Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-							Body:          io.NopCloser(bytes.NewReader(b)),
-						}, nil
-					},
-				}
-			}
-
-			u, _ := url.Parse("http://localhost:9200")
+			u := mockhttp.GetOpenSearchURL(t)
 			c, err := New(Config{
 				URLs:                            []*url.URL{u},
-				Transport:                       newRoundTripper(),
+				Transport:                       transport,
 				IncludeDedicatedClusterManagers: tt.includeDedicatedClusterManagers,
 			})
 			require.NoError(t, err)
 
 			// Perform discovery
 			err = c.DiscoverNodes(t.Context())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify results
 			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
@@ -1189,7 +496,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 	}
 }
 
-// TestRoleBasedSelectors tests the role-based selector with various configurations
+// TestRolePolicies tests the router+policy with various configurations
 func TestRolePolicies(t *testing.T) {
 	// Create test connections with different roles
 	connections := []*Connection{

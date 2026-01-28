@@ -21,9 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestDanglingClient(t *testing.T) {
@@ -181,7 +181,7 @@ func TestDanglingClient(t *testing.T) {
 			resp, err := client.Dangling.Get(t.Context(), nil)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Dangling.Delete(
@@ -193,7 +193,7 @@ func TestDanglingClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Import", func(t *testing.T) {
 			resp, err := client.Dangling.Import(
@@ -205,7 +205,7 @@ func TestDanglingClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 	})
 }

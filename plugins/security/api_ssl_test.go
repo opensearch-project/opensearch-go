@@ -17,23 +17,23 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
-func TestSSLClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	config, err := ossectest.ClientConfig()
-	require.Nil(t, err)
+func TestSecuritySSLClient(t *testing.T) {
+	testutil.SkipIfNotSecure(t)
+	config, err := ossectest.ClientConfig(t)
+	require.NoError(t, err)
 
-	osAPIclient, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	osAPIclient, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
-	ostest.SkipIfBelowVersion(t, osAPIclient, 2, 0, "SSLClient")
+	testutil.SkipIfBelowVersion(t, osAPIclient, 2, 0, "SSLClient")
 
 	clientTLSCert, err := tls.LoadX509KeyPair("../../admin.pem", "../../admin.key")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	config.Client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -43,10 +43,10 @@ func TestSSLClient(t *testing.T) {
 	}
 
 	client, err := security.NewClient(*config)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type sslTests struct {
 		Name    string
@@ -114,18 +114,18 @@ func TestSSLClient(t *testing.T) {
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
 					if strings.HasSuffix(value.Name, "Reload") && strings.Contains(testCase.Name, "request") {
-						ostest.SkipIfBelowVersion(t, osAPIclient, 2, 8, value.Name)
+						testutil.SkipIfBelowVersion(t, osAPIclient, 2, 8, value.Name)
 					}
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

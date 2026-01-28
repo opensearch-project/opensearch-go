@@ -83,10 +83,11 @@ type SearchShardsResp struct {
 			BootstrapNewHistoryUUID *bool  `json:"bootstrap_new_history_uuid,omitempty"` // Present since OpenSearch 1.0.0
 		} `json:"recovery_source"`
 		UnassignedInfo struct {
-			Reason           string `json:"reason"`
-			At               string `json:"at"`
-			Delayed          bool   `json:"delayed"`
-			AllocationStatus string `json:"allocation_status"`
+			Reason           string  `json:"reason"`
+			At               string  `json:"at"`
+			Delayed          bool    `json:"delayed"`
+			AllocationStatus string  `json:"allocation_status"`
+			Details          *string `json:"details,omitempty"` // Available since OpenSearch 1.0.0
 		} `json:"unassigned_info"`
 		AllocationID struct {
 			ID           string  `json:"id"`

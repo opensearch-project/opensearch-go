@@ -221,13 +221,19 @@ Before starting, we strongly recommend reading the full AWS documentation regard
 >
 > See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
-Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2` respectively. Both signers are equivalent in their functionality, they provide AWS Signature Version 4 (SigV4).
+Depending on the version of AWS SDK used, import the request signer from `signer/aws` (recommended) or `signer/awsv2`. Both signers use AWS SDK v2 and provide AWS Signature Version 4 (SigV4).
+
+**BREAKING CHANGE**: As of this version, the main `signer/aws` package has been migrated from AWS SDK v1 to AWS SDK v2 due to AWS SDK v1 reaching end-of-support on July 31, 2025.
 
 To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
 
 Here are some Go samples that show how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
 
-### AWS SDK v1
+### AWS SDK v2 (Recommended)
+
+**Migration Note**: If you were previously using `signer/aws` with AWS SDK v1, you need to update your imports and configuration as shown below.
+
+**Credential Caching**: The signer automatically enables credential caching for improved performance, especially when using STS credentials (assume role, web identity, etc.). This reduces API calls to AWS STS and improves signing performance.
 
 ```go
 package main
@@ -237,7 +243,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/aws"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -256,16 +263,22 @@ func main() {
 const endpoint = "" // e.g. https://opensearch-domain.region.com
 
 func example() error {
-	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
-	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
-	signer, err := requestsigner.NewSignerWithService(
-		session.Options{SharedConfigState: session.SharedConfigEnable},
-		requestsigner.OpenSearchService, // Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless.
-	)
+	ctx := context.Background()
+
+	// Load AWS configuration
+	awsCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return err
 	}
-	// Create an opensearch client and use the request-signer.
+
+	// Create an AWS request Signer
+	signer, err := requestsigner.NewSignerWithService(awsCfg, requestsigner.OpenSearchService)
+	// Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless
+	if err != nil {
+		return err
+	}
+
+	// Create an opensearch client and use the request-signer
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
@@ -278,20 +291,18 @@ func example() error {
 		return err
 	}
 
-	ctx := context.Background()
-
     ping, err := client.Ping(ctx, nil)
     if err != nil {
         return err
     }
 
-    fmt.Println(ping)
+	fmt.Println(ping)
 
 	return nil
 }
 ```
 
-### AWS SDK v2
+### Alternative: Using signer/awsv2
 
 Use the AWS SDK v2 for Go to authenticate with Amazon OpenSearch service.
 

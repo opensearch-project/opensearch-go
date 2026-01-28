@@ -15,21 +15,20 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
 )
 
 func TestPoliciesClient(t *testing.T) {
-	client, err := osismtest.NewClient()
-	require.Nil(t, err)
+	client, err := osismtest.NewClient(t)
+	require.NoError(t, err)
 
-	osClient, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	osClient, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := osismtest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testPolicy := testutil.MustUniqueString(t, "test")
 	testPolicyChannel := testutil.MustUniqueString(t, "test-channel")
@@ -142,7 +141,7 @@ func TestPoliciesClient(t *testing.T) {
 					Name: "Create with Channel",
 					Results: func(t *testing.T) (osismtest.Response, error) {
 						t.Helper()
-						ostest.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
+						testutil.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
 						return client.Policies.Put(
 							t.Context(),
 							ism.PoliciesPutReq{
@@ -185,7 +184,7 @@ func TestPoliciesClient(t *testing.T) {
 					Name: "Create with Alias",
 					Results: func(t *testing.T) (osismtest.Response, error) {
 						t.Helper()
-						ostest.SkipIfBelowVersion(t, osClient, 2, 4, "policy with alias action")
+						testutil.SkipIfBelowVersion(t, osClient, 2, 4, "policy with alias action")
 						return client.Policies.Put(
 							t.Context(),
 							ism.PoliciesPutReq{
@@ -310,14 +309,14 @@ func TestPoliciesClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results(t)
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osismtest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}
