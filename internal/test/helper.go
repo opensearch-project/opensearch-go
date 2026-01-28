@@ -3,18 +3,18 @@
 // The OpenSearch Contributors require contributions made to
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
+//go:build integration
 
 package ostest
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,71 +25,102 @@ import (
 )
 
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case
-func NewClient() (*opensearchapi.Client, error) {
+// and ensures the OpenSearch cluster is ready for requests.
+func NewClient(t *testing.T) (*opensearchapi.Client, error) {
+	t.Helper()
 	config, err := ClientConfig()
 	if err != nil {
 		return nil, err
 	}
-	if config != nil {
-		return opensearchapi.NewClient(*config)
+
+	client, err := opensearchapi.NewClient(*config)
+	if err != nil {
+		return nil, err
 	}
-	return opensearchapi.NewDefaultClient()
-}
 
-// IsSecure returns true when SECURE_INTEGRATION env is set to true
-func IsSecure() bool {
-	return os.Getenv("SECURE_INTEGRATION") == "true"
-}
-
-// ClientConfig returns an opensearchapi.Config for secure opensearch
-func ClientConfig() (*opensearchapi.Config, error) {
-	if IsSecure() {
-		password, err := GetPassword()
-		if err != nil {
-			return nil, err
-		}
-
-		return &opensearchapi.Config{
-			Client: opensearch.Config{
-				Username:  "admin",
-				Password:  password,
-				Addresses: []string{"https://localhost:9200"},
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-				},
-			},
-		}, nil
+	// Always wait for cluster readiness
+	err = waitForClusterReady(t, client)
+	if err != nil {
+		return nil, err
 	}
-	//nolint:nilnil // easier to test with nil rather then doing complex error handling for tests
-	return nil, nil
+
+	return client, nil
 }
 
-// GetPassword returns the password suited for the opensearch version
-func GetPassword() (string, error) {
-	var (
-		major, minor int64
-		err          error
+// waitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
+func waitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
+	t.Helper()
+	const (
+		maxAttempts          = 25
+		delayBetweenAttempts = 5 * time.Second
+		requestTimeout       = 2 * time.Second
 	)
-	password := "admin"
-	version := os.Getenv("OPENSEARCH_VERSION")
 
-	if version != "latest" && version != "" {
-		major, minor, _, err = opensearch.ParseVersion(version)
-		if err != nil {
-			return "", err
-		}
-		if version == "latest" || major > 2 || (major == 2 && minor >= 12) {
-			password = "myStrongPassword123!"
-		}
-	} else {
-		password = "myStrongPassword123!"
+	// Get version for informational logging
+	major, minor, patch, err := GetVersion(client, t)
+	if err != nil {
+		return fmt.Errorf("failed to get OpenSearch version: %w", err)
 	}
-	return password, nil
+
+	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
+	defer cancel()
+
+	for attempt := range maxAttempts {
+		// Basic cluster health check
+		resp, err := client.Cluster.Health(ctx, nil)
+		if err != nil || resp == nil {
+			t.Logf("Waiting %s for cluster readiness (attempt %d/%d)...", delayBetweenAttempts, attempt+1, maxAttempts)
+			time.Sleep(delayBetweenAttempts)
+
+			// Reset context for next attempt
+			ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+			defer cancel()
+			continue
+		}
+
+		// Extended readiness validation
+		if err := extendedReadinessCheck(ctx, client); err == nil {
+			if attempt > 0 {
+				t.Logf("Cluster ready after %d attempts (version %d.%d.%d)", attempt+1, major, minor, patch)
+			}
+			return nil
+		}
+
+		t.Logf("Cluster health OK but readiness validation failed (attempt %d/%d)", attempt+1, maxAttempts)
+		time.Sleep(delayBetweenAttempts)
+
+		// Reset context for next attempt
+		ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
+		defer cancel()
+	}
+
+	return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+}
+
+// extendedReadinessCheck performs validation checks to ensure the
+// cluster is ready
+func extendedReadinessCheck(ctx context.Context, client *opensearchapi.Client) error {
+	// Try a simple cluster state request - this exercises more Java serialization paths
+	_, err := client.Cluster.State(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("cluster state check failed: %w", err)
+	}
+
+	// Try a simple nodes info request - exercises node-level serialization
+	_, err = client.Nodes.Info(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("nodes info check failed: %w", err)
+	}
+
+	return nil
 }
 
 // GetVersion gets cluster info and returns version as int's
-func GetVersion(client *opensearchapi.Client) (int64, int64, int64, error) {
-	resp, err := client.Info(context.Background(), nil)
+func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64, error) {
+	if client == nil {
+		return 0, 0, 0, fmt.Errorf("client cannot be nil")
+	}
+	resp, err := client.Info(t.Context(), nil)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -99,22 +130,22 @@ func GetVersion(client *opensearchapi.Client) (int64, int64, int64, error) {
 // SkipIfBelowVersion skips a test if the cluster version is below a given version
 func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion, patchVersion int64, testName string) {
 	t.Helper()
-	major, patch, _, err := GetVersion(client)
+	major, patch, _, err := GetVersion(client, t)
 	assert.Nil(t, err)
 	if major < majorVersion || (major == majorVersion && patch < patchVersion) {
-		t.Skipf("Skiping %s as version %d.%d.x does not support this endpoint", testName, major, patch)
+		t.Skipf("Skipping %s as version %d.%d.x does not support this endpoint", testName, major, patch)
 	}
 }
 
-// SkipIfNotSecure skips a test runs against an unsecure cluster
+// SkipIfNotSecure skips a test that runs against an insecure cluster
 func SkipIfNotSecure(t *testing.T) {
 	t.Helper()
 	if !IsSecure() {
-		t.Skipf("Skiping %s as it needs a secured cluster", t.Name())
+		t.Skipf("Skipping %s as it needs a secured cluster", t.Name())
 	}
 }
 
-// CompareRawJSONwithParsedJSON is a helper function to determin the difference between the parsed JSON and the raw JSON
+// CompareRawJSONwithParsedJSON is a helper function to determine the difference between the parsed JSON and the raw JSON
 // this is helpful to detect missing fields in the go structs
 func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Response) {
 	t.Helper()

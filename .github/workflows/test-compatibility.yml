@@ -10,7 +10,7 @@ jobs:
       matrix:
         secured: ["true", "false"]
         entry:
-          - { opensearch_version: 1.3.18 }
+          - { opensearch_version: 1.3.20 }
           - { opensearch_version: 2.0.1 }
           - { opensearch_version: 2.1.0 }
           - { opensearch_version: 2.2.1 }
@@ -30,8 +30,13 @@ jobs:
           - { opensearch_version: 2.16.0 }
           - { opensearch_version: 2.17.1 }
           - { opensearch_version: 2.18.0 }
-          - { opensearch_version: 2.19.2 }
+          - { opensearch_version: 2.19.4 }
           - { opensearch_version: 3.0.0 }
+          - { opensearch_version: 3.1.0 }
+          - { opensearch_version: 3.2.0 }
+          - { opensearch_version: 3.3.2 }
+          - { opensearch_version: 3.4.0 }
+          - { opensearch_version: latest }
     steps:
       - uses: actions/checkout@v6
 

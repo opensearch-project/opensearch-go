@@ -69,7 +69,7 @@ type Connection struct {
 	ID         string
 	Name       string
 	Roles      []string
-	Attributes map[string]interface{}
+	Attributes map[string]any
 
 	failures atomic.Int64
 

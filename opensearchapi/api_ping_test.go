@@ -20,7 +20,7 @@ import (
 )
 
 func TestPing(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	t.Run("with nil request", func(t *testing.T) {

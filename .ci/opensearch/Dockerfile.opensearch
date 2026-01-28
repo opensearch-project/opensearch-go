@@ -6,10 +6,30 @@ ARG SECURE_INTEGRATION
 ENV SECURE_INTEGRATION=$SECURE_INTEGRATION
 ARG OPENSEARCH_INITIAL_ADMIN_PASSWORD
 
-# Some opensearch secuirty settings are only present since 2.8.0 and causes older versions to brake if the setting is present
-# https://apple.stackexchange.com/a/123408/11374
+# Handle plugin dependencies when removing opensearch-security
+# OpenSearch 3.x introduced plugin dependencies that prevent direct removal of opensearch-security.
+# Plugin dependency evolution:
+#   3.0.0: No dependencies - remove opensearch-security directly
+#   3.1.0-3.2.0: opensearch-anomaly-detection extends opensearch-security
+#   3.3.2: opensearch-skills extends opensearch-ml, which extends opensearch-security
+#   3.4.0+: opensearch-flow-framework also extends opensearch-security
+# We must remove plugins in dependency order (dependents first, then their dependencies).
+ARG OPENSEARCH_VERSION
 RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then \
-      $opensearch_path/bin/opensearch-plugin remove opensearch-security; \
+        function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }; \
+        if [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "3.4.0") ] || [ "$OPENSEARCH_VERSION" = "latest" ]; then \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-flow-framework; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-skills; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-ml; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-anomaly-detection; \
+        elif [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "3.3.2") ]; then \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-skills; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-ml; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-anomaly-detection; \
+        elif [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "3.1.0") ]; then \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-anomaly-detection; \
+        fi; \
+        $opensearch_path/bin/opensearch-plugin remove opensearch-security; \
       else \
         $opensearch_path/opensearch-onetime-setup.sh; \
         echo "plugins.security.nodes_dn_dynamic_config_enabled: true"  | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \

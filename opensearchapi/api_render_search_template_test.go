@@ -22,14 +22,14 @@ import (
 )
 
 func TestRenderSearchTemplate(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	if ostest.IsSecure() {
-		major, patch, _, err := ostest.GetVersion(client)
+		major, patch, _, err := ostest.GetVersion(client, t)
 		assert.Nil(t, err)
 		if major == 2 && (patch == 10 || patch == 11) {
-			t.Skipf("Skiping %s due to: https://github.com/opensearch-project/security/issues/3672", t.Name())
+			t.Skipf("Skipping %s due to: https://github.com/opensearch-project/security/issues/3672", t.Name())
 		}
 	}
 

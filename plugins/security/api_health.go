@@ -48,9 +48,10 @@ func (r HealthReq) GetRequest() (*http.Request, error) {
 
 // HealthResp represents the returned struct of the health get response
 type HealthResp struct {
-	Message  *string `json:"message"`
-	Mode     string  `json:"mode"`
-	Status   string  `json:"status"`
+	Message  *string        `json:"message"`
+	Mode     string         `json:"mode"`
+	Status   string         `json:"status"`
+	Settings map[string]any `json:"settings"` // Available in OpenSearch 3.2.0+
 	response *opensearch.Response
 }
 

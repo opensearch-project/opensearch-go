@@ -99,7 +99,7 @@ type BulkRespItem struct {
 				Type   string  `json:"type"`
 				Reason *string `json:"reason"`
 			} `json:"caused_by"`
-		} `json:"caused_by,omitempty"`
+		} `json:"caused_by,omitzero"`
 	} `json:"error,omitempty"`
 }
 

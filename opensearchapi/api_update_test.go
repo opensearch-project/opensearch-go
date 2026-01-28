@@ -22,7 +22,7 @@ import (
 )
 
 func TestUpdate(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	testIndex := "test-update"

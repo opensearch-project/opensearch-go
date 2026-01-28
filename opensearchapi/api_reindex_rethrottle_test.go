@@ -26,7 +26,7 @@ import (
 
 func TestReindexRethrottle(t *testing.T) {
 	t.Parallel()
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	sourceIndex := "test-reindex-rethrottle-source"

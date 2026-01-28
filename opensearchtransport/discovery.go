@@ -46,11 +46,11 @@ type Discoverable interface {
 
 // nodeInfo represents the information about node in a cluster.
 type nodeInfo struct {
-	ID         string                 `json:"id"`
-	Name       string                 `json:"name"`
-	URL        *url.URL               `json:"url"`
-	Roles      []string               `json:"roles"`
-	Attributes map[string]interface{} `json:"attributes"`
+	ID         string         `json:"id"`
+	Name       string         `json:"name"`
+	URL        *url.URL       `json:"url"`
+	Roles      []string       `json:"roles"`
+	Attributes map[string]any `json:"attributes"`
 	HTTP       struct {
 		PublishAddress string `json:"publish_address"`
 	} `json:"http"`

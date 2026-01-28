@@ -112,7 +112,7 @@ type BulkIndexerItem struct {
 	VersionType         *string
 	IfSeqNum            *int64
 	IfPrimaryTerm       *int64
-	WaitForActiveShards interface{}
+	WaitForActiveShards any
 	Refresh             *string
 	RequireAlias        *bool
 	Body                io.ReadSeeker
@@ -123,22 +123,22 @@ type BulkIndexerItem struct {
 }
 
 type bulkActionMetadata struct {
-	Index               string      `json:"_index,omitempty"`
-	DocumentID          string      `json:"_id,omitempty"`
-	Routing             *string     `json:"routing,omitempty"`
-	Version             *int64      `json:"version,omitempty"`
-	VersionType         *string     `json:"version_type,omitempty"`
-	IfSeqNum            *int64      `json:"if_seq_no,omitempty"`
-	IfPrimaryTerm       *int64      `json:"if_primary_term,omitempty"`
-	WaitForActiveShards interface{} `json:"wait_for_active_shards,omitempty"`
-	Refresh             *string     `json:"refresh,omitempty"`
-	RequireAlias        *bool       `json:"require_alias,omitempty"`
-	RetryOnConflict     *int        `json:"retry_on_conflict,omitempty"`
+	Index               string  `json:"_index,omitempty"`
+	DocumentID          string  `json:"_id,omitempty"`
+	Routing             *string `json:"routing,omitempty"`
+	Version             *int64  `json:"version,omitempty"`
+	VersionType         *string `json:"version_type,omitempty"`
+	IfSeqNum            *int64  `json:"if_seq_no,omitempty"`
+	IfPrimaryTerm       *int64  `json:"if_primary_term,omitempty"`
+	WaitForActiveShards any     `json:"wait_for_active_shards,omitempty"`
+	Refresh             *string `json:"refresh,omitempty"`
+	RequireAlias        *bool   `json:"require_alias,omitempty"`
+	RetryOnConflict     *int    `json:"retry_on_conflict,omitempty"`
 }
 
 // BulkIndexerDebugLogger defines the interface for a debugging logger.
 type BulkIndexerDebugLogger interface {
-	Printf(string, ...interface{})
+	Printf(string, ...any)
 }
 
 type bulkIndexer struct {

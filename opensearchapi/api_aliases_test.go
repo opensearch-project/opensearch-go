@@ -21,7 +21,7 @@ import (
 
 func TestAliases(t *testing.T) {
 	t.Run("Aliases", func(t *testing.T) {
-		client, err := ostest.NewClient()
+		client, err := ostest.NewClient(t)
 		require.Nil(t, err)
 
 		index := "test-aliases"

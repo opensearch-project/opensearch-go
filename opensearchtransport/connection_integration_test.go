@@ -37,8 +37,26 @@ import (
 	"time"
 )
 
+const serverReadinessTimeout = 30 * time.Second
+
 func NewServer(addr string, handler http.Handler) *http.Server {
 	return &http.Server{Addr: addr, Handler: handler}
+}
+
+// waitForServerReady waits for a server to be ready by trying to connect to it
+func waitForServerReady(t *testing.T, addr string, timeout time.Duration) error {
+	client := &http.Client{Timeout: 100 * time.Millisecond}
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		resp, err := client.Get("http://" + addr)
+		if err == nil {
+			resp.Body.Close()
+			return nil
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return fmt.Errorf("server %s not ready after %v", addr, timeout)
 }
 
 func TestStatusConnectionPool(t *testing.T) {
@@ -53,7 +71,8 @@ func TestStatusConnectionPool(t *testing.T) {
 	)
 
 	for i := 1; i <= numServers; i++ {
-		s := NewServer(fmt.Sprintf("localhost:1000%d", i), http.HandlerFunc(defaultHandler))
+		addr := fmt.Sprintf("localhost:1000%d", i)
+		s := NewServer(addr, http.HandlerFunc(defaultHandler))
 
 		go func(s *http.Server) {
 			if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -64,7 +83,11 @@ func TestStatusConnectionPool(t *testing.T) {
 		defer func(s *http.Server) { s.Close() }(s)
 
 		servers = append(servers, s)
-		time.Sleep(time.Millisecond)
+
+		// Wait for server to be ready before proceeding
+		if err := waitForServerReady(t, addr, serverReadinessTimeout); err != nil {
+			t.Fatalf("Server not ready: %v", err)
+		}
 	}
 
 	for _, s := range servers {
@@ -143,6 +166,11 @@ func TestStatusConnectionPool(t *testing.T) {
 			t.Fatalf("Unable to start server: %s", err)
 		}
 	}()
+
+	// Wait for server to be ready before proceeding
+	if err := waitForServerReady(t, "localhost:10002", serverReadinessTimeout); err != nil {
+		t.Fatalf("Restarted server not ready: %v", err)
+	}
 
 	fmt.Println("==> Waiting 1.25s for resurrection...")
 	time.Sleep(1250 * time.Millisecond)

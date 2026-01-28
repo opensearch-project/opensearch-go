@@ -187,8 +187,9 @@ func TestBulkIndexer(t *testing.T) {
 		defer cancel()
 		time.Sleep(100 * time.Millisecond)
 
-		var errs []error
-		for i := 0; i < 10; i++ {
+		const numErrors = 10
+		errs := make([]error, 0, numErrors)
+		for range numErrors {
 			errs = append(errs, bi.Add(ctx, BulkIndexerItem{Action: "delete", DocumentID: "timeout"}))
 		}
 		if err := bi.Close(context.Background()); err != nil {
@@ -214,7 +215,7 @@ func TestBulkIndexer(t *testing.T) {
 			Client:     client,
 		})
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			bi.Add(context.Background(), BulkIndexerItem{Action: "foo"})
 		}
 
@@ -789,8 +790,6 @@ func TestBulkIndexer(t *testing.T) {
 			},
 		}
 		for _, tt := range tests {
-			tt := tt
-
 			t.Run(tt.name, func(t *testing.T) {
 				w := &worker{
 					buf: bytes.NewBuffer(make([]byte, 0, 5e+6)),

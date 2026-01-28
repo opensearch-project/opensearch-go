@@ -22,7 +22,7 @@ import (
 )
 
 func TestSearchTemplate(t *testing.T) {
-	client, err := ostest.NewClient()
+	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
 	testIndex := "test-search-template"

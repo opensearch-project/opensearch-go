@@ -41,7 +41,7 @@ func (r Response) String() string {
 	if r.Body != nil {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			body = []byte(fmt.Sprintf("<error reading response body: %v>", err))
+			body = fmt.Appendf(nil, "<error reading response body: %v>", err)
 		}
 		return fmt.Sprintf("%s %s", r.Status(), body)
 	}

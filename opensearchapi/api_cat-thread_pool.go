@@ -68,6 +68,8 @@ type CatThreadPoolItemResp struct {
 	Size            *int    `json:"size,string"`
 	KeepAlive       *string `json:"keep_alive"`
 	TotalWaitTime   string  `json:"total_wait_time"`
+	// Parallelism field added in OpenSearch 3.4.0+
+	Parallelism *int `json:"parallelism,string"`
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

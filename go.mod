@@ -1,6 +1,6 @@
 module github.com/opensearch-project/opensearch-go/v4
 
-go 1.24
+go 1.24.0
 
 require (
 	github.com/aws/aws-sdk-go v1.55.8
