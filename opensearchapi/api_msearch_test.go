@@ -26,7 +26,7 @@ func TestMSearch(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.NoError(t, err)
 
-	testIndex := "test-msearch"
+	testIndex := testutil.MustUniqueString(t, "test-msearch")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
