@@ -353,6 +353,7 @@ The smart selector automatically detects operation types and routes them to the 
 ### Routing Strategy Overview
 
 The smart selector provides automatic routing based on the operation being performed:
+
 - **Search operations** (`/_search`, `/_msearch`, document retrieval) -> Data nodes
 - **Bulk operations** (`/_bulk`) -> Ingest nodes
 - **Ingest operations** (`/_ingest/`) -> Ingest nodes

@@ -323,6 +323,7 @@ You can choose different routing strategies based on your cluster setup:
 ```
 
 The smart selector automatically detects different operation types:
+
 - **Bulk operations** (`/_bulk`) -> Routes to ingest nodes
 - **Ingest pipeline operations** (`/_ingest/`) -> Routes to ingest nodes
 - **Search operations** (`/_search`) -> Routes to data nodes
