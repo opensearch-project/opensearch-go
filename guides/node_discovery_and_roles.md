@@ -75,11 +75,13 @@ client, err := opensearch.NewClient(opensearch.Config{
 ```
 
 When `IncludeDedicatedClusterManagers` is disabled (default), these nodes will be EXCLUDED from request routing:
+
 - Nodes with only "cluster_manager" role
 - Nodes with only "master" role (deprecated)
 - Nodes with "cluster_manager" + "remote_cluster_client" roles only
 
 These nodes will be INCLUDED (even with IncludeDedicatedClusterManagers disabled):
+
 - Cluster manager + data nodes
 - Cluster manager + ingest nodes
 - Cluster manager + warm nodes (OpenSearch 3.0+ for searchable snapshots)
