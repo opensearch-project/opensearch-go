@@ -9,6 +9,8 @@
 package opensearchapi_test
 
 import (
+	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -24,7 +26,7 @@ func TestAliases(t *testing.T) {
 		client, err := ostest.NewClient(t)
 		require.NoError(t, err)
 
-		index := "test-aliases"
+		index := fmt.Sprintf("test-aliases-%d", rand.Int63())
 		t.Cleanup(func() {
 			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 		})
@@ -36,7 +38,7 @@ func TestAliases(t *testing.T) {
 			resp, err := client.Aliases(
 				t.Context(),
 				opensearchapi.AliasesReq{
-					Body: strings.NewReader(`{"actions":[{"add":{"index":"test-aliases","alias":"logs"}},{"remove":{"index":"test-aliases","alias":"logs"}}]}`),
+					Body: strings.NewReader(fmt.Sprintf(`{"actions":[{"add":{"index":"%s","alias":"logs"}},{"remove":{"index":"%s","alias":"logs"}}]}`, index, index)),
 				},
 			)
 			require.NoError(t, err)

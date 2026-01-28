@@ -9,6 +9,8 @@
 package opensearchapi_test
 
 import (
+	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -28,7 +30,7 @@ func TestCatClient(t *testing.T) {
 
 	// snapshotRepo := "test-snapshot-repo"
 
-	index := "test-cat-indices"
+	index := fmt.Sprintf("test-cat-indices-%d", rand.Int63())
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})

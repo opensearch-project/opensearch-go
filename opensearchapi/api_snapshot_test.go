@@ -10,6 +10,7 @@ package opensearchapi_test
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"testing"
@@ -28,10 +29,11 @@ func TestSnapshotClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	testRepo := "test-repository"
-	testSnapshot := "test-snapshot"
-	testCloneSnapshot := "test-snapshot-clone"
-	testIndex := "test-snapshot"
+	randomID := rand.Int63()
+	testRepo := fmt.Sprintf("test-repository-%d", randomID)
+	testSnapshot := fmt.Sprintf("test-snapshot-%d", randomID)
+	testCloneSnapshot := fmt.Sprintf("test-snapshot-clone-%d", randomID)
+	testIndex := fmt.Sprintf("test-snapshot-%d", randomID)
 
 	t.Cleanup(func() {
 		// Clean up snapshots first (snapshots must be deleted before repositories)

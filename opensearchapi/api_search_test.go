@@ -10,6 +10,7 @@ package opensearchapi_test
 
 import (
 	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestSearch(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.NoError(t, err)
 
-	index := "test-index-search"
+	index := fmt.Sprintf("test-index-search-%d", rand.Int63())
 
 	_, err = client.Indices.Create(
 		t.Context(),

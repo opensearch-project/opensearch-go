@@ -153,7 +153,7 @@ func TestClientTransport(t *testing.T) {
 			t.Fatalf("Expected error, but got: %v", err)
 		}
 		opError := &net.OpError{}
-		if errors.As(err, &opError) {
+		if !errors.As(err, &opError) {
 			t.Fatalf("Expected net.OpError, but got: %T", err)
 		}
 	})

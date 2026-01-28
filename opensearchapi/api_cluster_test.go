@@ -9,6 +9,8 @@
 package opensearchapi_test
 
 import (
+	"fmt"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -26,7 +28,7 @@ func TestClusterClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.NoError(t, err)
 
-	index := "test-cluster-indices"
+	index := fmt.Sprintf("test-cluster-indices-%d", rand.Int63())
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
