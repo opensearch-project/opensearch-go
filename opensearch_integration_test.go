@@ -96,7 +96,7 @@ func TestClientTransport(t *testing.T) {
 			t.Fatalf("Error creating the client: %s", err)
 		}
 
-		for i := 0; i < 101; i++ {
+		for i := range 101 {
 			wg.Add(1)
 			time.Sleep(10 * time.Millisecond)
 
@@ -189,7 +189,7 @@ func TestClientCustomTransport(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			_, err := client.Info(t.Context(), nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
@@ -225,7 +225,7 @@ func TestClientCustomTransport(t *testing.T) {
 			},
 		}
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			_, err := client.Info(t.Context(), nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
@@ -270,7 +270,7 @@ func TestClientReplaceTransport(t *testing.T) {
 			},
 		}
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			_, err := client.Info(t.Context(), nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
