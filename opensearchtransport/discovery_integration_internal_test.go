@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build !integration
+//go:build integration && (core || opensearchtransport)
 
 package opensearchtransport
 
@@ -35,9 +35,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -46,38 +46,195 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Mock transport for tests that need HTTP mocking even in integration context
+type mockTransp struct {
+	RoundTripFunc func(req *http.Request) (*http.Response, error)
+}
+
+func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
+	return t.RoundTripFunc(req)
+}
+
 func TestDiscovery(t *testing.T) {
-	defaultHandler := func(w http.ResponseWriter, r *http.Request) {
-		f, err := os.Open("testdata/nodes.info.json")
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Fixture error: %s", err), http.StatusInternalServerError)
-			return
-		}
-		io.Copy(w, f)
+	var (
+		httpPort1, httpPort2, httpPort3, httpPort4 int
+		tlsPort1, tlsPort2                         int
+	)
+
+	dynamicNodesHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{
+			"_nodes": {
+				"total": 4,
+				"successful": 4,
+				"failed": 0
+			},
+			"cluster_name": "opensearch",
+			"nodes": {
+				"8g1UNpQNS06tlH1DUMBNhg": {
+					"name": "es1",
+					"transport_address": "127.0.0.1:9300",
+					"host": "127.0.0.1",
+					"ip": "127.0.0.1",
+					"version": "7.4.2",
+					"roles": ["ingest", "cluster_manager", "data"],
+					"http": {
+						"publish_address": "127.0.0.1:%d"
+					}
+				},
+				"8YR2EBk_QvWI4guQK292RA": {
+					"name": "es2",
+					"transport_address": "127.0.0.1:9302",
+					"host": "127.0.0.1",
+					"ip": "127.0.0.1",
+					"version": "7.4.2",
+					"roles": ["ingest", "cluster_manager", "data"],
+					"http": {
+						"publish_address": "localhost/127.0.0.1:%d"
+					}
+				},
+				"oSVIMafYQD-4kD0Lz6H4-g": {
+					"name": "es3",
+					"transport_address": "127.0.0.1:9301",
+					"host": "127.0.0.1",
+					"ip": "127.0.0.1",
+					"version": "7.4.2",
+					"roles": ["cluster_manager"],
+					"http": {
+						"publish_address": "127.0.0.1:%d"
+					}
+				},
+				"4uJ-108zTz27ISgkmAQgfw": {
+					"name": "es4",
+					"transport_address": "[fc99:3528::a04:812c]:9303",
+					"host": "fc99:3528:0:0:0:0:a04:812c",
+					"ip": "fc99:3528::a04:812c",
+					"version": "7.4.2",
+					"roles": ["cluster_manager"],
+					"http": {
+						"publish_address": "localhost:%d"
+					}
+				}
+			}
+		}`, httpPort1, httpPort2, httpPort3, httpPort4)
 	}
 
-	srv := &http.Server{Addr: "localhost:10001", Handler: http.HandlerFunc(defaultHandler), ReadTimeout: 1 * time.Second}
-	srvTLS := &http.Server{Addr: "localhost:12001", Handler: http.HandlerFunc(defaultHandler), ReadTimeout: 1 * time.Second}
+	tlsNodesHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{
+			"_nodes": {
+				"total": 2,
+				"successful": 2,
+				"failed": 0
+			},
+			"cluster_name": "opensearch",
+			"nodes": {
+				"8g1UNpQNS06tlH1DUMBNhg": {
+					"name": "es1",
+					"transport_address": "127.0.0.1:9300",
+					"host": "127.0.0.1",
+					"ip": "127.0.0.1",
+					"version": "7.4.2",
+					"roles": ["ingest", "cluster_manager", "data"],
+					"http": {
+						"publish_address": "127.0.0.1:%d"
+					}
+				},
+				"8YR2EBk_QvWI4guQK292RA": {
+					"name": "es2",
+					"transport_address": "127.0.0.1:9302",
+					"host": "127.0.0.1",
+					"ip": "127.0.0.1",
+					"version": "7.4.2",
+					"roles": ["ingest", "cluster_manager", "data"],
+					"http": {
+						"publish_address": "localhost/127.0.0.1:%d"
+					}
+				}
+			}
+		}`, tlsPort1, tlsPort2)
+	}
 
-	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			t.Errorf("Unable to start server: %s", err)
-			return
-		}
-	}()
-	go func() {
-		if err := srvTLS.ListenAndServeTLS("testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
-			t.Errorf("Unable to start server: %s", err)
-			return
-		}
-	}()
-	defer func() { srv.Close() }()
-	defer func() { srvTLS.Close() }()
+	healthHandler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{
+			"name": "test-node",
+			"cluster_name": "opensearch-cluster",
+			"cluster_uuid": "test-cluster-uuid",
+			"version": {
+				"distribution": "opensearch",
+				"number": "1.3.0",
+				"build_type": "tar",
+				"build_hash": "test-build-hash",
+				"build_date": "2023-01-01T00:00:00.000000000Z",
+				"build_snapshot": false,
+				"lucene_version": "8.10.1",
+				"minimum_wire_compatibility_version": "6.8.0",
+				"minimum_index_compatibility_version": "6.0.0-beta1"
+			},
+			"tagline": "The OpenSearch Project: https://opensearch.org/"
+		}`)
+	}
 
-	time.Sleep(50 * time.Millisecond)
+	createMux := func() *http.ServeMux {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/_nodes/http", dynamicNodesHandler)
+		mux.HandleFunc("/", healthHandler)
+		return mux
+	}
+
+	createTLSMux := func() *http.ServeMux {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/_nodes/http", tlsNodesHandler)
+		mux.HandleFunc("/", healthHandler)
+		return mux
+	}
+
+	// Start servers on dynamic ports
+	srv1 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
+	srv2 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
+	srv3 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
+	srv4 := &http.Server{Addr: "localhost:0", Handler: createMux(), ReadTimeout: 1 * time.Second}
+	srvTLS1 := &http.Server{Addr: "localhost:0", Handler: createTLSMux(), ReadTimeout: 1 * time.Second}
+	srvTLS2 := &http.Server{Addr: "localhost:0", Handler: createTLSMux(), ReadTimeout: 1 * time.Second}
+
+	// Start HTTP servers and get assigned ports
+	l1, _ := net.Listen("tcp", "localhost:0")
+	l2, _ := net.Listen("tcp", "localhost:0")
+	l3, _ := net.Listen("tcp", "localhost:0")
+	l4, _ := net.Listen("tcp", "localhost:0")
+	httpPort1 = l1.Addr().(*net.TCPAddr).Port
+	httpPort2 = l2.Addr().(*net.TCPAddr).Port
+	httpPort3 = l3.Addr().(*net.TCPAddr).Port
+	httpPort4 = l4.Addr().(*net.TCPAddr).Port
+
+	// Start TLS servers and get assigned ports
+	tl1, _ := net.Listen("tcp", "localhost:0")
+	tl2, _ := net.Listen("tcp", "localhost:0")
+	tlsPort1 = tl1.Addr().(*net.TCPAddr).Port
+	tlsPort2 = tl2.Addr().(*net.TCPAddr).Port
+
+	go func() { srv1.Serve(l1) }()
+	go func() { srv2.Serve(l2) }()
+	go func() { srv3.Serve(l3) }()
+	go func() { srv4.Serve(l4) }()
+	go func() { srvTLS1.ServeTLS(tl1, "testdata/cert.pem", "testdata/key.pem") }()
+	go func() { srvTLS2.ServeTLS(tl2, "testdata/cert.pem", "testdata/key.pem") }()
+
+	defer func() { srv1.Close() }()
+	defer func() { srv2.Close() }()
+	defer func() { srv3.Close() }()
+	defer func() { srv4.Close() }()
+	defer func() { srvTLS1.Close() }()
+	defer func() { srvTLS2.Close() }()
+
+	time.Sleep(100 * time.Millisecond)
 
 	t.Run("getNodesInfo()", func(t *testing.T) {
-		u, _ := url.Parse("http://" + srv.Addr)
+		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
 		nodes, err := tp.getNodesInfo()
@@ -92,21 +249,13 @@ func TestDiscovery(t *testing.T) {
 		for _, node := range nodes {
 			switch node.Name {
 			case "es1":
-				if node.URL.String() != "http://127.0.0.1:10001" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
-				}
+				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort1)), node.URL.String())
 			case "es2":
-				if node.URL.String() != "http://localhost:10002" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
-				}
+				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort2)), node.URL.String())
 			case "es3":
-				if node.URL.String() != "http://127.0.0.1:10003" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
-				}
+				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort3)), node.URL.String())
 			case "es4":
-				if node.URL.String() != "http://[fc99:3528::a04:812c]:10004" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
-				}
+				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort4)), node.URL.String())
 			}
 		}
 	})
@@ -130,7 +279,7 @@ func TestDiscovery(t *testing.T) {
 	})
 
 	t.Run("DiscoverNodes()", func(t *testing.T) {
-		u, _ := url.Parse("http://" + srv.Addr)
+		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
 		tp.DiscoverNodes()
@@ -147,13 +296,9 @@ func TestDiscovery(t *testing.T) {
 		for _, conn := range pool.mu.live {
 			switch conn.Name {
 			case "es1":
-				if conn.URL.String() != "http://127.0.0.1:10001" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
+				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort1)), conn.URL.String())
 			case "es2":
-				if conn.URL.String() != "http://localhost:10002" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
+				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort2)), conn.URL.String())
 			default:
 				t.Errorf("Unexpected node: %s", conn.Name)
 			}
@@ -161,7 +306,7 @@ func TestDiscovery(t *testing.T) {
 	})
 
 	t.Run("DiscoverNodes() with SSL and authorization", func(t *testing.T) {
-		u, _ := url.Parse("https://" + srvTLS.Addr)
+		u := &url.URL{Scheme: "https", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", tlsPort1))}
 		tp, _ := New(Config{
 			URLs:     []*url.URL{u},
 			Username: "foo",
@@ -187,13 +332,9 @@ func TestDiscovery(t *testing.T) {
 		for _, conn := range pool.mu.live {
 			switch conn.Name {
 			case "es1":
-				if conn.URL.String() != "https://127.0.0.1:10001" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
+				require.Equal(t, "https://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", tlsPort1)), conn.URL.String())
 			case "es2":
-				if conn.URL.String() != "https://localhost:10002" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
+				require.Equal(t, "https://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", tlsPort2)), conn.URL.String())
 			default:
 				t.Errorf("Unexpected node: %s", conn.Name)
 			}
@@ -204,7 +345,7 @@ func TestDiscovery(t *testing.T) {
 		t.Skip("Skip") // TODO(karmi): Investigate the intermittent failures of this test
 
 		var numURLs int
-		u, _ := url.Parse("http://" + srv.Addr)
+		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
 
 		tp, _ := New(Config{URLs: []*url.URL{u}, DiscoverNodesInterval: 10 * time.Millisecond})
 
@@ -518,6 +659,35 @@ func TestDiscovery(t *testing.T) {
 				newRoundTripper := func() http.RoundTripper {
 					return &mockTransp{
 						RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+							// Handle health check requests
+							if req.URL.Path == "/" {
+								healthResponse := `{
+									"name": "test-node",
+									"cluster_name": "opensearch-cluster",
+									"cluster_uuid": "test-cluster-uuid",
+									"version": {
+										"distribution": "opensearch",
+										"number": "1.3.0",
+										"build_type": "tar",
+										"build_hash": "test-build-hash",
+										"build_date": "2023-01-01T00:00:00.000000000Z",
+										"build_snapshot": false,
+										"lucene_version": "8.10.1",
+										"minimum_wire_compatibility_version": "6.8.0",
+										"minimum_index_compatibility_version": "6.0.0-beta1"
+									},
+									"tagline": "The OpenSearch Project: https://opensearch.org/"
+								}`
+								return &http.Response{
+									Status:        "200 OK",
+									StatusCode:    http.StatusOK,
+									ContentLength: int64(len(healthResponse)),
+									Header:        http.Header{"Content-Type": []string{"application/json"}},
+									Body:          io.NopCloser(bytes.NewReader([]byte(healthResponse))),
+								}, nil
+							}
+
+							// Handle nodes info requests
 							nodes := make(map[string]map[string]nodeInfo)
 							nodes["nodes"] = make(map[string]nodeInfo)
 							for name, node := range tt.args.Nodes {

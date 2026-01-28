@@ -28,10 +28,13 @@ package opensearchtransport
 
 import (
 	"bytes"
+	"context"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,7 +55,10 @@ const (
 	defaultMaxRetries = 3
 )
 
-var reGoVersion = regexp.MustCompile(`go(\d+\.\d+\..+)`)
+var (
+	reGoVersion             = regexp.MustCompile(`go(\d+\.\d+\..+)`)
+	errHealthCheckFailed    = errors.New("connection health check error")
+)
 
 // Interface defines the interface for HTTP client.
 type Interface interface {
@@ -90,6 +96,11 @@ type Config struct {
 	// Default: false (excludes dedicated cluster managers for better performance)
 	IncludeDedicatedClusterManagers bool
 
+	// Connection pool configuration
+	MinHealthyConnections int  // Default: 1, proactively open connections on startup only
+	SkipConnectionShuffle bool // Default: false, set true to disable connection randomization
+>>>>>>> cf32ffa (Implement connection pool health probes and fix discovery tests)
+
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -115,6 +126,10 @@ type Client struct {
 	discoverNodesInterval time.Duration
 
 	includeDedicatedClusterManagers bool
+
+	// Connection pool configuration
+	minHealthyConnections int
+	skipConnectionShuffle bool
 
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
@@ -165,9 +180,17 @@ func New(cfg Config) (*Client, error) {
 		cfg.MaxRetries = defaultMaxRetries
 	}
 
+	if cfg.MinHealthyConnections == 0 {
+		cfg.MinHealthyConnections = 1
+	}
+
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conns[idx] = &Connection{URL: u}
+		conn := &Connection{URL: u}
+		// Mark initial connections as dead to trigger health validation via resurrection workflow
+		// Discovery will use fallback to startup URLs when pool has no live connections
+		conn.markAsDead()
+		conns[idx] = conn
 	}
 
 	client := Client{
@@ -187,6 +210,10 @@ func New(cfg Config) (*Client, error) {
 
 		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
 
+		// Connection pool configuration
+		minHealthyConnections: cfg.MinHealthyConnections,
+		skipConnectionShuffle: cfg.SkipConnectionShuffle,
+
 		compressRequestBody: cfg.CompressRequestBody,
 
 		transport: cfg.Transport,
@@ -197,10 +224,22 @@ func New(cfg Config) (*Client, error) {
 
 	client.userAgent = initUserAgent()
 
+	// Shuffle connections for load distribution unless disabled
+	if !client.skipConnectionShuffle && len(conns) > 1 {
+		rand.Shuffle(len(conns), func(i, j int) {
+			conns[i], conns[j] = conns[j], conns[i]
+		})
+	}
+
 	if client.poolFunc != nil {
 		client.mu.pool = client.poolFunc(conns, client.selector)
 	} else {
 		client.mu.pool = NewConnectionPool(conns, client.selector)
+	}
+
+	// Set up health check function for pools that support it
+	if pool, ok := client.pool.(*statusConnectionPool); ok {
+		pool.healthCheck = client.isHealthyOpenSearchNode
 	}
 
 	if cfg.EnableDebugLogger {
@@ -522,4 +561,80 @@ func initUserAgent() string {
 	b.WriteRune(')')
 
 	return b.String()
+}
+
+// OpenSearchInfo represents the root endpoint response structure for health checks.
+// Non-pointer fields are guaranteed present in all supported OpenSearch versions (>=1.3.0).
+// Pointer fields may be missing in certain configurations or versions.
+type OpenSearchInfo struct {
+	// Permanent fields - guaranteed since OpenSearch 1.3.0
+	Name        string `json:"name"`         // Node name
+	ClusterName string `json:"cluster_name"` // Cluster name
+	ClusterUUID string `json:"cluster_uuid"` // Cluster UUID
+	Tagline     string `json:"tagline"`      // "The OpenSearch Project: https://opensearch.org/"
+	Version     struct {
+		// Permanent fields - guaranteed since OpenSearch 1.3.0
+		Number                           string `json:"number"`                              // Version number, e.g. "1.3.0"
+		BuildType                        string `json:"build_type"`                         // Build type: "tar", "docker", etc.
+		BuildHash                        string `json:"build_hash"`                         // Git commit hash
+		BuildDate                        string `json:"build_date"`                         // Build timestamp
+		BuildSnapshot                    bool   `json:"build_snapshot"`                     // Is snapshot build
+		LuceneVersion                    string `json:"lucene_version"`                     // Underlying Lucene version
+		MinimumWireCompatibilityVersion  string `json:"minimum_wire_compatibility_version"` // Minimum wire protocol version
+		MinimumIndexCompatibilityVersion string `json:"minimum_index_compatibility_version"` // Minimum index compatibility version
+
+		// Conditional fields - may be missing in specific configurations
+		Distribution *string `json:"distribution,omitempty"` // "opensearch" - missing when compatibility mode enabled in 1.3.x
+	} `json:"version"`
+}
+
+// isHealthyOpenSearchNode validates that the target URL is responding as an OpenSearch node
+// by making a GET / request and verifying basic response structure.
+func (c *Client) isHealthyOpenSearchNode(url *url.URL) (string, error) {
+	// Create request with short timeout for health checks
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+	}
+
+	// Set up the request similar to regular requests
+	c.setReqURL(url, req)
+	c.setReqAuth(url, req)
+	c.setReqUserAgent(req)
+
+	// Execute the request
+	res, err := c.transport.RoundTrip(req)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+	}
+	if res == nil {
+		return "", fmt.Errorf("%w: nil response", errHealthCheckFailed)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
+	}
+
+	// Read and parse the response
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+	}
+
+	var info OpenSearchInfo
+	if err := json.Unmarshal(body, &info); err != nil {
+		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)
+	}
+
+	// Minimal validation - just check that core fields exist
+	if info.Name == "" || info.ClusterName == "" || info.Version.Number == "" {
+		return "", fmt.Errorf("%w: invalid response structure", errHealthCheckFailed)
+	}
+
+	// Return the version number for potential future use
+	return info.Version.Number, nil
 }

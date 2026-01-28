@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -195,6 +196,22 @@ func (c *Client) DiscoverNodes() error {
 			continue
 		}
 
+		// Health check discovered nodes before adding to connection pool
+		if debugLogger != nil {
+			debugLogger.Logf("Attempting health check for discovered node [%q] %q\n", node.Name, node.URL)
+		}
+		version, err := c.isHealthyOpenSearchNode(node.URL)
+		if err != nil {
+			if debugLogger != nil {
+				debugLogger.Logf("Health check failed for node [%q] %q: %s; [SKIP]\n", node.Name, node.URL, err)
+			}
+			continue
+		}
+
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for node [%q] %q (version: %q)\n", node.Name, node.URL, version)
+		}
+
 		conns = append(conns, &Connection{
 			URL:        node.URL,
 			ID:         node.ID,
@@ -212,11 +229,23 @@ func (c *Client) DiscoverNodes() error {
 		defer lockable.Unlock()
 	}
 
+	// Shuffle connections for load distribution unless disabled
+	if !c.skipConnectionShuffle && len(conns) > 1 {
+		rand.Shuffle(len(conns), func(i, j int) {
+			conns[i], conns[j] = conns[j], conns[i]
+		})
+	}
+
 	if c.poolFunc != nil {
 		c.mu.pool = c.poolFunc(conns, c.selector)
 	} else {
 		// TODO: Replace only live connections, leave dead scheduled for resurrect?
 		c.mu.pool = NewConnectionPool(conns, c.selector)
+	}
+
+	// Set up health check function for pools that support it
+	if pool, ok := c.pool.(*statusConnectionPool); ok {
+		pool.healthCheck = c.isHealthyOpenSearchNode
 	}
 
 	return nil
@@ -233,9 +262,24 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	c.mu.Lock()
 	conn, err := c.mu.pool.Next()
 	c.mu.Unlock()
-	// TODO: If no connection is returned, fallback to original URLs
+	// If no connection is available from pool, fall back to original startup URLs using round-robin
 	if err != nil {
-		return nil, err
+		if len(c.urls) > 0 {
+			// Create temporary connections from startup URLs and use round-robin selection
+			startupConns := make([]*Connection, len(c.urls))
+			for i, u := range c.urls {
+				startupConns[i] = &Connection{URL: u}
+			}
+
+			// Use round-robin selector to pick a startup URL
+			selector := &roundRobinSelector{curr: -1}
+			conn, err = selector.Select(startupConns)
+			if err != nil {
+				return nil, fmt.Errorf("failed to select startup URL: %w", err)
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	c.setReqURL(conn.URL, req)

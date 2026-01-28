@@ -213,6 +213,15 @@ cluster.start:
 cluster.stop:
 	docker compose --project-directory .ci/opensearch down;
 
+cluster.scale.1: ## Start single-node cluster
+	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node2=0 --scale opensearch-node3=0;
+
+cluster.scale.2: ## Start 2-node cluster
+	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node1=1 --scale opensearch-node2=1 --scale opensearch-node3=0;
+
+cluster.scale.3: ## Start full 3-node cluster
+	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node1=1 --scale opensearch-node2=1 --scale opensearch-node3=1;
+
 cluster.get-cert:
 	@if [[ -v SECURE_INTEGRATION ]] && [[ $$SECURE_INTEGRATION == "true" ]]; then \
 		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}'):/usr/share/opensearch/config/kirk.pem admin.pem && \
