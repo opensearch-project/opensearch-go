@@ -31,6 +31,7 @@ package opensearch_test
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -138,6 +139,10 @@ func TestClientTransport(t *testing.T) {
 
 		_, err = client.Info(t.Context(), nil)
 		require.Error(t, err)
+		opError := &net.OpError{}
+		if !errors.As(err, &opError) {
+			t.Fatalf("Expected net.OpError, but got: %T", err)
+		}
 	})
 }
 

@@ -63,16 +63,17 @@ func (r SearchReq) GetRequest() (*http.Request, error) {
 
 // SearchResp represents the returned struct of the /_search response
 type SearchResp struct {
-	Took         int                  `json:"took"`
-	PhaseTook    *PhaseTook           `json:"phase_took,omitempty"`
-	Timeout      bool                 `json:"timed_out"`
-	Shards       ResponseShards       `json:"_shards"`
-	Hits         SearchHits           `json:"hits"`
-	Errors       bool                 `json:"errors"`
-	Aggregations json.RawMessage      `json:"aggregations"`
-	ScrollID     *string              `json:"_scroll_id,omitempty"`
-	Suggest      map[string][]Suggest `json:"suggest,omitempty"`
-	response     *opensearch.Response
+	Took            int                  `json:"took"`
+	PhaseTook       *PhaseTook           `json:"phase_took,omitempty"`
+	Timeout         bool                 `json:"timed_out"`
+	NumReducePhases int                  `json:"num_reduce_phases,omitempty"` // Number of reduce phases executed
+	Shards          ResponseShards       `json:"_shards"`
+	Hits            SearchHits           `json:"hits"`
+	Errors          bool                 `json:"errors"`
+	Aggregations    json.RawMessage      `json:"aggregations"`
+	ScrollID        *string              `json:"_scroll_id,omitempty"`
+	Suggest         map[string][]Suggest `json:"suggest,omitempty"`
+	response        *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response
