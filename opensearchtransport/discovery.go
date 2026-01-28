@@ -366,7 +366,7 @@ func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connec
 	if totalNodes == 1 {
 		newConnectionPool = c.createOrUpdateSingleNodePool(liveConnections, deadConnections)
 	} else {
-		newConnectionPool = c.createOrUpdateMultiNodePool(liveConnections, deadConnections)
+		newConnectionPool = c.createOrUpdateMultiNodePoolWithLock(liveConnections, deadConnections)
 	}
 
 	// Perform swap of connection pools
@@ -380,6 +380,11 @@ func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connec
 			}
 			// Continue - don't fail discovery due to router errors
 		}
+	}
+
+	// Set up health check function for pools that support it
+	if pool, ok := c.pool.(*statusConnectionPool); ok {
+		pool.healthCheck = c.isHealthyOpenSearchNode
 	}
 
 	return nil
@@ -414,9 +419,9 @@ func (c *Client) createOrUpdateSingleNodePool(liveConnections, deadConnections [
 	}
 }
 
-// createOrUpdateMultiNodePool handles multi-node connection pool creation/updates.
+// createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
-func (c *Client) createOrUpdateMultiNodePool(liveConnections, deadConnections []*Connection) ConnectionPool {
+func (c *Client) createOrUpdateMultiNodePoolWithLock(liveConnections, deadConnections []*Connection) ConnectionPool {
 	// Multi-node - check if we need to promote from singleConnectionPool
 	if _, isSinglePool := c.mu.connectionPool.(*singleConnectionPool); isSinglePool {
 		// Promote from single-node to multi-node pool
@@ -458,6 +463,13 @@ func (c *Client) createOrUpdateMultiNodePool(liveConnections, deadConnections []
 		metrics = existingPool.metrics
 	}
 
+	// Shuffle connections for load distribution unless disabled
+	if !c.skipConnectionShuffle && len(flatLiveConns) > 1 {
+		rand.Shuffle(len(flatLiveConns), func(i, j int) {
+			flatLiveConns[i], flatLiveConns[j] = flatLiveConns[j], flatLiveConns[i]
+		})
+	}
+
 	flatPool := &statusConnectionPool{
 		resurrectTimeoutInitial:      resurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
@@ -479,7 +491,22 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	conn, err := getConnectionFromPool(c, req)
 	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
-		return nil, err
+		if len(c.urls) > 0 {
+			// Create temporary connections from startup URLs and use round-robin selection
+			startupConns := make([]*Connection, len(c.urls))
+			for i, u := range c.urls {
+				startupConns[i] = &Connection{URL: u}
+			}
+
+			// Use round-robin selector to pick a startup URL
+			selector := &roundRobinSelector{curr: -1}
+			conn, err = selector.Select(startupConns)
+			if err != nil {
+				return nil, fmt.Errorf("failed to select startup URL: %w", err)
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	c.setReqURL(conn.URL, req)

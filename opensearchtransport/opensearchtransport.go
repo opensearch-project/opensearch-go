@@ -168,6 +168,10 @@ type Config struct {
 	// Default: 5
 	ResurrectTimeoutFactorCutoff int
 
+	// Connection pool configuration
+	MinHealthyConnections int  // Default: 1, proactively open connections on startup only
+	SkipConnectionShuffle bool // Default: false, set true to disable connection randomization
+
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -207,6 +211,10 @@ type Client struct {
 
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutFactorCutoff int
+
+	// Connection pool configuration
+	minHealthyConnections int
+	skipConnectionShuffle bool
 
 	compressRequestBody  bool
 	pooledGzipCompressor *gzipCompressor
@@ -318,9 +326,17 @@ func New(cfg Config) (*Client, error) {
 		resurrectTimeoutFactorCutoff = cfg.ResurrectTimeoutFactorCutoff
 	}
 
+	if cfg.MinHealthyConnections == 0 {
+		cfg.MinHealthyConnections = 1
+	}
+
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conns[idx] = &Connection{URL: u}
+		conn := &Connection{URL: u}
+		// Mark initial connections as dead to trigger health validation via resurrection workflow
+		// Discovery will use fallback to startup URLs when pool has no live connections
+		conn.markAsDead()
+		conns[idx] = conn
 	}
 
 	// Initialize context if not provided
@@ -357,6 +373,10 @@ func New(cfg Config) (*Client, error) {
 		resurrectTimeoutInitial:      resurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
 
+		// Connection pool configuration
+		minHealthyConnections: cfg.MinHealthyConnections,
+		skipConnectionShuffle: cfg.SkipConnectionShuffle,
+
 		compressRequestBody: cfg.CompressRequestBody,
 
 		transport:  cfg.Transport,
@@ -370,7 +390,13 @@ func New(cfg Config) (*Client, error) {
 
 	client.userAgent = initUserAgent()
 
-	// Initialize connection pool using the same logic as the public API
+	// Shuffle connections for load distribution unless disabled
+	if !client.skipConnectionShuffle && len(conns) > 1 {
+		rand.Shuffle(len(conns), func(i, j int) {
+			conns[i], conns[j] = conns[j], conns[i]
+		})
+	}
+
 	if client.poolFunc != nil {
 		client.mu.connectionPool = client.poolFunc(conns, cfg.Selector)
 	} else {
@@ -386,6 +412,11 @@ func New(cfg Config) (*Client, error) {
 			pool.mu.dead = []*Connection{}
 			client.mu.connectionPool = pool
 		}
+	}
+
+	// Set up health check function for pools that support it
+	if pool, ok := client.pool.(*statusConnectionPool); ok {
+		pool.healthCheck = client.isHealthyOpenSearchNode
 	}
 
 	if cfg.EnableDebugLogger {
@@ -907,6 +938,13 @@ func (c *Client) promoteConnectionPoolWithLock(liveConnections, deadConnections 
 		filteredLive := make([]*Connection, 0, len(liveConnections))
 		filteredDead := make([]*Connection, 0, len(deadConnections))
 		c.applyConnectionFiltering(liveConnections, deadConnections, &filteredLive, &filteredDead)
+
+		// Shuffle connections for load distribution unless disabled
+		if !c.skipConnectionShuffle && len(filteredLive) > 1 {
+			rand.Shuffle(len(filteredLive), func(i, j int) {
+				filteredLive[i], filteredLive[j] = filteredLive[j], filteredLive[i]
+			})
+		}
 
 		// Use client-configured timeouts (from Config or defaults)
 		pool := &statusConnectionPool{

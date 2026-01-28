@@ -207,10 +207,13 @@ func TestTransportConnectionPool(t *testing.T) {
 			err  error
 		)
 
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "foo1"},
-			{Scheme: "http", Host: "foo2"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "foo1"},
+				{Scheme: "http", Host: "foo2"},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 
 		if _, ok := tp.mu.connectionPool.(*statusConnectionPool); !ok {
 			t.Errorf("Expected connection to be statusConnectionPool, got: %T", tp)
@@ -991,10 +994,13 @@ func TestTransportPerformRetries(t *testing.T) {
 
 func TestURLs(t *testing.T) {
 	t.Run("Returns URLs", func(t *testing.T) {
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "localhost:9200"},
-			{Scheme: "http", Host: "localhost:9201"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "localhost:9200"},
+				{Scheme: "http", Host: "localhost:9201"},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 		urls := tp.URLs()
 		if len(urls) != 2 {
 			t.Errorf("Expected get 2 urls, but got: %d", len(urls))

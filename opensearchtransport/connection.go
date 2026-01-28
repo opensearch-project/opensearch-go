@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"math/rand/v2"
 	"net/url"
 	"slices"
 	"sort"
@@ -44,6 +45,8 @@ import (
 const (
 	defaultResurrectTimeoutInitial      = 60 * time.Second
 	defaultResurrectTimeoutFactorCutoff = 5
+	defaultMinimumResurrectTimeout      = 10 * time.Millisecond
+	defaultJitterScale                  = 0.1
 )
 
 // Errors
@@ -222,6 +225,11 @@ type statusConnectionPool struct {
 
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutFactorCutoff int
+	minimumResurrectTimeout      time.Duration
+	jitterScale                  float64
+
+	// Health check function - returns version string on success, error on failure
+	healthCheck func(*url.URL) (string, error)
 
 	metrics *metrics
 }
@@ -250,6 +258,8 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	pool := &statusConnectionPool{
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
+		jitterScale:                  defaultJitterScale,
 	}
 	pool.mu.live = conns
 	pool.mu.dead = []*Connection{}
@@ -496,7 +506,27 @@ func (cp *statusConnectionPool) getNextLiveConnWithLock() *Connection {
 //   - Connection should exist in the dead list
 func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
 	if debugLogger != nil {
-		debugLogger.Logf("Resurrecting %s\n", c.URL)
+		debugLogger.Logf("Attempting to resurrect %q\n", c.URL)
+	}
+
+	// Perform health check if available
+	if cp.healthCheck != nil {
+		version, err := cp.healthCheck(c.URL)
+		if err != nil {
+			if debugLogger != nil {
+				debugLogger.Logf("Health check failed for %q: %s; will retry later\n", c.URL, err)
+			}
+			// Health check failed - schedule another resurrection attempt
+			cp.scheduleResurrect(c)
+			return
+		}
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for %q (version: %q)\n", c.URL, version)
+		}
+	}
+
+	if debugLogger != nil {
+		debugLogger.Logf("Resurrecting %q\n", c.URL)
 	}
 
 	c.markAsLiveWithLock()
@@ -551,24 +581,61 @@ func (cp *statusConnectionPool) tryZombieWithLock() *Connection {
 	return c
 }
 
-// scheduleResurrect schedules the connection to be resurrected.
+// scheduleResurrect schedules the connection to be resurrected using cluster-aware timing.
+// Formula: ((1 - ((total - live) / total)) * total) * jitterScale
+// - All dead: immediate resurrection
+// - Healthy clusters: longer waits with more jitter
+// - Incident scenarios: faster recovery
 func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.Time) {
+	// Calculate basic exponential backoff factor
 	failures := c.failures.Load()
-	factor := min(failures-1, int64(cp.resurrectTimeoutFactorCutoff))
-	timeout := time.Duration(cp.resurrectTimeoutInitial.Seconds() * math.Exp2(float64(factor)) * float64(time.Second))
+	factor := math.Min(float64(failures-1), float64(cp.resurrectTimeoutFactorCutoff))
+	baseTimeout := time.Duration(cp.resurrectTimeoutInitial.Seconds() * math.Exp2(factor) * float64(time.Second))
+
+	// Get cluster health metrics
+	totalNodes := len(cp.mu.live) + len(cp.mu.dead)
+	liveNodes := len(cp.mu.live)
+
+	var finalTimeout time.Duration
+
+	if totalNodes == 0 || liveNodes == 0 {
+		// All dead or no nodes: immediate resurrection
+		finalTimeout = cp.minimumResurrectTimeout
+	} else {
+		// Cluster-aware formula: ((1 - ((total - live) / total)) * total) * jitterScale
+		deadNodes := totalNodes - liveNodes
+		healthRatio := 1.0 - (float64(deadNodes) / float64(totalNodes))
+		clusterFactor := healthRatio * float64(totalNodes) * cp.jitterScale
+
+		// Apply base timeout and cluster factor
+		clusterTimeout := time.Duration(float64(baseTimeout) * clusterFactor)
+
+		// Add random jitter (0 to clusterTimeout range)
+		jitter := time.Duration(rand.Float64() * float64(clusterTimeout))
+		finalTimeout = jitter
+
+		// Ensure minimum timeout
+		if finalTimeout < cp.minimumResurrectTimeout {
+			finalTimeout = cp.minimumResurrectTimeout
+		}
+	}
 
 	if debugLogger != nil {
 		debugLogger.Logf(
-			"Resurrect %s (failures=%d, factor=%d, timeout=%s) in %s\n",
+			"Resurrect %q (failures=%d, factor=%1.1f, live=%d, dead=%d, total=%d, base=%s, final=%s) in %s\n",
 			c.URL,
 			failures,
 			factor,
-			timeout,
-			deadSince.Add(timeout).Sub(time.Now().UTC()).Truncate(time.Second),
+			liveNodes,
+			len(cp.mu.dead),
+			totalNodes,
+			baseTimeout,
+			finalTimeout,
+			deadSince.Add(finalTimeout).Sub(time.Now().UTC()).Truncate(time.Millisecond),
 		)
 	}
 
-	time.AfterFunc(timeout, func() {
+	time.AfterFunc(finalTimeout, func() {
 		cp.mu.Lock()
 		defer cp.mu.Unlock()
 
@@ -577,7 +644,7 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 
 		if c.mu.deadSince.IsZero() {
 			if debugLogger != nil {
-				debugLogger.Logf("Already resurrected %s\n", c.URL)
+				debugLogger.Logf("Already resurrected %q\n", c.URL)
 			}
 			return
 		}

@@ -29,11 +29,52 @@
 package opensearchtransport
 
 import (
+	"bytes"
+	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"testing"
 	"time"
 )
+
+// mockTransport provides a mock HTTP transport that responds to health checks with valid OpenSearch responses
+type mockTransport struct{}
+
+func (t *mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	// Return a valid OpenSearch GET / response for health checks
+	if req.Method == "GET" && req.URL.Path == "/" {
+		body := `{
+			"name": "test-node",
+			"cluster_name": "test-cluster",
+			"cluster_uuid": "test-uuid",
+			"version": {
+				"number": "2.0.0",
+				"distribution": "opensearch",
+				"build_type": "tar",
+				"build_hash": "test-hash",
+				"build_date": "2024-01-01T00:00:00Z",
+				"build_snapshot": false,
+				"lucene_version": "9.0.0",
+				"minimum_wire_compatibility_version": "7.10.0",
+				"minimum_index_compatibility_version": "7.0.0"
+			},
+			"tagline": "The OpenSearch Project: https://opensearch.org/"
+		}`
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(bytes.NewBufferString(body)),
+			Header:     make(http.Header),
+		}, nil
+	}
+
+	// For other requests, return a basic response
+	return &http.Response{
+		StatusCode: 200,
+		Body:       io.NopCloser(bytes.NewBufferString("{}")),
+		Header:     make(http.Header),
+	}, nil
+}
 
 func TestSingleConnectionPoolNext(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
@@ -571,12 +612,21 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 	})
 
 	t.Run("Schedule resurrect", func(t *testing.T) {
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
+		// Channel to signal when resurrection is complete
+		done := make(chan struct{})
 
 		pool := &statusConnectionPool{
 			resurrectTimeoutInitial:      0,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:      0, // Allow immediate resurrection for test
+			jitterScale:                  defaultJitterScale,
+			// Mock health check function that always succeeds for tests
+			healthCheck: func(u *url.URL) (string, error) {
+				t.Logf("Health check called for %s", u)
+				// Signal completion after health check
+				defer close(done)
+				return "2.0.0", nil
+			},
 		}
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
@@ -592,20 +642,27 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		}()
 
 		conn := pool.mu.dead[0]
+		t.Logf("Starting resurrection test - dead connections: %d", len(pool.mu.dead))
+
 		conn.mu.RLock()
 		deadSince := conn.mu.deadSince
 		conn.mu.RUnlock()
+
 		pool.scheduleResurrect(conn, deadSince)
-		time.Sleep(50 * time.Millisecond)
+
+		// Wait for the resurrection to actually complete
+		<-done
 
 		pool.mu.Lock()
 		defer pool.mu.Unlock()
 
+		t.Logf("After resurrection - live: %d, dead: %d", len(pool.mu.live), len(pool.mu.dead))
+
 		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %v", pool.mu.live)
+			t.Errorf("Expected 1 live connection, got: %d", len(pool.mu.live))
 		}
 		if len(pool.mu.dead) != 0 {
-			t.Errorf("Expected no dead connections, got: %v", pool.mu.dead)
+			t.Errorf("Expected no dead connections, got: %d", len(pool.mu.dead))
 		}
 	})
 }
