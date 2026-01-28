@@ -23,6 +23,8 @@ client, err := opensearch.NewClient(opensearch.Config{
 ### Enable Smart Routing
 
 ```go
+import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+
 // Recommended: intelligent request routing
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses: []string{"http://localhost:9200"},

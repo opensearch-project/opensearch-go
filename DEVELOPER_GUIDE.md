@@ -42,6 +42,7 @@ OpenSearch Go Client builds using [Go](https://go.dev/doc/install) 1.24 at a min
 To build the project on Windows, use [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install), the compatibility layer for running Linux applications.
 
 Install `make`
+
 ```
 sudo apt install make
 ```
@@ -67,7 +68,7 @@ In order to test opensearch-go client, you need a running OpenSearch cluster. Yo
 
 ### Composing an OpenSearch Docker Container
 
-Ensure that Docker is installed on your local machine. You can check by running `docker --version`. Next, navigate to your local opensearch-go repository. Run the following command to build and start the OpenSearch docker container. 
+Ensure that Docker is installed on your local machine. You can check by running `docker --version`. Next, navigate to your local opensearch-go repository. Run the following command to build and start the OpenSearch docker container.
 
 ```
 make cluster.build cluster.start
@@ -75,7 +76,7 @@ make cluster.build cluster.start
 
 This command will start the OpenSearch container using the `docker-compose.yaml` configuration file. During the build process, the necessary dependencies and files will be downloaded, which may take some time depending on your internet connection and system resources.
 
-Once the container is built and running, you can open a web browser and navigate to localhost:9200 to access the OpenSearch docker container. 
+Once the container is built and running, you can open a web browser and navigate to localhost:9200 to access the OpenSearch docker container.
 
 In order to differentiate unit tests from integration tests, Go has a built-in mechanism for allowing you to logically separate your tests with [build tags](https://pkg.go.dev/cmd/go#hdr-Build_constraints). The build tag needs to be placed as close to the top of the file as possible, and must have a blank line beneath it. Hence, create all integration tests with build tag 'integration'.
 
@@ -143,5 +144,4 @@ After you have opened your project, you need to specify the location of the Go S
 
 ### Vim
 
-To improve your vim experience with Go, you might want to check out [fatih/vim-go](https://github.com/fatih/vim-go).
-For example it correctly formats the file and validates it on save.
+To improve your vim experience with Go, you might want to check out [fatih/vim-go](https://github.com/fatih/vim-go). For example it correctly formats the file and validates it on save.
