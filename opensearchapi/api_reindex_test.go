@@ -27,7 +27,7 @@ import (
 func TestReindex(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sourceIndex := testutil.MustUniqueString(t, "test-reindex-source")
 	destIndex := testutil.MustUniqueString(t, "test-reindex-dest")
@@ -80,7 +80,7 @@ func TestReindex(t *testing.T) {
 				Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s"},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
@@ -94,7 +94,7 @@ func TestReindex(t *testing.T) {
 				Params: opensearchapi.ReindexParams{WaitForCompletion: opensearchapi.ToPointer(false)},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
@@ -102,10 +102,10 @@ func TestReindex(t *testing.T) {
 	t.Run("inspect", func(t *testing.T) {
 		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.Reindex(t.Context(), opensearchapi.ReindexReq{})
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

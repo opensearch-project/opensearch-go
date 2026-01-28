@@ -27,7 +27,7 @@ import (
 func TestReindexRethrottle(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sourceIndex := testutil.MustUniqueString(t, "test-reindex-rethrottle-source")
 	destIndex := testutil.MustUniqueString(t, "test-reindex-rethrottle-dest")
@@ -81,7 +81,7 @@ func TestReindexRethrottle(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Run("with request", func(t *testing.T) {
 		t.Parallel()
 		resp, err := client.ReindexRethrottle(
@@ -91,7 +91,7 @@ func TestReindexRethrottle(t *testing.T) {
 				Params: opensearchapi.ReindexRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(40)},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
@@ -99,10 +99,10 @@ func TestReindexRethrottle(t *testing.T) {
 	t.Run("inspect", func(t *testing.T) {
 		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{})
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

@@ -22,10 +22,10 @@ import (
 
 func TestPointInTimeClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	ostest.SkipIfBelowVersion(t, client, 2, 4, "Point_In_Time")
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pitID := ""
 
@@ -105,11 +105,11 @@ func TestPointInTimeClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)

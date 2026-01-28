@@ -22,9 +22,9 @@ import (
 
 func TestTemplateClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	template := "index-template-test"
 
@@ -128,11 +128,11 @@ func TestTemplateClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" && value.Name != "Exists" {
@@ -152,9 +152,9 @@ func TestTemplateClient(t *testing.T) {
 					Body:     strings.NewReader(`{"order":1,"index_patterns":["index-template-test"],"aliases":{"test-1234":{}},"version":1}`),
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			resp, err := client.Template.Get(t.Context(), &opensearchapi.TemplateGetReq{Templates: []string{template}})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)

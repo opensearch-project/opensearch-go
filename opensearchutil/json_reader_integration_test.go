@@ -81,9 +81,10 @@ func TestJSONReaderIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
-		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, func(c opensearchapi.SearchHit) bool {
+		containsFooBar := func(c opensearchapi.SearchHit) bool {
 			return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar")
-		}) {
+		}
+		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, containsFooBar) {
 			t.Errorf("Unexpected response: %v", res)
 		}
 	})

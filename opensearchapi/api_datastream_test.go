@@ -22,9 +22,9 @@ import (
 
 func TestDataStreamClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	dataStream := "data-stream-test"
 
@@ -36,7 +36,7 @@ func TestDataStreamClient(t *testing.T) {
 				`{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		client.IndexTemplate.Delete(t.Context(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
 	})
@@ -125,11 +125,11 @@ func TestDataStreamClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)

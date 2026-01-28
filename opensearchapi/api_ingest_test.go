@@ -22,9 +22,9 @@ import (
 
 func TestIngestClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	ingest := "ingest-test"
 
@@ -151,11 +151,11 @@ func TestIngestClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
@@ -183,10 +183,10 @@ func TestIngestClient(t *testing.T) {
 					),
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			resp, err := client.Ingest.Get(t.Context(), nil)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Pipelines, resp.Inspect().Response)

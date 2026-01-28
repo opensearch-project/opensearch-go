@@ -61,6 +61,7 @@ linters:
     - sqlclosecheck
     - staticcheck
     - tagalign
+    - testifylint
     - testpackage
     - thelper
     - tparallel
@@ -107,6 +108,8 @@ linters:
             - sayRepetitiveInsteadOfStutters
           severity: error
           disabled: false
+    testifylint:
+      enable-all: true
     unparam:
       check-exported: true
   exclusions:

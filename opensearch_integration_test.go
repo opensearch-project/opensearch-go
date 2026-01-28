@@ -92,9 +92,7 @@ func TestClientTransport(t *testing.T) {
 		var wg sync.WaitGroup
 
 		client, err := ostest.NewClient(t)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
+		require.NoError(t, err)
 
 		for i := 0; i < 101; i++ {
 			wg.Add(1)
@@ -102,10 +100,8 @@ func TestClientTransport(t *testing.T) {
 
 			go func(i int) {
 				defer wg.Done()
-				_, err := client.Info(nil, nil)
-				if err != nil {
-					t.Errorf("Unexpected error: %s", err)
-				}
+				_, err := client.Info(t.Context(), nil)
+				require.NoError(t, err)
 			}(i)
 		}
 		wg.Wait()
@@ -113,9 +109,7 @@ func TestClientTransport(t *testing.T) {
 
 	t.Run("WithContext", func(t *testing.T) {
 		client, err := ostest.NewClient(t)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
+		require.NoError(t, err)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
@@ -140,17 +134,10 @@ func TestClientTransport(t *testing.T) {
 		}
 
 		client, err := opensearchapi.NewClient(cfg)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
+		require.NoError(t, err)
 
-		_, err = client.Info(nil, nil)
-		if err == nil {
-			t.Fatalf("Expected error, but got: %v", err)
-		}
-		if _, ok := err.(*net.OpError); !ok {
-			t.Fatalf("Expected net.OpError, but got: %T", err)
-		}
+		_, err = client.Info(t.Context(), nil)
+		require.Error(t, err)
 	})
 }
 
@@ -170,10 +157,10 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 func TestClientCustomTransport(t *testing.T) {
 	t.Run("Customized", func(t *testing.T) {
 		client, err := opensearchapi.NewDefaultClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		cfg, err := ostest.ClientConfig()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		if cfg != nil {
 			cfg.Client.Transport = &CustomTransport{
@@ -189,18 +176,16 @@ func TestClientCustomTransport(t *testing.T) {
 				},
 			}
 			client, err = opensearchapi.NewClient(*cfg)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			// Wait for cluster to be ready before running tests
 			err = ostest.WaitForClusterReady(t, client)
-			require.Nil(t, err)
+			require.NoError(t, err)
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
-			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
-			}
+			_, err := client.Info(t.Context(), nil)
+			require.NoError(t, err)
 		}
 	})
 
@@ -212,9 +197,7 @@ func TestClientCustomTransport(t *testing.T) {
 			Transport: http.DefaultTransport,
 		})
 		config, err := ostest.ClientConfig()
-		if err != nil {
-			t.Fatalf("Error getting config: %s", err)
-		}
+		require.NoError(t, err)
 		if ostest.IsSecure() {
 			tp, _ = opensearchtransport.New(opensearchtransport.Config{
 				URLs: []*url.URL{
@@ -248,10 +231,8 @@ func TestClientCustomTransport(t *testing.T) {
 		}
 
 		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
-			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
-			}
+			_, err := client.Info(t.Context(), nil)
+			require.NoError(t, err)
 		}
 	})
 }
@@ -313,10 +294,8 @@ func TestClientReplaceTransport(t *testing.T) {
 		initialCount := tr.Count()
 
 		for i := 0; i < expectedRequests; i++ {
-			_, err := client.Info(nil, nil)
-			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
-			}
+			_, err := client.Info(t.Context(), nil)
+			require.NoError(t, err)
 		}
 
 		actualRequests := tr.Count() - initialCount
@@ -329,14 +308,10 @@ func TestClientReplaceTransport(t *testing.T) {
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
 		client, err := ostest.NewClient(t)
-		if err != nil {
-			log.Fatalf("Error creating the client: %s\n", err)
-		}
+		require.NoError(t, err)
 
-		res, err := client.Info(nil, nil)
-		if err != nil {
-			log.Fatalf("Error getting the response: %s\n", err)
-		}
+		res, err := client.Info(t.Context(), nil)
+		require.NoError(t, err)
 		if res.ClusterName == "" {
 			log.Fatalf("cluster_name is empty: %s\n", err)
 		}

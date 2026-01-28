@@ -171,7 +171,7 @@ func GetVersion(t *testing.T, client *opensearchapi.Client) (int64, int64, int64
 func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion, patchVersion int64, testName string) {
 	t.Helper()
 	major, patch, _, err := GetVersion(t, client)
-	assert.Nil(t, err)
+	require.NoError(t, err)
 	if major < majorVersion || (major == majorVersion && patch < patchVersion) {
 		t.Skipf("Skipping %s as version %d.%d.x does not support this endpoint", testName, major, patch)
 	}
@@ -195,15 +195,15 @@ func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Re
 	require.NotNil(t, rawResp)
 
 	parsedBody, err := json.Marshal(resp)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	body, err := io.ReadAll(rawResp.Body)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// If the parsedBody and body does not match, then we need to check if we are adding or removing fields
 	if string(parsedBody) != string(body) {
 		patch, err := jsondiff.CompareJSON(body, parsedBody)
-		assert.Nil(t, err)
+		require.NoError(t, err)
 		operations := make([]jsondiff.Operation, 0)
 		for _, operation := range patch {
 			// different opensearch version added more field, only check if we miss some fields

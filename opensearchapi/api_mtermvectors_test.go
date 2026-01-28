@@ -24,7 +24,7 @@ import (
 
 func TestMTermvectors(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := testutil.MustUniqueString(t, "test-mtermvectors")
 	t.Cleanup(func() {
@@ -71,12 +71,11 @@ func TestMTermvectors(t *testing.T) {
 }`),
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	docs := []string{"{\"fullname\":\"John Doe\",\"text\":\"test test \"}", `{"fullname":"Jane Doe","text":"Another test ..."}`}
 
 	// Use unique document IDs to avoid conflicts between test runs
 	docIDPrefix := testutil.MustUniqueString(t, "doc")
-
 	for i, doc := range docs {
 		_, err = client.Document.Create(
 			t.Context(),
@@ -87,7 +86,7 @@ func TestMTermvectors(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	t.Run("with request", func(t *testing.T) {
@@ -98,17 +97,17 @@ func TestMTermvectors(t *testing.T) {
 				Body:  strings.NewReader(fmt.Sprintf(`{"ids":["%s-0","%s-1"]}`, docIDPrefix, docIDPrefix)),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.MTermvectors(t.Context(), opensearchapi.MTermvectorsReq{})
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

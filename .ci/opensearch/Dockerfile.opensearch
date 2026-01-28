@@ -44,6 +44,7 @@ RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then \
 # Ensure the repository mount point has correct permissions for snapshots
 RUN mkdir -p /usr/share/opensearch/mnt && chown opensearch:opensearch /usr/share/opensearch/mnt
 
-HEALTHCHECK --start-period=60s --interval=30s --timeout=10s --retries=3 \
-  CMD curl -sf --max-time 5 \
-  $(if [ "$SECURE_INTEGRATION" = "true" ]; then echo "--cert config/kirk.pem --key config/kirk-key.pem -k https://"; else echo "http://"; fi)localhost:9200/_cluster/health
+HEALTHCHECK --start-period=20s --interval=30s \
+  CMD curl -sf --retry 5 --max-time 5 --retry-delay 5 --retry-max-time 30 --retry-all-errors \
+  $(if $SECURE_INTEGRATION; then echo "--cert config/kirk.pem --key config/kirk-key.pem -k https://"; fi)"localhost:9200" \
+  || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'

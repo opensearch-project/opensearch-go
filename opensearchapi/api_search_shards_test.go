@@ -23,7 +23,7 @@ import (
 func TestSearchShards(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	index := testutil.MustUniqueString(t, "test-index-search-shards")
 
@@ -33,31 +33,31 @@ func TestSearchShards(t *testing.T) {
 			Index: index,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
 		resp, err := client.SearchShards(t.Context(), nil)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.SearchShards(t.Context(), nil)
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

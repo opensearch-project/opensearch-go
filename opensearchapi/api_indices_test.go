@@ -10,6 +10,7 @@ package opensearchapi_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"testing"
@@ -19,7 +20,8 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	ostestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 // getClusterSize detects the number of nodes in the cluster for adaptive test behavior
@@ -33,7 +35,7 @@ func getClusterSize(t *testing.T, client *opensearchapi.Client) int {
 	}
 
 	nodeCount := resp.NumberOfNodes
-	if testutil.IsDebugEnabled(t) {
+	if ostestutil.IsDebugEnabled(t) {
 		t.Logf("Detected %d node(s) in cluster", nodeCount)
 	}
 	return nodeCount
@@ -42,9 +44,9 @@ func getClusterSize(t *testing.T, client *opensearchapi.Client) int {
 func TestIndicesClientNew(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Detect cluster size for adaptive test behavior
 	clusterSize := getClusterSize(t, client)
@@ -102,6 +104,25 @@ func TestIndicesClientNew(t *testing.T) {
 			}
 		}
 	}
+
+	dataStream := testutil.MustUniqueString(t, "test-datastream-get")
+
+	_, err = client.IndexTemplate.Create(
+		t.Context(),
+		opensearchapi.IndexTemplateCreateReq{
+			IndexTemplate: dataStream,
+			Body:          strings.NewReader(fmt.Sprintf(`{"index_patterns":["%s"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`, dataStream)),
+		},
+	)
+	require.NoError(t, err)
+
+	_, err = client.DataStream.Create(t.Context(), opensearchapi.DataStreamCreateReq{DataStream: dataStream})
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		client.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
+		client.IndexTemplate.Delete(t.Context(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
+	})
 
 	// Validation function for APIs with dynamic index names as top-level keys
 	// These APIs can't use strict JSON comparison due to dynamic structure

@@ -518,7 +518,15 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 				t.Logf("Health check called for %s", u)
 				// Signal completion after health check
 				defer close(done)
-				return &http.Response{StatusCode: http.StatusOK}, nil
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Proto:      "HTTP/1.1",
+					ProtoMajor: 1,
+					ProtoMinor: 1,
+					Header:     make(http.Header),
+					Body:       http.NoBody,
+				}, nil
 			},
 		}
 		pool.mu.live = []*Connection{}

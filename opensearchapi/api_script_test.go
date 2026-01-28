@@ -22,9 +22,9 @@ import (
 
 func TestScriptClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	scriptID := "test-script"
 
@@ -171,11 +171,11 @@ func TestScriptClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 					}
@@ -195,32 +195,32 @@ func TestScriptClient(t *testing.T) {
 						`            total += doc['ratings'][i];\n          }\n          return total;\n        "}}`),
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.Script.Get(t.Context(), opensearchapi.ScriptGetReq{ScriptID: scriptID})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Script.Delete(t.Context(), opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Context", func(t *testing.T) {
 			resp, err := client.Script.Context(t.Context(), nil)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Language", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, client, 2, 4, "Language")
 			resp, err := client.Script.Language(t.Context(), nil)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
@@ -232,7 +232,7 @@ func TestScriptClient(t *testing.T) {
 						`"params":{"x":80,"y":100}}}`),
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})

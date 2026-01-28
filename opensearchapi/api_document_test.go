@@ -25,9 +25,9 @@ import (
 
 func TestDocumentClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Create unique index and document ID per test execution to avoid conflicts
 	index := testutil.MustUniqueString(t, "test-document")
@@ -362,11 +362,11 @@ func TestDocumentClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if !strings.Contains(value.Name, "Exists") && value.Name != "Source" {
@@ -387,7 +387,7 @@ func TestDocumentClient(t *testing.T) {
 					DocumentID: documentID,
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			res, err := client.Document.Source(
 				t.Context(),
 				opensearchapi.DocumentSourceReq{
@@ -395,7 +395,7 @@ func TestDocumentClient(t *testing.T) {
 					DocumentID: documentID,
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
 			ostest.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
@@ -416,7 +416,7 @@ func TestDocumentClient(t *testing.T) {
 						}
 					}`),
 				})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			_, err = client.Document.Create(
 				t.Context(),
 				opensearchapi.DocumentCreateReq{
@@ -425,7 +425,7 @@ func TestDocumentClient(t *testing.T) {
 					DocumentID: storedFieldDocID,
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			res, err := client.Document.Get(
 				t.Context(),
 				opensearchapi.DocumentGetReq{
@@ -436,7 +436,7 @@ func TestDocumentClient(t *testing.T) {
 					},
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, res)
 			assert.NotNil(t, res.Inspect().Response)
 			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)

@@ -241,6 +241,7 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	}
 	pool.mu.live = conns
 	pool.mu.dead = []*Connection{}
+
 	return pool
 }
 
@@ -429,6 +430,33 @@ func (cp *statusConnectionPool) Unlock() {
 	cp.mu.Unlock()
 }
 
+// performHealthCheck executes the health check for a connection.
+// Returns true if health check passes, false if it fails (and schedules retry).
+func (cp *statusConnectionPool) performHealthCheck(c *Connection) bool {
+	// Use background context for health check operations
+	// Health checks are independent operations during resurrection
+	ctx := context.Background()
+
+	resp, err := cp.healthCheck(ctx, c.URL)
+	if err != nil {
+		if debugLogger != nil {
+			debugLogger.Logf("Health check failed for %q: %s; will retry later\n", c.URL, err)
+		}
+		// Schedule retry on health check failure
+		cp.scheduleResurrect(c, c.mu.deadSince)
+		return false
+	}
+
+	if debugLogger != nil {
+		// Clean up response body if present
+		if resp != nil && resp.Body != nil {
+			resp.Body.Close()
+		}
+		debugLogger.Logf("Health check passed for %q\n", c.URL)
+	}
+	return true
+}
+
 // getNextLiveConnWithLock returns the next live connection using round-robin selection.
 // This provides fair distribution of requests across all live connections.
 //
@@ -455,23 +483,10 @@ func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
 		debugLogger.Logf("Attempting to resurrect %q\n", c.URL)
 	}
 
-	// Perform health check if available
+	// Execute health check if configured
 	if cp.healthCheck != nil {
-		ctx := context.Background()
-		resp, err := cp.healthCheck(ctx, c.URL)
-		if err != nil {
-			if debugLogger != nil {
-				debugLogger.Logf("Health check failed for %q: %s; will retry later\n", c.URL, err)
-			}
-			// Health check failed - schedule another resurrection attempt
-			cp.scheduleResurrect(c, c.mu.deadSince)
-			return
-		}
-		if resp != nil && resp.Body != nil {
-			resp.Body.Close()
-		}
-		if debugLogger != nil {
-			debugLogger.Logf("Health check passed for %q\n", c.URL)
+		if !cp.performHealthCheck(c) {
+			return // Health check failed, resurrection scheduled
 		}
 	}
 

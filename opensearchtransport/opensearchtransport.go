@@ -172,6 +172,14 @@ type Config struct {
 	MinHealthyConnections int  // Default: 1, proactively open connections on startup only
 	SkipConnectionShuffle bool // Default: false, set true to disable connection randomization
 
+	// Health check function for connection pool health validation.
+	// When nil (default), uses the built-in health check that validates OpenSearch
+	// nodes with GET / requests. Use NoOpHealthCheck to disable health checking.
+	// Returns the HTTP response on success, or an error on failure.
+	// A nil response with nil error indicates success (used by NoOpHealthCheck).
+	// Callers can extract version info, status codes, or other data from the response.
+	HealthCheck func(ctx context.Context, url *url.URL) (*http.Response, error)
+
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -1031,4 +1039,11 @@ func (c *Client) applyConnectionFiltering(liveConnections, deadConnections []*Co
 		}
 		*filteredDead = append(*filteredDead, conn)
 	}
+}
+
+// NoOpHealthCheck is a no-operation health check that always succeeds.
+// This can be used to disable health checking while maintaining the function signature.
+// Returns nil, nil to indicate success without creating response objects.
+func NoOpHealthCheck(ctx context.Context, url *url.URL) (*http.Response, error) {
+	return nil, nil //nolint:nilnil // Intentional no-op behavior
 }

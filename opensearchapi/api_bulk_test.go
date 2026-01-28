@@ -23,7 +23,7 @@ import (
 
 func TestBulkClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	index := "test-bulk"
 	t.Cleanup(func() {
@@ -62,17 +62,17 @@ func TestBulkClient(t *testing.T) {
 				t.Context(),
 				test.Request,
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotEmpty(t, res)
 			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 	}
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{Index: index})
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

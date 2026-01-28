@@ -21,27 +21,27 @@ import (
 
 func TestInfo(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Run("with nil request", func(t *testing.T) {
 		resp, err := client.Info(t.Context(), nil)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.Info(t.Context(), &opensearchapi.InfoReq{})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.Info(t.Context(), nil)
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

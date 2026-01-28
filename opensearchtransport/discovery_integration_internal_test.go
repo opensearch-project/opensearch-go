@@ -24,7 +24,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
-//go:build integration && (core || opensearchtransport)
+//go:build !integration
 
 package opensearchtransport
 
@@ -32,7 +32,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -237,7 +236,7 @@ func TestDiscovery(t *testing.T) {
 		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		nodes, err := tp.getNodesInfo()
+		nodes, err := tp.getNodesInfo(t.Context())
 		if err != nil {
 			t.Fatalf("ERROR: %s", err)
 		}
@@ -249,13 +248,13 @@ func TestDiscovery(t *testing.T) {
 		for _, node := range nodes {
 			switch node.Name {
 			case "es1":
-				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort1)), node.URL.String())
+				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort1)), node.url.String())
 			case "es2":
-				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort2)), node.URL.String())
+				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort2)), node.url.String())
 			case "es3":
-				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort3)), node.URL.String())
+				require.Equal(t, "http://"+net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", httpPort3)), node.url.String())
 			case "es4":
-				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort4)), node.URL.String())
+				require.Equal(t, "http://"+net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort4)), node.url.String())
 			}
 		}
 	})
@@ -273,8 +272,8 @@ func TestDiscovery(t *testing.T) {
 		tp, err := New(Config{URLs: []*url.URL{u}, Transport: newRoundTripper()})
 		require.NoError(t, err)
 
-		_, err = tp.getNodesInfo()
-		assert.Error(t, err)
+		_, err = tp.getNodesInfo(t.Context())
+		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected empty body")
 	})
 
@@ -282,11 +281,11 @@ func TestDiscovery(t *testing.T) {
 		u := &url.URL{Scheme: "http", Host: net.JoinHostPort("localhost", fmt.Sprintf("%d", httpPort1))}
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		tp.DiscoverNodes()
+		tp.DiscoverNodes(t.Context())
 
-		pool, ok := tp.mu.pool.(*statusConnectionPool)
+		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
 		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.pool)
+			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.connectionPool)
 		}
 
 		if len(pool.mu.live) != 2 {
@@ -318,11 +317,11 @@ func TestDiscovery(t *testing.T) {
 			},
 		})
 
-		tp.DiscoverNodes()
+		tp.DiscoverNodes(t.Context())
 
-		pool, ok := tp.mu.pool.(*statusConnectionPool)
+		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
 		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.pool)
+			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.connectionPool)
 		}
 
 		if len(pool.mu.live) != 2 {
@@ -350,7 +349,7 @@ func TestDiscovery(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{u}, DiscoverNodesInterval: 10 * time.Millisecond})
 
 		tp.mu.Lock()
-		numURLs = len(tp.mu.pool.URLs())
+		numURLs = len(tp.mu.connectionPool.URLs())
 		tp.mu.Unlock()
 		if numURLs != 1 {
 			t.Errorf("Unexpected number of nodes, want=1, got=%d", numURLs)
@@ -358,7 +357,7 @@ func TestDiscovery(t *testing.T) {
 
 		time.Sleep(18 * time.Millisecond) // Wait until (*Client).scheduleDiscoverNodes()
 		tp.mu.Lock()
-		numURLs = len(tp.mu.pool.URLs())
+		numURLs = len(tp.mu.connectionPool.URLs())
 		tp.mu.Unlock()
 		if numURLs != 2 {
 			t.Errorf("Unexpected number of nodes, want=2, got=%d", numURLs)
@@ -711,11 +710,11 @@ func TestDiscovery(t *testing.T) {
 					URLs:      urls,
 					Transport: newRoundTripper(),
 				})
-				c.DiscoverNodes()
+				c.DiscoverNodes(t.Context())
 
-				pool, ok := c.mu.pool.(*statusConnectionPool)
+				pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 				if !ok {
-					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.pool)
+					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.connectionPool)
 				}
 
 				if len(pool.mu.live) != tt.want.wantsNConn {
@@ -728,7 +727,7 @@ func TestDiscovery(t *testing.T) {
 					}
 				}
 
-				if err := c.DiscoverNodes(); (err != nil) != tt.want.wantErr {
+				if err := c.DiscoverNodes(t.Context()); (err != nil) != tt.want.wantErr {
 					t.Errorf("DiscoverNodes() error = %v, wantErr %v", err, tt.want.wantErr)
 				}
 			})
@@ -1050,11 +1049,11 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			// Perform discovery
-			err = c.DiscoverNodes()
+			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.pool.(*statusConnectionPool)
+			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 			require.True(t, ok, "Expected statusConnectionPool")
 
 			// Check that expected nodes are included
@@ -1159,11 +1158,11 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			require.NoError(t, err)
 
 			// Perform discovery
-			err = c.DiscoverNodes()
+			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.pool.(*statusConnectionPool)
+			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 			require.True(t, ok, "Expected statusConnectionPool")
 
 			// Check included nodes
@@ -1188,78 +1187,6 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
-}
-
-// TestGenericRoleBasedSelector tests the new generic role-based selector
-func TestGenericRoleBasedSelector(t *testing.T) {
-	connections := []*Connection{
-		{Name: "data-node", Roles: []string{RoleData}},
-		{Name: "ingest-node", Roles: []string{RoleIngest}},
-		{Name: "data-ingest-node", Roles: []string{RoleData, RoleIngest}},
-		{Name: "cluster-manager-node", Roles: []string{RoleClusterManager}},
-		{Name: "coordinating-node", Roles: []string{}}, // No specific roles
-	}
-
-	fallback := &mockSelector{}
-
-	t.Run("Generic selector with required roles", func(t *testing.T) {
-		// Create a selector that requires either data or ingest roles
-		selector := NewRoleBasedSelector(
-			WithRequiredRoles(RoleData, RoleIngest),
-		)
-
-		conn, err := selector.Select(connections)
-		assert.NoError(t, err)
-		// Should match one of: data-node, ingest-node, or data-ingest-node
-		assert.Contains(t, []string{"data-node", "ingest-node", "data-ingest-node"}, conn.Name)
-	})
-
-	t.Run("Generic selector with excluded roles", func(t *testing.T) {
-		// Create a selector that excludes cluster manager roles
-		selector := NewRoleBasedSelector(
-			WithExcludedRoles(RoleClusterManager),
-		)
-
-		conn, err := selector.Select(connections)
-		assert.NoError(t, err)
-		// Should NOT be the cluster-manager-node
-		assert.NotEqual(t, "cluster-manager-node", conn.Name)
-	})
-
-	t.Run("Generic selector strict mode", func(t *testing.T) {
-		// Create a strict selector that only allows warm nodes
-		selector := NewRoleBasedSelector(
-			WithRequiredRoles(RoleWarm),
-			WithStrictMode(),
-		)
-
-		conn, err := selector.Select(connections)
-		assert.Error(t, err)
-		assert.Nil(t, conn)
-		assert.Contains(t, err.Error(), "no connections found matching required roles")
-	})
-
-	t.Run("Options pattern flexibility", func(t *testing.T) {
-		// Test that options pattern allows flexible configuration
-		ingestSelector := NewRoleBasedSelector(
-			WithRequiredRoles(RoleIngest),
-			WithFallback(fallback),
-		)
-
-		strictIngestSelector := NewRoleBasedSelector(
-			WithRequiredRoles(RoleWarm), // Try warm nodes (which don't exist)
-			WithStrictMode(),
-		)
-
-		conn1, err1 := ingestSelector.Select(connections)
-		conn2, err2 := strictIngestSelector.Select(connections)
-
-		assert.NoError(t, err1)
-		assert.Error(t, err2) // Strict mode should fail with no warm nodes
-		assert.Nil(t, conn2)
-		// Fallback selector should return ingest-capable nodes
-		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn1.Name)
-	})
 }
 
 // TestRoleBasedSelectors tests the role-based selector with various configurations

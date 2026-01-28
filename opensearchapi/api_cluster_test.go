@@ -22,9 +22,9 @@ import (
 
 func TestClusterClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	index := testutil.MustUniqueString(t, "test-cluster-indices")
 	t.Cleanup(func() {
@@ -32,7 +32,7 @@ func TestClusterClient(t *testing.T) {
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	// Default validation function for most test cases
 	validateDefault := func(t *testing.T, res osapitest.Response, err error) {

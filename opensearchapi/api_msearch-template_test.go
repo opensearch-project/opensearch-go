@@ -24,7 +24,7 @@ import (
 
 func TestMSearchTemplate(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := "test-msearch"
 	t.Cleanup(func() {
@@ -44,7 +44,7 @@ func TestMSearchTemplate(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	t.Run("with request", func(t *testing.T) {
@@ -55,17 +55,17 @@ func TestMSearchTemplate(t *testing.T) {
 				Body:    strings.NewReader("{}\n{\"source\":{\"query\":{\"exists\":{\"field\":\"{{field}}\"}}},\"params\": {\"field\": \"foo\"}}\n"),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.MSearchTemplate(t.Context(), opensearchapi.MSearchTemplateReq{})
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

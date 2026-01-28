@@ -80,9 +80,9 @@ func TestDanglingClient(t *testing.T) {
 	}))
 
 	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	type danglingTests struct {
 		Name    string
@@ -163,11 +163,11 @@ func TestDanglingClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 					}
@@ -179,7 +179,7 @@ func TestDanglingClient(t *testing.T) {
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.Dangling.Get(t.Context(), nil)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
@@ -191,7 +191,7 @@ func TestDanglingClient(t *testing.T) {
 					Params:    opensearchapi.DanglingDeleteParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
@@ -203,7 +203,7 @@ func TestDanglingClient(t *testing.T) {
 					Params:    opensearchapi.DanglingImportParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
 				},
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})

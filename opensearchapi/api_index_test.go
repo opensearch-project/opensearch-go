@@ -9,7 +9,6 @@
 package opensearchapi_test
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -26,7 +25,7 @@ import (
 
 func TestIndexClient(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	index := "test-index-test"
 	t.Cleanup(func() {
@@ -35,9 +34,9 @@ func TestIndexClient(t *testing.T) {
 
 	t.Run("Request Empty", func(t *testing.T) {
 		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{})
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 		var osError *opensearch.StringError
-		require.True(t, errors.As(err, &osError))
+		require.ErrorAs(t, err, &osError)
 		assert.Equal(t, http.StatusMethodNotAllowed, osError.Status)
 		assert.Contains(t, osError.Err, "Incorrect HTTP method for uri")
 		assert.NotNil(t, resp)
@@ -46,9 +45,9 @@ func TestIndexClient(t *testing.T) {
 
 	t.Run("Request Index only", func(t *testing.T) {
 		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index})
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 		var osError *opensearch.StructError
-		require.True(t, errors.As(err, &osError))
+		require.ErrorAs(t, err, &osError)
 		assert.Equal(t, "parse_exception", osError.Err.Type)
 		assert.Equal(t, "request body is required", osError.Err.Reason)
 		assert.NotNil(t, resp)
@@ -61,7 +60,7 @@ func TestIndexClient(t *testing.T) {
 		for _, result := range []string{"created", "updated"} {
 			body := strings.NewReader("{}")
 			resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: body, DocumentID: docID})
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 			assert.Equal(t, result, resp.Result)
@@ -71,7 +70,7 @@ func TestIndexClient(t *testing.T) {
 	t.Run("Request without DocID", func(t *testing.T) {
 		body := strings.NewReader("{}")
 		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: body})
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		assert.Equal(t, index, resp.Index)
@@ -80,10 +79,10 @@ func TestIndexClient(t *testing.T) {
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.Index(t.Context(), opensearchapi.IndexReq{Index: index})
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

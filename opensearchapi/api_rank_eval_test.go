@@ -24,7 +24,7 @@ import (
 
 func TestRankEval(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := "test-rank_eval"
 	t.Cleanup(func() {
@@ -44,7 +44,7 @@ func TestRankEval(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	t.Run("with request", func(t *testing.T) {
@@ -56,17 +56,17 @@ func TestRankEval(t *testing.T) {
 					`"metric":{"expected_reciprocal_rank":{"maximum_relevance":3,"k":20}}}`),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.RankEval(t.Context(), opensearchapi.RankEvalReq{})
-		assert.NotNil(t, err)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

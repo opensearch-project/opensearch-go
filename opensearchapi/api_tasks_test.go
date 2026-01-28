@@ -26,9 +26,9 @@ import (
 func TestTasksClient(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	sourceIndex := "test-tasks-source"
 	destIndex := "test-tasks-dest"
@@ -85,7 +85,7 @@ func TestTasksClient(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	assert.NotEmpty(t, respReindex)
 
 	type tasksTests struct {
@@ -157,11 +157,11 @@ func TestTasksClient(t *testing.T) {
 					// Do not run in parallel - task may complete before Get/Cancel tests run
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						assert.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" && value.Name != "Exists" {

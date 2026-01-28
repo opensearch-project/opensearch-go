@@ -26,7 +26,7 @@ import (
 func TestUpdateByQueryRethrottle(t *testing.T) {
 	t.Parallel()
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := testutil.MustUniqueString(t, "test-updatebyquery-rethrottle-source")
 	t.Cleanup(func() {
@@ -77,7 +77,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 			},
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Run("with request", func(t *testing.T) {
 		t.Parallel()
 		resp, err := client.UpdateByQueryRethrottle(
@@ -87,7 +87,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 				Params: opensearchapi.UpdateByQueryRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(40)},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
@@ -95,10 +95,10 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 	t.Run("inspect", func(t *testing.T) {
 		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.UpdateByQueryRethrottle(t.Context(), opensearchapi.UpdateByQueryRethrottleReq{})
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

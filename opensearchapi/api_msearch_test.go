@@ -24,7 +24,7 @@ import (
 
 func TestMSearch(t *testing.T) {
 	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testIndex := "test-msearch"
 	t.Cleanup(func() {
@@ -44,7 +44,7 @@ func TestMSearch(t *testing.T) {
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 	}
 
 	t.Run("with request", func(t *testing.T) {
@@ -55,17 +55,17 @@ func TestMSearch(t *testing.T) {
 				Body:    strings.NewReader("{}\n{\"query\":{\"exists\":{\"field\":\"foo\"}}}\n"),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		res, err := failingClient.MSearch(t.Context(), opensearchapi.MSearchReq{})
-		assert.NotNil(t, err)
+		assert.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
@@ -78,7 +78,7 @@ func TestMSearch(t *testing.T) {
 				Body:    strings.NewReader("{}\n{\"aggs\":{\"number_terms\":{\"terms\":{\"field\":\"number\"}}}}\n"),
 			},
 		)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
