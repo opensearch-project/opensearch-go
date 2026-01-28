@@ -244,7 +244,7 @@ func (c *Client) DiscoverNodes() error {
 	}
 
 	// Set up health check function for pools that support it
-	if pool, ok := c.pool.(*statusConnectionPool); ok {
+	if pool, ok := c.mu.pool.(*statusConnectionPool); ok {
 		pool.healthCheck = c.isHealthyOpenSearchNode
 	}
 
@@ -272,7 +272,8 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 			}
 
 			// Use round-robin selector to pick a startup URL
-			selector := &roundRobinSelector{curr: -1}
+			selector := &roundRobinSelector{}
+			selector.curr.Store(-1)
 			conn, err = selector.Select(startupConns)
 			if err != nil {
 				return nil, fmt.Errorf("failed to select startup URL: %w", err)

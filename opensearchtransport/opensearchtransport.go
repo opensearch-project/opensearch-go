@@ -56,8 +56,8 @@ const (
 )
 
 var (
-	reGoVersion             = regexp.MustCompile(`go(\d+\.\d+\..+)`)
-	errHealthCheckFailed    = errors.New("connection health check error")
+	reGoVersion          = regexp.MustCompile(`go(\d+\.\d+\..+)`)
+	errHealthCheckFailed = errors.New("connection health check error")
 )
 
 // Interface defines the interface for HTTP client.
@@ -187,9 +187,6 @@ func New(cfg Config) (*Client, error) {
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
 		conn := &Connection{URL: u}
-		// Mark initial connections as dead to trigger health validation via resurrection workflow
-		// Discovery will use fallback to startup URLs when pool has no live connections
-		conn.markAsDead()
 		conns[idx] = conn
 	}
 
@@ -238,7 +235,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	// Set up health check function for pools that support it
-	if pool, ok := client.pool.(*statusConnectionPool); ok {
+	if pool, ok := client.mu.pool.(*statusConnectionPool); ok {
 		pool.healthCheck = client.isHealthyOpenSearchNode
 	}
 
@@ -575,12 +572,12 @@ type OpenSearchInfo struct {
 	Version     struct {
 		// Permanent fields - guaranteed since OpenSearch 1.3.0
 		Number                           string `json:"number"`                              // Version number, e.g. "1.3.0"
-		BuildType                        string `json:"build_type"`                         // Build type: "tar", "docker", etc.
-		BuildHash                        string `json:"build_hash"`                         // Git commit hash
-		BuildDate                        string `json:"build_date"`                         // Build timestamp
-		BuildSnapshot                    bool   `json:"build_snapshot"`                     // Is snapshot build
-		LuceneVersion                    string `json:"lucene_version"`                     // Underlying Lucene version
-		MinimumWireCompatibilityVersion  string `json:"minimum_wire_compatibility_version"` // Minimum wire protocol version
+		BuildType                        string `json:"build_type"`                          // Build type: "tar", "docker", etc.
+		BuildHash                        string `json:"build_hash"`                          // Git commit hash
+		BuildDate                        string `json:"build_date"`                          // Build timestamp
+		BuildSnapshot                    bool   `json:"build_snapshot"`                      // Is snapshot build
+		LuceneVersion                    string `json:"lucene_version"`                      // Underlying Lucene version
+		MinimumWireCompatibilityVersion  string `json:"minimum_wire_compatibility_version"`  // Minimum wire protocol version
 		MinimumIndexCompatibilityVersion string `json:"minimum_index_compatibility_version"` // Minimum index compatibility version
 
 		// Conditional fields - may be missing in specific configurations
@@ -613,13 +610,18 @@ func (c *Client) isHealthyOpenSearchNode(url *url.URL) (string, error) {
 	if res == nil {
 		return "", fmt.Errorf("%w: nil response", errHealthCheckFailed)
 	}
-	defer res.Body.Close()
+	if res.Body != nil {
+		defer res.Body.Close()
+	}
 
 	if res.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
 	}
 
 	// Read and parse the response
+	if res.Body == nil {
+		return "", fmt.Errorf("%w: nil response body", errHealthCheckFailed)
+	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return "", fmt.Errorf("%w: %w", errHealthCheckFailed, err)

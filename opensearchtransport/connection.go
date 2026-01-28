@@ -408,7 +408,7 @@ func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool
 				debugLogger.Logf("Health check failed for %q: %s; will retry later\n", c.URL, err)
 			}
 			// Health check failed - schedule another resurrection attempt
-			cp.scheduleResurrect(c)
+			cp.scheduleResurrect(c, c.mu.deadSince)
 			return
 		}
 		if debugLogger != nil {
@@ -470,6 +470,7 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 		clusterTimeout := time.Duration(float64(baseTimeout) * clusterFactor)
 
 		// Add random jitter (0 to clusterTimeout range)
+		// #nosec G404 - Non-cryptographic randomness is acceptable for connection timing jitter
 		jitter := time.Duration(rand.Float64() * float64(clusterTimeout))
 		finalTimeout = jitter
 
@@ -497,34 +498,6 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 	time.AfterFunc(finalTimeout, func() {
 		cp.mu.Lock()
 		defer cp.mu.Unlock()
-
-		c.mu.Lock()
-		defer c.mu.Unlock()
-
-		if !c.mu.isDead {
-			if debugLogger != nil {
-				debugLogger.Logf("Already resurrected %q\n", c.URL)
-			}
-			return
-		}
-
-		cp.resurrectWithLock(c, true)
-	})
-			c.URL,
-			failures,
-			factor,
-			liveNodes,
-			len(cp.dead),
-			totalNodes,
-			baseTimeout,
-			finalTimeout,
-			c.DeadSince.Add(finalTimeout).Sub(time.Now().UTC()).Truncate(time.Millisecond),
-		)
-	}
-
-	time.AfterFunc(finalTimeout, func() {
-		cp.Lock()
-		defer cp.Unlock()
 
 		c.mu.Lock()
 		defer c.mu.Unlock()

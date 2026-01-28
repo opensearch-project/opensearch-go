@@ -13,6 +13,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Role-based selector with flexible options pattern: `NewRoleBasedSelector()` with `WithRequiredRoles()`, `WithExcludedRoles()`, `WithStrictMode()`, `WithFallback()` options
   - `SmartSelector` with automatic operation detection for bulk and search requests
   - Automatic routing of bulk operations to ingest nodes and search operations to data nodes
+- Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 
 ### Changed
 
