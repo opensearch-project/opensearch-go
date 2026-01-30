@@ -43,6 +43,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
@@ -50,14 +51,6 @@ var _ = fmt.Print
 
 func init() {
 	rand.New(rand.NewSource(time.Now().Unix())).Uint64()
-}
-
-type mockTransp struct {
-	RoundTripFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.RoundTripFunc(req)
 }
 
 type mockNetError struct{ error }
@@ -105,9 +98,9 @@ func TestTransport(t *testing.T) {
 		tp, _ := New(
 			Config{
 				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -202,10 +195,13 @@ func TestTransportConnectionPool(t *testing.T) {
 			err  error
 		)
 
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "foo1"},
-			{Scheme: "http", Host: "foo2"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "foo1"},
+				{Scheme: "http", Host: "foo2"},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 
 		if _, ok := tp.mu.pool.(*statusConnectionPool); !ok {
 			t.Errorf("Expected connection to be statusConnectionPool, got: %T", tp)
@@ -301,10 +297,8 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				URLs:      []*url.URL{u},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -432,10 +426,8 @@ func TestTransportPerform(t *testing.T) {
 	t.Run("Error No URL", func(t *testing.T) {
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				URLs:      []*url.URL{},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -459,19 +451,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": OK\n")
-							return &http.Response{Status: "OK"}, nil
-						}
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": OK\n")
+						return &http.Response{Status: "OK"}, nil
+					}
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 			},
 		)
 
@@ -501,19 +493,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": OK\n")
-							return &http.Response{Status: "OK"}, nil
-						}
-						fmt.Print(": ERR\n")
-						return nil, io.EOF
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": OK\n")
+						return &http.Response{Status: "OK"}, nil
+					}
+					fmt.Print(": ERR\n")
+					return nil, io.EOF
+				}),
 			},
 		)
 
@@ -543,19 +535,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": 200\n")
-							return &http.Response{StatusCode: http.StatusOK}, nil
-						}
-						fmt.Print(": 502\n")
-						return &http.Response{StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": 200\n")
+						return &http.Response{StatusCode: http.StatusOK}, nil
+					}
+					fmt.Print(": 502\n")
+					return &http.Response{StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -587,15 +579,13 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:       []*url.URL{u, u, u},
 				MaxRetries: numReqs,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": 502\n")
-						body := io.NopCloser(strings.NewReader(`MOCK`))
-						return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": 502\n")
+					body := io.NopCloser(strings.NewReader(`MOCK`))
+					return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
+				}),
 			},
 		)
 
@@ -631,15 +621,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				MaxRetries:            3,               // Be explicit about retries
+				URLs:                  []*url.URL{u},   // Use single URL to avoid connection resurrection
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 			},
 		)
 
@@ -667,16 +658,14 @@ func TestTransportPerformRetries(t *testing.T) {
 		tp, _ := New(
 			Config{
 				URLs: []*url.URL{u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						body, err := io.ReadAll(req.Body)
-						if err != nil {
-							panic(err)
-						}
-						bodies = append(bodies, string(body))
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						panic(err)
+					}
+					bodies = append(bodies, string(body))
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -705,16 +694,14 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:                []*url.URL{u},
 				CompressRequestBody: true,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						body, err := io.ReadAll(req.Body)
-						if err != nil {
-							panic(err)
-						}
-						bodies = append(bodies, string(body))
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						panic(err)
+					}
+					bodies = append(bodies, string(body))
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -760,11 +747,9 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:   []*url.URL{u},
 				Signer: &signer,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -786,15 +771,14 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, fmt.Errorf("Mock regular error (%d)", i)
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, fmt.Errorf("Mock regular error (%d)", i)
+				}),
 			},
 		)
 
@@ -821,15 +805,14 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 				DisableRetry: true,
 			},
 		)
@@ -853,20 +836,19 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numReqs,
-			URLs:       []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					if i == numReqs {
-						fmt.Print(": OK\n")
-						return &http.Response{Status: "OK"}, nil
-					}
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-				},
-			},
+			MaxRetries:  numReqs,
+			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				fmt.Printf("Request #%d", i)
+				if i == numReqs {
+					fmt.Print(": OK\n")
+					return &http.Response{Status: "OK"}, nil
+				}
+				fmt.Print(": ERR\n")
+				return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+			}),
 
 			// A simple incremental backoff function
 			//
@@ -907,13 +889,11 @@ func TestTransportPerformRetries(t *testing.T) {
 			MaxRetries:           100,
 			RetryBackoff:         func(i int) time.Duration { return time.Hour },
 			URLs:                 []*url.URL{u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					<-req.Context().Done()
-					return nil, req.Context().Err()
-				},
-			},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				<-req.Context().Done()
+				return nil, req.Context().Err()
+			}),
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
@@ -941,16 +921,15 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numRetries,
-			URLs:       []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-				},
-			},
+			MaxRetries:  numRetries,
+			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				fmt.Printf("Request #%d", i)
+				fmt.Print(": ERR\n")
+				return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+			}),
 
 			// A simple incremental backoff function
 			//
@@ -982,10 +961,13 @@ func TestTransportPerformRetries(t *testing.T) {
 
 func TestURLs(t *testing.T) {
 	t.Run("Returns URLs", func(t *testing.T) {
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "localhost:9200"},
-			{Scheme: "http", Host: "localhost:9201"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "localhost:9200"},
+				{Scheme: "http", Host: "localhost:9201"},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 		urls := tp.URLs()
 		if len(urls) != 2 {
 			t.Errorf("Expected get 2 urls, but got: %d", len(urls))
@@ -1050,15 +1032,13 @@ func TestMaxRetries(t *testing.T) {
 			var callCount int
 			c, _ := New(Config{
 				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						callCount++
-						return &http.Response{
-							StatusCode: http.StatusBadGateway,
-							Status:     "MOCK",
-						}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					callCount++
+					return &http.Response{
+						StatusCode: http.StatusBadGateway,
+						Status:     "MOCK",
+					}, nil
+				}),
 				MaxRetries:   test.maxRetries,
 				DisableRetry: test.disableRetry,
 			})
@@ -1096,36 +1076,34 @@ func TestRequestCompression(t *testing.T) {
 			tp, _ := New(Config{
 				URLs:                []*url.URL{{}},
 				CompressRequestBody: test.compressionFlag,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						if req.Body == nil || req.Body == http.NoBody {
-							return nil, fmt.Errorf("unexpected body: %v", req.Body)
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					if req.Body == nil || req.Body == http.NoBody {
+						return nil, fmt.Errorf("unexpected body: %v", req.Body)
+					}
+
+					var buf bytes.Buffer
+					buf.ReadFrom(req.Body)
+
+					if req.ContentLength != int64(buf.Len()) {
+						return nil, fmt.Errorf("mismatched Content-Length: %d vs actual %d", req.ContentLength, buf.Len())
+					}
+
+					if test.compressionFlag {
+						var unBuf bytes.Buffer
+						zr, err := gzip.NewReader(&buf)
+						if err != nil {
+							return nil, fmt.Errorf("decompression error: %w", err)
 						}
+						unBuf.ReadFrom(zr)
+						buf = unBuf
+					}
 
-						var buf bytes.Buffer
-						buf.ReadFrom(req.Body)
+					if buf.String() != test.inputBody {
+						return nil, fmt.Errorf("unexpected body: %s", buf.String())
+					}
 
-						if req.ContentLength != int64(buf.Len()) {
-							return nil, fmt.Errorf("mismatched Content-Length: %d vs actual %d", req.ContentLength, buf.Len())
-						}
-
-						if test.compressionFlag {
-							var unBuf bytes.Buffer
-							zr, err := gzip.NewReader(&buf)
-							if err != nil {
-								return nil, fmt.Errorf("decompression error: %w", err)
-							}
-							unBuf.ReadFrom(zr)
-							buf = unBuf
-						}
-
-						if buf.String() != test.inputBody {
-							return nil, fmt.Errorf("unexpected body: %s", buf.String())
-						}
-
-						return &http.Response{Status: "MOCK"}, nil
-					},
-				},
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			})
 
 			req, _ := http.NewRequest(http.MethodPost, "/abc", bytes.NewBufferString(test.inputBody))
@@ -1152,11 +1130,9 @@ func TestRequestSigning(t *testing.T) {
 				Signer: &mockSigner{
 					ReturnError: true,
 				},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{Status: "MOCK"}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)

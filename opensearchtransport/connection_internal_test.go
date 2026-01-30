@@ -29,10 +29,14 @@
 package opensearchtransport
 
 import (
+	"context"
+	"net/http"
 	"net/url"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 func TestSingleConnectionPoolNext(t *testing.T) {
@@ -50,6 +54,73 @@ func TestSingleConnectionPoolNext(t *testing.T) {
 			if c.URL.String() != "http://foo1" {
 				t.Errorf("Unexpected URL, want=http://foo1, got=%s", c.URL)
 			}
+		}
+	})
+}
+
+func TestSingleConnectionPoolNextForRequest(t *testing.T) {
+	t.Run("Single URL with request", func(t *testing.T) {
+		pool := &singleConnectionPool{
+			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+		}
+
+		req := mockhttp.NewRequest(t, http.MethodPost, "/_bulk", nil)
+
+		c, err := pool.NextForRequest(req)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+
+		if c.URL.String() != "http://foo1" {
+			t.Errorf("Unexpected URL, want=http://foo1, got=%s", c.URL)
+		}
+	})
+}
+
+func TestSingleConnectionPoolOnSuccess(t *testing.T) {
+	t.Run("Noop", func(t *testing.T) {
+		pool := &singleConnectionPool{
+			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+		}
+
+		// OnSuccess should be a no-op and not return an error
+		pool.OnSuccess(&Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}})
+		// Test passes if no panic or error occurs
+	})
+}
+
+func TestSingleConnectionPoolURLs(t *testing.T) {
+	t.Run("Return single URL", func(t *testing.T) {
+		expectedURL := &url.URL{Scheme: "http", Host: "foo1"}
+		pool := &singleConnectionPool{
+			connection: &Connection{URL: expectedURL},
+		}
+
+		urls := pool.URLs()
+		if len(urls) != 1 {
+			t.Errorf("Expected 1 URL, got %d", len(urls))
+		}
+
+		if urls[0].String() != expectedURL.String() {
+			t.Errorf("Expected %s, got %s", expectedURL.String(), urls[0].String())
+		}
+	})
+}
+
+func TestSingleConnectionPoolConnections(t *testing.T) {
+	t.Run("Return single connection", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
+		pool := &singleConnectionPool{
+			connection: conn,
+		}
+
+		connections := pool.connections()
+		if len(connections) != 1 {
+			t.Errorf("Expected 1 connection, got %d", len(connections))
+		}
+
+		if connections[0] != conn {
+			t.Errorf("Expected same connection instance")
 		}
 	})
 }
@@ -190,6 +261,72 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 	})
 }
 
+func TestStatusConnectionPoolNextForRequest(t *testing.T) {
+	t.Run("Resurrect dead connection when no live is available", func(t *testing.T) {
+		s := &roundRobinSelector{}
+		s.curr.Store(-1)
+
+		pool := &statusConnectionPool{
+			selector: s,
+		}
+		pool.mu.live = []*Connection{}
+		pool.mu.dead = func() []*Connection {
+			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
+			conn1.failures.Store(3)
+			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
+			conn2.failures.Store(1)
+			return []*Connection{conn1, conn2}
+		}()
+
+		req := mockhttp.NewRequest(t, http.MethodPost, "/_bulk", nil)
+
+		c, err := pool.NextForRequest(req)
+		if err != nil {
+			t.Errorf("Unexpected error: %s", err)
+		}
+
+		if c == nil {
+			t.Errorf("Expected connection, got nil: %s", c)
+		}
+
+		if c.URL.String() != "http://foo2" {
+			t.Errorf("Expected <http://foo2>, got: %s", c.URL.String())
+		}
+
+		c.mu.Lock()
+		isDead := c.mu.isDead
+		c.mu.Unlock()
+		if isDead {
+			t.Errorf("Expected connection to be live, got: %s", c)
+		}
+
+		if len(pool.mu.live) != 1 {
+			t.Errorf("Expected 1 connection in live list, got: %s", pool.mu.live)
+		}
+
+		if len(pool.mu.dead) != 1 {
+			t.Errorf("Expected 1 connection in dead list, got: %s", pool.mu.dead)
+		}
+	})
+
+	t.Run("No connection available", func(t *testing.T) {
+		pool := &statusConnectionPool{}
+		pool.mu.live = []*Connection{}
+		pool.mu.dead = []*Connection{}
+
+		req := mockhttp.NewRequest(t, http.MethodGet, "/_search", nil)
+
+		c, err := pool.NextForRequest(req)
+		if err == nil {
+			t.Errorf("Expected error, but got: %s", c.URL)
+		}
+
+		if err.Error() != "no connection available" {
+			t.Errorf("Expected 'no connection available' error, got: %s", err.Error())
+		}
+	})
+}
+
 func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 	t.Run("Move connection to live list and mark it as healthy", func(t *testing.T) {
 		s := &roundRobinSelector{}
@@ -201,7 +338,7 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn.failures.Store(3)
-			conn.markAsDead()
+			conn.markAsDeadWithLock()
 			return []*Connection{conn}
 		}()
 
@@ -333,7 +470,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-			conn.markAsDead()
+			conn.markAsDeadWithLock()
 			return []*Connection{conn}
 		}()
 
@@ -365,12 +502,12 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "bar"}}
-			conn.markAsDead()
+			conn.markAsDeadWithLock()
 			return []*Connection{conn}
 		}()
 
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-		conn.markAsDead()
+		conn.markAsDeadWithLock()
 		conn.mu.Lock()
 		defer conn.mu.Unlock()
 		pool.resurrectWithLock(conn, true)
@@ -385,6 +522,10 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 	})
 
 	t.Run("Schedule resurrect", func(t *testing.T) {
+		// Channel to signal when resurrection is complete
+		done := make(chan struct{})
+
+		// Create round-robin selector
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
@@ -392,6 +533,23 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 			selector:                     s,
 			resurrectTimeoutInitial:      0,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:      0, // Allow immediate resurrection for test
+			jitterScale:                  defaultJitterScale,
+			// Mock health check function that always succeeds for tests
+			healthCheck: func(ctx context.Context, u *url.URL) (*http.Response, error) {
+				t.Logf("Health check called for %s", u)
+				// Signal completion after health check
+				defer close(done)
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Status:     "200 OK",
+					Proto:      "HTTP/1.1",
+					ProtoMajor: 1,
+					ProtoMinor: 1,
+					Header:     make(http.Header),
+					Body:       http.NoBody,
+				}, nil
+			},
 		}
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
@@ -407,20 +565,27 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		}()
 
 		conn := pool.mu.dead[0]
+		t.Logf("Starting resurrection test - dead connections: %d", len(pool.mu.dead))
+
 		conn.mu.RLock()
 		deadSince := conn.mu.deadSince
 		conn.mu.RUnlock()
+
 		pool.scheduleResurrect(conn, deadSince)
-		time.Sleep(50 * time.Millisecond)
+
+		// Wait for the resurrection to actually complete
+		<-done
 
 		pool.mu.Lock()
 		defer pool.mu.Unlock()
 
+		t.Logf("After resurrection - live: %d, dead: %d", len(pool.mu.live), len(pool.mu.dead))
+
 		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %s", pool.mu.live)
+			t.Errorf("Expected 1 live connection, got: %d", len(pool.mu.live))
 		}
 		if len(pool.mu.dead) != 0 {
-			t.Errorf("Expected no dead connections, got: %s", pool.mu.dead)
+			t.Errorf("Expected no dead connections, got: %d", len(pool.mu.dead))
 		}
 	})
 }

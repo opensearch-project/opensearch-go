@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -98,6 +99,11 @@ const (
 	RoleMaster = "master"
 )
 
+const (
+	// versionUnknown is used when the OpenSearch version cannot be determined
+	versionUnknown = "unknown"
+)
+
 // roleSet represents a set of node roles for efficient O(1) role lookups.
 type roleSet map[string]struct{}
 
@@ -132,7 +138,6 @@ func (rs roleSet) isDedicatedClusterManager() bool {
 		return false
 	}
 
-	// Check if it has any "work" roles that make it non-dedicated
 	workRoles := []string{
 		RoleData,   // stores and retrieves data
 		RoleIngest, // processes incoming data
@@ -196,6 +201,40 @@ func (c *Client) DiscoverNodes() error {
 			continue
 		}
 
+		// Health check discovered nodes before adding to connection pool
+		if debugLogger != nil {
+			debugLogger.Logf("Attempting health check for discovered node [%q] %q\n", node.Name, node.URL)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), defaultHealthCheckTimeout)
+		resp, err := c.healthCheck(ctx, node.URL)
+		cancel()
+
+		if err != nil {
+			if debugLogger != nil {
+				debugLogger.Logf("Health check failed for node [%q] %q: %s; [SKIP]\n", node.Name, node.URL, err)
+			}
+			continue
+		}
+
+		// Extract version for logging
+		version := versionUnknown
+		if resp != nil && resp.Body != nil {
+			if body, readErr := io.ReadAll(resp.Body); readErr == nil {
+				resp.Body.Close()
+				var info OpenSearchInfo
+				if jsonErr := json.Unmarshal(body, &info); jsonErr == nil && info.Version.Number != "" {
+					version = info.Version.Number
+				}
+			} else if resp.Body != nil {
+				resp.Body.Close()
+			}
+		}
+
+		if debugLogger != nil {
+			debugLogger.Logf("Health check passed for node [%q] %q (version: %q)\n", node.Name, node.URL, version)
+		}
+
 		conns = append(conns, &Connection{
 			URL:        node.URL,
 			ID:         node.ID,
@@ -213,11 +252,23 @@ func (c *Client) DiscoverNodes() error {
 		defer lockable.Unlock()
 	}
 
+	// Shuffle connections for load distribution unless disabled
+	if !c.skipConnectionShuffle && len(conns) > 1 {
+		rand.Shuffle(len(conns), func(i, j int) {
+			conns[i], conns[j] = conns[j], conns[i]
+		})
+	}
+
 	if c.poolFunc != nil {
 		c.mu.pool = c.poolFunc(conns, c.selector)
 	} else {
 		// TODO: Replace only live connections, leave dead scheduled for resurrect?
 		c.mu.pool = NewConnectionPool(conns, c.selector)
+	}
+
+	// Set up health check function for pools that support it
+	if pool, ok := c.mu.pool.(*statusConnectionPool); ok {
+		pool.healthCheck = c.healthCheck
 	}
 
 	return nil
@@ -234,9 +285,27 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	c.mu.Lock()
 	conn, err := c.mu.pool.Next()
 	c.mu.Unlock()
-	// TODO: If no connection is returned, fallback to original URLs
+	usedPoolConnection := (err == nil)
+
+	// If no connection is available from pool, fall back to original startup URLs using round-robin
 	if err != nil {
-		return nil, err
+		if len(c.urls) > 0 {
+			// Create temporary connections from startup URLs and use round-robin selection
+			startupConns := make([]*Connection, len(c.urls))
+			for i, u := range c.urls {
+				startupConns[i] = &Connection{URL: u}
+			}
+
+			// Use round-robin selector to pick a startup URL
+			selector := &roundRobinSelector{}
+			selector.curr.Store(-1)
+			conn, err = selector.Select(startupConns)
+			if err != nil {
+				return nil, fmt.Errorf("failed to select startup URL: %w", err)
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	c.setReqURL(conn.URL, req)
@@ -245,6 +314,14 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
+		// Report connection failure to the pool if we got the connection from the pool
+		if usedPoolConnection {
+			c.mu.Lock()
+			if poolErr := c.mu.pool.OnFailure(conn); poolErr != nil && debugLogger != nil {
+				debugLogger.Logf("Failed to mark connection as failed: %v\n", poolErr)
+			}
+			c.mu.Unlock()
+		}
 		return nil, err
 	}
 
@@ -280,6 +357,13 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 		node.URL = u
 		out[idx] = node
 		idx++
+	}
+
+	// Report connection success to the pool if we got the connection from the pool
+	if usedPoolConnection {
+		c.mu.Lock()
+		c.mu.pool.OnSuccess(conn)
+		c.mu.Unlock()
 	}
 
 	return out, nil

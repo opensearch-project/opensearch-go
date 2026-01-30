@@ -63,12 +63,15 @@ type ClusterAllocationExplainResp struct {
 		At                   string `json:"at"`
 		LastAllocationStatus string `json:"last_allocation_status"`
 	} `json:"unassigned_info"`
-	CanAllocate                  string                             `json:"can_allocate"`
-	CanRemainOnCurrentNode       string                             `json:"can_remain_on_current_node"`
-	CanRebalanceCluster          string                             `json:"can_rebalance_cluster"`
-	CanRebalanceToOtherNode      string                             `json:"can_rebalance_to_other_node"`
-	RebalanceExplanation         string                             `json:"rebalance_explanation"`
-	AllocateExplanation          string                             `json:"allocate_explanation"`
+	CanAllocate             string `json:"can_allocate"`
+	CanRemainOnCurrentNode  string `json:"can_remain_on_current_node"`
+	CanRebalanceCluster     string `json:"can_rebalance_cluster"`
+	CanRebalanceToOtherNode string `json:"can_rebalance_to_other_node"`
+	RebalanceExplanation    string `json:"rebalance_explanation"`
+	AllocateExplanation     string `json:"allocate_explanation"`
+	// TargetNode represents the target node for allocation decisions.
+	// Added in OpenSearch 2.0+ as part of enhanced allocation explanation details.
+	TargetNode                   *ClusterAllocationCurrentNode      `json:"target_node,omitempty"`
 	NodeAllocationDecisions      []ClusterAllocationNodeDecisions   `json:"node_allocation_decisions"`
 	CanRebalanceClusterDecisions []ClusterAllocationExplainDeciders `json:"can_rebalance_cluster_decisions"`
 	response                     *opensearch.Response

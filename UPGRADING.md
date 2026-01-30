@@ -12,28 +12,31 @@
 # Upgrading Opensearch GO Client
 
 ## Upgrading to >= 5.0.0
+
 Version 5.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.
 
 Before 5.0.0:
+
 ```go
 docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
 if err != nil {
 	fmt.Println(err)
-	
+
 	if !errors.Is(err, opensearch.ErrJSONUnmarshalBody) && docDelResp != nil {
 		resp := docDelResp.Inspect().Response
 		// get http status
 		fmt.Println(resp.StatusCode)
 		body := strings.TrimPrefix(err.Error(), "opensearch error response could not be parsed as error: ")
 		errResp := opensearchapi.DocumentDeleteResp{}
-		json.Unmarshal([]byte(body), &errResp) 
-		// extract result field from the body 
+		json.Unmarshal([]byte(body), &errResp)
+		// extract result field from the body
 		fmt.Println(errResp.Result)
 	}
 }
 ```
 
 After 5.0.0:
+
 ```go
 docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
 if err != nil {
@@ -50,20 +53,19 @@ if err != nil {
 }
 ```
 
-
 ## Upgrading to >= 4.0.0
 
 Version 4.0.0 moved the error types, added with 3.0.0, from opensearchapi to opensearch, renamed them and added new error types.
 
 ### Error Types
 
-Before 4.0.0:
-Error types:
+Before 4.0.0: Error types:
+
 - `opensearchapi.Error`
 - `opensearchapi.StringError`
 
-With 4.0.0:
-Error types
+With 4.0.0: Error types
+
 - `opensearch.Error`
 - `opensearch.StringError`
 - `opensearch.ReasonError`
@@ -75,9 +77,11 @@ Error types
 Version 3.0.0 is a major refactor of the client.
 
 ### Client Creation
+
 You now create the client from the opensearchapi and not from the opensearch lib. This was done to make the different APIs independent from each other. Plugin APIs like Security will get there own folder and therefore its own sub-lib.
 
 Before 3.0.0:
+
 ```go
 // default client
 client, err := opensearch.NewDefaultClient()
@@ -149,7 +153,6 @@ createIndexResponse, err := client.Indices.Create(
     },
 )
 ```
-
 
 ### Responses
 
