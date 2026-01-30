@@ -101,6 +101,19 @@ const (
 // roleSet represents a set of node roles for efficient O(1) role lookups.
 type roleSet map[string]struct{}
 
+// workRoles defines node roles that perform actual work (data processing, storage, or search).
+// Used to distinguish dedicated cluster managers from nodes that handle client requests.
+// This matches the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS logic.
+//
+//nolint:gochecknoglobals // This global constant defines the standard work roles
+var workRoles = []string{
+	RoleData,   // stores and retrieves data
+	RoleIngest, // processes incoming data
+	RoleWarm,   // handles warm/cold data storage
+	RoleSearch, // dedicated search processing
+	RoleML,     // machine learning tasks
+}
+
 // newRoleSet creates a roleSet from a slice of role names.
 func newRoleSet(roles []string) roleSet {
 	rs := make(roleSet, len(roles))
@@ -121,6 +134,30 @@ func (rs roleSet) has(roleName string) bool {
 	return exists
 }
 
+// toSlice converts the roleSet back to a []string slice for compatibility.
+// The roles are sorted alphabetically for consistent ordering.
+func (rs roleSet) toSlice() []string {
+	if len(rs) == 0 {
+		return nil
+	}
+
+	roles := make([]string, 0, len(rs))
+	for role := range rs {
+		// Skip the internal cluster_manager alias added for deprecated master role
+		if role == RoleClusterManager {
+			// Check if this was added as an alias for deprecated master role
+			if _, hasMaster := rs[RoleMaster]; hasMaster {
+				continue // Skip the alias, keep only the original master role
+			}
+		}
+		roles = append(roles, role)
+	}
+
+	// Sort roles alphabetically for consistent ordering
+	slices.Sort(roles)
+	return roles
+}
+
 // isDedicatedClusterManager implements the logic from upstream Java client
 // NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS to determine if a node should be skipped.
 // It returns true for nodes that are cluster-manager eligible but have no "work" roles
@@ -130,15 +167,6 @@ func (rs roleSet) isDedicatedClusterManager() bool {
 	// Must be cluster manager eligible first
 	if !rs.has(RoleClusterManager) {
 		return false
-	}
-
-	// Check if it has any "work" roles that make it non-dedicated
-	workRoles := []string{
-		RoleData,   // stores and retrieves data
-		RoleIngest, // processes incoming data
-		RoleWarm,   // handles warm/cold data storage
-		RoleSearch, // dedicated search processing
-		RoleML,     // machine learning tasks
 	}
 
 	return !slices.ContainsFunc(workRoles, rs.has)
@@ -200,7 +228,7 @@ func (c *Client) DiscoverNodes() error {
 			URL:        node.URL,
 			ID:         node.ID,
 			Name:       node.Name,
-			Roles:      node.Roles,
+			Roles:      newRoleSet(node.Roles),
 			Attributes: node.Attributes,
 		})
 	}
@@ -231,9 +259,7 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 		return nil, err
 	}
 
-	c.mu.Lock()
-	conn, err := c.mu.pool.Next()
-	c.mu.Unlock()
+	conn, err := getConnectionFromPool(c, req)
 	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
 		return nil, err

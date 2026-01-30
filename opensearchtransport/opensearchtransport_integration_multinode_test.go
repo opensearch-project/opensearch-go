@@ -77,18 +77,18 @@ func TestTransportSelector(t *testing.T) {
 		}})
 
 		node = NodeName(t, transport)
-		if node != "es1" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node1" {
+			t.Errorf("Unexpected node, want=opensearch-node1, got=%s", node)
 		}
 
 		node = NodeName(t, transport)
-		if node != "es2" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node2" {
+			t.Errorf("Unexpected node, want=opensearch-node2, got=%s", node)
 		}
 
 		node = NodeName(t, transport)
-		if node != "es1" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node1" {
+			t.Errorf("Unexpected node, want=opensearch-node1, got=%s", node)
 		}
 	})
 }

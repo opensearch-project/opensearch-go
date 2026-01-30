@@ -140,7 +140,7 @@ func (c *Client) Metrics() (Metrics, error) {
 			}
 
 			if len(c.Roles) > 0 {
-				cm.Meta.Roles = c.Roles
+				cm.Meta.Roles = c.Roles.toSlice()
 			}
 
 			m.Connections = append(m.Connections, cm)

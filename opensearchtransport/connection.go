@@ -30,6 +30,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"net/url"
 	"sort"
 	"sync"
@@ -42,10 +43,13 @@ const (
 	defaultResurrectTimeoutFactorCutoff = 5
 )
 
-// Selector defines the interface for selecting connections from the pool.
-type Selector interface {
-	Select([]*Connection) (*Connection, error)
-}
+// Errors
+var (
+	ErrNoConnections = errors.New("no connections available")
+)
+
+// NodeFilter defines a function type for filtering connections based on their properties.
+type NodeFilter func(*Connection) bool
 
 // ConnectionPool defines the interface for the connection pool.
 type ConnectionPool interface {
@@ -53,6 +57,12 @@ type ConnectionPool interface {
 	OnSuccess(*Connection)       // OnSuccess reports that the connection was successful.
 	OnFailure(*Connection) error // OnFailure reports that the connection failed.
 	URLs() []*url.URL            // URLs returns the list of URLs of available connections.
+}
+
+// RequestRoutingConnectionPool extends ConnectionPool to support request-based connection routing.
+type RequestRoutingConnectionPool interface {
+	ConnectionPool
+	NextForRequest(*http.Request) (*Connection, error) // NextForRequest returns connection optimized for the request.
 }
 
 // rwLocker defines the interface for connection pools that support read-write locking.
@@ -68,7 +78,7 @@ type Connection struct {
 	URL        *url.URL
 	ID         string
 	Name       string
-	Roles      []string
+	Roles      roleSet
 	Attributes map[string]any
 
 	failures atomic.Int64
@@ -100,16 +110,14 @@ type statusConnectionPool struct {
 	metrics *metrics
 }
 
-type roundRobinSelector struct {
-	curr atomic.Int64 // Index of the current connection
-}
-
 // Compile-time checks to ensure interface compliance
 var (
-	_ ConnectionPool = (*singleConnectionPool)(nil)
+	_ ConnectionPool               = (*singleConnectionPool)(nil)
+	_ RequestRoutingConnectionPool = (*singleConnectionPool)(nil)
 
-	_ ConnectionPool = (*statusConnectionPool)(nil)
-	_ rwLocker       = (*statusConnectionPool)(nil)
+	_ ConnectionPool               = (*statusConnectionPool)(nil)
+	_ RequestRoutingConnectionPool = (*statusConnectionPool)(nil)
+	_ rwLocker                     = (*statusConnectionPool)(nil)
 )
 
 // NewConnectionPool creates and returns a default connection pool.
@@ -136,6 +144,12 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 
 // Next returns the connection from pool.
 func (cp *singleConnectionPool) Next() (*Connection, error) {
+	return cp.connection, nil
+}
+
+// NextForRequest returns the connection from pool (request-aware version).
+// For single connection pools, this behaves the same as Next().
+func (cp *singleConnectionPool) NextForRequest(req *http.Request) (*Connection, error) {
 	return cp.connection, nil
 }
 
@@ -171,9 +185,35 @@ func (cp *statusConnectionPool) Next() (*Connection, error) {
 	return nil, errors.New("no connection available")
 }
 
+// NextForRequest returns a connection from pool optimized for the request, or an error.
+func (cp *statusConnectionPool) NextForRequest(req *http.Request) (*Connection, error) {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	// Return next live connection using request-aware selection if available
+	if len(cp.mu.live) > 0 {
+		// Try request-aware selection first
+		if ras, ok := cp.selector.(RequestAwareSelector); ok {
+			return ras.SelectForRequest(cp.mu.live, req)
+		}
+		// Fall back to basic selection
+		return cp.selector.Select(cp.mu.live)
+	} else if len(cp.mu.dead) > 0 {
+		// No live connection is available, resurrect one of the dead ones.
+		c := cp.mu.dead[len(cp.mu.dead)-1]
+		cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		cp.resurrectWithLock(c, false)
+		return c, nil
+	}
+
+	return nil, errors.New("no connection available")
+}
+
 // OnSuccess marks the connection as successful.
 func (cp *statusConnectionPool) OnSuccess(c *Connection) {
-	// Establish consistent lock ordering: Pool → Connection
+	// Establish consistent lock ordering: Pool -> Connection
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -373,18 +413,6 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 	})
 }
 
-// Select returns the connection in a round-robin fashion.
-func (s *roundRobinSelector) Select(conns []*Connection) (*Connection, error) {
-	if len(conns) == 0 {
-		return nil, errors.New("no connections available")
-	}
-
-	// Atomic increment with wrap-around
-	next := s.curr.Add(1)
-	index := int(next % int64(len(conns)))
-	return conns[index], nil
-}
-
 // markAsDead marks the connection as dead.
 func (c *Connection) markAsDead() {
 	c.mu.Lock()
@@ -418,4 +446,142 @@ func (c *Connection) String() string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return fmt.Sprintf("<%s> dead=%v failures=%d", c.URL, c.mu.isDead, c.failures.Load())
+}
+
+// Role-based node selector implementations
+
+// RoleBasedSelector filters connections based on node roles and applies a fallback selector.
+type RoleBasedSelector struct {
+	requiredRoleGroups [][]string // Nodes must have all roles in at least one group (OR between groups, AND within groups)
+	excludedRoleGroups [][]string // Nodes must not have all roles in any group (if node has all roles in any group, exclude it)
+	fallback           Selector   // Fallback selector for load balancing among filtered nodes
+	allowFallback      bool       // If true, use any node if no role-matching nodes are available
+}
+
+// RoleBasedSelectorOption configures a role-based selector.
+type RoleBasedSelectorOption func(*RoleBasedSelector)
+
+// WithRequiredRoles specifies a group of roles that nodes must have.
+// Multiple calls create OR logic between groups, AND logic within groups.
+// Example: WithRequiredRoles(data, ingest) + WithRequiredRoles(data, search) = (data && ingest) || (data && search)
+func WithRequiredRoles(roles ...string) RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		if len(roles) > 0 {
+			s.requiredRoleGroups = append(s.requiredRoleGroups, append([]string(nil), roles...))
+		}
+	}
+}
+
+// WithExcludedRoles specifies a group of roles that nodes must not have.
+// Multiple calls create OR logic between groups, AND logic within groups.
+// Example: WithExcludedRoles(cluster_manager, data) excludes nodes with BOTH cluster_manager AND data roles
+func WithExcludedRoles(roles ...string) RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		if len(roles) > 0 {
+			s.excludedRoleGroups = append(s.excludedRoleGroups, append([]string(nil), roles...))
+		}
+	}
+}
+
+// WithStrictMode disables fallback when no matching nodes are found.
+func WithStrictMode() RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		s.allowFallback = false
+	}
+}
+
+// WithFallback sets the fallback selector used when no role-matching nodes are available.
+func WithFallback(fallback Selector) RoleBasedSelectorOption {
+	return func(s *RoleBasedSelector) {
+		s.fallback = fallback
+	}
+}
+
+// NewRoleBasedSelector creates a role-based connection selector with the specified options.
+// If no fallback is provided via WithFallback, a round-robin selector is used by default.
+func NewRoleBasedSelector(opts ...RoleBasedSelectorOption) *RoleBasedSelector {
+	s := &RoleBasedSelector{
+		allowFallback: true,                    // Default to allowing fallback
+		fallback:      NewRoundRobinSelector(), // Default fallback
+	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	return s
+}
+
+// Select filters connections based on role requirements and applies fallback selection.
+func (s *RoleBasedSelector) Select(connections []*Connection) (*Connection, error) {
+	if len(connections) == 0 {
+		return nil, ErrNoConnections
+	}
+
+	// Filter connections based on role requirements
+	filtered := s.filterByRoles(connections)
+
+	// If we have role-matching nodes, use them
+	if len(filtered) > 0 {
+		return s.fallback.Select(filtered)
+	}
+
+	// If no role-matching nodes and fallback is allowed, use any available node
+	if s.allowFallback {
+		return s.fallback.Select(connections)
+	}
+
+	// Strict mode: no fallback allowed
+	return nil, fmt.Errorf("no connections found matching required role groups: %v (available connections: %d)",
+		s.requiredRoleGroups, len(connections))
+}
+
+// matchesRoleGroup checks if a connection has all roles in the given group.
+func (s *RoleBasedSelector) matchesRoleGroup(conn *Connection, roleGroup []string) bool {
+	for _, role := range roleGroup {
+		if !conn.Roles.has(role) {
+			return false
+		}
+	}
+	return true
+}
+
+// selectConnectionByRole determines if a connection matches the role filtering criteria.
+func (s *RoleBasedSelector) selectConnectionByRole(conn *Connection) bool {
+	// Check if connection matches at least one required role group
+	matchesRequiredRoles := len(s.requiredRoleGroups) == 0 // If no required groups, all nodes qualify
+	if !matchesRequiredRoles {
+		for _, roleGroup := range s.requiredRoleGroups {
+			if s.matchesRoleGroup(conn, roleGroup) {
+				matchesRequiredRoles = true
+				break // Found a matching group, no need to check others
+			}
+		}
+	}
+
+	if !matchesRequiredRoles {
+		return false
+	}
+
+	// Check if connection has ALL roles in ANY excluded group
+	for _, roleGroup := range s.excludedRoleGroups {
+		if s.matchesRoleGroup(conn, roleGroup) {
+			return false // Found an excluded group match, exclude this node
+		}
+	}
+
+	return true
+}
+
+// filterByRoles filters connections based on required and excluded role groups.
+func (s *RoleBasedSelector) filterByRoles(connections []*Connection) []*Connection {
+	filtered := make([]*Connection, 0, len(connections))
+
+	for _, conn := range connections {
+		if s.selectConnectionByRole(conn) {
+			filtered = append(filtered, conn)
+		}
+	}
+
+	return filtered
 }

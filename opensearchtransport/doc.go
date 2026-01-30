@@ -46,8 +46,12 @@ When multiple addresses are passed in configuration, the package will use them i
 and will keep track of live and dead nodes. The status of dead nodes is checked periodically.
 
 To customize the node selection behavior, provide a Selector implementation in the configuration.
+Use NewSelector() with WithSelector() to enable request-aware routing for bulk or search operations.
+See ChainSelector and other Selector implementations for details.
+
 To replace the connection pool entirely, provide a custom ConnectionPool implementation via
-the ConnectionPoolFunc option.
+the ConnectionPoolFunc option. Custom pools can optionally implement RequestRoutingConnectionPool
+for request-aware routing; otherwise the transport falls back to basic Next() behavior.
 
 The package defines the Logger interface for logging information about request and response.
 It comes with several bundled loggers for logging in text and JSON.

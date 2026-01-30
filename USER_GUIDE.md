@@ -1,9 +1,9 @@
 - [User Guide](#user-guide)
-	- [Example](#example)
-	- [Amazon OpenSearch Service](#amazon-opensearch-service)
-		- [AWS SDK v1](#aws-sdk-v1)
-		- [AWS SDK v2](#aws-sdk-v2)
-	- [Guides by Topic](#guides-by-topic)
+  - [Example](#example)
+  - [Amazon OpenSearch Service](#amazon-opensearch-service)
+    - [AWS SDK v1](#aws-sdk-v1)
+    - [AWS SDK v2](#aws-sdk-v2)
+  - [Guides by Topic](#guides-by-topic)
 
 # User Guide
 
@@ -268,7 +268,7 @@ func example() error {
 	}
 
 	ctx := context.Background()
-    
+
     ping, err := client.Ping(ctx, nil)
     if err != nil {
         return err
@@ -396,4 +396,5 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 - [Advanced Index Actions](guides/advanced_index_actions.md)
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
+- [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
 - [Retry and Backoff](guides/retry_backoff.md)
