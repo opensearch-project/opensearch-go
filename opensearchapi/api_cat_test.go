@@ -18,6 +18,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestCatClient(t *testing.T) {
@@ -28,7 +29,7 @@ func TestCatClient(t *testing.T) {
 
 	// snapshotRepo := "test-snapshot-repo"
 
-	index := "test-cat-indices"
+	index := testutil.MustUniqueString(t, "test-cat-indices")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})

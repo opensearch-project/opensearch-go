@@ -688,7 +688,8 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Flush(t.Context(), nil)
+			// Flush only this test's index to avoid conflicts with closed indices from other parallel tests
+			res, err := client.Indices.Flush(t.Context(), &opensearchapi.IndicesFlushReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
@@ -723,7 +724,8 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Refresh(t.Context(), nil)
+			// Refresh only this test's index to avoid conflicts with closed indices from other parallel tests
+			res, err := client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 

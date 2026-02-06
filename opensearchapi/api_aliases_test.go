@@ -17,6 +17,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestAliases(t *testing.T) {
@@ -24,7 +25,7 @@ func TestAliases(t *testing.T) {
 		client, err := ostest.NewClient(t)
 		require.Nil(t, err)
 
-		index := "test-aliases"
+		index := testutil.MustUniqueString(t, "test-aliases")
 		t.Cleanup(func() {
 			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 		})
@@ -37,8 +38,8 @@ func TestAliases(t *testing.T) {
 				t.Context(),
 				opensearchapi.AliasesReq{
 					Body: strings.NewReader(
-						`{"actions":[{"add":{"index":"test-aliases","alias":"logs"}},` +
-							`{"remove":{"index":"test-aliases","alias":"logs"}}]}`,
+						`{"actions":[{"add":{"index":"` + index + `","alias":"logs"}},` +
+							`{"remove":{"index":"` + index + `","alias":"logs"}}]}`,
 					),
 				},
 			)

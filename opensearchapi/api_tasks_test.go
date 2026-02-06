@@ -152,10 +152,10 @@ func TestTasksClient(t *testing.T) {
 	}
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
-			t.Parallel()
+			// Do not run subtests in parallel - they depend on the reindex task state
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
-					t.Parallel()
+					// Do not run in parallel - task may complete before Get/Cancel tests run
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)

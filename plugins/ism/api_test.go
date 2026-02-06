@@ -18,6 +18,7 @@ import (
 
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
 )
@@ -95,18 +96,54 @@ func TestClient(t *testing.T) {
 	}
 
 	waitFor := func() error {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex})
+		// Wait up to 120 seconds for the ISM policy to be applied and Info.Message to be populated
+		ctx, cancel := context.WithTimeout(t.Context(), 120*time.Second)
+		defer cancel()
+
+		attempt := 0
+		// Use fixed 1-second polling interval (no exponential backoff) since ISM execution is unpredictable
+		return testutil.PollUntil(t, ctx, 1*time.Second, 120, 0.0, func() (bool, error) {
+			attempt++
+			resp, err := client.Explain(ctx, &ism.ExplainReq{Indices: testIndex})
 			if err != nil {
-				return err
+				t.Logf("waitFor: attempt %d failed with error: %v", attempt, err)
+				return false, err
 			}
-			if resp.Indices[testIndex[0]].Info != nil && resp.Indices[testIndex[0]].Info.Message != "" {
-				return nil
+
+			indexInfo := resp.Indices[testIndex[0]]
+
+			// Log detailed state information every 10 attempts
+			if attempt%10 == 1 || attempt <= 3 {
+				t.Logf("waitFor: attempt %d - checking index %q", attempt, testIndex[0])
+				t.Logf("  PolicyID: %q", indexInfo.PolicyID)
+				if indexInfo.Enabled != nil {
+					t.Logf("  Enabled: %v", *indexInfo.Enabled)
+				} else {
+					t.Logf("  Enabled: nil")
+				}
+				t.Logf("  Index: %q", indexInfo.Index)
+				t.Logf("  IndexUUID: %q", indexInfo.IndexUUID)
+				t.Logf("  PolicySeqNo: %d", indexInfo.PolicySeqNo)
+				t.Logf("  PolicyPrimaryTerm: %d", indexInfo.PolicyPrimaryTerm)
+				if indexInfo.State != nil {
+					t.Logf("  State.Name: %q", indexInfo.State.Name)
+				}
+				if indexInfo.Action != nil {
+					t.Logf("  Action.Name: %q, Failed: %v", indexInfo.Action.Name, indexInfo.Action.Failed)
+				}
+				if indexInfo.Info != nil {
+					t.Logf("  Info.Message: %q", indexInfo.Info.Message)
+				} else {
+					t.Logf("  Info: nil")
+				}
 			}
-		}
-		return nil
+
+			if indexInfo.Info != nil && indexInfo.Info.Message != "" {
+				t.Logf("waitFor: SUCCESS after %d attempts - Info.Message: %q", attempt, indexInfo.Info.Message)
+				return true, nil
+			}
+			return false, nil
+		})
 	}
 	testCases := []struct {
 		Name  string

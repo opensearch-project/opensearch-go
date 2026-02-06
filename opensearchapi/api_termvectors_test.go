@@ -27,7 +27,7 @@ func TestTermvectors(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
-	testIndex := "test-termvectors"
+	testIndex := testutil.MustUniqueString(t, "test-termvectors")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
@@ -96,7 +96,7 @@ func TestTermvectors(t *testing.T) {
 			context.Background(),
 			opensearchapi.TermvectorsReq{
 				Index:      testIndex,
-				DocumentID: "1",
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, 0),
 				Body: strings.NewReader(`{"fields":["*"],"offsets":true,"payloads":true,"positions":true,` +
 					`"term_statistics":true,"field_statistics":true}`),
 			},

@@ -503,7 +503,6 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s.curr.Store(-1)
 
 		pool := &statusConnectionPool{
-
 			resurrectTimeoutInitial:      0,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		}

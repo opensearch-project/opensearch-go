@@ -53,7 +53,7 @@ func TestMGet(t *testing.T) {
 			context.Background(),
 			opensearchapi.MGetReq{
 				Index: testIndex,
-				Body:  strings.NewReader(`{"docs":[{"_id":"1"},{"_id":"2"}]}`),
+				Body:  strings.NewReader(fmt.Sprintf(`{"docs":[{"_id":"%s-1"},{"_id":"%s-2"}]}`, docIDPrefix, docIDPrefix)),
 			},
 		)
 		require.Nil(t, err)

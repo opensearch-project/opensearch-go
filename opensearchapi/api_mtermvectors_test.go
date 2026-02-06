@@ -26,7 +26,7 @@ func TestMTermvectors(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
-	testIndex := "test-mtermvectors"
+	testIndex := testutil.MustUniqueString(t, "test-mtermvectors")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
@@ -95,7 +95,7 @@ func TestMTermvectors(t *testing.T) {
 			t.Context(),
 			opensearchapi.MTermvectorsReq{
 				Index: testIndex,
-				Body:  strings.NewReader(`{"ids":[1,2]}`),
+				Body:  strings.NewReader(fmt.Sprintf(`{"ids":["%s-0","%s-1"]}`, docIDPrefix, docIDPrefix)),
 			},
 		)
 		require.Nil(t, err)

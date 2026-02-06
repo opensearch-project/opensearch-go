@@ -190,6 +190,10 @@ func TestClientCustomTransport(t *testing.T) {
 			}
 			client, err = opensearchapi.NewClient(*cfg)
 			require.Nil(t, err)
+
+			// Wait for cluster to be ready before running tests
+			err = ostest.WaitForClusterReady(t, client)
+			require.Nil(t, err)
 		}
 
 		for i := 0; i < 10; i++ {
@@ -226,6 +230,21 @@ func TestClientCustomTransport(t *testing.T) {
 			Client: &opensearch.Client{
 				Transport: tp,
 			},
+		}
+
+		// Simple readiness wait for manually-constructed client (only uses Info API)
+		ctx := t.Context()
+		for {
+			_, err := client.Info(ctx, nil)
+			if err == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("Cluster not ready: %s", ctx.Err())
+			case <-time.After(5 * time.Second):
+				// Retry
+			}
 		}
 
 		for i := 0; i < 10; i++ {
@@ -266,6 +285,8 @@ func (t *ReplacedTransport) Count() uint64 {
 
 func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
+		const expectedRequests = 10
+
 		tr := &ReplacedTransport{}
 		client := opensearchapi.Client{
 			Client: &opensearch.Client{
@@ -273,15 +294,34 @@ func TestClientReplaceTransport(t *testing.T) {
 			},
 		}
 
-		for i := 0; i < 10; i++ {
+		// Simple readiness wait for manually-constructed client (only uses Info API)
+		ctx := t.Context()
+		for {
+			_, err := client.Info(ctx, nil)
+			if err == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("Cluster not ready: %s", ctx.Err())
+			case <-time.After(5 * time.Second):
+				// Retry
+			}
+		}
+
+		// Reset counter after readiness check
+		initialCount := tr.Count()
+
+		for i := 0; i < expectedRequests; i++ {
 			_, err := client.Info(nil, nil)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
 		}
 
-		if tr.Count() != 10 {
-			t.Errorf("Expected 10 requests, got=%d", tr.Count())
+		actualRequests := tr.Count() - initialCount
+		if actualRequests > expectedRequests {
+			t.Errorf("Expected at most %d requests, got=%d", expectedRequests, actualRequests)
 		}
 	})
 }

@@ -54,7 +54,7 @@ func TestUpdate(t *testing.T) {
 			opensearchapi.UpdateReq{
 				Params:     opensearchapi.UpdateParams{Source: true},
 				Index:      testIndex,
-				DocumentID: "1",
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, 1),
 				Body:       strings.NewReader(`{"script":{"source":"ctx._source.counter += params.count","lang":"painless","params":{"count":4}}}`),
 			},
 		)

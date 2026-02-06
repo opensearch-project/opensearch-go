@@ -33,7 +33,7 @@ endif
 ifdef race
 	$(eval testintegargs += "-race")
 endif
-	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=1h" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
+	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=5m" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
 	@mkdir -p $(PWD)/tmp/integration
 	@echo "go test -v" $(testintegargs); \
 	go test -v $(testintegargs);
@@ -225,13 +225,55 @@ godoc: ## Display documentation for the package
 	godoc --http=localhost:6060 --play
 
 cluster.build:
-	docker compose --project-directory .ci/opensearch build --pull;
+	@$(MAKE) cluster.docker-build
 
 cluster.start:
-	docker compose --project-directory .ci/opensearch up -d;
+	@$(MAKE) cluster.docker-up
 
 cluster.stop:
 	docker compose --project-directory .ci/opensearch down;
+
+cluster.docker-build:
+	@# Determine version-specific settings
+	$(eval OPENSEARCH_VERSION ?= latest)
+	$(eval version_major := $(shell \
+		if [ "$(OPENSEARCH_VERSION)" = "latest" ]; then \
+			echo "2"; \
+		else \
+			echo "$(OPENSEARCH_VERSION)" | awk -F. '{print $$1}'; \
+		fi \
+	))
+	$(eval manager_role := $(shell \
+		if [ "$(version_major)" = "1" ]; then \
+			echo "master"; \
+		else \
+			echo "cluster_manager"; \
+		fi \
+	))
+	@echo "Building OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role)"
+	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
+		docker compose --project-directory .ci/opensearch build --pull
+
+cluster.docker-up:
+	@# Determine version-specific settings
+	$(eval OPENSEARCH_VERSION ?= latest)
+	$(eval version_major := $(shell \
+		if [ "$(OPENSEARCH_VERSION)" = "latest" ]; then \
+			echo "2"; \
+		else \
+			echo "$(OPENSEARCH_VERSION)" | awk -F. '{print $$1}'; \
+		fi \
+	))
+	$(eval manager_role := $(shell \
+		if [ "$(version_major)" = "1" ]; then \
+			echo "master"; \
+		else \
+			echo "cluster_manager"; \
+		fi \
+	))
+	@echo "Starting OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role)"
+	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
+		docker compose --project-directory .ci/opensearch up -d
 
 cluster.scale.1: ## Start single-node cluster
 	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node2=0 --scale opensearch-node3=0;
@@ -281,5 +323,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster cluster.clean coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
 .SILENT: lint.markdown

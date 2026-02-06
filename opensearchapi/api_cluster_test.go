@@ -17,6 +17,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestClusterClient(t *testing.T) {
@@ -25,7 +26,7 @@ func TestClusterClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
 
-	index := "test-cluster-indices"
+	index := testutil.MustUniqueString(t, "test-cluster-indices")
 	t.Cleanup(func() {
 		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})

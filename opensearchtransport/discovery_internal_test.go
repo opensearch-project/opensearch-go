@@ -137,26 +137,44 @@ func TestDiscovery(t *testing.T) {
 	srvTLS1 := &http.Server{Addr: "127.0.0.1:20001", Handler: tlsMux, ReadTimeout: 1 * time.Second}
 	srvTLS2 := &http.Server{Addr: "localhost:20002", Handler: tlsMux, ReadTimeout: 1 * time.Second}
 
+	// Create listeners first to ensure ports are bound before tests run
+	ln1, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srv: %s", err)
+	}
+	ln2, err := net.Listen("tcp", srv2.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srv2: %s", err)
+	}
+	lnTLS1, err := net.Listen("tcp", srvTLS1.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srvTLS1: %s", err)
+	}
+	lnTLS2, err := net.Listen("tcp", srvTLS2.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srvTLS2: %s", err)
+	}
+
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(ln1); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start server: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srv2.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv2.Serve(ln2); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start server2: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srvTLS1.ListenAndServeTLS("testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
+		if err := srvTLS1.ServeTLS(lnTLS1, "testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start TLS server1: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srvTLS2.ListenAndServeTLS("testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
+		if err := srvTLS2.ServeTLS(lnTLS2, "testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start TLS server2: %s", err)
 			return
 		}
@@ -654,17 +672,21 @@ func TestDiscovery(t *testing.T) {
 				testMux := http.NewServeMux()
 
 				// Start a test server first so we have the address
-				testServer := &http.Server{Addr: "127.0.0.1:0", Handler: testMux}
+				testServer := &http.Server{
+					Addr:              "127.0.0.1:0",
+					Handler:           testMux,
+					ReadHeaderTimeout: 5 * time.Second,
+				}
 				listener, err := net.Listen("tcp", testServer.Addr)
 				require.NoError(t, err)
 				testServer.Addr = listener.Addr().String()
 
 				// Add health check handler (catch-all for /{$} and /)
 				testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-					healthResp := map[string]interface{}{
+					healthResp := map[string]any{
 						"name":         "test-node",
 						"cluster_name": "test-cluster",
-						"version": map[string]interface{}{
+						"version": map[string]any{
 							"number": "2.0.0",
 						},
 					}
@@ -684,25 +706,25 @@ func TestDiscovery(t *testing.T) {
 				// Add nodes info handler with this test's data
 				testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 					// Create a simple response structure compatible with the discovery parsing
-					response := map[string]interface{}{
-						"_nodes": map[string]interface{}{
+					response := map[string]any{
+						"_nodes": map[string]any{
 							"total":      len(tt.args.Nodes),
 							"successful": len(tt.args.Nodes),
 							"failed":     0,
 						},
 						"cluster_name": "test-cluster",
-						"nodes":        make(map[string]interface{}),
+						"nodes":        make(map[string]any),
 					}
 
-					nodes := response["nodes"].(map[string]interface{})
+					nodes := response["nodes"].(map[string]any)
 					for name, node := range tt.args.Nodes {
 						// Use the test server address for publish_address so health checks work
-						nodes[name] = map[string]interface{}{
+						nodes[name] = map[string]any{
 							"name":  name,
 							"host":  "127.0.0.1",
 							"ip":    "127.0.0.1",
 							"roles": node.Roles,
-							"http": map[string]interface{}{
+							"http": map[string]any{
 								"publish_address": testServer.Addr, // Point to our test server, not fictional hostnames
 							},
 						}
@@ -1056,10 +1078,10 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 			// Health check endpoint - exact root path match
 			mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-				healthResp := map[string]interface{}{
+				healthResp := map[string]any{
 					"name":         "test-node",
 					"cluster_name": "test-cluster",
-					"version": map[string]interface{}{
+					"version": map[string]any{
 						"number": "2.0.0",
 					},
 				}
@@ -1194,17 +1216,21 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			testMux := http.NewServeMux()
 
 			// Start a test server first so we have the address
-			testServer := &http.Server{Addr: "127.0.0.1:0", Handler: testMux}
+			testServer := &http.Server{
+				Addr:              "127.0.0.1:0",
+				Handler:           testMux,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
 			listener, err := net.Listen("tcp", testServer.Addr)
 			require.NoError(t, err)
 			testServer.Addr = listener.Addr().String()
 
 			// Health check endpoint (catch-all for /{$} and /)
 			testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-				healthResp := map[string]interface{}{
+				healthResp := map[string]any{
 					"name":         "test-node",
 					"cluster_name": "test-cluster",
-					"version": map[string]interface{}{
+					"version": map[string]any{
 						"number": "2.0.0",
 					},
 				}
@@ -1215,24 +1241,24 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			// Nodes info endpoint
 			testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
-				response := map[string]interface{}{
-					"_nodes": map[string]interface{}{
+				response := map[string]any{
+					"_nodes": map[string]any{
 						"total":      len(tt.nodes),
 						"successful": len(tt.nodes),
 						"failed":     0,
 					},
 					"cluster_name": "test-cluster",
-					"nodes":        make(map[string]interface{}),
+					"nodes":        make(map[string]any),
 				}
 
-				nodes := response["nodes"].(map[string]interface{})
+				nodes := response["nodes"].(map[string]any)
 				for name, roles := range tt.nodes {
-					nodes[name] = map[string]interface{}{
+					nodes[name] = map[string]any{
 						"name":  name,
 						"host":  "127.0.0.1",
 						"ip":    "127.0.0.1",
 						"roles": roles,
-						"http": map[string]interface{}{
+						"http": map[string]any{
 							"publish_address": testServer.Addr, // Point to our test server
 						},
 					}
