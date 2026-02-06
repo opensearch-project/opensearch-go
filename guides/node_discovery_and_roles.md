@@ -4,7 +4,7 @@ This guide covers OpenSearch node discovery functionality and role-based node se
 
 ## Overview
 
-The OpenSearch Go client can automatically discover nodes in your cluster and intelligently select appropriate nodes for routing requests based on their roles. This feature helps ensure optimal performance and follows OpenSearch best practices.
+The OpenSearch Go client can automatically discover nodes in your cluster and select appropriate nodes for routing requests based on their roles. This feature helps ensure optimal performance and follows OpenSearch best practices.
 
 ## Basic Node Discovery
 

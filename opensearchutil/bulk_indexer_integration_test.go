@@ -30,7 +30,6 @@ package opensearchutil_test
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -41,6 +40,7 @@ import (
 	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
@@ -161,7 +161,6 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			opensearchapi.Config{
 				Client: opensearch.Config{
 					CompressRequestBody: c.compressRequestBodyEnabled,
-					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				},
 			},
 		)
@@ -172,7 +171,10 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		}
 		if config != nil {
 			config.Client.CompressRequestBody = c.compressRequestBodyEnabled
-			config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			// Only enable verbose logging if DEBUG=true
+			if testutil.IsDebugEnabled(t) {
+				config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			}
 			client, _ = opensearchapi.NewClient(*config)
 		}
 
@@ -238,13 +240,15 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						t.Errorf("Unexpected NumFailed: want=0, got=%d", stats.NumFailed)
 					}
 
-					fmt.Printf("  Added %d documents to indexer. Succeeded: %d. Failed: %d. Requests: %d. Duration: %s (%.0f docs/sec)\n",
-						stats.NumAdded,
-						stats.NumFlushed,
-						stats.NumFailed,
-						stats.NumRequests,
-						time.Since(start).Truncate(time.Millisecond),
-						1000.0/float64(time.Since(start)/time.Millisecond)*float64(stats.NumFlushed))
+					if testutil.IsDebugEnabled(t) {
+						t.Logf("  Added %d documents to indexer. Succeeded: %d. Failed: %d. Requests: %d. Duration: %s (%.0f docs/sec)",
+							stats.NumAdded,
+							stats.NumFlushed,
+							stats.NumFailed,
+							stats.NumRequests,
+							time.Since(start).Truncate(time.Millisecond),
+							1000.0/float64(time.Since(start)/time.Millisecond)*float64(stats.NumFlushed))
+					}
 				})
 
 				t.Run("Multiple indices", func(t *testing.T) {

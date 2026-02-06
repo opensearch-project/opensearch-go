@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 // TestNewClient demonstrates the enhanced client creation with automatic readiness checks
@@ -268,7 +269,9 @@ func (s *ExampleTestSuite) TestVersionBasedSkipping() {
 	s.SkipIfBelowVersion(2, 4, "Point_In_Time")
 
 	// This test would only run on OpenSearch 2.4+
-	s.T().Logf("This test is running on version %s which supports the feature", s.Version())
+	if testutil.IsDebugEnabled(s.T()) {
+		s.T().Logf("This test is running on version %s which supports the feature", s.Version())
+	}
 }
 
 // TestSuiteMethods tests additional suite functionality

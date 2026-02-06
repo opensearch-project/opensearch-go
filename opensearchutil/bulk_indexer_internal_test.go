@@ -48,6 +48,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 var infoBody = `{
@@ -111,7 +112,7 @@ func TestBulkIndexer(t *testing.T) {
 			FlushInterval: time.Hour, // Disable auto-flushing, because response doesn't match number of items
 			Client:        client,
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -240,7 +241,7 @@ func TestBulkIndexer(t *testing.T) {
 				},
 			},
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			config.Client.Logger = &opensearchtransport.ColorLogger{
 				Output:             os.Stdout,
 				EnableRequestBody:  true,
@@ -263,7 +264,7 @@ func TestBulkIndexer(t *testing.T) {
 				indexerError = err
 			},
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			biCfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -328,7 +329,7 @@ func TestBulkIndexer(t *testing.T) {
 		)
 
 		cfg := BulkIndexerConfig{NumWorkers: 1, Client: client}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -478,7 +479,7 @@ func TestBulkIndexer(t *testing.T) {
 			Client: client,
 			Index:  "foo",
 			OnFlushStart: func(ctx context.Context) context.Context {
-				fmt.Println(">>> Flush started")
+				t.Logf(">>> Flush started")
 				return context.WithValue(ctx, contextKey("start"), time.Now().UTC())
 			},
 			OnFlushEnd: func(ctx context.Context) {
@@ -486,7 +487,7 @@ func TestBulkIndexer(t *testing.T) {
 				if v := ctx.Value("start"); v != nil {
 					duration = time.Since(v.(time.Time))
 				}
-				fmt.Printf(">>> Flush finished (duration: %s)\n", duration)
+				t.Logf(">>> Flush finished (duration: %s)", duration)
 			},
 		})
 
@@ -535,7 +536,7 @@ func TestBulkIndexer(t *testing.T) {
 			Client:        client,
 			FlushInterval: 50 * time.Millisecond, // Decrease the flush timeout
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -613,20 +614,20 @@ func TestBulkIndexer(t *testing.T) {
 				MaxRetries:    5,
 				RetryOnStatus: []int{502, 503, 504, 429},
 				RetryBackoff: func(i int) time.Duration {
-					if os.Getenv("DEBUG") != "" {
-						fmt.Printf("*** Retry #%d\n", i)
+					if testutil.IsDebugEnabled(t) {
+						t.Logf("*** Retry #%d", i)
 					}
 					return time.Duration(i) * 100 * time.Millisecond
 				},
 			},
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 		}
 		client, _ := opensearchapi.NewClient(cfg)
 
 		biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			biCfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 

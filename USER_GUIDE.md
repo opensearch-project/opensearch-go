@@ -22,9 +22,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
@@ -48,6 +50,15 @@ func example() error {
 				Addresses: []string{"https://localhost:9200"},
 				Username:  "admin", // For testing only. Don't store credentials in code.
 				Password:  "myStrongPassword123!",
+
+				// Optional: Enable node discovery
+				DiscoverNodesOnStart:  true,
+				DiscoverNodesInterval: 5 * time.Minute,
+
+				// Optional: Enable intelligent request routing
+				Transport: &opensearchtransport.Client{
+					Router: opensearchtransport.NewSmartRouter(),
+				},
 			},
 		},
 	)
@@ -396,5 +407,6 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 - [Advanced Index Actions](guides/advanced_index_actions.md)
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
+- [Connection Routing](guides/request_routing.md)
 - [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
 - [Retry and Backoff](guides/retry_backoff.md)

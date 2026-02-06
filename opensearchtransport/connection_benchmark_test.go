@@ -118,11 +118,7 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 }
 
 func createStatusConnectionPool(conns []*Connection) *statusConnectionPool {
-	s := &roundRobinSelector{}
-	s.curr.Store(-1)
-
 	pool := &statusConnectionPool{
-		selector:                     s,
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
@@ -282,7 +278,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				pool.mu.Lock()
-				pool.resurrectWithLock(c, true)
+				pool.resurrectWithLock(c)
 				pool.mu.Unlock()
 			}
 		})
@@ -301,7 +297,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 				for pb.Next() {
 					pool.mu.Lock()
-					pool.resurrectWithLock(c, true)
+					pool.resurrectWithLock(c)
 					pool.mu.Unlock()
 				}
 			})
@@ -321,7 +317,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 				for pb.Next() {
 					pool.mu.Lock()
-					pool.resurrectWithLock(c, true)
+					pool.resurrectWithLock(c)
 					pool.mu.Unlock()
 				}
 			})

@@ -29,7 +29,7 @@ func (c settingsClient) Get(ctx context.Context, req *SettingsGetReq) (*Settings
 		data SettingsGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -85,10 +85,27 @@ func (r SettingsGetReq) GetRequest() (*http.Request, error) {
 
 // SettingsGetResp represents the returned struct of the settings get response
 type SettingsGetResp struct {
-	Indices map[string]struct {
-		Settings json.RawMessage `json:"settings"`
-	}
 	response *opensearch.Response
+
+	// Direct mapping of index names to their settings as top-level keys
+	raw map[string]SettingsGetRespIndex
+}
+
+// SettingsGetRespIndex represents the structure of each index in the settings response
+type SettingsGetRespIndex struct {
+	Settings json.RawMessage `json:"settings"` // Available since OpenSearch 1.0.0
+}
+
+// GetIndices returns the map of index names to their settings
+func (r *SettingsGetResp) GetIndices() map[string]SettingsGetRespIndex {
+	return r.raw
+}
+
+// UnmarshalJSON custom unmarshaling to handle dynamic index names as top-level keys
+func (r *SettingsGetResp) UnmarshalJSON(data []byte) error {
+	// Unmarshal into a map to capture all dynamic index names
+	r.raw = make(map[string]SettingsGetRespIndex)
+	return json.Unmarshal(data, &r.raw)
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

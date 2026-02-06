@@ -46,6 +46,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 func TestClientTransport(t *testing.T) {
@@ -120,11 +121,7 @@ func TestClientTransport(t *testing.T) {
 		defer cancel()
 
 		_, err = client.Info(ctx, nil)
-		if err == nil {
-			t.Fatal("Expected 'context deadline exceeded' error")
-		}
-
-		log.Printf("Request cancelled with %T", err)
+		require.Error(t, err, "Expected context deadline exceeded error")
 	})
 
 	t.Run("Configured", func(t *testing.T) {
@@ -159,11 +156,14 @@ func TestClientTransport(t *testing.T) {
 
 type CustomTransport struct {
 	client *http.Client
+	logger func(format string, v ...any)
 }
 
 func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("X-Foo", "bar")
-	log.Printf("> %s %s %s\n", req.Method, req.URL.String(), req.Header)
+	if t.logger != nil {
+		t.logger("> %s %q %q", req.Method, req.URL.String(), req.Header)
+	}
 	return t.client.Do(req)
 }
 
@@ -181,6 +181,11 @@ func TestClientCustomTransport(t *testing.T) {
 					Transport: &http.Transport{
 						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 					},
+				},
+				logger: func(format string, v ...any) {
+					if testutil.IsDebugEnabled(t) {
+						t.Logf(format, v...)
+					}
 				},
 			}
 			client, err = opensearchapi.NewClient(*cfg)

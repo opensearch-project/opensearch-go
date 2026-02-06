@@ -27,6 +27,7 @@
 package opensearchtransport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
@@ -85,9 +86,100 @@ type Connection struct {
 
 	mu struct {
 		sync.RWMutex
-		isDead    bool
-		deadSince time.Time
+		deadSince      time.Time
+		checkStartedAt time.Time
 	}
+}
+
+// checkHealth performs a health check on this connection with concurrency protection.
+// Updates isDead and checkStartedAt state based on health check results.
+// Returns error if health check fails or if already checking.
+func (c *Connection) checkHealth(ctx context.Context, healthCheck func(context.Context, *url.URL) (*http.Response, error)) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Skip if already checking to prevent concurrent health checks
+	if !c.mu.checkStartedAt.IsZero() {
+		duration := time.Since(c.mu.checkStartedAt)
+		return fmt.Errorf("health check already in progress for %v", duration)
+	}
+
+	// Store original deadSince to detect race conditions
+	originalDeadSince := c.mu.deadSince
+
+	// Set checking timestamp
+	c.mu.checkStartedAt = time.Now()
+	defer func() {
+		c.mu.checkStartedAt = time.Time{}
+	}()
+
+	// Perform actual health check
+	c.mu.Unlock() // Release lock during network call
+	_, err := healthCheck(ctx, c.URL)
+	c.mu.Lock() // Reacquire for state update
+
+	// Check if connection was marked dead more recently than when we started
+	if c.mu.deadSince.After(originalDeadSince) {
+		// Connection was marked dead while we were checking, discard result
+		return nil
+	}
+
+	// Update connection state based on health check result
+	if err != nil {
+		// Health check failed
+		if c.mu.deadSince.IsZero() {
+			c.mu.deadSince = time.Now()
+		}
+		return err
+	}
+
+	// Health check passed
+	if !c.mu.deadSince.IsZero() {
+		c.mu.deadSince = time.Time{} // Reset deadSince
+	}
+
+	return nil
+}
+
+// checkDead syncs dead/live lists based on Connection.mu.isDead state and performs health checks.
+func (cp *statusConnectionPool) checkDead(ctx context.Context, healthCheck HealthCheckFunc) error {
+	if healthCheck == nil {
+		return errors.New("healthCheck function cannot be nil")
+	}
+
+	// Get snapshot of dead connections without holding lock during health checks
+	cp.mu.RLock()
+	deadConns := make([]*Connection, len(cp.mu.dead))
+	copy(deadConns, cp.mu.dead)
+	cp.mu.RUnlock()
+
+	// Perform health checks without holding the pool lock
+	for _, conn := range deadConns {
+		err := conn.checkHealth(ctx, healthCheck)
+		if err != nil {
+			// Health check failed or already in progress, skip
+			continue
+		}
+
+		// Check if connection is now alive and resurrect if needed
+		conn.mu.RLock()
+		isDead := !conn.mu.deadSince.IsZero()
+		conn.mu.RUnlock()
+
+		if !isDead {
+			// Connection is alive, resurrect it
+			cp.mu.Lock()
+			conn.mu.Lock()
+			// Double-check state after acquiring locks to avoid race
+			if conn.mu.deadSince.IsZero() {
+				cp.resurrectWithLock(conn)
+			}
+			conn.mu.Unlock()
+			cp.mu.Unlock()
+		}
+	}
+
+	return nil
 }
 
 type singleConnectionPool struct {
@@ -103,7 +195,8 @@ type statusConnectionPool struct {
 		dead []*Connection // List of dead connections
 	}
 
-	selector                     Selector
+	nextLive atomic.Int64 // Round-robin counter for live connections
+
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutFactorCutoff int
 
@@ -112,12 +205,10 @@ type statusConnectionPool struct {
 
 // Compile-time checks to ensure interface compliance
 var (
-	_ ConnectionPool               = (*singleConnectionPool)(nil)
-	_ RequestRoutingConnectionPool = (*singleConnectionPool)(nil)
+	_ ConnectionPool = (*singleConnectionPool)(nil)
 
-	_ ConnectionPool               = (*statusConnectionPool)(nil)
-	_ RequestRoutingConnectionPool = (*statusConnectionPool)(nil)
-	_ rwLocker                     = (*statusConnectionPool)(nil)
+	_ ConnectionPool = (*statusConnectionPool)(nil)
+	_ rwLocker       = (*statusConnectionPool)(nil)
 )
 
 // NewConnectionPool creates and returns a default connection pool.
@@ -133,7 +224,6 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	}
 
 	pool := &statusConnectionPool{
-		selector:                     selector,
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
@@ -144,12 +234,6 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 
 // Next returns the connection from pool.
 func (cp *singleConnectionPool) Next() (*Connection, error) {
-	return cp.connection, nil
-}
-
-// NextForRequest returns the connection from pool (request-aware version).
-// For single connection pools, this behaves the same as Next().
-func (cp *singleConnectionPool) NextForRequest(req *http.Request) (*Connection, error) {
 	return cp.connection, nil
 }
 
@@ -166,49 +250,35 @@ func (cp *singleConnectionPool) connections() []*Connection { return []*Connecti
 
 // Next returns a connection from pool, or an error.
 func (cp *statusConnectionPool) Next() (*Connection, error) {
+	cp.mu.RLock()
+
+	// Return next live connection using round-robin
+	switch {
+	case len(cp.mu.live) > 0:
+		conn := cp.getNextLiveConnWithLock()
+		cp.mu.RUnlock()
+		return conn, nil
+	case len(cp.mu.dead) == 0:
+		cp.mu.RUnlock()
+		return nil, ErrNoConnections
+	}
+
+	// No live connections are available, try using a dead connection.
+	cp.mu.RUnlock() // Release read lock
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
-	// Return next live connection
-	if len(cp.mu.live) > 0 {
-		return cp.selector.Select(cp.mu.live)
-	} else if len(cp.mu.dead) > 0 {
-		// No live connection is available, resurrect one of the dead ones.
-		c := cp.mu.dead[len(cp.mu.dead)-1]
-		cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		cp.resurrectWithLock(c, false)
+	// Double-check after acquiring write lock
+	switch {
+	case len(cp.mu.live) > 0:
+		return cp.getNextLiveConnWithLock(), nil
+	case len(cp.mu.dead) == 0:
+		return nil, ErrNoConnections
+	default:
+		// We can now assume: cp.mu.dead > 0
+		c := cp.tryZombieWithLock()
 		return c, nil
 	}
-
-	return nil, errors.New("no connection available")
-}
-
-// NextForRequest returns a connection from pool optimized for the request, or an error.
-func (cp *statusConnectionPool) NextForRequest(req *http.Request) (*Connection, error) {
-	cp.mu.Lock()
-	defer cp.mu.Unlock()
-
-	// Return next live connection using request-aware selection if available
-	if len(cp.mu.live) > 0 {
-		// Try request-aware selection first
-		if ras, ok := cp.selector.(RequestAwareSelector); ok {
-			return ras.SelectForRequest(cp.mu.live, req)
-		}
-		// Fall back to basic selection
-		return cp.selector.Select(cp.mu.live)
-	} else if len(cp.mu.dead) > 0 {
-		// No live connection is available, resurrect one of the dead ones.
-		c := cp.mu.dead[len(cp.mu.dead)-1]
-		cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		cp.resurrectWithLock(c, false)
-		return c, nil
-	}
-
-	return nil, errors.New("no connection available")
 }
 
 // OnSuccess marks the connection as successful.
@@ -221,12 +291,12 @@ func (cp *statusConnectionPool) OnSuccess(c *Connection) {
 	defer c.mu.Unlock()
 
 	// Short-circuit for live connection
-	if !c.mu.isDead {
+	if c.mu.deadSince.IsZero() {
 		return
 	}
 
 	c.markAsHealthyWithLock()
-	cp.resurrectWithLock(c, true)
+	cp.resurrectWithLock(c)
 }
 
 // OnFailure marks the connection as failed.
@@ -236,7 +306,7 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 
 	c.mu.Lock()
 
-	if c.mu.isDead {
+	if !c.mu.deadSince.IsZero() {
 		if debugLogger != nil {
 			debugLogger.Logf("Already removed %s\n", c.URL)
 		}
@@ -277,23 +347,22 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	})
 
 	// Check if connection exists in the list, return error if not.
-	index := -1
-
+	idx := -1
 	for i, conn := range cp.mu.live {
 		if conn == c {
-			index = i
+			idx = i
+			break
 		}
 	}
 
-	if index < 0 {
+	if idx < 0 {
 		// Does this error even get raised? Under what conditions can the connection not be in the cp.mu.live list?
 		// If the connection is marked dead the function already ended
 		return errors.New("connection not in live list")
 	}
 
-	// Remove item; https://github.com/golang/go/wiki/SliceTricks
-	copy(cp.mu.live[index:], cp.mu.live[index+1:])
-	cp.mu.live = cp.mu.live[:len(cp.mu.live)-1]
+	// Remove connection using slice filtering trick
+	cp.mu.live = append(cp.mu.live[:idx], cp.mu.live[idx+1:]...)
 
 	return nil
 }
@@ -346,14 +415,28 @@ func (cp *statusConnectionPool) Unlock() {
 	cp.mu.Unlock()
 }
 
-// resurrect adds the connection to the list of available connections.
-// When removeDead is true, it also removes it from the dead list.
+// getNextLiveConnWithLock returns the next live connection using round-robin selection.
+// This provides fair distribution of requests across all live connections.
 //
 // CALLER RESPONSIBILITIES:
-//   - Caller should verify external connectivity/health before resurrection
-//     (this method only updates internal bookkeeping, not connection health)
-//   - Caller must handle any errors from subsequent connection attempts
-func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool) {
+//   - Caller must hold pool read or write lock
+//   - Caller must ensure len(cp.mu.live) > 0 before calling
+func (cp *statusConnectionPool) getNextLiveConnWithLock() *Connection {
+	next := cp.nextLive.Add(1)
+	idx := int(next-1) % len(cp.mu.live)
+	return cp.mu.live[idx]
+}
+
+// resurrectWithLock unconditionally moves a connection from dead to live list.
+// This should only be called after a successful health check or when the connection
+// has been verified to be healthy. Used by OnSuccess() and checkDead() to promote
+// connections that have proven to be working.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must verify connection health before calling this method
+//   - Caller must hold both pool lock and connection lock
+//   - Connection should exist in the dead list
+func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
 	if debugLogger != nil {
 		debugLogger.Logf("Resurrecting %s\n", c.URL)
 	}
@@ -361,21 +444,53 @@ func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool
 	c.markAsLiveWithLock()
 	cp.mu.live = append(cp.mu.live, c)
 
-	if removeDead {
-		index := -1
-
-		for i, conn := range cp.mu.dead {
-			if conn == c {
-				index = i
-			}
-		}
-
-		if index >= 0 {
-			// Remove item; https://github.com/golang/go/wiki/SliceTricks
-			copy(cp.mu.dead[index:], cp.mu.dead[index+1:])
-			cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
+	// Always remove from dead list to avoid duplicates
+	idx := -1
+	for i, conn := range cp.mu.dead {
+		if conn == c {
+			idx = i
+			break
 		}
 	}
+
+	if idx >= 0 {
+		cp.mu.dead = append(cp.mu.dead[:idx], cp.mu.dead[idx+1:]...)
+	}
+}
+
+// tryZombieWithLock returns a dead connection for temporary use without moving it to the live list.
+// This allows attempting requests on potentially dead connections when no live connections are available.
+// The connection remains on the dead list and will continue to be subject to periodic health checks.
+// Used by Next() when no live connections are available, providing a way to short-circuit the periodic
+// heartbeat timer by attempting requests on dead connections immediately.
+//
+// The function rotates through dead connections by popping from the front and pushing to the back,
+// ensuring fair distribution of retry attempts across all dead connections.
+//
+// CONCURRENCY NOTE: This function races with OnFailure() over dead list ordering. OnFailure()
+// sorts dead connections by failure count while this function rotates the list for fair distribution.
+// The design assumes that during failure scenarios, we iterate through the entire dead list faster
+// than new connections fail and trigger list resorting in OnFailure(). This ensures fair rotation
+// is maintained most of the time, with occasional resorting to prioritize connections with fewer failures.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+//   - Caller should call OnSuccess() if the connection proves to work (which will resurrect it)
+//   - Caller should call OnFailure() if the connection fails (which is a no-op since it's already dead)
+func (cp *statusConnectionPool) tryZombieWithLock() *Connection {
+	if len(cp.mu.dead) == 0 {
+		return nil
+	}
+
+	// Pop from front, push to back (rotate the queue) in one operation
+	var c *Connection
+	c, cp.mu.dead = cp.mu.dead[0], append(cp.mu.dead[1:], cp.mu.dead[0])
+
+	if debugLogger != nil {
+		debugLogger.Logf("Trying zombie connection %s\n", c.URL)
+	}
+
+	return c
 }
 
 // scheduleResurrect schedules the connection to be resurrected.
@@ -402,14 +517,14 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		if !c.mu.isDead {
+		if c.mu.deadSince.IsZero() {
 			if debugLogger != nil {
 				debugLogger.Logf("Already resurrected %s\n", c.URL)
 			}
 			return
 		}
 
-		cp.resurrectWithLock(c, true)
+		cp.resurrectWithLock(c)
 	})
 }
 
@@ -422,7 +537,6 @@ func (c *Connection) markAsDead() {
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
 func (c *Connection) markAsDeadWithLock() {
-	c.mu.isDead = true
 	if c.mu.deadSince.IsZero() {
 		c.mu.deadSince = time.Now().UTC()
 	}
@@ -431,12 +545,11 @@ func (c *Connection) markAsDeadWithLock() {
 
 // markAsLiveWithLock marks the connection as alive (caller must hold lock).
 func (c *Connection) markAsLiveWithLock() {
-	c.mu.isDead = false
+	c.mu.deadSince = time.Time{}
 }
 
 // markAsHealthyWithLock marks the connection as healthy (caller must hold lock).
 func (c *Connection) markAsHealthyWithLock() {
-	c.mu.isDead = false
 	c.mu.deadSince = time.Time{}
 	c.failures.Store(0)
 }
@@ -444,144 +557,13 @@ func (c *Connection) markAsHealthyWithLock() {
 // String returns a readable connection representation.
 func (c *Connection) String() string {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return fmt.Sprintf("<%s> dead=%v failures=%d", c.URL, c.mu.isDead, c.failures.Load())
+	deadAt := c.mu.deadSince
+	c.mu.RUnlock()
+
+	if deadAt.IsZero() {
+		return fmt.Sprintf("<%s> dead=false failures=%d", c.URL, c.failures.Load())
+	}
+
+	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", c.URL, time.Since(deadAt), c.failures.Load())
 }
 
-// Role-based node selector implementations
-
-// RoleBasedSelector filters connections based on node roles and applies a fallback selector.
-type RoleBasedSelector struct {
-	requiredRoleGroups [][]string // Nodes must have all roles in at least one group (OR between groups, AND within groups)
-	excludedRoleGroups [][]string // Nodes must not have all roles in any group (if node has all roles in any group, exclude it)
-	fallback           Selector   // Fallback selector for load balancing among filtered nodes
-	allowFallback      bool       // If true, use any node if no role-matching nodes are available
-}
-
-// RoleBasedSelectorOption configures a role-based selector.
-type RoleBasedSelectorOption func(*RoleBasedSelector)
-
-// WithRequiredRoles specifies a group of roles that nodes must have.
-// Multiple calls create OR logic between groups, AND logic within groups.
-// Example: WithRequiredRoles(data, ingest) + WithRequiredRoles(data, search) = (data && ingest) || (data && search)
-func WithRequiredRoles(roles ...string) RoleBasedSelectorOption {
-	return func(s *RoleBasedSelector) {
-		if len(roles) > 0 {
-			s.requiredRoleGroups = append(s.requiredRoleGroups, append([]string(nil), roles...))
-		}
-	}
-}
-
-// WithExcludedRoles specifies a group of roles that nodes must not have.
-// Multiple calls create OR logic between groups, AND logic within groups.
-// Example: WithExcludedRoles(cluster_manager, data) excludes nodes with BOTH cluster_manager AND data roles
-func WithExcludedRoles(roles ...string) RoleBasedSelectorOption {
-	return func(s *RoleBasedSelector) {
-		if len(roles) > 0 {
-			s.excludedRoleGroups = append(s.excludedRoleGroups, append([]string(nil), roles...))
-		}
-	}
-}
-
-// WithStrictMode disables fallback when no matching nodes are found.
-func WithStrictMode() RoleBasedSelectorOption {
-	return func(s *RoleBasedSelector) {
-		s.allowFallback = false
-	}
-}
-
-// WithFallback sets the fallback selector used when no role-matching nodes are available.
-func WithFallback(fallback Selector) RoleBasedSelectorOption {
-	return func(s *RoleBasedSelector) {
-		s.fallback = fallback
-	}
-}
-
-// NewRoleBasedSelector creates a role-based connection selector with the specified options.
-// If no fallback is provided via WithFallback, a round-robin selector is used by default.
-func NewRoleBasedSelector(opts ...RoleBasedSelectorOption) *RoleBasedSelector {
-	s := &RoleBasedSelector{
-		allowFallback: true,                    // Default to allowing fallback
-		fallback:      NewRoundRobinSelector(), // Default fallback
-	}
-
-	for _, opt := range opts {
-		opt(s)
-	}
-
-	return s
-}
-
-// Select filters connections based on role requirements and applies fallback selection.
-func (s *RoleBasedSelector) Select(connections []*Connection) (*Connection, error) {
-	if len(connections) == 0 {
-		return nil, ErrNoConnections
-	}
-
-	// Filter connections based on role requirements
-	filtered := s.filterByRoles(connections)
-
-	// If we have role-matching nodes, use them
-	if len(filtered) > 0 {
-		return s.fallback.Select(filtered)
-	}
-
-	// If no role-matching nodes and fallback is allowed, use any available node
-	if s.allowFallback {
-		return s.fallback.Select(connections)
-	}
-
-	// Strict mode: no fallback allowed
-	return nil, fmt.Errorf("no connections found matching required role groups: %v (available connections: %d)",
-		s.requiredRoleGroups, len(connections))
-}
-
-// matchesRoleGroup checks if a connection has all roles in the given group.
-func (s *RoleBasedSelector) matchesRoleGroup(conn *Connection, roleGroup []string) bool {
-	for _, role := range roleGroup {
-		if !conn.Roles.has(role) {
-			return false
-		}
-	}
-	return true
-}
-
-// selectConnectionByRole determines if a connection matches the role filtering criteria.
-func (s *RoleBasedSelector) selectConnectionByRole(conn *Connection) bool {
-	// Check if connection matches at least one required role group
-	matchesRequiredRoles := len(s.requiredRoleGroups) == 0 // If no required groups, all nodes qualify
-	if !matchesRequiredRoles {
-		for _, roleGroup := range s.requiredRoleGroups {
-			if s.matchesRoleGroup(conn, roleGroup) {
-				matchesRequiredRoles = true
-				break // Found a matching group, no need to check others
-			}
-		}
-	}
-
-	if !matchesRequiredRoles {
-		return false
-	}
-
-	// Check if connection has ALL roles in ANY excluded group
-	for _, roleGroup := range s.excludedRoleGroups {
-		if s.matchesRoleGroup(conn, roleGroup) {
-			return false // Found an excluded group match, exclude this node
-		}
-	}
-
-	return true
-}
-
-// filterByRoles filters connections based on required and excluded role groups.
-func (s *RoleBasedSelector) filterByRoles(connections []*Connection) []*Connection {
-	filtered := make([]*Connection, 0, len(connections))
-
-	for _, conn := range connections {
-		if s.selectConnectionByRole(conn) {
-			filtered = append(filtered, conn)
-		}
-	}
-
-	return filtered
-}

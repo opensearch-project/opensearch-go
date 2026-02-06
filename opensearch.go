@@ -148,13 +148,22 @@ func NewClient(cfg Config) (*Client, error) {
 		//nolint:errcheck // errcheck exclude ???
 		u, _ := url.Parse(defaultURL)
 		urls = append(urls, u)
-	}
-
-	// TODO: Refactor
-	if urls[0].User != nil {
-		cfg.Username = urls[0].User.Username()
-		pw, _ := urls[0].User.Password()
-		cfg.Password = pw
+	} else if cfg.Username == "" || cfg.Password == "" {
+		// Extract credentials from the first URL that has them (only if not already configured)
+		for _, u := range urls {
+			if u.User != nil {
+				if cfg.Username == "" {
+					cfg.Username = u.User.Username()
+				}
+				if cfg.Password == "" {
+					if pw, ok := u.User.Password(); ok {
+						cfg.Password = pw
+					}
+				}
+				// Stop after finding the first URL with credentials
+				break
+			}
+		}
 	}
 
 	tp, err := opensearchtransport.New(opensearchtransport.Config{

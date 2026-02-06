@@ -21,6 +21,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestDocumentClient(t *testing.T) {
@@ -29,8 +30,9 @@ func TestDocumentClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
 
-	index := "test-document"
-	documentID := "test"
+	// Create unique index and document ID per test execution to avoid conflicts
+	index := testutil.MustUniqueString(t, "test-document")
+	documentID := testutil.MustUniqueString(t, "test-doc")
 
 	t.Cleanup(func() { client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}}) })
 
@@ -394,6 +396,9 @@ func TestDocumentClient(t *testing.T) {
 			ostest.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
 		})
 		t.Run("Fields", func(t *testing.T) {
+			// Create unique document ID for this test
+			storedFieldDocID := testutil.MustUniqueString(t, "test-stored-field")
+
 			_, err := client.Indices.Mapping.Put(nil,
 				opensearchapi.MappingPutReq{
 					Indices: []string{index},
@@ -412,7 +417,7 @@ func TestDocumentClient(t *testing.T) {
 				opensearchapi.DocumentCreateReq{
 					Index:      index,
 					Body:       strings.NewReader(`{"foo-stored": "bar"}`),
-					DocumentID: "test-stored-field",
+					DocumentID: storedFieldDocID,
 				},
 			)
 			require.Nil(t, err)
@@ -420,7 +425,7 @@ func TestDocumentClient(t *testing.T) {
 				nil,
 				opensearchapi.DocumentGetReq{
 					Index:      index,
-					DocumentID: "test-stored-field",
+					DocumentID: storedFieldDocID,
 					Params: opensearchapi.DocumentGetParams{
 						StoredFields: []string{"foo-stored"},
 					},

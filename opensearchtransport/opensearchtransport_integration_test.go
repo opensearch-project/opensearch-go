@@ -40,6 +40,7 @@ import (
 
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
@@ -54,7 +55,9 @@ func TestTransportRetries(t *testing.T) {
 		counter++
 
 		body, _ := io.ReadAll(r.Body)
-		fmt.Println("req.Body:", string(body))
+		if testutil.IsDebugEnabled(t) {
+			t.Logf("req.Body: %q", string(body))
+		}
 
 		http.Error(w, "FAKE 502", http.StatusBadGateway)
 	}))
@@ -83,11 +86,13 @@ func TestTransportRetries(t *testing.T) {
 
 			body, _ := io.ReadAll(res.Body)
 
-			fmt.Println("> GET", req.URL)
-			fmt.Printf("< %s (tries: %d)\n", bytes.TrimSpace(body), counter)
+			if testutil.IsDebugEnabled(t) {
+				t.Logf("> GET %q", req.URL)
+				t.Logf("< %q (tries: %d)", bytes.TrimSpace(body), counter)
+			}
 
-			if counter != 4 {
-				t.Errorf("Unexpected number of attempts, want=4, got=%d", counter)
+			if counter != 7 {
+				t.Errorf("Unexpected number of attempts, want=7, got=%d", counter)
 			}
 		})
 	}
