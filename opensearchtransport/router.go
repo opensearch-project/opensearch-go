@@ -27,15 +27,33 @@
 package opensearchtransport
 
 import (
-	"errors"
+	"context"
+	"net/http"
+	"sync/atomic"
 )
 
-// ErrSelectNotImplemented is returned when Select() is called on a RequestAwareSelector
-// that requires an HTTP request for routing decisions.
-var ErrSelectNotImplemented = errors.New("Select() interface not implemented")
+// Compile-time interface compliance checks
+var (
+	_ Router                  = (*PolicyChain)(nil)
+	_ Policy                  = (*PolicyChain)(nil)
+	_ poolFactoryConfigurable = (*PolicyChain)(nil)
+)
 
-// Selector defines the interface for selecting connections from a connection list.
-// This interface is used by connection pools for selecting from available connections.
-type Selector interface {
-	Select([]*Connection) (*Connection, error)
+// Router defines the interface for request routing.
+type Router interface {
+	Route(ctx context.Context, req *http.Request) (*Connection, error)
+	DiscoveryUpdate(added, removed, unchanged []*Connection) error
+	CheckDead(ctx context.Context, healthCheck HealthCheckFunc) error // Health check dead connections across all policies
+}
+
+// PolicyChain implements both Router and Policy interfaces by trying policies in sequence until one matches.
+type PolicyChain struct {
+	policies    []Policy
+	isEnabled   atomic.Bool // Cached state from DiscoveryUpdate (for Policy interface)
+	poolFactory func() *statusConnectionPool // For Policy interface pool creation
+}
+
+// NewRouter creates a router that tries policies in order.
+func NewRouter(policies ...Policy) Router {
+	return &PolicyChain{policies: policies}
 }

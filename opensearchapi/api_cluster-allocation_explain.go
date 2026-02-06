@@ -53,11 +53,13 @@ type ClusterAllocationExplainBody struct {
 
 // ClusterAllocationExplainResp represents the returned struct of the /_nodes response
 type ClusterAllocationExplainResp struct {
-	Index          string                       `json:"index"`
-	Shard          int                          `json:"shard"`
-	Primary        bool                         `json:"primary"`
-	CurrentState   string                       `json:"current_state"`
-	CurrentNode    ClusterAllocationCurrentNode `json:"current_node"`
+	Index          string                       `json:"index"`         // Available since OpenSearch 1.0.0
+	Shard          int                          `json:"shard"`         // Available since OpenSearch 1.0.0
+	Primary        bool                         `json:"primary"`       // Available since OpenSearch 1.0.0
+	CurrentState   string                       `json:"current_state"` // Available since OpenSearch 1.0.0
+	CurrentNode    ClusterAllocationCurrentNode `json:"current_node"`  // Available since OpenSearch 1.0.0
+	TargetNode     ClusterAllocationCurrentNode `json:"target_node"`   // Available since OpenSearch 1.0.0
+	Explanation    string                       `json:"explanation"`   // Available since OpenSearch 1.0.0
 	UnassignedInfo struct {
 		Reason               string `json:"reason"`
 		At                   string `json:"at"`

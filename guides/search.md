@@ -55,9 +55,9 @@ For search-heavy applications, you can configure the client to automatically rou
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure automatic routing to data nodes for search operations
-		Selector: opensearchtransport.NewSmartSelector(
-			opensearchtransport.NewRoundRobinSelector(),
-		),
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewSmartRouter(),
+		},
 	})
 	if err != nil {
 		return err
@@ -285,10 +285,16 @@ For production search workloads, you can optimize performance by ensuring search
 		DiscoverNodesOnStart:  true,
 		DiscoverNodesInterval: 5 * time.Minute,
 
-		// Use data-preferred selector for search optimization
-		Selector: opensearchtransport.NewRoleBasedSelector(
-			opensearchtransport.WithRequiredRoles(opensearchtransport.RoleData),
-		),
+		// Use data-preferred router for search optimization
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewRouter(
+				func() opensearchtransport.Policy {
+					policy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleData)
+					return policy
+				}(),
+				opensearchtransport.NewRoundRobinPolicy(),
+			),
+		},
 	})
 	if err != nil {
 		return err
@@ -313,7 +319,7 @@ For production search workloads, you can optimize performance by ensuring search
 
 ### Smart Routing for Mixed Workloads
 
-The smart selector automatically detects operation types and routes them to the most appropriate nodes:
+The smart router automatically detects operation types and routes them to the most appropriate nodes:
 
 ```go
 	// Smart routing: automatically detects search vs ingest operations
@@ -323,9 +329,9 @@ The smart selector automatically detects operation types and routes them to the 
 		DiscoverNodesOnStart:  true,
 		DiscoverNodesInterval: 5 * time.Minute,
 
-		Selector: opensearchtransport.NewSmartSelector(
-			opensearchtransport.NewRoundRobinSelector(),
-		),
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewSmartRouter(),
+		},
 	})
 	if err != nil {
 		return err
@@ -352,7 +358,7 @@ The smart selector automatically detects operation types and routes them to the 
 
 ### Routing Strategy Overview
 
-The smart selector provides automatic routing based on the operation being performed:
+The smart router provides automatic routing based on the operation being performed:
 
 - **Search operations** (`/_search`, `/_msearch`, document retrieval) -> Data nodes
 - **Bulk operations** (`/_bulk`) -> Ingest nodes

@@ -37,6 +37,14 @@ var (
 	_ Selector = (*roundRobinSelector)(nil)
 )
 
+// createRoundRobinTestConnectionPool creates a connection pool for round robin testing
+func createRoundRobinTestConnectionPool(t *testing.T, connections []*Connection) *statusConnectionPool {
+	t.Helper()
+	pool := &statusConnectionPool{}
+	pool.mu.live = connections
+	return pool
+}
+
 func TestNewRoundRobinSelector(t *testing.T) {
 	selector := NewRoundRobinSelector()
 
@@ -45,7 +53,7 @@ func TestNewRoundRobinSelector(t *testing.T) {
 		return
 	}
 
-	// Check initial state
+	// Check initial state - starts at -1 so first increment gives 0
 	if selector.curr.Load() != -1 {
 		t.Errorf("Expected initial current index to be -1, got %d", selector.curr.Load())
 	}

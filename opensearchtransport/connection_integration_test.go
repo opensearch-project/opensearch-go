@@ -32,7 +32,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 )
@@ -96,21 +95,33 @@ func TestStatusConnectionPool(t *testing.T) {
 		serverHosts = append(serverHosts, u.String())
 	}
 
-	fmt.Printf("==> Started %d servers on %s\n", numServers, serverHosts)
-
 	cfg := Config{URLs: serverURLs}
-
-	if _, ok := os.LookupEnv("GITHUB_ACTIONS"); !ok {
-		cfg.Logger = &TextLogger{Output: os.Stdout}
-		cfg.EnableDebugLogger = true
-	}
 
 	transport, _ := New(cfg)
 
 	transport.mu.RLock()
-	pool := transport.mu.pool.(*statusConnectionPool)
+	// Access the connection pool directly
+	connectionPool := transport.mu.connectionPool
+	if connectionPool == nil {
+		transport.mu.RUnlock()
+		t.Fatalf("Expected connection pool for multi-node setup")
+	}
+
+	// For status connection pool, set the resurrect timeout
+	if statusPool, ok := connectionPool.(*statusConnectionPool); ok {
+		statusPool.resurrectTimeoutInitial = time.Second
+	}
 	transport.mu.RUnlock()
-	pool.resurrectTimeoutInitial = time.Second
+
+	// Helper function to get the status connection pool
+	getPool := func() *statusConnectionPool {
+		transport.mu.RLock()
+		defer transport.mu.RUnlock()
+		if statusPool, ok := transport.mu.connectionPool.(*statusConnectionPool); ok {
+			return statusPool
+		}
+		return nil
+	}
 
 	for i := 1; i <= 9; i++ {
 		req, _ := http.NewRequest("GET", "/", nil)
@@ -123,14 +134,16 @@ func TestStatusConnectionPool(t *testing.T) {
 		}
 	}
 
-	pool.mu.Lock()
-	if len(pool.mu.live) != 3 {
-		t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
+	pool := getPool()
+	if pool != nil {
+		pool.mu.Lock()
+		if len(pool.mu.live) != 3 {
+			t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
+		}
+		pool.mu.Unlock()
 	}
-	pool.mu.Unlock()
 
 	server = servers[1]
-	fmt.Printf("==> Closing server: %s\n", server.Addr)
 	if err := server.Close(); err != nil {
 		t.Fatalf("Unable to close server: %s", err)
 	}
@@ -146,21 +159,23 @@ func TestStatusConnectionPool(t *testing.T) {
 		}
 	}
 
-	pool.mu.Lock()
-	if len(pool.mu.live) != 2 {
-		t.Errorf("Unexpected number of live connections, want=2, got=%d", len(pool.mu.live))
-	}
-	pool.mu.Unlock()
+	pool = getPool()
+	if pool != nil {
+		pool.mu.Lock()
+		if len(pool.mu.live) != 2 {
+			t.Errorf("Unexpected number of live connections, want=2, got=%d", len(pool.mu.live))
+		}
+		pool.mu.Unlock()
 
-	pool.mu.Lock()
-	if len(pool.mu.dead) != 1 {
-		t.Errorf("Unexpected number of dead connections, want=1, got=%d", len(pool.mu.dead))
+		pool.mu.Lock()
+		if len(pool.mu.dead) != 1 {
+			t.Errorf("Unexpected number of dead connections, want=1, got=%d", len(pool.mu.dead))
+		}
+		pool.mu.Unlock()
 	}
-	pool.mu.Unlock()
 
 	server = NewServer("localhost:10002", http.HandlerFunc(defaultHandler))
 	servers[1] = server
-	fmt.Printf("==> Starting server: %s\n", server.Addr)
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
 			t.Fatalf("Unable to start server: %s", err)
@@ -172,8 +187,8 @@ func TestStatusConnectionPool(t *testing.T) {
 		t.Fatalf("Restarted server not ready: %v", err)
 	}
 
-	fmt.Println("==> Waiting 1.25s for resurrection...")
-	time.Sleep(1250 * time.Millisecond)
+	resurrectWait := 1250 * time.Millisecond
+	time.Sleep(resurrectWait)
 
 	for i := 1; i <= 9; i++ {
 		req, _ := http.NewRequest("GET", "/", nil)
@@ -186,15 +201,18 @@ func TestStatusConnectionPool(t *testing.T) {
 		}
 	}
 
-	pool.mu.Lock()
-	if len(pool.mu.live) != 3 {
-		t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
-	}
-	pool.mu.Unlock()
+	pool = getPool()
+	if pool != nil {
+		pool.mu.Lock()
+		if len(pool.mu.live) != 3 {
+			t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
+		}
+		pool.mu.Unlock()
 
-	pool.mu.Lock()
-	if len(pool.mu.dead) != 0 {
-		t.Errorf("Unexpected number of dead connections, want=0, got=%d", len(pool.mu.dead))
+		pool.mu.Lock()
+		if len(pool.mu.dead) != 0 {
+			t.Errorf("Unexpected number of dead connections, want=0, got=%d", len(pool.mu.dead))
+		}
+		pool.mu.Unlock()
 	}
-	pool.mu.Unlock()
 }

@@ -8,18 +8,18 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Enhanced cluster readiness checking for improved test reliability: `ostest.NewClient()` now includes readiness validation (health + cluster state + nodes info)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
-- Request-based connection routing for improved performance and service availability ([#770](https://github.com/opensearch-project/opensearch-go/pull/770))
-  - `RequestAwareSelector` interface for operation-based node selection using http.Request directly
-  - `RequestRoutingConnectionPool` interface extending ConnectionPool for request-based routing
-  - `NewDefaultSelector()` providing intelligent routing with graceful fallback (recommended for most users)
-  - `NewSmartSelector()` with comprehensive operation detection covering all OpenSearch REST API endpoints
-  - `NewSelectorMux()` for custom HTTP pattern matching using `http.ServeMux`
-  - `NewChainSelector()` implementing chain-of-responsibility pattern for composable routing strategies
-  - `NewRoleBasedSelector()` with role-based selectors with `WithRequiredRoles()` and `WithExcludedRoles()` options
-  - Automatic routing of bulk operations (including streaming bulk) to ingest nodes
-  - Automatic routing of search operations (search, count, explain, by-query operations) to data nodes
-  - Automatic routing of document retrieval operations (get, mget, source, termvectors) to data nodes for read locality
-  - O(1) role lookup optimization using role sets instead of O(n) slice operations
+- Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))
+  - `Policy` interface for composable routing strategies with lifecycle management
+  - `Router` interface with `Route()` method for request-based connection selection
+  - `NewPolicy()` implementing chain-of-responsibility pattern for composable routing strategies
+  - `NewIfEnabledPolicy()` for conditional routing with runtime evaluation
+  - `NewMuxPolicy()` for custom HTTP pattern matching using `http.ServeMux`
+  - `NewRolePolicy()` for role-based node selection
+  - `NewDefaultRouter()` with coordinating node preference and round-robin fallback
+  - `NewSmartRouter()` providing smart request routing with graceful fallback (recommended for most users)
+    - Automatic routing of bulk operations (including streaming bulk) to ingest nodes
+    - Automatic routing of search operations (search, count, explain, by-query operations) to data nodes
+    - Automatic routing of document retrieval operations (get, mget, source, termvectors) to data nodes for read locality
 
 ### Changed
 

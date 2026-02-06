@@ -29,7 +29,6 @@
 package opensearchtransport
 
 import (
-	"net/http"
 	"net/url"
 	"regexp"
 	"testing"
@@ -51,25 +50,6 @@ func TestSingleConnectionPoolNext(t *testing.T) {
 			if c.URL.String() != "http://foo1" {
 				t.Errorf("Unexpected URL, want=http://foo1, got=%s", c.URL)
 			}
-		}
-	})
-}
-
-func TestSingleConnectionPoolNextForRequest(t *testing.T) {
-	t.Run("Single URL with request", func(t *testing.T) {
-		pool := &singleConnectionPool{
-			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
-		}
-
-		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
-
-		c, err := pool.NextForRequest(req)
-		if err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-
-		if c.URL.String() != "http://foo1" {
-			t.Errorf("Unexpected URL, want=http://foo1, got=%s", c.URL)
 		}
 	})
 }
@@ -150,9 +130,7 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -179,9 +157,7 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -216,15 +192,15 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
 			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn1.failures.Store(3)
+			conn1.mu.deadSince = time.Now().UTC() // Mark as dead
 			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
 			conn2.failures.Store(1)
+			conn2.mu.deadSince = time.Now().UTC() // Mark as dead
 			return []*Connection{conn1, conn2}
 		}()
 
@@ -234,75 +210,73 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		}
 
 		if c == nil {
-			t.Errorf("Expected connection, got nil: %s", c)
+			t.Errorf("Expected connection, got nil: %v", c)
 		}
 
-		if c.URL.String() != "http://foo2" {
-			t.Errorf("Expected <http://foo2>, got: %s", c.URL.String())
+		if c.URL.String() != "http://foo1" {
+			t.Errorf("Expected <http://foo1>, got: %s", c.URL.String())
 		}
 
 		c.mu.Lock()
-		isDead := c.mu.isDead
+		isDead := !c.mu.deadSince.IsZero()
 		c.mu.Unlock()
-		if isDead {
-			t.Errorf("Expected connection to be live, got: %s", c)
+		if !isDead {
+			t.Errorf("Expected connection to be dead (zombie), got: %v", c)
 		}
 
-		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 connection in live list, got: %s", pool.mu.live)
+		if len(pool.mu.live) != 0 {
+			t.Errorf("Expected 0 connections in live list, got: %v", pool.mu.live)
 		}
 
-		if len(pool.mu.dead) != 1 {
-			t.Errorf("Expected 1 connection in dead list, got: %s", pool.mu.dead)
+		if len(pool.mu.dead) != 2 {
+			t.Errorf("Expected 2 connections in dead list, got: %v", pool.mu.dead)
 		}
 	})
 }
 
-func TestStatusConnectionPoolNextForRequest(t *testing.T) {
+func TestStatusConnectionPoolNextResurrectDead(t *testing.T) {
 	t.Run("Resurrect dead connection when no live is available", func(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
 			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn1.failures.Store(3)
+			conn1.mu.deadSince = time.Now().UTC() // Mark as dead
 			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
 			conn2.failures.Store(1)
+			conn2.mu.deadSince = time.Now().UTC() // Mark as dead
 			return []*Connection{conn1, conn2}
 		}()
 
-		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
-
-		c, err := pool.NextForRequest(req)
+		c, err := pool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
 
 		if c == nil {
-			t.Errorf("Expected connection, got nil: %s", c)
+			t.Errorf("Expected connection, got nil: %v", c)
 		}
 
-		if c.URL.String() != "http://foo2" {
-			t.Errorf("Expected <http://foo2>, got: %s", c.URL.String())
+		if c.URL.String() != "http://foo1" {
+			t.Errorf("Expected <http://foo1>, got: %s", c.URL.String())
 		}
 
 		c.mu.Lock()
-		isDead := c.mu.isDead
+		isDead := !c.mu.deadSince.IsZero()
 		c.mu.Unlock()
-		if isDead {
-			t.Errorf("Expected connection to be live, got: %s", c)
+		if !isDead {
+			t.Errorf("Expected connection to be dead (zombie), got: %v", c)
 		}
 
-		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 connection in live list, got: %s", pool.mu.live)
+		if len(pool.mu.live) != 0 {
+			t.Errorf("Expected 0 connections in live list, got: %v", pool.mu.live)
 		}
 
-		if len(pool.mu.dead) != 1 {
-			t.Errorf("Expected 1 connection in dead list, got: %s", pool.mu.dead)
+		if len(pool.mu.dead) != 2 {
+			t.Errorf("Expected 2 connections in dead list, got: %v", pool.mu.dead)
 		}
 	})
 
@@ -311,15 +285,13 @@ func TestStatusConnectionPoolNextForRequest(t *testing.T) {
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = []*Connection{}
 
-		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
-
-		c, err := pool.NextForRequest(req)
+		c, err := pool.Next()
 		if err == nil {
 			t.Errorf("Expected error, but got: %s", c.URL)
 		}
 
-		if err.Error() != "no connection available" {
-			t.Errorf("Expected 'no connection available' error, got: %s", err.Error())
+		if err.Error() != ErrNoConnections.Error() {
+			t.Errorf("Expected %q error, got: %s", ErrNoConnections.Error(), err.Error())
 		}
 	})
 }
@@ -329,9 +301,7 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn.failures.Store(3)
@@ -344,7 +314,7 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 		pool.OnSuccess(conn)
 
 		conn.mu.Lock()
-		isDead := conn.mu.isDead
+		isDead := !conn.mu.deadSince.IsZero()
 		conn.mu.Unlock()
 		if isDead {
 			t.Errorf("Expected the connection to be live; %s", conn)
@@ -372,9 +342,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -393,7 +361,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		conn.mu.Lock()
-		isDead := conn.mu.isDead
+		isDead := !conn.mu.deadSince.IsZero()
 		deadSince := conn.mu.deadSince
 		conn.mu.Unlock()
 
@@ -432,9 +400,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -443,7 +409,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 
 		conn := pool.mu.live[0]
 		conn.mu.Lock()
-		conn.mu.isDead = true
+		conn.mu.deadSince = time.Now().UTC()
 		conn.mu.Unlock()
 
 		if err := pool.OnFailure(conn); err != nil {
@@ -451,7 +417,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		}
 
 		if len(pool.mu.dead) != 0 {
-			t.Errorf("Expected the dead list to be empty, got: %s", pool.mu.dead)
+			t.Errorf("Expected the dead list to be empty, got: %v", pool.mu.dead)
 		}
 	})
 }
@@ -461,9 +427,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
@@ -473,8 +437,8 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 
 		conn := pool.mu.dead[0]
 		conn.mu.Lock()
-		pool.resurrectWithLock(conn, true)
-		isDead := conn.mu.isDead
+		pool.resurrectWithLock(conn)
+		isDead := !conn.mu.deadSince.IsZero()
 		conn.mu.Unlock()
 
 		if isDead {
@@ -482,11 +446,11 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		}
 
 		if len(pool.mu.dead) != 0 {
-			t.Errorf("Expected no dead connections, got: %s", pool.mu.dead)
+			t.Errorf("Expected no dead connections, got: %v", pool.mu.dead)
 		}
 
 		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %s", pool.mu.live)
+			t.Errorf("Expected 1 live connection, got: %v", pool.mu.live)
 		}
 	})
 
@@ -494,9 +458,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
-			selector: s,
-		}
+		pool := &statusConnectionPool{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "bar"}}
 			conn.markAsDead()
@@ -507,14 +469,14 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		conn.markAsDead()
 		conn.mu.Lock()
 		defer conn.mu.Unlock()
-		pool.resurrectWithLock(conn, true)
+		pool.resurrectWithLock(conn)
 
 		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %s", pool.mu.live)
+			t.Errorf("Expected 1 live connection, got: %v", pool.mu.live)
 		}
 
 		if len(pool.mu.dead) != 1 {
-			t.Errorf("Expected 1 dead connection, got: %s", pool.mu.dead)
+			t.Errorf("Expected 1 dead connection, got: %v", pool.mu.dead)
 		}
 	})
 
@@ -523,7 +485,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s.curr.Store(-1)
 
 		pool := &statusConnectionPool{
-			selector:                     s,
+
 			resurrectTimeoutInitial:      0,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		}
@@ -534,7 +496,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 			}
 			conn.failures.Store(100)
 			conn.mu.Lock()
-			conn.mu.isDead = true
+			conn.mu.deadSince = time.Now().UTC()
 			conn.mu.deadSince = time.Now().UTC()
 			conn.mu.Unlock()
 			return []*Connection{conn}
@@ -551,10 +513,10 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		defer pool.mu.Unlock()
 
 		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %s", pool.mu.live)
+			t.Errorf("Expected 1 live connection, got: %v", pool.mu.live)
 		}
 		if len(pool.mu.dead) != 0 {
-			t.Errorf("Expected no dead connections, got: %s", pool.mu.dead)
+			t.Errorf("Expected no dead connections, got: %v", pool.mu.dead)
 		}
 	})
 }
@@ -566,12 +528,12 @@ func TestConnection(t *testing.T) {
 		}
 		conn.failures.Store(10)
 		conn.mu.Lock()
-		conn.mu.isDead = true
+		conn.mu.deadSince = time.Now().UTC()
 		conn.mu.deadSince = time.Now().UTC()
 		conn.mu.Unlock()
 
 		match, err := regexp.MatchString(
-			`<http://foo1> dead=true failures=10`,
+			`<http://foo1> dead=true age=.+ failures=10`,
 			conn.String(),
 		)
 		if err != nil {
@@ -582,4 +544,32 @@ func TestConnection(t *testing.T) {
 			t.Errorf("Unexpected output: %s", conn.String())
 		}
 	})
+}
+
+// newTestStatusConnectionPoolFactory creates a factory function for statusConnectionPool instances
+// using default timeout settings suitable for testing. This factory can be used with
+// policy.configurePoolFactories() in tests that create policies directly.
+//
+// This function is only intended for use in tests and should not be used in production code.
+func newTestStatusConnectionPoolFactory(t *testing.T) func() *statusConnectionPool {
+	t.Helper()
+	return func() *statusConnectionPool {
+		return &statusConnectionPool{
+			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		}
+	}
+}
+
+// configureTestPolicyFactories configures pool factories for a policy using test defaults.
+// This is a convenience function for tests that create policies directly without going through
+// the client initialization flow.
+//
+// This function is only intended for use in tests and should not be used in production code.
+func configureTestPolicyFactories(t *testing.T, policy Policy) error {
+	t.Helper()
+	if configurablePolicy, ok := policy.(poolFactoryConfigurable); ok {
+		return configurablePolicy.configurePoolFactories(newTestStatusConnectionPoolFactory(t))
+	}
+	return nil
 }

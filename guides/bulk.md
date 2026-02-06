@@ -53,9 +53,9 @@ For high-throughput bulk operations, you can configure the client to automatical
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure smart routing: bulk operations go to ingest nodes, searches go to data nodes
-		Selector: opensearchtransport.NewSmartSelector(
-			opensearchtransport.NewRoundRobinSelector(),
-		),
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewSmartRouter(),
+		},
 	})
 	if err != nil {
 		return err
@@ -265,10 +265,10 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 		DiscoverNodesOnStart:  true,
 		DiscoverNodesInterval: 5 * time.Minute,
 
-		// Use smart selector for automatic operation routing
-		Selector: opensearchtransport.NewSmartSelector(
-			opensearchtransport.NewRoundRobinSelector(),
-		),
+		// Use smart router for automatic operation routing
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewSmartRouter(),
+		},
 	})
 	if err != nil {
 		return err
@@ -296,33 +296,29 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 You can choose different routing strategies based on your cluster setup:
 
 ```go
-	// Create a fallback selector (round-robin)
-	fallbackSelector := opensearchtransport.NewRoundRobinSelector()
-
 	// Option 1: Prefer ingest nodes, fallback to any available node
-	ingestPreferred := opensearchtransport.NewRoleBasedSelector(
-		opensearchtransport.WithRequiredRoles(opensearchtransport.RoleIngest),
-		opensearchtransport.WithFallback(fallbackSelector),
+	ingestPolicy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleIngest)
+	ingestPreferred := opensearchtransport.NewRouter(
+		ingestPolicy,
+		opensearchtransport.NewRoundRobinPolicy(),
 	)
 
 	// Option 2: Only use ingest nodes, fail if none available (strict mode)
-	ingestOnly := opensearchtransport.NewRoleBasedSelector(
-		opensearchtransport.WithRequiredRoles(opensearchtransport.RoleIngest),
-		opensearchtransport.WithStrictMode(),
-	)
+	ingestOnly := opensearchtransport.NewRouter(ingestPolicy)
 
-	// Option 3: Automatically detect operation type and route appropriately
-	smartSelector := opensearchtransport.NewSmartSelector(fallbackSelector)
+	// Option 3: Automatically detect operation type and route appropriately (recommended)
+	smartRouter := opensearchtransport.NewSmartRouter()
 
-	// Option 4: Use the generic selector for custom role combinations
-	customSelector := opensearchtransport.NewRoleBasedSelector(
-		opensearchtransport.WithRequiredRoles(opensearchtransport.RoleIngest),
-		opensearchtransport.WithExcludedRoles(opensearchtransport.RoleClusterManager),
-		opensearchtransport.WithFallback(fallbackSelector),
+	// Option 4: Custom policy for specific requirements
+	// Note: In practice, avoid excluding cluster managers as they're excluded by default
+	ingestPolicy, _ = opensearchtransport.NewRolePolicy(opensearchtransport.RoleIngest)
+	customRouter := opensearchtransport.NewRouter(
+		ingestPolicy,
+		opensearchtransport.NewRoundRobinPolicy(),
 	)
 ```
 
-The smart selector automatically detects different operation types:
+The smart router automatically detects different operation types:
 
 - **Bulk operations** (`/_bulk`) -> Routes to ingest nodes
 - **Ingest pipeline operations** (`/_ingest/`) -> Routes to ingest nodes

@@ -202,7 +202,8 @@ type ClusterStateRoutingIndex struct {
 	Index                    string  `json:"index"`
 	ExpectedShardSizeInBytes int     `json:"expected_shard_size_in_bytes"`
 	AllocationID             *struct {
-		ID string `json:"id"`
+		ID           string  `json:"id"`
+		RelocationID *string `json:"relocation_id,omitempty"` // Available since OpenSearch 1.0.0 (during shard relocation)
 	} `json:"allocation_id,omitempty"`
 	RecoverySource *struct {
 		Type string `json:"type"`

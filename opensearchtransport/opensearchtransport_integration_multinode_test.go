@@ -54,7 +54,7 @@ func TestTransportSelector(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		fmt.Printf("> GET %s\n", req.URL)
+		t.Logf("> GET %q", req.URL)
 
 		r := struct {
 			Name string

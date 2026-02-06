@@ -100,11 +100,18 @@ func (c *Client) Metrics() (Metrics, error) {
 	maps.Copy(responses, c.metrics.mu.responses)
 	c.metrics.mu.RUnlock()
 
-	// Acquire read lock on pool since we're only reading connection state
-	if rwLock, ok := c.mu.pool.(rwLocker); ok {
-		rwLock.RLock()
-		defer rwLock.RUnlock()
+	// Get connections from current connection pool
+	var connections []*Connection
+	c.mu.RLock()
+	if c.mu.connectionPool != nil {
+		switch pool := c.mu.connectionPool.(type) {
+		case *statusConnectionPool:
+			connections = pool.connections()
+		case *singleConnectionPool:
+			connections = pool.connections()
+		}
 	}
+	c.mu.RUnlock()
 
 	m := Metrics{
 		Requests:  int(c.metrics.requests.Load()),
@@ -112,17 +119,15 @@ func (c *Client) Metrics() (Metrics, error) {
 		Responses: responses,
 	}
 
-	if pool, ok := c.mu.pool.(connectionable); ok {
-		connections := pool.connections()
+	if len(connections) > 0 {
 		for _, c := range connections {
 			c.mu.Lock()
-			isDead := c.mu.isDead
 			deadSince := c.mu.deadSince
 			c.mu.Unlock()
 
 			cm := ConnectionMetric{
 				URL:      c.URL.String(),
-				IsDead:   isDead,
+				IsDead:   !deadSince.IsZero(),
 				Failures: int(c.failures.Load()),
 			}
 

@@ -27,7 +27,6 @@
 package opensearchtransport
 
 import (
-	"errors"
 	"sync/atomic"
 )
 
@@ -46,7 +45,7 @@ func NewRoundRobinSelector() *roundRobinSelector {
 // Select returns the connection in a round-robin fashion.
 func (s *roundRobinSelector) Select(conns []*Connection) (*Connection, error) {
 	if len(conns) == 0 {
-		return nil, errors.New("no connections available")
+		return nil, ErrNoConnections
 	}
 
 	// Atomic increment with wrap-around
