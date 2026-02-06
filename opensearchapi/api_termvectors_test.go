@@ -10,7 +10,7 @@ package opensearchapi_test
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -20,6 +20,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestTermvectors(t *testing.T) {
@@ -73,13 +74,17 @@ func TestTermvectors(t *testing.T) {
 	)
 	require.Nil(t, err)
 	docs := []string{"{\"fullname\":\"John Doe\",\"text\":\"test test \"}", `{"fullname":"Jane Doe","text":"Another test ..."}`}
+
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
+
 	for i, doc := range docs {
 		_, err = client.Document.Create(
 			context.Background(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(doc),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
