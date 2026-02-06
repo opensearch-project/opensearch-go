@@ -30,7 +30,8 @@ package opensearchutil_test
 
 import (
 	"context"
-	"fmt"
+	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -41,6 +42,7 @@ import (
 	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
@@ -161,7 +163,6 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			opensearchapi.Config{
 				Client: opensearch.Config{
 					CompressRequestBody: c.compressRequestBodyEnabled,
-					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				},
 			},
 		)
@@ -172,11 +173,17 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		}
 		if config != nil {
 			config.Client.CompressRequestBody = c.compressRequestBodyEnabled
-			config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			// Only enable verbose logging if DEBUG=true
+			if testutil.IsDebugEnabled(t) {
+				config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			}
 			client, _ = opensearchapi.NewClient(*config)
 		}
 
-		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
+		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
+			Indices: []string{indexName},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		})
 		client.Indices.Create(
 			ctx,
 			opensearchapi.IndicesCreateReq{
@@ -189,6 +196,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		for _, tt := range c.tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Run(c.name, func(t *testing.T) {
+					// Pass client to avoid internal client creation that schedules node discovery
 					bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 						Index:      indexName,
 						Client:     client,
@@ -200,8 +208,13 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 					start := time.Now().UTC()
 
-					for i := 1; i <= int(tt.numItems); i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+					// Validate numItems is within safe int range
+					if tt.numItems > math.MaxInt {
+						t.Fatalf("numItems too large: %d", tt.numItems)
+					}
+
+					for i := 1; i <= int(tt.numItems); i++ { // #nosec G115 -- checked bounds above
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Index:      indexName,
 							Action:     tt.action,
 							DocumentID: strconv.Itoa(i),
@@ -212,7 +225,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						}
 					}
 
-					if err := bi.Close(context.Background()); err != nil {
+					if err := bi.Close(ctx); err != nil {
 						t.Errorf("Unexpected error: %s", err)
 					}
 
@@ -238,13 +251,15 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						t.Errorf("Unexpected NumFailed: want=0, got=%d", stats.NumFailed)
 					}
 
-					fmt.Printf("  Added %d documents to indexer. Succeeded: %d. Failed: %d. Requests: %d. Duration: %s (%.0f docs/sec)\n",
-						stats.NumAdded,
-						stats.NumFlushed,
-						stats.NumFailed,
-						stats.NumRequests,
-						time.Since(start).Truncate(time.Millisecond),
-						1000.0/float64(time.Since(start)/time.Millisecond)*float64(stats.NumFlushed))
+					if testutil.IsDebugEnabled(t) {
+						t.Logf("  Added %d documents to indexer. Succeeded: %d. Failed: %d. Requests: %d. Duration: %s (%.0f docs/sec)",
+							stats.NumAdded,
+							stats.NumFlushed,
+							stats.NumFailed,
+							stats.NumRequests,
+							time.Since(start).Truncate(time.Millisecond),
+							1000.0/float64(time.Since(start)/time.Millisecond)*float64(stats.NumFlushed))
+					}
 				})
 
 				t.Run("Multiple indices", func(t *testing.T) {
@@ -255,7 +270,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 					// Default index
 					for i := 1; i <= 10; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Action:     "index",
 							DocumentID: strconv.Itoa(i),
 							Body:       strings.NewReader(tt.body),
@@ -267,7 +282,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 					// Index 1
 					for i := 1; i <= 10; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Action: "index",
 							Index:  "test-index-b",
 							Body:   strings.NewReader(tt.body),
@@ -279,7 +294,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 					// Index 2
 					for i := 1; i <= 10; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Action: "index",
 							Index:  "test-index-c",
 							Body:   strings.NewReader(tt.body),
@@ -289,21 +304,24 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						}
 					}
 
-					if err := bi.Close(context.Background()); err != nil {
+					if err := bi.Close(ctx); err != nil {
 						t.Errorf("Unexpected error: %s", err)
 					}
 					stats := bi.Stats()
 
 					expectedIndexed := 10 + 10 + 10
+					// #nosec G115 -- small constant value, no overflow risk
 					if stats.NumIndexed != uint64(expectedIndexed) {
 						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 					}
 
-					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: []string{"test-index-a", "test-index-b", "test-index-c"}})
+					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
+						Indices: []string{"test-index-a", "test-index-b", "test-index-c"},
+					})
 					if err != nil {
 						t.Fatalf("Unexpected error: %s", err)
 					}
-					if res.StatusCode != 200 {
+					if res.StatusCode != http.StatusOK {
 						t.Errorf("Expected indices to exist, but got a [%s] response", res.Status())
 					}
 				})

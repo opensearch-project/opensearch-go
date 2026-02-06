@@ -40,19 +40,23 @@ func TestNodes(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Stats(nil, nil)
+						return client.Nodes.Stats(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Stats(nil, &opensearchapi.NodesStatsReq{NodeID: []string{"*"}, Metric: []string{"indices"}, IndexMetric: []string{"store"}})
+						return client.Nodes.Stats(t.Context(), &opensearchapi.NodesStatsReq{
+							NodeID:      []string{"*"},
+							Metric:      []string{"indices"},
+							IndexMetric: []string{"store"},
+						})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Nodes.Stats(nil, nil)
+						return failingClient.Nodes.Stats(t.Context(), nil)
 					},
 				},
 			},
@@ -63,19 +67,19 @@ func TestNodes(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Info(nil, nil)
+						return client.Nodes.Info(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Info(nil, &opensearchapi.NodesInfoReq{NodeID: []string{"*"}, Metrics: []string{"settings", "os"}})
+						return client.Nodes.Info(t.Context(), &opensearchapi.NodesInfoReq{NodeID: []string{"*"}, Metrics: []string{"settings", "os"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Nodes.Info(nil, nil)
+						return failingClient.Nodes.Info(t.Context(), nil)
 					},
 				},
 			},
@@ -90,7 +94,7 @@ func TestNodes(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Nodes.HotThreads(nil, nil)
+						resp.Response, err = client.Nodes.HotThreads(t.Context(), nil)
 						return resp, err
 					},
 				},
@@ -101,7 +105,7 @@ func TestNodes(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Nodes.HotThreads(nil, &opensearchapi.NodesHotThreadsReq{NodeID: []string{"*"}})
+						resp.Response, err = client.Nodes.HotThreads(t.Context(), &opensearchapi.NodesHotThreadsReq{NodeID: []string{"*"}})
 						return resp, err
 					},
 				},
@@ -112,7 +116,7 @@ func TestNodes(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Nodes.HotThreads(nil, nil)
+						resp.Response, err = failingClient.Nodes.HotThreads(t.Context(), nil)
 						return resp, err
 					},
 				},
@@ -124,19 +128,19 @@ func TestNodes(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.ReloadSecurity(nil, nil)
+						return client.Nodes.ReloadSecurity(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.ReloadSecurity(nil, &opensearchapi.NodesReloadSecurityReq{NodeID: []string{"*"}})
+						return client.Nodes.ReloadSecurity(t.Context(), &opensearchapi.NodesReloadSecurityReq{NodeID: []string{"*"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Nodes.ReloadSecurity(nil, nil)
+						return failingClient.Nodes.ReloadSecurity(t.Context(), nil)
 					},
 				},
 			},
@@ -147,19 +151,19 @@ func TestNodes(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Usage(nil, nil)
+						return client.Nodes.Usage(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Nodes.Usage(nil, &opensearchapi.NodesUsageReq{NodeID: []string{"*"}, Metrics: []string{"*"}})
+						return client.Nodes.Usage(t.Context(), &opensearchapi.NodesUsageReq{NodeID: []string{"*"}, Metrics: []string{"*"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Nodes.Usage(nil, nil)
+						return failingClient.Nodes.Usage(t.Context(), nil)
 					},
 				},
 			},

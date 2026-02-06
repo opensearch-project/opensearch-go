@@ -58,7 +58,7 @@ func TestNodesDNClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.NodesDN.Put(
-							nil,
+							t.Context(),
 							security.NodesDNPutReq{
 								Cluster: "test",
 								Body: security.NodesDNPutBody{
@@ -71,7 +71,7 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Put(nil, security.NodesDNPutReq{})
+						return failingClient.NodesDN.Put(t.Context(), security.NodesDNPutReq{})
 					},
 				},
 			},
@@ -82,19 +82,19 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.NodesDN.Get(nil, nil)
+						return client.NodesDN.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.NodesDN.Get(nil, &security.NodesDNGetReq{Cluster: "test"})
+						return client.NodesDN.Get(t.Context(), &security.NodesDNGetReq{Cluster: "test"})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Get(nil, nil)
+						return failingClient.NodesDN.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -105,13 +105,13 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.NodesDN.Delete(nil, security.NodesDNDeleteReq{Cluster: "test"})
+						return client.NodesDN.Delete(t.Context(), security.NodesDNDeleteReq{Cluster: "test"})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Delete(nil, security.NodesDNDeleteReq{Cluster: "test"})
+						return failingClient.NodesDN.Delete(t.Context(), security.NodesDNDeleteReq{Cluster: "test"})
 					},
 				},
 			},
@@ -123,7 +123,7 @@ func TestNodesDNClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.NodesDN.Patch(
-							nil,
+							t.Context(),
 							security.NodesDNPatchReq{
 								Body: security.NodesDNPatchBody{
 									security.NodesDNPatchBodyItem{
@@ -145,7 +145,7 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Patch(nil, security.NodesDNPatchReq{})
+						return failingClient.NodesDN.Patch(t.Context(), security.NodesDNPatchReq{})
 					},
 				},
 			},
@@ -174,7 +174,7 @@ func TestNodesDNClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.NodesDN.Get(nil, nil)
+			resp, err := client.NodesDN.Get(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.DistinguishedNames, resp.Inspect().Response)

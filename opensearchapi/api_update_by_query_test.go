@@ -9,7 +9,8 @@
 package opensearchapi_test
 
 import (
-	"strconv"
+	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,6 +20,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestUpdateByQuery(t *testing.T) {
@@ -27,16 +29,19 @@ func TestUpdateByQuery(t *testing.T) {
 
 	testIndex := "test-update_by_query"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
+
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			context.Background(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar", "counter": 1}`),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
@@ -45,7 +50,7 @@ func TestUpdateByQuery(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.UpdateByQuery(
-			nil,
+			context.Background(),
 			opensearchapi.UpdateByQueryReq{
 				Indices: []string{testIndex},
 				Body:    strings.NewReader(`{"script":{"source":"ctx._source.counter += params.count","lang":"painless","params":{"count":4}}}`),
@@ -60,7 +65,7 @@ func TestUpdateByQuery(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.UpdateByQuery(nil, opensearchapi.UpdateByQueryReq{})
+		res, err := failingClient.UpdateByQuery(t.Context(), opensearchapi.UpdateByQueryReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

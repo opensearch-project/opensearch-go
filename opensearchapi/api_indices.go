@@ -125,7 +125,8 @@ func (c indicesClient) Get(ctx context.Context, req IndicesGetReq) (*IndicesGetR
 		data IndicesGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
+	data.IndicesGetRespData = &IndicesGetRespData{}
+	if data.response, err = c.apiClient.do(ctx, req, data.IndicesGetRespData); err != nil {
 		return &data, err
 	}
 
@@ -215,7 +216,7 @@ func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*
 		data IndicesRecoveryResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
 		return &data, err
 	}
 

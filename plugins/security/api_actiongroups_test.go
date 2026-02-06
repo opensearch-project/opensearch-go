@@ -43,19 +43,19 @@ func TestActiongroupsClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.ActionGroups.Get(nil, nil)
+						return client.ActionGroups.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.ActionGroups.Get(nil, &security.ActionGroupsGetReq{ActionGroup: "write"})
+						return client.ActionGroups.Get(t.Context(), &security.ActionGroupsGetReq{ActionGroup: "write"})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Get(nil, nil)
+						return failingClient.ActionGroups.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -67,7 +67,7 @@ func TestActiongroupsClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.ActionGroups.Put(
-							nil,
+							t.Context(),
 							security.ActionGroupsPutReq{
 								ActionGroup: "test",
 								Body: security.ActionGroupsPutBody{
@@ -82,7 +82,7 @@ func TestActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Put(nil, security.ActionGroupsPutReq{})
+						return failingClient.ActionGroups.Put(t.Context(), security.ActionGroupsPutReq{})
 					},
 				},
 			},
@@ -93,13 +93,13 @@ func TestActiongroupsClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.ActionGroups.Delete(nil, security.ActionGroupsDeleteReq{ActionGroup: "test"})
+						return client.ActionGroups.Delete(t.Context(), security.ActionGroupsDeleteReq{ActionGroup: "test"})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Delete(nil, security.ActionGroupsDeleteReq{})
+						return failingClient.ActionGroups.Delete(t.Context(), security.ActionGroupsDeleteReq{})
 					},
 				},
 			},
@@ -111,15 +111,16 @@ func TestActiongroupsClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.ActionGroups.Patch(
-							nil,
+							t.Context(),
 							security.ActionGroupsPatchReq{
-								Body: security.ActionGroupsPatchBody{security.ActionGroupsPatchBodyItem{
-									OP:   "add",
-									Path: "/test",
-									Value: security.ActionGroupsPutBody{
-										AllowedActions: []string{"indices:data/read/msearch*", "indices:admin/mapping/put"},
+								Body: security.ActionGroupsPatchBody{
+									security.ActionGroupsPatchBodyItem{
+										OP:   "add",
+										Path: "/test",
+										Value: security.ActionGroupsPutBody{
+											AllowedActions: []string{"indices:data/read/msearch*", "indices:admin/mapping/put"},
+										},
 									},
-								},
 								},
 							},
 						)
@@ -128,7 +129,7 @@ func TestActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Patch(nil, security.ActionGroupsPatchReq{})
+						return failingClient.ActionGroups.Patch(t.Context(), security.ActionGroupsPatchReq{})
 					},
 				},
 			},
@@ -157,7 +158,7 @@ func TestActiongroupsClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.ActionGroups.Get(nil, nil)
+			resp, err := client.ActionGroups.Get(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Groups, resp.Inspect().Response)

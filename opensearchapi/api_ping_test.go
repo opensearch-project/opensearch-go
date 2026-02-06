@@ -24,13 +24,13 @@ func TestPing(t *testing.T) {
 	require.Nil(t, err)
 
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.Ping(nil, nil)
+		resp, err := client.Ping(t.Context(), nil)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.Ping(nil, &opensearchapi.PingReq{})
+		resp, err := client.Ping(t.Context(), &opensearchapi.PingReq{})
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
 	})
@@ -39,10 +39,8 @@ func TestPing(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		var (
-			resp osapitest.DummyInspect
-		)
-		resp.Response, err = failingClient.Ping(nil, nil)
+		var resp osapitest.DummyInspect
+		resp.Response, err = failingClient.Ping(t.Context(), nil)
 		assert.NotNil(t, err)
 		assert.NotNil(t, resp)
 		osapitest.VerifyInspect(t, resp.Inspect())

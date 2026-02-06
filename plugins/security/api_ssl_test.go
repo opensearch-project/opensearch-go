@@ -63,13 +63,13 @@ func TestSSLClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.SSL.HTTPReload(nil, nil)
+						return client.SSL.HTTPReload(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.SSL.HTTPReload(nil, &security.SSLHTTPReloadReq{})
+						return failingClient.SSL.HTTPReload(t.Context(), &security.SSLHTTPReloadReq{})
 					},
 				},
 			},
@@ -80,13 +80,13 @@ func TestSSLClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.SSL.TransportReload(nil, nil)
+						return client.SSL.TransportReload(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.SSL.TransportReload(nil, &security.SSLTransportReloadReq{})
+						return failingClient.SSL.TransportReload(t.Context(), &security.SSLTransportReloadReq{})
 					},
 				},
 			},
@@ -97,13 +97,13 @@ func TestSSLClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.SSL.Get(nil, nil)
+						return client.SSL.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.SSL.Get(nil, nil)
+						return failingClient.SSL.Get(t.Context(), nil)
 					},
 				},
 			},

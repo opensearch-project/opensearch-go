@@ -42,11 +42,6 @@ type Measurable interface {
 	Metrics() (Metrics, error)
 }
 
-// connectionable defines the interface for transports returning a list of connections.
-type connectionable interface {
-	connections() []*Connection
-}
-
 // Metrics represents the transport metrics.
 type Metrics struct {
 	Requests  int         `json:"requests"`
@@ -100,11 +95,18 @@ func (c *Client) Metrics() (Metrics, error) {
 	maps.Copy(responses, c.metrics.mu.responses)
 	c.metrics.mu.RUnlock()
 
-	// Acquire read lock on pool since we're only reading connection state
-	if rwLock, ok := c.mu.pool.(rwLocker); ok {
-		rwLock.RLock()
-		defer rwLock.RUnlock()
+	// Get connections from current connection pool
+	var connections []*Connection
+	c.mu.RLock()
+	if c.mu.connectionPool != nil {
+		switch pool := c.mu.connectionPool.(type) {
+		case *statusConnectionPool:
+			connections = pool.connections()
+		case *singleConnectionPool:
+			connections = pool.connections()
+		}
 	}
+	c.mu.RUnlock()
 
 	m := Metrics{
 		Requests:  int(c.metrics.requests.Load()),
@@ -112,17 +114,15 @@ func (c *Client) Metrics() (Metrics, error) {
 		Responses: responses,
 	}
 
-	if pool, ok := c.mu.pool.(connectionable); ok {
-		connections := pool.connections()
+	if len(connections) > 0 {
 		for _, c := range connections {
 			c.mu.Lock()
-			isDead := c.mu.isDead
 			deadSince := c.mu.deadSince
 			c.mu.Unlock()
 
 			cm := ConnectionMetric{
 				URL:      c.URL.String(),
-				IsDead:   isDead,
+				IsDead:   !deadSince.IsZero(),
 				Failures: int(c.failures.Load()),
 			}
 
@@ -140,7 +140,7 @@ func (c *Client) Metrics() (Metrics, error) {
 			}
 
 			if len(c.Roles) > 0 {
-				cm.Meta.Roles = c.Roles
+				cm.Meta.Roles = c.Roles.toSlice()
 			}
 
 			m.Connections = append(m.Connections, cm)

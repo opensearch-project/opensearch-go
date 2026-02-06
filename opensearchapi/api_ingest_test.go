@@ -44,10 +44,13 @@ func TestIngestClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Ingest.Create(
-							nil,
+							t.Context(),
 							opensearchapi.IngestCreateReq{
 								PipelineID: ingest,
-								Body:       strings.NewReader(`{"description":"This pipeline processes student data","processors":[{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`),
+								Body: strings.NewReader(`{"description":"This pipeline processes student data",` +
+									`"processors":[{"set":{"description":"Sets the graduation year to 2023",` +
+									`"field":"grad_year","value":2023}},{"set":{"description":"Sets graduated to true",` +
+									`"field":"graduated","value":true}}]}`),
 							},
 						)
 					},
@@ -55,7 +58,7 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Create(nil, opensearchapi.IngestCreateReq{})
+						return failingClient.Ingest.Create(t.Context(), opensearchapi.IngestCreateReq{})
 					},
 				},
 			},
@@ -66,13 +69,13 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Ingest.Get(nil, &opensearchapi.IngestGetReq{PipelineIDs: []string{ingest}})
+						return client.Ingest.Get(t.Context(), &opensearchapi.IngestGetReq{PipelineIDs: []string{ingest}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Get(nil, nil)
+						return failingClient.Ingest.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -83,13 +86,13 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Ingest.Grok(nil, nil)
+						return client.Ingest.Grok(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Grok(nil, nil)
+						return failingClient.Ingest.Grok(t.Context(), nil)
 					},
 				},
 			},
@@ -101,11 +104,17 @@ func TestIngestClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Ingest.Simulate(
-							nil,
+							t.Context(),
 							opensearchapi.IngestSimulateReq{
 								PipelineID: ingest,
-								Body:       strings.NewReader(`{"docs":[{"_index":"my-index","_id":"1","_source":{"grad_year":2024,"graduated":false,"name":"John Doe"}}]}`),
-								Params:     opensearchapi.IngestSimulateParams{Verbose: opensearchapi.ToPointer(true), Pretty: true, Human: true, ErrorTrace: true},
+								Body: strings.NewReader(`{"docs":[{"_index":"my-index","_id":"1","_source":` +
+									`{"grad_year":2024,"graduated":false,"name":"John Doe"}}]}`),
+								Params: opensearchapi.IngestSimulateParams{
+									Verbose:    opensearchapi.ToPointer(true),
+									Pretty:     true,
+									Human:      true,
+									ErrorTrace: true,
+								},
 							},
 						)
 					},
@@ -113,7 +122,7 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Simulate(nil, opensearchapi.IngestSimulateReq{})
+						return failingClient.Ingest.Simulate(t.Context(), opensearchapi.IngestSimulateReq{})
 					},
 				},
 			},
@@ -124,13 +133,13 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Ingest.Delete(nil, opensearchapi.IngestDeleteReq{PipelineID: ingest})
+						return client.Ingest.Delete(t.Context(), opensearchapi.IngestDeleteReq{PipelineID: ingest})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Delete(nil, opensearchapi.IngestDeleteReq{PipelineID: ingest})
+						return failingClient.Ingest.Delete(t.Context(), opensearchapi.IngestDeleteReq{PipelineID: ingest})
 					},
 				},
 			},
@@ -160,18 +169,23 @@ func TestIngestClient(t *testing.T) {
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
 			t.Cleanup(func() {
-				failingClient.Ingest.Delete(nil, opensearchapi.IngestDeleteReq{PipelineID: ingest})
+				failingClient.Ingest.Delete(t.Context(), opensearchapi.IngestDeleteReq{PipelineID: ingest})
 			})
 			_, err := client.Ingest.Create(
-				nil,
+				t.Context(),
 				opensearchapi.IngestCreateReq{
 					PipelineID: ingest,
-					Body:       strings.NewReader(`{"description":"This pipeline processes student data","processors":[{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`),
+					Body: strings.NewReader(
+						`{"description":"This pipeline processes student data",` +
+							`"processors":[` +
+							`{"set":{"description":"Sets the graduation year to 2023","field":"grad_year","value":2023}},` +
+							`{"set":{"description":"Sets graduated to true","field":"graduated","value":true}}]}`,
+					),
 				},
 			)
 			require.Nil(t, err)
 
-			resp, err := client.Ingest.Get(nil, nil)
+			resp, err := client.Ingest.Get(t.Context(), nil)
 			require.Nil(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)

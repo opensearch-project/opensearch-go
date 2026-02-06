@@ -30,7 +30,7 @@ func (c mappingClient) Get(ctx context.Context, req *MappingGetReq) (*MappingGet
 		data MappingGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -60,7 +60,7 @@ func (c mappingClient) Field(ctx context.Context, req *MappingFieldReq) (*Mappin
 		data MappingFieldResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -97,10 +97,27 @@ func (r MappingGetReq) GetRequest() (*http.Request, error) {
 
 // MappingGetResp represents the returned struct of the mapping get response
 type MappingGetResp struct {
-	Indices map[string]struct {
-		Mappings json.RawMessage `json:"mappings"`
-	}
 	response *opensearch.Response
+
+	// Direct mapping of index names to their mappings as top-level keys
+	raw map[string]MappingGetRespIndex
+}
+
+// MappingGetRespIndex represents the structure of each index in the mapping response
+type MappingGetRespIndex struct {
+	Mappings json.RawMessage `json:"mappings"` // Available since OpenSearch 1.0.0
+}
+
+// GetIndices returns the map of index names to their mappings
+func (r *MappingGetResp) GetIndices() map[string]MappingGetRespIndex {
+	return r.raw
+}
+
+// UnmarshalJSON custom unmarshaling to handle dynamic index names as top-level keys
+func (r *MappingGetResp) UnmarshalJSON(data []byte) error {
+	// Unmarshal into a map to capture all dynamic index names
+	r.raw = make(map[string]MappingGetRespIndex)
+	return json.Unmarshal(data, &r.raw)
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

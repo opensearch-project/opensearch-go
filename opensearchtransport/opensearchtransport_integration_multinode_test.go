@@ -38,13 +38,12 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
-var (
-	_ = fmt.Print
-)
+var _ = fmt.Print
 
 func TestTransportSelector(t *testing.T) {
 	NodeName := func(t *testing.T, transport opensearchtransport.Interface) string {
-		req, err := http.NewRequest("GET", "/", nil)
+		t.Helper()
+		req, err := http.NewRequest(http.MethodGet, "/", nil)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -53,11 +52,12 @@ func TestTransportSelector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
+		defer res.Body.Close()
 
-		fmt.Printf("> GET %s\n", req.URL)
+		t.Logf("> GET %q", req.URL)
 
 		r := struct {
-			Name string
+			Name string `json:"name"`
 		}{}
 
 		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
@@ -68,27 +68,25 @@ func TestTransportSelector(t *testing.T) {
 	}
 
 	t.Run("RoundRobin", func(t *testing.T) {
-		var (
-			node string
-		)
+		var node string
 		transport, _ := opensearchtransport.New(opensearchtransport.Config{URLs: []*url.URL{
 			{Scheme: "http", Host: "localhost:9200"},
 			{Scheme: "http", Host: "localhost:9201"},
 		}})
 
 		node = NodeName(t, transport)
-		if node != "es1" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node1" {
+			t.Errorf("Unexpected node, want=opensearch-node1, got=%s", node)
 		}
 
 		node = NodeName(t, transport)
-		if node != "es2" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node2" {
+			t.Errorf("Unexpected node, want=opensearch-node2, got=%s", node)
 		}
 
 		node = NodeName(t, transport)
-		if node != "es1" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node1" {
+			t.Errorf("Unexpected node, want=opensearch-node1, got=%s", node)
 		}
 	})
 }

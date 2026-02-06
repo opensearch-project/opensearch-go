@@ -39,7 +39,7 @@ func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 	}
 
 	// Always wait for cluster readiness
-	err = waitForClusterReady(t, client)
+	err = WaitForClusterReady(t, client)
 	if err != nil {
 		return nil, err
 	}
@@ -47,28 +47,31 @@ func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 	return client, nil
 }
 
-// waitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
-func waitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
+// WaitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
+// This function is exported so tests that create clients manually can also wait for readiness.
+func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 	t.Helper()
+	if client == nil || client.Client == nil {
+		return fmt.Errorf("client and client.Client must not be nil")
+	}
+
 	const (
 		maxAttempts          = 25
 		delayBetweenAttempts = 5 * time.Second
 		requestTimeout       = 2 * time.Second
 	)
 
-	// Get version for informational logging
-	major, minor, patch, err := GetVersion(client, t)
-	if err != nil {
-		return fmt.Errorf("failed to get OpenSearch version: %w", err)
-	}
-
+	// Try to get version for informational logging
 	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
 	defer cancel()
 
+	var major, minor, patch int64
+	versionKnown := false
+
 	for attempt := range maxAttempts {
-		// Basic cluster health check
-		resp, err := client.Cluster.Health(ctx, nil)
-		if err != nil || resp == nil {
+		// Basic health check using Info endpoint (more reliable during startup)
+		infoResp, err := client.Info(ctx, nil)
+		if err != nil || infoResp == nil {
 			t.Logf("Waiting %s for cluster readiness (attempt %d/%d)...", delayBetweenAttempts, attempt+1, maxAttempts)
 			time.Sleep(delayBetweenAttempts)
 
@@ -76,6 +79,12 @@ func waitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 			ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
 			defer cancel()
 			continue
+		}
+
+		// Capture version on first successful response
+		if !versionKnown {
+			major, minor, patch, _ = opensearch.ParseVersion(infoResp.Version.Number)
+			versionKnown = true
 		}
 
 		// Extended readiness validation
@@ -94,11 +103,13 @@ func waitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 		defer cancel()
 	}
 
-	return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+	if versionKnown {
+		return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+	}
+	return fmt.Errorf("cluster not ready after %d attempts", maxAttempts)
 }
 
-// extendedReadinessCheck performs validation checks to ensure the
-// cluster is ready
+// extendedReadinessCheck performs validation checks to ensure the cluster is ready
 func extendedReadinessCheck(ctx context.Context, client *opensearchapi.Client) error {
 	// Try a simple cluster state request - this exercises more Java serialization paths
 	_, err := client.Cluster.State(ctx, nil)
@@ -116,7 +127,8 @@ func extendedReadinessCheck(ctx context.Context, client *opensearchapi.Client) e
 }
 
 // GetVersion gets cluster info and returns version as int's
-func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64, error) {
+func GetVersion(t *testing.T, client *opensearchapi.Client) (int64, int64, int64, error) {
+	t.Helper()
 	if client == nil {
 		return 0, 0, 0, fmt.Errorf("client cannot be nil")
 	}
@@ -130,7 +142,7 @@ func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64
 // SkipIfBelowVersion skips a test if the cluster version is below a given version
 func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion, patchVersion int64, testName string) {
 	t.Helper()
-	major, patch, _, err := GetVersion(client, t)
+	major, patch, _, err := GetVersion(t, client)
 	assert.Nil(t, err)
 	if major < majorVersion || (major == majorVersion && patch < patchVersion) {
 		t.Skipf("Skipping %s as version %d.%d.x does not support this endpoint", testName, major, patch)

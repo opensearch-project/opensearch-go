@@ -35,7 +35,11 @@ func TestDanglingClient(t *testing.T) {
 				return http.StatusNotImplemented, fmt.Sprintf(`{"status": 501, "error": "Expected '_dangling/indexUUID' but got %s"}`, r.URL.Path)
 			}
 			if u.Query().Get("accept_data_loss") == "" {
-				return http.StatusBadRequest, `{"error":{"root_cause":[{"type":"illegal_argument_exception","reason":"accept_data_loss must be set to true"}],"type":"illegal_argument_exception","reason":"accept_data_loss must be set to true"},"status":400}`
+				return http.StatusBadRequest,
+					`{"error":{"root_cause":[{"type":"illegal_argument_exception",` +
+						`"reason":"accept_data_loss must be set to true"}],` +
+						`"type":"illegal_argument_exception",` +
+						`"reason":"accept_data_loss must be set to true"},"status":400}`
 			}
 			return 0, ""
 		}
@@ -50,7 +54,11 @@ func TestDanglingClient(t *testing.T) {
 				io.Copy(w, strings.NewReader(fmt.Sprintf(`{"status": 501, "error": "Expected '_dangling' but got %s"}`, r.URL.Path)))
 				return
 			}
-			w.Write([]byte(`{"_nodes":{"total":1,"successful":1,"failed":0},"cluster_name":"docker-cluster","dangling_indices":[{"index_name":"test","index_uuid":"WaO0Mu-bSX6E7SdsuYU-yw","creation_date_millis":1694099652069,"node_ids":["xS9VXy4DTXmtO49gPaC3bw"]}]}`))
+			w.Write([]byte(
+				`{"_nodes":{"total":1,"successful":1,"failed":0},"cluster_name":"docker-cluster",` +
+					`"dangling_indices":[{"index_name":"test","index_uuid":"WaO0Mu-bSX6E7SdsuYU-yw",` +
+					`"creation_date_millis":1694099652069,"node_ids":["xS9VXy4DTXmtO49gPaC3bw"]}]}`,
+			))
 		case http.MethodPost:
 			if code, resp := testURL(r.URL); code != 0 {
 				w.WriteHeader(code)
@@ -92,7 +100,7 @@ func TestDanglingClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Dangling.Import(
-							nil,
+							t.Context(),
 							opensearchapi.DanglingImportReq{
 								IndexUUID: "indexUUID",
 								Params:    opensearchapi.DanglingImportParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
@@ -103,7 +111,7 @@ func TestDanglingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Dangling.Import(nil, opensearchapi.DanglingImportReq{IndexUUID: "indexUUID"})
+						return failingClient.Dangling.Import(t.Context(), opensearchapi.DanglingImportReq{IndexUUID: "indexUUID"})
 					},
 				},
 			},
@@ -114,13 +122,13 @@ func TestDanglingClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Dangling.Get(nil, &opensearchapi.DanglingGetReq{})
+						return client.Dangling.Get(t.Context(), &opensearchapi.DanglingGetReq{})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Dangling.Get(nil, nil)
+						return failingClient.Dangling.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -132,7 +140,7 @@ func TestDanglingClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Dangling.Delete(
-							nil,
+							t.Context(),
 							opensearchapi.DanglingDeleteReq{
 								IndexUUID: "indexUUID",
 								Params:    opensearchapi.DanglingDeleteParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
@@ -143,7 +151,7 @@ func TestDanglingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Dangling.Delete(nil, opensearchapi.DanglingDeleteReq{IndexUUID: "indexUUID"})
+						return failingClient.Dangling.Delete(t.Context(), opensearchapi.DanglingDeleteReq{IndexUUID: "indexUUID"})
 					},
 				},
 			},
@@ -170,14 +178,14 @@ func TestDanglingClient(t *testing.T) {
 
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Dangling.Get(nil, nil)
+			resp, err := client.Dangling.Get(t.Context(), nil)
 			require.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Dangling.Delete(
-				nil,
+				t.Context(),
 				opensearchapi.DanglingDeleteReq{
 					IndexUUID: "indexUUID",
 					Params:    opensearchapi.DanglingDeleteParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
@@ -189,7 +197,7 @@ func TestDanglingClient(t *testing.T) {
 		})
 		t.Run("Import", func(t *testing.T) {
 			resp, err := client.Dangling.Import(
-				nil,
+				t.Context(),
 				opensearchapi.DanglingImportReq{
 					IndexUUID: "indexUUID",
 					Params:    opensearchapi.DanglingImportParams{AcceptDataLoss: opensearchapi.ToPointer(true)},
