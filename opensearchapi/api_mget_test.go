@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -27,12 +28,12 @@ func TestMGet(t *testing.T) {
 
 	testIndex := "test-mget"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			context.Background(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -45,7 +46,7 @@ func TestMGet(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.MGet(
-			nil,
+			context.Background(),
 			opensearchapi.MGetReq{
 				Index: testIndex,
 				Body:  strings.NewReader(`{"docs":[{"_id":"1"},{"_id":"2"}]}`),
@@ -60,7 +61,7 @@ func TestMGet(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.MGet(nil, opensearchapi.MGetReq{})
+		res, err := failingClient.MGet(t.Context(), opensearchapi.MGetReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

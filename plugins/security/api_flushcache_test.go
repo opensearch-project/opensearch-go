@@ -27,14 +27,14 @@ func TestFlushCache(t *testing.T) {
 	require.Nil(t, err)
 
 	t.Run("without request", func(t *testing.T) {
-		resp, err := client.FlushCache(nil, nil)
+		resp, err := client.FlushCache(t.Context(), nil)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
-		res, err := failingClient.FlushCache(nil, nil)
+		res, err := failingClient.FlushCache(t.Context(), nil)
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		ossectest.VerifyInspect(t, res.Inspect())

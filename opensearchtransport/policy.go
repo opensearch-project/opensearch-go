@@ -30,10 +30,19 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // HealthCheckFunc defines the signature for health check functions.
 type HealthCheckFunc func(ctx context.Context, url *url.URL) (*http.Response, error)
+
+// policyConfig contains configuration settings for policy connection pools.
+// This unexported struct allows policies to create pools with consistent settings
+// and provides a single place to add new configuration options in the future.
+type policyConfig struct {
+	resurrectTimeoutInitial      time.Duration
+	resurrectTimeoutFactorCutoff int
+}
 
 // Policy defines the interface for individual routing policies.
 // Policies return (pool, nil) for matches, (nil, error) for errors,
@@ -64,8 +73,17 @@ type Policy interface {
 	Eval(ctx context.Context, req *http.Request) (ConnectionPool, error)
 }
 
-// poolFactoryConfigurable is a package-internal interface for policies that need pool factory configuration.
-// This allows injecting client-specific pool configuration (like timeout settings) after policy creation.
-type poolFactoryConfigurable interface {
-	configurePoolFactories(factory func() *statusConnectionPool) error
+// policyConfigurable is a package-internal interface for policies that need configuration.
+// This allows injecting client-specific pool settings (like timeout settings) after policy creation.
+type policyConfigurable interface {
+	configurePolicySettings(config policyConfig) error
+}
+
+// createPoolFromConfig creates a new statusConnectionPool with the given configuration.
+// This is a helper function for leaf policies that manage their own connection pools.
+func createPoolFromConfig(config policyConfig) *statusConnectionPool {
+	return &statusConnectionPool{
+		resurrectTimeoutInitial:      config.resurrectTimeoutInitial,
+		resurrectTimeoutFactorCutoff: config.resurrectTimeoutFactorCutoff,
+	}
 }

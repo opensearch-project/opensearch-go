@@ -42,11 +42,6 @@ type Measurable interface {
 	Metrics() (Metrics, error)
 }
 
-// connectionable defines the interface for transports returning a list of connections.
-type connectionable interface {
-	connections() []*Connection
-}
-
 // Metrics represents the transport metrics.
 type Metrics struct {
 	Requests  int         `json:"requests"`

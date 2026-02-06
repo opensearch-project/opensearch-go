@@ -59,7 +59,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 			})
 			require.NoError(t, err, "Failed to create client")
 
-			err = client.DiscoverNodes()
+			err = client.DiscoverNodes(t.Context())
 			if err != nil {
 				t.Skipf("Discovery failed from %s - cluster may not be running: %v", endpoint, err)
 				return
@@ -67,12 +67,12 @@ func TestDiscoveryIntegration(t *testing.T) {
 
 			// Test that discovery worked by making a request and verifying we can reach different nodes
 			// The client should now know about all 3 nodes and can route requests appropriately
-			req, err := http.NewRequest("GET", "/", nil)
+			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			require.NoError(t, err)
 
 			// Make several requests to see if we're hitting different nodes (due to round-robin)
 			nodeNames := make(map[string]int)
-			for i := 0; i < 6; i++ { // Make enough requests to hit all nodes
+			for range 6 { // Make enough requests to hit all nodes
 				resp, err := client.Perform(req)
 				if err != nil {
 					t.Fatalf("Request failed: %v", err)
@@ -122,7 +122,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = client.DiscoverNodes()
+		err = client.DiscoverNodes(t.Context())
 		if err != nil {
 			t.Skipf("Discovery failed - cluster may not be running: %v", err)
 			return
@@ -146,7 +146,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = clientIncludeAll.DiscoverNodes()
+		err = clientIncludeAll.DiscoverNodes(t.Context())
 		require.NoError(t, err)
 
 		urlsIncludeAll := clientIncludeAll.URLs()

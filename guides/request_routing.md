@@ -125,6 +125,7 @@ router := opensearchtransport.NewSmartRouter()
 ```
 
 This provides:
+
 1. **Coordinating-only nodes** (if available, exclusive)
 2. **HTTP pattern matching** (bulk->ingest, search->data)
 3. **Round-robin fallback** (high availability)
@@ -197,6 +198,7 @@ router := opensearchtransport.NewRouter(
 ```
 
 This provides the optimal strategy:
+
 1. **Coordinator preference**: Uses dedicated client nodes when available (no fallthrough)
 2. **Smart routing**: Routes bulk->ingest, search->data based on HTTP patterns
 3. **High availability**: Round-robin ensures requests always succeed

@@ -34,7 +34,7 @@ func TestReindexRethrottle(t *testing.T) {
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			context.Background(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -44,7 +44,7 @@ func TestReindexRethrottle(t *testing.T) {
 
 	for _, index := range testIndices {
 		client.Indices.Create(
-			nil,
+			context.Background(),
 			opensearchapi.IndicesCreateReq{
 				Index: index,
 				Body:  strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
@@ -56,6 +56,7 @@ func TestReindexRethrottle(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
+	require.Nil(t, err)
 	for i := 1; i <= 60; i++ {
 		err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
 			Action:     "index",
@@ -71,7 +72,7 @@ func TestReindexRethrottle(t *testing.T) {
 	}
 
 	reindex, err := client.Reindex(
-		nil,
+		t.Context(),
 		opensearchapi.ReindexReq{
 			Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s","size":1},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
 			Params: opensearchapi.ReindexParams{
@@ -82,8 +83,9 @@ func TestReindexRethrottle(t *testing.T) {
 	)
 	require.Nil(t, err)
 	t.Run("with request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.ReindexRethrottle(
-			nil,
+			context.Background(),
 			opensearchapi.ReindexRethrottleReq{
 				TaskID: reindex.Task,
 				Params: opensearchapi.ReindexRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(40)},
@@ -95,10 +97,11 @@ func TestReindexRethrottle(t *testing.T) {
 	})
 
 	t.Run("inspect", func(t *testing.T) {
+		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.ReindexRethrottle(nil, opensearchapi.ReindexRethrottleReq{})
+		res, err := failingClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

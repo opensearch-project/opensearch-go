@@ -100,6 +100,12 @@ type Config struct {
 	Logger    opensearchtransport.Logger   // The logger object.
 	Selector  opensearchtransport.Selector // The selector object.
 
+	// Context for background operations. If nil, context.Background() will be used.
+	// This is only used during client initialization and is not stored long-term.
+	//nolint:containedctx // Config struct is short-lived, context extracted during New()
+	Context    context.Context
+	CancelFunc context.CancelFunc
+
 	// Optional constructor function for a custom ConnectionPool. Default: nil.
 	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
 }
@@ -139,6 +145,11 @@ func NewClient(cfg Config) (*Client, error) {
 		addrs = append(addrs, cfg.Addresses...)
 	}
 
+	// Initialize context if not provided
+	if cfg.Context == nil {
+		cfg.Context, cfg.CancelFunc = context.WithCancel(context.Background())
+	}
+
 	urls, err := addrsToURLs(addrs)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateClient, err)
@@ -148,23 +159,10 @@ func NewClient(cfg Config) (*Client, error) {
 		//nolint:errcheck // errcheck exclude ???
 		u, _ := url.Parse(defaultURL)
 		urls = append(urls, u)
-	} else if cfg.Username == "" || cfg.Password == "" {
-		// Extract credentials from the first URL that has them (only if not already configured)
-		for _, u := range urls {
-			if u.User != nil {
-				if cfg.Username == "" {
-					cfg.Username = u.User.Username()
-				}
-				if cfg.Password == "" {
-					if pw, ok := u.User.Password(); ok {
-						cfg.Password = pw
-					}
-				}
-				// Stop after finding the first URL with credentials
-				break
-			}
-		}
 	}
+
+	// Extract credentials from the first URL that has them (only if not already configured)
+	extractCredentialsFromURLs(&cfg, urls)
 
 	tp, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs:     urls,
@@ -193,6 +191,8 @@ func NewClient(cfg Config) (*Client, error) {
 		Logger:             cfg.Logger,
 		Selector:           cfg.Selector,
 		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
+		Context:            cfg.Context,
+		CancelFunc:         cfg.CancelFunc,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)
@@ -201,8 +201,15 @@ func NewClient(cfg Config) (*Client, error) {
 	client := &Client{Transport: tp}
 
 	if cfg.DiscoverNodesOnStart {
-		//nolint:errcheck // goroutine discards return values
-		go client.DiscoverNodes()
+		go func() {
+			start := time.Now()
+			if err := client.DiscoverNodes(cfg.Context); err != nil {
+				if cfg.Logger != nil {
+					//nolint:errcheck // Logger errors are not critical for discovery
+					cfg.Logger.LogRoundTrip(nil, nil, err, start, time.Since(start))
+				}
+			}
+		}()
 	}
 
 	return client, err
@@ -294,9 +301,9 @@ func (c *Client) Metrics() (opensearchtransport.Metrics, error) {
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
-func (c *Client) DiscoverNodes() error {
+func (c *Client) DiscoverNodes(ctx context.Context) error {
 	if dt, ok := c.Transport.(opensearchtransport.Discoverable); ok {
-		return dt.DiscoverNodes()
+		return dt.DiscoverNodes(ctx)
 	}
 
 	return ErrTransportMissingMethodDiscoverNodes
@@ -333,6 +340,31 @@ func addrsToURLs(addrs []string) ([]*url.URL, error) {
 	}
 
 	return urls, nil
+}
+
+// extractCredentialsFromURLs extracts username and password from the first URL that has them.
+// Only extracts credentials that are not already configured in cfg.
+func extractCredentialsFromURLs(cfg *Config, urls []*url.URL) {
+	if len(urls) == 0 || (cfg.Username != "" && cfg.Password != "") {
+		return // No URLs or credentials already fully configured
+	}
+
+	for _, u := range urls {
+		if u.User == nil {
+			continue
+		}
+
+		if cfg.Username == "" {
+			cfg.Username = u.User.Username()
+		}
+		if cfg.Password == "" {
+			if pw, ok := u.User.Password(); ok {
+				cfg.Password = pw
+			}
+		}
+		// Stop after finding the first URL with credentials
+		break
+	}
 }
 
 // ToPointer converts any value to a pointer, mainly used for request parameters

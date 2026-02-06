@@ -29,6 +29,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
   - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
   - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
+- **BREAKING**: Add context support to discovery and client lifecycle management
+  - `opensearchtransport.Discoverable` interface now requires `context.Context` parameter: `DiscoverNodes(ctx context.Context) error`
+  - `opensearch.Client.DiscoverNodes()` and `opensearchtransport.Client.DiscoverNodes()` now require `context.Context` parameter
+  - `opensearch.Config` and `opensearchtransport.Config` now accept optional `Context` and `CancelFunc` fields
+  - `opensearchutil.BulkIndexerConfig` now accepts optional `Context` and `CancelFunc` fields
+  - Enables proper context propagation for timeouts, cancellation, and graceful shutdown
 
 ### Deprecated
 

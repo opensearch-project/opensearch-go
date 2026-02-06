@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -27,12 +28,12 @@ func TestSearchTemplate(t *testing.T) {
 
 	testIndex := "test-search-template"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			context.Background(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -45,7 +46,7 @@ func TestSearchTemplate(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.SearchTemplate(
-			nil,
+			context.Background(),
 			opensearchapi.SearchTemplateReq{
 				Indices: []string{testIndex},
 				Body:    strings.NewReader(`{"source":{"query":{"exists":{"field":"{{field}}"}}},"params":{"field":"foo"}}`),
@@ -60,7 +61,7 @@ func TestSearchTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.SearchTemplate(nil, opensearchapi.SearchTemplateReq{})
+		res, err := failingClient.SearchTemplate(t.Context(), opensearchapi.SearchTemplateReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -37,8 +37,8 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Policy                  = (*MuxPolicy)(nil)
-	_ poolFactoryConfigurable = (*MuxPolicy)(nil)
+	_ Policy             = (*MuxPolicy)(nil)
+	_ policyConfigurable = (*MuxPolicy)(nil)
 )
 
 // ErrNoRouteMatched is returned when no route matches the request pattern.
@@ -82,7 +82,7 @@ func NewRouteMux(pattern string, policy Policy) (Route, error) {
 		return nil, errors.New("policy cannot be nil")
 	}
 
-	if _, _, err := validMuxPattern(pattern); err != nil {
+	if _, err := validMuxPattern(pattern); err != nil {
 		return nil, fmt.Errorf("invalid pattern: %w", err)
 	}
 
@@ -102,6 +102,7 @@ func mustNewRouteMux(pattern string, policy Policy) Route {
 	return route
 }
 
+// Policy returns the underlying policy used by this RouteMux.
 func (r *RouteMux) Policy() Policy { return r.policy }
 
 // MuxPolicy is a connection policy multiplexer that routes requests to different policies
@@ -147,7 +148,7 @@ func NewMuxPolicy(routes []Route) Policy {
 
 		switch r := route.(type) {
 		case *RouteMux:
-			_, queryPath, err := validMuxPattern(r.Pattern)
+			queryPath, err := validMuxPattern(r.Pattern)
 			if err != nil {
 				panic(fmt.Sprintf("invalid pattern: %v", err))
 			}
@@ -178,20 +179,20 @@ func NewMuxPolicy(routes []Route) Policy {
 	}
 }
 
-func validMuxPattern(pattern string) (string, string, error) {
+func validMuxPattern(pattern string) (string, error) {
 	if pattern == "" {
-		return "", "", errors.New("pattern cannot be empty")
+		return "", errors.New("pattern cannot be empty")
 	}
 
 	routeFields := strings.Fields(pattern)
 	if len(routeFields) != 2 {
-		return "", "", fmt.Errorf("route pattern must include HTTP method: %q", pattern)
+		return "", fmt.Errorf("route pattern must include HTTP method: %q", pattern)
 	}
 	if _, found := httpMethods[routeFields[0]]; !found {
-		return "", "", fmt.Errorf("route pattern method invalid: %q", pattern)
+		return "", fmt.Errorf("route pattern method invalid: %q", pattern)
 	}
 
-	return routeFields[0], routeFields[1], nil
+	return routeFields[1], nil
 }
 
 // policyResponseWriter is a custom ResponseWriter that captures the policy.
@@ -240,12 +241,14 @@ func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool
 	pw := &policyResponseWriter{}
 	if strings.HasPrefix(req.URL.Path, openSearchSystemQueryPrefix) {
 		if p.systemMux == nil {
+			//nolint:nilnil // Intentional: (nil, nil) signals "no routes configured"
 			return nil, nil
 		}
 
 		p.systemMux.ServeHTTP(pw, req)
 	} else {
 		if p.indexMux == nil {
+			//nolint:nilnil // Intentional: (nil, nil) signals "no routes configured"
 			return nil, nil
 		}
 
@@ -258,6 +261,7 @@ func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool
 	}
 
 	// No matching route found - return nil, nil to allow fallthrough
+	//nolint:nilnil // Intentional: (nil, nil) signals "no matching route"
 	return nil, nil
 }
 
@@ -272,14 +276,14 @@ func (p *MuxPolicy) CheckDead(ctx context.Context, healthCheck HealthCheckFunc) 
 	return firstError
 }
 
-// configurePoolFactories configures pool factories for all unique sub-policies.
-func (p *MuxPolicy) configurePoolFactories(factory func() *statusConnectionPool) error {
+// configurePolicySettings configures pool settings for all unique sub-policies.
+func (p *MuxPolicy) configurePolicySettings(config policyConfig) error {
 	var firstError error
 
 	// Configure all unique policies
 	for policy := range p.uniquePolicies {
-		if configurablePolicy, ok := policy.(poolFactoryConfigurable); ok {
-			if err := configurablePolicy.configurePoolFactories(factory); err != nil && firstError == nil {
+		if configurablePolicy, ok := policy.(policyConfigurable); ok {
+			if err := configurablePolicy.configurePolicySettings(config); err != nil && firstError == nil {
 				firstError = err
 			}
 		}

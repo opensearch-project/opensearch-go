@@ -36,7 +36,7 @@ func (s *OpenSearchTestSuite) SetupSuite() {
 	s.Client = client
 
 	// Get and store version information for test use
-	major, minor, patch, err := GetVersion(s.Client, t)
+	major, minor, patch, err := GetVersion(t, s.Client)
 	require.NoError(t, err, "Failed to get OpenSearch version")
 
 	s.Major, s.Minor, s.Patch = major, minor, patch

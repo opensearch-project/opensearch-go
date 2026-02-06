@@ -57,7 +57,7 @@ func waitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 	)
 
 	// Get version for informational logging
-	major, minor, patch, err := GetVersion(client, t)
+	major, minor, patch, err := GetVersion(t, client)
 	if err != nil {
 		return fmt.Errorf("failed to get OpenSearch version: %w", err)
 	}
@@ -116,7 +116,8 @@ func extendedReadinessCheck(ctx context.Context, client *opensearchapi.Client) e
 }
 
 // GetVersion gets cluster info and returns version as int's
-func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64, error) {
+func GetVersion(t *testing.T, client *opensearchapi.Client) (int64, int64, int64, error) {
+	t.Helper()
 	if client == nil {
 		return 0, 0, 0, fmt.Errorf("client cannot be nil")
 	}
@@ -130,7 +131,7 @@ func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64
 // SkipIfBelowVersion skips a test if the cluster version is below a given version
 func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion, patchVersion int64, testName string) {
 	t.Helper()
-	major, patch, _, err := GetVersion(client, t)
+	major, patch, _, err := GetVersion(t, client)
 	assert.Nil(t, err)
 	if major < majorVersion || (major == majorVersion && patch < patchVersion) {
 		t.Skipf("Skipping %s as version %d.%d.x does not support this endpoint", testName, major, patch)

@@ -34,9 +34,9 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Router                  = (*PolicyChain)(nil)
-	_ Policy                  = (*PolicyChain)(nil)
-	_ poolFactoryConfigurable = (*PolicyChain)(nil)
+	_ Router             = (*PolicyChain)(nil)
+	_ Policy             = (*PolicyChain)(nil)
+	_ policyConfigurable = (*PolicyChain)(nil)
 )
 
 // Router defines the interface for request routing.
@@ -48,9 +48,8 @@ type Router interface {
 
 // PolicyChain implements both Router and Policy interfaces by trying policies in sequence until one matches.
 type PolicyChain struct {
-	policies    []Policy
-	isEnabled   atomic.Bool // Cached state from DiscoveryUpdate (for Policy interface)
-	poolFactory func() *statusConnectionPool // For Policy interface pool creation
+	policies  []Policy
+	isEnabled atomic.Bool // Cached state from DiscoveryUpdate (for Policy interface)
 }
 
 // NewRouter creates a router that tries policies in order.

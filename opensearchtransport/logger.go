@@ -203,6 +203,8 @@ func (l *ColorLogger) RequestBodyEnabled() bool { return l.EnableRequestBody }
 func (l *ColorLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 
 // LogRoundTrip prints the information about request and response.
+//
+//nolint:unparam // error return required by Logger interface
 func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error, start time.Time, dur time.Duration) error {
 	var b bytes.Buffer
 
@@ -298,7 +300,7 @@ func (l *CurlLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 func (l *JSONLogger) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
 	// TODO: Research performance optimization of using sync.Pool
 
-	bsize := 200
+	const bsize = 200
 	b := bytes.NewBuffer(make([]byte, 0, bsize))
 	v := make([]byte, 0, bsize)
 

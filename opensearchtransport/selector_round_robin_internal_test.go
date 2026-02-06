@@ -37,14 +37,6 @@ var (
 	_ Selector = (*roundRobinSelector)(nil)
 )
 
-// createRoundRobinTestConnectionPool creates a connection pool for round robin testing
-func createRoundRobinTestConnectionPool(t *testing.T, connections []*Connection) *statusConnectionPool {
-	t.Helper()
-	pool := &statusConnectionPool{}
-	pool.mu.live = connections
-	return pool
-}
-
 func TestNewRoundRobinSelector(t *testing.T) {
 	selector := NewRoundRobinSelector()
 

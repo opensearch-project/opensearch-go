@@ -27,7 +27,7 @@ func TestBulkClient(t *testing.T) {
 
 	index := "test-bulk"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	tests := []struct {
@@ -45,7 +45,12 @@ func TestBulkClient(t *testing.T) {
 			Name: "without index",
 			Request: opensearchapi.BulkReq{
 				Body: strings.NewReader(
-					fmt.Sprintf("{\"index\": {\"_index\": \"%s\"}}\n{\"test\": 1234}\n{\"create\": {\"_index\": \"%s\"}}\n{\"test\": 5678}\n", index, index),
+					fmt.Sprintf(
+						"{\"index\": {\"_index\": \"%s\"}}\n{\"test\": 1234}\n"+
+							"{\"create\": {\"_index\": \"%s\"}}\n{\"test\": 5678}\n",
+						index,
+						index,
+					),
 				),
 			},
 		},
@@ -54,7 +59,7 @@ func TestBulkClient(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			res, err := client.Bulk(
-				nil,
+				t.Context(),
 				test.Request,
 			)
 			require.Nil(t, err)
@@ -66,7 +71,7 @@ func TestBulkClient(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Bulk(nil, opensearchapi.BulkReq{Index: index})
+		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{Index: index})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

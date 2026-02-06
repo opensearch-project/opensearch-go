@@ -46,8 +46,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/signer"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
 var _ = fmt.Print
@@ -1486,7 +1487,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		require.NotNil(t, originalPool.metrics, "Should have metrics assigned")
 
 		// Perform discovery
-		err = client.DiscoverNodes()
+		err = client.DiscoverNodes(t.Context())
 		require.NoError(t, err, "Discovery should succeed")
 
 		// Verify promotion to statusConnectionPool
