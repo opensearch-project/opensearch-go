@@ -30,13 +30,16 @@ func TestMGet(t *testing.T) {
 		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
+
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
 			nil,
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
@@ -48,7 +51,7 @@ func TestMGet(t *testing.T) {
 			nil,
 			opensearchapi.MGetReq{
 				Index: testIndex,
-				Body:  strings.NewReader(`{"docs":[{"_id":"1"},{"_id":"2"}]}`),
+				Body:  strings.NewReader(fmt.Sprintf(`{"docs":[{"_id":"%s-1"},{"_id":"%s-2"}]}`, docIDPrefix, docIDPrefix)),
 			},
 		)
 		require.Nil(t, err)
