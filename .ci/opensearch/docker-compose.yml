@@ -28,7 +28,7 @@ services:
       - http.publish_host=localhost
       - http.publish_port=9200
       # Memory settings
-      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP_SIZE:-1g} -Xmx${OPENSEARCH_HEAP_SIZE:-1g}
     ports:
       - "9200:9200"
       - "9300:9300"
@@ -72,7 +72,7 @@ services:
       - http.publish_host=localhost
       - http.publish_port=9201
       # Memory settings
-      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP_SIZE:-1g} -Xmx${OPENSEARCH_HEAP_SIZE:-1g}
     ports:
       - "9201:9200"
       - "9301:9300"
@@ -116,7 +116,7 @@ services:
       - http.publish_host=localhost
       - http.publish_port=9202
       # Memory settings
-      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP_SIZE:-1g} -Xmx${OPENSEARCH_HEAP_SIZE:-1g}
     ports:
       - "9202:9200"
       - "9302:9300"

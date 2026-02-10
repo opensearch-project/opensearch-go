@@ -33,7 +33,8 @@ endif
 ifdef race
 	$(eval testintegargs += "-race")
 endif
-	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=1h" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
+	$(eval TEST_PARALLEL ?= $(shell ncpu=$$(go env GOMAXPROCS 2>/dev/null); [ -z "$$ncpu" ] && ncpu=$$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4); parallel=$$((ncpu - 1)); [ $$parallel -lt 1 ] && parallel=1; echo $$parallel))
+	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=10m" "-parallel=$(TEST_PARALLEL)" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/integration")
 	@mkdir -p $(PWD)/tmp/integration
 	@echo "go test -v" $(testintegargs); \
 	go test -v $(testintegargs);
