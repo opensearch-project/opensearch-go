@@ -9,7 +9,7 @@
 package opensearchapi_test
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,13 +19,14 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestMTermvectors(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
-	testIndex := "test-mtermvectors"
+	testIndex := testutil.MustUniqueString(t, "test-mtermvectors")
 	t.Cleanup(func() {
 		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
@@ -71,14 +72,18 @@ func TestMTermvectors(t *testing.T) {
 		},
 	)
 	require.Nil(t, err)
-	docs := []string{`{"fullname":"John Doe","text":"test test test "}`, `{"fullname":"Jane Doe","text":"Another test ..."}`}
+	docs := []string{"{\"fullname\":\"John Doe\",\"text\":\"test test \"}", `{"fullname":"Jane Doe","text":"Another test ..."}`}
+
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
+
 	for i, doc := range docs {
 		_, err = client.Document.Create(
 			nil,
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(doc),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
@@ -90,7 +95,7 @@ func TestMTermvectors(t *testing.T) {
 			nil,
 			opensearchapi.MTermvectorsReq{
 				Index: testIndex,
-				Body:  strings.NewReader(`{"ids":[1,2]}`),
+				Body:  strings.NewReader(fmt.Sprintf(`{"ids":["%s-0","%s-1"]}`, docIDPrefix, docIDPrefix)),
 			},
 		)
 		require.Nil(t, err)
