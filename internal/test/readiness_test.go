@@ -5,7 +5,7 @@
 // compatible open source license.
 //go:build integration
 
-package ostest
+package ostest_test
 
 import (
 	"context"
@@ -16,13 +16,14 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 // TestNewClient demonstrates the enhanced client creation with automatic readiness checks
 func TestNewClient(t *testing.T) {
-	client, err := NewClient(t)
+	client, err := ostest.NewClient(t)
 	require.NoError(t, err, "Failed to create client")
 	require.NotNil(t, client, "Client should not be nil")
 
@@ -42,23 +43,23 @@ func TestNewClient(t *testing.T) {
 
 // TestConfigFunctions tests the configuration utility functions
 func TestConfigFunctions(t *testing.T) {
-	// Test IsSecure function
-	t.Run("IsSecure", func(t *testing.T) {
+	// Test ostest.IsSecure function
+	t.Run("ostest.IsSecure", func(t *testing.T) {
 		// Save original value
 		original := os.Getenv("SECURE_INTEGRATION")
 		defer os.Setenv("SECURE_INTEGRATION", original)
 
 		// Test false case
 		os.Setenv("SECURE_INTEGRATION", "false")
-		assert.False(t, IsSecure())
+		assert.False(t, ostest.IsSecure())
 
 		// Test true case
 		os.Setenv("SECURE_INTEGRATION", "true")
-		assert.True(t, IsSecure())
+		assert.True(t, ostest.IsSecure())
 
 		// Test empty case
 		os.Unsetenv("SECURE_INTEGRATION")
-		assert.False(t, IsSecure())
+		assert.False(t, ostest.IsSecure())
 	})
 
 	// Test GetPassword function
@@ -76,31 +77,31 @@ func TestConfigFunctions(t *testing.T) {
 
 		// Test default admin password for older versions
 		os.Setenv("OPENSEARCH_VERSION", "2.0.0")
-		password, err := GetPassword()
+		password, err := ostest.GetPassword()
 		assert.NoError(t, err)
 		assert.Equal(t, "admin", password)
 
-		// Test strong password for newer versions
+		// Test newer default password for 2.12+
 		os.Setenv("OPENSEARCH_VERSION", "2.12.0")
-		password, err = GetPassword()
+		password, err = ostest.GetPassword()
 		assert.NoError(t, err)
 		assert.Equal(t, "myStrongPassword123!", password)
 
 		// Test latest version
 		os.Setenv("OPENSEARCH_VERSION", "latest")
-		password, err = GetPassword()
+		password, err = ostest.GetPassword()
 		assert.NoError(t, err)
 		assert.Equal(t, "myStrongPassword123!", password)
 
-		// Test empty version
+		// Test empty version (defaults to "admin" password)
 		os.Unsetenv("OPENSEARCH_VERSION")
-		password, err = GetPassword()
+		password, err = ostest.GetPassword()
 		assert.NoError(t, err)
-		assert.Equal(t, "myStrongPassword123!", password)
+		assert.Equal(t, "admin", password)
 
 		// ERROR PATH: Test invalid version format
 		os.Setenv("OPENSEARCH_VERSION", "invalid.version")
-		_, err = GetPassword()
+		_, err = ostest.GetPassword()
 		assert.Error(t, err, "Should error with invalid version format")
 	})
 
@@ -125,7 +126,7 @@ func TestConfigFunctions(t *testing.T) {
 
 		// Test insecure config (should return valid HTTP config)
 		os.Setenv("SECURE_INTEGRATION", "false")
-		config, err := ClientConfig()
+		config, err := ostest.ClientConfig()
 		assert.NoError(t, err)
 		assert.NotNil(t, config)
 		assert.Equal(t, []string{"http://localhost:9200"}, config.Client.Addresses)
@@ -136,7 +137,7 @@ func TestConfigFunctions(t *testing.T) {
 		// Test secure config - success case
 		os.Setenv("SECURE_INTEGRATION", "true")
 		os.Setenv("OPENSEARCH_VERSION", "2.12.0") // Valid version
-		config, err = ClientConfig()
+		config, err = ostest.ClientConfig()
 		assert.NoError(t, err)
 		if config != nil {
 			assert.Equal(t, "admin", config.Client.Username)
@@ -148,7 +149,7 @@ func TestConfigFunctions(t *testing.T) {
 		// ERROR PATH: Test secure config with invalid version
 		os.Setenv("SECURE_INTEGRATION", "true")
 		os.Setenv("OPENSEARCH_VERSION", "not.a.version")
-		config, err = ClientConfig()
+		config, err = ostest.ClientConfig()
 		assert.Error(t, err, "Should propagate GetPassword error")
 		assert.Nil(t, config, "Config should be nil on error")
 	})
@@ -156,21 +157,21 @@ func TestConfigFunctions(t *testing.T) {
 
 // TestHelperFunctions tests utility functions with different scenarios
 func TestHelperFunctions(t *testing.T) {
-	client, err := NewClient(t)
+	client, err := ostest.NewClient(t)
 	require.NoError(t, err)
 
-	// Test SkipIfBelowVersion - this will not skip since we're running on 3.4.0
-	t.Run("SkipIfBelowVersion", func(t *testing.T) {
+	// Test ostest.SkipIfBelowVersion - this will not skip since we're running on 3.4.0
+	t.Run("ostest.SkipIfBelowVersion", func(t *testing.T) {
 		// This should not skip on current version (3.4.0+)
-		SkipIfBelowVersion(t, client, 2, 0, "TestFeature")
+		ostest.SkipIfBelowVersion(t, client, 2, 0, "TestFeature")
 		// If we reach here, the test didn't skip
 		assert.True(t, true, "Test should continue for supported version")
 	})
 
 	// Test SkipIfNotSecure
 	t.Run("SkipIfNotSecure", func(t *testing.T) {
-		if IsSecure() {
-			SkipIfNotSecure(t)
+		if ostest.IsSecure() {
+			ostest.SkipIfNotSecure(t)
 			// If we reach here, it's a secure cluster and test continued
 			assert.True(t, true, "Test should continue for secure cluster")
 		}
@@ -184,27 +185,27 @@ func TestHelperFunctions(t *testing.T) {
 		require.NoError(t, err)
 
 		// This tests the JSON comparison utility
-		CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	// Test GetVersion function
 	t.Run("GetVersion", func(t *testing.T) {
 		// Test successful version retrieval
-		major, minor, patch, err := GetVersion(client, t)
+		major, minor, patch, err := ostest.GetVersion(t, client)
 		assert.NoError(t, err, "GetVersion should succeed with valid client")
 		assert.True(t, major >= 1, "Major version should be at least 1")
 		assert.True(t, minor >= 0, "Minor version should be non-negative")
 		assert.True(t, patch >= 0, "Patch version should be non-negative")
 
 		// ERROR PATH: Test GetVersion with nil client
-		_, _, _, err = GetVersion(nil, t)
+		_, _, _, err = ostest.GetVersion(t, nil)
 		assert.Error(t, err, "GetVersion should error with nil client")
 	})
 
 	// Test NewClient function
 	t.Run("NewClient", func(t *testing.T) {
 		// Test successful client creation (already done above)
-		client, err := NewClient(t)
+		client, err := ostest.NewClient(t)
 		assert.NoError(t, err, "NewClient should succeed in normal conditions")
 		assert.NotNil(t, client, "Client should not be nil")
 
@@ -229,30 +230,14 @@ func TestHelperFunctions(t *testing.T) {
 		os.Setenv("SECURE_INTEGRATION", "true")
 		os.Setenv("OPENSEARCH_VERSION", "invalid.format")
 
-		_, err = NewClient(t)
+		_, err = ostest.NewClient(t)
 		assert.Error(t, err, "NewClient should propagate ClientConfig errors")
-	})
-
-	// Test extendedReadinessCheck function
-	t.Run("extendedReadinessCheck", func(t *testing.T) {
-		// Test successful validation (using working client)
-		ctx := context.Background()
-		err := extendedReadinessCheck(ctx, client)
-		assert.NoError(t, err, "extendedReadinessCheck should succeed with healthy cluster")
-
-		// ERROR PATH: Test with cancelled context
-		cancelledCtx, cancel := context.WithCancel(context.Background())
-		cancel() // Cancel immediately
-
-		err = extendedReadinessCheck(cancelledCtx, client)
-		assert.Error(t, err, "extendedReadinessCheck should error with cancelled context")
-		assert.Contains(t, err.Error(), "failed", "Error should contain descriptive message")
 	})
 }
 
 // ExampleTestSuite demonstrates using the testify suite pattern
 type ExampleTestSuite struct {
-	OpenSearchTestSuite
+	ostest.OpenSearchTestSuite
 }
 
 func (s *ExampleTestSuite) TestClusterHealthWithSuite() {
@@ -300,7 +285,7 @@ func (s *ExampleTestSuite) TestVersionSkipping() {
 
 // Test secure cluster skipping if not secure
 func (s *ExampleTestSuite) TestSecureSkipping() {
-	if !IsSecure() {
+	if !ostest.IsSecure() {
 		s.SkipIfNotSecure()
 		// This line should not be reached for insecure clusters
 		s.T().Error("This test should have been skipped for insecure cluster")

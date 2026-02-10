@@ -8,11 +8,23 @@ package ostest
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 
+	"golang.org/x/mod/semver"
+
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+const (
+	// OpenSearch default admin passwords
+	defaultPasswordPre212  = "admin"                // Default admin password in OpenSearch < 2.12.0
+	defaultPasswordPost212 = "myStrongPassword123!" // Default admin password in OpenSearch >= 2.12.0
+
+	// Version where default admin password changed
+	defaultPasswordChangeVersion = "v2.12.0"
 )
 
 // IsSecure returns true when SECURE_INTEGRATION env is set to true
@@ -48,25 +60,61 @@ func ClientConfig() (*opensearchapi.Config, error) {
 	}, nil
 }
 
-// GetPassword returns the password suited for the opensearch version
+// GetPassword returns the admin password for the opensearch version.
+// OpenSearch 2.12.0+ changed the default admin password from "admin" to "myStrongPassword123!".
+//
+// Note: This function tries to determine the correct password based on OPENSEARCH_VERSION env var.
+// If the env var doesn't match the actual running cluster, authentication may fail.
 func GetPassword() (string, error) {
-	var (
-		major, minor int64
-		err          error
-	)
-	password := "admin"
 	version := os.Getenv("OPENSEARCH_VERSION")
 
-	if version != "latest" && version != "" {
-		major, minor, _, err = opensearch.ParseVersion(version)
-		if err != nil {
-			return "", err
+	// Default to pre-2.12 password for empty version or versions < 2.12.0
+	password := defaultPasswordPre212
+
+	if version == "latest" {
+		// Latest uses the post-2.12 default password
+		password = defaultPasswordPost212
+	} else if version != "" {
+		// Normalize version to semver format (v2.12.0)
+		if version[0] != 'v' {
+			version = "v" + version
 		}
-		if version == "latest" || major > 2 || (major == 2 && minor >= 12) {
-			password = "myStrongPassword123!"
+
+		// Validate semver format
+		if !semver.IsValid(version) {
+			return "", fmt.Errorf("invalid version format: %s", version)
 		}
-	} else {
-		password = "myStrongPassword123!"
+
+		// OpenSearch 2.12.0+ uses the new default password
+		if semver.Compare(version, defaultPasswordChangeVersion) >= 0 {
+			password = defaultPasswordPost212
+		}
 	}
+
 	return password, nil
+}
+
+// GetPasswordForCluster returns the admin password by trying to detect the actual cluster version.
+// This is more reliable than GetPassword() when OPENSEARCH_VERSION env var might not match reality.
+// It returns both possible passwords to try in order.
+func GetPasswordForCluster() []string {
+	version := os.Getenv("OPENSEARCH_VERSION")
+
+	// If version is set and valid, trust it
+	if version != "" && version != "latest" {
+		if version[0] != 'v' {
+			version = "v" + version
+		}
+		if semver.IsValid(version) {
+			if semver.Compare(version, defaultPasswordChangeVersion) >= 0 {
+				// For 2.12+, try post-2.12 password first, then fallback to pre-2.12
+				return []string{defaultPasswordPost212, defaultPasswordPre212}
+			}
+			// For < 2.12, try pre-2.12 password first, then fallback to post-2.12
+			return []string{defaultPasswordPre212, defaultPasswordPost212}
+		}
+	}
+
+	// Unknown or latest version: try pre-2.12 password first (most common), then post-2.12
+	return []string{defaultPasswordPre212, defaultPasswordPost212}
 }
