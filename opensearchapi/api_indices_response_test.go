@@ -540,6 +540,13 @@ func TestIndicesRecoveryResp_Inspect(t *testing.T) {
 	assert.Nil(t, inspect.Response)
 }
 
+// TestIndicesDeleteResp_Inspect tests the Inspect method for IndicesDeleteResp
+func TestIndicesDeleteResp_Inspect(t *testing.T) {
+	resp := opensearchapi.IndicesDeleteResp{}
+	inspect := resp.Inspect()
+	assert.Nil(t, inspect.Response)
+}
+
 // TestMappingFieldReq_GetRequest tests the GetRequest method for MappingFieldReq
 func TestMappingFieldReq_GetRequest(t *testing.T) {
 	t.Run("with valid indices and fields", func(t *testing.T) {
