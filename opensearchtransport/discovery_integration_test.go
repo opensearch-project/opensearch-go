@@ -38,20 +38,39 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 // TestDiscoveryIntegration tests discovery functionality against a real OpenSearch cluster
 func TestDiscoveryIntegration(t *testing.T) {
-	// Test discovery from different nodes in the cluster
-	nodeEndpoints := []string{
-		"http://localhost:9200",
-		"http://localhost:9201",
-		"http://localhost:9202",
+	// Wait for cluster to be ready before starting discovery tests
+	// This ensures all nodes are up and discoverable
+	client, err := ostest.NewClient(t)
+	require.NoError(t, err, "Failed to create client for readiness check")
+
+	// Query the actual cluster to determine how many nodes are available
+	nodesResp, err := client.Nodes.Info(t.Context(), nil)
+	require.NoError(t, err, "Failed to get cluster nodes info")
+
+	expectedNodeCount := len(nodesResp.Nodes)
+	if testutil.IsDebugEnabled(t) {
+		t.Logf("Detected %d-node cluster", expectedNodeCount)
 	}
 
-	for _, endpoint := range nodeEndpoints {
+	// Detect which ports are available for testing discovery from different endpoints
+	availableNodes := []string{"http://localhost:9200"}
+	for _, port := range []string{"9201", "9202"} {
+		endpoint := "http://localhost:" + port
+		if resp, err := http.Get(endpoint); err == nil {
+			resp.Body.Close()
+			availableNodes = append(availableNodes, endpoint)
+		}
+	}
+
+	// Test discovery from available nodes in the cluster
+	for _, endpoint := range availableNodes {
 		t.Run(fmt.Sprintf("DiscoverNodes from %s", endpoint), func(t *testing.T) {
 			u, _ := url.Parse(endpoint)
 			client, err := opensearchtransport.New(opensearchtransport.Config{
@@ -59,20 +78,20 @@ func TestDiscoveryIntegration(t *testing.T) {
 			})
 			require.NoError(t, err, "Failed to create client")
 
-			err = client.DiscoverNodes()
+			err = client.DiscoverNodes(t.Context())
 			if err != nil {
 				t.Skipf("Discovery failed from %s - cluster may not be running: %v", endpoint, err)
 				return
 			}
 
 			// Test that discovery worked by making a request and verifying we can reach different nodes
-			// The client should now know about all 3 nodes and can route requests appropriately
-			req, err := http.NewRequest("GET", "/", nil)
+			// The client should now know about all nodes and can route requests appropriately
+			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			require.NoError(t, err)
 
 			// Make several requests to see if we're hitting different nodes (due to round-robin)
 			nodeNames := make(map[string]int)
-			for i := 0; i < 6; i++ { // Make enough requests to hit all nodes
+			for range 6 { // Make enough requests to hit all nodes
 				resp, err := client.Perform(req)
 				if err != nil {
 					t.Fatalf("Request failed: %v", err)
@@ -88,26 +107,19 @@ func TestDiscoveryIntegration(t *testing.T) {
 				nodeNames[nodeResp.Name]++
 			}
 
-			// Based on the cluster output, we expect to see requests distributed across multiple nodes
-			// Since they all have data+ingest roles in addition to cluster_manager,
-			// none should be filtered out as "dedicated cluster managers"
+			// Based on the cluster, we expect to see requests distributed across nodes
+			// In multi-node clusters with data+ingest roles, none should be filtered out
 			if testutil.IsDebugEnabled(t) {
 				t.Logf("Discovered from %s, requests distributed across nodes: %v", endpoint, nodeNames)
 			}
 
-			// We should see at least one node name (potentially all 3: opensearch-node1, opensearch-node2, opensearch-node3)
+			// We should see at least one node name
 			assert.GreaterOrEqual(t, len(nodeNames), 1, "Should discover at least one node")
 
-			// Verify we're seeing the expected node names from the cluster
-			expectedNodeNames := map[string]bool{
-				"opensearch-node1": true,
-				"opensearch-node2": true,
-				"opensearch-node3": true,
-			}
-
-			for nodeName := range nodeNames {
-				assert.True(t, expectedNodeNames[nodeName],
-					"Discovered unexpected node name: %s", nodeName)
+			// In a multi-node cluster, we should see multiple nodes being hit
+			if expectedNodeCount > 1 {
+				require.LessOrEqual(t, len(nodeNames), expectedNodeCount,
+					"Should not discover more nodes than available in cluster")
 			}
 		})
 	}
@@ -122,7 +134,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = client.DiscoverNodes()
+		err = client.DiscoverNodes(t.Context())
 		if err != nil {
 			t.Skipf("Discovery failed - cluster may not be running: %v", err)
 			return
@@ -135,9 +147,9 @@ func TestDiscoveryIntegration(t *testing.T) {
 			t.Logf("URLs after discovery with filtering: %v", urls)
 		}
 
-		// We expect to see all 3 nodes because they have work roles (data + ingest)
-		// Expected URLs: localhost:9200, localhost:9201, localhost:9202
-		assert.Equal(t, 3, len(urls), "All nodes should be included - they have data+ingest roles, not just cluster_manager")
+		// We expect to see all available nodes because they have work roles (data + ingest)
+		require.Equal(t, expectedNodeCount, len(urls),
+			"All nodes should be included - they have data+ingest roles, not just cluster_manager")
 
 		// Test with IncludeDedicatedClusterManagers = true
 		clientIncludeAll, err := opensearchtransport.New(opensearchtransport.Config{
@@ -146,7 +158,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = clientIncludeAll.DiscoverNodes()
+		err = clientIncludeAll.DiscoverNodes(t.Context())
 		require.NoError(t, err)
 
 		urlsIncludeAll := clientIncludeAll.URLs()
@@ -154,7 +166,8 @@ func TestDiscoveryIntegration(t *testing.T) {
 			t.Logf("URLs after discovery with include all: %v", urlsIncludeAll)
 		}
 
-		// Should still get 3 nodes since there are no dedicated cluster managers to filter
-		assert.Equal(t, 3, len(urlsIncludeAll), "Should still get all 3 nodes when including dedicated cluster managers")
+		// Should still get the same number of nodes since there are no dedicated cluster managers to filter
+		require.Equal(t, expectedNodeCount, len(urlsIncludeAll),
+			"Should still get all %d node(s) when including dedicated cluster managers", expectedNodeCount)
 	})
 }

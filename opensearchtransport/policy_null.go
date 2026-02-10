@@ -33,8 +33,8 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Policy                  = (*NullPolicy)(nil)
-	_ poolFactoryConfigurable = (*NullPolicy)(nil)
+	_ Policy             = (*NullPolicy)(nil)
+	_ policyConfigurable = (*NullPolicy)(nil)
 )
 
 // NullPolicy is a policy that always returns no connections.
@@ -52,8 +52,8 @@ func (p *NullPolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 	return nil
 }
 
-// configurePoolFactories is a no-op for null policy (no pools, no sub-policies).
-func (p *NullPolicy) configurePoolFactories(factory func() *statusConnectionPool) error {
+// configurePolicySettings is a no-op for null policy (no pools, no sub-policies).
+func (p *NullPolicy) configurePolicySettings(config policyConfig) error {
 	return nil
 }
 
@@ -69,5 +69,6 @@ func (p *NullPolicy) IsEnabled() bool {
 
 // Eval always returns (nil, nil) indicating no connections are available.
 func (p *NullPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+	//nolint:nilnil // Intentional: (nil, nil) signals "no connections available, continue chain"
 	return nil, nil
 }

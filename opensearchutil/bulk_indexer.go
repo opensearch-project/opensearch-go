@@ -70,6 +70,12 @@ type BulkIndexerConfig struct {
 	Client      *opensearchapi.Client  // The OpenSearch client.
 	DebugLogger BulkIndexerDebugLogger // An optional logger for debugging.
 
+	// Context for worker lifecycle. If nil, context.Background() will be used.
+	// This is only used during bulk indexer initialization and is not stored long-term.
+	//nolint:containedctx // Config struct is short-lived, context extracted during New()
+	Context    context.Context
+	CancelFunc context.CancelFunc
+
 	OnError      func(context.Context, error)          // Called for indexer errors.
 	OnFlushStart func(context.Context) context.Context // Called when the flush starts.
 	OnFlushEnd   func(context.Context)                 // Called when the flush ends.
@@ -173,6 +179,11 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		}
 	}
 
+	// Initialize context if not provided
+	if cfg.Context == nil {
+		cfg.Context, cfg.CancelFunc = context.WithCancel(context.Background())
+	}
+
 	if cfg.NumWorkers == 0 {
 		cfg.NumWorkers = runtime.NumCPU()
 	}
@@ -191,7 +202,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		stats:  &bulkIndexerStats{},
 	}
 
-	bi.init()
+	bi.init(cfg.Context)
 
 	return &bi, nil
 }
@@ -263,7 +274,7 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 }
 
 // init initializes the bulk indexer.
-func (bi *bulkIndexer) init() {
+func (bi *bulkIndexer) init(ctx context.Context) {
 	bi.queue = make(chan BulkIndexerItem, bi.config.NumWorkers)
 
 	for i := 1; i <= bi.config.NumWorkers; i++ {
@@ -275,7 +286,7 @@ func (bi *bulkIndexer) init() {
 			//nolint:gomnd // Predefine the slice capacity
 			aux: make([]byte, 0, 512),
 		}
-		w.run()
+		w.run(ctx)
 		bi.workers = append(bi.workers, &w)
 	}
 	bi.wg.Add(bi.config.NumWorkers)
@@ -283,11 +294,12 @@ func (bi *bulkIndexer) init() {
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)
 
 	go func() {
-		ctx := context.Background()
-
 		for {
 			select {
 			case <-bi.done:
+				return
+			case <-ctx.Done():
+				// Context cancelled, stop flusher
 				return
 			case <-bi.ticker.C:
 				if bi.config.DebugLogger != nil {
@@ -325,57 +337,69 @@ type worker struct {
 }
 
 // run launches the worker in a goroutine.
-func (w *worker) run() {
+func (w *worker) run(ctx context.Context) {
 	go func() {
-		ctx := context.Background()
-
 		if w.bi.config.DebugLogger != nil {
 			w.bi.config.DebugLogger.Printf("[worker-%03d] Started\n", w.id)
 		}
 		defer w.bi.wg.Done()
 
-		for item := range w.ch {
-			w.mu.Lock()
-
-			if w.bi.config.DebugLogger != nil {
-				w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
-					item.DocumentID)
-			}
-
-			if err := w.writeMeta(item); err != nil {
-				if item.OnFailure != nil {
-					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+		for {
+			select {
+			case <-ctx.Done():
+				// Context cancelled, exit worker
+				if w.bi.config.DebugLogger != nil {
+					w.bi.config.DebugLogger.Printf("[worker-%03d] Context cancelled, stopping\n", w.id)
+				}
+				return
+			case item, ok := <-w.ch:
+				if !ok {
+					// Channel closed, exit worker
+					return
 				}
 
-				atomic.AddUint64(&w.bi.stats.numFailed, 1)
-				w.mu.Unlock()
+				w.mu.Lock()
 
-				continue
-			}
-
-			if err := w.writeBody(&item); err != nil {
-				if item.OnFailure != nil {
-					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+				if w.bi.config.DebugLogger != nil {
+					w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
+						item.DocumentID)
 				}
-				atomic.AddUint64(&w.bi.stats.numFailed, 1)
-				w.mu.Unlock()
 
-				continue
-			}
-
-			w.items = append(w.items, item)
-			if w.buf.Len() >= w.bi.config.FlushBytes {
-				if err := w.flush(ctx); err != nil {
-					w.mu.Unlock()
-
-					if w.bi.config.OnError != nil {
-						w.bi.config.OnError(ctx, err)
+				if err := w.writeMeta(item); err != nil {
+					if item.OnFailure != nil {
+						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 					}
+
+					atomic.AddUint64(&w.bi.stats.numFailed, 1)
+					w.mu.Unlock()
 
 					continue
 				}
+
+				if err := w.writeBody(ctx, &item); err != nil {
+					if item.OnFailure != nil {
+						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+					}
+					atomic.AddUint64(&w.bi.stats.numFailed, 1)
+					w.mu.Unlock()
+
+					continue
+				}
+
+				w.items = append(w.items, item)
+				if w.buf.Len() >= w.bi.config.FlushBytes {
+					if err := w.flush(ctx); err != nil {
+						w.mu.Unlock()
+
+						if w.bi.config.OnError != nil {
+							w.bi.config.OnError(ctx, err)
+						}
+
+						continue
+					}
+				}
+				w.mu.Unlock()
 			}
-			w.mu.Unlock()
 		}
 	}()
 }
@@ -427,21 +451,21 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 }
 
 // writeBody writes the item body to the buffer; it must be called under a lock.
-func (w *worker) writeBody(item *BulkIndexerItem) error {
+func (w *worker) writeBody(ctx context.Context, item *BulkIndexerItem) error {
 	if item.Body == nil {
 		return nil
 	}
 
 	if _, err := w.buf.ReadFrom(item.Body); err != nil {
 		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(context.Background(), err)
+			w.bi.config.OnError(ctx, err)
 		}
 		return err
 	}
 
 	if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
 		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(context.Background(), err)
+			w.bi.config.OnError(ctx, err)
 		}
 		return err
 	}

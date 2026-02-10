@@ -301,11 +301,17 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		// Initialize pool with proper timeout values for consistency
+		pool := &statusConnectionPool{
+			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn.failures.Store(3)
-			conn.markAsDead()
+			conn.mu.Lock()
+			conn.markAsDeadWithLock()
+			conn.mu.Unlock()
 			return []*Connection{conn}
 		}()
 
@@ -342,7 +348,11 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		// Initialize pool with proper timeout values to prevent immediate resurrection
+		pool := &statusConnectionPool{
+			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -400,7 +410,11 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		// Initialize pool with proper timeout values to prevent immediate resurrection
+		pool := &statusConnectionPool{
+			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		}
 		pool.mu.live = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -431,7 +445,9 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		pool.mu.live = []*Connection{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-			conn.markAsDead()
+			conn.mu.Lock()
+			conn.markAsDeadWithLock()
+			conn.mu.Unlock()
 			return []*Connection{conn}
 		}()
 
@@ -461,14 +477,16 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		pool := &statusConnectionPool{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "bar"}}
-			conn.markAsDead()
+			conn.mu.Lock()
+			conn.markAsDeadWithLock()
+			conn.mu.Unlock()
 			return []*Connection{conn}
 		}()
 
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-		conn.markAsDead()
 		conn.mu.Lock()
 		defer conn.mu.Unlock()
+		conn.markAsDeadWithLock()
 		pool.resurrectWithLock(conn)
 
 		if len(pool.mu.live) != 1 {
@@ -485,7 +503,6 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s.curr.Store(-1)
 
 		pool := &statusConnectionPool{
-
 			resurrectTimeoutInitial:      0,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		}
@@ -546,30 +563,27 @@ func TestConnection(t *testing.T) {
 	})
 }
 
-// newTestStatusConnectionPoolFactory creates a factory function for statusConnectionPool instances
-// using default timeout settings suitable for testing. This factory can be used with
-// policy.configurePoolFactories() in tests that create policies directly.
+// newTestPolicyConfig creates a policyConfig with default timeout settings suitable for testing.
+// This config can be used with policy.configurePolicySettings() in tests that create policies directly.
 //
 // This function is only intended for use in tests and should not be used in production code.
-func newTestStatusConnectionPoolFactory(t *testing.T) func() *statusConnectionPool {
+func newTestPolicyConfig(t *testing.T) policyConfig {
 	t.Helper()
-	return func() *statusConnectionPool {
-		return &statusConnectionPool{
-			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
-			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
-		}
+	return policyConfig{
+		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
 }
 
-// configureTestPolicyFactories configures pool factories for a policy using test defaults.
+// configureTestPolicySettings configures policy settings using test defaults.
 // This is a convenience function for tests that create policies directly without going through
 // the client initialization flow.
 //
 // This function is only intended for use in tests and should not be used in production code.
-func configureTestPolicyFactories(t *testing.T, policy Policy) error {
+func configureTestPolicySettings(t *testing.T, policy Policy) error {
 	t.Helper()
-	if configurablePolicy, ok := policy.(poolFactoryConfigurable); ok {
-		return configurablePolicy.configurePoolFactories(newTestStatusConnectionPoolFactory(t))
+	if configurablePolicy, ok := policy.(policyConfigurable); ok {
+		return configurablePolicy.configurePolicySettings(newTestPolicyConfig(t))
 	}
 	return nil
 }

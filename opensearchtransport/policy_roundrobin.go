@@ -33,52 +33,28 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Policy                  = (*RoundRobinPolicy)(nil)
-	_ poolFactoryConfigurable = (*RoundRobinPolicy)(nil)
+	_ Policy             = (*RoundRobinPolicy)(nil)
+	_ policyConfigurable = (*RoundRobinPolicy)(nil)
 )
 
 // RoundRobinPolicy implements round-robin routing across all available connections.
 type RoundRobinPolicy struct {
-	pool        *statusConnectionPool            // Embedded connection pool for round-robin selection
-	poolFactory func() *statusConnectionPool     // Factory for creating pools with proper settings
+	pool *statusConnectionPool // Embedded connection pool for round-robin selection
 }
 
 // NewRoundRobinPolicy creates a new round-robin routing policy.
 func NewRoundRobinPolicy() Policy {
-	policy := &RoundRobinPolicy{
-		pool:        nil, // Will be created when poolFactory is set
-		poolFactory: nil, // Will be set by client via configurePoolFactories
+	return &RoundRobinPolicy{
+		pool: nil, // Will be created when policy settings are configured
 	}
-	return policy
 }
 
-// configurePoolFactories configures pool factories for this policy (leaf policy - no sub-policies).
-func (p *RoundRobinPolicy) configurePoolFactories(factory func() *statusConnectionPool) error {
-	p.poolFactory = factory
-
+// configurePolicySettings configures pool settings for this policy (leaf policy - no sub-policies).
+func (p *RoundRobinPolicy) configurePolicySettings(config policyConfig) error {
 	// Create pool with proper settings if we don't have one yet
 	if p.pool == nil {
-		p.pool = factory()
-		return nil
+		p.pool = createPoolFromConfig(config)
 	}
-
-	// Recreate the current pool with new settings, preserving connections
-	p.pool.mu.Lock()
-	liveConns := make([]*Connection, len(p.pool.mu.live))
-	deadConns := make([]*Connection, len(p.pool.mu.dead))
-	copy(liveConns, p.pool.mu.live)
-	copy(deadConns, p.pool.mu.dead)
-	metrics := p.pool.metrics
-	p.pool.mu.Unlock()
-
-	// Create new pool with proper settings
-	newPool := factory()
-	newPool.mu.live = liveConns
-	newPool.mu.dead = deadConns
-	newPool.metrics = metrics
-	newPool.nextLive.Store(p.pool.nextLive.Load())
-
-	p.pool = newPool
 	return nil
 }
 
@@ -90,33 +66,6 @@ func (p *RoundRobinPolicy) CheckDead(ctx context.Context, healthCheck HealthChec
 	}
 
 	return p.pool.checkDead(ctx, healthCheck)
-}
-
-// triggerHealthChecks performs health checks on dead connections
-func (p *RoundRobinPolicy) triggerHealthChecks() {
-	p.pool.RLock()
-	deadConns := make([]*Connection, len(p.pool.mu.dead))
-	copy(deadConns, p.pool.mu.dead)
-	p.pool.RUnlock()
-
-	// Health check each dead connection
-	for _, conn := range deadConns {
-		if p.healthCheck(conn) {
-			// Connection is healthy, resurrect it
-			p.pool.Lock()
-			conn.mu.Lock()
-			p.pool.resurrectWithLock(conn)
-			conn.mu.Unlock()
-			p.pool.Unlock()
-		}
-	}
-}
-
-// healthCheck performs a basic connectivity test
-func (p *RoundRobinPolicy) healthCheck(conn *Connection) bool {
-	// TODO: Implement actual health check (HTTP GET to /_cluster/health or similar)
-	// For now, assume all connections are healthy during cold start
-	return true
 }
 
 // DiscoveryUpdate updates the internal connection pool based on cluster topology changes.
@@ -173,6 +122,7 @@ func (p *RoundRobinPolicy) IsEnabled() bool {
 // Eval returns the round-robin connection pool for all available connections.
 func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
 	if p.pool == nil {
+		//nolint:nilnil // Intentional: (nil, nil) signals "no pool configured, continue chain"
 		return nil, nil // No connections available
 	}
 	return p.pool, nil

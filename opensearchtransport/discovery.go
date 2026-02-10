@@ -96,10 +96,6 @@ const (
 	// Both roles are functionally identical but master role is deprecated.
 	// See: https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/configuration-system/
 	RoleMaster = "master"
-
-	// maxNodeRoles represents the maximum number of distinct node roles that can exist
-	// in a cluster for map pre-allocation optimization.
-	maxNodeRoles = 9
 )
 
 // roleSet represents a set of node roles for efficient O(1) role lookups.
@@ -178,7 +174,7 @@ func (rs roleSet) isDedicatedClusterManager() bool {
 
 // Discoverable defines the interface for transports supporting node discovery.
 type Discoverable interface {
-	DiscoverNodes() error
+	DiscoverNodes(ctx context.Context) error
 }
 
 // nodeInfo represents the information about node in a cluster.
@@ -188,9 +184,9 @@ type nodeInfoHTTP struct {
 }
 
 type nodeInfo struct {
-	ID         string         `json:"id"`         // Available since OpenSearch 1.0.0
-	Name       string         `json:"name"`       // Available since OpenSearch 1.0.0
-	url        *url.URL       `json:"url"`        // Client-side field, not from server
+	ID         string         `json:"id"`   // Available since OpenSearch 1.0.0
+	Name       string         `json:"name"` // Available since OpenSearch 1.0.0
+	url        *url.URL       // Client-side field, not from server
 	Roles      []string       `json:"roles"`      // Available since OpenSearch 1.0.0
 	Attributes map[string]any `json:"attributes"` // Available since OpenSearch 1.0.0
 	HTTP       nodeInfoHTTP   `json:"http"`       // Available since OpenSearch 1.0.0
@@ -200,7 +196,7 @@ type nodeInfo struct {
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
-func (c *Client) DiscoverNodes() error {
+func (c *Client) DiscoverNodes(ctx context.Context) error {
 	// Prevent concurrent discovery operations
 	c.mu.Lock()
 	if c.mu.discoveryInProgress {
@@ -219,7 +215,7 @@ func (c *Client) DiscoverNodes() error {
 		c.mu.Unlock()
 	}()
 
-	discovered, err := c.getNodesInfo()
+	discovered, err := c.getNodesInfo(ctx)
 	if err != nil {
 		if debugLogger != nil {
 			debugLogger.Logf("Error getting nodes info: %s\n", err)
@@ -233,13 +229,13 @@ func (c *Client) DiscoverNodes() error {
 	isColdStart := connPool == nil
 
 	if isColdStart {
-		return c.nodeDiscoveryAsyncStart(discovered)
+		return c.nodeDiscoveryAsyncStart(ctx, discovered)
 	}
-	return c.nodeDiscovery(discovered)
+	return c.nodeDiscovery(ctx, discovered)
 }
 
 // nodeDiscoveryAsyncStart handles discovery with asynchronous connection startup - prioritizes fast startup.
-func (c *Client) nodeDiscoveryAsyncStart(discovered []nodeInfo) error {
+func (c *Client) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeInfo) error {
 	// Async start - assume all connections are live for fast startup
 	liveConnections := make([]*Connection, 0, len(discovered))
 
@@ -249,7 +245,7 @@ func (c *Client) nodeDiscoveryAsyncStart(discovered []nodeInfo) error {
 
 		// Async health check - will be handled by normal pool mechanics
 		go func(conn *Connection) {
-			c.healthCheckWithRetries(conn, c.discoveryHealthCheckRetries)
+			c.healthCheckWithRetries(ctx, conn, c.discoveryHealthCheckRetries)
 		}(conn)
 	}
 
@@ -257,7 +253,7 @@ func (c *Client) nodeDiscoveryAsyncStart(discovered []nodeInfo) error {
 }
 
 // nodeDiscovery handles discovery for running clusters - waits for health checks.
-func (c *Client) nodeDiscovery(discovered []nodeInfo) error {
+func (c *Client) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
 	// Running cluster - health check before categorizing
 	var wg sync.WaitGroup
 
@@ -272,7 +268,7 @@ func (c *Client) nodeDiscovery(discovered []nodeInfo) error {
 			defer wg.Done()
 
 			conn := c.createConnection(node)
-			healthy := c.healthCheckWithRetries(conn, c.discoveryHealthCheckRetries)
+			healthy := c.healthCheckWithRetries(ctx, conn, c.discoveryHealthCheckRetries)
 
 			discoMu.Lock()
 			if healthy {
@@ -306,7 +302,9 @@ func (c *Client) createConnection(node nodeInfo) *Connection {
 // and notifies the router of cluster topology changes.
 func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connection) error {
 	totalNodes := len(liveConnections) + len(deadConnections)
-	allConnections := append(liveConnections, deadConnections...)
+	allConnections := make([]*Connection, 0, totalNodes)
+	allConnections = append(allConnections, liveConnections...)
+	allConnections = append(allConnections, deadConnections...)
 
 	// Get current connections for diff calculation (minimal lock time)
 	c.mu.RLock()
@@ -366,80 +364,9 @@ func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connec
 
 	var newConnectionPool ConnectionPool
 	if totalNodes == 1 {
-		// Single node - check if we need to demote from statusConnectionPool
-		if _, isStatusPool := c.mu.connectionPool.(*statusConnectionPool); isStatusPool {
-			// Demote from multi-node to single-node pool
-			newConnectionPool = c.demoteConnectionPoolWithLock()
-		} else {
-			// Create or update single connection pool
-			var connection *Connection
-			if len(liveConnections) == 1 {
-				connection = liveConnections[0]
-			} else if len(deadConnections) == 1 {
-				connection = deadConnections[0]
-			}
-
-			// Preserve metrics from existing single connection pool
-			var metrics *metrics
-			if existingPool, ok := c.mu.connectionPool.(*singleConnectionPool); ok {
-				metrics = existingPool.metrics
-			}
-
-			newConnectionPool = &singleConnectionPool{
-				connection: connection,
-				metrics:    metrics,
-			}
-		}
+		newConnectionPool = c.createOrUpdateSingleNodePool(liveConnections, deadConnections)
 	} else {
-		// Multi-node - check if we need to promote from singleConnectionPool
-		if _, isSinglePool := c.mu.connectionPool.(*singleConnectionPool); isSinglePool {
-			// Promote from single-node to multi-node pool
-			newConnectionPool = c.promoteConnectionPoolWithLock(liveConnections, deadConnections)
-		} else {
-			// Update existing statusConnectionPool or create new one
-			// Apply client-level filtering for dedicated cluster managers
-			flatLiveConns := make([]*Connection, 0, len(liveConnections))
-			flatDeadConns := make([]*Connection, 0, len(deadConnections))
-
-			for _, conn := range liveConnections {
-				if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-					if debugLogger != nil {
-						debugLogger.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
-					}
-					continue
-				}
-				flatLiveConns = append(flatLiveConns, conn)
-			}
-
-			for _, conn := range deadConnections {
-				if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-					continue
-				}
-				flatDeadConns = append(flatDeadConns, conn)
-			}
-
-			// Preserve settings and metrics from existing statusConnectionPool,
-			// or use client-configured settings for new pools
-			resurrectTimeoutInitial := c.resurrectTimeoutInitial
-			resurrectTimeoutFactorCutoff := c.resurrectTimeoutFactorCutoff
-			var metrics *metrics
-
-			if existingPool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
-				// Preserve settings from existing pool (should match client settings)
-				resurrectTimeoutInitial = existingPool.resurrectTimeoutInitial
-				resurrectTimeoutFactorCutoff = existingPool.resurrectTimeoutFactorCutoff
-				metrics = existingPool.metrics
-			}
-
-			flatPool := &statusConnectionPool{
-				resurrectTimeoutInitial:      resurrectTimeoutInitial,
-				resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
-				metrics:                      metrics,
-			}
-			flatPool.mu.live = flatLiveConns
-			flatPool.mu.dead = flatDeadConns
-			newConnectionPool = flatPool
-		}
+		newConnectionPool = c.createOrUpdateMultiNodePool(liveConnections, deadConnections)
 	}
 
 	// Perform swap of connection pools
@@ -458,39 +385,93 @@ func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connec
 	return nil
 }
 
-// groupConnectionsByRole groups connections by their roles.
-func (c *Client) groupConnectionsByRole(connections []*Connection) map[string][]*Connection {
-	// Pre-allocate map with capacity for all known node roles to reduce allocations
-	roleConnections := make(map[string][]*Connection, maxNodeRoles)
+// createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
+// Caller must hold c.mu.Lock().
+func (c *Client) createOrUpdateSingleNodePool(liveConnections, deadConnections []*Connection) ConnectionPool {
+	// Single node - check if we need to demote from statusConnectionPool
+	if _, isStatusPool := c.mu.connectionPool.(*statusConnectionPool); isStatusPool {
+		// Demote from multi-node to single-node pool
+		return c.demoteConnectionPoolWithLock()
+	}
 
-	for _, conn := range connections {
-		// Skip dedicated cluster managers if configured
-		shouldSkip := !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager()
-		if shouldSkip {
+	// Create or update single connection pool
+	var connection *Connection
+	if len(liveConnections) == 1 {
+		connection = liveConnections[0]
+	} else if len(deadConnections) == 1 {
+		connection = deadConnections[0]
+	}
+
+	// Preserve metrics from existing single connection pool
+	var metrics *metrics
+	if existingPool, ok := c.mu.connectionPool.(*singleConnectionPool); ok {
+		metrics = existingPool.metrics
+	}
+
+	return &singleConnectionPool{
+		connection: connection,
+		metrics:    metrics,
+	}
+}
+
+// createOrUpdateMultiNodePool handles multi-node connection pool creation/updates.
+// Caller must hold c.mu.Lock().
+func (c *Client) createOrUpdateMultiNodePool(liveConnections, deadConnections []*Connection) ConnectionPool {
+	// Multi-node - check if we need to promote from singleConnectionPool
+	if _, isSinglePool := c.mu.connectionPool.(*singleConnectionPool); isSinglePool {
+		// Promote from single-node to multi-node pool
+		return c.promoteConnectionPoolWithLock(liveConnections, deadConnections)
+	}
+
+	// Update existing statusConnectionPool or create new one
+	// Apply client-level filtering for dedicated cluster managers
+	flatLiveConns := make([]*Connection, 0, len(liveConnections))
+	flatDeadConns := make([]*Connection, 0, len(deadConnections))
+
+	for _, conn := range liveConnections {
+		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
 			if debugLogger != nil {
-				debugLogger.Logf("Skipping dedicated cluster manager node %q\n", conn.Name)
+				debugLogger.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
 			}
 			continue
 		}
-
-		// Add connection to each role it supports
-		if len(conn.Roles) == 0 {
-			// No roles = coordinating only
-			roleConnections[RoleCoordinatingOnly] = append(roleConnections[RoleCoordinatingOnly], conn)
-		} else {
-			for role := range conn.Roles {
-				roleConnections[role] = append(roleConnections[role], conn)
-			}
-		}
+		flatLiveConns = append(flatLiveConns, conn)
 	}
 
-	return roleConnections
+	for _, conn := range deadConnections {
+		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
+			continue
+		}
+		flatDeadConns = append(flatDeadConns, conn)
+	}
+
+	// Preserve settings and metrics from existing statusConnectionPool,
+	// or use client-configured settings for new pools
+	resurrectTimeoutInitial := c.resurrectTimeoutInitial
+	resurrectTimeoutFactorCutoff := c.resurrectTimeoutFactorCutoff
+	var metrics *metrics
+
+	if existingPool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+		// Preserve settings from existing pool (should match client settings)
+		resurrectTimeoutInitial = existingPool.resurrectTimeoutInitial
+		resurrectTimeoutFactorCutoff = existingPool.resurrectTimeoutFactorCutoff
+		metrics = existingPool.metrics
+	}
+
+	flatPool := &statusConnectionPool{
+		resurrectTimeoutInitial:      resurrectTimeoutInitial,
+		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
+		metrics:                      metrics,
+	}
+	flatPool.mu.live = flatLiveConns
+	flatPool.mu.dead = flatDeadConns
+	return flatPool
 }
 
-func (c *Client) getNodesInfo() ([]nodeInfo, error) {
+func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	scheme := c.urls[0].Scheme
 
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, "/_nodes/http", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +557,7 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 
 func (c *Client) scheduleDiscoverNodes() {
 	//nolint:errcheck // errors are logged inside the function
-	go c.DiscoverNodes()
+	go c.DiscoverNodes(c.ctx)
 
 	c.mu.Lock()
 	defer c.mu.Unlock()

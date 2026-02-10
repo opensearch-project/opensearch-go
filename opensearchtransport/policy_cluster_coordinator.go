@@ -34,71 +34,30 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Policy                  = (*CoordinatorPolicy)(nil)
-	_ poolFactoryConfigurable = (*CoordinatorPolicy)(nil)
+	_ Policy             = (*CoordinatorPolicy)(nil)
+	_ policyConfigurable = (*CoordinatorPolicy)(nil)
 )
 
 // CoordinatorPolicy implements routing to coordinating-only nodes.
 type CoordinatorPolicy struct {
-	pool            *statusConnectionPool            // Pool of coordinating-only connections
-	poolFactory     func() *statusConnectionPool     // Factory for creating pools with proper settings
-	hasCoordinators atomic.Bool                      // Cached state from DiscoveryUpdate
+	pool            *statusConnectionPool // Pool of coordinating-only connections
+	hasCoordinators atomic.Bool           // Cached state from DiscoveryUpdate
 }
 
 // NewCoordinatorPolicy creates a policy that routes to coordinating-only nodes.
 func NewCoordinatorPolicy() Policy {
 	return &CoordinatorPolicy{
-		pool:        nil, // Will be created when poolFactory is set
-		poolFactory: nil, // Will be set by client via configurePoolFactories
+		pool: nil, // Will be created when policy settings are configured
 	}
 }
 
-// configurePoolFactories configures pool factories for this policy (leaf policy - no sub-policies).
-func (p *CoordinatorPolicy) configurePoolFactories(factory func() *statusConnectionPool) error {
-	p.poolFactory = factory
-
+// configurePolicySettings configures pool settings for this policy (leaf policy - no sub-policies).
+func (p *CoordinatorPolicy) configurePolicySettings(config policyConfig) error {
 	// Create pool with proper settings if we don't have one yet
 	if p.pool == nil {
-		p.pool = factory()
-		return nil
+		p.pool = createPoolFromConfig(config)
 	}
-
-	// Recreate the current pool with new settings, preserving connections
-	p.pool.mu.Lock()
-	liveConns := make([]*Connection, len(p.pool.mu.live))
-	deadConns := make([]*Connection, len(p.pool.mu.dead))
-	copy(liveConns, p.pool.mu.live)
-	copy(deadConns, p.pool.mu.dead)
-	metrics := p.pool.metrics
-	p.pool.mu.Unlock()
-
-	// Create new pool with proper settings
-	newPool := factory()
-	newPool.mu.live = liveConns
-	newPool.mu.dead = deadConns
-	newPool.metrics = metrics
-	newPool.nextLive.Store(p.pool.nextLive.Load())
-
-	p.pool = newPool
 	return nil
-}
-
-// coldStart moves all connections from dead to live to handle initial cluster setup.
-// This should be called once after the initial DiscoveryUpdate during client initialization.
-func (p *CoordinatorPolicy) coldStart() {
-	if p.pool == nil {
-		return
-	}
-
-	p.pool.Lock()
-	defer p.pool.Unlock()
-
-	// Move all dead connections to live for cold start
-	for _, conn := range p.pool.mu.dead {
-		conn.mu.Lock()
-		p.pool.resurrectWithLock(conn)
-		conn.mu.Unlock()
-	}
 }
 
 // CheckDead syncs the pool based on Connection.mu.isDead state.
@@ -174,6 +133,7 @@ func (p *CoordinatorPolicy) IsEnabled() bool {
 // Returns (nil, nil) if no coordinating-only nodes are available (allows fallthrough).
 func (p *CoordinatorPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
 	if !p.hasCoordinators.Load() {
+		//nolint:nilnil // Intentional: (nil, nil) signals "policy not applicable, try next"
 		return nil, nil // No coordinating-only nodes, allow fallthrough
 	}
 

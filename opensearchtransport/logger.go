@@ -298,7 +298,7 @@ func (l *CurlLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 func (l *JSONLogger) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
 	// TODO: Research performance optimization of using sync.Pool
 
-	bsize := 200
+	const bsize = 200
 	b := bytes.NewBuffer(make([]byte, 0, bsize))
 	v := make([]byte, 0, bsize)
 

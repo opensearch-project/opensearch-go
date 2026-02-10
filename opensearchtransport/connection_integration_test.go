@@ -26,6 +26,7 @@
 
 //go:build integration && (core || opensearchtransport)
 
+//nolint:testpackage // Tests internal implementation details (statusConnectionPool, etc.)
 package opensearchtransport
 
 import (
@@ -39,11 +40,16 @@ import (
 const serverReadinessTimeout = 30 * time.Second
 
 func NewServer(addr string, handler http.Handler) *http.Server {
-	return &http.Server{Addr: addr, Handler: handler}
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 }
 
 // waitForServerReady waits for a server to be ready by trying to connect to it
 func waitForServerReady(t *testing.T, addr string, timeout time.Duration) error {
+	t.Helper()
 	client := &http.Client{Timeout: 100 * time.Millisecond}
 	deadline := time.Now().Add(timeout)
 
@@ -59,12 +65,12 @@ func waitForServerReady(t *testing.T, addr string, timeout time.Duration) error 
 }
 
 func TestStatusConnectionPool(t *testing.T) {
+	const numServers = 3
+
 	var (
-		server      *http.Server
-		servers     []*http.Server
-		serverURLs  []*url.URL
-		serverHosts []string
-		numServers  = 3
+		server     *http.Server
+		servers    []*http.Server
+		serverURLs = make([]*url.URL, 0, numServers)
 
 		defaultHandler = func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "OK") }
 	)
@@ -75,7 +81,7 @@ func TestStatusConnectionPool(t *testing.T) {
 
 		go func(s *http.Server) {
 			if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				t.Fatalf("Unable to start server: %s", err)
+				t.Errorf("Unable to start server: %s", err)
 			}
 		}(s)
 
@@ -92,7 +98,6 @@ func TestStatusConnectionPool(t *testing.T) {
 	for _, s := range servers {
 		u, _ := url.Parse("http://" + s.Addr)
 		serverURLs = append(serverURLs, u)
-		serverHosts = append(serverHosts, u.String())
 	}
 
 	cfg := Config{URLs: serverURLs}
@@ -124,12 +129,15 @@ func TestStatusConnectionPool(t *testing.T) {
 	}
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
@@ -149,12 +157,15 @@ func TestStatusConnectionPool(t *testing.T) {
 	}
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
@@ -178,7 +189,7 @@ func TestStatusConnectionPool(t *testing.T) {
 	servers[1] = server
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			t.Fatalf("Unable to start server: %s", err)
+			t.Errorf("Unable to start server: %s", err)
 		}
 	}()
 
@@ -191,12 +202,15 @@ func TestStatusConnectionPool(t *testing.T) {
 	time.Sleep(resurrectWait)
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
