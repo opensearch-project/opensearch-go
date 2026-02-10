@@ -54,7 +54,27 @@ jobs:
         run: |
           tar xf opensearch-min-*
           ./opensearch-*/bin/opensearch -Epath.repo=/usr/share/opensearch/mnt &
-          for attempt in {1..20}; do sleep 5; if curl -s localhost:9200; then echo '=====> ready'; break; fi; echo '=====> waiting...'; done
+          OPENSEARCH_PID=$!
+          echo "=====> Waiting for OpenSearch to be ready (max 100s)..."
+          for attempt in {1..20}; do
+            sleep 5
+            if curl -sf localhost:9200 > /dev/null 2>&1; then
+              echo "=====> OpenSearch ready after $((attempt * 5))s"
+              curl -s localhost:9200 | jq -r '.version.number // "unknown"' | xargs echo "OpenSearch version:"
+              break
+            fi
+            if [ $attempt -eq 20 ]; then
+              echo "=====> ERROR: OpenSearch failed to start after 100s"
+              echo ""
+              echo "=====> Process status:"
+              ps aux | grep opensearch || echo "Process not found"
+              echo ""
+              echo "=====> Recent logs:"
+              find . -name "*.log" -type f -exec echo "===== {} =====" \; -exec tail -50 {} \;
+              exit 1
+            fi
+            echo "=====> Attempt $attempt/20 - waiting..."
+          done
 
       - name: Checkout Go Client
         uses: actions/checkout@v6

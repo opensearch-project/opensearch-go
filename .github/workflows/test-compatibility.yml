@@ -57,9 +57,45 @@ jobs:
           export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
           export SECURE_INTEGRATION=${{ matrix.secured }}
           make cluster.clean cluster.build cluster.start
-          for attempt in `seq 25`; do sleep 5; \
-          if curl -s $(if $SECURE_INTEGRATION; then echo "-ku admin:admin https://"; fi)localhost:9200; \
-          then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
+          if [ "${SECURE_INTEGRATION}" = "true" ]; then
+            CURL_URL="https://localhost:9200"
+            # Password changed in OpenSearch 2.12.0
+            function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
+            if [ $(version ${OPENSEARCH_VERSION}) -ge $(version "2.12.0") ] || [ "${OPENSEARCH_VERSION}" = "latest" ]; then
+              CURL_OPTS="-sfku admin:myStrongPassword123!"
+            else
+              CURL_OPTS="-sfku admin:admin"
+            fi
+          else
+            CURL_URL="http://localhost:9200"
+            CURL_OPTS="-sf"
+          fi
+          echo "=====> Waiting for OpenSearch ${OPENSEARCH_VERSION} (secure=${SECURE_INTEGRATION}) to be ready (max 125s)..."
+          for attempt in $(seq 25); do
+            sleep 5
+            if curl ${CURL_OPTS} ${CURL_URL} > /dev/null 2>&1; then
+              echo "=====> Cluster ready after $((attempt * 5))s"
+              curl -s ${CURL_OPTS} ${CURL_URL} | jq -r '.version.number // "unknown"' | xargs echo "OpenSearch version:"
+              break
+            fi
+            if [ $attempt -eq 25 ]; then
+              echo "=====> ERROR: Cluster failed to start after 125s"
+              echo ""
+              echo "=====> Container status:"
+              docker compose --project-directory .ci/opensearch ps
+              echo ""
+              echo "=====> Node 1 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node1
+              echo ""
+              echo "=====> Node 2 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node2
+              echo ""
+              echo "=====> Node 3 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node3
+              exit 1
+            fi
+            echo "=====> Attempt $attempt/25 - waiting..."
+          done
 
       - name: Integration test
         run: |
