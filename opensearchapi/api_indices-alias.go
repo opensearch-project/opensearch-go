@@ -216,7 +216,7 @@ func (r AliasExistsReq) GetRequest() (*http.Request, error) {
 	indices := strings.Join(r.Indices, ",")
 
 	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Alias))
+	path.Grow(9 + len(indices) + len(aliases))
 	path.WriteString("/")
 	path.WriteString(indices)
 	path.WriteString("/_alias/")
