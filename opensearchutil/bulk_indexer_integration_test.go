@@ -391,7 +391,6 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 					}
 
-					t.Logf("[Multiple indices] About to check indices existence...")
 					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
 						Indices: []string{"test-index-a", "test-index-b", "test-index-c"},
 					})

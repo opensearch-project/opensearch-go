@@ -905,6 +905,35 @@ func TestIndicesClientNew(t *testing.T) {
 				validateInspect(t, res, err)
 			})
 		})
+
+		// Test FieldMapping
+		t.Run("FieldMapping", func(t *testing.T) {
+			t.Parallel()
+			t.Run("with_request", func(t *testing.T) {
+				res, err := client.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{
+					Indices: []string{index},
+					Fields:  []string{"test_field"},
+				})
+				validateDynamicIndexResponse("test-mapping", "mappings")(t, res, err)
+			})
+
+			t.Run("all_fields", func(t *testing.T) {
+				// Query all fields using wildcard
+				res, err := client.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{
+					Indices: []string{index},
+					Fields:  []string{"*"},
+				})
+				validateDynamicIndexResponse("test-mapping", "mappings")(t, res, err)
+			})
+
+			t.Run("inspect", func(t *testing.T) {
+				res, err := failingClient.Indices.Mapping.Field(t.Context(), &opensearchapi.MappingFieldReq{
+					Indices: []string{index},
+					Fields:  []string{"test_field"},
+				})
+				validateInspect(t, res, err)
+			})
+		})
 	})
 
 	// Test: Recovery

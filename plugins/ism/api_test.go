@@ -267,7 +267,8 @@ func TestClient(t *testing.T) {
 	})
 
 	t.Run("Put Policy with Transitions Conditions", func(t *testing.T) {
-		testRetentionPolicy := "testRetentionPolicy"
+		testRetentionPolicy := testutil.MustUniqueString(t, "test-retention-policy")
+		testIndexPattern := testutil.MustUniqueString(t, "test-transitions")
 		t.Cleanup(func() {
 			client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testRetentionPolicy})
 		})
@@ -303,7 +304,7 @@ func TestClient(t *testing.T) {
 						},
 						Template: []ism.Template{
 							{
-								IndexPatterns: []string{"test-transitions"},
+								IndexPatterns: []string{testIndexPattern},
 								Priority:      21,
 							},
 						},
