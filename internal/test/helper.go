@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"testing"
 	"time"
@@ -48,6 +49,16 @@ func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 	return client, nil
 }
 
+// logInfoFailure logs information about Info endpoint failures during cluster readiness checks.
+func logInfoFailure(t *testing.T, attempt, maxAttempts int, err error, urls []*url.URL, delayBetweenAttempts time.Duration) {
+	t.Helper()
+	// Only log after first few attempts to reduce noise (HTTPS cold start can be slow)
+	if attempt >= 2 {
+		t.Logf("Waiting %s for cluster readiness (attempt %d/%d) - Info error: %v - URLs=%v, SECURE_INTEGRATION=%q, OPENSEARCH_VERSION=%q",
+			delayBetweenAttempts, attempt+1, maxAttempts, err, urls, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
+	}
+}
+
 // WaitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
 // This function is exported so tests that create clients manually can also wait for readiness.
 func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
@@ -77,25 +88,14 @@ func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 		if err != nil || infoResp == nil {
 			cancel() // Clean up context before sleeping
 			if err != nil {
-				// Only log after first few attempts to reduce noise (HTTPS cold start can be slow)
-				if attempt >= 2 {
-					t.Logf("Waiting %s for cluster readiness (attempt %d/%d) - Info error: %v", delayBetweenAttempts, attempt+1, maxAttempts, err)
-				}
+				logInfoFailure(t, attempt, maxAttempts, err, urls, delayBetweenAttempts)
+				time.Sleep(delayBetweenAttempts)
+				continue
+			}
 
-				// On first attempt, log more details about the error
-				if attempt == 0 {
-					t.Logf("First attempt failed - this could indicate:")
-					t.Logf("  1. Wrong credentials (check SECURE_INTEGRATION and OPENSEARCH_VERSION env vars)")
-					t.Logf("  2. Cluster not ready yet")
-					t.Logf("  3. Network/SSL issues")
-					t.Logf("  Current config: URL=%q, SECURE_INTEGRATION=%q, OPENSEARCH_VERSION=%q",
-						urls, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
-				}
-			} else {
-				// Only log nil response after first few attempts
-				if attempt >= 2 {
-					t.Logf("Waiting %s for cluster readiness (attempt %d/%d) - nil response", delayBetweenAttempts, attempt+1, maxAttempts)
-				}
+			// err is nil but response is nil - only log after first few attempts
+			if attempt >= 2 {
+				t.Logf("Waiting %s for cluster readiness (attempt %d/%d) - nil response", delayBetweenAttempts, attempt+1, maxAttempts)
 			}
 			time.Sleep(delayBetweenAttempts)
 			continue
@@ -125,9 +125,15 @@ func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 	}
 
 	if versionKnown {
-		return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+		return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d) - this could indicate: "+
+			"(1) wrong credentials, (2) cluster still starting, or (3) network/SSL issues - "+
+			"config: URLs=%v, SECURE_INTEGRATION=%q, OPENSEARCH_VERSION=%q",
+			maxAttempts, major, minor, patch, urls, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
 	}
-	return fmt.Errorf("cluster not ready after %d attempts", maxAttempts)
+	return fmt.Errorf("cluster not ready after %d attempts - this could indicate: "+
+		"(1) wrong credentials, (2) cluster still starting, or (3) network/SSL issues - "+
+		"config: URLs=%v, SECURE_INTEGRATION=%q, OPENSEARCH_VERSION=%q",
+		maxAttempts, urls, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
 }
 
 // extendedReadinessCheck performs validation checks to ensure the cluster is ready.

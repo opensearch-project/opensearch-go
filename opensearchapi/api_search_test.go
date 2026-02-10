@@ -68,6 +68,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(t.Context(), nil)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
@@ -76,6 +77,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("with request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
@@ -84,6 +86,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("inspect", func(t *testing.T) {
+		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
@@ -94,6 +97,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with explain", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{
@@ -108,6 +112,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with retrieve specific fields", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{
@@ -131,6 +136,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("url path", func(t *testing.T) {
+		t.Parallel()
 		req := &opensearchapi.SearchReq{}
 		httpReq, err := req.GetRequest()
 		assert.Nil(t, err)
@@ -144,6 +150,7 @@ func TestSearch(t *testing.T) {
 		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
 	t.Run("request to retrieve response with routing key", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 		  "query": {
 			"match": {
@@ -163,6 +170,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("with seq_no and primary_term", func(t *testing.T) {
+		t.Parallel()
 		seqNoPrimaryTerm := true
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
 			Indices: []string{index},
@@ -182,6 +190,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("without seq_no and primary_term", func(t *testing.T) {
+		t.Parallel()
 		seqNoPrimaryTerm := false
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
 			Indices: []string{index},
@@ -201,6 +210,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with suggest", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 			"suggest": {
 			  "text": "bar",
@@ -216,6 +226,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with completion suggest", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
 			"suggest": {
 			  "my-suggest": {
@@ -238,6 +249,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with highlight", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{
@@ -262,6 +274,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with matched queries", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{
@@ -284,6 +297,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with inner hits", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{
@@ -311,6 +325,7 @@ func TestSearch(t *testing.T) {
 	})
 
 	t.Run("request with phase took", func(t *testing.T) {
+		t.Parallel()
 		ostest.SkipIfBelowVersion(t, client, 2, 12, "request with phase took")
 		resp, err := client.Search(
 			t.Context(),

@@ -47,20 +47,18 @@ var ErrNoRouteMatched = errors.New("no route matched request")
 
 const openSearchSystemQueryPrefix = "/_"
 
-var (
-	//nolint:gochecknoglobals // Shared HTTP methods map for validMuxPattern
-	httpMethods = map[string]struct{}{
-		http.MethodGet:     {},
-		http.MethodHead:    {},
-		http.MethodPost:    {},
-		http.MethodPut:     {},
-		http.MethodPatch:   {},
-		http.MethodDelete:  {},
-		http.MethodConnect: {},
-		http.MethodOptions: {},
-		http.MethodTrace:   {},
-	}
-)
+//nolint:gochecknoglobals // Shared HTTP methods map for validMuxPattern
+var httpMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodHead:    {},
+	http.MethodPost:    {},
+	http.MethodPut:     {},
+	http.MethodPatch:   {},
+	http.MethodDelete:  {},
+	http.MethodConnect: {},
+	http.MethodOptions: {},
+	http.MethodTrace:   {},
+}
 
 // Route represents a pattern-to-policy mapping for HTTP request routing.
 type Route interface {

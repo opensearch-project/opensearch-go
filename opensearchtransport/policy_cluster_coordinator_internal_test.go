@@ -52,7 +52,7 @@ func TestCoordinatorPolicy(t *testing.T) {
 	t.Run("Eval returns nil when no coordinators", func(t *testing.T) {
 		policy := NewCoordinatorPolicy()
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -68,7 +68,7 @@ func TestCoordinatorPolicy(t *testing.T) {
 		require.NoError(t, err)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.NotNil(t, pool)
@@ -127,7 +127,9 @@ func TestCoordinatorPolicy(t *testing.T) {
 	t.Run("CheckDead with nil pool is no-op", func(t *testing.T) {
 		policy := NewCoordinatorPolicy()
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 		err := policy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)
 	})
@@ -137,7 +139,9 @@ func TestCoordinatorPolicy(t *testing.T) {
 		policy.configurePolicySettings(createTestConfig())
 
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 
 		err := policy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)

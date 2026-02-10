@@ -59,7 +59,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 	t.Run("Eval returns nil when no pool", func(t *testing.T) {
 		policy := NewRoundRobinPolicy()
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -71,7 +71,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		policy.configurePolicySettings(createTestConfig())
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.NotNil(t, pool)
@@ -132,7 +132,9 @@ func TestRoundRobinPolicy(t *testing.T) {
 	t.Run("CheckDead with nil pool is no-op", func(t *testing.T) {
 		policy := NewRoundRobinPolicy()
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 		err := policy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)
 	})
@@ -167,7 +169,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
 			called = true
 			// Perform actual HTTP call to test server
-			req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 			if err != nil {
 				return nil, err
 			}

@@ -31,7 +31,7 @@ func TestNullPolicy(t *testing.T) {
 	t.Run("Eval always returns nil, nil", func(t *testing.T) {
 		policy := NewNullPolicy()
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -54,7 +54,9 @@ func TestNullPolicy(t *testing.T) {
 	t.Run("CheckDead is no-op", func(t *testing.T) {
 		policy := NewNullPolicy()
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 		err := policy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)
 	})

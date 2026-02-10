@@ -9,6 +9,7 @@
 package security_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -92,7 +93,8 @@ func TestActiongroupsClient(t *testing.T) {
 							}
 
 							// Check if it's a timeout error worth retrying
-							if structErr, ok := lastErr.(*opensearch.StructError); ok {
+							structErr := &opensearch.StructError{}
+							if errors.As(lastErr, &structErr) {
 								if structErr.Status == 500 && strings.Contains(structErr.Err.Reason, "TimeoutException") {
 									if attempt < maxRetries-1 {
 										t.Logf("Timeout on attempt %d, retrying...", attempt+1)

@@ -136,7 +136,7 @@ func TestMuxPolicy(t *testing.T) {
 		policy := NewMuxPolicy(routes)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("POST", "/_bulk", nil)
+		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.NotNil(t, pool)
@@ -153,7 +153,7 @@ func TestMuxPolicy(t *testing.T) {
 		policy := NewMuxPolicy(routes)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("POST", "/myindex/_search", nil)
+		req, _ := http.NewRequest(http.MethodPost, "/myindex/_search", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.NotNil(t, pool)
@@ -167,7 +167,7 @@ func TestMuxPolicy(t *testing.T) {
 		policy := NewMuxPolicy(routes)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/_search", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -182,7 +182,7 @@ func TestMuxPolicy(t *testing.T) {
 		policy := NewMuxPolicy(routes)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("POST", "/_bulk", nil)
+		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -197,7 +197,7 @@ func TestMuxPolicy(t *testing.T) {
 		policy := NewMuxPolicy(routes)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("POST", "/index/_search", nil)
+		req, _ := http.NewRequest(http.MethodPost, "/index/_search", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -282,7 +282,9 @@ func TestMuxPolicy(t *testing.T) {
 		muxPolicy := NewMuxPolicy(routes)
 
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 
 		err := muxPolicy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)
@@ -413,7 +415,7 @@ func TestPolicyResponseWriter(t *testing.T) {
 		defer releaseResponseWriter(policy, pw)
 
 		require.NotPanics(t, func() {
-			pw.WriteHeader(200)
+			pw.WriteHeader(http.StatusOK)
 		})
 	})
 }

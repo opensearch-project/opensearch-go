@@ -60,9 +60,19 @@ func TestDiscoveryIntegration(t *testing.T) {
 	}
 
 	// Detect which ports are available for testing discovery from different endpoints
-	availableNodes := []string{"http://localhost:9200"}
+	// Use the same scheme (http/https) as the test environment
+	scheme := "http"
+	if ostest.IsSecure() {
+		scheme = "https"
+	}
+
+	baseURL := &url.URL{Scheme: scheme, Host: "localhost:9200"}
+	availableNodes := []string{baseURL.String()}
+
 	for _, port := range []string{"9201", "9202"} {
-		endpoint := "http://localhost:" + port
+		nodeURL := &url.URL{Scheme: scheme, Host: "localhost:" + port}
+		endpoint := nodeURL.String()
+		//nolint:gosec // G107: Test code using localhost URLs with scheme from test config
 		if resp, err := http.Get(endpoint); err == nil {
 			resp.Body.Close()
 			availableNodes = append(availableNodes, endpoint)

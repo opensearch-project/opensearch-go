@@ -75,7 +75,7 @@ func TestPolicyChain(t *testing.T) {
 		chain := NewPolicy(firstPolicy, secondPolicy).(*PolicyChain)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		conn, err := chain.Route(ctx, req)
 		require.NoError(t, err)
@@ -100,7 +100,7 @@ func TestPolicyChain(t *testing.T) {
 		chain := NewPolicy(firstPolicy, secondPolicy).(*PolicyChain)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		conn, err := chain.Route(ctx, req)
 		require.NoError(t, err)
@@ -112,7 +112,7 @@ func TestPolicyChain(t *testing.T) {
 		chain := policy.(*PolicyChain)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		conn, err := chain.Route(ctx, req)
 		require.ErrorIs(t, err, ErrNoConnections)
@@ -128,7 +128,7 @@ func TestPolicyChain(t *testing.T) {
 		policy := NewPolicy(firstPolicy, secondPolicy)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.NotNil(t, pool)
@@ -139,7 +139,7 @@ func TestPolicyChain(t *testing.T) {
 		policy := NewPolicy(NewNullPolicy(), NewNullPolicy())
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -153,7 +153,7 @@ func TestPolicyChain(t *testing.T) {
 		policy := NewPolicy(errorPolicy, NewNullPolicy())
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.ErrorIs(t, err, testErr)
@@ -208,7 +208,9 @@ func TestPolicyChain(t *testing.T) {
 		policy := NewPolicy(firstPolicy, secondPolicy)
 
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 
 		err := policy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)
@@ -223,7 +225,9 @@ func TestPolicyChain(t *testing.T) {
 		policy := NewPolicy(errorPolicy, NewNullPolicy())
 
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 
 		err := policy.CheckDead(ctx, healthCheck)
 		require.ErrorIs(t, err, testErr)

@@ -39,6 +39,7 @@ func TestSearchShards(t *testing.T) {
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.SearchShards(t.Context(), nil)
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
@@ -46,6 +47,7 @@ func TestSearchShards(t *testing.T) {
 	})
 
 	t.Run("with request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
 		require.Nil(t, err)
 		assert.NotNil(t, resp)
@@ -53,6 +55,7 @@ func TestSearchShards(t *testing.T) {
 	})
 
 	t.Run("inspect", func(t *testing.T) {
+		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 

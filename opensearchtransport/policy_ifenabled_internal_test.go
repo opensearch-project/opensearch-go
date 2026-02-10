@@ -54,7 +54,7 @@ func TestIfEnabledPolicy(t *testing.T) {
 		policy := NewIfEnabledPolicy(alwaysTrue, truePolicy, falsePolicy)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.NotNil(t, pool)
@@ -70,7 +70,7 @@ func TestIfEnabledPolicy(t *testing.T) {
 		policy := NewIfEnabledPolicy(alwaysFalse, truePolicy, falsePolicy)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		pool, err := policy.Eval(ctx, req)
 		require.Nil(t, pool)
@@ -91,7 +91,7 @@ func TestIfEnabledPolicy(t *testing.T) {
 		policy := NewIfEnabledPolicy(condition, truePolicy, falsePolicy)
 
 		ctx := context.Background()
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		// First call: condition returns false (callCount=1)
 		pool1, err1 := policy.Eval(ctx, req)
@@ -150,7 +150,9 @@ func TestIfEnabledPolicy(t *testing.T) {
 		policy := NewIfEnabledPolicy(alwaysTrue, truePolicy, falsePolicy)
 
 		ctx := context.Background()
-		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) { return nil, nil }
+		healthCheck := func(ctx context.Context, u *url.URL) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusOK}, nil
+		}
 
 		err := policy.CheckDead(ctx, healthCheck)
 		require.NoError(t, err)
@@ -202,6 +204,7 @@ func (p *testPolicy) IsEnabled() bool {
 	return true
 }
 
+//nolint:nilnil // Test stub - Eval is never called in tests, only CheckDead/DiscoveryUpdate are tested
 func (p *testPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
 	return nil, nil
 }

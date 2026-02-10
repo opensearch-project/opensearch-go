@@ -18,8 +18,11 @@ import (
 	"net/http"
 	"testing"
 
+	//nolint:staticcheck // SA1019: Keeping aws-sdk-go v1 for backwards compatibility
 	"github.com/aws/aws-sdk-go/aws"
+	//nolint:staticcheck // SA1019: Keeping aws-sdk-go v1 for backwards compatibility
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	//nolint:staticcheck // SA1019: Keeping aws-sdk-go v1 for backwards compatibility
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/stretchr/testify/assert"
 
