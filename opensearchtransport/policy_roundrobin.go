@@ -29,6 +29,7 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 )
 
 // Compile-time interface compliance checks
@@ -39,7 +40,8 @@ var (
 
 // RoundRobinPolicy implements round-robin routing across all available connections.
 type RoundRobinPolicy struct {
-	pool *statusConnectionPool // Embedded connection pool for round-robin selection
+	pool      *statusConnectionPool // Embedded connection pool for round-robin selection
+	isEnabled atomic.Bool           // Cached state: true if pool has connections (updated during DiscoveryUpdate)
 }
 
 // NewRoundRobinPolicy creates a new round-robin routing policy.
@@ -111,12 +113,16 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 	// Add new connections to dead list - they start dead until proven alive via health checks
 	p.pool.mu.dead = append(p.pool.mu.dead, added...)
 
+	// Update cached enabled state: pool is enabled if it has any connections (live or dead)
+	// because round-robin can resurrect zombies from the dead pool
+	p.isEnabled.Store(len(p.pool.mu.live)+len(p.pool.mu.dead) > 0)
+
 	return nil
 }
 
-// IsEnabled always returns true as round-robin can always be used as a fallback.
+// IsEnabled uses cached state to quickly determine if connections are available.
 func (p *RoundRobinPolicy) IsEnabled() bool {
-	return p.pool != nil && len(p.pool.URLs()) > 0
+	return p.isEnabled.Load()
 }
 
 // Eval returns the round-robin connection pool for all available connections.

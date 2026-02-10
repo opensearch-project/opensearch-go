@@ -35,7 +35,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		require.False(t, policy.IsEnabled())
 	})
 
-	t.Run("IsEnabled returns true with live connections", func(t *testing.T) {
+	t.Run("IsEnabled returns true with connections (live or dead)", func(t *testing.T) {
 		policy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		policy.configurePolicySettings(createTestConfig())
 
@@ -43,8 +43,8 @@ func TestRoundRobinPolicy(t *testing.T) {
 		err := policy.DiscoveryUpdate([]*Connection{conn}, nil, nil)
 		require.NoError(t, err)
 
-		// Connection starts dead, so IsEnabled is false
-		require.False(t, policy.IsEnabled())
+		// RoundRobin is enabled even when connection starts dead (can pull zombies)
+		require.True(t, policy.IsEnabled())
 
 		// Get connection via Next (tryZombie) and promote it to live
 		zombieConn, err := policy.pool.Next()
@@ -52,7 +52,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		require.NotNil(t, zombieConn, "Next() should return a zombie connection")
 		policy.pool.OnSuccess(zombieConn)
 
-		// Now IsEnabled should be true
+		// Still enabled after promoting to live
 		require.True(t, policy.IsEnabled())
 	})
 

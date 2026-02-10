@@ -11,6 +11,19 @@ Request-based connection routing automatically routes operations to appropriate 
 - **Zero configuration**: Optional feature with transparent operation
 - **Backward compatible**: Existing round-robin behavior preserved
 
+## Performance
+
+The routing framework is designed for minimal overhead in the request path:
+
+- **Zero allocations**: All routing decisions operate without heap allocations
+- **Sub-microsecond latency**: Routing decisions complete in 150-400ns per request
+- **Optimized state management**: Expensive operations (role filtering, pool updates) execute during `DiscoveryUpdate()` rather than per-request
+- **Lock-free reads**: Policy evaluation uses atomic operations for state checks
+
+The architecture amortizes computational cost across topology changes rather than per-request, making the routing overhead negligible relative to network I/O. Policy composition and evaluation add approximately 10-250ns over baseline connection pool selection.
+
+Detailed performance measurements are available in `opensearchtransport/BENCHMARK_RESULTS.txt`.
+
 ## Quick Start
 
 ### Basic Setup
