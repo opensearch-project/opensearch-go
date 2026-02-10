@@ -79,7 +79,8 @@ type SearchShardsResp struct {
 		Index                    string  `json:"index"`
 		ExpectedShardSizeInBytes int     `json:"expected_shard_size_in_bytes"`
 		RecoverySource           struct {
-			Type string `json:"type"`
+			Type                    string `json:"type"`
+			BootstrapNewHistoryUUID *bool  `json:"bootstrap_new_history_uuid,omitempty"` // Present since OpenSearch 1.0.0
 		} `json:"recovery_source"`
 		UnassignedInfo struct {
 			Reason           string `json:"reason"`
@@ -88,7 +89,8 @@ type SearchShardsResp struct {
 			AllocationStatus string `json:"allocation_status"`
 		} `json:"unassigned_info"`
 		AllocationID struct {
-			ID string `json:"id"`
+			ID           string  `json:"id"`
+			RelocationID *string `json:"relocation_id,omitempty"` // Present when shard is relocating (available since OpenSearch 1.0.0)
 		} `json:"allocation_id"`
 	} `json:"shards"`
 	response *opensearch.Response

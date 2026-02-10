@@ -9,7 +9,7 @@
 package opensearchapi_test
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,19 +19,20 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestTermvectors(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
-	testIndex := "test-termvectors"
+	testIndex := testutil.MustUniqueString(t, "test-termvectors")
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	_, err = client.Indices.Create(
-		nil,
+		t.Context(),
 		opensearchapi.IndicesCreateReq{
 			Index: testIndex,
 			Body: strings.NewReader(`{ "mappings": {
@@ -71,14 +72,18 @@ func TestTermvectors(t *testing.T) {
 		},
 	)
 	require.Nil(t, err)
-	docs := []string{`{"fullname":"John Doe","text":"test test test "}`, `{"fullname":"Jane Doe","text":"Another test ..."}`}
+	docs := []string{"{\"fullname\":\"John Doe\",\"text\":\"test test \"}", `{"fullname":"Jane Doe","text":"Another test ..."}`}
+
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
+
 	for i, doc := range docs {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(doc),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
@@ -87,11 +92,12 @@ func TestTermvectors(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.Termvectors(
-			nil,
+			t.Context(),
 			opensearchapi.TermvectorsReq{
 				Index:      testIndex,
-				DocumentID: "1",
-				Body:       strings.NewReader(`{"fields":["*"],"offsets":true,"payloads":true,"positions":true,"term_statistics":true,"field_statistics":true}`),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, 0),
+				Body: strings.NewReader(`{"fields":["*"],"offsets":true,"payloads":true,"positions":true,` +
+					`"term_statistics":true,"field_statistics":true}`),
 			},
 		)
 		require.Nil(t, err)
@@ -103,7 +109,7 @@ func TestTermvectors(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Termvectors(nil, opensearchapi.TermvectorsReq{})
+		res, err := failingClient.Termvectors(t.Context(), opensearchapi.TermvectorsReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -44,14 +44,14 @@ func TestAuditClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						getResp, err := client.Audit.Get(nil, nil)
+						getResp, err := client.Audit.Get(t.Context(), nil)
 						return getResp, err
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Audit.Get(nil, nil)
+						return failingClient.Audit.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -63,7 +63,7 @@ func TestAuditClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Audit.Put(
-							nil,
+							t.Context(),
 							security.AuditPutReq{
 								Body: security.AuditPutBody{
 									Compliance: getResp.Config.Compliance,
@@ -77,7 +77,7 @@ func TestAuditClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Audit.Put(nil, security.AuditPutReq{})
+						return failingClient.Audit.Put(t.Context(), security.AuditPutReq{})
 					},
 				},
 			},
@@ -89,7 +89,7 @@ func TestAuditClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Audit.Patch(
-							nil,
+							t.Context(),
 							security.AuditPatchReq{
 								Body: security.AuditPatchBody{
 									security.AuditPatchBodyItem{
@@ -105,7 +105,7 @@ func TestAuditClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Audit.Patch(nil, security.AuditPatchReq{})
+						return failingClient.Audit.Patch(t.Context(), security.AuditPatchReq{})
 					},
 				},
 			},

@@ -27,9 +27,11 @@
 package opensearchtransport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math"
+	"net/http"
 	"net/url"
 	"sort"
 	"sync"
@@ -42,10 +44,13 @@ const (
 	defaultResurrectTimeoutFactorCutoff = 5
 )
 
-// Selector defines the interface for selecting connections from the pool.
-type Selector interface {
-	Select([]*Connection) (*Connection, error)
-}
+// Errors
+var (
+	ErrNoConnections = errors.New("no connections available")
+)
+
+// NodeFilter defines a function type for filtering connections based on their properties.
+type NodeFilter func(*Connection) bool
 
 // ConnectionPool defines the interface for the connection pool.
 type ConnectionPool interface {
@@ -68,16 +73,110 @@ type Connection struct {
 	URL        *url.URL
 	ID         string
 	Name       string
-	Roles      []string
+	Roles      roleSet
 	Attributes map[string]any
 
 	failures atomic.Int64
 
 	mu struct {
 		sync.RWMutex
-		isDead    bool
-		deadSince time.Time
+		deadSince      time.Time
+		checkStartedAt time.Time
 	}
+}
+
+// checkHealth performs a health check on this connection with concurrency protection.
+// Updates isDead and checkStartedAt state based on health check results.
+// Returns error if health check fails or if already checking.
+func (c *Connection) checkHealth(ctx context.Context, healthCheck func(context.Context, *url.URL) (*http.Response, error)) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Skip if already checking to prevent concurrent health checks
+	if !c.mu.checkStartedAt.IsZero() {
+		duration := time.Since(c.mu.checkStartedAt)
+		return fmt.Errorf("health check already in progress for %v", duration)
+	}
+
+	// Store original deadSince to detect race conditions
+	originalDeadSince := c.mu.deadSince
+
+	// Set checking timestamp
+	c.mu.checkStartedAt = time.Now()
+	defer func() {
+		c.mu.checkStartedAt = time.Time{}
+	}()
+
+	// Perform actual health check
+	c.mu.Unlock() // Release lock during network call
+	resp, err := healthCheck(ctx, c.URL)
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
+	c.mu.Lock() // Reacquire for state update
+
+	// Check if connection was marked dead more recently than when we started
+	if c.mu.deadSince.After(originalDeadSince) {
+		// Connection was marked dead while we were checking, discard result
+		return nil
+	}
+
+	// Update connection state based on health check result
+	if err != nil {
+		// Health check failed
+		if c.mu.deadSince.IsZero() {
+			c.mu.deadSince = time.Now()
+		}
+		return err
+	}
+
+	// Health check passed
+	if !c.mu.deadSince.IsZero() {
+		c.mu.deadSince = time.Time{} // Reset deadSince
+	}
+
+	return nil
+}
+
+// checkDead syncs dead/live lists based on Connection.mu.isDead state and performs health checks.
+func (cp *statusConnectionPool) checkDead(ctx context.Context, healthCheck HealthCheckFunc) error {
+	if healthCheck == nil {
+		return errors.New("healthCheck function cannot be nil")
+	}
+
+	// Get snapshot of dead connections without holding lock during health checks
+	cp.mu.RLock()
+	deadConns := make([]*Connection, len(cp.mu.dead))
+	copy(deadConns, cp.mu.dead)
+	cp.mu.RUnlock()
+
+	// Perform health checks without holding the pool lock
+	for _, conn := range deadConns {
+		err := conn.checkHealth(ctx, healthCheck)
+		if err != nil {
+			// Health check failed or already in progress, skip
+			continue
+		}
+
+		// Check if connection is now alive and resurrect if needed
+		conn.mu.RLock()
+		isDead := !conn.mu.deadSince.IsZero()
+		conn.mu.RUnlock()
+
+		if !isDead {
+			// Connection is alive, resurrect it
+			cp.mu.Lock()
+			conn.mu.Lock()
+			// Double-check state after acquiring locks to avoid race
+			if conn.mu.deadSince.IsZero() {
+				cp.resurrectWithLock(conn)
+			}
+			conn.mu.Unlock()
+			cp.mu.Unlock()
+		}
+	}
+
+	return nil
 }
 
 type singleConnectionPool struct {
@@ -93,15 +192,12 @@ type statusConnectionPool struct {
 		dead []*Connection // List of dead connections
 	}
 
-	selector                     Selector
+	nextLive atomic.Int64 // Round-robin counter for live connections
+
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutFactorCutoff int
 
 	metrics *metrics
-}
-
-type roundRobinSelector struct {
-	curr atomic.Int64 // Index of the current connection
 }
 
 // Compile-time checks to ensure interface compliance
@@ -119,13 +215,11 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	}
 
 	if selector == nil {
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
-		selector = s
+		selector = &roundRobinSelector{}
+		selector.(*roundRobinSelector).curr.Store(-1)
 	}
 
 	pool := &statusConnectionPool{
-		selector:                     selector,
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
@@ -152,28 +246,40 @@ func (cp *singleConnectionPool) connections() []*Connection { return []*Connecti
 
 // Next returns a connection from pool, or an error.
 func (cp *statusConnectionPool) Next() (*Connection, error) {
+	cp.mu.RLock()
+
+	// Return next live connection using round-robin
+	switch {
+	case len(cp.mu.live) > 0:
+		conn := cp.getNextLiveConnWithLock()
+		cp.mu.RUnlock()
+		return conn, nil
+	case len(cp.mu.dead) == 0:
+		cp.mu.RUnlock()
+		return nil, ErrNoConnections
+	}
+
+	// No live connections are available, try using a dead connection.
+	cp.mu.RUnlock() // Release read lock
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
-	// Return next live connection
-	if len(cp.mu.live) > 0 {
-		return cp.selector.Select(cp.mu.live)
-	} else if len(cp.mu.dead) > 0 {
-		// No live connection is available, resurrect one of the dead ones.
-		c := cp.mu.dead[len(cp.mu.dead)-1]
-		cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		cp.resurrectWithLock(c, false)
+	// Double-check after acquiring write lock
+	switch {
+	case len(cp.mu.live) > 0:
+		return cp.getNextLiveConnWithLock(), nil
+	case len(cp.mu.dead) == 0:
+		return nil, ErrNoConnections
+	default:
+		// We can now assume: cp.mu.dead > 0
+		c := cp.tryZombieWithLock()
 		return c, nil
 	}
-
-	return nil, errors.New("no connection available")
 }
 
 // OnSuccess marks the connection as successful.
 func (cp *statusConnectionPool) OnSuccess(c *Connection) {
-	// Establish consistent lock ordering: Pool → Connection
+	// Establish consistent lock ordering: Pool -> Connection
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -181,12 +287,12 @@ func (cp *statusConnectionPool) OnSuccess(c *Connection) {
 	defer c.mu.Unlock()
 
 	// Short-circuit for live connection
-	if !c.mu.isDead {
+	if c.mu.deadSince.IsZero() {
 		return
 	}
 
 	c.markAsHealthyWithLock()
-	cp.resurrectWithLock(c, true)
+	cp.resurrectWithLock(c)
 }
 
 // OnFailure marks the connection as failed.
@@ -196,7 +302,7 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 
 	c.mu.Lock()
 
-	if c.mu.isDead {
+	if !c.mu.deadSince.IsZero() {
 		if debugLogger != nil {
 			debugLogger.Logf("Already removed %s\n", c.URL)
 		}
@@ -213,9 +319,26 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	deadSince := c.mu.deadSince
 	c.mu.Unlock()
 
-	cp.scheduleResurrect(c, deadSince)
+	// Find connection in live list
+	idx := -1
+	for i, conn := range cp.mu.live {
+		if conn == c {
+			idx = i
+			break
+		}
+	}
 
-	// Push item to dead list and sort slice by number of failures
+	if idx < 0 {
+		// Invariant violation: connection marked dead but not in live list.
+		// This indicates a bug in connection lifecycle management.
+		if debugLogger != nil {
+			debugLogger.Logf("BUG: Connection %s marked dead but not in live list\n", c.URL)
+		}
+		return errors.New("connection not in live list")
+	}
+
+	// Remove from live list and add to dead list
+	cp.mu.live = append(cp.mu.live[:idx], cp.mu.live[idx+1:]...)
 	cp.mu.dead = append(cp.mu.dead, c)
 
 	// Sort by failure count for resurrection prioritization.
@@ -236,24 +359,8 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 		return failures1 > failures2
 	})
 
-	// Check if connection exists in the list, return error if not.
-	index := -1
-
-	for i, conn := range cp.mu.live {
-		if conn == c {
-			index = i
-		}
-	}
-
-	if index < 0 {
-		// Does this error even get raised? Under what conditions can the connection not be in the cp.mu.live list?
-		// If the connection is marked dead the function already ended
-		return errors.New("connection not in live list")
-	}
-
-	// Remove item; https://github.com/golang/go/wiki/SliceTricks
-	copy(cp.mu.live[index:], cp.mu.live[index+1:])
-	cp.mu.live = cp.mu.live[:len(cp.mu.live)-1]
+	// Schedule resurrection after connection has been moved to dead list
+	cp.scheduleResurrect(c, deadSince)
 
 	return nil
 }
@@ -306,14 +413,28 @@ func (cp *statusConnectionPool) Unlock() {
 	cp.mu.Unlock()
 }
 
-// resurrect adds the connection to the list of available connections.
-// When removeDead is true, it also removes it from the dead list.
+// getNextLiveConnWithLock returns the next live connection using round-robin selection.
+// This provides fair distribution of requests across all live connections.
 //
 // CALLER RESPONSIBILITIES:
-//   - Caller should verify external connectivity/health before resurrection
-//     (this method only updates internal bookkeeping, not connection health)
-//   - Caller must handle any errors from subsequent connection attempts
-func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool) {
+//   - Caller must hold pool read or write lock
+//   - Caller must ensure len(cp.mu.live) > 0 before calling
+func (cp *statusConnectionPool) getNextLiveConnWithLock() *Connection {
+	next := cp.nextLive.Add(1)
+	idx := int(next-1) % len(cp.mu.live)
+	return cp.mu.live[idx]
+}
+
+// resurrectWithLock unconditionally moves a connection from dead to live list.
+// This should only be called after a successful health check or when the connection
+// has been verified to be healthy. Used by OnSuccess() and checkDead() to promote
+// connections that have proven to be working.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must verify connection health before calling this method
+//   - Caller must hold both pool lock and connection lock
+//   - Connection should exist in the dead list
+func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
 	if debugLogger != nil {
 		debugLogger.Logf("Resurrecting %s\n", c.URL)
 	}
@@ -321,21 +442,53 @@ func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool
 	c.markAsLiveWithLock()
 	cp.mu.live = append(cp.mu.live, c)
 
-	if removeDead {
-		index := -1
-
-		for i, conn := range cp.mu.dead {
-			if conn == c {
-				index = i
-			}
-		}
-
-		if index >= 0 {
-			// Remove item; https://github.com/golang/go/wiki/SliceTricks
-			copy(cp.mu.dead[index:], cp.mu.dead[index+1:])
-			cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
+	// Always remove from dead list to avoid duplicates
+	idx := -1
+	for i, conn := range cp.mu.dead {
+		if conn == c {
+			idx = i
+			break
 		}
 	}
+
+	if idx >= 0 {
+		cp.mu.dead = append(cp.mu.dead[:idx], cp.mu.dead[idx+1:]...)
+	}
+}
+
+// tryZombieWithLock returns a dead connection for temporary use without moving it to the live list.
+// This allows attempting requests on potentially dead connections when no live connections are available.
+// The connection remains on the dead list and will continue to be subject to periodic health checks.
+// Used by Next() when no live connections are available, providing a way to short-circuit the periodic
+// heartbeat timer by attempting requests on dead connections immediately.
+//
+// The function rotates through dead connections by popping from the front and pushing to the back,
+// ensuring fair distribution of retry attempts across all dead connections.
+//
+// CONCURRENCY NOTE: This function races with OnFailure() over dead list ordering. OnFailure()
+// sorts dead connections by failure count while this function rotates the list for fair distribution.
+// The design assumes that during failure scenarios, we iterate through the entire dead list faster
+// than new connections fail and trigger list resorting in OnFailure(). This ensures fair rotation
+// is maintained most of the time, with occasional resorting to prioritize connections with fewer failures.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+//   - Caller should call OnSuccess() if the connection proves to work (which will resurrect it)
+//   - Caller should call OnFailure() if the connection fails (which is a no-op since it's already dead)
+func (cp *statusConnectionPool) tryZombieWithLock() *Connection {
+	if len(cp.mu.dead) == 0 {
+		return nil
+	}
+
+	// Pop from front, push to back (rotate the queue) in one operation
+	var c *Connection
+	c, cp.mu.dead = cp.mu.dead[0], append(cp.mu.dead[1:], cp.mu.dead[0])
+
+	if debugLogger != nil {
+		debugLogger.Logf("Trying zombie connection %s\n", c.URL)
+	}
+
+	return c
 }
 
 // scheduleResurrect schedules the connection to be resurrected.
@@ -362,39 +515,19 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 		c.mu.Lock()
 		defer c.mu.Unlock()
 
-		if !c.mu.isDead {
+		if c.mu.deadSince.IsZero() {
 			if debugLogger != nil {
 				debugLogger.Logf("Already resurrected %s\n", c.URL)
 			}
 			return
 		}
 
-		cp.resurrectWithLock(c, true)
+		cp.resurrectWithLock(c)
 	})
-}
-
-// Select returns the connection in a round-robin fashion.
-func (s *roundRobinSelector) Select(conns []*Connection) (*Connection, error) {
-	if len(conns) == 0 {
-		return nil, errors.New("no connections available")
-	}
-
-	// Atomic increment with wrap-around
-	next := s.curr.Add(1)
-	index := int(next % int64(len(conns)))
-	return conns[index], nil
-}
-
-// markAsDead marks the connection as dead.
-func (c *Connection) markAsDead() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.markAsDeadWithLock()
 }
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
 func (c *Connection) markAsDeadWithLock() {
-	c.mu.isDead = true
 	if c.mu.deadSince.IsZero() {
 		c.mu.deadSince = time.Now().UTC()
 	}
@@ -403,12 +536,11 @@ func (c *Connection) markAsDeadWithLock() {
 
 // markAsLiveWithLock marks the connection as alive (caller must hold lock).
 func (c *Connection) markAsLiveWithLock() {
-	c.mu.isDead = false
+	c.mu.deadSince = time.Time{}
 }
 
 // markAsHealthyWithLock marks the connection as healthy (caller must hold lock).
 func (c *Connection) markAsHealthyWithLock() {
-	c.mu.isDead = false
 	c.mu.deadSince = time.Time{}
 	c.failures.Store(0)
 }
@@ -416,6 +548,12 @@ func (c *Connection) markAsHealthyWithLock() {
 // String returns a readable connection representation.
 func (c *Connection) String() string {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return fmt.Sprintf("<%s> dead=%v failures=%d", c.URL, c.mu.isDead, c.failures.Load())
+	deadAt := c.mu.deadSince
+	c.mu.RUnlock()
+
+	if deadAt.IsZero() {
+		return fmt.Sprintf("<%s> dead=false failures=%d", c.URL, c.failures.Load())
+	}
+
+	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", c.URL, time.Since(deadAt), c.failures.Load())
 }

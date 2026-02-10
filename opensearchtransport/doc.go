@@ -45,9 +45,75 @@ implement the RetryBackoff option function; see an example in the package unit t
 When multiple addresses are passed in configuration, the package will use them in a round-robin fashion,
 and will keep track of live and dead nodes. The status of dead nodes is checked periodically.
 
-To customize the node selection behavior, provide a Selector implementation in the configuration.
-To replace the connection pool entirely, provide a custom ConnectionPool implementation via
-the ConnectionPoolFunc option.
+# Request-Based Connection Routing
+
+To enable intelligent request routing that routes operations to appropriate node types,
+provide a Router implementation in the configuration:
+
+	// Enable smart routing (recommended for production clusters)
+	router := opensearchtransport.NewSmartRouter()
+	transport, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs:   []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
+		Router: router,
+	})
+
+Available router constructors:
+
+  - NewDefaultRouter(): Coordinator preference with round-robin fallback
+  - NewSmartRouter(): HTTP pattern-based routing (bulk->ingest, search->data) with coordinator preference
+  - NewRouter(policies...): Custom policy chain
+
+The routing system uses a chain-of-responsibility pattern where policies are tried in sequence:
+
+  - Router: Top-level coordinator that tries policies until one matches
+  - Policy: Individual routing strategy that may match or pass to next policy
+  - Fallthrough: Policies return (nil, nil) when they don't match
+
+# Available Policies
+
+Individual routing policies that can be composed into custom strategies:
+
+	// Role-based policies
+	NewRolePolicy("data", "ingest")           // Nodes with specific roles
+	NewRolePolicy(RoleCoordinatingOnly)       // Coordinating-only nodes
+
+	// Pattern-based routing
+	NewMuxPolicy(routes)                      // HTTP pattern matching
+
+	// Conditional routing
+	NewIfEnabledPolicy(condition, true, false) // Runtime conditions
+
+	// Basic policies
+	NewRoundRobinPolicy()                     // Round-robin across all nodes
+	NewNullPolicy()                           // Always returns no connections
+
+	// Policy composition
+	NewPolicy(policies...)                    // Chain multiple policies (returns PolicyChain)
+
+# Request Routing Patterns
+
+The smart router automatically handles these OpenSearch operation patterns:
+
+  - Bulk operations (/_bulk, /_bulk/stream) -> Ingest-capable nodes
+  - Ingest pipelines (/_ingest/pipeline/*) -> Ingest-capable nodes
+  - Search operations (/_search, /_msearch, /_count) -> Data nodes
+  - Document retrieval (/_doc/*, /_mget, /_source/*) -> Data nodes
+  - All other operations -> Round-robin fallback
+
+# Node Discovery
+
+Enable automatic cluster discovery to maintain current node information:
+
+	transport, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs: []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
+		DiscoverNodesInterval: 5 * time.Minute,
+		Router: opensearchtransport.NewSmartRouter(),
+	})
+
+The discovery process respects node roles and can exclude dedicated cluster manager nodes
+from request routing (controlled by IncludeDedicatedClusterManagers configuration).
+
+# Logging and Metrics
 
 The package defines the Logger interface for logging information about request and response.
 It comes with several bundled loggers for logging in text and JSON.

@@ -9,7 +9,6 @@
 package opensearchapi_test
 
 import (
-	"context"
 	"strconv"
 	"strings"
 	"testing"
@@ -21,6 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestDocumentClient(t *testing.T) {
@@ -29,10 +29,11 @@ func TestDocumentClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient()
 	require.Nil(t, err)
 
-	index := "test-document"
-	documentID := "test"
+	// Create unique index and document ID per test execution to avoid conflicts
+	index := testutil.MustUniqueString(t, "test-document")
+	documentID := testutil.MustUniqueString(t, "test-doc")
 
-	t.Cleanup(func() { client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}}) })
+	t.Cleanup(func() { client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}}) })
 
 	type docIndexPrep struct {
 		DocCount int
@@ -56,7 +57,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Document.Create(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentCreateReq{
 								Index:      index,
 								Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -70,7 +71,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.Create(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentCreateReq{
 								Index:      index,
 								Body:       strings.NewReader("{}"),
@@ -91,7 +92,7 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Document.Exists(nil, opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
+						resp.Response, err = client.Document.Exists(t.Context(), opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
 						return resp, err
 					},
 				},
@@ -102,7 +103,7 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Document.Exists(nil, opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
+						resp.Response, err = failingClient.Document.Exists(t.Context(), opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
 						return resp, err
 					},
 				},
@@ -118,7 +119,10 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Document.ExistsSource(nil, opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID})
+						resp.Response, err = client.Document.ExistsSource(
+							t.Context(),
+							opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID},
+						)
 						return resp, err
 					},
 				},
@@ -129,7 +133,10 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Document.ExistsSource(nil, opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID})
+						resp.Response, err = failingClient.Document.ExistsSource(
+							t.Context(),
+							opensearchapi.DocumentExistsSourceReq{Index: index, DocumentID: documentID},
+						)
 						return resp, err
 					},
 				},
@@ -142,7 +149,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Document.Get(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentGetReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -154,7 +161,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.Get(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentGetReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -171,7 +178,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Document.Explain(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentExplainReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -184,7 +191,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.Explain(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentExplainReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -202,7 +209,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Document.Source(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentSourceReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -214,7 +221,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.Source(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentSourceReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -231,7 +238,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Document.Delete(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -243,7 +250,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.Delete(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteReq{
 								Index:      index,
 								DocumentID: documentID,
@@ -261,7 +268,7 @@ func TestDocumentClient(t *testing.T) {
 					IndexPrepare: &docIndexPrep{DocCount: 100, Body: `{"title":"bar"}`},
 					Results: func() (osapitest.Response, error) {
 						return client.Document.DeleteByQuery(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteByQueryReq{
 								Indices: []string{index},
 								Body:    strings.NewReader(`{"query":{"match":{"title":"bar"}}}`),
@@ -273,7 +280,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.DeleteByQuery(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteByQueryReq{
 								Indices: []string{index},
 								Body:    strings.NewReader(`{"query":{"match":{"title":"bar"}}}`),
@@ -291,7 +298,7 @@ func TestDocumentClient(t *testing.T) {
 					IndexPrepare: &docIndexPrep{DocCount: 10000, Body: `{"title":"foo"}`},
 					Results: func() (osapitest.Response, error) {
 						delResp, err := client.Document.DeleteByQuery(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteByQueryReq{
 								Indices: []string{index},
 								Body:    strings.NewReader(`{"query":{"match":{"title":"foo"}}}`),
@@ -302,7 +309,7 @@ func TestDocumentClient(t *testing.T) {
 							return delResp, err
 						}
 						return client.Document.DeleteByQueryRethrottle(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteByQueryRethrottleReq{
 								TaskID: delResp.Task,
 								Params: opensearchapi.DocumentDeleteByQueryRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(50)},
@@ -314,7 +321,7 @@ func TestDocumentClient(t *testing.T) {
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
 						return failingClient.Document.DeleteByQueryRethrottle(
-							nil,
+							t.Context(),
 							opensearchapi.DocumentDeleteByQueryRethrottleReq{
 								TaskID: "some-task-id",
 								Params: opensearchapi.DocumentDeleteByQueryRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(50)},
@@ -337,7 +344,7 @@ func TestDocumentClient(t *testing.T) {
 						Pretty:     true,
 					})
 					for i := 1; i <= testCase.IndexPrepare.DocCount; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(t.Context(), opensearchutil.BulkIndexerItem{
 							Index:      index,
 							Action:     "index",
 							DocumentID: strconv.Itoa(i),
@@ -348,7 +355,7 @@ func TestDocumentClient(t *testing.T) {
 						}
 					}
 
-					if err := bi.Close(context.Background()); err != nil {
+					if err := bi.Close(t.Context()); err != nil {
 						t.Errorf("Unexpected error: %s", err)
 					}
 				}
@@ -373,7 +380,7 @@ func TestDocumentClient(t *testing.T) {
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Source", func(t *testing.T) {
 			_, err := client.Document.Create(
-				nil,
+				t.Context(),
 				opensearchapi.DocumentCreateReq{
 					Index:      index,
 					Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -382,7 +389,7 @@ func TestDocumentClient(t *testing.T) {
 			)
 			require.Nil(t, err)
 			res, err := client.Document.Source(
-				nil,
+				t.Context(),
 				opensearchapi.DocumentSourceReq{
 					Index:      index,
 					DocumentID: documentID,
@@ -394,7 +401,10 @@ func TestDocumentClient(t *testing.T) {
 			ostest.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
 		})
 		t.Run("Fields", func(t *testing.T) {
-			_, err := client.Indices.Mapping.Put(nil,
+			// Create unique document ID for this test
+			storedFieldDocID := testutil.MustUniqueString(t, "test-stored-field")
+
+			_, err := client.Indices.Mapping.Put(t.Context(),
 				opensearchapi.MappingPutReq{
 					Indices: []string{index},
 					Body: strings.NewReader(`{
@@ -408,19 +418,19 @@ func TestDocumentClient(t *testing.T) {
 				})
 			require.Nil(t, err)
 			_, err = client.Document.Create(
-				nil,
+				t.Context(),
 				opensearchapi.DocumentCreateReq{
 					Index:      index,
 					Body:       strings.NewReader(`{"foo-stored": "bar"}`),
-					DocumentID: "test-stored-field",
+					DocumentID: storedFieldDocID,
 				},
 			)
 			require.Nil(t, err)
 			res, err := client.Document.Get(
-				nil,
+				t.Context(),
 				opensearchapi.DocumentGetReq{
 					Index:      index,
-					DocumentID: "test-stored-field",
+					DocumentID: storedFieldDocID,
 					Params: opensearchapi.DocumentGetParams{
 						StoredFields: []string{"foo-stored"},
 					},

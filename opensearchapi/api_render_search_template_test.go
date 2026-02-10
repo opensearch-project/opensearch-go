@@ -26,7 +26,7 @@ func TestRenderSearchTemplate(t *testing.T) {
 	require.Nil(t, err)
 
 	if ostest.IsSecure() {
-		major, patch, _, err := ostest.GetVersion(client, t)
+		major, patch, _, err := ostest.GetVersion(t, client)
 		assert.Nil(t, err)
 		if major == 2 && (patch == 10 || patch == 11) {
 			t.Skipf("Skipping %s due to: https://github.com/opensearch-project/security/issues/3672", t.Name())
@@ -35,21 +35,23 @@ func TestRenderSearchTemplate(t *testing.T) {
 
 	testScript := "test-search-template"
 	t.Cleanup(func() {
-		client.Script.Delete(nil, opensearchapi.ScriptDeleteReq{ScriptID: testScript})
+		client.Script.Delete(t.Context(), opensearchapi.ScriptDeleteReq{ScriptID: testScript})
 	})
 
 	_, err = client.Script.Put(
-		nil,
+		t.Context(),
 		opensearchapi.ScriptPutReq{
 			ScriptID: testScript,
-			Body:     strings.NewReader(`{"script":{"lang":"mustache","source":{"from":"{{from}}{{^from}}0{{/from}}","size":"{{size}}{{^size}}10{{/size}}","query":{"match":{"play_name":""}}},"params":{"play_name":"Henry IV"}}}`),
+			Body: strings.NewReader(`{"script":{"lang":"mustache","source":{"from":"{{from}}{{^from}}0{{/from}}",` +
+				`"size":"{{size}}{{^size}}10{{/size}}","query":{"match":{"play_name":""}}},` +
+				`"params":{"play_name":"Henry IV"}}}`),
 		},
 	)
 	require.Nil(t, err)
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.RenderSearchTemplate(
-			nil,
+			t.Context(),
 			opensearchapi.RenderSearchTemplateReq{
 				TemplateID: testScript,
 				Body:       strings.NewReader(fmt.Sprintf(`{"id":"%s","params":{"play_name":"Henry IV"}}`, testScript)),
@@ -64,7 +66,7 @@ func TestRenderSearchTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.RenderSearchTemplate(nil, opensearchapi.RenderSearchTemplateReq{})
+		res, err := failingClient.RenderSearchTemplate(t.Context(), opensearchapi.RenderSearchTemplateReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

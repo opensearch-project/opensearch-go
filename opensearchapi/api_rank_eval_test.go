@@ -9,7 +9,7 @@
 package opensearchapi_test
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,6 +19,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestRankEval(t *testing.T) {
@@ -27,16 +28,19 @@ func TestRankEval(t *testing.T) {
 
 	testIndex := "test-rank_eval"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
+
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
@@ -45,10 +49,11 @@ func TestRankEval(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.RankEval(
-			nil,
+			t.Context(),
 			opensearchapi.RankEvalReq{
 				Indices: []string{testIndex},
-				Body:    strings.NewReader(`{"requests":[{"id":"test","request":{"query":{"match_all":{}}},"ratings":[]}],"metric":{"expected_reciprocal_rank":{"maximum_relevance":3,"k":20}}}`),
+				Body: strings.NewReader(`{"requests":[{"id":"test","request":{"query":{"match_all":{}}},"ratings":[]}],` +
+					`"metric":{"expected_reciprocal_rank":{"maximum_relevance":3,"k":20}}}`),
 			},
 		)
 		require.Nil(t, err)
@@ -60,7 +65,7 @@ func TestRankEval(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.RankEval(nil, opensearchapi.RankEvalReq{})
+		res, err := failingClient.RankEval(t.Context(), opensearchapi.RankEvalReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -1,0 +1,22 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/opensearch-project/opensearch-go/v4/opensearchtransport
+cpu: Apple M4 Pro
+BenchmarkConnectionPool/Single-14         	23765088	       150.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkConnectionPool/Status_3Nodes-14  	23470416	       151.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/RoundRobin-14             	10834056	       336.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/RolePolicy_Match-14       	11086388	       322.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/RolePolicy_NoMatch-14     	23845309	       151.9 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/CoordinatorPolicy_Match-14         	11169682	       330.3 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/MuxPolicy-14                       	 9030816	       395.1 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/IfEnabledPolicy-14                 	23757090	       148.7 ns/op	       0 B/op	       0 allocs/op
+BenchmarkPolicy/PolicyChain_3Policies-14           	11009154	       326.6 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouter/RoundRobin-14                      	23248974	       158.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouter/DefaultRouter-14                   	22487432	       161.0 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouter/SmartRouter-14                     	22763228	       159.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouterOperations/SmartRouter/Search-14    	22318453	       157.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouterOperations/SmartRouter/Bulk-14      	23158056	       160.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouterOperations/SmartRouter/Index-14     	22854814	       157.8 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRouterOperations/SmartRouter/Get-14       	22663869	       166.7 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	github.com/opensearch-project/opensearch-go/v4/opensearchtransport	78.631s

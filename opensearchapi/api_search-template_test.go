@@ -9,7 +9,7 @@
 package opensearchapi_test
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,6 +19,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestSearchTemplate(t *testing.T) {
@@ -27,16 +28,19 @@ func TestSearchTemplate(t *testing.T) {
 
 	testIndex := "test-search-template"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
+
+	// Use unique document IDs to avoid conflicts between test runs
+	docIDPrefix := testutil.MustUniqueString(t, "doc")
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
-				DocumentID: strconv.Itoa(i),
+				DocumentID: fmt.Sprintf("%s-%d", docIDPrefix, i),
 				Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
 			},
 		)
@@ -45,7 +49,7 @@ func TestSearchTemplate(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.SearchTemplate(
-			nil,
+			t.Context(),
 			opensearchapi.SearchTemplateReq{
 				Indices: []string{testIndex},
 				Body:    strings.NewReader(`{"source":{"query":{"exists":{"field":"{{field}}"}}},"params":{"field":"foo"}}`),
@@ -60,7 +64,7 @@ func TestSearchTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.SearchTemplate(nil, opensearchapi.SearchTemplateReq{})
+		res, err := failingClient.SearchTemplate(t.Context(), opensearchapi.SearchTemplateReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

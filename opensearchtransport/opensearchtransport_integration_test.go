@@ -40,12 +40,11 @@ import (
 
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
-var (
-	_ = fmt.Print
-)
+var _ = fmt.Print
 
 func TestTransportRetries(t *testing.T) {
 	var counter int
@@ -54,7 +53,9 @@ func TestTransportRetries(t *testing.T) {
 		counter++
 
 		body, _ := io.ReadAll(r.Body)
-		fmt.Println("req.Body:", string(body))
+		if testutil.IsDebugEnabled(t) {
+			t.Logf("req.Body: %q", string(body))
+		}
 
 		http.Error(w, "FAKE 502", http.StatusBadGateway)
 	}))
@@ -71,7 +72,7 @@ func TestTransportRetries(t *testing.T) {
 		t.Run(fmt.Sprintf("Reset the %T request body", body), func(t *testing.T) {
 			counter = 0
 
-			req, err := http.NewRequest("GET", "/", body)
+			req, err := http.NewRequest(http.MethodGet, "/", body)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -80,14 +81,17 @@ func TestTransportRetries(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
+			defer res.Body.Close()
 
 			body, _ := io.ReadAll(res.Body)
 
-			fmt.Println("> GET", req.URL)
-			fmt.Printf("< %s (tries: %d)\n", bytes.TrimSpace(body), counter)
+			if testutil.IsDebugEnabled(t) {
+				t.Logf("> GET %q", req.URL)
+				t.Logf("< %q (tries: %d)", bytes.TrimSpace(body), counter)
+			}
 
-			if counter != 4 {
-				t.Errorf("Unexpected number of attempts, want=4, got=%d", counter)
+			if counter != 7 {
+				t.Errorf("Unexpected number of attempts, want=7, got=%d", counter)
 			}
 		})
 	}
@@ -118,7 +122,7 @@ func TestTransportHeaders(t *testing.T) {
 		})
 	}
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Perform(req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
@@ -156,7 +160,7 @@ func TestTransportBodyClose(t *testing.T) {
 		})
 	}
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Perform(req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
@@ -171,7 +175,7 @@ func TestTransportBodyClose(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read the response body: %s", err)
 	}
-	if body == nil || len(body) == 0 {
+	if len(body) == 0 {
 		t.Fatalf("Unexpected response body:\n%s", body)
 	}
 }
@@ -210,11 +214,17 @@ func TestTransportCompression(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot create index: %v", err)
 	}
+	if res != nil && res.Body != nil {
+		res.Body.Close()
+	}
 
 	req, _ = http.NewRequest(http.MethodGet, indexName, nil)
 	res, err = transport.Perform(req)
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot find index: %v", err)
+	}
+	if res != nil && res.Body != nil {
+		res.Body.Close()
 	}
 
 	req, _ = http.NewRequest(
@@ -227,14 +237,18 @@ func TestTransportCompression(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot POST payload: %v", err)
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusCreated {
 		t.Fatalf("Unexpected StatusCode, expected 201, got: %v", res.StatusCode)
 	}
 
 	req, _ = http.NewRequest(http.MethodDelete, indexName, nil)
-	_, err = transport.Perform(req)
+	res, err = transport.Perform(req)
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot DELETE %s: %v", indexName, err)
+	}
+	if res != nil && res.Body != nil {
+		res.Body.Close()
 	}
 }

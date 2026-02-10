@@ -38,7 +38,7 @@ func (c aliasClient) Get(ctx context.Context, req AliasGetReq) (*AliasGetResp, e
 		data AliasGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Indices); err != nil {
+	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -134,10 +134,27 @@ func (r AliasGetReq) GetRequest() (*http.Request, error) {
 
 // AliasGetResp represents the returned struct of the alias get response
 type AliasGetResp struct {
-	Indices map[string]struct {
-		Aliases map[string]json.RawMessage `json:"aliases"`
-	}
 	response *opensearch.Response
+
+	// Direct mapping of index names to their alias details as top-level keys
+	raw map[string]AliasGetRespIndex
+}
+
+// AliasGetRespIndex represents the alias information for a specific index
+type AliasGetRespIndex struct {
+	Aliases map[string]json.RawMessage `json:"aliases"` // Available since OpenSearch 1.0.0
+}
+
+// GetIndices returns the map of index names to their alias information
+func (r *AliasGetResp) GetIndices() map[string]AliasGetRespIndex {
+	return r.raw
+}
+
+// UnmarshalJSON custom unmarshaling to handle dynamic index names as top-level keys
+func (r *AliasGetResp) UnmarshalJSON(data []byte) error {
+	// Unmarshal into a map to capture all dynamic index names
+	r.raw = make(map[string]AliasGetRespIndex)
+	return json.Unmarshal(data, &r.raw)
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response
@@ -199,7 +216,7 @@ func (r AliasExistsReq) GetRequest() (*http.Request, error) {
 	indices := strings.Join(r.Indices, ",")
 
 	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Alias))
+	path.Grow(9 + len(indices) + len(aliases))
 	path.WriteString("/")
 	path.WriteString(indices)
 	path.WriteString("/_alias/")

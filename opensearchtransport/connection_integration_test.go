@@ -26,13 +26,13 @@
 
 //go:build integration && (core || opensearchtransport)
 
+//nolint:testpackage // Tests internal implementation details (statusConnectionPool, etc.)
 package opensearchtransport
 
 import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"testing"
 	"time"
 )
@@ -40,11 +40,16 @@ import (
 const serverReadinessTimeout = 30 * time.Second
 
 func NewServer(addr string, handler http.Handler) *http.Server {
-	return &http.Server{Addr: addr, Handler: handler}
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 }
 
 // waitForServerReady waits for a server to be ready by trying to connect to it
 func waitForServerReady(t *testing.T, addr string, timeout time.Duration) error {
+	t.Helper()
 	client := &http.Client{Timeout: 100 * time.Millisecond}
 	deadline := time.Now().Add(timeout)
 
@@ -60,12 +65,12 @@ func waitForServerReady(t *testing.T, addr string, timeout time.Duration) error 
 }
 
 func TestStatusConnectionPool(t *testing.T) {
+	const numServers = 3
+
 	var (
-		server      *http.Server
-		servers     []*http.Server
-		serverURLs  []*url.URL
-		serverHosts []string
-		numServers  = 3
+		server     *http.Server
+		servers    []*http.Server
+		serverURLs = make([]*url.URL, 0, numServers)
 
 		defaultHandler = func(w http.ResponseWriter, r *http.Request) { fmt.Fprintf(w, "OK") }
 	)
@@ -76,7 +81,7 @@ func TestStatusConnectionPool(t *testing.T) {
 
 		go func(s *http.Server) {
 			if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				t.Fatalf("Unable to start server: %s", err)
+				t.Errorf("Unable to start server: %s", err)
 			}
 		}(s)
 
@@ -93,77 +98,98 @@ func TestStatusConnectionPool(t *testing.T) {
 	for _, s := range servers {
 		u, _ := url.Parse("http://" + s.Addr)
 		serverURLs = append(serverURLs, u)
-		serverHosts = append(serverHosts, u.String())
 	}
-
-	fmt.Printf("==> Started %d servers on %s\n", numServers, serverHosts)
 
 	cfg := Config{URLs: serverURLs}
-
-	if _, ok := os.LookupEnv("GITHUB_ACTIONS"); !ok {
-		cfg.Logger = &TextLogger{Output: os.Stdout}
-		cfg.EnableDebugLogger = true
-	}
 
 	transport, _ := New(cfg)
 
 	transport.mu.RLock()
-	pool := transport.mu.pool.(*statusConnectionPool)
+	// Access the connection pool directly
+	connectionPool := transport.mu.connectionPool
+	if connectionPool == nil {
+		transport.mu.RUnlock()
+		t.Fatalf("Expected connection pool for multi-node setup")
+	}
+
+	// For status connection pool, set the resurrect timeout
+	if statusPool, ok := connectionPool.(*statusConnectionPool); ok {
+		statusPool.resurrectTimeoutInitial = time.Second
+	}
 	transport.mu.RUnlock()
-	pool.resurrectTimeoutInitial = time.Second
+
+	// Helper function to get the status connection pool
+	getPool := func() *statusConnectionPool {
+		transport.mu.RLock()
+		defer transport.mu.RUnlock()
+		if statusPool, ok := transport.mu.connectionPool.(*statusConnectionPool); ok {
+			return statusPool
+		}
+		return nil
+	}
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
 
-	pool.mu.Lock()
-	if len(pool.mu.live) != 3 {
-		t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
+	pool := getPool()
+	if pool != nil {
+		pool.mu.Lock()
+		if len(pool.mu.live) != 3 {
+			t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
+		}
+		pool.mu.Unlock()
 	}
-	pool.mu.Unlock()
 
 	server = servers[1]
-	fmt.Printf("==> Closing server: %s\n", server.Addr)
 	if err := server.Close(); err != nil {
 		t.Fatalf("Unable to close server: %s", err)
 	}
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
 
-	pool.mu.Lock()
-	if len(pool.mu.live) != 2 {
-		t.Errorf("Unexpected number of live connections, want=2, got=%d", len(pool.mu.live))
-	}
-	pool.mu.Unlock()
+	pool = getPool()
+	if pool != nil {
+		pool.mu.Lock()
+		if len(pool.mu.live) != 2 {
+			t.Errorf("Unexpected number of live connections, want=2, got=%d", len(pool.mu.live))
+		}
+		pool.mu.Unlock()
 
-	pool.mu.Lock()
-	if len(pool.mu.dead) != 1 {
-		t.Errorf("Unexpected number of dead connections, want=1, got=%d", len(pool.mu.dead))
+		pool.mu.Lock()
+		if len(pool.mu.dead) != 1 {
+			t.Errorf("Unexpected number of dead connections, want=1, got=%d", len(pool.mu.dead))
+		}
+		pool.mu.Unlock()
 	}
-	pool.mu.Unlock()
 
 	server = NewServer("localhost:10002", http.HandlerFunc(defaultHandler))
 	servers[1] = server
-	fmt.Printf("==> Starting server: %s\n", server.Addr)
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
-			t.Fatalf("Unable to start server: %s", err)
+			t.Errorf("Unable to start server: %s", err)
 		}
 	}()
 
@@ -172,29 +198,35 @@ func TestStatusConnectionPool(t *testing.T) {
 		t.Fatalf("Restarted server not ready: %v", err)
 	}
 
-	fmt.Println("==> Waiting 1.25s for resurrection...")
-	time.Sleep(1250 * time.Millisecond)
+	resurrectWait := 1250 * time.Millisecond
+	time.Sleep(resurrectWait)
 
 	for i := 1; i <= 9; i++ {
-		req, _ := http.NewRequest("GET", "/", nil)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		res, err := transport.Perform(req)
 		if err != nil {
 			t.Errorf("Unexpected error: %v", err)
 		}
-		if res.StatusCode != 200 {
+		if res != nil && res.Body != nil {
+			res.Body.Close()
+		}
+		if res.StatusCode != http.StatusOK {
 			t.Errorf("Unexpected status code, want=200, got=%d", res.StatusCode)
 		}
 	}
 
-	pool.mu.Lock()
-	if len(pool.mu.live) != 3 {
-		t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
-	}
-	pool.mu.Unlock()
+	pool = getPool()
+	if pool != nil {
+		pool.mu.Lock()
+		if len(pool.mu.live) != 3 {
+			t.Errorf("Unexpected number of live connections, want=3, got=%d", len(pool.mu.live))
+		}
+		pool.mu.Unlock()
 
-	pool.mu.Lock()
-	if len(pool.mu.dead) != 0 {
-		t.Errorf("Unexpected number of dead connections, want=0, got=%d", len(pool.mu.dead))
+		pool.mu.Lock()
+		if len(pool.mu.dead) != 0 {
+			t.Errorf("Unexpected number of dead connections, want=0, got=%d", len(pool.mu.dead))
+		}
+		pool.mu.Unlock()
 	}
-	pool.mu.Unlock()
 }

@@ -9,7 +9,6 @@
 package opensearchapi_test
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -36,7 +35,7 @@ func TestTasksClient(t *testing.T) {
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -44,7 +43,7 @@ func TestTasksClient(t *testing.T) {
 		)
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	for _, index := range testIndices {
 		client.Indices.Create(
 			ctx,
@@ -60,6 +59,7 @@ func TestTasksClient(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
+	require.Nil(t, err)
 	for i := 1; i <= 60; i++ {
 		err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 			Action:     "index",
@@ -74,100 +74,83 @@ func TestTasksClient(t *testing.T) {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
-	respReindex, err := client.Reindex(
-		ctx,
-		opensearchapi.ReindexReq{
-			Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s","size":1},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
-			Params: opensearchapi.ReindexParams{
-				WaitForCompletion: opensearchapi.ToPointer(false),
-				RequestsPerSecond: opensearchapi.ToPointer(1),
-				Refresh:           opensearchapi.ToPointer(true),
+	// Helper to create a reindex task for subtests that need one
+	createReindexTask := func(t *testing.T) string {
+		t.Helper()
+		respReindex, err := client.Reindex(
+			t.Context(),
+			opensearchapi.ReindexReq{
+				Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s","size":1},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
+				Params: opensearchapi.ReindexParams{
+					WaitForCompletion: opensearchapi.ToPointer(false),
+					RequestsPerSecond: opensearchapi.ToPointer(1),
+					Refresh:           opensearchapi.ToPointer(true),
+				},
 			},
-		},
-	)
-	require.Nil(t, err)
-	assert.NotEmpty(t, respReindex)
-
-	type tasksTests struct {
-		Name    string
-		Results func() (osapitest.Response, error)
+		)
+		require.Nil(t, err)
+		require.NotEmpty(t, respReindex)
+		return respReindex.Task
 	}
 
-	testCases := []struct {
-		Name  string
-		Tests []tasksTests
-	}{
-		{
-			Name: "List",
-			Tests: []tasksTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Tasks.List(nil, nil)
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.List(nil, nil)
-					},
-				},
-			},
-		},
-		{
-			Name: "Get",
-			Tests: []tasksTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Tasks.Get(nil, opensearchapi.TasksGetReq{TaskID: respReindex.Task})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.Get(nil, opensearchapi.TasksGetReq{})
-					},
-				},
-			},
-		},
-		{
-			Name: "Cancel",
-			Tests: []tasksTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Tasks.Cancel(nil, opensearchapi.TasksCancelReq{TaskID: respReindex.Task})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.Cancel(nil, opensearchapi.TasksCancelReq{})
-					},
-				},
-			},
-		},
-	}
-	for _, value := range testCases {
-		t.Run(value.Name, func(t *testing.T) {
-			for _, testCase := range value.Tests {
-				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
-					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
-					} else {
-						require.Nil(t, err)
-						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						if value.Name != "Get" && value.Name != "Exists" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
-						}
-					}
-				})
-			}
+	t.Run("List", func(t *testing.T) {
+		t.Parallel()
+		t.Run("with request", func(t *testing.T) {
+			t.Parallel()
+			resp, err := client.Tasks.List(t.Context(), nil)
+			require.Nil(t, err)
+			require.NotNil(t, resp)
+			assert.NotNil(t, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
-	}
+
+		t.Run("inspect", func(t *testing.T) {
+			t.Parallel()
+			res, err := failingClient.Tasks.List(t.Context(), nil)
+			assert.NotNil(t, err)
+			assert.NotNil(t, res)
+			osapitest.VerifyInspect(t, res.Inspect())
+		})
+	})
+
+	t.Run("Get", func(t *testing.T) {
+		t.Parallel()
+		taskID := createReindexTask(t)
+
+		t.Run("with request", func(t *testing.T) {
+			resp, err := client.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{TaskID: taskID})
+			require.Nil(t, err)
+			require.NotNil(t, resp)
+			assert.NotNil(t, resp.Inspect().Response)
+		})
+
+		t.Run("inspect", func(t *testing.T) {
+			t.Parallel()
+			res, err := failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{})
+			assert.NotNil(t, err)
+			assert.NotNil(t, res)
+			osapitest.VerifyInspect(t, res.Inspect())
+		})
+	})
+
+	t.Run("Cancel", func(t *testing.T) {
+		t.Parallel()
+		taskID := createReindexTask(t)
+
+		t.Run("with request", func(t *testing.T) {
+			resp, err := client.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{TaskID: taskID})
+			require.Nil(t, err)
+			require.NotNil(t, resp)
+			assert.NotNil(t, resp.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		})
+
+		t.Run("inspect", func(t *testing.T) {
+			t.Parallel()
+			res, err := failingClient.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{})
+			assert.NotNil(t, err)
+			assert.NotNil(t, res)
+			osapitest.VerifyInspect(t, res.Inspect())
+		})
+	})
 }
