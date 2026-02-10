@@ -22,6 +22,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case
@@ -39,7 +40,7 @@ func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 	}
 
 	// Always wait for cluster readiness
-	err = waitForClusterReady(t, client)
+	err = WaitForClusterReady(t, client)
 	if err != nil {
 		return nil, err
 	}
@@ -47,67 +48,105 @@ func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 	return client, nil
 }
 
-// waitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
-func waitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
+// WaitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
+// This function is exported so tests that create clients manually can also wait for readiness.
+func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
 	t.Helper()
+	if client == nil || client.Client == nil {
+		return fmt.Errorf("client and client.Client must not be nil")
+	}
+
 	const (
 		maxAttempts          = 25
 		delayBetweenAttempts = 5 * time.Second
-		requestTimeout       = 2 * time.Second
+		requestTimeout       = 15 * time.Second // Increased to allow for HTTPS handshake + multiple requests
 	)
 
-	// Get version for informational logging
-	major, minor, patch, err := GetVersion(client, t)
-	if err != nil {
-		return fmt.Errorf("failed to get OpenSearch version: %w", err)
-	}
+	var major, minor, patch int64
+	versionKnown := false
 
-	ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
-	defer cancel()
+	// Log the URLs we're connecting to for debugging
+	urls := client.Client.Transport.(*opensearchtransport.Client).URLs()
 
 	for attempt := range maxAttempts {
-		// Basic cluster health check
-		resp, err := client.Cluster.Health(ctx, nil)
-		if err != nil || resp == nil {
-			t.Logf("Waiting %s for cluster readiness (attempt %d/%d)...", delayBetweenAttempts, attempt+1, maxAttempts)
-			time.Sleep(delayBetweenAttempts)
+		// Create a new context for this attempt
+		ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
 
-			// Reset context for next attempt
-			ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
-			defer cancel()
+		// Basic health check using Info endpoint (more reliable during startup)
+		infoResp, err := client.Info(ctx, nil)
+		if err != nil || infoResp == nil {
+			cancel() // Clean up context before sleeping
+			if err != nil {
+				// Only log after first few attempts to reduce noise (HTTPS cold start can be slow)
+				if attempt >= 2 {
+					t.Logf("Waiting %s for cluster readiness (attempt %d/%d) - Info error: %v", delayBetweenAttempts, attempt+1, maxAttempts, err)
+				}
+
+				// On first attempt, log more details about the error
+				if attempt == 0 {
+					t.Logf("First attempt failed - this could indicate:")
+					t.Logf("  1. Wrong credentials (check SECURE_INTEGRATION and OPENSEARCH_VERSION env vars)")
+					t.Logf("  2. Cluster not ready yet")
+					t.Logf("  3. Network/SSL issues")
+					t.Logf("  Current config: URL=%q, SECURE_INTEGRATION=%q, OPENSEARCH_VERSION=%q",
+						urls, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
+				}
+			} else {
+				// Only log nil response after first few attempts
+				if attempt >= 2 {
+					t.Logf("Waiting %s for cluster readiness (attempt %d/%d) - nil response", delayBetweenAttempts, attempt+1, maxAttempts)
+				}
+			}
+			time.Sleep(delayBetweenAttempts)
 			continue
 		}
 
-		// Extended readiness validation
-		if err := extendedReadinessCheck(ctx, client); err == nil {
+		// Capture version on first successful response
+		if !versionKnown {
+			major, minor, patch, _ = opensearch.ParseVersion(infoResp.Version.Number)
+			versionKnown = true
+		}
+
+		// Extended readiness validation - pass parent context, not the one we just used
+		if err := extendedReadinessCheck(t.Context(), client); err == nil {
+			cancel() // Clean up Info request context before returning
 			if attempt > 0 {
 				t.Logf("Cluster ready after %d attempts (version %d.%d.%d)", attempt+1, major, minor, patch)
 			}
 			return nil
+		} else {
+			cancel() // Clean up Info request context before sleeping
+			// Only log extended check failures after first few attempts
+			if attempt >= 2 {
+				t.Logf("Cluster health OK but readiness validation failed (attempt %d/%d) - error: %v", attempt+1, maxAttempts, err)
+			}
+			time.Sleep(delayBetweenAttempts)
 		}
-
-		t.Logf("Cluster health OK but readiness validation failed (attempt %d/%d)", attempt+1, maxAttempts)
-		time.Sleep(delayBetweenAttempts)
-
-		// Reset context for next attempt
-		ctx, cancel = context.WithTimeout(t.Context(), requestTimeout)
-		defer cancel()
 	}
 
-	return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+	if versionKnown {
+		return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+	}
+	return fmt.Errorf("cluster not ready after %d attempts", maxAttempts)
 }
 
-// extendedReadinessCheck performs validation checks to ensure the
-// cluster is ready
-func extendedReadinessCheck(ctx context.Context, client *opensearchapi.Client) error {
+// extendedReadinessCheck performs validation checks to ensure the cluster is ready.
+// Each check creates its own context with a fresh timeout to avoid cascading timeouts.
+func extendedReadinessCheck(parentCtx context.Context, client *opensearchapi.Client) error {
+	const checkTimeout = 10 * time.Second
+
 	// Try a simple cluster state request - this exercises more Java serialization paths
-	_, err := client.Cluster.State(ctx, nil)
+	stateCtx, stateCancel := context.WithTimeout(parentCtx, checkTimeout)
+	defer stateCancel()
+	_, err := client.Cluster.State(stateCtx, nil)
 	if err != nil {
 		return fmt.Errorf("cluster state check failed: %w", err)
 	}
 
 	// Try a simple nodes info request - exercises node-level serialization
-	_, err = client.Nodes.Info(ctx, nil)
+	nodesCtx, nodesCancel := context.WithTimeout(parentCtx, checkTimeout)
+	defer nodesCancel()
+	_, err = client.Nodes.Info(nodesCtx, nil)
 	if err != nil {
 		return fmt.Errorf("nodes info check failed: %w", err)
 	}
@@ -116,7 +155,8 @@ func extendedReadinessCheck(ctx context.Context, client *opensearchapi.Client) e
 }
 
 // GetVersion gets cluster info and returns version as int's
-func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64, error) {
+func GetVersion(t *testing.T, client *opensearchapi.Client) (int64, int64, int64, error) {
+	t.Helper()
 	if client == nil {
 		return 0, 0, 0, fmt.Errorf("client cannot be nil")
 	}
@@ -130,7 +170,7 @@ func GetVersion(client *opensearchapi.Client, t *testing.T) (int64, int64, int64
 // SkipIfBelowVersion skips a test if the cluster version is below a given version
 func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, majorVersion, patchVersion int64, testName string) {
 	t.Helper()
-	major, patch, _, err := GetVersion(client, t)
+	major, patch, _, err := GetVersion(t, client)
 	assert.Nil(t, err)
 	if major < majorVersion || (major == majorVersion && patch < patchVersion) {
 		t.Skipf("Skipping %s as version %d.%d.x does not support this endpoint", testName, major, patch)
