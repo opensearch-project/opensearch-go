@@ -60,12 +60,6 @@ type ConnectionPool interface {
 	URLs() []*url.URL            // URLs returns the list of URLs of available connections.
 }
 
-// RequestRoutingConnectionPool extends ConnectionPool to support request-based connection routing.
-type RequestRoutingConnectionPool interface {
-	ConnectionPool
-	NextForRequest(*http.Request) (*Connection, error) // NextForRequest returns connection optimized for the request.
-}
-
 // rwLocker defines the interface for connection pools that support read-write locking.
 // This allows for more efficient concurrent access when only read operations are needed.
 type rwLocker interface {

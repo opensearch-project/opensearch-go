@@ -113,19 +113,6 @@ Enable automatic cluster discovery to maintain current node information:
 The discovery process respects node roles and can exclude dedicated cluster manager nodes
 from request routing (controlled by IncludeDedicatedClusterManagers configuration).
 
-# Legacy Connection Pool
-
-To replace the connection pool entirely, provide a custom ConnectionPool implementation via
-the ConnectionPoolFunc option. When no Router is specified, the transport falls back to
-the traditional connection pool with Selector-based node selection:
-
-	// Legacy selector-based routing
-	selector := opensearchtransport.NewRoundRobinSelector()
-	transport, err := opensearchtransport.New(opensearchtransport.Config{
-		URLs: []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
-		Selector: selector,
-	})
-
 # Logging and Metrics
 
 The package defines the Logger interface for logging information about request and response.
