@@ -127,10 +127,10 @@ lint.markdown:
 		npm install -g $(package) --no-shrinkwrap; \
 	fi
 	@printf "\033[2m-> Running markdown lint...\033[0m\n"
-	if npx $(package) --prose-wrap never --check **/*.md; [[ $$? -ne 0 ]]; then \
+	if npx $(package) --prose-wrap never --check **/*.md; [ $$? -ne 0 ]; then \
 		echo -e "\033[32m-> Found invalid files. Want to auto-format invalid files? (y/n) \033[0m"; \
 		read RESP; \
-		if [[ $$RESP = "y" || $$RESP = "Y" ]]; then \
+		if [ "$$RESP" = "y" ] || [ "$$RESP" = "Y" ]; then \
 		  echo -e "\033[33m Formatting...\033[0m"; \
 		  npx $(package) --prose-wrap never --write **/*.md; \
 		  echo -e "\033[34m \nAll invalid files are formatted\033[0m"; \
@@ -198,7 +198,7 @@ endif
 		set -e -o pipefail; \
 		printf "\033[2m-> Commit and create Git tag? (y/n): \033[0m\c"; \
 		read continue; \
-		if [[ $$continue == "y" ]]; then \
+		if [ "$$continue" = "y" ]; then \
 			git add internal/version/version.go && \
 			git commit --no-status --quiet --message "Release $(version)" && \
 			git tag --annotate v$(version) --message 'Release $(version)'; \
@@ -226,13 +226,56 @@ godoc: ## Display documentation for the package
 	godoc --http=localhost:6060 --play
 
 cluster.build:
-	docker compose --project-directory .ci/opensearch build --pull;
+	@$(MAKE) cluster.docker-build
 
 cluster.start:
-	docker compose --project-directory .ci/opensearch up -d;
+	@$(MAKE) cluster.docker-up
+	@$(MAKE) cluster.get-cert
 
 cluster.stop:
 	docker compose --project-directory .ci/opensearch down;
+
+cluster.docker-build:
+	@# Determine version-specific settings
+	$(eval OPENSEARCH_VERSION ?= latest)
+	$(eval version_major := $(shell \
+		if [ "$(OPENSEARCH_VERSION)" = "latest" ]; then \
+			echo "2"; \
+		else \
+			echo "$(OPENSEARCH_VERSION)" | awk -F. '{print $$1}'; \
+		fi \
+	))
+	$(eval manager_role := $(shell \
+		if [ "$(version_major)" = "1" ]; then \
+			echo "master"; \
+		else \
+			echo "cluster_manager"; \
+		fi \
+	))
+	@echo "Building OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role)"
+	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
+		docker compose --project-directory .ci/opensearch build --pull
+
+cluster.docker-up:
+	@# Determine version-specific settings
+	$(eval OPENSEARCH_VERSION ?= latest)
+	$(eval version_major := $(shell \
+		if [ "$(OPENSEARCH_VERSION)" = "latest" ]; then \
+			echo "2"; \
+		else \
+			echo "$(OPENSEARCH_VERSION)" | awk -F. '{print $$1}'; \
+		fi \
+	))
+	$(eval manager_role := $(shell \
+		if [ "$(version_major)" = "1" ]; then \
+			echo "master"; \
+		else \
+			echo "cluster_manager"; \
+		fi \
+	))
+	@echo "Starting OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role)"
+	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
+		docker compose --project-directory .ci/opensearch up -d
 
 cluster.scale.1: ## Start single-node cluster
 	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node2=0 --scale opensearch-node3=0;
@@ -244,14 +287,26 @@ cluster.scale.3: ## Start full 3-node cluster
 	docker compose --project-directory .ci/opensearch up -d --scale opensearch-node1=1 --scale opensearch-node2=1 --scale opensearch-node3=1;
 
 cluster.get-cert:
-	@if [[ -v SECURE_INTEGRATION ]] && [[ $$SECURE_INTEGRATION == "true" ]]; then \
-		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}' | head -1):/usr/share/opensearch/config/kirk.pem admin.pem && \
-		docker cp $$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}' | head -1):/usr/share/opensearch/config/kirk-key.pem admin.key; \
+	@if [ -n "$${SECURE_INTEGRATION}" ] && [ "$${SECURE_INTEGRATION}" = "true" ]; then \
+		CONTAINER=$$(docker compose --project-directory .ci/opensearch ps --format '{{.Name}}' | head -1); \
+		if [ -z "$$CONTAINER" ]; then \
+			echo "Error: No OpenSearch containers running. Start cluster first with 'make cluster.start'"; \
+			exit 1; \
+		fi; \
+		docker cp $$CONTAINER:/usr/share/opensearch/config/kirk.pem admin.pem && \
+		docker cp $$CONTAINER:/usr/share/opensearch/config/kirk-key.pem admin.key; \
 	fi
 
 
 cluster.clean: ## Remove unused Docker volumes and networks
 	@printf "\033[2m-> Cleaning up Docker assets...\033[0m\n"
+	@# Stop and remove containers first to release volumes
+	@docker compose --project-directory .ci/opensearch down --volumes 2>/dev/null || true
+	@# Remove OpenSearch built images to ensure clean rebuilds when switching versions
+	@docker images -q opensearch-opensearch-node* | xargs -r docker rmi -f || true
+	@# Remove OpenSearch volumes to clear stale data
+	@docker volume ls -q --filter "name=opensearch" | xargs -r docker volume rm || true
+	@# Clean up unused Docker resources
 	docker volume prune --force
 	docker network prune --force
 	docker system prune --volumes --force
@@ -282,5 +337,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster cluster.clean coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
 .SILENT: lint.markdown
