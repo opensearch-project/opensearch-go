@@ -140,8 +140,11 @@ type ClusterStateMetaData struct {
 		IndexTemplate map[string]json.RawMessage `json:"index_template"`
 	} `json:"index_template"`
 	StoredScripts map[string]struct {
-		Lang   string `json:"lang"`
-		Source string `json:"source"`
+		Lang    string `json:"lang"`
+		Source  string `json:"source"`
+		Options *struct {
+			ContentType string `json:"content_type,omitempty"`
+		} `json:"options,omitempty"` // Present since OpenSearch 1.0.0
 	} `json:"stored_scripts"`
 	Ingest struct {
 		Pipeline []struct {
@@ -206,7 +209,8 @@ type ClusterStateRoutingIndex struct {
 		RelocationID *string `json:"relocation_id,omitempty"` // Available since OpenSearch 1.0.0 (during shard relocation)
 	} `json:"allocation_id,omitempty"`
 	RecoverySource *struct {
-		Type string `json:"type"`
+		Type                    string `json:"type"`
+		BootstrapNewHistoryUUID *bool  `json:"bootstrap_new_history_uuid,omitempty"` // Present since OpenSearch 1.0.0
 	} `json:"recovery_source,omitempty"`
 	UnassignedInfo *struct {
 		Reason           string `json:"reason"`
