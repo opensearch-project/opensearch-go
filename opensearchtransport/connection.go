@@ -323,9 +323,26 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	deadSince := c.mu.deadSince
 	c.mu.Unlock()
 
-	cp.scheduleResurrect(c, deadSince)
+	// Find connection in live list
+	idx := -1
+	for i, conn := range cp.mu.live {
+		if conn == c {
+			idx = i
+			break
+		}
+	}
 
-	// Push item to dead list and sort slice by number of failures
+	if idx < 0 {
+		// Invariant violation: connection marked dead but not in live list.
+		// This indicates a bug in connection lifecycle management.
+		if debugLogger != nil {
+			debugLogger.Logf("BUG: Connection %s marked dead but not in live list\n", c.URL)
+		}
+		return errors.New("connection not in live list")
+	}
+
+	// Remove from live list and add to dead list
+	cp.mu.live = append(cp.mu.live[:idx], cp.mu.live[idx+1:]...)
 	cp.mu.dead = append(cp.mu.dead, c)
 
 	// Sort by failure count for resurrection prioritization.
@@ -346,23 +363,8 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 		return failures1 > failures2
 	})
 
-	// Check if connection exists in the list, return error if not.
-	idx := -1
-	for i, conn := range cp.mu.live {
-		if conn == c {
-			idx = i
-			break
-		}
-	}
-
-	if idx < 0 {
-		// Does this error even get raised? Under what conditions can the connection not be in the cp.mu.live list?
-		// If the connection is marked dead the function already ended
-		return errors.New("connection not in live list")
-	}
-
-	// Remove connection using slice filtering trick
-	cp.mu.live = append(cp.mu.live[:idx], cp.mu.live[idx+1:]...)
+	// Schedule resurrection after connection has been moved to dead list
+	cp.scheduleResurrect(c, deadSince)
 
 	return nil
 }
