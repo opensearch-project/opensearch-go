@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestPointInTimeClient(t *testing.T) {
@@ -25,6 +27,37 @@ func TestPointInTimeClient(t *testing.T) {
 	require.Nil(t, err)
 	ostest.SkipIfBelowVersion(t, client, 2, 4, "Point_In_Time")
 	failingClient, err := osapitest.CreateFailingClient()
+	require.Nil(t, err)
+
+	// Create a unique test index to avoid conflicts with parallel tests
+	testIndex := testutil.MustUniqueString(t, "test-pit")
+	t.Cleanup(func() {
+		client.Indices.Delete(
+			t.Context(),
+			opensearchapi.IndicesDeleteReq{
+				Indices: []string{testIndex},
+				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+			},
+		)
+	})
+
+	// Create the test index with some data
+	_, err = client.Indices.Create(
+		t.Context(),
+		opensearchapi.IndicesCreateReq{Index: testIndex},
+	)
+	require.Nil(t, err)
+
+	// Index a test document
+	_, err = client.Document.Create(
+		t.Context(),
+		opensearchapi.DocumentCreateReq{
+			Index:      testIndex,
+			Body:       strings.NewReader(`{"test": "data"}`),
+			DocumentID: "1",
+			Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
+		},
+	)
 	require.Nil(t, err)
 
 	pitID := ""
@@ -48,7 +81,7 @@ func TestPointInTimeClient(t *testing.T) {
 						resp, err := client.PointInTime.Create(
 							t.Context(),
 							opensearchapi.PointInTimeCreateReq{
-								Indices: []string{"*"},
+								Indices: []string{testIndex},
 								Params:  opensearchapi.PointInTimeCreateParams{KeepAlive: keepAlive},
 							},
 						)
