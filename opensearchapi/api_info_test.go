@@ -23,14 +23,14 @@ func TestInfo(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.Info(nil, nil)
+		resp, err := client.Info(t.Context(), nil)
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.Info(nil, &opensearchapi.InfoReq{})
+		resp, err := client.Info(t.Context(), &opensearchapi.InfoReq{})
 		require.Nil(t, err)
 		assert.NotEmpty(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -40,7 +40,7 @@ func TestInfo(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Info(nil, nil)
+		res, err := failingClient.Info(t.Context(), nil)
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

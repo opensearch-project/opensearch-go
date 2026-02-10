@@ -21,6 +21,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestIndexClient(t *testing.T) {
@@ -29,11 +30,11 @@ func TestIndexClient(t *testing.T) {
 
 	index := "test-index-test"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	t.Run("Request Empty", func(t *testing.T) {
-		resp, err := client.Index(nil, opensearchapi.IndexReq{})
+		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{})
 		assert.NotNil(t, err)
 		var osError *opensearch.StringError
 		require.True(t, errors.As(err, &osError))
@@ -44,7 +45,7 @@ func TestIndexClient(t *testing.T) {
 	})
 
 	t.Run("Request Index only", func(t *testing.T) {
-		resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index})
+		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index})
 		assert.NotNil(t, err)
 		var osError *opensearch.StructError
 		require.True(t, errors.As(err, &osError))
@@ -55,9 +56,11 @@ func TestIndexClient(t *testing.T) {
 	})
 
 	t.Run("Request with DocID", func(t *testing.T) {
+		// Use a unique document ID to avoid conflicts from previous test runs
+		docID := testutil.MustUniqueString(t, "test-doc")
 		for _, result := range []string{"created", "updated"} {
 			body := strings.NewReader("{}")
-			resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body, DocumentID: "test"})
+			resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: body, DocumentID: docID})
 			require.Nil(t, err)
 			require.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -67,7 +70,7 @@ func TestIndexClient(t *testing.T) {
 
 	t.Run("Request without DocID", func(t *testing.T) {
 		body := strings.NewReader("{}")
-		resp, err := client.Index(nil, opensearchapi.IndexReq{Index: index, Body: body})
+		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: body})
 		require.Nil(t, err)
 		require.NotNil(t, resp)
 		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -79,7 +82,7 @@ func TestIndexClient(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.Index(nil, opensearchapi.IndexReq{Index: index})
+		res, err := failingClient.Index(t.Context(), opensearchapi.IndexReq{Index: index})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

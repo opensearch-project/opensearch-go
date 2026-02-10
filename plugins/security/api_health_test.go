@@ -41,13 +41,13 @@ func TestHealthClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.Health(nil, nil)
+						return client.Health(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Health(nil, nil)
+						return failingClient.Health(t.Context(), nil)
 					},
 				},
 			},

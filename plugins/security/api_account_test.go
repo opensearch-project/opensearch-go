@@ -28,7 +28,7 @@ func TestAccountClient(t *testing.T) {
 	require.Nil(t, err)
 
 	testUser := "testUser"
-	t.Cleanup(func() { client.InternalUsers.Delete(nil, security.InternalUsersDeleteReq{User: testUser}) })
+	t.Cleanup(func() { client.InternalUsers.Delete(t.Context(), security.InternalUsersDeleteReq{User: testUser}) })
 
 	type accountTests struct {
 		Name    string
@@ -45,13 +45,13 @@ func TestAccountClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.Account.Get(nil, nil)
+						return client.Account.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Account.Get(nil, nil)
+						return failingClient.Account.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -75,7 +75,7 @@ func TestAccountClient(t *testing.T) {
 
 						// Create the test user
 						_, err = client.InternalUsers.Put(
-							nil,
+							t.Context(),
 							security.InternalUsersPutReq{
 								User: config.Client.Username,
 								Body: security.InternalUsersPutBody{
@@ -95,7 +95,7 @@ func TestAccountClient(t *testing.T) {
 
 						// Run the change password request we want to test
 						return usrClient.Account.Put(
-							nil,
+							t.Context(),
 							security.AccountPutReq{
 								Body: security.AccountPutBody{
 									CurrentPassword: config.Client.Password,
@@ -108,7 +108,7 @@ func TestAccountClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Account.Put(nil, security.AccountPutReq{})
+						return failingClient.Account.Put(t.Context(), security.AccountPutReq{})
 					},
 				},
 			},

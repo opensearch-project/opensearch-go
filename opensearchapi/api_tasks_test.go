@@ -9,7 +9,6 @@
 package opensearchapi_test
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -36,7 +35,7 @@ func TestTasksClient(t *testing.T) {
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -44,7 +43,7 @@ func TestTasksClient(t *testing.T) {
 		)
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	for _, index := range testIndices {
 		client.Indices.Create(
 			ctx,
@@ -60,6 +59,7 @@ func TestTasksClient(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
+	require.Nil(t, err)
 	for i := 1; i <= 60; i++ {
 		err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 			Action:     "index",
@@ -103,13 +103,13 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Tasks.List(nil, nil)
+						return client.Tasks.List(t.Context(), nil)
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.List(nil, nil)
+						return failingClient.Tasks.List(t.Context(), nil)
 					},
 				},
 			},
@@ -120,13 +120,13 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Tasks.Get(nil, opensearchapi.TasksGetReq{TaskID: respReindex.Task})
+						return client.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{TaskID: respReindex.Task})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.Get(nil, opensearchapi.TasksGetReq{})
+						return failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{})
 					},
 				},
 			},
@@ -137,13 +137,13 @@ func TestTasksClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Tasks.Cancel(nil, opensearchapi.TasksCancelReq{TaskID: respReindex.Task})
+						return client.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{TaskID: respReindex.Task})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Tasks.Cancel(nil, opensearchapi.TasksCancelReq{})
+						return failingClient.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{})
 					},
 				},
 			},
@@ -151,8 +151,10 @@ func TestTasksClient(t *testing.T) {
 	}
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
+			// Do not run subtests in parallel - they depend on the reindex task state
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
+					// Do not run in parallel - task may complete before Get/Cancel tests run
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)

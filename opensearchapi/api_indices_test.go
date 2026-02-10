@@ -26,7 +26,7 @@ import (
 func getClusterSize(t *testing.T, client *opensearchapi.Client) int {
 	t.Helper()
 
-	resp, err := client.Cluster.Health(nil, nil)
+	resp, err := client.Cluster.Health(t.Context(), nil)
 	if err != nil {
 		t.Logf("Could not detect cluster size, assuming single node: %v", err)
 		return 1
@@ -40,6 +40,7 @@ func getClusterSize(t *testing.T, client *opensearchapi.Client) int {
 }
 
 func TestIndicesClientNew(t *testing.T) {
+	t.Parallel()
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
@@ -51,6 +52,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 	// Standard validation functions
 	validateDefault := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
 		require.Nil(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Inspect().Response)
@@ -60,6 +62,7 @@ func TestIndicesClientNew(t *testing.T) {
 	// Factory function for validating APIs with dynamic index names as top-level keys
 	validateDynamicIndexResponse := func(expectedIndexPrefix string, requiredFields ...string) func(*testing.T, osapitest.Response, error) {
 		return func(t *testing.T, res osapitest.Response, err error) {
+			t.Helper()
 			require.Nil(t, err)
 			require.NotNil(t, res)
 			require.NotNil(t, res.Inspect().Response)
@@ -74,17 +77,17 @@ func TestIndicesClientNew(t *testing.T) {
 			bodyBytes, err := io.ReadAll(body)
 			require.Nil(t, err, "Failed to read response body")
 
-			var responseData map[string]interface{}
+			var responseData map[string]any
 			require.Nil(t, json.Unmarshal(bodyBytes, &responseData))
 
 			// Find index with matching prefix
 			var foundIndex string
-			var indexData map[string]interface{}
+			var indexData map[string]any
 			for indexName, data := range responseData {
 				if strings.HasPrefix(indexName, expectedIndexPrefix) {
 					foundIndex = indexName
 					var ok bool
-					indexData, ok = data.(map[string]interface{})
+					indexData, ok = data.(map[string]any)
 					require.True(t, ok, "Index data should be an object, got %T", data)
 					break
 				}
@@ -103,6 +106,7 @@ func TestIndicesClientNew(t *testing.T) {
 	// Validation function for APIs with dynamic index names as top-level keys
 	// These APIs can't use strict JSON comparison due to dynamic structure
 	validateDynamicResponse := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
 		require.Nil(t, err)
 		require.NotNil(t, res)
 		require.NotNil(t, res.Inspect().Response)
@@ -114,12 +118,14 @@ func TestIndicesClientNew(t *testing.T) {
 	}
 
 	validateInspect := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
 		require.NotNil(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	}
 
 	validateShrink := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
 		if isSingleNode {
 			// Single-node cluster: shrink should succeed
 			require.Nil(t, err, "Expected Shrink to succeed in single-node cluster")
@@ -159,7 +165,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-create")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
@@ -167,13 +173,13 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+			res, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+			res, err := failingClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 			validateInspect(t, res, err)
 		})
 	})
@@ -184,19 +190,19 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-exists")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create the index first for exists test
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			resp, err := client.Indices.Exists(nil, opensearchapi.IndicesExistsReq{Indices: []string{index}})
+			resp, err := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{index}})
 			require.Nil(t, err)
 			require.NotNil(t, resp)
 			require.Equal(t, 200, resp.StatusCode)
@@ -204,7 +210,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			resp, err := failingClient.Indices.Exists(nil, opensearchapi.IndicesExistsReq{Indices: []string{index}})
+			resp, err := failingClient.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{index}})
 			// For inspect test, we need to wrap the response to match the Response interface
 			dummyResp := osapitest.DummyInspect{Response: resp}
 			validateInspect(t, dummyResp, err)
@@ -217,25 +223,25 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-block")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Block(nil, opensearchapi.IndicesBlockReq{Indices: []string{index}, Block: "write"})
+			res, err := client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{index}, Block: "write"})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Block(nil, opensearchapi.IndicesBlockReq{Indices: []string{index}, Block: "write"})
+			res, err := failingClient.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{index}, Block: "write"})
 			validateInspect(t, res, err)
 		})
 	})
@@ -246,7 +252,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Analyze(nil, opensearchapi.IndicesAnalyzeReq{
+			res, err := client.Indices.Analyze(t.Context(), opensearchapi.IndicesAnalyzeReq{
 				Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard", Explain: true},
 			})
 			validateDefault(t, res, err)
@@ -254,7 +260,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Analyze(nil, opensearchapi.IndicesAnalyzeReq{
+			res, err := failingClient.Indices.Analyze(t.Context(), opensearchapi.IndicesAnalyzeReq{
 				Body: opensearchapi.IndicesAnalyzeBody{Text: []string{"test"}, Analyzer: "standard", Explain: true},
 			})
 			validateInspect(t, res, err)
@@ -267,31 +273,31 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-clear-cache")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.ClearCache(nil, nil)
+			res, err := client.Indices.ClearCache(t.Context(), nil)
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.ClearCache(nil, &opensearchapi.IndicesClearCacheReq{Indices: []string{index}})
+			res, err := client.Indices.ClearCache(t.Context(), &opensearchapi.IndicesClearCacheReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.ClearCache(nil, &opensearchapi.IndicesClearCacheReq{Indices: []string{index}})
+			res, err := failingClient.Indices.ClearCache(t.Context(), &opensearchapi.IndicesClearCacheReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -305,25 +311,25 @@ func TestIndicesClientNew(t *testing.T) {
 		rolloverIndex := testutil.MustUniqueString(t, "test-rollover")
 		t.Cleanup(func() {
 			// Comprehensive cleanup for all created resources
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index, rolloverIndex},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index for alias operations
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		// Test: Alias Put (must run first to create alias)
 		t.Run("AliasPut", func(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Alias.Put(nil, opensearchapi.AliasPutReq{Indices: []string{index}, Alias: alias})
+				res, err := client.Indices.Alias.Put(t.Context(), opensearchapi.AliasPutReq{Indices: []string{index}, Alias: alias})
 				validateDefault(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Alias.Put(nil, opensearchapi.AliasPutReq{Indices: []string{index}, Alias: alias})
+				res, err := failingClient.Indices.Alias.Put(t.Context(), opensearchapi.AliasPutReq{Indices: []string{index}, Alias: alias})
 				validateInspect(t, res, err)
 			})
 		})
@@ -331,12 +337,12 @@ func TestIndicesClientNew(t *testing.T) {
 		// Test: Alias Get (run after Put completes)
 		t.Run("AliasGet", func(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Alias.Get(nil, opensearchapi.AliasGetReq{Indices: []string{index}})
+				res, err := client.Indices.Alias.Get(t.Context(), opensearchapi.AliasGetReq{Indices: []string{index}})
 				validateDynamicIndexResponse("test-alias-ops", "aliases")(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Alias.Get(nil, opensearchapi.AliasGetReq{Indices: []string{index}})
+				res, err := failingClient.Indices.Alias.Get(t.Context(), opensearchapi.AliasGetReq{Indices: []string{index}})
 				validateInspect(t, res, err)
 			})
 		})
@@ -344,13 +350,13 @@ func TestIndicesClientNew(t *testing.T) {
 		// Test: Alias Exists (run after Put completes)
 		t.Run("AliasExists", func(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
-				resp, err := client.Indices.Alias.Exists(nil, opensearchapi.AliasExistsReq{Alias: []string{alias}})
+				resp, err := client.Indices.Alias.Exists(t.Context(), opensearchapi.AliasExistsReq{Alias: []string{alias}})
 				require.Nil(t, err)
 				require.NotNil(t, resp)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				resp, err := failingClient.Indices.Alias.Exists(nil, opensearchapi.AliasExistsReq{Alias: []string{alias}})
+				resp, err := failingClient.Indices.Alias.Exists(t.Context(), opensearchapi.AliasExistsReq{Alias: []string{alias}})
 				// For inspect test, we need to wrap the response to match the Response interface
 				dummyResp := osapitest.DummyInspect{Response: resp}
 				validateInspect(t, dummyResp, err)
@@ -361,6 +367,7 @@ func TestIndicesClientNew(t *testing.T) {
 		t.Run("Rollover", func(t *testing.T) {
 			// Custom validation for rollover which can fail in various ways
 			validateRollover := func(t *testing.T, res osapitest.Response, err error) {
+				t.Helper()
 				if err != nil {
 					// Check for expected rollover errors
 					expectedErrors := []string{
@@ -390,12 +397,12 @@ func TestIndicesClientNew(t *testing.T) {
 			}
 
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Rollover(nil, opensearchapi.IndicesRolloverReq{Alias: alias, Index: rolloverIndex})
+				res, err := client.Indices.Rollover(t.Context(), opensearchapi.IndicesRolloverReq{Alias: alias, Index: rolloverIndex})
 				validateRollover(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Rollover(nil, opensearchapi.IndicesRolloverReq{Alias: alias, Index: rolloverIndex})
+				res, err := failingClient.Indices.Rollover(t.Context(), opensearchapi.IndicesRolloverReq{Alias: alias, Index: rolloverIndex})
 				validateInspect(t, res, err)
 			})
 		})
@@ -404,6 +411,7 @@ func TestIndicesClientNew(t *testing.T) {
 		t.Run("AliasDelete", func(t *testing.T) {
 			// Custom validation for alias delete which can fail when index doesn't exist
 			validateAliasDelete := func(t *testing.T, res osapitest.Response, err error) {
+				t.Helper()
 				if err != nil {
 					expectedErrors := []string{
 						"index_not_found_exception",
@@ -432,12 +440,15 @@ func TestIndicesClientNew(t *testing.T) {
 			}
 
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Alias.Delete(nil, opensearchapi.AliasDeleteReq{Indices: []string{index}, Alias: []string{alias}})
+				res, err := client.Indices.Alias.Delete(t.Context(), opensearchapi.AliasDeleteReq{Indices: []string{index}, Alias: []string{alias}})
 				validateAliasDelete(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Alias.Delete(nil, opensearchapi.AliasDeleteReq{Indices: []string{index}, Alias: []string{alias}})
+				res, err := failingClient.Indices.Alias.Delete(
+					t.Context(),
+					opensearchapi.AliasDeleteReq{Indices: []string{index}, Alias: []string{alias}},
+				)
 				validateInspect(t, res, err)
 			})
 		})
@@ -450,31 +461,32 @@ func TestIndicesClientNew(t *testing.T) {
 		dataStream := testutil.MustUniqueString(t, "test-datastream")
 		t.Cleanup(func() {
 			// Comprehensive cleanup for data stream resources
-			client.DataStream.Delete(nil, opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
-			client.IndexTemplate.Delete(nil, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
+			client.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
+			client.IndexTemplate.Delete(t.Context(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
 		})
 
 		// Create index template and data stream
 		_, err := client.IndexTemplate.Create(
-			nil,
+			t.Context(),
 			opensearchapi.IndexTemplateCreateReq{
 				IndexTemplate: dataStream,
-				Body:          strings.NewReader(`{"index_patterns":["` + dataStream + `"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
+				Body: strings.NewReader(`{"index_patterns":["` + dataStream + `"],"template":{"settings":` +
+					`{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
 			},
 		)
 		require.Nil(t, err)
-		_, err = client.DataStream.Create(nil, opensearchapi.DataStreamCreateReq{DataStream: dataStream})
+		_, err = client.DataStream.Create(t.Context(), opensearchapi.DataStreamCreateReq{DataStream: dataStream})
 		require.Nil(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.DataStream.Get(nil, &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
+			res, err := client.DataStream.Get(t.Context(), &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.DataStream.Get(nil, &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
+			res, err := failingClient.DataStream.Get(t.Context(), &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -489,7 +501,7 @@ func TestIndicesClientNew(t *testing.T) {
 			srcIndex := testutil.MustUniqueString(t, "test-clone-src")
 			dstIndex := testutil.MustUniqueString(t, "test-clone-dst")
 			t.Cleanup(func() {
-				client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+				client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 					Indices: []string{srcIndex, dstIndex},
 					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 				})
@@ -497,17 +509,17 @@ func TestIndicesClientNew(t *testing.T) {
 
 			t.Run("with_request", func(t *testing.T) {
 				// Create and block source index
-				_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: srcIndex})
+				_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: srcIndex})
 				require.Nil(t, err)
-				_, err = client.Indices.Block(nil, opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
+				_, err = client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
 				require.Nil(t, err)
 
-				res, err := client.Indices.Clone(nil, opensearchapi.IndicesCloneReq{Index: srcIndex, Target: dstIndex})
+				res, err := client.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: srcIndex, Target: dstIndex})
 				validateDefault(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Clone(nil, opensearchapi.IndicesCloneReq{Index: srcIndex, Target: dstIndex})
+				res, err := failingClient.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: srcIndex, Target: dstIndex})
 				validateInspect(t, res, err)
 			})
 		})
@@ -518,7 +530,7 @@ func TestIndicesClientNew(t *testing.T) {
 			srcIndex := testutil.MustUniqueString(t, "test-split-src")
 			dstIndex := testutil.MustUniqueString(t, "test-split-dst")
 			t.Cleanup(func() {
-				client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+				client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 					Indices: []string{srcIndex, dstIndex},
 					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 				})
@@ -526,15 +538,15 @@ func TestIndicesClientNew(t *testing.T) {
 
 			t.Run("with_request", func(t *testing.T) {
 				// Create source index with 1 shard for splitting to 2
-				_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{
+				_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
 					Index: srcIndex,
 					Body:  strings.NewReader(`{"settings":{"index":{"number_of_shards":1,"number_of_replicas":0}}}`),
 				})
 				require.Nil(t, err)
-				_, err = client.Indices.Block(nil, opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
+				_, err = client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
 				require.Nil(t, err)
 
-				res, err := client.Indices.Split(nil, opensearchapi.IndicesSplitReq{
+				res, err := client.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{
 					Index:  srcIndex,
 					Target: dstIndex,
 					Body:   strings.NewReader(`{"settings":{"index":{"number_of_shards":2,"number_of_replicas":0}}}`),
@@ -543,7 +555,7 @@ func TestIndicesClientNew(t *testing.T) {
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Split(nil, opensearchapi.IndicesSplitReq{Index: srcIndex, Target: dstIndex})
+				res, err := failingClient.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: srcIndex, Target: dstIndex})
 				validateInspect(t, res, err)
 			})
 		})
@@ -554,7 +566,7 @@ func TestIndicesClientNew(t *testing.T) {
 			srcIndex := testutil.MustUniqueString(t, "test-shrink-src")
 			dstIndex := testutil.MustUniqueString(t, "test-shrink-dst")
 			t.Cleanup(func() {
-				client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+				client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 					Indices: []string{srcIndex, dstIndex},
 					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 				})
@@ -562,15 +574,15 @@ func TestIndicesClientNew(t *testing.T) {
 
 			t.Run("with_request", func(t *testing.T) {
 				// Create source index with 2 shards for shrinking to 1
-				_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{
+				_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
 					Index: srcIndex,
 					Body:  strings.NewReader(`{"settings":{"index":{"number_of_shards":2,"number_of_replicas":0}}}`),
 				})
 				require.Nil(t, err)
-				_, err = client.Indices.Block(nil, opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
+				_, err = client.Indices.Block(t.Context(), opensearchapi.IndicesBlockReq{Indices: []string{srcIndex}, Block: "write"})
 				require.Nil(t, err)
 
-				res, err := client.Indices.Shrink(nil, opensearchapi.IndicesShrinkReq{
+				res, err := client.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{
 					Index:  srcIndex,
 					Target: dstIndex,
 					Body:   strings.NewReader(`{"settings":{"index":{"number_of_shards":1,"number_of_replicas":0}}}`),
@@ -579,7 +591,7 @@ func TestIndicesClientNew(t *testing.T) {
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Shrink(nil, opensearchapi.IndicesShrinkReq{Index: srcIndex, Target: dstIndex})
+				res, err := failingClient.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: srcIndex, Target: dstIndex})
 				validateInspect(t, res, err)
 			})
 		})
@@ -591,25 +603,25 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-close-open")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		// Test Close (run first, not parallel with Open)
 		t.Run("Close", func(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Close(nil, opensearchapi.IndicesCloseReq{Index: index})
+				res, err := client.Indices.Close(t.Context(), opensearchapi.IndicesCloseReq{Index: index})
 				validateDefault(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Close(nil, opensearchapi.IndicesCloseReq{Index: index})
+				res, err := failingClient.Indices.Close(t.Context(), opensearchapi.IndicesCloseReq{Index: index})
 				validateInspect(t, res, err)
 			})
 		})
@@ -617,12 +629,12 @@ func TestIndicesClientNew(t *testing.T) {
 		// Test Open (run after Close completes)
 		t.Run("Open", func(t *testing.T) {
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Open(nil, opensearchapi.IndicesOpenReq{Index: index})
+				res, err := client.Indices.Open(t.Context(), opensearchapi.IndicesOpenReq{Index: index})
 				validateDefault(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Open(nil, opensearchapi.IndicesOpenReq{Index: index})
+				res, err := failingClient.Indices.Open(t.Context(), opensearchapi.IndicesOpenReq{Index: index})
 				validateInspect(t, res, err)
 			})
 		})
@@ -634,25 +646,25 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-count")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Count(nil, &opensearchapi.IndicesCountReq{Indices: []string{index}})
+			res, err := client.Indices.Count(t.Context(), &opensearchapi.IndicesCountReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Count(nil, &opensearchapi.IndicesCountReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Count(t.Context(), &opensearchapi.IndicesCountReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -663,31 +675,32 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-flush")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Flush(nil, nil)
+			// Flush only this test's index to avoid conflicts with closed indices from other parallel tests
+			res, err := client.Indices.Flush(t.Context(), &opensearchapi.IndicesFlushReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Flush(nil, &opensearchapi.IndicesFlushReq{Indices: []string{index}})
+			res, err := client.Indices.Flush(t.Context(), &opensearchapi.IndicesFlushReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Flush(nil, &opensearchapi.IndicesFlushReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Flush(t.Context(), &opensearchapi.IndicesFlushReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -698,31 +711,32 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-refresh")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Refresh(nil, nil)
+			// Refresh only this test's index to avoid conflicts with closed indices from other parallel tests
+			res, err := client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Refresh(nil, &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
+			res, err := client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Refresh(nil, &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -733,31 +747,31 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-stats")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Stats(nil, nil)
+			res, err := client.Indices.Stats(t.Context(), nil)
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Stats(nil, &opensearchapi.IndicesStatsReq{Indices: []string{index}})
+			res, err := client.Indices.Stats(t.Context(), &opensearchapi.IndicesStatsReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Stats(nil, &opensearchapi.IndicesStatsReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Stats(t.Context(), &opensearchapi.IndicesStatsReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -768,25 +782,25 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-get")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Get(nil, opensearchapi.IndicesGetReq{Indices: []string{index}})
+			res, err := client.Indices.Get(t.Context(), opensearchapi.IndicesGetReq{Indices: []string{index}})
 			validateDynamicIndexResponse("test-get", "aliases", "mappings", "settings")(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Get(nil, opensearchapi.IndicesGetReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Get(t.Context(), opensearchapi.IndicesGetReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -797,26 +811,26 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-settings")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		// Test GetSettings
 		t.Run("GetSettings", func(t *testing.T) {
 			t.Parallel()
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Settings.Get(nil, &opensearchapi.SettingsGetReq{Indices: []string{index}})
+				res, err := client.Indices.Settings.Get(t.Context(), &opensearchapi.SettingsGetReq{Indices: []string{index}})
 				validateDynamicIndexResponse("test-settings", "settings")(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Settings.Get(nil, &opensearchapi.SettingsGetReq{Indices: []string{index}})
+				res, err := failingClient.Indices.Settings.Get(t.Context(), &opensearchapi.SettingsGetReq{Indices: []string{index}})
 				validateInspect(t, res, err)
 			})
 		})
@@ -825,7 +839,7 @@ func TestIndicesClientNew(t *testing.T) {
 		t.Run("PutSettings", func(t *testing.T) {
 			t.Parallel()
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Settings.Put(nil, opensearchapi.SettingsPutReq{
+				res, err := client.Indices.Settings.Put(t.Context(), opensearchapi.SettingsPutReq{
 					Indices: []string{index},
 					Body:    strings.NewReader(`{"index":{"number_of_replicas":0}}`),
 				})
@@ -833,7 +847,7 @@ func TestIndicesClientNew(t *testing.T) {
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Settings.Put(nil, opensearchapi.SettingsPutReq{
+				res, err := failingClient.Indices.Settings.Put(t.Context(), opensearchapi.SettingsPutReq{
 					Indices: []string{index},
 					Body:    strings.NewReader(`{"index":{"number_of_replicas":0}}`),
 				})
@@ -848,26 +862,26 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-mapping")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		// Test GetMapping
 		t.Run("GetMapping", func(t *testing.T) {
 			t.Parallel()
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Mapping.Get(nil, &opensearchapi.MappingGetReq{Indices: []string{index}})
+				res, err := client.Indices.Mapping.Get(t.Context(), &opensearchapi.MappingGetReq{Indices: []string{index}})
 				validateDynamicIndexResponse("test-mapping", "mappings")(t, res, err)
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Mapping.Get(nil, &opensearchapi.MappingGetReq{Indices: []string{index}})
+				res, err := failingClient.Indices.Mapping.Get(t.Context(), &opensearchapi.MappingGetReq{Indices: []string{index}})
 				validateInspect(t, res, err)
 			})
 		})
@@ -876,7 +890,7 @@ func TestIndicesClientNew(t *testing.T) {
 		t.Run("PutMapping", func(t *testing.T) {
 			t.Parallel()
 			t.Run("with_request", func(t *testing.T) {
-				res, err := client.Indices.Mapping.Put(nil, opensearchapi.MappingPutReq{
+				res, err := client.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{
 					Indices: []string{index},
 					Body:    strings.NewReader(`{"properties":{"test_field":{"type":"text"}}}`),
 				})
@@ -884,7 +898,7 @@ func TestIndicesClientNew(t *testing.T) {
 			})
 
 			t.Run("inspect", func(t *testing.T) {
-				res, err := failingClient.Indices.Mapping.Put(nil, opensearchapi.MappingPutReq{
+				res, err := failingClient.Indices.Mapping.Put(t.Context(), opensearchapi.MappingPutReq{
 					Indices: []string{index},
 					Body:    strings.NewReader(`{"properties":{"test_field":{"type":"text"}}}`),
 				})
@@ -899,32 +913,32 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-recovery")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Recovery(nil, nil)
+			res, err := client.Indices.Recovery(t.Context(), nil)
 			// For without_request, we can't predict exact index names, so use generic validation
 			validateDynamicResponse(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Recovery(nil, &opensearchapi.IndicesRecoveryReq{Indices: []string{index}})
+			res, err := client.Indices.Recovery(t.Context(), &opensearchapi.IndicesRecoveryReq{Indices: []string{index}})
 			validateDynamicIndexResponse("test-recovery", "shards")(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Recovery(nil, &opensearchapi.IndicesRecoveryReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Recovery(t.Context(), &opensearchapi.IndicesRecoveryReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -935,31 +949,31 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-segments")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Segments(nil, nil)
+			res, err := client.Indices.Segments(t.Context(), nil)
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Segments(nil, &opensearchapi.IndicesSegmentsReq{Indices: []string{index}})
+			res, err := client.Indices.Segments(t.Context(), &opensearchapi.IndicesSegmentsReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Segments(nil, &opensearchapi.IndicesSegmentsReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Segments(t.Context(), &opensearchapi.IndicesSegmentsReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -970,19 +984,19 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-validate")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.ValidateQuery(nil, opensearchapi.IndicesValidateQueryReq{
+			res, err := client.Indices.ValidateQuery(t.Context(), opensearchapi.IndicesValidateQueryReq{
 				Indices: []string{index},
 				Body:    strings.NewReader(`{"query":{"match_all":{}}}`),
 			})
@@ -991,7 +1005,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.ValidateQuery(nil, opensearchapi.IndicesValidateQueryReq{
+			res, err := failingClient.Indices.ValidateQuery(t.Context(), opensearchapi.IndicesValidateQueryReq{
 				Indices: []string{index},
 				Body:    strings.NewReader(`{"query":{"match_all":{}}}`),
 			})
@@ -1005,31 +1019,31 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-shard-stores")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.ShardStores(nil, nil)
+			res, err := client.Indices.ShardStores(t.Context(), nil)
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.ShardStores(nil, &opensearchapi.IndicesShardStoresReq{Indices: []string{index}})
+			res, err := client.Indices.ShardStores(t.Context(), &opensearchapi.IndicesShardStoresReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.ShardStores(nil, &opensearchapi.IndicesShardStoresReq{Indices: []string{index}})
+			res, err := failingClient.Indices.ShardStores(t.Context(), &opensearchapi.IndicesShardStoresReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -1040,13 +1054,13 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Resolve(nil, opensearchapi.IndicesResolveReq{Indices: []string{"*"}})
+			res, err := client.Indices.Resolve(t.Context(), opensearchapi.IndicesResolveReq{Indices: []string{"*"}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Resolve(nil, opensearchapi.IndicesResolveReq{Indices: []string{"*"}})
+			res, err := failingClient.Indices.Resolve(t.Context(), opensearchapi.IndicesResolveReq{Indices: []string{"*"}})
 			validateInspect(t, res, err)
 		})
 	})
@@ -1057,19 +1071,19 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-field-caps")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.FieldCaps(nil, opensearchapi.IndicesFieldCapsReq{
+			res, err := client.Indices.FieldCaps(t.Context(), opensearchapi.IndicesFieldCapsReq{
 				Params: opensearchapi.IndicesFieldCapsParams{Fields: []string{"*"}},
 			})
 			validateDefault(t, res, err)
@@ -1077,7 +1091,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.FieldCaps(nil, opensearchapi.IndicesFieldCapsReq{
+			res, err := client.Indices.FieldCaps(t.Context(), opensearchapi.IndicesFieldCapsReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesFieldCapsParams{Fields: []string{"*"}},
 			})
@@ -1086,7 +1100,7 @@ func TestIndicesClientNew(t *testing.T) {
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.FieldCaps(nil, opensearchapi.IndicesFieldCapsReq{
+			res, err := failingClient.Indices.FieldCaps(t.Context(), opensearchapi.IndicesFieldCapsReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesFieldCapsParams{Fields: []string{"*"}},
 			})
@@ -1100,31 +1114,31 @@ func TestIndicesClientNew(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-forcemerge")
 		t.Cleanup(func() {
-			client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{
+			client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{
 				Indices: []string{index},
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
 			})
 		})
 
 		// Create index first
-		_, err := client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
+		_, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 		require.Nil(t, err)
 
 		t.Run("without_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Forcemerge(nil, nil)
+			res, err := client.Indices.Forcemerge(t.Context(), nil)
 			validateDefault(t, res, err)
 		})
 
 		t.Run("with_request", func(t *testing.T) {
 			t.Parallel()
-			res, err := client.Indices.Forcemerge(nil, &opensearchapi.IndicesForcemergeReq{Indices: []string{index}})
+			res, err := client.Indices.Forcemerge(t.Context(), &opensearchapi.IndicesForcemergeReq{Indices: []string{index}})
 			validateDefault(t, res, err)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			t.Parallel()
-			res, err := failingClient.Indices.Forcemerge(nil, &opensearchapi.IndicesForcemergeReq{Indices: []string{index}})
+			res, err := failingClient.Indices.Forcemerge(t.Context(), &opensearchapi.IndicesForcemergeReq{Indices: []string{index}})
 			validateInspect(t, res, err)
 		})
 	})

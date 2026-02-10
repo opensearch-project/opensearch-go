@@ -30,18 +30,18 @@ func TestRolesMappingClient(t *testing.T) {
 
 	testRole := "test_role"
 	client.Roles.Put(
-		nil,
+		t.Context(),
 		security.RolesPutReq{
 			Role: testRole,
 			Body: security.RolesPutBody{
 				Description:        "Test",
 				ClusterPermissions: []string{"cluster_monitor"},
-				IndexPermissions:   []security.RolesIndexPermission{security.RolesIndexPermission{IndexPatterns: []string{"*"}, AllowedActions: []string{"indices_monitor"}}},
+				IndexPermissions:   []security.RolesIndexPermission{{IndexPatterns: []string{"*"}, AllowedActions: []string{"indices_monitor"}}},
 			},
 		},
 	)
 	t.Cleanup(func() {
-		client.Roles.Delete(nil, security.RolesDeleteReq{Role: testRole})
+		client.Roles.Delete(t.Context(), security.RolesDeleteReq{Role: testRole})
 	})
 
 	type rolesmappingTests struct {
@@ -60,7 +60,7 @@ func TestRolesMappingClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.RolesMapping.Put(
-							nil,
+							t.Context(),
 							security.RolesMappingPutReq{
 								Role: testRole,
 								Body: security.RolesMappingPutBody{
@@ -75,7 +75,7 @@ func TestRolesMappingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.RolesMapping.Put(nil, security.RolesMappingPutReq{})
+						return failingClient.RolesMapping.Put(t.Context(), security.RolesMappingPutReq{})
 					},
 				},
 			},
@@ -86,19 +86,19 @@ func TestRolesMappingClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.RolesMapping.Get(nil, nil)
+						return client.RolesMapping.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.RolesMapping.Get(nil, &security.RolesMappingGetReq{Role: testRole})
+						return client.RolesMapping.Get(t.Context(), &security.RolesMappingGetReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.RolesMapping.Get(nil, nil)
+						return failingClient.RolesMapping.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -109,13 +109,13 @@ func TestRolesMappingClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.RolesMapping.Delete(nil, security.RolesMappingDeleteReq{Role: testRole})
+						return client.RolesMapping.Delete(t.Context(), security.RolesMappingDeleteReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.RolesMapping.Delete(nil, security.RolesMappingDeleteReq{Role: testRole})
+						return failingClient.RolesMapping.Delete(t.Context(), security.RolesMappingDeleteReq{Role: testRole})
 					},
 				},
 			},
@@ -127,7 +127,7 @@ func TestRolesMappingClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.RolesMapping.Patch(
-							nil,
+							t.Context(),
 							security.RolesMappingPatchReq{
 								Body: security.RolesMappingPatchBody{
 									security.RolesMappingPatchBodyItem{
@@ -151,7 +151,7 @@ func TestRolesMappingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.RolesMapping.Patch(nil, security.RolesMappingPatchReq{})
+						return failingClient.RolesMapping.Patch(t.Context(), security.RolesMappingPatchReq{})
 					},
 				},
 			},
@@ -183,7 +183,7 @@ func TestRolesMappingClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.RolesMapping.Get(nil, nil)
+			resp, err := client.RolesMapping.Get(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.RolesMapping, resp.Inspect().Response)

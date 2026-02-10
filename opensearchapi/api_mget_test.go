@@ -9,7 +9,7 @@
 package opensearchapi_test
 
 import (
-	"strconv"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -19,6 +19,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestMGet(t *testing.T) {
@@ -27,7 +28,7 @@ func TestMGet(t *testing.T) {
 
 	testIndex := "test-mget"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	// Use unique document IDs to avoid conflicts between test runs
@@ -35,7 +36,7 @@ func TestMGet(t *testing.T) {
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar"}`),
@@ -48,7 +49,7 @@ func TestMGet(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.MGet(
-			nil,
+			t.Context(),
 			opensearchapi.MGetReq{
 				Index: testIndex,
 				Body:  strings.NewReader(fmt.Sprintf(`{"docs":[{"_id":"%s-1"},{"_id":"%s-2"}]}`, docIDPrefix, docIDPrefix)),
@@ -63,7 +64,7 @@ func TestMGet(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.MGet(nil, opensearchapi.MGetReq{})
+		res, err := failingClient.MGet(t.Context(), opensearchapi.MGetReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

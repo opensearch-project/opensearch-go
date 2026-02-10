@@ -9,15 +9,14 @@
 package ism_test
 
 import (
-	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
 )
@@ -33,12 +32,12 @@ func TestClient(t *testing.T) {
 	failingClient, err := osismtest.CreateFailingClient()
 	require.Nil(t, err)
 
-	testPolicy := "testPolicy"
-	testIndex := []string{"test_policy"}
+	testPolicy := testutil.MustUniqueString(t, "test-policy")
+	testIndex := []string{testutil.MustUniqueString(t, "test-policy-index")}
 
-	t.Cleanup(func() { client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicy}) })
+	t.Cleanup(func() { client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testPolicy}) })
 	_, err = client.Policies.Put(
-		nil,
+		t.Context(),
 		ism.PoliciesPutReq{
 			Policy: testPolicy,
 			Body: ism.PoliciesPutBody{
@@ -64,18 +63,18 @@ func TestClient(t *testing.T) {
 					},
 					DefaultState: "test",
 					States: []ism.PolicyState{
-						ism.PolicyState{
+						{
 							Name: "test",
 							Actions: []ism.PolicyStateAction{
-								ism.PolicyStateAction{
+								{
 									Delete: &ism.PolicyStateDelete{},
 								},
 							},
 						},
 					},
 					Template: []ism.Template{
-						ism.Template{
-							IndexPatterns: []string{"test"},
+						{
+							IndexPatterns: []string{testIndex[0] + "*"},
 							Priority:      22,
 						},
 					},
@@ -85,8 +84,8 @@ func TestClient(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	t.Cleanup(func() { osClient.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: testIndex}) })
-	_, err = osClient.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: testIndex[0]})
+	t.Cleanup(func() { osClient.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: testIndex}) })
+	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: testIndex[0]})
 	require.Nil(t, err)
 
 	type clientTests struct {
@@ -94,60 +93,48 @@ func TestClient(t *testing.T) {
 		Results func() (osismtest.Response, error)
 	}
 
-	waitFor := func() error {
-		ticker := time.NewTicker(1 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
-			if err != nil {
-				return err
-			}
-			if resp.Indices[testIndex[0]].Info != nil && resp.Indices[testIndex[0]].Info.Message != "" {
-				return nil
-			}
-		}
-		return nil
-	}
+	// Separate test for Add with proper setup for each subtest
+	t.Run("Add", func(t *testing.T) {
+		t.Run("okay", func(t *testing.T) {
+			t.Parallel()
+			addIndex := []string{testutil.MustUniqueString(t, "test-add-okay")}
+			t.Cleanup(func() { osClient.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: addIndex}) })
+			_, err := osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: addIndex[0]})
+			require.Nil(t, err)
+
+			res, err := client.Add(t.Context(), ism.AddReq{Indices: addIndex, Body: ism.AddBody{PolicyID: testPolicy}})
+			require.NoError(t, err)
+			require.NotNil(t, res)
+			require.NotNil(t, res.Inspect().Response)
+			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+		})
+
+		t.Run("inspect", func(t *testing.T) {
+			t.Parallel()
+			res, err := failingClient.Add(t.Context(), ism.AddReq{})
+			require.NotNil(t, err)
+			require.NotNil(t, res)
+			osismtest.VerifyInspect(t, res.Inspect())
+		})
+	})
+
 	testCases := []struct {
 		Name  string
 		Tests []clientTests
 	}{
-		{
-			Name: "Add",
-			Tests: []clientTests{
-				{
-					Name: "okay",
-					Results: func() (osismtest.Response, error) {
-						return client.Add(nil, ism.AddReq{Indices: testIndex, Body: ism.AddBody{PolicyID: testPolicy}})
-					},
-				},
-				{
-					Name: "failure",
-					Results: func() (osismtest.Response, error) {
-						return client.Add(nil, ism.AddReq{Indices: testIndex, Body: ism.AddBody{PolicyID: testPolicy}})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osismtest.Response, error) {
-						return failingClient.Add(nil, ism.AddReq{})
-					},
-				},
-			},
-		},
 		{
 			Name: "Explain",
 			Tests: []clientTests{
 				{
 					Name: "without body",
 					Results: func() (osismtest.Response, error) {
-						return client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
+						return client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osismtest.Response, error) {
-						return failingClient.Explain(nil, &ism.ExplainReq{})
+						return failingClient.Explain(t.Context(), &ism.ExplainReq{})
 					},
 				},
 			},
@@ -158,13 +145,13 @@ func TestClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osismtest.Response, error) {
-						return client.Change(nil, ism.ChangeReq{Indices: testIndex, Body: ism.ChangeBody{PolicyID: testPolicy, State: "delete"}})
+						return client.Change(t.Context(), ism.ChangeReq{Indices: testIndex, Body: ism.ChangeBody{PolicyID: testPolicy, State: "delete"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osismtest.Response, error) {
-						return failingClient.Change(nil, ism.ChangeReq{})
+						return failingClient.Change(t.Context(), ism.ChangeReq{})
 					},
 				},
 			},
@@ -175,19 +162,19 @@ func TestClient(t *testing.T) {
 				{
 					Name: "without body",
 					Results: func() (osismtest.Response, error) {
-						return client.Retry(nil, ism.RetryReq{Indices: testIndex})
+						return client.Retry(t.Context(), ism.RetryReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "with body",
 					Results: func() (osismtest.Response, error) {
-						return client.Retry(nil, ism.RetryReq{Indices: testIndex, Body: &ism.RetryBody{State: "test"}})
+						return client.Retry(t.Context(), ism.RetryReq{Indices: testIndex, Body: &ism.RetryBody{State: "test"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osismtest.Response, error) {
-						return failingClient.Retry(nil, ism.RetryReq{})
+						return failingClient.Retry(t.Context(), ism.RetryReq{})
 					},
 				},
 			},
@@ -198,13 +185,13 @@ func TestClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osismtest.Response, error) {
-						return client.Remove(nil, ism.RemoveReq{Indices: testIndex})
+						return client.Remove(t.Context(), ism.RemoveReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osismtest.Response, error) {
-						return failingClient.Remove(nil, ism.RemoveReq{})
+						return failingClient.Remove(t.Context(), ism.RemoveReq{})
 					},
 				},
 			},
@@ -215,13 +202,13 @@ func TestClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osismtest.Response, error) {
-						return client.RefreshSearchAnalyzers(nil, ism.RefreshSearchAnalyzersReq{Indices: testIndex})
+						return client.RefreshSearchAnalyzers(t.Context(), ism.RefreshSearchAnalyzersReq{Indices: testIndex})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osismtest.Response, error) {
-						return failingClient.RefreshSearchAnalyzers(nil, ism.RefreshSearchAnalyzersReq{Indices: []string{"*"}})
+						return failingClient.RefreshSearchAnalyzers(t.Context(), ism.RefreshSearchAnalyzersReq{Indices: []string{"*"}})
 					},
 				},
 			},
@@ -229,8 +216,10 @@ func TestClient(t *testing.T) {
 	}
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
+			t.Parallel()
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
+					t.Parallel()
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						assert.NotNil(t, err)
@@ -243,10 +232,6 @@ func TestClient(t *testing.T) {
 						if value.Name != "Explain" {
 							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
-						if value.Name == "Add" && testCase.Name == "failure" {
-							err = waitFor()
-							assert.NoError(t, err)
-						}
 					}
 				})
 			}
@@ -254,21 +239,27 @@ func TestClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Explain", func(t *testing.T) {
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex})
+			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with validate_action", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, osClient, 2, 4, "Explain with validate_action")
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true, ValidateAction: true}})
+			resp, err := client.Explain(
+				t.Context(),
+				&ism.ExplainReq{
+					Indices: testIndex,
+					Params:  ism.ExplainParams{ShowPolicy: true, ValidateAction: true},
+				},
+			)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with show_policy", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, osClient, 1, 3, "Explain with show_policy")
-			resp, err := client.Explain(nil, &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
+			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
@@ -278,7 +269,7 @@ func TestClient(t *testing.T) {
 	t.Run("Put Policy with Transitions Conditions", func(t *testing.T) {
 		testRetentionPolicy := "testRetentionPolicy"
 		t.Cleanup(func() {
-			client.Policies.Delete(context.Background(), ism.PoliciesDeleteReq{Policy: testRetentionPolicy})
+			client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testRetentionPolicy})
 		})
 		transitions := []ism.PolicyStateTransition{
 			{
@@ -289,7 +280,7 @@ func TestClient(t *testing.T) {
 			},
 		}
 		_, err = client.Policies.Put(
-			context.Background(),
+			t.Context(),
 			ism.PoliciesPutReq{
 				Policy: testRetentionPolicy,
 				Body: ism.PoliciesPutBody{
