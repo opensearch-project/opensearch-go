@@ -20,8 +20,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	v4 "github.com/aws/aws-sdk-go/aws/signer/v4"
+	// NOTE: aws-sdk-go v1 is deprecated. Migration to aws-sdk-go-v2 is tracked
+	// in a separate issue. These imports will be replaced in a future update.
+	// See: https://aws.amazon.com/blogs/developer/announcing-end-of-support-for-aws-sdk-for-go-v1-on-july-31-2025/
+	"github.com/aws/aws-sdk-go/aws/session"      //nolint:staticcheck // See NOTE above
+	v4 "github.com/aws/aws-sdk-go/aws/signer/v4" //nolint:staticcheck // See NOTE above
 )
 
 // OpenSearchService Amazon OpenSearch Service Name

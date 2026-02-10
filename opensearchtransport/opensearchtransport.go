@@ -173,6 +173,12 @@ type Config struct {
 	Selector  Selector
 	Router    Router // Optional router for cluster-aware request routing
 
+	// Context for background operations. If nil, context.Background() will be used.
+	// This is only used during client initialization and is not stored long-term.
+	//nolint:containedctx // Config struct is short-lived, context extracted during New()
+	Context    context.Context
+	CancelFunc context.CancelFunc
+
 	ConnectionPoolFunc func([]*Connection, Selector) ConnectionPool
 }
 
@@ -212,6 +218,13 @@ type Client struct {
 	selector  Selector
 	router    Router // Optional router for cluster-aware routing
 	poolFunc  func([]*Connection, Selector) ConnectionPool
+
+	// Context for background operations like node discovery.
+	// This context is created during client initialization and manages the lifecycle
+	// of background goroutines (e.g., periodic node discovery).
+	//nolint:containedctx // Long-lived context required for background worker lifecycle
+	ctx        context.Context
+	cancelFunc context.CancelFunc
 
 	mu struct {
 		sync.RWMutex
@@ -293,23 +306,31 @@ func New(cfg Config) (*Client, error) {
 	var resurrectTimeoutInitial time.Duration
 	var resurrectTimeoutFactorCutoff int
 
-	switch {
-	case cfg.ResurrectTimeoutInitial == 0:
+	if cfg.ResurrectTimeoutInitial == 0 {
 		resurrectTimeoutInitial = defaultResurrectTimeoutInitial
-	default:
+	} else {
 		resurrectTimeoutInitial = cfg.ResurrectTimeoutInitial
 	}
 
-	switch {
-	case cfg.ResurrectTimeoutFactorCutoff == 0:
+	if cfg.ResurrectTimeoutFactorCutoff == 0 {
 		resurrectTimeoutFactorCutoff = defaultResurrectTimeoutFactorCutoff
-	default:
+	} else {
 		resurrectTimeoutFactorCutoff = cfg.ResurrectTimeoutFactorCutoff
 	}
 
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
 		conns[idx] = &Connection{URL: u}
+	}
+
+	// Initialize context if not provided
+	var ctx context.Context
+	var cancel context.CancelFunc
+	if cfg.Context == nil {
+		ctx, cancel = context.WithCancel(context.Background())
+	} else {
+		ctx = cfg.Context
+		cancel = cfg.CancelFunc
 	}
 
 	client := Client{
@@ -338,11 +359,13 @@ func New(cfg Config) (*Client, error) {
 
 		compressRequestBody: cfg.CompressRequestBody,
 
-		transport: cfg.Transport,
-		logger:    cfg.Logger,
-		router:    cfg.Router,
-		selector:  cfg.Selector,
-		poolFunc:  cfg.ConnectionPoolFunc,
+		transport:  cfg.Transport,
+		logger:     cfg.Logger,
+		router:     cfg.Router,
+		selector:   cfg.Selector,
+		poolFunc:   cfg.ConnectionPoolFunc,
+		ctx:        ctx,
+		cancelFunc: cancel,
 	}
 
 	client.userAgent = initUserAgent()
@@ -398,17 +421,44 @@ func New(cfg Config) (*Client, error) {
 		client.pooledGzipCompressor = newGzipCompressor()
 	}
 
-	// Configure pool factories for all policies in the router
+	// Configure policy settings for all policies in the router
 	if client.router != nil {
-		// Use type assertion to check if the router (which is a Policy) implements poolFactoryConfigurable
-		if configurablePolicy, ok := client.router.(poolFactoryConfigurable); ok {
-			if err := configurablePolicy.configurePoolFactories(client.createPoolFactory()); err != nil {
-				return nil, fmt.Errorf("failed to configure pool factories: %w", err)
+		config := policyConfig{
+			resurrectTimeoutInitial:      client.resurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: client.resurrectTimeoutFactorCutoff,
+		}
+		// Use type assertion to check if the router (which is a Policy) implements policyConfigurable
+		if configurablePolicy, ok := client.router.(policyConfigurable); ok {
+			if err := configurablePolicy.configurePolicySettings(config); err != nil {
+				return nil, fmt.Errorf("failed to configure policy settings: %w", err)
 			}
 		}
 	}
 
 	return &client, nil
+}
+
+// Close cancels background operations and cleans up resources.
+//
+//nolint:unparam // Returns error to satisfy io.Closer interface; CloseIdleConnections() is void
+func (c *Client) Close() error {
+	if c.cancelFunc != nil {
+		c.cancelFunc()
+	}
+
+	c.mu.Lock()
+	if c.mu.discoverNodesTimer != nil {
+		c.mu.discoverNodesTimer.Stop()
+		c.mu.discoverNodesTimer = nil
+	}
+	c.mu.Unlock()
+
+	// Close idle connections if the transport supports it
+	if transport, ok := c.transport.(interface{ CloseIdleConnections() }); ok {
+		transport.CloseIdleConnections()
+	}
+
+	return nil
 }
 
 // Perform executes the request and returns a response or error.
@@ -520,10 +570,13 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			}
 
 			// Report the connection as unsuccessful
-			// Always use connection pool OnFailure with locking
 			c.mu.Lock()
-			//nolint:errcheck // Questionable if the function even returns an error
-			c.mu.connectionPool.OnFailure(conn)
+			if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
+				// Connection pool state error - log it using debugLogger if available
+				if debugLogger != nil {
+					debugLogger.Logf("Connection pool error marking connection as failed: %v\n", poolErr)
+				}
+			}
 			c.mu.Unlock()
 
 			// Retry on EOF errors
@@ -761,7 +814,7 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 	}
 
 	var lastErr error
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		if err := fn(); err == nil {
 			return nil // Success
 		} else {
@@ -771,9 +824,12 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 		// If this is not the last attempt, wait before retrying
 		if attempt < maxRetries-1 && baseDelay > 0 {
 			// Exponential backoff: base delay * 2^attempt
-			delay := time.Duration(int64(baseDelay) * (1 << uint(attempt)))
+			// Cap attempt to prevent overflow (2^30 is ~1 billion, more than enough)
+			cappedAttempt := min(attempt, 30)
+			delay := time.Duration(int64(baseDelay) * (1 << cappedAttempt))
 
 			// Apply jitter to avoid thundering herd
+			// #nosec G404 -- jitter for retry backoff doesn't require cryptographic randomness
 			if jitter > 0.0 {
 				jitterRange := float64(delay) * jitter
 				jitterOffset := (rand.Float64()*2 - 1) * jitterRange // -jitter to +jitter
@@ -790,9 +846,7 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 // healthCheckWithRetries performs health checks with exponential backoff retry logic.
 // It attempts up to the configured maxRetries times with jittered delays between attempts.
 // Returns true if the connection is healthy, false otherwise.
-func (c *Client) healthCheckWithRetries(conn *Connection, maxRetries int) bool {
-	ctx := context.Background()
-
+func (c *Client) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
 	// Use the provided maxRetries parameter, but respect client's timeout/jitter config
 	baseDelay := c.healthCheckTimeout / 2 // Start with half the timeout as base delay
 	if baseDelay <= 0 {
@@ -891,18 +945,21 @@ func (c *Client) demoteConnectionPoolWithLock() *singleConnectionPool {
 		currentPool.mu.RLock()
 		var connection *Connection
 
-		if len(currentPool.mu.live) > 0 {
+		switch {
+		case len(currentPool.mu.live) > 0:
 			connection = currentPool.mu.live[0]
 			if debugLogger != nil {
 				debugLogger.Logf("Demoting statusConnectionPool to singleConnectionPool using live connection: %s\n", connection.URL)
 			}
-		} else if len(currentPool.mu.dead) > 0 {
+		case len(currentPool.mu.dead) > 0:
 			connection = currentPool.mu.dead[0]
 			if debugLogger != nil {
 				debugLogger.Logf("Demoting statusConnectionPool to singleConnectionPool using dead connection: %s\n", connection.URL)
 			}
-		} else if debugLogger != nil {
-			debugLogger.Logf("Warning: Demoting statusConnectionPool with no connections available\n")
+		default:
+			if debugLogger != nil {
+				debugLogger.Logf("Warning: Demoting statusConnectionPool with no connections available\n")
+			}
 		}
 
 		currentPool.mu.RUnlock()
@@ -938,16 +995,5 @@ func (c *Client) applyConnectionFiltering(liveConnections, deadConnections []*Co
 			continue
 		}
 		*filteredDead = append(*filteredDead, conn)
-	}
-}
-
-// createPoolFactory returns a factory function that creates statusConnectionPool instances
-// with this client's configured resurrection timeout settings.
-func (c *Client) createPoolFactory() func() *statusConnectionPool {
-	return func() *statusConnectionPool {
-		return &statusConnectionPool{
-			resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
-			resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
-		}
 	}
 }

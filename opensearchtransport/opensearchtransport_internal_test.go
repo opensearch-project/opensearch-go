@@ -46,8 +46,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/signer"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
 var _ = fmt.Print
@@ -1432,32 +1433,32 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			json.NewEncoder(w).Encode(map[string]any{
 				"name":         "test-node",
 				"cluster_name": "test-cluster",
-				"version":      map[string]interface{}{"number": "2.0.0"},
+				"version":      map[string]any{"number": "2.0.0"},
 			})
 		})
 
 		// Nodes info endpoint - return multiple nodes
 		mux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
-			response := map[string]interface{}{
-				"_nodes": map[string]interface{}{
+			response := map[string]any{
+				"_nodes": map[string]any{
 					"total":      2,
 					"successful": 2,
 					"failed":     0,
 				},
 				"cluster_name": "test-cluster",
-				"nodes": map[string]interface{}{
-					"node1": map[string]interface{}{
+				"nodes": map[string]any{
+					"node1": map[string]any{
 						"name":  "data-node-1",
 						"roles": []string{"data", "ingest"},
-						"http":  map[string]interface{}{"publish_address": "127.0.0.1:9200"},
+						"http":  map[string]any{"publish_address": "127.0.0.1:9200"},
 					},
-					"node2": map[string]interface{}{
+					"node2": map[string]any{
 						"name":  "data-node-2",
 						"roles": []string{"data", "ingest"},
-						"http":  map[string]interface{}{"publish_address": "127.0.0.1:9201"},
+						"http":  map[string]any{"publish_address": "127.0.0.1:9201"},
 					},
 				},
 			}
@@ -1486,7 +1487,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		require.NotNil(t, originalPool.metrics, "Should have metrics assigned")
 
 		// Perform discovery
-		err = client.DiscoverNodes()
+		err = client.DiscoverNodes(t.Context())
 		require.NoError(t, err, "Discovery should succeed")
 
 		// Verify promotion to statusConnectionPool
@@ -1551,7 +1552,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		if router != nil {
 			// The router should be able to handle the new connections
 			// In a real scenario, the router's internal policies would be updated during discovery
-			req, _ := http.NewRequest("GET", "/", nil)
+			req, _ := http.NewRequest(http.MethodGet, "/", nil)
 			_, routeErr := router.Route(t.Context(), req)
 			// Note: This might return an error because policies aren't initialized,
 			// but it shouldn't panic or cause memory issues

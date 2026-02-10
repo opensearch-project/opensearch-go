@@ -40,7 +40,6 @@ import (
 	"os"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -138,26 +137,44 @@ func TestDiscovery(t *testing.T) {
 	srvTLS1 := &http.Server{Addr: "127.0.0.1:20001", Handler: tlsMux, ReadTimeout: 1 * time.Second}
 	srvTLS2 := &http.Server{Addr: "localhost:20002", Handler: tlsMux, ReadTimeout: 1 * time.Second}
 
+	// Create listeners first to ensure ports are bound before tests run
+	ln1, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srv: %s", err)
+	}
+	ln2, err := net.Listen("tcp", srv2.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srv2: %s", err)
+	}
+	lnTLS1, err := net.Listen("tcp", srvTLS1.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srvTLS1: %s", err)
+	}
+	lnTLS2, err := net.Listen("tcp", srvTLS2.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srvTLS2: %s", err)
+	}
+
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(ln1); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start server: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srv2.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv2.Serve(ln2); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start server2: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srvTLS1.ListenAndServeTLS("testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
+		if err := srvTLS1.ServeTLS(lnTLS1, "testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start TLS server1: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srvTLS2.ListenAndServeTLS("testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
+		if err := srvTLS2.ServeTLS(lnTLS2, "testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start TLS server2: %s", err)
 			return
 		}
@@ -171,7 +188,7 @@ func TestDiscovery(t *testing.T) {
 		u, _ := url.Parse("http://" + srv.Addr)
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		nodes, err := tp.getNodesInfo()
+		nodes, err := tp.getNodesInfo(t.Context())
 		if err != nil {
 			t.Fatalf("ERROR: %s", err)
 		}
@@ -215,7 +232,7 @@ func TestDiscovery(t *testing.T) {
 		tp, err := New(Config{URLs: []*url.URL{u}, Transport: newRoundTripper()})
 		require.NoError(t, err)
 
-		_, err = tp.getNodesInfo()
+		_, err = tp.getNodesInfo(t.Context())
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected empty body")
 	})
@@ -225,7 +242,7 @@ func TestDiscovery(t *testing.T) {
 		tp, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
 
-		err = tp.DiscoverNodes()
+		err = tp.DiscoverNodes(t.Context())
 		require.NoError(t, err, "Discovery should succeed")
 
 		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
@@ -250,7 +267,7 @@ func TestDiscovery(t *testing.T) {
 
 		// The exact split between live/dead depends on health checks,
 		// but we should have the right nodes
-		var foundNodes []string
+		foundNodes := make([]string, 0, len(pool.mu.live)+len(pool.mu.dead))
 		for _, conn := range pool.mu.live {
 			foundNodes = append(foundNodes, conn.Name)
 		}
@@ -277,7 +294,7 @@ func TestDiscovery(t *testing.T) {
 			},
 		})
 
-		err := tp.DiscoverNodes()
+		err := tp.DiscoverNodes(t.Context())
 		if err != nil {
 			t.Logf("DiscoverNodes error: %v", err)
 		}
@@ -655,17 +672,21 @@ func TestDiscovery(t *testing.T) {
 				testMux := http.NewServeMux()
 
 				// Start a test server first so we have the address
-				testServer := &http.Server{Addr: "127.0.0.1:0", Handler: testMux}
+				testServer := &http.Server{
+					Addr:              "127.0.0.1:0",
+					Handler:           testMux,
+					ReadHeaderTimeout: 5 * time.Second,
+				}
 				listener, err := net.Listen("tcp", testServer.Addr)
 				require.NoError(t, err)
 				testServer.Addr = listener.Addr().String()
 
 				// Add health check handler (catch-all for /{$} and /)
 				testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-					healthResp := map[string]interface{}{
+					healthResp := map[string]any{
 						"name":         "test-node",
 						"cluster_name": "test-cluster",
-						"version": map[string]interface{}{
+						"version": map[string]any{
 							"number": "2.0.0",
 						},
 					}
@@ -685,25 +706,25 @@ func TestDiscovery(t *testing.T) {
 				// Add nodes info handler with this test's data
 				testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 					// Create a simple response structure compatible with the discovery parsing
-					response := map[string]interface{}{
-						"_nodes": map[string]interface{}{
+					response := map[string]any{
+						"_nodes": map[string]any{
 							"total":      len(tt.args.Nodes),
 							"successful": len(tt.args.Nodes),
 							"failed":     0,
 						},
 						"cluster_name": "test-cluster",
-						"nodes":        make(map[string]interface{}),
+						"nodes":        make(map[string]any),
 					}
 
-					nodes := response["nodes"].(map[string]interface{})
+					nodes := response["nodes"].(map[string]any)
 					for name, node := range tt.args.Nodes {
 						// Use the test server address for publish_address so health checks work
-						nodes[name] = map[string]interface{}{
+						nodes[name] = map[string]any{
 							"name":  name,
 							"host":  "127.0.0.1",
 							"ip":    "127.0.0.1",
 							"roles": node.Roles,
-							"http": map[string]interface{}{
+							"http": map[string]any{
 								"publish_address": testServer.Addr, // Point to our test server, not fictional hostnames
 							},
 						}
@@ -723,13 +744,13 @@ func TestDiscovery(t *testing.T) {
 				c, _ := New(Config{URLs: urls})
 
 				// Debug: test the nodes info API directly
-				nodesInfo, err := c.getNodesInfo()
+				nodesInfo, err := c.getNodesInfo(t.Context())
 				t.Logf("Role-based test - Nodes info result: %d nodes, error: %v", len(nodesInfo), err)
 				for i, node := range nodesInfo {
 					t.Logf("  Node %d: ID=%s, Name=%s, URL=%s, Roles=%v", i, node.ID, node.Name, node.url, node.Roles)
 				}
 
-				err = c.DiscoverNodes()
+				err = c.DiscoverNodes(t.Context())
 				t.Logf("DiscoverNodes error: %v", err)
 
 				pool, ok := c.mu.connectionPool.(*statusConnectionPool)
@@ -765,7 +786,7 @@ func TestDiscovery(t *testing.T) {
 					}
 				}
 
-				if err := c.DiscoverNodes(); (err != nil) != tt.want.wantErr {
+				if err := c.DiscoverNodes(t.Context()); (err != nil) != tt.want.wantErr {
 					t.Errorf("DiscoverNodes() error = %v, wantErr %v", err, tt.want.wantErr)
 				}
 			})
@@ -1057,10 +1078,10 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 			// Health check endpoint - exact root path match
 			mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-				healthResp := map[string]interface{}{
+				healthResp := map[string]any{
 					"name":         "test-node",
 					"cluster_name": "test-cluster",
-					"version": map[string]interface{}{
+					"version": map[string]any{
 						"number": "2.0.0",
 					},
 				}
@@ -1118,7 +1139,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			// Perform discovery
-			err = c.DiscoverNodes()
+			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
 			// Verify results
@@ -1195,17 +1216,21 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			testMux := http.NewServeMux()
 
 			// Start a test server first so we have the address
-			testServer := &http.Server{Addr: "127.0.0.1:0", Handler: testMux}
+			testServer := &http.Server{
+				Addr:              "127.0.0.1:0",
+				Handler:           testMux,
+				ReadHeaderTimeout: 5 * time.Second,
+			}
 			listener, err := net.Listen("tcp", testServer.Addr)
 			require.NoError(t, err)
 			testServer.Addr = listener.Addr().String()
 
 			// Health check endpoint (catch-all for /{$} and /)
 			testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
-				healthResp := map[string]interface{}{
+				healthResp := map[string]any{
 					"name":         "test-node",
 					"cluster_name": "test-cluster",
-					"version": map[string]interface{}{
+					"version": map[string]any{
 						"number": "2.0.0",
 					},
 				}
@@ -1216,24 +1241,24 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			// Nodes info endpoint
 			testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
-				response := map[string]interface{}{
-					"_nodes": map[string]interface{}{
+				response := map[string]any{
+					"_nodes": map[string]any{
 						"total":      len(tt.nodes),
 						"successful": len(tt.nodes),
 						"failed":     0,
 					},
 					"cluster_name": "test-cluster",
-					"nodes":        make(map[string]interface{}),
+					"nodes":        make(map[string]any),
 				}
 
-				nodes := response["nodes"].(map[string]interface{})
+				nodes := response["nodes"].(map[string]any)
 				for name, roles := range tt.nodes {
-					nodes[name] = map[string]interface{}{
+					nodes[name] = map[string]any{
 						"name":  name,
 						"host":  "127.0.0.1",
 						"ip":    "127.0.0.1",
 						"roles": roles,
-						"http": map[string]interface{}{
+						"http": map[string]any{
 							"publish_address": testServer.Addr, // Point to our test server
 						},
 					}
@@ -1264,7 +1289,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			require.NoError(t, err)
 
 			// Perform discovery
-			err = c.DiscoverNodes()
+			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
 			// Verify results
@@ -1317,7 +1342,7 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		policy := NewPolicy(dataIngestPolicy, dataSearchPolicy)
 
 		// Configure pool factories for the policy (needed for tests that create policies directly)
-		err = configureTestPolicyFactories(t, policy)
+		err = configureTestPolicySettings(t, policy)
 		require.NoError(t, err)
 
 		// Update policy with connections
@@ -1350,7 +1375,7 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Configure pool factories for the policy (needed for tests that create policies directly)
-		err = configureTestPolicyFactories(t, policy)
+		err = configureTestPolicySettings(t, policy)
 		require.NoError(t, err)
 
 		// Update policy with connections
@@ -1383,7 +1408,7 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Configure pool factories for the policy (needed for tests that create policies directly)
-		err = configureTestPolicyFactories(t, policy)
+		err = configureTestPolicySettings(t, policy)
 		require.NoError(t, err)
 
 		// Update policy with connections
@@ -1408,9 +1433,9 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Configure pool factories for the policies (needed for tests that create policies directly)
-		err = configureTestPolicyFactories(t, ingestPolicy)
+		err = configureTestPolicySettings(t, ingestPolicy)
 		require.NoError(t, err)
-		err = configureTestPolicyFactories(t, warmPolicy)
+		err = configureTestPolicySettings(t, warmPolicy)
 		require.NoError(t, err)
 
 		// Update policies with connections
@@ -1460,7 +1485,7 @@ func TestRolePolicies(t *testing.T) {
 		require.NoError(t, err)
 
 		// Configure pool factories for the policy (needed for tests that create policies directly)
-		err = configureTestPolicyFactories(t, policy)
+		err = configureTestPolicySettings(t, policy)
 		require.NoError(t, err)
 
 		// Update with connections
@@ -1515,162 +1540,5 @@ func TestRolePolicies(t *testing.T) {
 		finalConn, err := pool2.Next()
 		require.NoError(t, err)
 		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, finalConn.Name)
-	})
-}
-
-// TestGenerateRoleCombinations verifies role combination generation for efficient lookups
-func TestGenerateRoleCombinations(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name     string
-		roles    []string
-		expected []string
-	}{
-		{
-			name:     "empty roles",
-			roles:    []string{},
-			expected: []string{},
-		},
-		{
-			name:     "single role",
-			roles:    []string{"data"},
-			expected: []string{"data"},
-		},
-		{
-			name:     "two roles",
-			roles:    []string{"data", "ingest"},
-			expected: []string{"data", "ingest", "data,ingest"},
-		},
-		{
-			name:  "three roles",
-			roles: []string{"data", "ingest", "cluster_manager"},
-			expected: []string{
-				"cluster_manager",
-				"data",
-				"cluster_manager,data",
-				"ingest",
-				"cluster_manager,ingest",
-				"data,ingest",
-				"cluster_manager,data,ingest",
-			},
-		},
-		{
-			name:     "roles with consistent sorting",
-			roles:    []string{"ingest", "data"},                // Input order shouldn't matter
-			expected: []string{"data", "ingest", "data,ingest"}, // Output should be consistently sorted
-		},
-		{
-			name:     "duplicate roles should be handled",
-			roles:    []string{"data", "data", "ingest"},
-			expected: []string{"data", "ingest", "data,ingest"}, // Duplicates should be removed
-		},
-		{
-			name:  "complex role set",
-			roles: []string{"warm", "data", "search", "ingest"},
-			expected: []string{
-				"data",
-				"ingest",
-				"data,ingest",
-				"search",
-				"data,search",
-				"ingest,search",
-				"data,ingest,search",
-				"warm",
-				"data,warm",
-				"ingest,warm",
-				"data,ingest,warm",
-				"search,warm",
-				"data,search,warm",
-				"ingest,search,warm",
-				"data,ingest,search,warm",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			result := generateRoleCombinations(tt.roles)
-
-			// Check length
-			require.Equal(t, len(tt.expected), len(result),
-				"Expected %d combinations, got %d", len(tt.expected), len(result))
-
-			// Check exact matches
-			require.ElementsMatch(t, tt.expected, result,
-				"Role combinations don't match expected result")
-
-			// Verify mathematical property: 2^n - 1 combinations for n unique roles
-			uniqueRoles := make(map[string]struct{})
-			for _, role := range tt.roles {
-				uniqueRoles[role] = struct{}{}
-			}
-			expectedCount := (1 << len(uniqueRoles)) - 1
-			if len(uniqueRoles) == 0 {
-				expectedCount = 0
-			}
-			require.Equal(t, expectedCount, len(result),
-				"Expected 2^%d - 1 = %d combinations, got %d", len(uniqueRoles), expectedCount, len(result))
-		})
-	}
-}
-
-// TestGenerateRoleCombinationsProperties verifies mathematical properties
-func TestGenerateRoleCombinationsProperties(t *testing.T) {
-	t.Parallel()
-
-	t.Run("combination count follows 2^n - 1 formula", func(t *testing.T) {
-		t.Parallel()
-
-		testCases := []struct {
-			numRoles int
-			roles    []string
-		}{
-			{1, []string{"data"}},
-			{2, []string{"data", "ingest"}},
-			{3, []string{"data", "ingest", "cluster_manager"}},
-			{4, []string{"data", "ingest", "cluster_manager", "search"}},
-		}
-
-		for _, tc := range testCases {
-			result := generateRoleCombinations(tc.roles)
-			expected := (1 << tc.numRoles) - 1
-			require.Equal(t, expected, len(result),
-				"For %d roles, expected %d combinations, got %d", tc.numRoles, expected, len(result))
-		}
-	})
-
-	t.Run("all combinations contain properly sorted roles", func(t *testing.T) {
-		t.Parallel()
-
-		roles := []string{"ingest", "data", "cluster_manager"} // Intentionally unsorted input
-		result := generateRoleCombinations(roles)
-
-		for _, combination := range result {
-			parts := strings.Split(combination, ",")
-			sortedParts := make([]string, len(parts))
-			copy(sortedParts, parts)
-			slices.Sort(sortedParts)
-
-			require.Equal(t, sortedParts, parts,
-				"Combination %q should have sorted roles", combination)
-		}
-	})
-
-	t.Run("no duplicate combinations", func(t *testing.T) {
-		t.Parallel()
-
-		roles := []string{"data", "ingest", "cluster_manager", "search"}
-		result := generateRoleCombinations(roles)
-
-		seen := make(map[string]struct{})
-		for _, combination := range result {
-			_, exists := seen[combination]
-			require.False(t, exists,
-				"Found duplicate combination: %q", combination)
-			seen[combination] = struct{}{}
-		}
 	})
 }

@@ -33,8 +33,8 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Policy                  = (*IfEnabledPolicy)(nil)
-	_ poolFactoryConfigurable = (*IfEnabledPolicy)(nil)
+	_ Policy             = (*IfEnabledPolicy)(nil)
+	_ policyConfigurable = (*IfEnabledPolicy)(nil)
 )
 
 // ConditionFunc defines a function that evaluates a condition based on request context.
@@ -85,18 +85,18 @@ func (p *IfEnabledPolicy) DiscoveryUpdate(added, removed, unchanged []*Connectio
 	return firstError
 }
 
-// configurePoolFactories configures pool factories for both sub-policies.
-func (p *IfEnabledPolicy) configurePoolFactories(factory func() *statusConnectionPool) error {
+// configurePolicySettings configures pool settings for both sub-policies.
+func (p *IfEnabledPolicy) configurePolicySettings(config policyConfig) error {
 	var firstError error
 
 	// Configure both sub-policies
-	if configurableTrue, ok := p.truePolicy.(poolFactoryConfigurable); ok {
-		if err := configurableTrue.configurePoolFactories(factory); err != nil && firstError == nil {
+	if configurableTrue, ok := p.truePolicy.(policyConfigurable); ok {
+		if err := configurableTrue.configurePolicySettings(config); err != nil && firstError == nil {
 			firstError = err
 		}
 	}
-	if configurableFalse, ok := p.falsePolicy.(poolFactoryConfigurable); ok {
-		if err := configurableFalse.configurePoolFactories(factory); err != nil && firstError == nil {
+	if configurableFalse, ok := p.falsePolicy.(policyConfigurable); ok {
+		if err := configurableFalse.configurePolicySettings(config); err != nil && firstError == nil {
 			firstError = err
 		}
 	}

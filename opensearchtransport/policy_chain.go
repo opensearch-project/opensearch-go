@@ -34,8 +34,8 @@ import (
 
 // Compile-time interface compliance checks
 var (
-	_ Policy                  = (*PolicyChain)(nil)
-	_ poolFactoryConfigurable = (*PolicyChain)(nil)
+	_ Policy             = (*PolicyChain)(nil)
+	_ policyConfigurable = (*PolicyChain)(nil)
 )
 
 // NewPolicy creates a policy that tries sub-policies in order.
@@ -141,20 +141,18 @@ func (r *PolicyChain) Eval(ctx context.Context, req *http.Request) (ConnectionPo
 	}
 
 	// All policies returned (nil, nil), so we return (nil, nil) for fallthrough
+	//nolint:nilnil // Intentional: (nil, nil) signals "no match, continue" in policy chain
 	return nil, nil
 }
 
-// configurePoolFactories configures pool factories for all sub-policies.
-func (r *PolicyChain) configurePoolFactories(factory func() *statusConnectionPool) error {
+// configurePolicySettings configures pool settings for all sub-policies.
+func (r *PolicyChain) configurePolicySettings(config policyConfig) error {
 	var firstError error
-
-	// Store factory for when PolicyChain is used as a Policy
-	r.poolFactory = factory
 
 	// Configure all sub-policies
 	for _, policy := range r.policies {
-		if configurablePolicy, ok := policy.(poolFactoryConfigurable); ok {
-			if err := configurablePolicy.configurePoolFactories(factory); err != nil && firstError == nil {
+		if configurablePolicy, ok := policy.(policyConfigurable); ok {
+			if err := configurablePolicy.configurePolicySettings(config); err != nil && firstError == nil {
 				firstError = err
 			}
 		}

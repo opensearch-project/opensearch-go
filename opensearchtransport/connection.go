@@ -115,7 +115,10 @@ func (c *Connection) checkHealth(ctx context.Context, healthCheck func(context.C
 
 	// Perform actual health check
 	c.mu.Unlock() // Release lock during network call
-	_, err := healthCheck(ctx, c.URL)
+	resp, err := healthCheck(ctx, c.URL)
+	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
+	}
 	c.mu.Lock() // Reacquire for state update
 
 	// Check if connection was marked dead more recently than when we started
@@ -218,9 +221,8 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	}
 
 	if selector == nil {
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
-		selector = s
+		selector = &roundRobinSelector{}
+		selector.(*roundRobinSelector).curr.Store(-1)
 	}
 
 	pool := &statusConnectionPool{
@@ -530,13 +532,6 @@ func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.
 	})
 }
 
-// markAsDead marks the connection as dead.
-func (c *Connection) markAsDead() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.markAsDeadWithLock()
-}
-
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
 func (c *Connection) markAsDeadWithLock() {
 	if c.mu.deadSince.IsZero() {
@@ -568,4 +563,3 @@ func (c *Connection) String() string {
 
 	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", c.URL, time.Since(deadAt), c.failures.Load())
 }
-
