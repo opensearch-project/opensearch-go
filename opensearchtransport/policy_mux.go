@@ -32,6 +32,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"sync/atomic"
 )
 
@@ -47,10 +48,7 @@ var ErrNoRouteMatched = errors.New("no route matched request")
 const openSearchSystemQueryPrefix = "/_"
 
 var (
-	//nolint:gochecknoglobals // Shared empty header to avoid allocations in policyResponseWriter
-	emptyHeader = make(http.Header)
-
-	//nolint:gochecknoglobals // Shared empty header to avoid allocations in validMuxPattern
+	//nolint:gochecknoglobals // Shared HTTP methods map for validMuxPattern
 	httpMethods = map[string]struct{}{
 		http.MethodGet:     {},
 		http.MethodHead:    {},
@@ -112,6 +110,10 @@ type MuxPolicy struct {
 	indexMux       *http.ServeMux      // ServeMux for index endpoints (/{index}/_search, etc.)
 	uniquePolicies map[Policy]struct{} // Set of unique policies for lifecycle management
 	isEnabled      atomic.Bool         // Cached state from DiscoveryUpdate
+
+	// Object pools for policyResponseWriter resources
+	headerPool         sync.Pool // Pool for reusing http.Header
+	responseWriterPool sync.Pool // Pool for reusing policyResponseWriter
 }
 
 // NewMuxPolicy creates a new policy multiplexer with the given routes.
@@ -176,6 +178,16 @@ func NewMuxPolicy(routes []Route) Policy {
 		systemMux:      systemMux,
 		indexMux:       indexMux,
 		uniquePolicies: uniquePolicies,
+		headerPool: sync.Pool{
+			New: func() any {
+				return make(http.Header)
+			},
+		},
+		responseWriterPool: sync.Pool{
+			New: func() any {
+				return &policyResponseWriter{}
+			},
+		},
 	}
 }
 
@@ -197,17 +209,34 @@ func validMuxPattern(pattern string) (string, error) {
 
 // policyResponseWriter is a custom ResponseWriter that captures the policy.
 type policyResponseWriter struct {
-	policy Policy
+	muxPolicy *MuxPolicy // Reference to parent MuxPolicy for pool access
+	policy    Policy
+	header    http.Header
 }
 
-// Header returns an empty header map for the policy response writer.
-func (w *policyResponseWriter) Header() http.Header { return emptyHeader }
+// Header returns the header map for the policy response writer.
+func (w *policyResponseWriter) Header() http.Header {
+	if w.header == nil {
+		w.header = w.muxPolicy.headerPool.Get().(http.Header)
+	}
+	return w.header
+}
 
 // Write is a no-op for the policy response writer.
 func (w *policyResponseWriter) Write([]byte) (int, error) { return 0, nil }
 
 // WriteHeader is a no-op for the policy response writer.
 func (w *policyResponseWriter) WriteHeader(statusCode int) {}
+
+// release clears the header and returns it to the pool, and clears the policy field.
+func (w *policyResponseWriter) release() {
+	if w.header != nil {
+		clear(w.header)
+		w.muxPolicy.headerPool.Put(w.header)
+		w.header = nil
+	}
+	w.policy = nil
+}
 
 // DiscoveryUpdate updates all sub-policies and caches the enabled state.
 func (p *MuxPolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) error {
@@ -237,8 +266,14 @@ func (p *MuxPolicy) IsEnabled() bool {
 
 // Eval routes the request based on HTTP patterns and delegates to the matching policy.
 func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
-	// Try fast ServeMux first
-	pw := &policyResponseWriter{}
+	// Get writer from pool
+	pw := p.responseWriterPool.Get().(*policyResponseWriter)
+	pw.muxPolicy = p // Set reference to parent for pool access
+	defer func() {
+		pw.release()
+		p.responseWriterPool.Put(pw)
+	}()
+
 	if strings.HasPrefix(req.URL.Path, openSearchSystemQueryPrefix) {
 		if p.systemMux == nil {
 			//nolint:nilnil // Intentional: (nil, nil) signals "no routes configured"
