@@ -18,6 +18,7 @@ import (
 	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestCatClient(t *testing.T) {
@@ -28,12 +29,18 @@ func TestCatClient(t *testing.T) {
 
 	// snapshotRepo := "test-snapshot-repo"
 
-	index := "test-cat-indices"
+	index := testutil.MustUniqueString(t, "test-cat-indices")
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
-	_, err = client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index, Body: strings.NewReader(`{"aliases":{"TEST_CAT_ALIAS":{}}}`)})
+	_, err = client.Indices.Create(
+		t.Context(),
+		opensearchapi.IndicesCreateReq{
+			Index: index,
+			Body:  strings.NewReader(`{"aliases":{"TEST_CAT_ALIAS":{}}}`),
+		},
+	)
 	require.Nil(t, err)
 
 	type catTests struct {
@@ -42,260 +49,260 @@ func TestCatClient(t *testing.T) {
 	}
 
 	testCases := map[string][]catTests{
-		"Aliases": []catTests{
+		"Aliases": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Aliases(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Aliases(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Aliases(nil, &opensearchapi.CatAliasesReq{Aliases: []string{"*"}})
+					return client.Cat.Aliases(t.Context(), &opensearchapi.CatAliasesReq{Aliases: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Aliases(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Aliases(t.Context(), nil) },
 			},
 		},
-		"Allocation": []catTests{
+		"Allocation": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Allocation(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Allocation(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Allocation(nil, &opensearchapi.CatAllocationReq{NodeIDs: []string{"*"}})
+					return client.Cat.Allocation(t.Context(), &opensearchapi.CatAllocationReq{NodeIDs: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Allocation(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Allocation(t.Context(), nil) },
 			},
 		},
-		"ClusterManager": []catTests{
+		"ClusterManager": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.ClusterManager(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.ClusterManager(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.ClusterManager(nil, &opensearchapi.CatClusterManagerReq{})
+					return client.Cat.ClusterManager(t.Context(), &opensearchapi.CatClusterManagerReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.ClusterManager(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.ClusterManager(t.Context(), nil) },
 			},
 		},
-		"Count": []catTests{
+		"Count": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Count(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Count(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Count(nil, &opensearchapi.CatCountReq{Indices: []string{"*"}})
+					return client.Cat.Count(t.Context(), &opensearchapi.CatCountReq{Indices: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Count(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Count(t.Context(), nil) },
 			},
 		},
-		"FieldData": []catTests{
+		"FieldData": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.FieldData(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.FieldData(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.FieldData(nil, &opensearchapi.CatFieldDataReq{FieldData: []string{"*"}})
+					return client.Cat.FieldData(t.Context(), &opensearchapi.CatFieldDataReq{FieldData: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.FieldData(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.FieldData(t.Context(), nil) },
 			},
 		},
-		"Health": []catTests{
+		"Health": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Health(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Health(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Health(nil, &opensearchapi.CatHealthReq{})
+					return client.Cat.Health(t.Context(), &opensearchapi.CatHealthReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Health(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Health(t.Context(), nil) },
 			},
 		},
-		"Indices": []catTests{
+		"Indices": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Indices(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Indices(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Indices(nil, &opensearchapi.CatIndicesReq{Indices: []string{"*"}})
+					return client.Cat.Indices(t.Context(), &opensearchapi.CatIndicesReq{Indices: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Indices(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Indices(t.Context(), nil) },
 			},
 		},
-		"Master": []catTests{
+		"Master": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Master(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Master(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Master(nil, &opensearchapi.CatMasterReq{})
+					return client.Cat.Master(t.Context(), &opensearchapi.CatMasterReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Master(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Master(t.Context(), nil) },
 			},
 		},
-		"NodeAttrs": []catTests{
+		"NodeAttrs": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.NodeAttrs(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.NodeAttrs(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.NodeAttrs(nil, &opensearchapi.CatNodeAttrsReq{})
+					return client.Cat.NodeAttrs(t.Context(), &opensearchapi.CatNodeAttrsReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.NodeAttrs(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.NodeAttrs(t.Context(), nil) },
 			},
 		},
-		"Nodes": []catTests{
+		"Nodes": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Nodes(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Nodes(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Nodes(nil, &opensearchapi.CatNodesReq{})
+					return client.Cat.Nodes(t.Context(), &opensearchapi.CatNodesReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Nodes(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Nodes(t.Context(), nil) },
 			},
 		},
-		"PendingTasks": []catTests{
+		"PendingTasks": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.PendingTasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.PendingTasks(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.PendingTasks(nil, &opensearchapi.CatPendingTasksReq{})
+					return client.Cat.PendingTasks(t.Context(), &opensearchapi.CatPendingTasksReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.PendingTasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.PendingTasks(t.Context(), nil) },
 			},
 		},
-		"Plugins": []catTests{
+		"Plugins": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Plugins(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Plugins(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Plugins(nil, &opensearchapi.CatPluginsReq{})
+					return client.Cat.Plugins(t.Context(), &opensearchapi.CatPluginsReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Plugins(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Plugins(t.Context(), nil) },
 			},
 		},
-		"Recovery": []catTests{
+		"Recovery": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Recovery(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Recovery(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Recovery(nil, &opensearchapi.CatRecoveryReq{Indices: []string{"*"}})
+					return client.Cat.Recovery(t.Context(), &opensearchapi.CatRecoveryReq{Indices: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Recovery(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Recovery(t.Context(), nil) },
 			},
 		},
-		"Repositories": []catTests{
+		"Repositories": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Repositories(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Repositories(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Repositories(nil, &opensearchapi.CatRepositoriesReq{})
+					return client.Cat.Repositories(t.Context(), &opensearchapi.CatRepositoriesReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Repositories(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Repositories(t.Context(), nil) },
 			},
 		},
-		"Segments": []catTests{
+		"Segments": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Segments(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Segments(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Segments(nil, &opensearchapi.CatSegmentsReq{})
+					return client.Cat.Segments(t.Context(), &opensearchapi.CatSegmentsReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Segments(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Segments(t.Context(), nil) },
 			},
 		},
-		"Shards": []catTests{
+		"Shards": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Shards(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Shards(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Shards(nil, &opensearchapi.CatShardsReq{Indices: []string{"*"}})
+					return client.Cat.Shards(t.Context(), &opensearchapi.CatShardsReq{Indices: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Shards(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Shards(t.Context(), nil) },
 			},
 		},
 		/* Need to create snapshot + repo
@@ -303,63 +310,63 @@ func TestCatClient(t *testing.T) {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Snapshots(nil, opensearchapi.CatSnapshotsReq{Repository: snapshotRepo})
+					return client.Cat.Snapshots(t.Context(), opensearchapi.CatSnapshotsReq{Repository: snapshotRepo})
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cat.Snapshots(nil, opensearchapi.CatSnapshotsReq{Repository: snapshotRepo})
+					return failingClient.Cat.Snapshots(t.Context(), opensearchapi.CatSnapshotsReq{Repository: snapshotRepo})
 				},
 			},
 		},
 		*/
-		"Tasks": []catTests{
+		"Tasks": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Tasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Tasks(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Tasks(nil, &opensearchapi.CatTasksReq{})
+					return client.Cat.Tasks(t.Context(), &opensearchapi.CatTasksReq{})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Tasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Tasks(t.Context(), nil) },
 			},
 		},
-		"Templates": []catTests{
+		"Templates": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.Templates(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.Templates(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Templates(nil, &opensearchapi.CatTemplatesReq{Templates: []string{"*"}})
+					return client.Cat.Templates(t.Context(), &opensearchapi.CatTemplatesReq{Templates: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.Templates(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.Templates(t.Context(), nil) },
 			},
 		},
-		"ThreadPool": []catTests{
+		"ThreadPool": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cat.ThreadPool(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cat.ThreadPool(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.ThreadPool(nil, &opensearchapi.CatThreadPoolReq{Pools: []string{"*"}})
+					return client.Cat.ThreadPool(t.Context(), &opensearchapi.CatThreadPoolReq{Pools: []string{"*"}})
 				},
 			},
 			{
 				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cat.ThreadPool(nil, nil) },
+				Results: func() (osapitest.Response, error) { return failingClient.Cat.ThreadPool(t.Context(), nil) },
 			},
 		},
 	}
@@ -387,124 +394,140 @@ func TestCatClient(t *testing.T) {
 
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Aliases", func(t *testing.T) {
-			resp, err := client.Cat.Aliases(nil, nil)
+			resp, err := client.Cat.Aliases(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Aliases, resp.Inspect().Response)
 		})
 		t.Run("Allocation", func(t *testing.T) {
-			resp, err := client.Cat.Allocation(nil, nil)
+			resp, err := client.Cat.Allocation(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Allocations, resp.Inspect().Response)
 		})
 		t.Run("ClusterManager", func(t *testing.T) {
 			ostest.SkipIfBelowVersion(t, client, 2, 0, "ClusterManager")
-			resp, err := client.Cat.ClusterManager(nil, nil)
+			resp, err := client.Cat.ClusterManager(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.ClusterManagers, resp.Inspect().Response)
 		})
 		t.Run("Count", func(t *testing.T) {
-			resp, err := client.Cat.Count(nil, nil)
+			resp, err := client.Cat.Count(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Counts, resp.Inspect().Response)
 		})
 		t.Run("FieldData", func(t *testing.T) {
-			resp, err := client.Cat.FieldData(nil, nil)
+			resp, err := client.Cat.FieldData(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.FieldData, resp.Inspect().Response)
 		})
 		t.Run("Health", func(t *testing.T) {
-			resp, err := client.Cat.Health(nil, nil)
+			resp, err := client.Cat.Health(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Health, resp.Inspect().Response)
 		})
 		t.Run("Indices", func(t *testing.T) {
-			resp, err := client.Cat.Indices(nil, &opensearchapi.CatIndicesReq{Params: opensearchapi.CatIndicesParams{H: []string{"*"}}})
+			resp, err := client.Cat.Indices(t.Context(), &opensearchapi.CatIndicesReq{Params: opensearchapi.CatIndicesParams{H: []string{"*"}}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Master", func(t *testing.T) {
-			resp, err := client.Cat.Master(nil, nil)
+			resp, err := client.Cat.Master(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Master, resp.Inspect().Response)
 		})
 		t.Run("NodeAttrs", func(t *testing.T) {
-			resp, err := client.Cat.NodeAttrs(nil, &opensearchapi.CatNodeAttrsReq{Params: opensearchapi.CatNodeAttrsParams{H: []string{"*"}}})
+			resp, err := client.Cat.NodeAttrs(
+				t.Context(),
+				&opensearchapi.CatNodeAttrsReq{
+					Params: opensearchapi.CatNodeAttrsParams{H: []string{"*"}},
+				},
+			)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.NodeAttrs, resp.Inspect().Response)
 		})
 		t.Run("Nodes", func(t *testing.T) {
-			resp, err := client.Cat.Nodes(nil, &opensearchapi.CatNodesReq{Params: opensearchapi.CatNodesParams{H: []string{"*"}}})
+			resp, err := client.Cat.Nodes(t.Context(), &opensearchapi.CatNodesReq{Params: opensearchapi.CatNodesParams{H: []string{"*"}}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Nodes, resp.Inspect().Response)
 		})
 		t.Run("PendingTasks", func(t *testing.T) {
-			resp, err := client.Cat.PendingTasks(nil, nil)
+			resp, err := client.Cat.PendingTasks(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.PendingTasks, resp.Inspect().Response)
 		})
 		t.Run("Plugins", func(t *testing.T) {
-			resp, err := client.Cat.Plugins(nil, nil)
+			resp, err := client.Cat.Plugins(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Plugins, resp.Inspect().Response)
 		})
 		t.Run("Recovery", func(t *testing.T) {
-			resp, err := client.Cat.Recovery(nil, &opensearchapi.CatRecoveryReq{Params: opensearchapi.CatRecoveryParams{H: []string{"*"}}})
+			resp, err := client.Cat.Recovery(t.Context(), &opensearchapi.CatRecoveryReq{Params: opensearchapi.CatRecoveryParams{H: []string{"*"}}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Recovery, resp.Inspect().Response)
 		})
 		t.Run("Repositories", func(t *testing.T) {
-			resp, err := client.Cat.Repositories(nil, nil)
+			resp, err := client.Cat.Repositories(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Repositories, resp.Inspect().Response)
 		})
 		t.Run("Segments", func(t *testing.T) {
-			resp, err := client.Cat.Segments(nil, &opensearchapi.CatSegmentsReq{Params: opensearchapi.CatSegmentsParams{H: []string{"*"}}})
+			resp, err := client.Cat.Segments(t.Context(), &opensearchapi.CatSegmentsReq{Params: opensearchapi.CatSegmentsParams{H: []string{"*"}}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Segments, resp.Inspect().Response)
 		})
 		t.Run("Shards", func(t *testing.T) {
-			resp, err := client.Cat.Shards(nil, &opensearchapi.CatShardsReq{Params: opensearchapi.CatShardsParams{H: []string{"*"}}})
+			resp, err := client.Cat.Shards(t.Context(), &opensearchapi.CatShardsReq{Params: opensearchapi.CatShardsParams{H: []string{"*"}}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Shards, resp.Inspect().Response)
 		})
 		/* Need to create Snapshot + Repo
 		t.Run("Snapshots", func(t *testing.T) {
-			resp, err := client.Cat.Snapshots(nil, &opensearchapi.CatSnapshotsReq{Repository: snapshotRepo, Params: opensearchapi.CatSnapshotsParams{H: []string{"*"}}})
+			resp, err := client.Cat.Snapshots(
+				t.Context(),
+				&opensearchapi.CatSnapshotsReq{
+					Repository: snapshotRepo,
+					Params:     opensearchapi.CatSnapshotsParams{H: []string{"*"}},
+				},
+			)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Snapshots, resp.Inspect().Response)
 		})
 		*/
 		t.Run("Tasks", func(t *testing.T) {
-			resp, err := client.Cat.Tasks(nil, &opensearchapi.CatTasksReq{Params: opensearchapi.CatTasksParams{H: []string{"*"}}})
+			resp, err := client.Cat.Tasks(t.Context(), &opensearchapi.CatTasksReq{Params: opensearchapi.CatTasksParams{H: []string{"*"}}})
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Tasks, resp.Inspect().Response)
 		})
 		t.Run("Templates", func(t *testing.T) {
-			resp, err := client.Cat.Templates(nil, nil)
+			resp, err := client.Cat.Templates(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
 		})
 		t.Run("ThreadPool", func(t *testing.T) {
-			resp, err := client.Cat.ThreadPool(nil, &opensearchapi.CatThreadPoolReq{Params: opensearchapi.CatThreadPoolParams{H: []string{"*"}}})
+			resp, err := client.Cat.ThreadPool(
+				t.Context(),
+				&opensearchapi.CatThreadPoolReq{
+					Params: opensearchapi.CatThreadPoolParams{H: []string{"*"}},
+				},
+			)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.ThreadPool, resp.Inspect().Response)

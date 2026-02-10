@@ -28,11 +28,11 @@ func TestMTermvectors(t *testing.T) {
 
 	testIndex := testutil.MustUniqueString(t, "test-mtermvectors")
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	_, err = client.Indices.Create(
-		nil,
+		t.Context(),
 		opensearchapi.IndicesCreateReq{
 			Index: testIndex,
 			Body: strings.NewReader(`{ "mappings": {
@@ -79,7 +79,7 @@ func TestMTermvectors(t *testing.T) {
 
 	for i, doc := range docs {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(doc),
@@ -92,7 +92,7 @@ func TestMTermvectors(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.MTermvectors(
-			nil,
+			t.Context(),
 			opensearchapi.MTermvectorsReq{
 				Index: testIndex,
 				Body:  strings.NewReader(fmt.Sprintf(`{"ids":["%s-0","%s-1"]}`, docIDPrefix, docIDPrefix)),
@@ -107,7 +107,7 @@ func TestMTermvectors(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.MTermvectors(nil, opensearchapi.MTermvectorsReq{})
+		res, err := failingClient.MTermvectors(t.Context(), opensearchapi.MTermvectorsReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

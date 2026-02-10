@@ -29,7 +29,6 @@
 package opensearchutil_test
 
 import (
-	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -42,27 +41,34 @@ import (
 
 func TestJSONReaderIntegration(t *testing.T) {
 	t.Run("Index and search", func(t *testing.T) {
-		ctx := context.Background()
+		ctx := t.Context()
 
 		client, err := osapitest.NewClient(t)
 		if err != nil {
 			t.Fatalf("Error creating the client: %s\n", err)
 		}
 
-		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{"test"}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
+		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
+			Indices: []string{"test"},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		})
 
 		doc := struct {
 			Title string `json:"title"`
 		}{Title: "Foo Bar"}
 
-		_, err = client.Index(ctx, opensearchapi.IndexReq{Index: "test", Body: opensearchutil.NewJSONReader(&doc), Params: opensearchapi.IndexParams{Refresh: "true"}})
+		_, err = client.Index(ctx, opensearchapi.IndexReq{
+			Index:  "test",
+			Body:   opensearchutil.NewJSONReader(&doc),
+			Params: opensearchapi.IndexParams{Refresh: "true"},
+		})
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
 
-		query := map[string]interface{}{
-			"query": map[string]interface{}{
-				"match": map[string]interface{}{
+		query := map[string]any{
+			"query": map[string]any{
+				"match": map[string]any{
 					"title": "foo",
 				},
 			},
@@ -75,7 +81,9 @@ func TestJSONReaderIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
-		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, func(c opensearchapi.SearchHit) bool { return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar") }) {
+		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, func(c opensearchapi.SearchHit) bool {
+			return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar")
+		}) {
 			t.Errorf("Unexpected response: %v", res)
 		}
 	})

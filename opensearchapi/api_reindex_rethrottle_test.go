@@ -9,7 +9,6 @@
 package opensearchapi_test
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -22,6 +21,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestReindexRethrottle(t *testing.T) {
@@ -29,12 +29,12 @@ func TestReindexRethrottle(t *testing.T) {
 	client, err := ostest.NewClient(t)
 	require.Nil(t, err)
 
-	sourceIndex := "test-reindex-rethrottle-source"
-	destIndex := "test-reindex-rethrottle-dest"
+	sourceIndex := testutil.MustUniqueString(t, "test-reindex-rethrottle-source")
+	destIndex := testutil.MustUniqueString(t, "test-reindex-rethrottle-dest")
 	testIndices := []string{sourceIndex, destIndex}
 	t.Cleanup(func() {
 		client.Indices.Delete(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesDeleteReq{
 				Indices: testIndices,
 				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
@@ -44,7 +44,7 @@ func TestReindexRethrottle(t *testing.T) {
 
 	for _, index := range testIndices {
 		client.Indices.Create(
-			nil,
+			t.Context(),
 			opensearchapi.IndicesCreateReq{
 				Index: index,
 				Body:  strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
@@ -56,8 +56,9 @@ func TestReindexRethrottle(t *testing.T) {
 		Client:  client,
 		Refresh: "wait_for",
 	})
+	require.Nil(t, err)
 	for i := 1; i <= 60; i++ {
-		err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+		err := bi.Add(t.Context(), opensearchutil.BulkIndexerItem{
 			Action:     "index",
 			DocumentID: strconv.Itoa(i),
 			Body:       strings.NewReader(`{"title":"bar"}`),
@@ -66,12 +67,12 @@ func TestReindexRethrottle(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 	}
-	if err := bi.Close(context.Background()); err != nil {
+	if err := bi.Close(t.Context()); err != nil {
 		t.Errorf("Unexpected error: %s", err)
 	}
 
 	reindex, err := client.Reindex(
-		nil,
+		t.Context(),
 		opensearchapi.ReindexReq{
 			Body: strings.NewReader(fmt.Sprintf(`{"source":{"index":"%s","size":1},"dest":{"index":"%s"}}`, sourceIndex, destIndex)),
 			Params: opensearchapi.ReindexParams{
@@ -82,8 +83,9 @@ func TestReindexRethrottle(t *testing.T) {
 	)
 	require.Nil(t, err)
 	t.Run("with request", func(t *testing.T) {
+		t.Parallel()
 		resp, err := client.ReindexRethrottle(
-			nil,
+			t.Context(),
 			opensearchapi.ReindexRethrottleReq{
 				TaskID: reindex.Task,
 				Params: opensearchapi.ReindexRethrottleParams{RequestsPerSecond: opensearchapi.ToPointer(40)},
@@ -95,10 +97,11 @@ func TestReindexRethrottle(t *testing.T) {
 	})
 
 	t.Run("inspect", func(t *testing.T) {
+		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.ReindexRethrottle(nil, opensearchapi.ReindexRethrottleReq{})
+		res, err := failingClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

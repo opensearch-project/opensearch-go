@@ -59,7 +59,7 @@ func TestSecurityConfigClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						resp, err := client.SecurityConfig.Get(nil, nil)
+						resp, err := client.SecurityConfig.Get(t.Context(), nil)
 						putBody = resp.Config.Dynamic
 						return resp, err
 					},
@@ -67,7 +67,7 @@ func TestSecurityConfigClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.SecurityConfig.Get(nil, nil)
+						return failingClient.SecurityConfig.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -79,7 +79,7 @@ func TestSecurityConfigClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.SecurityConfig.Put(
-							nil,
+							t.Context(),
 							security.ConfigPutReq{
 								Body: security.ConfigPutBody{Dynamic: putBody},
 							},
@@ -89,7 +89,7 @@ func TestSecurityConfigClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.SecurityConfig.Put(nil, security.ConfigPutReq{})
+						return failingClient.SecurityConfig.Put(t.Context(), security.ConfigPutReq{})
 					},
 				},
 			},
@@ -101,7 +101,7 @@ func TestSecurityConfigClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.SecurityConfig.Patch(
-							nil,
+							t.Context(),
 							security.ConfigPatchReq{
 								Body: security.ConfigPatchBody{
 									security.ConfigPatchBodyItem{
@@ -122,7 +122,7 @@ func TestSecurityConfigClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.SecurityConfig.Patch(nil, security.ConfigPatchReq{})
+						return failingClient.SecurityConfig.Patch(t.Context(), security.ConfigPatchReq{})
 					},
 				},
 			},

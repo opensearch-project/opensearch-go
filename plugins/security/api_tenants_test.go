@@ -46,7 +46,7 @@ func TestTenantsClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Tenants.Put(
-							nil,
+							t.Context(),
 							security.TenantsPutReq{
 								Tenant: testTenant,
 								Body: security.TenantsPutBody{
@@ -59,7 +59,7 @@ func TestTenantsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Tenants.Put(nil, security.TenantsPutReq{})
+						return failingClient.Tenants.Put(t.Context(), security.TenantsPutReq{})
 					},
 				},
 			},
@@ -70,19 +70,19 @@ func TestTenantsClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.Tenants.Get(nil, nil)
+						return client.Tenants.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.Tenants.Get(nil, &security.TenantsGetReq{Tenant: testTenant})
+						return client.Tenants.Get(t.Context(), &security.TenantsGetReq{Tenant: testTenant})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Tenants.Get(nil, nil)
+						return failingClient.Tenants.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -93,13 +93,13 @@ func TestTenantsClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.Tenants.Delete(nil, security.TenantsDeleteReq{Tenant: testTenant})
+						return client.Tenants.Delete(t.Context(), security.TenantsDeleteReq{Tenant: testTenant})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Tenants.Delete(nil, security.TenantsDeleteReq{Tenant: testTenant})
+						return failingClient.Tenants.Delete(t.Context(), security.TenantsDeleteReq{Tenant: testTenant})
 					},
 				},
 			},
@@ -111,7 +111,7 @@ func TestTenantsClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Tenants.Patch(
-							nil,
+							t.Context(),
 							security.TenantsPatchReq{
 								Body: security.TenantsPatchBody{
 									security.TenantsPatchBodyItem{
@@ -133,7 +133,7 @@ func TestTenantsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Tenants.Patch(nil, security.TenantsPatchReq{})
+						return failingClient.Tenants.Patch(t.Context(), security.TenantsPatchReq{})
 					},
 				},
 			},
@@ -165,7 +165,7 @@ func TestTenantsClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Tenants.Get(nil, nil)
+			resp, err := client.Tenants.Get(t.Context(), nil)
 			assert.Nil(t, err)
 			assert.NotNil(t, resp)
 			ostest.CompareRawJSONwithParsedJSON(t, resp.Tenants, resp.Inspect().Response)

@@ -27,7 +27,7 @@ func TestScrollClient(t *testing.T) {
 	require.NoError(t, err)
 
 	search, err := client.Search(
-		nil,
+		t.Context(),
 		&opensearchapi.SearchReq{
 			Indices: []string{"*"},
 			Params:  opensearchapi.SearchParams{Scroll: 5 * time.Minute},
@@ -51,13 +51,13 @@ func TestScrollClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Scroll.Get(nil, opensearchapi.ScrollGetReq{ScrollID: *search.ScrollID})
+						return client.Scroll.Get(t.Context(), opensearchapi.ScrollGetReq{ScrollID: *search.ScrollID})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Scroll.Get(nil, opensearchapi.ScrollGetReq{})
+						return failingClient.Scroll.Get(t.Context(), opensearchapi.ScrollGetReq{})
 					},
 				},
 			},
@@ -68,13 +68,13 @@ func TestScrollClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Scroll.Delete(nil, opensearchapi.ScrollDeleteReq{ScrollIDs: []string{"_all"}})
+						return client.Scroll.Delete(t.Context(), opensearchapi.ScrollDeleteReq{ScrollIDs: []string{"_all"}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Scroll.Delete(nil, opensearchapi.ScrollDeleteReq{})
+						return failingClient.Scroll.Delete(t.Context(), opensearchapi.ScrollDeleteReq{})
 					},
 				},
 			},

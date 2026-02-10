@@ -44,7 +44,7 @@ func TestTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.Template.Create(
-							nil,
+							t.Context(),
 							opensearchapi.TemplateCreateReq{
 								Template: template,
 								Body:     strings.NewReader(`{"order":1,"index_patterns":["index-template-test"],"aliases":{"test-1234":{}},"version":1}`),
@@ -55,7 +55,7 @@ func TestTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Template.Create(nil, opensearchapi.TemplateCreateReq{Template: template})
+						return failingClient.Template.Create(t.Context(), opensearchapi.TemplateCreateReq{Template: template})
 					},
 				},
 			},
@@ -66,13 +66,13 @@ func TestTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Template.Get(nil, &opensearchapi.TemplateGetReq{Templates: []string{template}})
+						return client.Template.Get(t.Context(), &opensearchapi.TemplateGetReq{Templates: []string{template}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Template.Get(nil, nil)
+						return failingClient.Template.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -87,7 +87,7 @@ func TestTemplateClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
+						resp.Response, err = client.Template.Exists(t.Context(), opensearchapi.TemplateExistsReq{Template: template})
 						return resp, err
 					},
 				},
@@ -98,7 +98,7 @@ func TestTemplateClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Template.Exists(nil, opensearchapi.TemplateExistsReq{Template: template})
+						resp.Response, err = failingClient.Template.Exists(t.Context(), opensearchapi.TemplateExistsReq{Template: template})
 						return resp, err
 					},
 				},
@@ -110,13 +110,13 @@ func TestTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.Template.Delete(nil, opensearchapi.TemplateDeleteReq{Template: template})
+						return client.Template.Delete(t.Context(), opensearchapi.TemplateDeleteReq{Template: template})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Template.Delete(nil, opensearchapi.TemplateDeleteReq{Template: template})
+						return failingClient.Template.Delete(t.Context(), opensearchapi.TemplateDeleteReq{Template: template})
 					},
 				},
 			},
@@ -146,14 +146,14 @@ func TestTemplateClient(t *testing.T) {
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
 			_, err := client.Template.Create(
-				nil,
+				t.Context(),
 				opensearchapi.TemplateCreateReq{
 					Template: template,
 					Body:     strings.NewReader(`{"order":1,"index_patterns":["index-template-test"],"aliases":{"test-1234":{}},"version":1}`),
 				},
 			)
 			require.Nil(t, err)
-			resp, err := client.Template.Get(nil, &opensearchapi.TemplateGetReq{Templates: []string{template}})
+			resp, err := client.Template.Get(t.Context(), &opensearchapi.TemplateGetReq{Templates: []string{template}})
 			require.Nil(t, err)
 			require.NotNil(t, resp)
 			require.NotNil(t, resp.Inspect().Response)

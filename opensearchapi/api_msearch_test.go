@@ -9,7 +9,6 @@
 package opensearchapi_test
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
@@ -29,7 +28,7 @@ func TestMSearch(t *testing.T) {
 
 	testIndex := "test-msearch"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	// Use unique document IDs to avoid conflicts between test runs
@@ -37,7 +36,7 @@ func TestMSearch(t *testing.T) {
 
 	for i := 1; i <= 2; i++ {
 		_, err = client.Document.Create(
-			nil,
+			t.Context(),
 			opensearchapi.DocumentCreateReq{
 				Index:      testIndex,
 				Body:       strings.NewReader(`{"foo": "bar", "number": 1}`),
@@ -50,7 +49,7 @@ func TestMSearch(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.MSearch(
-			nil,
+			t.Context(),
 			opensearchapi.MSearchReq{
 				Indices: []string{testIndex},
 				Body:    strings.NewReader("{}\n{\"query\":{\"exists\":{\"field\":\"foo\"}}}\n"),
@@ -65,7 +64,7 @@ func TestMSearch(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
 		require.Nil(t, err)
 
-		res, err := failingClient.MSearch(nil, opensearchapi.MSearchReq{})
+		res, err := failingClient.MSearch(t.Context(), opensearchapi.MSearchReq{})
 		assert.NotNil(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
@@ -73,7 +72,7 @@ func TestMSearch(t *testing.T) {
 
 	t.Run("with aggs request", func(t *testing.T) {
 		resp, err := client.MSearch(
-			nil,
+			t.Context(),
 			opensearchapi.MSearchReq{
 				Indices: []string{testIndex},
 				Body:    strings.NewReader("{}\n{\"aggs\":{\"number_terms\":{\"terms\":{\"field\":\"number\"}}}}\n"),
