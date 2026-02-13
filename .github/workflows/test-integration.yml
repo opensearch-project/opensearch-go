@@ -24,10 +24,48 @@ jobs:
       - name: Launch OpenSearch cluster
         run: |
           make cluster.clean cluster.build cluster.start
-          for attempt in `seq 25`; do sleep 5; \
-          if curl -s localhost:9200; \
-          then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
-      - run: make test-integ-core test-integ-plugins race=true
+          if [ "${SECURE_INTEGRATION}" = "true" ]; then
+            CURL_URL="https://localhost:9200"
+            CURL_OPTS="-sfku admin:myStrongPassword123!"
+          else
+            CURL_URL="http://localhost:9200"
+            CURL_OPTS="-sf"
+          fi
+          echo "=====> Waiting for cluster to be ready (max 125s)..."
+          for attempt in $(seq 25); do
+            sleep 5
+            if curl ${CURL_OPTS} ${CURL_URL} > /dev/null 2>&1; then
+              echo "=====> Cluster ready after $((attempt * 5))s"
+              curl -s ${CURL_OPTS} ${CURL_URL} | jq -r '.version.number // "unknown"' | xargs echo "OpenSearch version:"
+              break
+            fi
+            if [ $attempt -eq 25 ]; then
+              echo "=====> ERROR: Cluster failed to start after 125s"
+              echo ""
+              echo "=====> Container status:"
+              docker compose --project-directory .ci/opensearch ps
+              echo ""
+              echo "=====> Node 1 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node1
+              echo ""
+              echo "=====> Node 2 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node2
+              echo ""
+              echo "=====> Node 3 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node3
+              exit 1
+            fi
+            echo "=====> Attempt $attempt/25 - waiting..."
+          done
+      - run: make test-integ-core test-integ-plugins race=true coverage=true
+      - name: Merge coverage files
+        run: |
+          go tool covdata textfmt -i=tmp/integration-core,tmp/integration-plugins -o tmp/integ.cov
+      - uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: tmp/integ.cov
+          flags: integration
 
   secured:
     name: Tests against secure cluster
@@ -48,10 +86,43 @@ jobs:
       - name: Launch OpenSearch cluster
         run: |
           make cluster.clean cluster.build cluster.start
-          for attempt in `seq 25`; do sleep 5; \
-          if curl -s -ku admin:myStrongPassword123! https://localhost:9200; \
-          then echo '=====> ready'; break; fi; if [ $attempt == 25 ]; then exit 1; fi; echo '=====> waiting...'; done
+          if [ "${SECURE_INTEGRATION}" = "true" ]; then
+            CURL_URL="https://localhost:9200"
+            CURL_OPTS="-sfku admin:myStrongPassword123!"
+          else
+            CURL_URL="http://localhost:9200"
+            CURL_OPTS="-sf"
+          fi
+          echo "=====> Waiting for cluster to be ready (max 125s)..."
+          for attempt in $(seq 25); do
+            sleep 5
+            if curl ${CURL_OPTS} ${CURL_URL} > /dev/null 2>&1; then
+              echo "=====> Cluster ready after $((attempt * 5))s"
+              curl -s ${CURL_OPTS} ${CURL_URL} | jq -r '.version.number // "unknown"' | xargs echo "OpenSearch version:"
+              break
+            fi
+            if [ $attempt -eq 25 ]; then
+              echo "=====> ERROR: Cluster failed to start after 125s"
+              echo ""
+              echo "=====> Container status:"
+              docker compose --project-directory .ci/opensearch ps
+              echo ""
+              echo "=====> Node 1 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node1
+              echo ""
+              echo "=====> Node 2 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node2
+              echo ""
+              echo "=====> Node 3 logs (last 50 lines):"
+              docker compose --project-directory .ci/opensearch logs --tail=50 opensearch-node3
+              exit 1
+            fi
+            echo "=====> Attempt $attempt/25 - waiting..."
+          done
       - run: make cluster.get-cert test-integ-core test-integ-plugins race=true coverage=true
+      - name: Merge coverage files
+        run: |
+          go tool covdata textfmt -i=tmp/integration-core,tmp/integration-plugins -o tmp/integ.cov
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -15,16 +15,16 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestComponentTemplateClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	client, err := testutil.NewClient(t)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	componentTemplate := "component-template-test"
 
@@ -44,7 +44,7 @@ func TestComponentTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.ComponentTemplate.Create(
-							nil,
+							t.Context(),
 							opensearchapi.ComponentTemplateCreateReq{
 								ComponentTemplate: componentTemplate,
 								Body:              strings.NewReader(`{"template":{"settings":{"index":{"number_of_shards":"2","number_of_replicas":"0"}}}}`),
@@ -55,7 +55,12 @@ func TestComponentTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.ComponentTemplate.Create(nil, opensearchapi.ComponentTemplateCreateReq{ComponentTemplate: componentTemplate})
+						return failingClient.ComponentTemplate.Create(
+							t.Context(),
+							opensearchapi.ComponentTemplateCreateReq{
+								ComponentTemplate: componentTemplate,
+							},
+						)
 					},
 				},
 			},
@@ -66,13 +71,13 @@ func TestComponentTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.ComponentTemplate.Get(nil, &opensearchapi.ComponentTemplateGetReq{ComponentTemplate: componentTemplate})
+						return client.ComponentTemplate.Get(t.Context(), &opensearchapi.ComponentTemplateGetReq{ComponentTemplate: componentTemplate})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.ComponentTemplate.Get(nil, nil)
+						return failingClient.ComponentTemplate.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -87,7 +92,12 @@ func TestComponentTemplateClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.ComponentTemplate.Exists(nil, opensearchapi.ComponentTemplateExistsReq{ComponentTemplate: componentTemplate})
+						resp.Response, err = client.ComponentTemplate.Exists(
+							t.Context(),
+							opensearchapi.ComponentTemplateExistsReq{
+								ComponentTemplate: componentTemplate,
+							},
+						)
 						return resp, err
 					},
 				},
@@ -98,7 +108,12 @@ func TestComponentTemplateClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.ComponentTemplate.Exists(nil, opensearchapi.ComponentTemplateExistsReq{ComponentTemplate: componentTemplate})
+						resp.Response, err = failingClient.ComponentTemplate.Exists(
+							t.Context(),
+							opensearchapi.ComponentTemplateExistsReq{
+								ComponentTemplate: componentTemplate,
+							},
+						)
 						return resp, err
 					},
 				},
@@ -110,13 +125,18 @@ func TestComponentTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.ComponentTemplate.Delete(nil, opensearchapi.ComponentTemplateDeleteReq{ComponentTemplate: componentTemplate})
+						return client.ComponentTemplate.Delete(t.Context(), opensearchapi.ComponentTemplateDeleteReq{ComponentTemplate: componentTemplate})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.ComponentTemplate.Delete(nil, opensearchapi.ComponentTemplateDeleteReq{ComponentTemplate: componentTemplate})
+						return failingClient.ComponentTemplate.Delete(
+							t.Context(),
+							opensearchapi.ComponentTemplateDeleteReq{
+								ComponentTemplate: componentTemplate,
+							},
+						)
 					},
 				},
 			},
@@ -128,15 +148,15 @@ func TestComponentTemplateClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Exists" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})

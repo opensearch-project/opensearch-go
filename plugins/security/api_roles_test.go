@@ -15,18 +15,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
-func TestRolesClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	client, err := ossectest.NewClient()
-	require.Nil(t, err)
+func TestSecurityRolesClient(t *testing.T) {
+	testutil.SkipIfNotSecure(t)
+	client, err := ossectest.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	testRole := "test_role"
 
@@ -46,13 +46,16 @@ func TestRolesClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Roles.Put(
-							nil,
+							t.Context(),
 							security.RolesPutReq{
 								Role: testRole,
 								Body: security.RolesPutBody{
 									Description:        "Test",
 									ClusterPermissions: []string{"cluster_monitor"},
-									IndexPermissions:   []security.RolesIndexPermission{security.RolesIndexPermission{IndexPatterns: []string{"*"}, AllowedActions: []string{"indices_monitor"}}},
+									IndexPermissions: []security.RolesIndexPermission{{
+										IndexPatterns:  []string{"*"},
+										AllowedActions: []string{"indices_monitor"},
+									}},
 								},
 							},
 						)
@@ -61,7 +64,7 @@ func TestRolesClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Roles.Put(nil, security.RolesPutReq{})
+						return failingClient.Roles.Put(t.Context(), security.RolesPutReq{})
 					},
 				},
 			},
@@ -72,19 +75,19 @@ func TestRolesClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.Roles.Get(nil, nil)
+						return client.Roles.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.Roles.Get(nil, &security.RolesGetReq{Role: testRole})
+						return client.Roles.Get(t.Context(), &security.RolesGetReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Roles.Get(nil, nil)
+						return failingClient.Roles.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -95,13 +98,13 @@ func TestRolesClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.Roles.Delete(nil, security.RolesDeleteReq{Role: testRole})
+						return client.Roles.Delete(t.Context(), security.RolesDeleteReq{Role: testRole})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Roles.Delete(nil, security.RolesDeleteReq{Role: testRole})
+						return failingClient.Roles.Delete(t.Context(), security.RolesDeleteReq{Role: testRole})
 					},
 				},
 			},
@@ -113,7 +116,7 @@ func TestRolesClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.Roles.Patch(
-							nil,
+							t.Context(),
 							security.RolesPatchReq{
 								Body: security.RolesPatchBody{
 									security.RolesPatchBodyItem{
@@ -122,7 +125,10 @@ func TestRolesClient(t *testing.T) {
 										Value: security.RolesPutBody{
 											Description:        "Test",
 											ClusterPermissions: []string{"cluster_monitor"},
-											IndexPermissions:   []security.RolesIndexPermission{security.RolesIndexPermission{IndexPatterns: []string{"*"}, AllowedActions: []string{"indices_monitor"}}},
+											IndexPermissions: []security.RolesIndexPermission{{
+												IndexPatterns:  []string{"*"},
+												AllowedActions: []string{"indices_monitor"},
+											}},
 										},
 									},
 									security.RolesPatchBodyItem{
@@ -137,7 +143,7 @@ func TestRolesClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Roles.Patch(nil, security.RolesPatchReq{})
+						return failingClient.Roles.Patch(t.Context(), security.RolesPatchReq{})
 					},
 				},
 			},
@@ -149,18 +155,18 @@ func TestRolesClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
 						if err != nil {
 							fmt.Println(err)
 						}
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -169,10 +175,10 @@ func TestRolesClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.Roles.Get(nil, nil)
-			assert.Nil(t, err)
+			resp, err := client.Roles.Get(t.Context(), nil)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Roles, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Roles, resp.Inspect().Response)
 		})
 	})
 }

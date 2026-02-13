@@ -16,18 +16,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestBulkClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	client, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
 	index := "test-bulk"
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	tests := []struct {
@@ -45,7 +45,12 @@ func TestBulkClient(t *testing.T) {
 			Name: "without index",
 			Request: opensearchapi.BulkReq{
 				Body: strings.NewReader(
-					fmt.Sprintf("{\"index\": {\"_index\": \"%s\"}}\n{\"test\": 1234}\n{\"create\": {\"_index\": \"%s\"}}\n{\"test\": 5678}\n", index, index),
+					fmt.Sprintf(
+						"{\"index\": {\"_index\": \"%s\"}}\n{\"test\": 1234}\n"+
+							"{\"create\": {\"_index\": \"%s\"}}\n{\"test\": 5678}\n",
+						index,
+						index,
+					),
 				),
 			},
 		},
@@ -54,20 +59,20 @@ func TestBulkClient(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			res, err := client.Bulk(
-				nil,
+				t.Context(),
 				test.Request,
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			assert.NotEmpty(t, res)
-			ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 	}
 	t.Run("inspect", func(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.Bulk(nil, opensearchapi.BulkReq{Index: index})
-		assert.NotNil(t, err)
+		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{Index: index})
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

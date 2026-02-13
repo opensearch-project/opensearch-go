@@ -34,12 +34,19 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 )
 
 var debugLogger DebuggingLogger
+
+func init() { //nolint:gochecknoinits // Only set implicitly once at startup
+	if enabled, _ := strconv.ParseBool(os.Getenv("OPENSEARCH_GO_DEBUG")); enabled {
+		debugLogger = &debuggingLogger{Output: os.Stderr}
+	}
+}
 
 // Logger defines an interface for logging request and response.
 type Logger interface {
@@ -283,9 +290,8 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 		b.WriteString("\n")
 	}
 
-	b.WriteTo(l.Output)
-
-	return nil
+	_, err := b.WriteTo(l.Output)
+	return err
 }
 
 // RequestBodyEnabled returns true when the request body should be logged.
@@ -298,7 +304,7 @@ func (l *CurlLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 func (l *JSONLogger) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
 	// TODO: Research performance optimization of using sync.Pool
 
-	bsize := 200
+	const bsize = 200
 	b := bytes.NewBuffer(make([]byte, 0, bsize))
 	v := make([]byte, 0, bsize)
 

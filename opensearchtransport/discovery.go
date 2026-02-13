@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -101,6 +102,19 @@ const (
 // roleSet represents a set of node roles for efficient O(1) role lookups.
 type roleSet map[string]struct{}
 
+// workRoles defines node roles that perform actual work (data processing, storage, or search).
+// Used to distinguish dedicated cluster managers from nodes that handle client requests.
+// This matches the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS logic.
+//
+//nolint:gochecknoglobals // This global constant defines the standard work roles
+var workRoles = []string{
+	RoleData,   // stores and retrieves data
+	RoleIngest, // processes incoming data
+	RoleWarm,   // handles warm/cold data storage
+	RoleSearch, // dedicated search processing
+	RoleML,     // machine learning tasks
+}
+
 // newRoleSet creates a roleSet from a slice of role names.
 func newRoleSet(roles []string) roleSet {
 	rs := make(roleSet, len(roles))
@@ -121,6 +135,30 @@ func (rs roleSet) has(roleName string) bool {
 	return exists
 }
 
+// toSlice converts the roleSet back to a []string slice for compatibility.
+// The roles are sorted alphabetically for consistent ordering.
+func (rs roleSet) toSlice() []string {
+	if len(rs) == 0 {
+		return nil
+	}
+
+	roles := make([]string, 0, len(rs))
+	for role := range rs {
+		// Skip the internal cluster_manager alias added for deprecated master role
+		if role == RoleClusterManager {
+			// Check if this was added as an alias for deprecated master role
+			if _, hasMaster := rs[RoleMaster]; hasMaster {
+				continue // Skip the alias, keep only the original master role
+			}
+		}
+		roles = append(roles, role)
+	}
+
+	// Sort roles alphabetically for consistent ordering
+	slices.Sort(roles)
+	return roles
+}
+
 // isDedicatedClusterManager implements the logic from upstream Java client
 // NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS to determine if a node should be skipped.
 // It returns true for nodes that are cluster-manager eligible but have no "work" roles
@@ -132,111 +170,345 @@ func (rs roleSet) isDedicatedClusterManager() bool {
 		return false
 	}
 
-	// Check if it has any "work" roles that make it non-dedicated
-	workRoles := []string{
-		RoleData,   // stores and retrieves data
-		RoleIngest, // processes incoming data
-		RoleWarm,   // handles warm/cold data storage
-		RoleSearch, // dedicated search processing
-		RoleML,     // machine learning tasks
-	}
-
 	return !slices.ContainsFunc(workRoles, rs.has)
 }
 
 // Discoverable defines the interface for transports supporting node discovery.
 type Discoverable interface {
-	DiscoverNodes() error
+	DiscoverNodes(ctx context.Context) error
 }
 
 // nodeInfo represents the information about node in a cluster.
+// nodeInfoHTTP represents the HTTP configuration from node info
+type nodeInfoHTTP struct {
+	PublishAddress string `json:"publish_address"` // Available since OpenSearch 1.0.0
+}
+
 type nodeInfo struct {
-	ID         string   `json:"id"`
-	Name       string   `json:"name"`
-	URL        *url.URL `json:"url"`
-	Roles      []string `json:"roles"`
-	roleSet    roleSet
-	Attributes map[string]any `json:"attributes"`
-	HTTP       struct {
-		PublishAddress string `json:"publish_address"`
-	} `json:"http"`
+	ID         string         `json:"id"`   // Available since OpenSearch 1.0.0
+	Name       string         `json:"name"` // Available since OpenSearch 1.0.0
+	url        *url.URL       // Client-side field, not from server
+	Roles      []string       `json:"roles"`      // Available since OpenSearch 1.0.0
+	Attributes map[string]any `json:"attributes"` // Available since OpenSearch 1.0.0
+	HTTP       nodeInfoHTTP   `json:"http"`       // Available since OpenSearch 1.0.0
+
+	// Internal fields (not part of JSON)
+	roleSet roleSet
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
-func (c *Client) DiscoverNodes() error {
-	conns := make([]*Connection, 0)
+func (c *Client) DiscoverNodes(ctx context.Context) error {
+	// Prevent concurrent discovery operations
+	c.mu.Lock()
+	if c.mu.discoveryInProgress {
+		c.mu.Unlock()
+		if debugLogger != nil {
+			debugLogger.Logf("Discovery already in progress, skipping\n")
+		}
+		return nil
+	}
+	c.mu.discoveryInProgress = true
+	c.mu.Unlock()
 
-	nodes, err := c.getNodesInfo()
+	defer func() {
+		c.mu.Lock()
+		c.mu.discoveryInProgress = false
+		c.mu.Unlock()
+	}()
+
+	discovered, err := c.getNodesInfo(ctx)
 	if err != nil {
 		if debugLogger != nil {
 			debugLogger.Logf("Error getting nodes info: %s\n", err)
 		}
-
 		return fmt.Errorf("discovery: get nodes: %w", err)
 	}
 
-	for _, node := range nodes {
-		// Build role set for efficient O(1) lookups
-		node.roleSet = newRoleSet(node.Roles)
+	c.mu.RLock()
+	connPool := c.mu.connectionPool
+	c.mu.RUnlock()
+	isColdStart := connPool == nil
 
-		// Skip this node if the user wants to exclude cluster managers (default) and this node is a dedicated cluster master.
-		shouldSkip := !c.includeDedicatedClusterManagers && node.roleSet.isDedicatedClusterManager()
+	if isColdStart {
+		return c.nodeDiscoveryAsyncStart(ctx, discovered)
+	}
+	return c.nodeDiscovery(ctx, discovered)
+}
 
-		if debugLogger != nil {
-			var skip string
-			if shouldSkip {
-				skip = "; [SKIP: dedicated cluster manager]"
-			}
+// nodeDiscoveryAsyncStart handles discovery with asynchronous connection startup - prioritizes fast startup.
+func (c *Client) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeInfo) error {
+	// Async start - assume all connections are live for fast startup
+	liveConnections := make([]*Connection, 0, len(discovered))
 
-			debugLogger.Logf("Discovered node %q; %s; roles=%v%s\n", node.Name, node.URL, node.Roles, skip)
-		}
+	for _, node := range discovered {
+		conn := c.createConnection(node)
+		liveConnections = append(liveConnections, conn)
 
-		// Skip dedicated cluster managers (matching upstream Java client behavior)
-		if shouldSkip {
-			continue
-		}
-
-		conns = append(conns, &Connection{
-			URL:        node.URL,
-			ID:         node.ID,
-			Name:       node.Name,
-			Roles:      node.Roles,
-			Attributes: node.Attributes,
-		})
+		// Async health check - will be handled by normal pool mechanics
+		go func(conn *Connection) {
+			c.healthCheckWithRetries(ctx, conn, c.discoveryHealthCheckRetries)
+		}(conn)
 	}
 
+	return c.updateConnectionPool(liveConnections, []*Connection{})
+}
+
+// nodeDiscovery handles discovery for running clusters - waits for health checks.
+func (c *Client) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
+	// Running cluster - health check before categorizing
+	var wg sync.WaitGroup
+
+	// Pre-allocate based on total discovered nodes
+	liveConnections := make([]*Connection, 0, len(discovered))
+	deadConnections := make([]*Connection, 0, len(discovered))
+	discoMu := sync.Mutex{}
+
+	for _, node := range discovered {
+		wg.Add(1)
+		go func(node nodeInfo) {
+			defer wg.Done()
+
+			conn := c.createConnection(node)
+			healthy := c.healthCheckWithRetries(ctx, conn, c.discoveryHealthCheckRetries)
+
+			discoMu.Lock()
+			if healthy {
+				liveConnections = append(liveConnections, conn)
+			} else {
+				deadConnections = append(deadConnections, conn)
+			}
+			discoMu.Unlock()
+		}(node)
+	}
+
+	wg.Wait()
+	return c.updateConnectionPool(liveConnections, deadConnections)
+}
+
+// createConnection creates a Connection from nodeInfo with proper role processing.
+func (c *Client) createConnection(node nodeInfo) *Connection {
+	// Build role set for efficient O(1) lookups
+	node.roleSet = newRoleSet(node.Roles)
+
+	return &Connection{
+		URL:        node.url,
+		ID:         node.ID,
+		Name:       node.Name,
+		Roles:      node.roleSet,
+		Attributes: node.Attributes,
+	}
+}
+
+// updateConnectionPool atomically updates the connection pool with new connection information
+// and notifies the router of cluster topology changes.
+func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connection) error {
+	totalNodes := len(liveConnections) + len(deadConnections)
+	allConnections := make([]*Connection, 0, totalNodes)
+	allConnections = append(allConnections, liveConnections...)
+	allConnections = append(allConnections, deadConnections...)
+
+	// Get current connections for diff calculation (minimal lock time)
+	c.mu.RLock()
+	currentPool := c.mu.connectionPool
+	c.mu.RUnlock()
+
+	var currentConnections []*Connection
+	if currentPool != nil {
+		// Convert URLs back to connections for diff calculation
+		currentURLs := currentPool.URLs()
+		currentConnectionMap := make(map[string]*Connection)
+		for _, conn := range allConnections {
+			currentConnectionMap[conn.URL.String()] = conn
+		}
+
+		for _, url := range currentURLs {
+			if conn, exists := currentConnectionMap[url.String()]; exists {
+				currentConnections = append(currentConnections, conn)
+			}
+		}
+	}
+
+	// Calculate diff outside the lock
+	currentURLs := make(map[string]struct{})
+	for _, conn := range currentConnections {
+		currentURLs[conn.URL.String()] = struct{}{}
+	}
+
+	newURLs := make(map[string]*Connection)
+	for _, conn := range allConnections {
+		newURLs[conn.URL.String()] = conn
+	}
+
+	var added []*Connection
+	var removed []*Connection
+	var unchanged []*Connection
+
+	// Find added connections
+	for url, conn := range newURLs {
+		if _, exists := currentURLs[url]; !exists {
+			added = append(added, conn)
+		} else {
+			unchanged = append(unchanged, conn)
+		}
+	}
+
+	// Find removed connections
+	for _, conn := range currentConnections {
+		if _, exists := newURLs[conn.URL.String()]; !exists {
+			removed = append(removed, conn)
+		}
+	}
+
+	// Prepare new connection pool outside the lock, then atomically swap
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if lockable, ok := c.mu.pool.(sync.Locker); ok {
-		lockable.Lock()
-		defer lockable.Unlock()
+	var newConnectionPool ConnectionPool
+	if totalNodes == 1 {
+		newConnectionPool = c.createOrUpdateSingleNodePool(liveConnections, deadConnections)
+	} else {
+		newConnectionPool = c.createOrUpdateMultiNodePoolWithLock(liveConnections, deadConnections)
 	}
 
-	if c.poolFunc != nil {
-		c.mu.pool = c.poolFunc(conns, c.selector)
-	} else {
-		// TODO: Replace only live connections, leave dead scheduled for resurrect?
-		c.mu.pool = NewConnectionPool(conns, c.selector)
+	// Perform swap of connection pools
+	c.mu.connectionPool = newConnectionPool
+	router := c.router // Capture router reference while holding lock
+
+	if router != nil {
+		if err := router.DiscoveryUpdate(added, removed, unchanged); err != nil {
+			if debugLogger != nil {
+				debugLogger.Logf("Router DiscoveryUpdate error: %s\n", err)
+			}
+			// Continue - don't fail discovery due to router errors
+		}
+	}
+
+	// Set up health check function for pools that support it
+	if pool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+		pool.healthCheck = c.defaultHealthCheck
 	}
 
 	return nil
 }
 
-func (c *Client) getNodesInfo() ([]nodeInfo, error) {
+// createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
+// Caller must hold c.mu.Lock().
+func (c *Client) createOrUpdateSingleNodePool(liveConnections, deadConnections []*Connection) ConnectionPool {
+	// Single node - check if we need to demote from statusConnectionPool
+	if _, isStatusPool := c.mu.connectionPool.(*statusConnectionPool); isStatusPool {
+		// Demote from multi-node to single-node pool
+		return c.demoteConnectionPoolWithLock()
+	}
+
+	// Create or update single connection pool
+	var connection *Connection
+	if len(liveConnections) == 1 {
+		connection = liveConnections[0]
+	} else if len(deadConnections) == 1 {
+		connection = deadConnections[0]
+	}
+
+	// Preserve metrics from existing single connection pool
+	var metrics *metrics
+	if existingPool, ok := c.mu.connectionPool.(*singleConnectionPool); ok {
+		metrics = existingPool.metrics
+	}
+
+	return &singleConnectionPool{
+		connection: connection,
+		metrics:    metrics,
+	}
+}
+
+// createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
+// Caller must hold c.mu.Lock().
+func (c *Client) createOrUpdateMultiNodePoolWithLock(liveConnections, deadConnections []*Connection) ConnectionPool {
+	// Multi-node - check if we need to promote from singleConnectionPool
+	if _, isSinglePool := c.mu.connectionPool.(*singleConnectionPool); isSinglePool {
+		// Promote from single-node to multi-node pool
+		return c.promoteConnectionPoolWithLock(liveConnections, deadConnections)
+	}
+
+	// Update existing statusConnectionPool or create new one
+	// Apply client-level filtering for dedicated cluster managers
+	flatLiveConns := make([]*Connection, 0, len(liveConnections))
+	flatDeadConns := make([]*Connection, 0, len(deadConnections))
+
+	for _, conn := range liveConnections {
+		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
+			if debugLogger != nil {
+				debugLogger.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
+			}
+			continue
+		}
+		flatLiveConns = append(flatLiveConns, conn)
+	}
+
+	for _, conn := range deadConnections {
+		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
+			continue
+		}
+		flatDeadConns = append(flatDeadConns, conn)
+	}
+
+	// Preserve settings and metrics from existing statusConnectionPool,
+	// or use client-configured settings for new pools
+	resurrectTimeoutInitial := c.resurrectTimeoutInitial
+	resurrectTimeoutFactorCutoff := c.resurrectTimeoutFactorCutoff
+	var metrics *metrics
+
+	if existingPool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+		// Preserve settings from existing pool (should match client settings)
+		resurrectTimeoutInitial = existingPool.resurrectTimeoutInitial
+		resurrectTimeoutFactorCutoff = existingPool.resurrectTimeoutFactorCutoff
+		metrics = existingPool.metrics
+	}
+
+	// Shuffle connections for load distribution unless disabled
+	if !c.skipConnectionShuffle && len(flatLiveConns) > 1 {
+		rand.Shuffle(len(flatLiveConns), func(i, j int) {
+			flatLiveConns[i], flatLiveConns[j] = flatLiveConns[j], flatLiveConns[i]
+		})
+	}
+
+	flatPool := &statusConnectionPool{
+		resurrectTimeoutInitial:      resurrectTimeoutInitial,
+		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
+		metrics:                      metrics,
+	}
+	flatPool.mu.live = flatLiveConns
+	flatPool.mu.dead = flatDeadConns
+	return flatPool
+}
+
+func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	scheme := c.urls[0].Scheme
 
-	req, err := http.NewRequestWithContext(context.TODO(), http.MethodGet, "/_nodes/http", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	c.mu.Lock()
-	conn, err := c.mu.pool.Next()
-	c.mu.Unlock()
+	conn, err := getConnectionFromPool(c, req)
 	// TODO: If no connection is returned, fallback to original URLs
 	if err != nil {
-		return nil, err
+		if len(c.urls) > 0 {
+			// Create temporary connections from startup URLs and use round-robin selection
+			startupConns := make([]*Connection, len(c.urls))
+			for i, u := range c.urls {
+				startupConns[i] = &Connection{URL: u}
+			}
+
+			// Use round-robin selector to pick a startup URL
+			selector := &roundRobinSelector{}
+			selector.curr.Store(-1)
+			conn, err = selector.Select(startupConns)
+			if err != nil {
+				return nil, fmt.Errorf("failed to select startup URL: %w", err)
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	c.setReqURL(conn.URL, req)
@@ -245,6 +517,16 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
+		// Report connection failure to the pool if we got the connection from the pool
+		// Note: getConnectionFromPool always uses pool, so we always report
+		c.mu.RLock()
+		pool := c.mu.connectionPool
+		c.mu.RUnlock()
+		if pool != nil {
+			if poolErr := pool.OnFailure(conn); poolErr != nil && debugLogger != nil {
+				debugLogger.Logf("Failed to mark connection as failed: %v\n", poolErr)
+			}
+		}
 		return nil, err
 	}
 
@@ -277,9 +559,18 @@ func (c *Client) getNodesInfo() ([]nodeInfo, error) {
 	for id, node := range nodes {
 		node.ID = id
 		u := c.getNodeURL(node, scheme)
-		node.URL = u
+		node.url = u
 		out[idx] = node
 		idx++
+	}
+
+	// Report connection success to the pool if we got the connection from the pool
+	// Note: getConnectionFromPool always uses pool, so we always report
+	c.mu.RLock()
+	pool := c.mu.connectionPool
+	c.mu.RUnlock()
+	if pool != nil {
+		pool.OnSuccess(conn)
 	}
 
 	return out, nil
@@ -314,7 +605,7 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 
 func (c *Client) scheduleDiscoverNodes() {
 	//nolint:errcheck // errors are logged inside the function
-	go c.DiscoverNodes()
+	go c.DiscoverNodes(c.ctx)
 
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -12,238 +12,370 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
+)
+
+const (
+	willErrorPrefix = "WILL_ERROR: "
 )
 
 func TestClusterClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	client, err := testutil.NewClient(t)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	index := "test-cluster-indices"
+	index := testutil.MustUniqueString(t, "test-cluster-indices")
+	indexWithUnassigned := testutil.MustUniqueString(t, "test-cluster-unassigned")
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index, indexWithUnassigned}})
 	})
 
-	_, err = client.Indices.Create(nil, opensearchapi.IndicesCreateReq{Index: index})
-	require.Nil(t, err)
+	// Create a regular index
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
+	require.NoError(t, err)
+
+	// Create an index with more replicas than available nodes to ensure unassigned shards
+	// This will create unassigned replica shards that AllocationExplain can analyze
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
+		Index: indexWithUnassigned,
+		Body: strings.NewReader(`{
+			"settings": {
+				"number_of_shards": 1,
+				"number_of_replicas": 10
+			}
+		}`),
+	})
+	require.NoError(t, err)
+
+	// Default validation function for most test cases
+	validateDefault := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+	}
+
+	// Validation function for "inspect" test cases (failing client)
+	validateInspect := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
+		require.Error(t, err)
+		require.NotNil(t, res)
+		osapitest.VerifyInspect(t, res.Inspect())
+	}
+
+	// Validation function for AllocationExplain with nil request
+	validateAllocationExplainNil := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
+		// AllocationExplain with nil request should succeed now that we have indexWithUnassigned
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+	}
+
+	// Validation function for AllocationExplain with specific shard request (positive case)
+	validateAllocationExplainPositive := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
+		// This should succeed and return explanation data for the shard
+		require.NoError(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+
+		// Verify we got a successful HTTP response
+		response := res.Inspect().Response
+		require.Equal(t, 200, response.StatusCode, "Expected 200 OK for successful allocation explanation")
+	}
+
+	// Validation function for expected error cases
+	validateExpectedError := func(t *testing.T, res osapitest.Response, err error) {
+		t.Helper()
+		// Test cases that are expected to fail
+		require.Error(t, err)
+		require.NotNil(t, res)
+		require.NotNil(t, res.Inspect().Response)
+	}
 
 	type clusterTest struct {
-		Name    string
-		Results func() (osapitest.Response, error)
+		Name     string
+		Results  func() (osapitest.Response, error)
+		Validate func(*testing.T, osapitest.Response, error) // Custom validation function
 	}
 
 	testCases := map[string][]clusterTest{
-		"AllocationExplain": []clusterTest{
+		"AllocationExplain": {
+			{
+				Name:     "with nil request",
+				Results:  func() (osapitest.Response, error) { return client.Cluster.AllocationExplain(t.Context(), nil) },
+				Validate: validateAllocationExplainNil,
+			},
+			{
+				Name: "with request - explains specific unassigned replica shard",
+				Results: func() (osapitest.Response, error) {
+					return client.Cluster.AllocationExplain(
+						t.Context(),
+						&opensearchapi.ClusterAllocationExplainReq{
+							Body: &opensearchapi.ClusterAllocationExplainBody{
+								Index:   index,
+								Shard:   0,
+								Primary: true,
+							},
+						},
+					)
+				},
+				Validate: validateAllocationExplainPositive,
+			},
+			{
+				Name: willErrorPrefix + "with request for non-existent index",
+				Results: func() (osapitest.Response, error) {
+					return client.Cluster.AllocationExplain(t.Context(),
+						&opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{
+							Index: "non-existent-index-12345", Shard: 0, Primary: true,
+						}})
+				},
+				Validate: validateExpectedError,
+			},
+			{
+				Name: "with unassigned shard request",
+				Results: func() (osapitest.Response, error) {
+					return client.Cluster.AllocationExplain(
+						t.Context(),
+						&opensearchapi.ClusterAllocationExplainReq{
+							Body: &opensearchapi.ClusterAllocationExplainBody{
+								Index:   indexWithUnassigned,
+								Shard:   0,
+								Primary: false,
+							},
+						},
+					)
+				},
+				Validate: validateAllocationExplainPositive,
+			},
+			{
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.AllocationExplain(t.Context(), nil) },
+				Validate: validateInspect,
+			},
+		},
+		"Health": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.AllocationExplain(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.Health(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.AllocationExplain(nil, &opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{Index: index, Shard: 0, Primary: true}})
+					return client.Cluster.Health(t.Context(), &opensearchapi.ClusterHealthReq{})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.AllocationExplain(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.Health(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
-		"Health": []clusterTest{
+		"PendingTasks": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.Health(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.PendingTasks(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.Health(nil, &opensearchapi.ClusterHealthReq{})
+					return client.Cluster.PendingTasks(t.Context(), &opensearchapi.ClusterPendingTasksReq{})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.Health(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.PendingTasks(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
-		"PendingTasks": []clusterTest{
+		"GetSettings": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.PendingTasks(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.GetSettings(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.PendingTasks(nil, &opensearchapi.ClusterPendingTasksReq{})
+					return client.Cluster.GetSettings(t.Context(), &opensearchapi.ClusterGetSettingsReq{})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.PendingTasks(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.GetSettings(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
-		"GetSettings": []clusterTest{
-			{
-				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.GetSettings(nil, nil) },
-			},
+		"PutSettings": {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.GetSettings(nil, &opensearchapi.ClusterGetSettingsReq{})
-				},
-			},
-			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.GetSettings(nil, nil) },
-			},
-		},
-		"PutSettings": []clusterTest{
-			{
-				Name: "with request",
-				Results: func() (osapitest.Response, error) {
-					return client.Cluster.PutSettings(nil, opensearchapi.ClusterPutSettingsReq{Body: strings.NewReader(`{"transient":{"indices":{"recovery":{"max_bytes_per_sec":null}}}}`)})
+					return client.Cluster.PutSettings(
+						t.Context(),
+						opensearchapi.ClusterPutSettingsReq{
+							Body: strings.NewReader(
+								`{"transient":{"indices":{"recovery":{"max_bytes_per_sec":null}}}}`,
+							),
+						},
+					)
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.PutSettings(nil, opensearchapi.ClusterPutSettingsReq{})
+					return failingClient.Cluster.PutSettings(t.Context(), opensearchapi.ClusterPutSettingsReq{})
 				},
+				Validate: validateInspect,
 			},
 		},
-		"Reroute": []clusterTest{
+		"Reroute": {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.Reroute(nil, opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
+					return client.Cluster.Reroute(t.Context(), opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.Reroute(nil, opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
+					return failingClient.Cluster.Reroute(t.Context(), opensearchapi.ClusterRerouteReq{Body: strings.NewReader(`{}`)})
 				},
+				Validate: validateInspect,
 			},
 		},
-		"State": []clusterTest{
+		"State": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.State(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.State(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.State(nil, &opensearchapi.ClusterStateReq{Metrics: []string{"_all"}})
+					return client.Cluster.State(t.Context(), &opensearchapi.ClusterStateReq{Metrics: []string{"_all"}})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.State(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.State(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
-		"Stats": []clusterTest{
+		"Stats": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.Stats(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.Stats(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.Stats(nil, &opensearchapi.ClusterStatsReq{NodeFilters: []string{"data:true"}})
+					return client.Cluster.Stats(t.Context(), &opensearchapi.ClusterStatsReq{NodeFilters: []string{"data:true"}})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.Stats(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.Stats(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
-		"PutDecommission": []clusterTest{
+		"PutDecommission": {
 			/* Needs node awarness attr to work
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.PutDecommission(nil, opensearchapi.ClusterPutDecommissionReq{AwarenessAttrName: "test", AwarenessAttrValue: "test"})
+					return client.Cluster.PutDecommission(
+						t.Context(),
+						opensearchapi.ClusterPutDecommissionReq{
+							AwarenessAttrName:  "test",
+							AwarenessAttrValue: "test",
+						},
+					)
 				},
 			},
 			*/
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.PutDecommission(nil, opensearchapi.ClusterPutDecommissionReq{AwarenessAttrName: "test", AwarenessAttrValue: "test"})
+					return failingClient.Cluster.PutDecommission(
+						t.Context(),
+						opensearchapi.ClusterPutDecommissionReq{
+							AwarenessAttrName:  "test",
+							AwarenessAttrValue: "test",
+						},
+					)
 				},
+				Validate: validateInspect,
 			},
 		},
-		"GetDecommission": []clusterTest{
+		"GetDecommission": {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.GetDecommission(nil, opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
+					return client.Cluster.GetDecommission(t.Context(), opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
 				},
 			},
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Cluster.GetDecommission(nil, opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
+					return failingClient.Cluster.GetDecommission(t.Context(), opensearchapi.ClusterGetDecommissionReq{AwarenessAttrName: "test"})
 				},
+				Validate: validateInspect,
 			},
 		},
-		"DeleteDecommission": []clusterTest{
+		"DeleteDecommission": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.DeleteDecommission(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.DeleteDecommission(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.DeleteDecommission(nil, &opensearchapi.ClusterDeleteDecommissionReq{})
+					return client.Cluster.DeleteDecommission(t.Context(), &opensearchapi.ClusterDeleteDecommissionReq{})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.DeleteDecommission(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.DeleteDecommission(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
-		"RemoteInfo": []clusterTest{
+		"RemoteInfo": {
 			{
 				Name:    "with nil request",
-				Results: func() (osapitest.Response, error) { return client.Cluster.RemoteInfo(nil, nil) },
+				Results: func() (osapitest.Response, error) { return client.Cluster.RemoteInfo(t.Context(), nil) },
 			},
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cluster.RemoteInfo(nil, &opensearchapi.ClusterRemoteInfoReq{})
+					return client.Cluster.RemoteInfo(t.Context(), &opensearchapi.ClusterRemoteInfoReq{})
 				},
 			},
 			{
-				Name:    "inspect",
-				Results: func() (osapitest.Response, error) { return failingClient.Cluster.RemoteInfo(nil, nil) },
+				Name:     "inspect",
+				Results:  func() (osapitest.Response, error) { return failingClient.Cluster.RemoteInfo(t.Context(), nil) },
+				Validate: validateInspect,
 			},
 		},
 	}
 	for catType, value := range testCases {
 		t.Run(catType, func(t *testing.T) {
 			if strings.Contains(catType, "Decommission") {
-				ostest.SkipIfBelowVersion(t, client, 2, 4, catType)
+				testutil.SkipIfBelowVersion(t, client, 2, 4, catType)
 			}
 			for _, testCase := range value {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
-					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
-						assert.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
+					if testCase.Validate != nil {
+						testCase.Validate(t, res, err)
 					} else {
-						assert.Nil(t, err)
-						assert.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						validateDefault(t, res, err)
 					}
 				})
 			}

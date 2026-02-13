@@ -124,7 +124,7 @@ type NotificationMessageTemplate struct {
 // PolicyState uis a sub type of PolicyBody containing information about the policy state
 type PolicyState struct {
 	Name        string                   `json:"name"`
-	Actions     []PolicyStateAction      `json:"actions,omitempty"`
+	Actions     []PolicyStateAction      `json:"actions,omitzero"` // Core field since OpenSearch 1.0; preserves empty arrays, omits nil
 	Transitions *[]PolicyStateTransition `json:"transitions,omitempty"`
 }
 

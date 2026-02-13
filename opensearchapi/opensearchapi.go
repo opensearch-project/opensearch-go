@@ -159,14 +159,19 @@ type FailuresCause struct {
 		Type   string `json:"type"`
 		Reason string `json:"reason"`
 		Cause  *struct {
-			Type   string  `json:"type"`
-			Reason *string `json:"reason"`
+			Type   string `json:"type"`
+			Reason string `json:"reason"`
+			Cause  *struct {
+				Type   string  `json:"type"`
+				Reason *string `json:"reason"`
+			} `json:"caused_by,omitempty"`
 		} `json:"caused_by,omitempty"`
 	} `json:"caused_by,omitempty"`
 }
 
 // FailuresShard contains information about shard failures
 type FailuresShard struct {
+	Node   *string       `json:"node,omitempty"` // Node ID where the failure occurred (present since OpenSearch 1.0.0)
 	Shard  int           `json:"shard"`
 	Index  string        `json:"index"`
 	Status string        `json:"status"`

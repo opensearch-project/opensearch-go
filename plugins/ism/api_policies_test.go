@@ -15,27 +15,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
 )
 
 func TestPoliciesClient(t *testing.T) {
-	client, err := osismtest.NewClient()
-	require.Nil(t, err)
+	client, err := osismtest.NewClient(t)
+	require.NoError(t, err)
 
-	osClient, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	osClient, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
 	failingClient, err := osismtest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	testPolicy := "test"
-	testPolicyChannel := "test_channel"
-	testPolicyAlias := "test_alias"
+	testPolicy := testutil.MustUniqueString(t, "test")
+	testPolicyChannel := testutil.MustUniqueString(t, "test-channel")
+	testPolicyAlias := testutil.MustUniqueString(t, "test-alias")
 	t.Cleanup(func() {
-		client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicyChannel})
-		client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicyAlias})
+		client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testPolicy})
+		client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testPolicyChannel})
+		client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testPolicyAlias})
 	})
 
 	var putResp ism.PoliciesPutResp
@@ -55,8 +56,9 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "Create",
 					Results: func(t *testing.T) (osismtest.Response, error) {
+						t.Helper()
 						putResp, err = client.Policies.Put(
-							nil,
+							t.Context(),
 							ism.PoliciesPutReq{
 								Policy: testPolicy,
 								Body: ism.PoliciesPutBody{
@@ -82,10 +84,10 @@ func TestPoliciesClient(t *testing.T) {
 										},
 										DefaultState: "transition",
 										States: []ism.PolicyState{
-											ism.PolicyState{
+											{
 												Name: "allocation",
 												Actions: []ism.PolicyStateAction{
-													ism.PolicyStateAction{
+													{
 														Allocation: &ism.PolicyStateAllocation{
 															Require: map[string]string{"temp": "warm"},
 															Include: map[string]string{"test": "warm"},
@@ -95,35 +97,35 @@ func TestPoliciesClient(t *testing.T) {
 													},
 												},
 												Transitions: &[]ism.PolicyStateTransition{
-													ism.PolicyStateTransition{
+													{
 														StateName: "transition",
 													},
 												},
 											},
-											ism.PolicyState{
+											{
 												Name: "transition",
 												Actions: []ism.PolicyStateAction{
-													ism.PolicyStateAction{
+													{
 														Close: &ism.PolicyStateClose{},
 													},
 												},
 												Transitions: &[]ism.PolicyStateTransition{
-													ism.PolicyStateTransition{
+													{
 														StateName: "delete",
 													},
 												},
 											},
-											ism.PolicyState{
+											{
 												Name: "delete",
 												Actions: []ism.PolicyStateAction{
-													ism.PolicyStateAction{
+													{
 														Delete: &ism.PolicyStateDelete{},
 													},
 												},
 											},
 										},
 										Template: []ism.Template{
-											ism.Template{
+											{
 												IndexPatterns: []string{"test"},
 												Priority:      20,
 											},
@@ -138,9 +140,10 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "Create with Channel",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						ostest.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
+						t.Helper()
+						testutil.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
 						return client.Policies.Put(
-							nil,
+							t.Context(),
 							ism.PoliciesPutReq{
 								Policy: testPolicyChannel,
 								Body: ism.PoliciesPutBody{
@@ -156,17 +159,17 @@ func TestPoliciesClient(t *testing.T) {
 										},
 										DefaultState: "delete",
 										States: []ism.PolicyState{
-											ism.PolicyState{
+											{
 												Name: "delete",
 												Actions: []ism.PolicyStateAction{
-													ism.PolicyStateAction{
+													{
 														Delete: &ism.PolicyStateDelete{},
 													},
 												},
 											},
 										},
 										Template: []ism.Template{
-											ism.Template{
+											{
 												IndexPatterns: []string{testPolicyChannel},
 												Priority:      21,
 											},
@@ -180,9 +183,10 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "Create with Alias",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						ostest.SkipIfBelowVersion(t, osClient, 2, 4, "policy with alias action")
+						t.Helper()
+						testutil.SkipIfBelowVersion(t, osClient, 2, 4, "policy with alias action")
 						return client.Policies.Put(
-							nil,
+							t.Context(),
 							ism.PoliciesPutReq{
 								Policy: testPolicyAlias,
 								Body: ism.PoliciesPutBody{
@@ -190,16 +194,16 @@ func TestPoliciesClient(t *testing.T) {
 										Description:  "test",
 										DefaultState: "alias",
 										States: []ism.PolicyState{
-											ism.PolicyState{
+											{
 												Name: "alias",
 												Actions: []ism.PolicyStateAction{
-													ism.PolicyStateAction{
+													{
 														Alias: &ism.PolicyStateAlias{
 															Actions: []ism.PolicyStateAliasAction{
-																ism.PolicyStateAliasAction{
+																{
 																	Add: &ism.PolicyStateAliasName{Aliases: []string{"alias-test"}},
 																},
-																ism.PolicyStateAliasAction{
+																{
 																	Remove: &ism.PolicyStateAliasName{Aliases: []string{"alias-test"}},
 																},
 															},
@@ -209,7 +213,7 @@ func TestPoliciesClient(t *testing.T) {
 											},
 										},
 										Template: []ism.Template{
-											ism.Template{
+											{
 												IndexPatterns: []string{testPolicyAlias},
 												Priority:      21,
 											},
@@ -223,13 +227,20 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "Update",
 					Results: func(t *testing.T) (osismtest.Response, error) {
+						t.Helper()
+						if putResp.Policy.Policy.ErrorNotification == nil || putResp.Policy.Policy.ErrorNotification.Destination == nil {
+							t.Skip("Skipping Update test - Create test did not produce valid putResp")
+						}
 						putResp.Policy.Policy.ErrorNotification.Destination.CustomWebhook = nil
 						putResp.Policy.Policy.ErrorNotification.Destination.Slack = &ism.NotificationDestinationURL{URL: "https://example.com"}
 						return client.Policies.Put(
-							nil,
+							t.Context(),
 							ism.PoliciesPutReq{
 								Policy: testPolicy,
-								Params: ism.PoliciesPutParams{IfSeqNo: opensearch.ToPointer(putResp.SeqNo), IfPrimaryTerm: opensearch.ToPointer(putResp.PrimaryTerm)},
+								Params: ism.PoliciesPutParams{
+									IfSeqNo:       opensearch.ToPointer(putResp.SeqNo),
+									IfPrimaryTerm: opensearch.ToPointer(putResp.PrimaryTerm),
+								},
 								Body: ism.PoliciesPutBody{
 									Policy: putResp.Policy.Policy,
 								},
@@ -240,7 +251,8 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						return failingClient.Policies.Put(nil, ism.PoliciesPutReq{})
+						t.Helper()
+						return failingClient.Policies.Put(t.Context(), ism.PoliciesPutReq{})
 					},
 				},
 			},
@@ -251,19 +263,22 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						return client.Policies.Get(nil, nil)
+						t.Helper()
+						return client.Policies.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						return client.Policies.Get(nil, &ism.PoliciesGetReq{Policy: testPolicy})
+						t.Helper()
+						return client.Policies.Get(t.Context(), &ism.PoliciesGetReq{Policy: testPolicy})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						return failingClient.Policies.Get(nil, nil)
+						t.Helper()
+						return failingClient.Policies.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -274,13 +289,15 @@ func TestPoliciesClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						return client.Policies.Delete(nil, ism.PoliciesDeleteReq{Policy: testPolicy})
+						t.Helper()
+						return client.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: testPolicy})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func(t *testing.T) (osismtest.Response, error) {
-						return failingClient.Policies.Delete(nil, ism.PoliciesDeleteReq{})
+						t.Helper()
+						return failingClient.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{})
 					},
 				},
 			},
@@ -292,14 +309,14 @@ func TestPoliciesClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results(t)
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osismtest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

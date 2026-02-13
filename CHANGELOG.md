@@ -5,51 +5,96 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [Unreleased]
 
 ### Added
-- Enhanced cluster readiness checking for improved test reliability: `ostest.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+
+- Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+- Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
+- opensearchutil/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
+- Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))
+  - `Policy` interface for composable routing strategies with lifecycle management
+  - `Router` interface with `Route()` method for request-based connection selection
+  - `NewPolicy()` implementing chain-of-responsibility pattern for composable routing strategies
+  - `NewIfEnabledPolicy()` for conditional routing with runtime evaluation
+  - `NewMuxPolicy()` for custom HTTP pattern matching using `http.ServeMux`
+  - `NewRolePolicy()` for role-based node selection
+  - `NewDefaultRouter()` with coordinating node preference and round-robin fallback
+  - `NewSmartRouter()` providing smart request routing with graceful fallback (recommended for most users)
+    - Automatic routing of bulk operations (including streaming bulk) to ingest nodes
+    - Automatic routing of search operations (search, count, explain, by-query operations) to data nodes
+    - Automatic routing of document retrieval operations (get, mget, source, termvectors) to data nodes for read locality
+- Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 
 ### Changed
+
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
 - Refactor metrics struct to use atomic counters for lock-free request/failure tracking ([#776](https://github.com/opensearch-project/opensearch-go/pull/776))
 - Test against Opensearch 2.19.4, 3.1, 3.3, and 3.4 ([#782](https://github.com/opensearch-project/opensearch-go/pull/782))
+- Migrate all test files to context-aware API calls for proper timeout and cancellation support
+- Add cluster readiness validation and improve cluster error diagnostics
+- Update Docker cluster management to add version-aware role detection (cluster_manager vs master)
+- Generate unique document IDs in tests for parallel test execution and eliminate known test flakes
+- Reduce integration test timeout from 1h to 10m per package with parallel execution support
+- Refactor transport code for improved maintainability (rename ErrInvalidRole -> InvalidRoleError, add response body cleanup, simplify initialization)
 - **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
   - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
   - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
+- **BREAKING**: Add context support to discovery and client lifecycle management
+  - `opensearchtransport.Discoverable` interface now requires `context.Context` parameter: `DiscoverNodes(ctx context.Context) error`
+  - `opensearch.Client.DiscoverNodes()` and `opensearchtransport.Client.DiscoverNodes()` now require `context.Context` parameter
+  - `opensearch.Config` and `opensearchtransport.Config` now accept optional `Context` and `CancelFunc` fields
+  - `opensearchutil.BulkIndexerConfig` now accepts optional `Context` and `CancelFunc` fields
+  - Enables proper context propagation for timeouts, cancellation, and graceful shutdown
+  - Role compatibility validation prevents conflicting role assignments (master+cluster_manager, warm+search)
+  - OpenSearch 3.0+ searchable snapshots now use `warm` role instead of deprecated `search` role
+- **BREAKING**: Migrate `signer/aws` package from AWS SDK v1 to AWS SDK v2 due to AWS SDK v1 reaching end-of-support on July 31, 2025
+  - Constructor now takes `aws.Config` instead of `session.Options`
+  - See USER_GUIDE.md for details required to migrate
+  - Users who need access to the existing `signer/awsv2` API can still use it, however they are encouraged to migrate to `signer/aws`
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
+
+- Fix connection lifecycle bug in statusConnectionPool.OnFailure where connections were scheduled for resurrection before being moved from live to dead list, causing potential race conditions
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
+- Fix cluster readiness checks in integration tests to handle HTTPS cold start delays (increase timeout to 15s)
+- Fix GitHub Actions workflow authentication for OpenSearch 2.12.0+ password changes (admin -> myStrongPassword123!)
+- Fix Docker cluster management to properly handle version-specific configurations and clean stale images/volumes
+- Fix OpenSearch 2.8.0+ Tasks API compatibility by adding cancellation_time_millis field to TasksListTask struct
 - Fix OpenSearch 3.1.0+ API compatibility by adding phase_results_processors field to nodes API and time_in_execution fields to cluster pending tasks API
 - Fix OpenSearch 3.2.0+ API compatibility by adding max_last_index_request_timestamp and startree query fields across nodes stats, indices stats, and cat APIs, plus settings field to security plugin health API
 - Fix OpenSearch 3.3.0+ API compatibility by adding neural_search breaker, query_failed and startree_query_failed search fields, search pipeline system_generated fields across multiple APIs, plus ingestion_status field to cluster state API and jwks_uri field to security config API
 - Fix OpenSearch 3.4.0+ API compatibility by adding warmer fields to merges section, parallelism field to thread pool, and status_counter field across multiple APIs
-- Fix cat indices API field naming compatibility across OpenSearch versions by using forward-compatible field names (PrimarySearchStartreeQuery*) that match the corrected 3.3.0+ naming, with fallback support for the temporary 3.2.0 field names
+- Fix cat indices API field naming compatibility across OpenSearch versions by using forward-compatible field names (PrimarySearchStartreeQuery) that match the corrected 3.3.0+ naming, with fallback support for the temporary 3.2.0 field names
 - Fix cat APIs data type compatibility by changing byte fields from int to string to properly handle values like "0b"
 - Fix floating point precision loss in nodes stats concurrent_avg_slice_count field by changing from float32 to float64
 
 ### Security
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.7 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767))
 
 ## [4.6.0]
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.14 to 1.32.5 ([#707](https://github.com/opensearch-project/opensearch-go/pull/707), [#711](https://github.com/opensearch-project/opensearch-go/pull/711), [#719](https://github.com/opensearch-project/opensearch-go/pull/719), [#730](https://github.com/opensearch-project/opensearch-go/pull/730), [#737](https://github.com/opensearch-project/opensearch-go/pull/737), [#761](https://github.com/opensearch-project/opensearch-go/pull/761))
 - Bump `github.com/aws/aws-sdk-go-v2` from 1.36.4 to 1.41.0 ([#710](https://github.com/opensearch-project/opensearch-go/pull/710), [#720](https://github.com/opensearch-project/opensearch-go/pull/720), [#759](https://github.com/opensearch-project/opensearch-go/pull/759))
 - Bump `github.com/stretchr/testify` from 1.10.0 to 1.11.1 ([#728](https://github.com/opensearch-project/opensearch-go/pull/728))
 - Bump `github.com/aws/aws-sdk-go` from 1.55.7 to 1.55.8 ([#716](https://github.com/opensearch-project/opensearch-go/pull/716))
 
 ### Added
+
 - Adds new fields for Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
 - Allow users to override signing port ([#721](https://github.com/opensearch-project/opensearch-go/pull/721))
 - Add `phase_took` features supported from OpenSearch 2.12 ([#722](https://github.com/opensearch-project/opensearch-go/pull/722))
 - Adds the action to refresh the search analyzers to the ISM plugin ([#686](https://github.com/opensearch-project/opensearch-go/pull/686))
 
 ### Changed
+
 - Test against Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
 - Add more SuggestOptions to SearchResp ([#713](https://github.com/opensearch-project/opensearch-go/pull/713))
 - Updates Go version to 1.24 ([#674](https://github.com/opensearch-project/opensearch-go/pull/674))
@@ -64,6 +109,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Removed
 
 ### Fixed
+
 - Missing "caused by" information in StructError ([#752](https://github.com/opensearch-project/opensearch-go/pull/752))
 - Add missing `ignore_unavailable`, `allow_no_indices`, and `expand_wildcards` params to MSearch ([#757](https://github.com/opensearch-project/opensearch-go/pull/757))
 - Fix `UpdateResp` to correctly parse the `get` field when `_source` is requested in update operations. ([#739](https://github.com/opensearch-project/opensearch-go/pull/739))
@@ -73,17 +119,20 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [4.5.0]
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.29.6 to 1.29.14 ([#692](https://github.com/opensearch-project/opensearch-go/pull/692))
 - Bump `github.com/aws/aws-sdk-go` from 1.55.6 to 1.55.7 ([#696](https://github.com/opensearch-project/opensearch-go/pull/696))
 - Bump `github.com/wI2L/jsondiff` from 0.6.1 to 0.7.0 ([#700](https://github.com/opensearch-project/opensearch-go/pull/700))
 
 ### Added
+
 - Adds DataStream field to IndicesGetResp struct ([#701](https://github.com/opensearch-project/opensearch-go/pull/701))
 - Adds `InnerHits` field to `SearchResp` ([#672](https://github.com/opensearch-project/opensearch-go/pull/672))
 - Adds `FilterPath` param ([#673](https://github.com/opensearch-project/opensearch-go/pull/673))
 - Adds `Aggregations` field to `MSearchResp` ([#690](https://github.com/opensearch-project/opensearch-go/pull/690))
 
 ### Changed
+
 - Bump golang version to 1.22 ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
 - Change ChangeCatRecoveryItemResp Byte fields from int to string ([#691](https://github.com/opensearch-project/opensearch-go/pull/691))
 - Changed log formatted examples code ([#694](https://github.com/opensearch-project/opensearch-go/pull/694))
@@ -100,6 +149,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [4.4.0]
 
 ### Added
+
 - Adds `Highlight` field to `SearchHit` ([#654](https://github.com/opensearch-project/opensearch-go/pull/654))
 - Adds `MatchedQueries` field to `SearchHit` ([#663](https://github.com/opensearch-project/opensearch-go/pull/663))
 - Adds support for Opensearch 2.19 ([#668](https://github.com/opensearch-project/opensearch-go/pull/668))
@@ -115,6 +165,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go` from 1.55.5 to 1.55.6 ([#657](https://github.com/opensearch-project/opensearch-go/pull/657))
 - Bump `github.com/wI2L/jsondiff` from 0.6.0 to 0.6.1 ([#643](https://github.com/opensearch-project/opensearch-go/pull/643))
 - Bump `github.com/aws/aws-sdk-go-v2` from 1.32.2 to 1.36.1 ([#664](https://github.com/opensearch-project/opensearch-go/pull/664))
@@ -124,6 +175,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [4.3.0]
 
 ### Added
+
 - Adds ISM Alias action ([#615](https://github.com/opensearch-project/opensearch-go/pull/615))
 - Adds support for opensearch 2.17 ([#623](https://github.com/opensearch-project/opensearch-go/pull/623))
 
@@ -134,6 +186,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Removed
 
 ### Fixed
+
 - Fix ISM Transition to omitempty Conditions field ([#609](https://github.com/opensearch-project/opensearch-go/pull/609))
 - Fix ISM Allocation field types ([#609](https://github.com/opensearch-project/opensearch-go/pull/609))
 - Fix ISM Error Notification types ([#612](https://github.com/opensearch-project/opensearch-go/pull/612))
@@ -143,25 +196,30 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.27.31 to 1.27.43 ([#611](https://github.com/opensearch-project/opensearch-go/pull/611), [#630](https://github.com/opensearch-project/opensearch-go/pull/630), [#632](https://github.com/opensearch-project/opensearch-go/pull/632))
 - Bump `github.com/aws/aws-sdk-go-v2` from 1.32.1 to 1.32.2 ([#631](https://github.com/opensearch-project/opensearch-go/pull/631))
 
 ## [4.2.0]
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.27.23 to 1.27.31 ([#584](https://github.com/opensearch-project/opensearch-go/pull/584), [#588](https://github.com/opensearch-project/opensearch-go/pull/588), [#593](https://github.com/opensearch-project/opensearch-go/pull/593), [#605](https://github.com/opensearch-project/opensearch-go/pull/605))
 - Bump `github.com/aws/aws-sdk-go` from 1.54.12 to 1.55.5 ([#583](https://github.com/opensearch-project/opensearch-go/pull/583), [#590](https://github.com/opensearch-project/opensearch-go/pull/590), [#595](https://github.com/opensearch-project/opensearch-go/pull/595), [#596](https://github.com/opensearch-project/opensearch-go/pull/596))
 
 ### Added
+
 - Adds `Suggest` to `SearchResp` ([#602](https://github.com/opensearch-project/opensearch-go/pull/602))
 - Adds `MaxScore` to `ScrollGetResp` ([#607](https://github.com/opensearch-project/opensearch-go/pull/607))
 
 ### Changed
-- Split SnapshotGetResp into sub structs  ([#603](https://github.com/opensearch-project/opensearch-go/pull/603))
+
+- Split SnapshotGetResp into sub structs ([#603](https://github.com/opensearch-project/opensearch-go/pull/603))
 
 ### Deprecated
 
 ### Removed
+
 - Remove workflow tests against gotip ([#604](https://github.com/opensearch-project/opensearch-go/pull/604))
 
 ### Fixed
@@ -171,6 +229,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [4.1.0]
 
 ### Added
+
 - Adds the `Routing` field in SearchHit interface. ([#516](https://github.com/opensearch-project/opensearch-go/pull/516))
 - Adds the `SearchPipelines` field to `SearchParams` ([#532](https://github.com/opensearch-project/opensearch-go/pull/532))
 - Adds support for OpenSearch 2.14 ([#552](https://github.com/opensearch-project/opensearch-go/pull/552))
@@ -180,6 +239,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds OpenSearch 2.15 to compatibility workflow test ([#575](https://github.com/opensearch-project/opensearch-go/pull/575))
 
 ### Changed
+
 - Security roles get response struct has its own sub structs without omitempty ([#572](https://github.com/opensearch-project/opensearch-go/pull/572))
 
 ### Deprecated
@@ -201,6 +261,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
+
 - Bump `github.com/aws/aws-sdk-go` from 1.51.21 to 1.54.12 ([#534](https://github.com/opensearch-project/opensearch-go/pull/534), [#537](https://github.com/opensearch-project/opensearch-go/pull/537), [#538](https://github.com/opensearch-project/opensearch-go/pull/538), [#545](https://github.com/opensearch-project/opensearch-go/pull/545), [#554](https://github.com/opensearch-project/opensearch-go/pull/554), [#557](https://github.com/opensearch-project/opensearch-go/pull/557), [#563](https://github.com/opensearch-project/opensearch-go/pull/563), [#564](https://github.com/opensearch-project/opensearch-go/pull/564), [#570](https://github.com/opensearch-project/opensearch-go/pull/570), [#579](https://github.com/opensearch-project/opensearch-go/pull/579))
 - Bump `github.com/wI2L/jsondiff` from 0.5.1 to 0.6.0 ([#535](https://github.com/opensearch-project/opensearch-go/pull/535), [#566](https://github.com/opensearch-project/opensearch-go/pull/566))
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.27.11 to 1.27.23 ([#546](https://github.com/opensearch-project/opensearch-go/pull/546), [#553](https://github.com/opensearch-project/opensearch-go/pull/553), [#558](https://github.com/opensearch-project/opensearch-go/pull/558), [#562](https://github.com/opensearch-project/opensearch-go/pull/562), [#567](https://github.com/opensearch-project/opensearch-go/pull/567), [#571](https://github.com/opensearch-project/opensearch-go/pull/571), [#577](https://github.com/opensearch-project/opensearch-go/pull/577))
@@ -209,6 +270,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## [4.0.0]
 
 ### Added
+
 - Adds GlobalIOUsage struct for nodes stats ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Adds the `Explanation` field containing the document explain details to the `SearchHit` struct. ([#504](https://github.com/opensearch-project/opensearch-go/pull/504))
 - Adds new error types ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
@@ -222,6 +284,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Adds ism plugin ([#524](https://github.com/opensearch-project/opensearch-go/pull/524))
 
 ### Changed
+
 - Uses docker compose v2 instead of v1 ([#506](https://github.com/opensearch-project/opensearch-go/pull/506))
 - Updates go version to 1.21 ([#509](https://github.com/opensearch-project/opensearch-go/pull/509))
 - Moves Error structs from opensearchapi to opensearch package ([#512](https://github.com/opensearch-project/opensearch-go/pull/506))
@@ -232,7 +295,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps codecov action version to v4 ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
 - Changes bulk error/reason field and some cat response fields to pointer as they can be nil ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
 - Adjust workflows to work with security plugin ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
-- Updates USER_GUIDE.md and /_samples/ ([#518](https://github.com/opensearch-project/opensearch-go/pull/518))
+- Updates USER_GUIDE.md and add samples ([#518](https://github.com/opensearch-project/opensearch-go/pull/518))
 - Updates opensearchtransport.Client to use pooled gzip writer and buffer ([#521](https://github.com/opensearch-project/opensearch-go/pull/521))
 - Use go:build tags for testing ([#52?](https://github.com/opensearch-project/opensearch-go/pull/52?))
 
@@ -241,12 +304,14 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Removed
 
 ### Fixed
+
 - Fixes search request missing a slash when no indices are given ([#470](https://github.com/opensearch-project/opensearch-go/pull/469))
 - Fixes opensearchtransport check for nil response body ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
 
 ### Security
 
 ### Dependencies
+
 - Bumps `github.com/aws/aws-sdk-go-v2` from 1.25.3 to 1.26.1
 - Bumps `github.com/wI2L/jsondiff` from 0.4.0 to 0.5.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.50.36 to 1.51.21
@@ -264,7 +329,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Updates workflow action versions ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changes integration tests to work with secure and unsecure OpenSearch ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Moves functions from `opensearch/internal/test` to `internal/test` for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Moves functions from `opensearch/internal/test` to `opensearchutil/testutil` for shared test utilities ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changes `custom_foldername` field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changs cat indices Primary and Replica field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Replaces `ioutil` with `io` in examples and integration tests [#495](https://github.com/opensearch-project/opensearch-go/pull/495)

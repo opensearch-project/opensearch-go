@@ -14,48 +14,52 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestSearchShards(t *testing.T) {
-	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	t.Parallel()
+	client, err := testutil.NewClient(t)
+	require.NoError(t, err)
 
-	index := "test-index-search-shards"
+	index := testutil.MustUniqueString(t, "test-index-search-shards")
 
 	_, err = client.Indices.Create(
-		nil,
+		t.Context(),
 		opensearchapi.IndicesCreateReq{
 			Index: index,
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
-		client.Indices.Delete(nil, opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	t.Run("with nil request", func(t *testing.T) {
-		resp, err := client.SearchShards(nil, nil)
-		require.Nil(t, err)
+		t.Parallel()
+		resp, err := client.SearchShards(t.Context(), nil)
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
-		resp, err := client.SearchShards(nil, &opensearchapi.SearchShardsReq{Indices: []string{index}})
-		require.Nil(t, err)
+		t.Parallel()
+		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
+		t.Parallel()
 		failingClient, err := osapitest.CreateFailingClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		res, err := failingClient.SearchShards(nil, nil)
-		assert.NotNil(t, err)
+		res, err := failingClient.SearchShards(t.Context(), nil)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})

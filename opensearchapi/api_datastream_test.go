@@ -12,32 +12,32 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestDataStreamClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
+	client, err := testutil.NewClient(t)
+	require.NoError(t, err)
 	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	dataStream := "data-stream-test"
 
 	_, err = client.IndexTemplate.Create(
-		nil,
+		t.Context(),
 		opensearchapi.IndexTemplateCreateReq{
 			IndexTemplate: dataStream,
-			Body:          strings.NewReader(`{"index_patterns":["data-stream-test"],"template":{"settings":{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
+			Body: strings.NewReader(`{"index_patterns":["data-stream-test"],"template":{"settings":` +
+				`{"index":{"number_of_replicas":"0"}}},"priority":60,"data_stream":{}}`),
 		},
 	)
-	require.Nil(t, err)
+	require.NoError(t, err)
 	t.Cleanup(func() {
-		client.IndexTemplate.Delete(nil, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
+		client.IndexTemplate.Delete(t.Context(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: dataStream})
 	})
 
 	type dataStreamTests struct {
@@ -55,13 +55,13 @@ func TestDataStreamClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.DataStream.Create(nil, opensearchapi.DataStreamCreateReq{DataStream: dataStream})
+						return client.DataStream.Create(t.Context(), opensearchapi.DataStreamCreateReq{DataStream: dataStream})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.DataStream.Create(nil, opensearchapi.DataStreamCreateReq{DataStream: dataStream})
+						return failingClient.DataStream.Create(t.Context(), opensearchapi.DataStreamCreateReq{DataStream: dataStream})
 					},
 				},
 			},
@@ -72,13 +72,13 @@ func TestDataStreamClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.DataStream.Get(nil, &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
+						return client.DataStream.Get(t.Context(), &opensearchapi.DataStreamGetReq{DataStreams: []string{dataStream}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.DataStream.Get(nil, nil)
+						return failingClient.DataStream.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -89,13 +89,13 @@ func TestDataStreamClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.DataStream.Stats(nil, &opensearchapi.DataStreamStatsReq{DataStreams: []string{dataStream}})
+						return client.DataStream.Stats(t.Context(), &opensearchapi.DataStreamStatsReq{DataStreams: []string{dataStream}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.DataStream.Stats(nil, nil)
+						return failingClient.DataStream.Stats(t.Context(), nil)
 					},
 				},
 			},
@@ -106,13 +106,13 @@ func TestDataStreamClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.DataStream.Delete(nil, opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
+						return client.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.DataStream.Delete(nil, opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
+						return failingClient.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: dataStream})
 					},
 				},
 			},
@@ -124,14 +124,14 @@ func TestDataStreamClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
-						assert.NotNil(t, res)
+						require.Error(t, err)
+						require.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
-						ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
+						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})
 			}

@@ -41,6 +41,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil/mockhttp"
 )
 
 var (
@@ -50,17 +52,15 @@ var (
 
 func TestTransportLogger(t *testing.T) {
 	newRoundTripper := func() http.RoundTripper {
-		return &mockTransp{
-			RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-				return &http.Response{
-					Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-					StatusCode:    http.StatusOK,
-					ContentLength: 13,
-					Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-					Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
-				}, nil
-			},
-		}
+		return mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+				StatusCode:    http.StatusOK,
+				ContentLength: 13,
+				Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+				Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
+			}, nil
+		})
 	}
 
 	t.Run("Defaults", func(t *testing.T) {
@@ -107,11 +107,9 @@ func TestTransportLogger(t *testing.T) {
 	t.Run("No HTTP response", func(t *testing.T) {
 		tp, _ := New(Config{
 			URLs: []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					return nil, errors.New("Mock error")
-				},
-			},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return nil, errors.New("Mock error")
+			}),
 			Logger: &TextLogger{Output: io.Discard},
 		})
 

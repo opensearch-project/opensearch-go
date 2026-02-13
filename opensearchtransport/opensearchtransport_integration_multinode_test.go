@@ -29,22 +29,60 @@
 package opensearchtransport_test
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"testing"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
-var (
-	_ = fmt.Print
-)
+var _ = fmt.Print
+
+// getTestScheme returns http or https based on SECURE_INTEGRATION env var.
+// Defaults to http (insecure) to match Makefile and dev environments.
+func getTestScheme() string {
+	val, found := os.LookupEnv("SECURE_INTEGRATION")
+	if !found {
+		return "http" // Default to insecure
+	}
+	isSecure, err := strconv.ParseBool(val)
+	if err != nil {
+		return "http" // Default to insecure on parse error
+	}
+	if isSecure {
+		return "https"
+	}
+	return "http"
+}
+
+// getTestTransport returns an http.RoundTripper configured for secure or insecure mode.
+// Defaults to insecure to match Makefile and dev environments.
+func getTestTransport() http.RoundTripper {
+	val, found := os.LookupEnv("SECURE_INTEGRATION")
+	if !found {
+		return http.DefaultTransport // Default to insecure
+	}
+	isSecure, err := strconv.ParseBool(val)
+	if err != nil {
+		return http.DefaultTransport // Default to insecure on parse error
+	}
+	if isSecure {
+		return &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Intentionally skipping TLS verification for test environments
+		}
+	}
+	return http.DefaultTransport
+}
 
 func TestTransportSelector(t *testing.T) {
 	NodeName := func(t *testing.T, transport opensearchtransport.Interface) string {
-		req, err := http.NewRequest("GET", "/", nil)
+		t.Helper()
+		req, err := http.NewRequest(http.MethodGet, "/", nil)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -53,11 +91,12 @@ func TestTransportSelector(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
+		defer res.Body.Close()
 
-		fmt.Printf("> GET %s\n", req.URL)
+		t.Logf("> GET %q", req.URL)
 
 		r := struct {
-			Name string
+			Name string `json:"name"`
 		}{}
 
 		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
@@ -68,27 +107,29 @@ func TestTransportSelector(t *testing.T) {
 	}
 
 	t.Run("RoundRobin", func(t *testing.T) {
-		var (
-			node string
-		)
-		transport, _ := opensearchtransport.New(opensearchtransport.Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "localhost:9200"},
-			{Scheme: "http", Host: "localhost:9201"},
-		}})
+		var node string
+		scheme := getTestScheme()
+		transport, _ := opensearchtransport.New(opensearchtransport.Config{
+			URLs: []*url.URL{
+				{Scheme: scheme, Host: "localhost:9200"},
+				{Scheme: scheme, Host: "localhost:9201"},
+			},
+			Transport: getTestTransport(),
+		})
 
 		node = NodeName(t, transport)
-		if node != "es1" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node1" {
+			t.Errorf("Unexpected node, want=opensearch-node1, got=%s", node)
 		}
 
 		node = NodeName(t, transport)
-		if node != "es2" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node2" {
+			t.Errorf("Unexpected node, want=opensearch-node2, got=%s", node)
 		}
 
 		node = NodeName(t, transport)
-		if node != "es1" {
-			t.Errorf("Unexpected node, want=e1, got=%s", node)
+		if node != "opensearch-node1" {
+			t.Errorf("Unexpected node, want=opensearch-node1, got=%s", node)
 		}
 	})
 }

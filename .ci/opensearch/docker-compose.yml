@@ -1,5 +1,5 @@
 services:
-  opensearch:
+  opensearch-node1:
     deploy:
       restart_policy:
         condition: any
@@ -11,11 +11,132 @@ services:
         - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
         - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
     environment:
-      - discovery.type=single-node
-      - bootstrap.memory_lock=true
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node1
+      - node.roles=${OPENSEARCH_MANAGER_ROLE:-cluster_manager},data,ingest
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2,opensearch-node3
+      - cluster.initial_${OPENSEARCH_MANAGER_SETTING:-cluster_manager}_nodes=opensearch-node1,opensearch-node2,opensearch-node3
+      - bootstrap.memory_lock=false  # Disable memory locking for development
       - path.repo=/usr/share/opensearch/mnt
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
       - plugins.index_state_management.job_interval=1
+      # Network settings for proper node discovery
+      - network.host=0.0.0.0
+      - transport.host=0.0.0.0
+      - http.host=0.0.0.0
+      # Publish HTTP address for external clients only
+      - http.publish_host=localhost
+      - http.publish_port=9200
+      # Memory settings
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP_SIZE:-1g} -Xmx${OPENSEARCH_HEAP_SIZE:-1g} ${OPENSEARCH_JAVA_OPTS_EXTRA}
     ports:
       - "9200:9200"
+      - "9300:9300"
+    networks:
+      - opensearch-net
+    volumes:
+      - opensearch-data1:/usr/share/opensearch/data
+      - opensearch-snapshots:/usr/share/opensearch/mnt
     user: opensearch
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  opensearch-node2:
+    deploy:
+      restart_policy:
+        condition: any
+    build:
+      context: .
+      dockerfile: Dockerfile.opensearch
+      args:
+        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-false}
+        - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
+        - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node2
+      - node.roles=${OPENSEARCH_MANAGER_ROLE:-cluster_manager},data,ingest
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2,opensearch-node3
+      - cluster.initial_${OPENSEARCH_MANAGER_SETTING:-cluster_manager}_nodes=opensearch-node1,opensearch-node2,opensearch-node3
+      - bootstrap.memory_lock=false  # Disable memory locking for development
+      - path.repo=/usr/share/opensearch/mnt
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
+      - plugins.index_state_management.job_interval=1
+      # Network settings for proper node discovery
+      - network.host=0.0.0.0
+      - transport.host=0.0.0.0
+      - http.host=0.0.0.0
+      # Publish HTTP address for external clients only
+      - http.publish_host=localhost
+      - http.publish_port=9201
+      # Memory settings
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP_SIZE:-1g} -Xmx${OPENSEARCH_HEAP_SIZE:-1g} ${OPENSEARCH_JAVA_OPTS_EXTRA}
+    ports:
+      - "9201:9200"
+      - "9301:9300"
+    networks:
+      - opensearch-net
+    volumes:
+      - opensearch-data2:/usr/share/opensearch/data
+      - opensearch-snapshots:/usr/share/opensearch/mnt
+    user: opensearch
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  opensearch-node3:
+    deploy:
+      restart_policy:
+        condition: any
+    build:
+      context: .
+      dockerfile: Dockerfile.opensearch
+      args:
+        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-false}
+        - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
+        - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node3
+      - node.roles=${OPENSEARCH_MANAGER_ROLE:-cluster_manager},data,ingest
+      - discovery.seed_hosts=opensearch-node1,opensearch-node2,opensearch-node3
+      - cluster.initial_${OPENSEARCH_MANAGER_SETTING:-cluster_manager}_nodes=opensearch-node1,opensearch-node2,opensearch-node3
+      - bootstrap.memory_lock=false  # Disable memory locking for development
+      - path.repo=/usr/share/opensearch/mnt
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
+      - plugins.index_state_management.job_interval=1
+      # Network settings for proper node discovery
+      - network.host=0.0.0.0
+      - transport.host=0.0.0.0
+      - http.host=0.0.0.0
+      # Publish HTTP address for external clients only
+      - http.publish_host=localhost
+      - http.publish_port=9202
+      # Memory settings
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP_SIZE:-1g} -Xmx${OPENSEARCH_HEAP_SIZE:-1g} ${OPENSEARCH_JAVA_OPTS_EXTRA}
+    ports:
+      - "9202:9200"
+      - "9302:9300"
+    networks:
+      - opensearch-net
+    volumes:
+      - opensearch-data3:/usr/share/opensearch/data
+      - opensearch-snapshots:/usr/share/opensearch/mnt
+    user: opensearch
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+networks:
+  opensearch-net:
+    driver: bridge
+
+volumes:
+  opensearch-data1:
+  opensearch-data2:
+  opensearch-data3:
+  opensearch-snapshots:

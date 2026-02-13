@@ -50,7 +50,7 @@ func TestError(t *testing.T) {
 			assert.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
 			var testError *opensearch.StructError
-			require.True(t, errors.As(err, &testError))
+			require.ErrorAs(t, err, &testError)
 			assert.Equal(t, http.StatusBadRequest, testError.Status)
 			assert.Equal(t, "resource_already_exists_exception", testError.Err.Type)
 			assert.Equal(t, "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists", testError.Err.Reason)
@@ -92,7 +92,7 @@ func TestError(t *testing.T) {
 			assert.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
 			var testError *opensearch.StructError
-			require.True(t, errors.As(err, &testError))
+			require.ErrorAs(t, err, &testError)
 			assert.Equal(t, http.StatusBadRequest, testError.Status)
 			assert.Equal(t, "illegal_argument_exception", testError.Err.Type)
 			assert.Equal(t, "composable template [posts] template after composition is invalid", testError.Err.Reason)
@@ -117,14 +117,14 @@ func TestError(t *testing.T) {
 					}`),
 				)
 				body, err := io.ReadAll(reader)
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				var errStruct *opensearch.StructError
 				err = json.Unmarshal(body, &errStruct)
-				assert.NotNil(t, err)
+				assert.Error(t, err)
 
 				var jsonError *json.UnmarshalTypeError
-				assert.True(t, errors.As(err, &jsonError))
+				assert.ErrorAs(t, err, &jsonError)
 			})
 			t.Run("string", func(t *testing.T) {
 				reader := io.NopCloser(
@@ -134,14 +134,14 @@ func TestError(t *testing.T) {
 					}`),
 				)
 				body, err := io.ReadAll(reader)
-				require.Nil(t, err)
+				require.NoError(t, err)
 
 				var errStruct *opensearch.StructError
 				err = json.Unmarshal(body, &errStruct)
-				assert.NotNil(t, err)
+				assert.Error(t, err)
 
 				var errStr *opensearch.StringError
-				require.True(t, errors.As(err, &errStr))
+				require.ErrorAs(t, err, &errStr)
 			})
 		})
 	})
@@ -159,7 +159,7 @@ func TestError(t *testing.T) {
 		assert.True(t, resp.IsError())
 		err := opensearch.ParseError(resp)
 		var testError *opensearch.StringError
-		require.True(t, errors.As(err, &testError))
+		require.ErrorAs(t, err, &testError)
 		assert.Equal(t, http.StatusMethodNotAllowed, testError.Status)
 		assert.Contains(t, testError.Err, "Incorrect HTTP method for uri")
 		_ = fmt.Sprintf("%s", testError)
@@ -175,7 +175,7 @@ func TestError(t *testing.T) {
 		assert.True(t, resp.IsError())
 		err := opensearch.ParseError(resp)
 		var testError *opensearch.StringError
-		require.True(t, errors.As(err, &testError))
+		require.ErrorAs(t, err, &testError)
 		assert.Equal(t, http.StatusNotFound, testError.Status)
 		assert.Contains(t, testError.Err, "{\"_index\":\"index\",\"_id\":\"2\",\"matched\":false}")
 		_ = fmt.Sprintf("%s", testError)
@@ -193,7 +193,7 @@ func TestError(t *testing.T) {
 		assert.True(t, resp.IsError())
 		err := opensearch.ParseError(resp)
 		var testError *opensearch.Error
-		require.True(t, errors.As(err, &testError))
+		require.ErrorAs(t, err, &testError)
 		assert.Contains(t, testError.Err, "no handler found for uri [/_plugins/_security/xxx] and method [GET]")
 		_ = fmt.Sprintf("%s", testError)
 	})
@@ -214,7 +214,7 @@ func TestError(t *testing.T) {
 		assert.True(t, resp.IsError())
 		err := opensearch.ParseError(resp)
 		var testError *opensearch.ReasonError
-		require.True(t, errors.As(err, &testError))
+		require.ErrorAs(t, err, &testError)
 		assert.Equal(t, "error", testError.Status)
 		assert.Contains(t, testError.Reason, "Invalid configuration")
 		_ = fmt.Sprintf("%s", testError)
@@ -230,7 +230,7 @@ func TestError(t *testing.T) {
 		assert.True(t, resp.IsError())
 		err := opensearch.ParseError(resp)
 		var testError *opensearch.MessageError
-		require.True(t, errors.As(err, &testError))
+		require.ErrorAs(t, err, &testError)
 		assert.Equal(t, "BAD_REQUEST", testError.Status)
 		assert.Contains(t, testError.Message, "Wrong request body")
 		_ = fmt.Sprintf("%s", testError)
@@ -277,7 +277,7 @@ func TestError(t *testing.T) {
 			t.Run(tt.Name, func(t *testing.T) {
 				err := opensearch.ParseError(tt.Resp)
 				for _, wantedError := range tt.WantedErrors {
-					assert.True(t, errors.Is(err, wantedError))
+					assert.ErrorIs(t, err, wantedError)
 				}
 			})
 		}
@@ -289,7 +289,7 @@ func TestError(t *testing.T) {
 			}
 			assert.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
-			assert.True(t, errors.Is(err, opensearch.ErrJSONUnmarshalBody))
+			assert.ErrorIs(t, err, opensearch.ErrJSONUnmarshalBody)
 		})
 		t.Run("too many requests", func(t *testing.T) {
 			resp := &opensearch.Response{
@@ -298,7 +298,7 @@ func TestError(t *testing.T) {
 			}
 			assert.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
-			assert.True(t, errors.Is(err, opensearch.ErrJSONUnmarshalBody))
+			assert.ErrorIs(t, err, opensearch.ErrJSONUnmarshalBody)
 		})
 	})
 }

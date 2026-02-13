@@ -30,7 +30,8 @@ package opensearchutil_test
 
 import (
 	"context"
-	"fmt"
+	"math"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -38,15 +39,16 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/testutil"
 )
 
 func TestBulkIndexerIntegration(t *testing.T) {
 	testRecordCount := uint64(10000)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	testCases := []struct {
 		name                       string
@@ -155,28 +157,33 @@ func TestBulkIndexerIntegration(t *testing.T) {
 	}
 
 	for _, c := range testCases {
-		indexName := "test-bulk-integration"
+		indexName := testutil.MustUniqueString(t, "test-bulk-integration")
 
 		client, _ := opensearchapi.NewClient(
 			opensearchapi.Config{
 				Client: opensearch.Config{
 					CompressRequestBody: c.compressRequestBodyEnabled,
-					Logger:              &opensearchtransport.ColorLogger{Output: os.Stdout},
 				},
 			},
 		)
 
-		config, err := osapitest.ClientConfig()
+		config, err := testutil.ClientConfig(t)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		if config != nil {
 			config.Client.CompressRequestBody = c.compressRequestBodyEnabled
-			config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			// Only enable verbose logging if DEBUG=true
+			if tptestutil.IsDebugEnabled(t) {
+				config.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
+			}
 			client, _ = opensearchapi.NewClient(*config)
 		}
 
-		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}, Params: opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)}})
+		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
+			Indices: []string{indexName},
+			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		})
 		client.Indices.Create(
 			ctx,
 			opensearchapi.IndicesCreateReq{
@@ -189,6 +196,10 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		for _, tt := range c.tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Run(c.name, func(t *testing.T) {
+					ctx, cancel := context.WithCancel(t.Context())
+					defer cancel()
+
+					// Pass client to avoid internal client creation that schedules node discovery
 					bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 						Index:      indexName,
 						Client:     client,
@@ -200,30 +211,61 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 					start := time.Now().UTC()
 
-					for i := 1; i <= int(tt.numItems); i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+					// Validate numItems is within safe int range
+					if tt.numItems > math.MaxInt {
+						t.Fatalf("numItems too large: %d", tt.numItems)
+					}
+
+					// Track failures for debugging
+					var failureCount int
+					var firstFailureErr error
+
+					for i := 1; i <= int(tt.numItems); i++ { // #nosec G115 -- checked bounds above
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Index:      indexName,
 							Action:     tt.action,
-							DocumentID: strconv.Itoa(i),
+							DocumentID: strconv.FormatUint(uint64(i), 10),
 							Body:       strings.NewReader(tt.body),
+							OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem) {
+								if tptestutil.IsDebugEnabled(t) {
+									t.Logf("[%s] SUCCESS: id=%s, index=%s, status=%d", tt.action, item.DocumentID, resp.Index, resp.Status)
+								}
+							},
+							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+								failureCount++
+								if firstFailureErr == nil {
+									firstFailureErr = err
+								}
+								// Only log individual failures if unexpected or in debug mode
+								if (tt.numFailed == 0 || tptestutil.IsDebugEnabled(t)) && failureCount <= 5 {
+									t.Logf("[%s] FAILURE: id=%s, index=%s, status=%d, err=%v, resp.Error=%+v",
+										tt.action, item.DocumentID, resp.Index, resp.Status, err, resp.Error)
+								}
+							},
 						})
 						if err != nil {
-							t.Fatalf("Unexpected error: %s", err)
+							t.Fatalf("Unexpected error adding item: %s", err)
 						}
 					}
 
-					if err := bi.Close(context.Background()); err != nil {
-						t.Errorf("Unexpected error: %s", err)
+					if err := bi.Close(ctx); err != nil {
+						t.Errorf("Unexpected error closing bulk indexer: %v", err)
 					}
 
 					stats := bi.Stats()
+
+					// Only log failure summary if count doesn't match expectations
+					if stats.NumFailed != tt.numFailed {
+						t.Logf("Unexpected failure count for %s: want=%d, got=%d, first error: %v",
+							tt.action, tt.numFailed, stats.NumFailed, firstFailureErr)
+					}
 
 					if stats.NumAdded != tt.numItems {
 						t.Errorf("Unexpected NumAdded: want=%d, got=%d", tt.numItems, stats.NumAdded)
 					}
 
 					if stats.NumIndexed != tt.numIndexed {
-						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", tt.numItems, stats.NumIndexed)
+						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", tt.numIndexed, stats.NumIndexed)
 					}
 
 					if stats.NumUpdated != tt.numUpdated {
@@ -235,75 +277,132 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					}
 
 					if stats.NumFailed != tt.numFailed {
-						t.Errorf("Unexpected NumFailed: want=0, got=%d", stats.NumFailed)
+						t.Errorf("Unexpected NumFailed: want=%d, got=%d", tt.numFailed, stats.NumFailed)
 					}
 
-					fmt.Printf("  Added %d documents to indexer. Succeeded: %d. Failed: %d. Requests: %d. Duration: %s (%.0f docs/sec)\n",
-						stats.NumAdded,
-						stats.NumFlushed,
-						stats.NumFailed,
-						stats.NumRequests,
-						time.Since(start).Truncate(time.Millisecond),
-						1000.0/float64(time.Since(start)/time.Millisecond)*float64(stats.NumFlushed))
+					if tptestutil.IsDebugEnabled(t) {
+						t.Logf("  Added %d documents to indexer. Succeeded: %d. Failed: %d. Requests: %d. Duration: %s (%.0f docs/sec)",
+							stats.NumAdded,
+							stats.NumFlushed,
+							stats.NumFailed,
+							stats.NumRequests,
+							time.Since(start).Truncate(time.Millisecond),
+							1000.0/float64(time.Since(start)/time.Millisecond)*float64(stats.NumFlushed))
+					}
 				})
 
 				t.Run("Multiple indices", func(t *testing.T) {
+					ctx, cancel := context.WithCancel(t.Context())
+					defer cancel()
+
+					var failureCount int
+					var firstFailureErr error
+
 					bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 						Index:  "test-index-a",
 						Client: client,
+						OnError: func(ctx context.Context, err error) {
+							t.Logf("BulkIndexer error: %v", err)
+						},
 					})
 
 					// Default index
 					for i := 1; i <= 10; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Action:     "index",
 							DocumentID: strconv.Itoa(i),
 							Body:       strings.NewReader(tt.body),
+							OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem) {
+								if tptestutil.IsDebugEnabled(t) {
+									t.Logf("[Multiple indices] SUCCESS: id=%s, index=%s", item.DocumentID, resp.Index)
+								}
+							},
+							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+								failureCount++
+								if firstFailureErr == nil {
+									firstFailureErr = err
+								}
+								t.Logf("[Multiple indices] FAILURE: id=%s, index=%s, status=%d, err=%v, resp.Error=%+v",
+									item.DocumentID, resp.Index, resp.Status, err, resp.Error)
+							},
 						})
 						if err != nil {
-							t.Fatalf("Unexpected error: %s", err)
+							t.Fatalf("Unexpected error adding to default index: %v", err)
 						}
 					}
 
 					// Index 1
 					for i := 1; i <= 10; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Action: "index",
 							Index:  "test-index-b",
 							Body:   strings.NewReader(tt.body),
+							OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem) {
+								if tptestutil.IsDebugEnabled(t) {
+									t.Logf("[Multiple indices] SUCCESS: index=%s", resp.Index)
+								}
+							},
+							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+								failureCount++
+								if firstFailureErr == nil {
+									firstFailureErr = err
+								}
+								t.Logf("[Multiple indices] FAILURE: index=%s, status=%d, err=%v, resp.Error=%+v",
+									resp.Index, resp.Status, err, resp.Error)
+							},
 						})
 						if err != nil {
-							t.Fatalf("Unexpected error: %s", err)
+							t.Fatalf("Unexpected error adding to test-index-b: %v", err)
 						}
 					}
 
 					// Index 2
 					for i := 1; i <= 10; i++ {
-						err := bi.Add(context.Background(), opensearchutil.BulkIndexerItem{
+						err := bi.Add(ctx, opensearchutil.BulkIndexerItem{
 							Action: "index",
 							Index:  "test-index-c",
 							Body:   strings.NewReader(tt.body),
+							OnSuccess: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem) {
+								if tptestutil.IsDebugEnabled(t) {
+									t.Logf("[Multiple indices] SUCCESS: index=%s", resp.Index)
+								}
+							},
+							OnFailure: func(ctx context.Context, item opensearchutil.BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+								failureCount++
+								if firstFailureErr == nil {
+									firstFailureErr = err
+								}
+								t.Logf("[Multiple indices] FAILURE: index=%s, status=%d, err=%v, resp.Error=%+v",
+									resp.Index, resp.Status, err, resp.Error)
+							},
 						})
 						if err != nil {
-							t.Fatalf("Unexpected error: %s", err)
+							t.Fatalf("Unexpected error adding to test-index-c: %v", err)
 						}
 					}
 
-					if err := bi.Close(context.Background()); err != nil {
-						t.Errorf("Unexpected error: %s", err)
+					if err := bi.Close(ctx); err != nil {
+						t.Errorf("Unexpected error closing bulk indexer: %v", err)
 					}
 					stats := bi.Stats()
 
+					if failureCount > 0 {
+						t.Logf("[Multiple indices] Total failures: %d, first error: %v", failureCount, firstFailureErr)
+					}
+
 					expectedIndexed := 10 + 10 + 10
+					// #nosec G115 -- small constant value, no overflow risk
 					if stats.NumIndexed != uint64(expectedIndexed) {
 						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 					}
 
-					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: []string{"test-index-a", "test-index-b", "test-index-c"}})
+					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
+						Indices: []string{"test-index-a", "test-index-b", "test-index-c"},
+					})
 					if err != nil {
-						t.Fatalf("Unexpected error: %s", err)
+						t.Fatalf("Unexpected error checking indices: %v", err)
 					}
-					if res.StatusCode != 200 {
+					if res.StatusCode != http.StatusOK {
 						t.Errorf("Expected indices to exist, but got a [%s] response", res.Status())
 					}
 				})
