@@ -9,25 +9,30 @@
 package security_test
 
 import (
+	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
-func TestInternalUsersClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	client, err := ossectest.NewClient()
-	require.Nil(t, err)
+func TestSecurityInternalUsersClient(t *testing.T) {
+	testutil.SkipIfNotSecure(t)
+	client, err := ossectest.NewClient(t)
+	require.NoError(t, err)
 
-	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	failingClient, err := ossectest.CreateFailingClient(t)
+	require.NoError(t, err)
 
-	testUser := "test_user"
+	testUser := testutil.MustUniqueString(t, "test-user")
+	t.Cleanup(func() {
+		client.InternalUsers.Delete(context.Background(), security.InternalUsersDeleteReq{User: testUser})
+	})
 
 	type internalusersTests struct {
 		Name    string
@@ -45,7 +50,7 @@ func TestInternalUsersClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.InternalUsers.Put(
-							nil,
+							t.Context(),
 							security.InternalUsersPutReq{
 								User: testUser,
 								Body: security.InternalUsersPutBody{
@@ -58,7 +63,7 @@ func TestInternalUsersClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.InternalUsers.Put(nil, security.InternalUsersPutReq{})
+						return failingClient.InternalUsers.Put(t.Context(), security.InternalUsersPutReq{})
 					},
 				},
 			},
@@ -69,19 +74,19 @@ func TestInternalUsersClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.InternalUsers.Get(nil, nil)
+						return client.InternalUsers.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.InternalUsers.Get(nil, &security.InternalUsersGetReq{User: testUser})
+						return client.InternalUsers.Get(t.Context(), &security.InternalUsersGetReq{User: testUser})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.InternalUsers.Get(nil, nil)
+						return failingClient.InternalUsers.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -92,13 +97,13 @@ func TestInternalUsersClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.InternalUsers.Delete(nil, security.InternalUsersDeleteReq{User: testUser})
+						return client.InternalUsers.Delete(t.Context(), security.InternalUsersDeleteReq{User: testUser})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.InternalUsers.Delete(nil, security.InternalUsersDeleteReq{User: testUser})
+						return failingClient.InternalUsers.Delete(t.Context(), security.InternalUsersDeleteReq{User: testUser})
 					},
 				},
 			},
@@ -110,19 +115,19 @@ func TestInternalUsersClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.InternalUsers.Patch(
-							nil,
+							t.Context(),
 							security.InternalUsersPatchReq{
 								Body: security.InternalUsersPatchBody{
 									security.InternalUsersPatchBodyItem{
 										OP:   "add",
-										Path: "/test",
+										Path: fmt.Sprintf("/%s-patch", testUser),
 										Value: security.InternalUsersPutBody{
 											Password: "myStrongPassword123!",
 										},
 									},
 									security.InternalUsersPatchBodyItem{
 										OP:   "remove",
-										Path: "/test",
+										Path: fmt.Sprintf("/%s-patch", testUser),
 									},
 								},
 							},
@@ -132,7 +137,7 @@ func TestInternalUsersClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.InternalUsers.Patch(nil, security.InternalUsersPatchReq{})
+						return failingClient.InternalUsers.Patch(t.Context(), security.InternalUsersPatchReq{})
 					},
 				},
 			},
@@ -144,15 +149,15 @@ func TestInternalUsersClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -161,10 +166,10 @@ func TestInternalUsersClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.InternalUsers.Get(nil, nil)
-			assert.Nil(t, err)
+			resp, err := client.InternalUsers.Get(t.Context(), nil)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.Users, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.Users, resp.Inspect().Response)
 		})
 	})
 }

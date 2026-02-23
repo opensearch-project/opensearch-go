@@ -4,7 +4,7 @@
   "items": [
     {
       "index": {
-        "_index": "test",
+        "_index": "mock-index",
         "_id": "1",
         "_version": 1,
         "result": "created",
@@ -20,7 +20,7 @@
     },
     {
       "create": {
-        "_index": "test",
+        "_index": "mock-index",
         "_id": "2",
         "status": 409,
         "error": {
