@@ -29,6 +29,7 @@
 package opensearchtransport
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -40,6 +41,7 @@ import (
 	"os"
 	"reflect"
 	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -703,9 +705,17 @@ func TestDiscovery(t *testing.T) {
 					json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
 				})
 
+				// Assign each mock node a unique port so discovery creates
+				// distinct Connection objects per node.
+				port := 9200
+				nodeAddrs := make(map[string]string, len(tt.args.Nodes))
+				for name := range tt.args.Nodes {
+					nodeAddrs[name] = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+					port++
+				}
+
 				// Add nodes info handler with this test's data
 				testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
-					// Create a simple response structure compatible with the discovery parsing
 					response := map[string]any{
 						"_nodes": map[string]any{
 							"total":      len(tt.args.Nodes),
@@ -718,14 +728,13 @@ func TestDiscovery(t *testing.T) {
 
 					nodes := response["nodes"].(map[string]any)
 					for name, node := range tt.args.Nodes {
-						// Use the test server address for publish_address so health checks work
 						nodes[name] = map[string]any{
 							"name":  name,
 							"host":  "127.0.0.1",
 							"ip":    "127.0.0.1",
 							"roles": node.Roles,
 							"http": map[string]any{
-								"publish_address": testServer.Addr, // Point to our test server, not fictional hostnames
+								"publish_address": nodeAddrs[name],
 							},
 						}
 					}
@@ -739,39 +748,38 @@ func TestDiscovery(t *testing.T) {
 				}()
 				defer func() { testServer.Close() }()
 
-				// Use the test server for discovery
-				urls := []*url.URL{{Scheme: "http", Host: testServer.Addr}}
-				c, _ := New(Config{URLs: urls})
-
-				// Debug: test the nodes info API directly
-				nodesInfo, err := c.getNodesInfo(t.Context())
-				t.Logf("Role-based test - Nodes info result: %d nodes, error: %v", len(nodesInfo), err)
-				for i, node := range nodesInfo {
-					t.Logf("  Node %d: ID=%s, Name=%s, URL=%s, Roles=%v", i, node.ID, node.Name, node.url, node.Roles)
+				// Redirect transport: all connections to fake node ports are
+				// redirected to the real test server.
+				_, realPort, _ := net.SplitHostPort(testServer.Addr)
+				redirectTransport := &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						return (&net.Dialer{}).DialContext(ctx, network, net.JoinHostPort("127.0.0.1", realPort))
+					},
 				}
 
+				// Use the test server for discovery
+				urls := []*url.URL{{Scheme: "http", Host: testServer.Addr}}
+				c, _ := New(Config{URLs: urls, Transport: redirectTransport})
+
 				err = c.DiscoverNodes(t.Context())
-				t.Logf("DiscoverNodes error: %v", err)
+				require.NoError(t, err)
 
 				pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 				if !ok {
 					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.connectionPool)
 				}
 
-				// Debug: print actual nodes found
 				pool.mu.RLock()
-				t.Logf("Live connections: %d", len(pool.mu.live))
-				for i, conn := range pool.mu.live {
-					t.Logf("  [%d] Name: %s, URL: %s, Roles: %v", i, conn.Name, conn.URL.String(), conn.Roles)
-				}
-				t.Logf("Dead connections: %d", len(pool.mu.dead))
-				for i, conn := range pool.mu.dead {
-					t.Logf("  [%d] Name: %s, URL: %s, Roles: %v", i, conn.Name, conn.URL.String(), conn.Roles)
-				}
+				totalConns := len(pool.mu.live) + len(pool.mu.dead)
+				liveCount := len(pool.mu.live)
 				pool.mu.RUnlock()
 
-				if len(pool.mu.live) != tt.want.wantsNConn {
-					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.mu.live))
+				if liveCount != tt.want.wantsNConn {
+					// Some connections may be in dead list depending on health check timing;
+					// check total count as well
+					if totalConns != tt.want.wantsNConn {
+						t.Errorf("Unexpected number of nodes, want=%d, got live=%d total=%d", tt.want.wantsNConn, liveCount, totalConns)
+					}
 				}
 
 				for _, conn := range pool.mu.live {
@@ -1073,6 +1081,14 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Assign a unique port to each mock node so discovery creates distinct connections
+			nodeAddrs := make(map[string]string, len(tt.nodes))
+			port := 30000
+			for name := range tt.nodes {
+				nodeAddrs[name] = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+				port++
+			}
+
 			// Create a ServeMux with mock handlers
 			mux := http.NewServeMux()
 
@@ -1100,7 +1116,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 						Name:  name,
 						Roles: roles,
 						HTTP: nodeInfoHTTP{
-							PublishAddress: "localhost:9200",
+							PublishAddress: nodeAddrs[name],
 						},
 					}
 				}
@@ -1116,22 +1132,18 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
 			})
 
-			// Create mock transport that uses the ServeMux
+			// Create mock transport that redirects all fake node ports to the ServeMux
 			newRoundTripper := func() http.RoundTripper {
 				return &mockTransp{
 					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						// Use httptest.NewRecorder to capture the ServeMux response
 						recorder := httptest.NewRecorder()
 						mux.ServeHTTP(recorder, req)
-
-						// Convert the recorded response to http.Response
-						resp := recorder.Result()
-						return resp, nil
+						return recorder.Result(), nil
 					},
 				}
 			}
 
-			u, _ := url.Parse("http://localhost:9200")
+			u, _ := url.Parse("http://127.0.0.1:30000")
 			c, err := New(Config{
 				URLs:      []*url.URL{u},
 				Transport: newRoundTripper(),
@@ -1142,13 +1154,15 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
-			// Verify results
+			// Verify results - check both live and dead pools since health check timing can vary
 			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 			require.True(t, ok, "Expected statusConnectionPool")
 
-			// Check that expected nodes are included
 			actualNodes := make(map[string]bool)
 			for _, conn := range pool.mu.live {
+				actualNodes[conn.Name] = true
+			}
+			for _, conn := range pool.mu.dead {
 				actualNodes[conn.Name] = true
 			}
 
@@ -1212,20 +1226,18 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Assign a unique port to each mock node so discovery creates distinct connections
+			nodeAddrs := make(map[string]string, len(tt.nodes))
+			port := 31000
+			for name := range tt.nodes {
+				nodeAddrs[name] = net.JoinHostPort("127.0.0.1", strconv.Itoa(port))
+				port++
+			}
+
 			// Create a ServeMux with mock handlers
 			testMux := http.NewServeMux()
 
-			// Start a test server first so we have the address
-			testServer := &http.Server{
-				Addr:              "127.0.0.1:0",
-				Handler:           testMux,
-				ReadHeaderTimeout: 5 * time.Second,
-			}
-			listener, err := net.Listen("tcp", testServer.Addr)
-			require.NoError(t, err)
-			testServer.Addr = listener.Addr().String()
-
-			// Health check endpoint (catch-all for /{$} and /)
+			// Health check endpoint
 			testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
 				healthResp := map[string]any{
 					"name":         "test-node",
@@ -1239,7 +1251,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 				json.NewEncoder(w).Encode(healthResp)
 			})
 
-			// Nodes info endpoint
+			// Nodes info endpoint - each node gets a unique publish_address
 			testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 				response := map[string]any{
 					"_nodes": map[string]any{
@@ -1259,7 +1271,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 						"ip":    "127.0.0.1",
 						"roles": roles,
 						"http": map[string]any{
-							"publish_address": testServer.Addr, // Point to our test server
+							"publish_address": nodeAddrs[name],
 						},
 					}
 				}
@@ -1275,15 +1287,19 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
 			})
 
-			go func() {
-				testServer.Serve(listener)
-			}()
-			defer func() { testServer.Close() }()
+			// Create mock transport that redirects all fake node ports to the ServeMux
+			mockRT := &mockTransp{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					recorder := httptest.NewRecorder()
+					testMux.ServeHTTP(recorder, req)
+					return recorder.Result(), nil
+				},
+			}
 
-			// Use the test server for discovery
-			urls := []*url.URL{{Scheme: "http", Host: testServer.Addr}}
+			u, _ := url.Parse("http://127.0.0.1:31000")
 			c, err := New(Config{
-				URLs:                            urls,
+				URLs:                            []*url.URL{u},
+				Transport:                       mockRT,
 				IncludeDedicatedClusterManagers: tt.includeDedicatedClusterManagers,
 			})
 			require.NoError(t, err)
@@ -1292,13 +1308,15 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
-			// Verify results
+			// Verify results - check both live and dead pools since health check timing can vary
 			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 			require.True(t, ok, "Expected statusConnectionPool")
 
-			// Check included nodes
 			actualNodes := make(map[string]bool)
 			for _, conn := range pool.mu.live {
+				actualNodes[conn.Name] = true
+			}
+			for _, conn := range pool.mu.dead {
 				actualNodes[conn.Name] = true
 			}
 

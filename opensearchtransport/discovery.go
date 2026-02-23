@@ -136,6 +136,7 @@ func (rs roleSet) has(roleName string) bool {
 
 // toSlice converts the roleSet back to a []string slice for compatibility.
 // The roles are sorted alphabetically for consistent ordering.
+// IMPORTANT: compareConnectionRoles() depends on this returning a sorted slice.
 func (rs roleSet) toSlice() []string {
 	if len(rs) == 0 {
 		return nil
@@ -249,13 +250,18 @@ func (c *Client) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeI
 		}(conn)
 	}
 
-	return c.updateConnectionPool(liveConnections, []*Connection{})
+	// Cold start — no existing connections to compare timestamps against.
+	return c.updateConnectionPool(time.Time{}, liveConnections, []*Connection{})
 }
 
 // nodeDiscovery handles discovery for running clusters - waits for health checks.
 func (c *Client) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
 	// Running cluster - health check before categorizing
 	var wg sync.WaitGroup
+
+	// Capture the time before health checks begin. Any connection whose deadSince
+	// predates this timestamp has stale dead state that the health check supersedes.
+	healthCheckedAt := time.Now()
 
 	// Pre-allocate based on total discovered nodes
 	liveConnections := make([]*Connection, 0, len(discovered))
@@ -281,7 +287,7 @@ func (c *Client) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error
 	}
 
 	wg.Wait()
-	return c.updateConnectionPool(liveConnections, deadConnections)
+	return c.updateConnectionPool(healthCheckedAt, liveConnections, deadConnections)
 }
 
 // createConnection creates a Connection from nodeInfo with proper role processing.
@@ -300,81 +306,145 @@ func (c *Client) createConnection(node nodeInfo) *Connection {
 
 // updateConnectionPool atomically updates the connection pool with new connection information
 // and notifies the router of cluster topology changes.
-func (c *Client) updateConnectionPool(liveConnections, deadConnections []*Connection) error {
+//
+// The healthCheckedAt parameter records when health checks started for this discovery cycle.
+// Reused connections whose deadSince predates healthCheckedAt have stale dead state and are
+// resurrected. Connections marked dead after healthCheckedAt failed concurrently and stay dead.
+func (c *Client) updateConnectionPool(healthCheckedAt time.Time, liveConnections, deadConnections []*Connection) error {
 	totalNodes := len(liveConnections) + len(deadConnections)
-	allConnections := make([]*Connection, 0, totalNodes)
-	allConnections = append(allConnections, liveConnections...)
-	allConnections = append(allConnections, deadConnections...)
+
+	// Build map of new connections by URL
+	newConnectionsByURL := make(map[string]*Connection, totalNodes)
+	for _, conn := range liveConnections {
+		newConnectionsByURL[conn.URL.String()] = conn
+	}
+	for _, conn := range deadConnections {
+		newConnectionsByURL[conn.URL.String()] = conn
+	}
+
+	// Build map of live URLs for final partitioning
+	liveURLs := make(map[string]struct{}, len(liveConnections))
+	for _, conn := range liveConnections {
+		liveURLs[conn.URL.String()] = struct{}{}
+	}
 
 	// Get current connections for diff calculation (minimal lock time)
 	c.mu.RLock()
 	currentPool := c.mu.connectionPool
 	c.mu.RUnlock()
 
-	var currentConnections []*Connection
+	var currentConnectionsByURL map[string]*Connection
 	if currentPool != nil {
-		// Convert URLs back to connections for diff calculation
 		currentURLs := currentPool.URLs()
-		currentConnectionMap := make(map[string]*Connection)
-		for _, conn := range allConnections {
-			currentConnectionMap[conn.URL.String()] = conn
-		}
+		currentConnectionsByURL = make(map[string]*Connection, len(currentURLs))
 
-		for _, url := range currentURLs {
-			if conn, exists := currentConnectionMap[url.String()]; exists {
-				currentConnections = append(currentConnections, conn)
+		for _, urlPtr := range currentURLs {
+			url := urlPtr.String()
+			if conn := c.findConnectionByURL(currentPool, url); conn != nil {
+				currentConnectionsByURL[url] = conn
 			}
 		}
 	}
 
-	// Calculate diff outside the lock
-	currentURLs := make(map[string]struct{})
-	for _, conn := range currentConnections {
-		currentURLs[conn.URL.String()] = struct{}{}
-	}
-
-	newURLs := make(map[string]*Connection)
-	for _, conn := range allConnections {
-		newURLs[conn.URL.String()] = conn
-	}
-
+	// Calculate diff with role-change detection
 	var added []*Connection
 	var removed []*Connection
 	var unchanged []*Connection
 
-	// Find added connections
-	for url, conn := range newURLs {
-		if _, exists := currentURLs[url]; !exists {
-			added = append(added, conn)
+	// Reuse connection objects when URL and roles are unchanged.
+	// Detect role changes and treat them as remove+add.
+	finalConnectionsByURL := make(map[string]*Connection, len(newConnectionsByURL))
+
+	for url, newConn := range newConnectionsByURL {
+		oldConn, existed := currentConnectionsByURL[url]
+		if !existed {
+			// Brand new connection
+			added = append(added, newConn)
+			finalConnectionsByURL[url] = newConn
+			continue
+		}
+
+		if oldConn == newConn {
+			// Same object - truly unchanged
+			unchanged = append(unchanged, newConn)
+			finalConnectionsByURL[url] = newConn
+			continue
+		}
+
+		// Different Connection objects for same URL - check if roles changed
+		if compareConnectionRoles(oldConn, newConn) != 0 {
+			// Roles changed - treat as remove+add so policies can re-evaluate
+			removed = append(removed, oldConn)
+			added = append(added, newConn)
+			finalConnectionsByURL[url] = newConn
 		} else {
-			unchanged = append(unchanged, conn)
+			// Same URL, same roles - reuse old object to avoid policy churn
+			unchanged = append(unchanged, oldConn)
+			finalConnectionsByURL[url] = oldConn
 		}
 	}
 
-	// Find removed connections
-	for _, conn := range currentConnections {
-		if _, exists := newURLs[conn.URL.String()]; !exists {
-			removed = append(removed, conn)
+	// Find removed connections (in old pool but not in new discovery)
+	for url, oldConn := range currentConnectionsByURL {
+		if _, exists := newConnectionsByURL[url]; !exists {
+			removed = append(removed, oldConn)
+			if debugLogger != nil {
+				debugLogger.Logf("Discovery: Connection %q removed from cluster (roles: %v)\n", url, oldConn.Roles.toSlice())
+			}
+		}
+	}
+
+	// Partition final connections into live/dead based on health check results
+	// and stale dead state detection.
+	finalLive := make([]*Connection, 0, len(finalConnectionsByURL))
+	finalDead := make([]*Connection, 0, len(finalConnectionsByURL))
+
+	for url, conn := range finalConnectionsByURL {
+		if _, isLive := liveURLs[url]; isLive {
+			// Connection passed health check — check for stale dead state on reused objects
+			conn.mu.Lock()
+			deadSince := conn.mu.deadSince
+			stale := !deadSince.IsZero() && !healthCheckedAt.IsZero() && deadSince.Before(healthCheckedAt)
+			switch {
+			case stale:
+				// Dead state predates our health check — resurrect
+				conn.mu.deadSince = time.Time{}
+				conn.mu.Unlock()
+				conn.failures.Store(0)
+			case !deadSince.IsZero():
+				// Marked dead after health check started — keep dead
+				conn.mu.Unlock()
+				finalDead = append(finalDead, conn)
+				continue
+			default:
+				conn.mu.Unlock()
+			}
+			finalLive = append(finalLive, conn)
+		} else {
+			finalDead = append(finalDead, conn)
 		}
 	}
 
 	// Prepare new connection pool outside the lock, then atomically swap
 	c.mu.Lock()
-	defer c.mu.Unlock()
 
 	var newConnectionPool ConnectionPool
 	if totalNodes == 1 {
-		newConnectionPool = c.createOrUpdateSingleNodePool(liveConnections, deadConnections)
+		newConnectionPool = c.createOrUpdateSingleNodePool(finalLive, finalDead)
 	} else {
-		newConnectionPool = c.createOrUpdateMultiNodePool(liveConnections, deadConnections)
+		newConnectionPool = c.createOrUpdateMultiNodePool(finalLive, finalDead)
 	}
 
 	// Perform swap of connection pools
 	c.mu.connectionPool = newConnectionPool
-	router := c.router // Capture router reference while holding lock
 
-	if router != nil {
-		if err := router.DiscoveryUpdate(added, removed, unchanged); err != nil {
+	// Release c.mu before calling router.DiscoveryUpdate to prevent lock inversion.
+	// router.DiscoveryUpdate may acquire pool-level locks via RolePolicy; holding c.mu here
+	// would create: c.mu(W) -> pool.mu(W) while request path does pool.mu(R) -> c.mu(R).
+	c.mu.Unlock()
+
+	if c.router != nil {
+		if err := c.router.DiscoveryUpdate(added, removed, unchanged); err != nil {
 			if debugLogger != nil {
 				debugLogger.Logf("Router DiscoveryUpdate error: %s\n", err)
 			}
@@ -553,6 +623,42 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	}
 
 	return u
+}
+
+// compareConnectionRoles compares two connections by URL then by sorted role slice.
+// Returns 0 if both URL and roles are identical.
+func compareConnectionRoles(a, b *Connection) int {
+	if cmp := strings.Compare(a.URL.String(), b.URL.String()); cmp != 0 {
+		return cmp
+	}
+	aRoles := a.Roles.toSlice()
+	bRoles := b.Roles.toSlice()
+	return slices.Compare(aRoles, bRoles)
+}
+
+// findConnectionByURL retrieves the actual *Connection object from the pool
+// that matches the given URL string. Returns nil if not found.
+func (c *Client) findConnectionByURL(pool ConnectionPool, url string) *Connection {
+	switch p := pool.(type) {
+	case *singleConnectionPool:
+		if p.connection != nil && p.connection.URL.String() == url {
+			return p.connection
+		}
+	case *statusConnectionPool:
+		p.RLock()
+		defer p.RUnlock()
+		for _, conn := range p.mu.live {
+			if conn.URL.String() == url {
+				return conn
+			}
+		}
+		for _, conn := range p.mu.dead {
+			if conn.URL.String() == url {
+				return conn
+			}
+		}
+	}
+	return nil
 }
 
 func (c *Client) scheduleDiscoverNodes() {
