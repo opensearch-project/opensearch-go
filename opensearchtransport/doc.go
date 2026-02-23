@@ -45,14 +45,134 @@ implement the RetryBackoff option function; see an example in the package unit t
 When multiple addresses are passed in configuration, the package will use them in a round-robin fashion,
 and will keep track of live and dead nodes. The status of dead nodes is checked periodically.
 
-To customize the node selection behavior, provide a Selector implementation in the configuration.
+# Dead Connection Resurrection and Rate Limiting
+
+When a connection is marked dead (health check failure or request error), a goroutine schedules
+periodic resurrection attempts using exponential backoff scaled by cluster health.
+
+The base timeout uses exponential backoff capped at ResurrectTimeoutMax:
+
+	baseTimeout = min(ResurrectTimeoutInitial * 2^(failures-1), ResurrectTimeoutMax)
+
+Three inputs compete via max() to determine the final retry interval:
+
+ 1. Health-ratio timeout: baseTimeout * (liveNodes / totalNodes).
+    Healthy clusters wait longer (no rush); degraded clusters retry sooner.
+
+ 2. Rate-limited timeout: (liveNodes * clientsPerServer) / serverMaxNewConnsPerSec.
+    Both clientsPerServer and serverMaxNewConnsPerSec are auto-derived from the
+    node's core count (discovered from /_nodes/http,os). This throttles health checks
+    based on estimated TLS handshake pressure on recovering servers.
+    When all nodes are dead, this term is zero (most aggressive -- we need capacity back).
+
+ 3. Minimum floor: MinimumResurrectTimeout (absolute lower bound, default 500ms).
+
+The final timeout is max(healthTimeout, rateLimitedTimeout, minimum) + random jitter.
+
+Configure rate limiting via the auto-discovered server core count. The client
+discovers each node's allocated_processors from /_nodes/http,os and derives:
+
+  - clientsPerServer = coreCount (1 active client per core)
+
+  - serverMaxNewConnsPerSec = coreCount * 4 (OS queue depth scaling)
+
+  - healthCheckRate = coreCount * 0.10 (10% of core budget)
+
+    transport, err := opensearchtransport.New(opensearchtransport.Config{
+    URLs: urls,
+    // Rate limiting is auto-derived from server hardware.
+    // No manual tuning required.
+    })
+
+# Request-Based Connection Routing
+
+To enable intelligent request routing that routes operations to appropriate node types,
+provide a Router implementation in the configuration:
+
+	// Enable smart routing (recommended for production clusters)
+	router := opensearchtransport.NewSmartRouter()
+	transport, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs:   []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
+		Router: router,
+	})
+
+Available router constructors:
+
+  - NewDefaultRouter(): Coordinator preference with round-robin fallback
+  - NewSmartRouter(): HTTP pattern-based routing (bulk->ingest, search->data) with coordinator preference
+  - NewRouter(policies...): Custom policy chain
+
+The routing system uses a chain-of-responsibility pattern where policies are tried in sequence:
+
+  - Router: Top-level coordinator that tries policies until one matches
+  - Policy: Individual routing strategy that may match or pass to next policy
+  - Fallthrough: Policies return (nil, nil) when they don't match
+
+# Available Policies
+
+Individual routing policies that can be composed into custom strategies:
+
+	// Role-based policies
+	NewRolePolicy("data", "ingest")           // Nodes with specific roles
+	NewRolePolicy(RoleCoordinatingOnly)       // Coordinating-only nodes
+
+	// Pattern-based routing
+	NewMuxPolicy(routes)                      // HTTP pattern matching
+
+	// Conditional routing
+	NewIfEnabledPolicy(condition, true, false) // Runtime conditions
+
+	// Basic policies
+	NewRoundRobinPolicy()                     // Round-robin across all nodes
+	NewNullPolicy()                           // Always returns no connections
+
+	// Policy composition
+	NewPolicy(policies...)                    // Chain multiple policies (returns PolicyChain)
+
+# Request Routing Patterns
+
+The smart router automatically handles these OpenSearch operation patterns:
+
+  - Bulk operations (/_bulk, /_bulk/stream) -> Ingest-capable nodes
+  - Ingest pipelines (/_ingest/pipeline/*) -> Ingest-capable nodes
+  - Search operations (/_search, /_msearch, /_count) -> Data nodes
+  - Document retrieval (/_doc/*, /_mget, /_source/*) -> Data nodes
+  - All other operations -> Round-robin fallback
+
+# Node Discovery
+
+Enable automatic cluster discovery to maintain current node information:
+
+	transport, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs: []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
+		DiscoverNodesInterval: 5 * time.Minute,
+		Router: opensearchtransport.NewSmartRouter(),
+	})
+
+The discovery process respects node roles and can exclude dedicated cluster manager nodes
+from request routing (controlled by IncludeDedicatedClusterManagers configuration).
+
+# Legacy Connection Pool
+
 To replace the connection pool entirely, provide a custom ConnectionPool implementation via
-the ConnectionPoolFunc option.
+the ConnectionPoolFunc option. When no Router is specified, the transport falls back to
+the traditional connection pool with Selector-based node selection:
+
+	// Legacy selector-based routing
+	selector := opensearchtransport.NewRoundRobinSelector()
+	transport, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs: []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
+		Selector: selector,
+	})
+
+# Logging and Metrics
 
 The package defines the Logger interface for logging information about request and response.
 It comes with several bundled loggers for logging in text and JSON.
 
 Use the EnableDebugLogger option to enable the debugging logger for connection management.
+Alternatively, set the OPENSEARCH_GO_DEBUG environment variable to "true" to enable debug
+logging globally without code changes. When enabled, debug output is written to stderr.
 
 Use the EnableMetrics option to enable metric collection and export.
 */
