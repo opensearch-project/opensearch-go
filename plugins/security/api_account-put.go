@@ -39,8 +39,10 @@ func (r AccountPutReq) GetRequest() (*http.Request, error) {
 
 // AccountPutBody reperensts the request body for AccountPutReq
 type AccountPutBody struct {
-	CurrentPassword string `json:"current_password"`
-	Password        string `json:"password"`
+	// CurrentPassword is the user's existing password for verification.
+	CurrentPassword string `json:"current_password"` // #nosec G117
+	// Password is the new password to set.
+	Password string `json:"password"` // #nosec G117
 }
 
 // AccountPutResp represents the returned struct of the account put response

@@ -63,9 +63,10 @@ func (r IndicesSegmentsResp) Inspect() Inspect {
 // IndicesSegmentsShards is a sub type of IndicesSegmentsResp containing information about a shard
 type IndicesSegmentsShards struct {
 	Routing struct {
-		State   string `json:"state"`
-		Primary bool   `json:"primary"`
-		Node    string `json:"node"`
+		State          string  `json:"state"`                     // Available since OpenSearch 1.0.0
+		Primary        bool    `json:"primary"`                   // Available since OpenSearch 1.0.0
+		Node           string  `json:"node"`                      // Available since OpenSearch 1.0.0
+		RelocatingNode *string `json:"relocating_node,omitempty"` // Available since OpenSearch 1.0.0
 	} `json:"routing"`
 	NumCommittedSegments int                               `json:"num_committed_segments"`
 	NumSearchSegments    int                               `json:"num_search_segments"`
