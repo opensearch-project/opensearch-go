@@ -139,7 +139,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			body.WriteString(`	" }`)
 
 			req := opensearchapi.IndexReq{
-				Index:      "test",
+				Index:      "bench-index",
 				DocumentID: docID,
 				Body:       strings.NewReader(body.String()),
 				Params: opensearchapi.IndexParams{
@@ -162,7 +162,7 @@ func BenchmarkClientAPI(b *testing.B) {
 		body := `{"foo" : "bar"}`
 
 		req := &opensearchapi.SearchReq{
-			Indices: []string{"test"},
+			Indices: []string{"bench-index"},
 			Body:    strings.NewReader(body),
 			Params: opensearchapi.SearchParams{
 				Size:    opensearchapi.ToPointer(25),
@@ -187,7 +187,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			docID := strconv.FormatInt(int64(i), 10)
 
 			body.Reset()
-			body.WriteString(`{"index" : { "_index" : "test", "_type" : "_doc", "_id" : "` + docID + `" }}`)
+			body.WriteString(`{"index" : { "_index" : "bench-index", "_type" : "_doc", "_id" : "` + docID + `" }}`)
 			body.WriteString(`{"foo" : "bar `)
 			body.WriteString(docID)
 			body.WriteString(`	" }`)

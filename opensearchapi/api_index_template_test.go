@@ -9,24 +9,29 @@
 package opensearchapi_test
 
 import (
+	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
 func TestIndexTemplateClient(t *testing.T) {
-	client, err := ostest.NewClient(t)
-	require.Nil(t, err)
-	failingClient, err := osapitest.CreateFailingClient()
-	require.Nil(t, err)
+	client, err := testutil.NewClient(t)
+	require.NoError(t, err)
+	failingClient, err := osapitest.CreateFailingClient(t)
+	require.NoError(t, err)
 
-	indexTemplate := "index-template-test"
+	indexTemplate := testutil.MustUniqueString(t, "test-index-template")
+	t.Cleanup(func() {
+		client.IndexTemplate.Delete(context.Background(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: indexTemplate})
+	})
 
 	type indexTemplateTests struct {
 		Name    string
@@ -44,10 +49,10 @@ func TestIndexTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.IndexTemplate.Create(
-							nil,
+							t.Context(),
 							opensearchapi.IndexTemplateCreateReq{
 								IndexTemplate: indexTemplate,
-								Body:          strings.NewReader(`{"index_patterns":["index-template*"],"priority":60}`),
+								Body:          strings.NewReader(fmt.Sprintf(`{"index_patterns":["%s*"],"priority":60}`, indexTemplate)),
 							},
 						)
 					},
@@ -55,7 +60,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.Create(nil, opensearchapi.IndexTemplateCreateReq{IndexTemplate: indexTemplate})
+						return failingClient.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{IndexTemplate: indexTemplate})
 					},
 				},
 			},
@@ -66,13 +71,13 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.IndexTemplate.Get(nil, &opensearchapi.IndexTemplateGetReq{IndexTemplates: []string{indexTemplate}})
+						return client.IndexTemplate.Get(t.Context(), &opensearchapi.IndexTemplateGetReq{IndexTemplates: []string{indexTemplate}})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.Get(nil, nil)
+						return failingClient.IndexTemplate.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -87,7 +92,7 @@ func TestIndexTemplateClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.IndexTemplate.Exists(nil, opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
+						resp.Response, err = client.IndexTemplate.Exists(t.Context(), opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
 						return resp, err
 					},
 				},
@@ -98,7 +103,10 @@ func TestIndexTemplateClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.IndexTemplate.Exists(nil, opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate})
+						resp.Response, err = failingClient.IndexTemplate.Exists(
+							t.Context(),
+							opensearchapi.IndexTemplateExistsReq{IndexTemplate: indexTemplate},
+						)
 						return resp, err
 					},
 				},
@@ -111,7 +119,7 @@ func TestIndexTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.IndexTemplate.Simulate(
-							nil,
+							t.Context(),
 							opensearchapi.IndexTemplateSimulateReq{
 								IndexTemplate: indexTemplate,
 							},
@@ -121,7 +129,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.Simulate(nil, opensearchapi.IndexTemplateSimulateReq{})
+						return failingClient.IndexTemplate.Simulate(t.Context(), opensearchapi.IndexTemplateSimulateReq{})
 					},
 				},
 			},
@@ -133,7 +141,7 @@ func TestIndexTemplateClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
 						return client.IndexTemplate.SimulateIndex(
-							nil,
+							t.Context(),
 							opensearchapi.IndexTemplateSimulateIndexReq{
 								Index: indexTemplate,
 							},
@@ -143,7 +151,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.SimulateIndex(nil, opensearchapi.IndexTemplateSimulateIndexReq{})
+						return failingClient.IndexTemplate.SimulateIndex(t.Context(), opensearchapi.IndexTemplateSimulateIndexReq{})
 					},
 				},
 			},
@@ -154,13 +162,13 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.IndexTemplate.Delete(nil, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: indexTemplate})
+						return client.IndexTemplate.Delete(t.Context(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: indexTemplate})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.Delete(nil, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: indexTemplate})
+						return failingClient.IndexTemplate.Delete(t.Context(), opensearchapi.IndexTemplateDeleteReq{IndexTemplate: indexTemplate})
 					},
 				},
 			},
@@ -172,15 +180,15 @@ func TestIndexTemplateClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Exists" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})

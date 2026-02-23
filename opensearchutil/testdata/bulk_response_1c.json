@@ -4,7 +4,7 @@
   "items": [
     {
       "delete": {
-        "_index": "test",
+        "_index": "mock-index",
         "_id": "5",
         "_version": 2,
         "result": "deleted",
@@ -20,7 +20,7 @@
     },
     {
       "update": {
-        "_index": "test",
+        "_index": "mock-index",
         "_id": "6",
         "_version": 2,
         "result": "updated",
