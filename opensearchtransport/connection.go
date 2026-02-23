@@ -27,9 +27,11 @@
 package opensearchtransport
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"math"
+	"math/rand/v2"
+	"net/http"
 	"net/url"
 	"sort"
 	"sync"
@@ -38,14 +40,73 @@ import (
 )
 
 const (
-	defaultResurrectTimeoutInitial      = 60 * time.Second
+	defaultResurrectTimeoutInitial      = 5 * time.Second
+	defaultResurrectTimeoutMax          = 30 * time.Second
 	defaultResurrectTimeoutFactorCutoff = 5
+	defaultMinimumResurrectTimeout      = 500 * time.Millisecond
+	defaultJitterScale                  = 0.5
+
+	// defaultDrainingQuiescingChecks is the number of consecutive successful health checks
+	// required before a draining connection can be resurrected. This gives the server time
+	// to fully quiesce after a stream reset. Each health check is spaced by the normal
+	// resurrection timeout (no additional backoff), so the total quiesce window is
+	// approximately defaultDrainingQuiescingChecks * resurrectTimeoutInitial.
+	defaultDrainingQuiescingChecks int64 = 3
+
+	// Health check rate limiting defaults.
+	//
+	// The per-client health check rate is derived from the server core count:
+	//   serverMaxNewConnsPerSec = serverCoreCount * serverMaxNewConnsPerSecMultiplier
+	//   clientsPerServer        = serverCoreCount
+	//   healthCheckRate         = serverCoreCount * healthCheckRateMultiplier
+	//   perClientRate           = serverMaxNewConnsPerSec / clientsPerServer
+	//                           = serverMaxNewConnsPerSecMultiplier (constant at 4.0)
+	//
+	// With defaults (serverCoreCount=8): serverMaxNewConnsPerSec=32, clientsPerServer=8,
+	// perClientRate=4.0 health checks/sec.
+	defaultServerCoreCount            = 8    // default assumed core count per server
+	serverMaxNewConnsPerSecMultiplier = 4.0  // serverMaxNewConnsPerSec = cores * this
+	healthCheckRateMultiplier         = 0.10 // unified health check rate = cores * this
+
+	// Node stats / load shedding defaults.
+	//
+	// A node is marked overloaded (and demoted from the ready list) when any of these
+	// thresholds are breached. The stats poller promotes the node back when all
+	// conditions clear.
+	defaultNodeStatsInterval       = 30 * time.Second // poll interval for /_nodes/_local/stats/jvm,breaker
+	defaultOverloadedHeapThreshold = 85               // JVM heap_used_percent (0-100)
+	defaultOverloadedBreakerRatio  = 0.90             // circuit breaker estimated_size / limit_size (0.0-1.0)
+
+	// Cluster health refresh defaults for ready connections.
+	//
+	// Ready connections with cluster health info are periodically refreshed to keep
+	// conn.mu.clusterHealth data current for load-shedding decisions. The refresh
+	// interval is calculated per the formula:
+	//   refreshInterval = clamp(liveNodes * clientsPerServer / healthCheckRate, min, max)
+	//
+	// With defaults (serverCoreCount=8): healthCheckRate=0.8, clientsPerServer=8:
+	//   refreshInterval = clamp(liveNodes * 10, min, max)
+	//
+	// Single-node clusters skip refresh entirely (no value since we cannot route away).
+	defaultClusterHealthRefreshMin = 5 * time.Second // minimum refresh interval (small clusters)
+	defaultClusterHealthRefreshMax = 5 * time.Minute // maximum refresh interval (large clusters)
+
+	// Standby pool defaults.
+	//
+	// When activeListCap > 0, the pool maintains a standby list of idle connections
+	// that are rotated into the ready list periodically. This caps the number of
+	// active connections per client, preventing fan-out overload in large clusters.
+	defaultStandbyPromotionChecks int64 = 3 // consecutive health checks before standby->ready
+	defaultStandbyRotationCount   int   = 1 // standby rotations per discovery cycle
 )
 
-// Selector defines the interface for selecting connections from the pool.
-type Selector interface {
-	Select([]*Connection) (*Connection, error)
-}
+// Errors
+var (
+	ErrNoConnections = errors.New("no connections available")
+)
+
+// NodeFilter defines a function type for filtering connections based on their properties.
+type NodeFilter func(*Connection) bool
 
 // ConnectionPool defines the interface for the connection pool.
 type ConnectionPool interface {
@@ -53,6 +114,12 @@ type ConnectionPool interface {
 	OnSuccess(*Connection)       // OnSuccess reports that the connection was successful.
 	OnFailure(*Connection) error // OnFailure reports that the connection failed.
 	URLs() []*url.URL            // URLs returns the list of URLs of available connections.
+}
+
+// RequestRoutingConnectionPool extends ConnectionPool to support request-based connection routing.
+type RequestRoutingConnectionPool interface {
+	ConnectionPool
+	NextForRequest(*http.Request) (*Connection, error) // NextForRequest returns connection optimized for the request.
 }
 
 // rwLocker defines the interface for connection pools that support read-write locking.
@@ -68,15 +135,84 @@ type Connection struct {
 	URL        *url.URL
 	ID         string
 	Name       string
-	Roles      []string
+	Roles      roleSet
 	Attributes map[string]any
+	Version    string // Server version discovered during health check
 
-	failures atomic.Int64
+	// weight is the number of entries this connection occupies in the ready list
+	// for weighted round-robin selection. Default 1. In heterogeneous clusters,
+	// nodes with more cores get proportionally higher weights (GCD-normalized).
+	// Protected by the pool's mu -- set during discovery, read during selection.
+	weight int
+
+	// allocatedProcessors is the node's core count discovered from /_nodes/http,os.
+	// 0 means unknown (not yet discovered or unavailable).
+	allocatedProcessors int
+
+	failures           atomic.Int64
+	clusterHealthState atomic.Int64 // Bitfield: clusterHealthProbed | clusterHealthAvailable
+	state              atomic.Int64 // Packed connState: connLifecycle (12b) + 2*warmupManager (26b each)
+
+	// drainingQuiescingRemaining counts the number of successful health checks remaining
+	// before this connection can be resurrected. Set to defaultDrainingQuiescingChecks when
+	// an HTTP/2 stream reset is observed (RST_STREAM, e.g., REFUSED_STREAM). Each successful
+	// health check decrements by 1 via decrementDrainingQuiescing(). While > 0, OnSuccess
+	// will not resurrect the connection -- this gives the server time to fully quiesce rather
+	// than allowing a single lucky health check to bring the connection back prematurely.
+	// The resurrection loop continues at its normal interval (with jitter to avoid thundering
+	// herd across clients), so the total quiesce window is approximately
+	// defaultDrainingQuiescingChecks * resurrectTimeout.
+	drainingQuiescingRemaining atomic.Int64
 
 	mu struct {
 		sync.RWMutex
-		isDead    bool
-		deadSince time.Time
+		deadSince              time.Time
+		checkStartedAt         time.Time
+		clusterHealth          *ClusterHealthLocal // Populated when clusterHealthAvailable is set
+		clusterHealthCheckedAt time.Time           // When cluster health was last probed (for retry timing)
+		overloadedAt           time.Time           // When overloaded state was last set (lcOverloaded metadata bit)
+		lastBreakerTripped     map[string]int64    // Previous tripped counts for delta detection
+	}
+
+	// proactiveCheck guards proactive health checks triggered by server-initiated connection
+	// closure (Response.Close, set when the server sends Connection: close or for HTTP/1.0
+	// without keep-alive). Uses a double-check RWMutex pattern to rate-limit checks for
+	// servers that routinely close connections (e.g., behind a connection-closing load balancer
+	// or configured with a per-connection request limit).
+	//
+	// Fast path (common case): TryRLock reads lastAt -- if recent, bail immediately.
+	// If TryRLock fails, a writer is active (health check being scheduled), so bail.
+	// Slow path: TryLock for write, recheck lastAt, update timestamp, fire health check.
+	// If TryLock fails, another goroutine won the race, so bail.
+	proactiveCheck struct {
+		mu struct {
+			sync.RWMutex
+			lastAt time.Time
+		}
+	}
+}
+
+// effectiveWeight returns the connection's weight for round-robin selection.
+// Returns 1 if weight is zero (default for connections created without explicit weight).
+func (c *Connection) effectiveWeight() int {
+	if c.weight <= 0 {
+		return 1
+	}
+	return c.weight
+}
+
+// decrementDrainingQuiescing atomically decrements the quiescing counter by 1 (if positive).
+// Returns the remaining count after decrement (0 means quiescing is complete).
+// Uses CompareAndSwap to avoid going negative under concurrent decrements.
+func (c *Connection) decrementDrainingQuiescing() int64 {
+	for {
+		current := c.drainingQuiescingRemaining.Load()
+		if current <= 0 {
+			return 0
+		}
+		if c.drainingQuiescingRemaining.CompareAndSwap(current, current-1) {
+			return current - 1
+		}
 	}
 }
 
@@ -87,21 +223,54 @@ type singleConnectionPool struct {
 }
 
 type statusConnectionPool struct {
+	name string // Pool identity for metrics/debug (e.g. "roundrobin", "role:data")
+
 	mu struct {
 		sync.RWMutex
-		live []*Connection // List of live connections
-		dead []*Connection // List of dead connections
+		ready       []*Connection // Partitioned: ready[:activeCount] are active (round-robin), ready[activeCount:] are standby
+		dead        []*Connection // List of dead connections
+		activeCount int           // Number of active connections; elements past this index are standby
 	}
 
-	selector                     Selector
+	nextReady atomic.Int64 // Round-robin counter for ready connections
+
 	resurrectTimeoutInitial      time.Duration
+	resurrectTimeoutMax          time.Duration
 	resurrectTimeoutFactorCutoff int
+	minimumResurrectTimeout      time.Duration
+	jitterScale                  float64
+	serverMaxNewConnsPerSec      float64 // target max new health check conns a server accepts/sec from all clients
+	clientsPerServer             float64 // estimated client instances per server
 
-	metrics *metrics
-}
+	// Standby pool configuration.
+	// When activeListCap > 0, discovery overflow and resurrected connections go to standby
+	// instead of standby when the ready list's active partition is at capacity.
+	activeListCap          int   // 0 = disabled (all connections go to active)
+	standbyPromotionChecks int64 // consecutive health checks before standby->ready
 
-type roundRobinSelector struct {
-	curr atomic.Int64 // Index of the current connection
+	// Dynamic warmup parameters, scaled by recalculateWarmupParams().
+	// Small pools get lighter warmup (fewer rounds, fewer skips) so connections
+	// ramp up quickly. Large pools get heavier warmup to avoid traffic spikes.
+	warmupRounds    int // 0 = use defaultWarmupRounds
+	warmupSkipCount int // 0 = use defaultWarmupSkipCount
+
+	// activeListCapConfig preserves the user's original intent:
+	//   nil = auto-scale activeListCap with cluster size during discovery
+	//   non-nil = user-specified value (activeListCap is fixed)
+	activeListCapConfig *int
+
+	// Health check function - returns HTTP response on success, error on failure
+	healthCheck HealthCheckFunc
+
+	// Per-pool request counters (atomic, lock-free)
+	poolRequests      atomic.Int64 // Connections returned by Next()
+	poolSuccesses     atomic.Int64 // Resurrections via OnSuccess()
+	poolFailures      atomic.Int64 // Demotions via OnFailure()
+	poolWarmupSkips   atomic.Int64 // Requests skipped during warmup
+	poolWarmupAccepts atomic.Int64 // Requests accepted during warmup
+
+	metrics  *metrics
+	observer atomic.Pointer[ConnectionObserver]
 }
 
 // Compile-time checks to ensure interface compliance
@@ -112,6 +281,105 @@ var (
 	_ rwLocker       = (*statusConnectionPool)(nil)
 )
 
+// snapshot returns a point-in-time PoolSnapshot of this pool's partitions and counters.
+func (cp *statusConnectionPool) snapshot() PoolSnapshot {
+	cp.mu.RLock()
+	activeCount := cp.mu.activeCount
+	standbyCount := len(cp.mu.ready) - cp.mu.activeCount
+	deadCount := len(cp.mu.dead)
+
+	// Count warming connections in the active partition
+	warmingCount := 0
+	for i := range activeCount {
+		if cp.mu.ready[i].loadConnState().isWarmingUp() {
+			warmingCount++
+		}
+	}
+
+	// Count health-checking connections across ready and dead lists
+	healthCheckingCount := 0
+	for _, c := range cp.mu.ready {
+		if c.loadConnState().lifecycle().has(lcHealthChecking) {
+			healthCheckingCount++
+		}
+	}
+	for _, c := range cp.mu.dead {
+		if c.loadConnState().lifecycle().has(lcHealthChecking) {
+			healthCheckingCount++
+		}
+	}
+	cp.mu.RUnlock()
+
+	return PoolSnapshot{
+		Name:                cp.name,
+		ActiveCount:         activeCount,
+		StandbyCount:        standbyCount,
+		DeadCount:           deadCount,
+		ActiveListCap:       cp.activeListCap,
+		WarmingCount:        warmingCount,
+		HealthCheckingCount: healthCheckingCount,
+		Requests:            cp.poolRequests.Load(),
+		Successes:           cp.poolSuccesses.Load(),
+		Failures:            cp.poolFailures.Load(),
+		WarmupSkips:         cp.poolWarmupSkips.Load(),
+		WarmupAccepts:       cp.poolWarmupAccepts.Load(),
+	}
+}
+
+// recalculateWarmupParams recalculates activeListCap (when auto-scaling) and sets
+// warmupRounds/warmupSkipCount based on effective pool size.
+//
+// poolSize is the projected total number of connections in the pool (ready + dead)
+// after the current DiscoveryUpdate completes. This is passed by the caller so
+// that startWarmup calls during the add phase already use the correctly-scaled
+// parameters.
+//
+// When activeListCapConfig is nil (auto-scale), activeListCap is updated to poolSize
+// so the active/standby partition adapts to cluster resizes.
+//
+// The effective active partition size is min(activeListCap, poolSize) when the cap
+// is set, or poolSize when cap is disabled. This adapts to cluster resizes:
+// a cap of 10 on a 3-node cluster yields n=3, not n=10.
+//
+// Warmup formula:
+//
+//	n = min(activeListCap, poolSize) when activeListCap > 0
+//	n = poolSize                   when activeListCap <= 0
+//	rounds = clamp(n, minWarmupRounds, maxWarmupRounds)
+//	skipCount = rounds * warmupSkipMultiple
+func (cp *statusConnectionPool) recalculateWarmupParams(poolSize int) {
+	// Auto-scale activeListCap when the user didn't specify an explicit value.
+	if cp.activeListCapConfig == nil && poolSize > 0 {
+		cp.activeListCap = poolSize
+	}
+
+	n := poolSize
+	if cp.activeListCap > 0 && cp.activeListCap < n {
+		n = cp.activeListCap
+	}
+	if n <= 0 {
+		n = minWarmupRounds
+	}
+
+	rounds := max(min(n, maxWarmupRounds), minWarmupRounds)
+	cp.warmupRounds = rounds
+	cp.warmupSkipCount = rounds * warmupSkipMultiple
+}
+
+// getWarmupParams returns the effective warmup parameters for this pool.
+// Returns pool-specific values if set, otherwise falls back to defaults.
+func (cp *statusConnectionPool) getWarmupParams() (int, int) {
+	rounds := cp.warmupRounds
+	if rounds <= 0 {
+		rounds = defaultWarmupRounds
+	}
+	skipCount := cp.warmupSkipCount
+	if skipCount <= 0 {
+		skipCount = defaultWarmupSkipCount
+	}
+	return rounds, skipCount
+}
+
 // NewConnectionPool creates and returns a default connection pool.
 func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	if len(conns) == 1 {
@@ -119,18 +387,23 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	}
 
 	if selector == nil {
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
-		selector = s
+		selector = &roundRobinSelector{}
+		selector.(*roundRobinSelector).curr.Store(-1)
 	}
 
 	pool := &statusConnectionPool{
-		selector:                     selector,
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+		resurrectTimeoutMax:          defaultResurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
+		jitterScale:                  defaultJitterScale,
+		serverMaxNewConnsPerSec:      float64(defaultServerCoreCount) * serverMaxNewConnsPerSecMultiplier,
+		clientsPerServer:             float64(defaultServerCoreCount),
 	}
-	pool.mu.live = conns
+	pool.mu.ready = conns
+	pool.mu.activeCount = len(conns)
 	pool.mu.dead = []*Connection{}
+
 	return pool
 }
 
@@ -150,73 +423,98 @@ func (cp *singleConnectionPool) URLs() []*url.URL { return []*url.URL{cp.connect
 
 func (cp *singleConnectionPool) connections() []*Connection { return []*Connection{cp.connection} }
 
-// Next returns a connection from pool, or an error.
-func (cp *statusConnectionPool) Next() (*Connection, error) {
-	cp.mu.Lock()
-	defer cp.mu.Unlock()
-
-	// Return next live connection
-	if len(cp.mu.live) > 0 {
-		return cp.selector.Select(cp.mu.live)
-	} else if len(cp.mu.dead) > 0 {
-		// No live connection is available, resurrect one of the dead ones.
-		c := cp.mu.dead[len(cp.mu.dead)-1]
-		cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
-		c.mu.Lock()
-		defer c.mu.Unlock()
-		cp.resurrectWithLock(c, false)
-		return c, nil
-	}
-
-	return nil, errors.New("no connection available")
-}
-
 // OnSuccess marks the connection as successful.
 func (cp *statusConnectionPool) OnSuccess(c *Connection) {
-	// Establish consistent lock ordering: Pool → Connection
+	// Establish consistent lock ordering: Pool -> Connection
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Short-circuit for live connection
-	if !c.mu.isDead {
+	// Only resurrect if the connection is currently dead
+	if c.mu.deadSince.IsZero() {
 		return
 	}
 
+	// Check if connection is draining (e.g., HTTP/2 GOAWAY received)
+	if cp.shouldSkipDraining(c) {
+		return
+	}
+
+	// Check if connection is overload-demoted
+	if cp.shouldSkipOverloaded(c) {
+		return
+	}
+
+	if debugLogger != nil {
+		debugLogger.Logf("[%s] OnSuccess: %s transitioning from dead to ready\n", cp.name, c.URL)
+	}
 	c.markAsHealthyWithLock()
-	cp.resurrectWithLock(c, true)
+	cp.resurrectWithLock(c)
+	cp.poolSuccesses.Add(1)
+
+	if obs := observerFromAtomic(&cp.observer); obs != nil {
+		obs.OnPromote(newConnectionEvent(cp.name, c, cp.mu.activeCount, len(cp.mu.dead)))
+	}
+}
+
+// shouldSkipDraining returns true if connection is draining and should not be resurrected.
+func (cp *statusConnectionPool) shouldSkipDraining(c *Connection) bool {
+	if c.drainingQuiescingRemaining.Load() > 0 {
+		if debugLogger != nil {
+			debugLogger.Logf("[%s] OnSuccess: %s is draining (quiescing remaining=%d), skipping resurrection\n",
+				cp.name, c.URL, c.drainingQuiescingRemaining.Load())
+		}
+		return true
+	}
+	return false
+}
+
+// shouldSkipOverloaded returns true if connection is overload-demoted and should not be resurrected.
+func (cp *statusConnectionPool) shouldSkipOverloaded(c *Connection) bool {
+	if c.loadConnState().lifecycle().has(lcOverloaded) {
+		if debugLogger != nil {
+			debugLogger.Logf("[%s] OnSuccess: %s is overload-demoted, skipping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
+		}
+		return true
+	}
+	return false
 }
 
 // OnFailure marks the connection as failed.
 func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 	cp.mu.Lock()
-	defer cp.mu.Unlock()
-
-	c.mu.Lock()
-
-	if c.mu.isDead {
-		if debugLogger != nil {
-			debugLogger.Logf("Already removed %s\n", c.URL)
+	holdingCPLock := true
+	defer func() {
+		if holdingCPLock {
+			cp.mu.Unlock()
 		}
-		c.mu.Unlock()
+	}()
 
+	// Transition to dead -- handles Active, Standby, or Overloaded states.
+	// A real failure supersedes any previous state.
+	c.mu.Lock()
+	if c.loadConnState().lifecycle().has(lcUnknown) {
+		c.mu.Unlock()
 		return nil
 	}
 
-	if debugLogger != nil {
-		debugLogger.Logf("Removing %s...\n", c.URL)
+	if !c.casLifecycle(c.loadConnState(), 0, lcDead|lcNeedsWarmup|lcNeedsHardware, lcReady|lcActive|lcStandby|lcOverloaded) {
+		c.mu.Unlock()
+		return nil
 	}
-
+	c.mu.overloadedAt = time.Time{}
 	c.markAsDeadWithLock()
-	deadSince := c.mu.deadSince
 	c.mu.Unlock()
 
-	cp.scheduleResurrect(c, deadSince)
+	cp.removeFromReadyWithLock(c)
+	cp.appendToDeadWithLock(c)
+	cp.poolFailures.Add(1)
 
-	// Push item to dead list and sort slice by number of failures
-	cp.mu.dead = append(cp.mu.dead, c)
+	if cp.metrics != nil {
+		cp.metrics.connectionsDemoted.Add(1)
+	}
 
 	// Sort by failure count for resurrection prioritization.
 	// CONCURRENCY TRADEOFF: Atomic loads are used without additional locking during sort,
@@ -236,24 +534,35 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 		return failures1 > failures2
 	})
 
-	// Check if connection exists in the list, return error if not.
-	index := -1
+	// Snapshot standby availability while we hold the lock -- used after unlock
+	// to decide whether to spawn async standby promotion (1:1 failure replacement).
+	hasStandby := len(cp.mu.ready) > cp.mu.activeCount
 
-	for i, conn := range cp.mu.live {
-		if conn == c {
-			index = i
-		}
+	// Build observer event while pool counts are still valid under lock
+	var demoteEvent ConnectionEvent
+	obs := observerFromAtomic(&cp.observer)
+	if obs != nil {
+		demoteEvent = newConnectionEvent(cp.name, c, cp.mu.activeCount, len(cp.mu.dead))
 	}
 
-	if index < 0 {
-		// Does this error even get raised? Under what conditions can the connection not be in the cp.mu.live list?
-		// If the connection is marked dead the function already ended
-		return errors.New("connection not in live list")
+	// MUST release lock before scheduleResurrect to avoid deadlock:
+	// scheduleResurrect needs cp.mu.RLock(), which blocks if we hold cp.mu.Lock()
+	holdingCPLock = false
+	cp.mu.Unlock()
+
+	if obs != nil {
+		obs.OnDemote(demoteEvent)
 	}
 
-	// Remove item; https://github.com/golang/go/wiki/SliceTricks
-	copy(cp.mu.live[index:], cp.mu.live[index+1:])
-	cp.mu.live = cp.mu.live[:len(cp.mu.live)-1]
+	// Schedule resurrection after connection has been moved to dead list
+	// Context is not passed as scheduleResurrect uses time.AfterFunc which cannot be cancelled
+	cp.scheduleResurrect(context.TODO(), c)
+
+	// If standby connections are available, asynchronously promote one to fill the gap
+	// left by the failed connection (1:1 replacement).
+	if hasStandby {
+		go cp.asyncPromoteStandby(context.TODO())
+	}
 
 	return nil
 }
@@ -263,9 +572,12 @@ func (cp *statusConnectionPool) URLs() []*url.URL {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
-	urls := make([]*url.URL, len(cp.mu.live))
-	for idx, c := range cp.mu.live {
-		urls[idx] = c.URL
+	urls := make([]*url.URL, 0, len(cp.mu.ready)+len(cp.mu.dead))
+	for _, c := range cp.mu.ready {
+		urls = append(urls, c.URL)
+	}
+	for _, c := range cp.mu.dead {
+		urls = append(urls, c.URL)
 	}
 
 	return urls
@@ -275,11 +587,27 @@ func (cp *statusConnectionPool) connections() []*Connection {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
-	conns := make([]*Connection, 0, len(cp.mu.live)+len(cp.mu.dead))
-	conns = append(conns, cp.mu.live...)
+	conns := make([]*Connection, 0, len(cp.mu.ready)+len(cp.mu.dead))
+	conns = append(conns, cp.mu.ready...) // includes both active and standby partitions
 	conns = append(conns, cp.mu.dead...)
 
 	return conns
+}
+
+// connectionsByState returns snapshots of the ready and dead lists.
+// The ready list includes both active (ready[:activeCount]) and standby (ready[activeCount:])
+// connections. Callers can use Connection.loadConnState() to distinguish them.
+func (cp *statusConnectionPool) connectionsByState() ([]*Connection, []*Connection) {
+	cp.mu.RLock()
+	defer cp.mu.RUnlock()
+
+	ready := make([]*Connection, len(cp.mu.ready))
+	copy(ready, cp.mu.ready)
+
+	dead := make([]*Connection, len(cp.mu.dead))
+	copy(dead, cp.mu.dead)
+
+	return ready, dead
 }
 
 // RLock acquires a read lock on the connection pool.
@@ -306,109 +634,182 @@ func (cp *statusConnectionPool) Unlock() {
 	cp.mu.Unlock()
 }
 
-// resurrect adds the connection to the list of available connections.
-// When removeDead is true, it also removes it from the dead list.
+// resurrectWithLock unconditionally moves a connection from dead to the ready list.
+// When the active partition is at capacity, the connection lands in the standby
+// portion (past activeCount) automatically -- no separate list needed.
 //
 // CALLER RESPONSIBILITIES:
-//   - Caller should verify external connectivity/health before resurrection
-//     (this method only updates internal bookkeeping, not connection health)
-//   - Caller must handle any errors from subsequent connection attempts
-func (cp *statusConnectionPool) resurrectWithLock(c *Connection, removeDead bool) {
+//   - Caller must verify connection health before calling this method
+//   - Caller must hold both pool lock and connection lock
+//   - Connection should exist in the dead list
+func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
 	if debugLogger != nil {
-		debugLogger.Logf("Resurrecting %s\n", c.URL)
+		debugLogger.Logf("[%s] Resurrecting %q\n", cp.name, c.URL)
 	}
 
-	c.markAsLiveWithLock()
-	cp.mu.live = append(cp.mu.live, c)
+	// Clear overloaded state -- node just came back from dead, stats poller will re-evaluate.
+	c.mu.overloadedAt = time.Time{}
 
-	if removeDead {
-		index := -1
+	c.markAsReadyWithLock()
 
-		for i, conn := range cp.mu.dead {
-			if conn == c {
-				index = i
-			}
-		}
+	// Remove from dead list
+	cp.removeFromDeadWithLock(c)
+	if cp.metrics != nil {
+		cp.metrics.connectionsPromoted.Add(1)
+	}
 
-		if index >= 0 {
-			// Remove item; https://github.com/golang/go/wiki/SliceTricks
-			copy(cp.mu.dead[index:], cp.mu.dead[index+1:])
-			cp.mu.dead = cp.mu.dead[:len(cp.mu.dead)-1]
+	// Add to ready list. If below cap (or cap disabled), promote to active with warmup.
+	// Otherwise the connection lands in the standby portion (warmup deferred to promotion).
+	if cp.activeListCap <= 0 || cp.mu.activeCount < cp.activeListCap {
+		// Transition state: dead -> active with warmup (lcNeedsWarmup preserved if set)
+		c.casLifecycle(c.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
+		rounds, skip := cp.getWarmupParams()
+		c.startWarmup(rounds, skip)
+		cp.appendToReadyActiveWithLock(c)
+		cp.shuffleActiveWithLock()
+	} else {
+		// Transition state: dead -> standby (warmup deferred to promotion, lcNeedsWarmup preserved)
+		c.casLifecycle(c.loadConnState(), 0, lcStandby, lcUnknown|lcActive)
+		cp.appendToReadyStandbyWithLock(c)
+		if debugLogger != nil {
+			debugLogger.Logf("[%s] Resurrected %q to standby (active at cap=%d, standby=%d)\n",
+				cp.name, c.URL, cp.activeListCap, len(cp.mu.ready)-cp.mu.activeCount)
 		}
 	}
 }
 
-// scheduleResurrect schedules the connection to be resurrected.
-func (cp *statusConnectionPool) scheduleResurrect(c *Connection, deadSince time.Time) {
-	failures := c.failures.Load()
-	factor := min(failures-1, int64(cp.resurrectTimeoutFactorCutoff))
-	timeout := time.Duration(cp.resurrectTimeoutInitial.Seconds() * math.Exp2(float64(factor)) * float64(time.Second))
+// removeFromReadyWithLock removes ALL entries of a connection from the ready slice.
+// A connection may have multiple entries due to weighted round-robin (c.weight > 1).
+// Handles the active/standby partition correctly:
+//   - Active entries (idx < activeCount): decrement activeCount per removal
+//   - Standby entries (idx >= activeCount): removed from standby partition
+//
+// If the connection is not in the ready list at all, returns without modification.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+func (cp *statusConnectionPool) removeFromReadyWithLock(c *Connection) {
+	// Remove all occurrences by filtering in-place.
+	// Track how many active entries were removed to adjust activeCount.
+	activeRemoved := 0
+	writeIdx := 0
+	for readIdx := 0; readIdx < len(cp.mu.ready); readIdx++ {
+		if cp.mu.ready[readIdx] == c {
+			if readIdx < cp.mu.activeCount {
+				activeRemoved++
+			}
+			continue // skip this entry (remove it)
+		}
+		cp.mu.ready[writeIdx] = cp.mu.ready[readIdx]
+		writeIdx++
+	}
+	if writeIdx == len(cp.mu.ready) {
+		return // nothing was removed
+	}
+	// Clear trailing slots for GC
+	for i := writeIdx; i < len(cp.mu.ready); i++ {
+		cp.mu.ready[i] = nil
+	}
+	cp.mu.ready = cp.mu.ready[:writeIdx]
+	cp.mu.activeCount -= activeRemoved
+}
 
-	if debugLogger != nil {
-		debugLogger.Logf(
-			"Resurrect %s (failures=%d, factor=%d, timeout=%s) in %s\n",
-			c.URL,
-			failures,
-			factor,
-			timeout,
-			deadSince.Add(timeout).Sub(time.Now().UTC()).Truncate(time.Second),
-		)
+// removeFromDeadWithLock removes a connection from the dead slice.
+// Swap-with-last for O(1) removal once found.
+//
+// If the connection is not in the dead list at all, returns without modification.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+func (cp *statusConnectionPool) removeFromDeadWithLock(c *Connection) {
+	idx := -1
+	// Search backward -- recently appended items are at the tail
+	for i := len(cp.mu.dead) - 1; i >= 0; i-- {
+		if cp.mu.dead[i] == c {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return // not in this dead list
 	}
 
-	time.AfterFunc(timeout, func() {
-		cp.mu.Lock()
-		defer cp.mu.Unlock()
+	last := len(cp.mu.dead) - 1
 
-		c.mu.Lock()
-		defer c.mu.Unlock()
+	if idx != last {
+		cp.mu.dead[idx] = cp.mu.dead[last]
+	}
 
-		if !c.mu.isDead {
-			if debugLogger != nil {
-				debugLogger.Logf("Already resurrected %s\n", c.URL)
-			}
-			return
-		}
+	cp.mu.dead[last] = nil
+	cp.mu.dead = cp.mu.dead[:last]
+}
 
-		cp.resurrectWithLock(c, true)
+// appendToReadyActiveWithLock appends a connection to the ready slice in the active partition.
+// Inserts c.effectiveWeight() copies for weighted round-robin selection.
+// Each copy is placed at the activeCount boundary and activeCount is incremented.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+func (cp *statusConnectionPool) appendToReadyActiveWithLock(c *Connection) {
+	w := c.effectiveWeight()
+	for range w {
+		tailIdx := len(cp.mu.ready)
+		cp.mu.ready = append(cp.mu.ready, c)
+		// Swap into active partition at the boundary
+		cp.mu.ready[tailIdx], cp.mu.ready[cp.mu.activeCount] = cp.mu.ready[cp.mu.activeCount], cp.mu.ready[tailIdx]
+		cp.mu.activeCount++
+	}
+}
+
+// appendToReadyStandbyWithLock appends a connection to the standby portion of the ready slice.
+// Inserts c.effectiveWeight() copies for weighted round-robin selection.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+func (cp *statusConnectionPool) appendToReadyStandbyWithLock(c *Connection) {
+	w := c.effectiveWeight()
+	for range w {
+		cp.mu.ready = append(cp.mu.ready, c)
+	}
+}
+
+// appendToDeadWithLock appends a connection to the dead slice.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+func (cp *statusConnectionPool) appendToDeadWithLock(c *Connection) {
+	cp.mu.dead = append(cp.mu.dead, c)
+}
+
+// shuffleActiveWithLock randomizes the order of active connections to prevent hot-spotting.
+// Only shuffles ready[:activeCount] to preserve the active/standby partition.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold pool write lock
+func (cp *statusConnectionPool) shuffleActiveWithLock() {
+	if cp.mu.activeCount <= 1 {
+		return
+	}
+	rand.Shuffle(cp.mu.activeCount, func(i, j int) {
+		cp.mu.ready[i], cp.mu.ready[j] = cp.mu.ready[j], cp.mu.ready[i]
 	})
-}
-
-// Select returns the connection in a round-robin fashion.
-func (s *roundRobinSelector) Select(conns []*Connection) (*Connection, error) {
-	if len(conns) == 0 {
-		return nil, errors.New("no connections available")
-	}
-
-	// Atomic increment with wrap-around
-	next := s.curr.Add(1)
-	index := int(next % int64(len(conns)))
-	return conns[index], nil
-}
-
-// markAsDead marks the connection as dead.
-func (c *Connection) markAsDead() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.markAsDeadWithLock()
 }
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
 func (c *Connection) markAsDeadWithLock() {
-	c.mu.isDead = true
 	if c.mu.deadSince.IsZero() {
 		c.mu.deadSince = time.Now().UTC()
 	}
 	c.failures.Add(1)
 }
 
-// markAsLiveWithLock marks the connection as alive (caller must hold lock).
-func (c *Connection) markAsLiveWithLock() {
-	c.mu.isDead = false
+// markAsReadyWithLock marks the connection as alive (caller must hold lock).
+func (c *Connection) markAsReadyWithLock() {
+	c.mu.deadSince = time.Time{}
 }
 
 // markAsHealthyWithLock marks the connection as healthy (caller must hold lock).
 func (c *Connection) markAsHealthyWithLock() {
-	c.mu.isDead = false
 	c.mu.deadSince = time.Time{}
 	c.failures.Store(0)
 }
@@ -416,6 +817,12 @@ func (c *Connection) markAsHealthyWithLock() {
 // String returns a readable connection representation.
 func (c *Connection) String() string {
 	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return fmt.Sprintf("<%s> dead=%v failures=%d", c.URL, c.mu.isDead, c.failures.Load())
+	deadAt := c.mu.deadSince
+	c.mu.RUnlock()
+
+	if deadAt.IsZero() {
+		return fmt.Sprintf("<%s> dead=false failures=%d", c.URL, c.failures.Load())
+	}
+
+	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", c.URL, time.Since(deadAt), c.failures.Load())
 }
