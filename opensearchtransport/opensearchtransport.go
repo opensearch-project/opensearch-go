@@ -648,7 +648,8 @@ func New(cfg Config) (*Client, error) {
 
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conn := &Connection{URL: u, weight: 1}
+		conn := &Connection{URL: u}
+		conn.weight.Store(1)
 		conns[idx] = conn
 	}
 

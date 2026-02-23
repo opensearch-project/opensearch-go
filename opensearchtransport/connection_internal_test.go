@@ -29,10 +29,13 @@
 package opensearchtransport
 
 import (
+	"math"
 	"net/url"
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSingleConnectionPoolNext(t *testing.T) {
@@ -213,7 +216,7 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 		isDead := conn.mu.isDead
 		conn.mu.Unlock()
 		if isDead {
-			t.Errorf("Expected the connection to be live; %s", conn)
+			t.Errorf("Expected the connection to be ready; %s", conn)
 		}
 
 		conn.mu.Lock()
@@ -223,8 +226,8 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 			t.Errorf("Unexpected value for DeadSince: %s", deadSince)
 		}
 
-		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %d", len(pool.mu.live))
+		if len(pool.mu.ready) != 1 {
+			t.Errorf("Expected 1 ready connection, got: %d", len(pool.mu.ready))
 		}
 
 		if len(pool.mu.dead) != 0 {
@@ -273,8 +276,8 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 
 		pool.mu.Lock()
 		defer pool.mu.Unlock()
-		if len(pool.mu.live) != 1 {
-			t.Errorf("Expected 1 live connection, got: %d", len(pool.mu.live))
+		if len(pool.mu.ready) != 1 {
+			t.Errorf("Expected 1 ready connection, got: %d", len(pool.mu.ready))
 		}
 
 		if len(pool.mu.dead) != 3 {
@@ -447,5 +450,181 @@ func TestConnection(t *testing.T) {
 		if !match {
 			t.Errorf("Unexpected output: %s", conn.String())
 		}
+	})
+}
+
+// newTestPolicyConfig creates a policyConfig with default timeout settings suitable for testing.
+// This config can be used with policy.configurePolicySettings() in tests that create policies directly.
+//
+// This function is only intended for use in tests and should not be used in production code.
+func newTestPolicyConfig(t *testing.T) policyConfig {
+	t.Helper()
+	return policyConfig{
+		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
+		jitterScale:                  defaultJitterScale,
+		serverMaxNewConnsPerSec:      float64(defaultServerCoreCount) * serverMaxNewConnsPerSecMultiplier,
+		clientsPerServer:             float64(defaultServerCoreCount),
+	}
+}
+
+// configureTestPolicySettings configures policy settings using test defaults.
+// This is a convenience function for tests that create policies directly without going through
+// the client initialization flow.
+//
+// This function is only intended for use in tests and should not be used in production code.
+func configureTestPolicySettings(t *testing.T, policy Policy) error {
+	t.Helper()
+	if configurablePolicy, ok := policy.(policyConfigurable); ok {
+		return configurablePolicy.configurePolicySettings(newTestPolicyConfig(t))
+	}
+	return nil
+}
+
+func TestPoolSnapshot_HealthCheckingCount(t *testing.T) {
+	t.Parallel()
+
+	conns := make([]*Connection, 4)
+	for i := range conns {
+		conns[i] = &Connection{URL: &url.URL{Scheme: "http", Host: "node" + string(rune('0'+i)) + ":9200"}}
+	}
+
+	// 2 in ready (1 health-checking), 2 in dead (1 health-checking)
+	conns[0].state.Store(int64(newConnState(lcReady | lcActive)))
+	conns[1].state.Store(int64(newConnState(lcReady | lcActive | lcHealthChecking)))
+	conns[2].state.Store(int64(newConnState(lcDead)))
+	conns[3].state.Store(int64(newConnState(lcDead | lcHealthChecking)))
+
+	cp := &statusConnectionPool{
+		name:          "test",
+		activeListCap: 2,
+	}
+	cp.mu.ready = conns[:2]
+	cp.mu.activeCount = 2
+	cp.mu.dead = conns[2:]
+
+	snap := cp.snapshot()
+	if snap.HealthCheckingCount != 2 {
+		t.Fatalf("expected HealthCheckingCount=2, got %d", snap.HealthCheckingCount)
+	}
+	if snap.ActiveCount != 2 {
+		t.Fatalf("expected ActiveCount=2, got %d", snap.ActiveCount)
+	}
+	if snap.DeadCount != 2 {
+		t.Fatalf("expected DeadCount=2, got %d", snap.DeadCount)
+	}
+}
+
+func TestWeightedPoolDuplicatePointers(t *testing.T) {
+	makeWeightedConn := func(name string, weight int) *Connection {
+		u, _ := url.Parse("http://" + name)
+		c := &Connection{URL: u, Name: name}
+		c.weight.Store(int32(min(weight, math.MaxInt32))) //nolint:gosec // test values are small
+		c.state.Store(int64(newConnState(lcReady | lcActive)))
+		return c
+	}
+
+	t.Run("appendToReadyActiveWithLock inserts weight copies", func(t *testing.T) {
+		pool := &statusConnectionPool{name: "test"}
+		pool.mu.ready = []*Connection{}
+		pool.mu.dead = []*Connection{}
+
+		c1 := makeWeightedConn("node1", 1)
+		c2 := makeWeightedConn("node2", 3)
+
+		pool.mu.Lock()
+		pool.appendToReadyActiveWithLock(c1)
+		pool.appendToReadyActiveWithLock(c2)
+		pool.mu.Unlock()
+
+		require.Equal(t, 4, pool.mu.activeCount) // 1 + 3
+		require.Len(t, pool.mu.ready, 4)
+
+		// Count occurrences
+		c1Count, c2Count := 0, 0
+		for _, c := range pool.mu.ready {
+			switch c.Name {
+			case "node1":
+				c1Count++
+			case "node2":
+				c2Count++
+			}
+		}
+		require.Equal(t, 1, c1Count)
+		require.Equal(t, 3, c2Count)
+	})
+
+	t.Run("removeFromReadyWithLock removes all copies", func(t *testing.T) {
+		pool := &statusConnectionPool{name: "test"}
+
+		c1 := makeWeightedConn("node1", 1)
+		c2 := makeWeightedConn("node2", 3)
+
+		pool.mu.ready = []*Connection{c1, c2, c2, c2}
+		pool.mu.activeCount = 4
+		pool.mu.dead = []*Connection{}
+
+		pool.mu.Lock()
+		pool.removeFromReadyWithLock(c2)
+		pool.mu.Unlock()
+
+		require.Equal(t, 1, pool.mu.activeCount)
+		require.Len(t, pool.mu.ready, 1)
+		require.Equal(t, "node1", pool.mu.ready[0].Name)
+	})
+
+	t.Run("appendToReadyStandbyWithLock appends weight copies", func(t *testing.T) {
+		pool := &statusConnectionPool{name: "test"}
+
+		c1 := makeWeightedConn("active", 1)
+		c2 := makeWeightedConn("standby", 2)
+
+		pool.mu.ready = []*Connection{c1}
+		pool.mu.activeCount = 1
+		pool.mu.dead = []*Connection{}
+
+		pool.mu.Lock()
+		pool.appendToReadyStandbyWithLock(c2)
+		pool.mu.Unlock()
+
+		require.Equal(t, 1, pool.mu.activeCount)
+		require.Len(t, pool.mu.ready, 3) // 1 active + 2 standby
+	})
+
+	t.Run("weighted round-robin distribution", func(t *testing.T) {
+		pool := &statusConnectionPool{name: "test"}
+		pool.mu.ready = []*Connection{}
+		pool.mu.dead = []*Connection{}
+
+		c1 := makeWeightedConn("small", 1) // 1 copy
+		c2 := makeWeightedConn("big", 2)   // 2 copies
+
+		pool.mu.Lock()
+		pool.appendToReadyActiveWithLock(c1)
+		pool.appendToReadyActiveWithLock(c2)
+		pool.mu.Unlock()
+
+		require.Equal(t, 3, pool.mu.activeCount) // 1 + 2
+
+		// Run 300 round-robin selections and verify ~1:2 ratio
+		hits := map[string]int{}
+		for i := range 300 {
+			idx := i % pool.mu.activeCount
+			hits[pool.mu.ready[idx].Name]++
+		}
+		require.Equal(t, 100, hits["small"])
+		require.Equal(t, 200, hits["big"])
+	})
+
+	t.Run("effectiveWeight defaults zero to 1", func(t *testing.T) {
+		c := &Connection{}
+		require.Equal(t, 1, c.effectiveWeight())
+
+		c.weight.Store(3)
+		require.Equal(t, 3, c.effectiveWeight())
+
+		c.weight.Store(-1)
+		require.Equal(t, 1, c.effectiveWeight())
 	})
 }
