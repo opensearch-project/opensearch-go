@@ -29,57 +29,170 @@
 package opensearchtransport
 
 import (
-	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"reflect"
+	"slices"
+	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 )
 
+// TestDiscovery tests the node discovery functionality
 func TestDiscovery(t *testing.T) {
-	defaultHandler := func(w http.ResponseWriter, r *http.Request) {
+	// Create default ServeMux for most tests
+	defaultMux := http.NewServeMux()
+	defaultMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+		// Serve the default nodes info JSON
 		f, err := os.Open("testdata/nodes.info.json")
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Fixture error: %s", err), http.StatusInternalServerError)
 			return
 		}
 		io.Copy(w, f)
+	})
+	defaultMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Health check endpoint - return a simple 200 OK
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	// Create TLS-specific ServeMux that returns nodes on TLS ports
+	tlsMux := http.NewServeMux()
+	tlsMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+		// Custom nodes info for TLS test with TLS ports
+		const (
+			clusterName = "opensearch"
+			node1ID     = "8g1UNpQNS06tlH1DUMBNhg"
+			node2ID     = "8YR2EBk_QvWI4guQK292RA"
+			node1Name   = "es1"
+			node2Name   = "es2"
+			node1Addr   = "127.0.0.1:20001"
+			node2Addr   = "localhost:20002"
+		)
+
+		// Build response using structs and marshal to JSON
+		nodeRoles := []string{"ingest", "cluster_manager", "data"}
+
+		// Define the _nodes stats structure
+		// NOTE: This parallels opensearchapi structs but cannot import them due to circular dependencies:
+		// opensearchapi -> opensearch-go/v4 -> opensearchtransport
+		type nodesStats struct {
+			Total      int `json:"total"`
+			Successful int `json:"successful"`
+			Failed     int `json:"failed"`
+		}
+
+		tlsNodesResp := struct {
+			NodesStats  nodesStats          `json:"_nodes"`
+			ClusterName string              `json:"cluster_name"`
+			Nodes       map[string]nodeInfo `json:"nodes"`
+		}{
+			NodesStats: nodesStats{
+				Total:      2,
+				Successful: 2,
+				Failed:     0,
+			},
+			ClusterName: clusterName,
+			Nodes: map[string]nodeInfo{
+				node1ID: {
+					Name:  node1Name,
+					Roles: nodeRoles,
+					HTTP: nodeInfoHTTP{
+						PublishAddress: node1Addr,
+					},
+				},
+				node2ID: {
+					Name:  node2Name,
+					Roles: nodeRoles,
+					HTTP: nodeInfoHTTP{
+						PublishAddress: node2Addr,
+					},
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(tlsNodesResp)
+	})
+	tlsMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Health check endpoint
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	srv := &http.Server{Addr: "127.0.0.1:10001", Handler: defaultMux, ReadTimeout: 1 * time.Second}
+	srv2 := &http.Server{Addr: "localhost:10002", Handler: defaultMux, ReadTimeout: 1 * time.Second}
+	// TLS servers on different ports to avoid conflict, using TLS-specific handler
+	srvTLS1 := &http.Server{Addr: "127.0.0.1:20001", Handler: tlsMux, ReadTimeout: 1 * time.Second}
+	srvTLS2 := &http.Server{Addr: "localhost:20002", Handler: tlsMux, ReadTimeout: 1 * time.Second}
+
+	// Create listeners first to ensure ports are bound before tests run
+	ln1, err := net.Listen("tcp", srv.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srv: %s", err)
+	}
+	ln2, err := net.Listen("tcp", srv2.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srv2: %s", err)
+	}
+	lnTLS1, err := net.Listen("tcp", srvTLS1.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srvTLS1: %s", err)
+	}
+	lnTLS2, err := net.Listen("tcp", srvTLS2.Addr)
+	if err != nil {
+		t.Fatalf("Failed to create listener for srvTLS2: %s", err)
 	}
 
-	srv := &http.Server{Addr: "localhost:10001", Handler: http.HandlerFunc(defaultHandler), ReadTimeout: 1 * time.Second}
-	srvTLS := &http.Server{Addr: "localhost:12001", Handler: http.HandlerFunc(defaultHandler), ReadTimeout: 1 * time.Second}
-
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(ln1); err != nil && err != http.ErrServerClosed {
 			t.Errorf("Unable to start server: %s", err)
 			return
 		}
 	}()
 	go func() {
-		if err := srvTLS.ListenAndServeTLS("testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
-			t.Errorf("Unable to start server: %s", err)
+		if err := srv2.Serve(ln2); err != nil && err != http.ErrServerClosed {
+			t.Errorf("Unable to start server2: %s", err)
+			return
+		}
+	}()
+	go func() {
+		if err := srvTLS1.ServeTLS(lnTLS1, "testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
+			t.Errorf("Unable to start TLS server1: %s", err)
+			return
+		}
+	}()
+	go func() {
+		if err := srvTLS2.ServeTLS(lnTLS2, "testdata/cert.pem", "testdata/key.pem"); err != nil && err != http.ErrServerClosed {
+			t.Errorf("Unable to start TLS server2: %s", err)
 			return
 		}
 	}()
 	defer func() { srv.Close() }()
-	defer func() { srvTLS.Close() }()
-
-	time.Sleep(50 * time.Millisecond)
+	defer func() { srv2.Close() }()
+	defer func() { srvTLS1.Close() }()
+	defer func() { srvTLS2.Close() }()
 
 	t.Run("getNodesInfo()", func(t *testing.T) {
 		u, _ := url.Parse("http://" + srv.Addr)
 		tp, _ := New(Config{URLs: []*url.URL{u}})
 
-		nodes, err := tp.getNodesInfo()
+		nodes, err := tp.getNodesInfo(t.Context())
 		if err != nil {
 			t.Fatalf("ERROR: %s", err)
 		}
@@ -91,20 +204,20 @@ func TestDiscovery(t *testing.T) {
 		for _, node := range nodes {
 			switch node.Name {
 			case "es1":
-				if node.URL.String() != "http://127.0.0.1:10001" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
+				if node.url.String() != "http://127.0.0.1:10001" {
+					t.Errorf("Unexpected URL: %q", node.url.String())
 				}
 			case "es2":
-				if node.URL.String() != "http://localhost:10002" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
+				if node.url.String() != "http://localhost:10002" {
+					t.Errorf("Unexpected URL: %q", node.url.String())
 				}
 			case "es3":
-				if node.URL.String() != "http://127.0.0.1:10003" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
+				if node.url.String() != "http://127.0.0.1:10003" {
+					t.Errorf("Unexpected URL: %q", node.url.String())
 				}
 			case "es4":
-				if node.URL.String() != "http://[fc99:3528::a04:812c]:10004" {
-					t.Errorf("Unexpected URL: %s", node.URL.String())
+				if node.url.String() != "http://[fc99:3528::a04:812c]:10004" {
+					t.Errorf("Unexpected URL: %q", node.url.String())
 				}
 			}
 		}
@@ -112,59 +225,59 @@ func TestDiscovery(t *testing.T) {
 
 	t.Run("getNodesInfo() empty Body", func(t *testing.T) {
 		newRoundTripper := func() http.RoundTripper {
-			return &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					return &http.Response{Header: http.Header{}}, nil
-				},
-			}
+			return mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{Header: http.Header{}}, nil
+			})
 		}
 
 		u, _ := url.Parse("http://localhost:8080")
 		tp, err := New(Config{URLs: []*url.URL{u}, Transport: newRoundTripper()})
 		require.NoError(t, err)
 
-		_, err = tp.getNodesInfo()
+		_, err = tp.getNodesInfo(t.Context())
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "unexpected empty body")
 	})
 
 	t.Run("DiscoverNodes()", func(t *testing.T) {
 		u, _ := url.Parse("http://" + srv.Addr)
-		tp, _ := New(Config{URLs: []*url.URL{u}})
+		tp, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
 
-		tp.DiscoverNodes()
+		err = tp.DiscoverNodes(t.Context())
+		require.NoError(t, err, "Discovery should succeed")
 
-		pool, ok := tp.mu.pool.(*statusConnectionPool)
-		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.pool)
+		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
+		require.True(t, ok, "Expected statusConnectionPool after discovery")
+
+		// The discovery should include es1 and es2 (data+ingest+cluster_manager)
+		// but exclude es3 and es4 (cluster_manager only)
+		totalConnections := len(pool.mu.ready) + len(pool.mu.dead)
+		require.Equal(t, 2, totalConnections, "Should have 2 total connections after policy filtering")
+
+		// The exact split between ready/dead depends on health checks,
+		// but we should have the right nodes
+		foundNodes := make([]string, 0, len(pool.mu.ready)+len(pool.mu.dead))
+		for _, conn := range pool.mu.ready {
+			foundNodes = append(foundNodes, conn.Name)
+		}
+		for _, conn := range pool.mu.dead {
+			foundNodes = append(foundNodes, conn.Name)
 		}
 
-		if len(pool.mu.live) != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.mu.live))
-		}
-
-		for _, conn := range pool.mu.live {
-			switch conn.Name {
-			case "es1":
-				if conn.URL.String() != "http://127.0.0.1:10001" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
-			case "es2":
-				if conn.URL.String() != "http://localhost:10002" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
-			default:
-				t.Errorf("Unexpected node: %s", conn.Name)
-			}
-		}
+		require.Contains(t, foundNodes, "es1", "Should include es1")
+		require.Contains(t, foundNodes, "es2", "Should include es2")
+		require.NotContains(t, foundNodes, "es3", "Should not include es3 (cluster_manager only)")
+		require.NotContains(t, foundNodes, "es4", "Should not include es4 (cluster_manager only)")
 	})
 
 	t.Run("DiscoverNodes() with SSL and authorization", func(t *testing.T) {
-		u, _ := url.Parse("https://" + srvTLS.Addr)
+		u, _ := url.Parse("https://" + srvTLS1.Addr)
 		tp, _ := New(Config{
-			URLs:     []*url.URL{u},
-			Username: "foo",
-			Password: "bar",
+			URLs:        []*url.URL{u},
+			Username:    "foo",
+			Password:    "bar",
+			HealthCheck: NoOpHealthCheck, // Disable health checks for test resurrection simulation
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
@@ -172,29 +285,44 @@ func TestDiscovery(t *testing.T) {
 			},
 		})
 
-		tp.DiscoverNodes()
+		err := tp.DiscoverNodes(t.Context())
+		require.NoError(t, err, "DiscoverNodes should succeed with TLS")
 
-		pool, ok := tp.mu.pool.(*statusConnectionPool)
+		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
 		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.pool)
+			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.connectionPool)
 		}
 
-		if len(pool.mu.live) != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", len(pool.mu.live))
+		// Discovered nodes are in cold-start mode, need to force them alive for testing
+		// Use resurrectWithLock to directly move connections from dead to ready pool
+		deadConnections := make([]*Connection, len(pool.mu.dead))
+		copy(deadConnections, pool.mu.dead)
+
+		for _, conn := range deadConnections {
+			conn.mu.Lock()
+			pool.resurrectWithLock(conn)
+			conn.mu.Unlock()
 		}
 
-		for _, conn := range pool.mu.live {
-			switch conn.Name {
-			case "es1":
-				if conn.URL.String() != "https://127.0.0.1:10001" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
+		// Check pool state after resurrection
+		// Now check that connections are ready
+		if len(pool.mu.ready) != 2 {
+			t.Errorf("Unexpected number of ready nodes after health simulation, want=2, got=%d", len(pool.mu.ready))
+		}
+
+		// Verify the discovered connections have correct HTTPS URLs
+		expectedURLs := map[string]bool{
+			"https://127.0.0.1:20001": false,
+			"https://localhost:20002": false,
+		}
+
+		for _, conn := range pool.mu.ready {
+			if expected, exists := expectedURLs[conn.URL.String()]; exists {
+				if !expected {
+					expectedURLs[conn.URL.String()] = true
 				}
-			case "es2":
-				if conn.URL.String() != "https://localhost:10002" {
-					t.Errorf("Unexpected URL: %s", conn.URL.String())
-				}
-			default:
-				t.Errorf("Unexpected node: %s", conn.Name)
+			} else {
+				t.Errorf("Unexpected connection URL: %q (name=%q)", conn.URL.String(), conn.Name)
 			}
 		}
 	})
@@ -208,7 +336,7 @@ func TestDiscovery(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{u}, DiscoverNodesInterval: 10 * time.Millisecond})
 
 		tp.mu.Lock()
-		numURLs = len(tp.mu.pool.URLs())
+		numURLs = len(tp.mu.connectionPool.URLs())
 		tp.mu.Unlock()
 		if numURLs != 1 {
 			t.Errorf("Unexpected number of nodes, want=1, got=%d", numURLs)
@@ -216,7 +344,7 @@ func TestDiscovery(t *testing.T) {
 
 		time.Sleep(18 * time.Millisecond) // Wait until (*Client).scheduleDiscoverNodes()
 		tp.mu.Lock()
-		numURLs = len(tp.mu.pool.URLs())
+		numURLs = len(tp.mu.connectionPool.URLs())
 		tp.mu.Unlock()
 		if numURLs != 2 {
 			t.Errorf("Unexpected number of nodes, want=2, got=%d", numURLs)
@@ -224,27 +352,33 @@ func TestDiscovery(t *testing.T) {
 	})
 
 	t.Run("Role based nodes discovery", func(t *testing.T) {
-		type Node struct {
+		// NOTE: Transport tests cannot import opensearchapi due to circular dependencies:
+		// opensearchapi -> opensearch-go/v4 -> opensearchtransport
+		// Therefore, we create minimal test response structures that match the API format
+		// needed by the discovery logic. These are NOT duplicates - they are test utilities
+		// that simulate the actual API responses without importing the real API structs.
+
+		type testNode struct {
 			URL   string
 			Roles []string
 		}
 
-		type fields struct {
-			Nodes map[string]Node
+		type testFields struct {
+			Nodes map[string]testNode
 		}
-		type wants struct {
+		type testWants struct {
 			wantErr    bool
 			wantsNConn int
 		}
 		tests := []struct {
 			name string
-			args fields
-			want wants
+			args testFields
+			want testWants
 		}{
 			{
 				"Default roles should allow every node to be selected",
-				fields{
-					Nodes: map[string]Node{
+				testFields{
+					Nodes: map[string]testNode{
 						"es1": {
 							URL: "http://es1:9200",
 							Roles: []string{
@@ -295,14 +429,14 @@ func TestDiscovery(t *testing.T) {
 						},
 					},
 				},
-				wants{
+				testWants{
 					false, 3,
 				},
 			},
 			{
 				"Cluster manager only node should not be selected",
-				fields{
-					Nodes: map[string]Node{
+				testFields{
+					Nodes: map[string]testNode{
 						"es1": {
 							URL: "http://es1:9200",
 							Roles: []string{
@@ -344,14 +478,14 @@ func TestDiscovery(t *testing.T) {
 					},
 				},
 
-				wants{
+				testWants{
 					false, 2,
 				},
 			},
 			{
 				"Cluster manager and data only nodes should be selected",
-				fields{
-					Nodes: map[string]Node{
+				testFields{
+					Nodes: map[string]testNode{
 						"es1": {
 							URL: "http://es1:9200",
 							Roles: []string{
@@ -369,14 +503,14 @@ func TestDiscovery(t *testing.T) {
 					},
 				},
 
-				wants{
+				testWants{
 					false, 2,
 				},
 			},
 			{
 				"Default roles should allow every node to be selected",
-				fields{
-					Nodes: map[string]Node{
+				testFields{
+					Nodes: map[string]testNode{
 						"es1": {
 							URL: "http://es1:9200",
 							Roles: []string{
@@ -427,14 +561,14 @@ func TestDiscovery(t *testing.T) {
 						},
 					},
 				},
-				wants{
+				testWants{
 					false, 3,
 				},
 			},
 			{
 				"Master only node should not be selected",
-				fields{
-					Nodes: map[string]Node{
+				testFields{
+					Nodes: map[string]testNode{
 						"es1": {
 							URL: "http://es1:9200",
 							Roles: []string{
@@ -476,14 +610,14 @@ func TestDiscovery(t *testing.T) {
 					},
 				},
 
-				wants{
+				testWants{
 					false, 2,
 				},
 			},
 			{
 				"Master and data only nodes should be selected",
-				fields{
-					Nodes: map[string]Node{
+				testFields{
+					Nodes: map[string]testNode{
 						"es1": {
 							URL: "http://es1:9200",
 							Roles: []string{
@@ -501,63 +635,126 @@ func TestDiscovery(t *testing.T) {
 					},
 				},
 
-				wants{
+				testWants{
 					false, 2,
 				},
 			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				urls := make([]*url.URL, 0, len(tt.args.Nodes))
-				for _, node := range tt.args.Nodes {
-					u, _ := url.Parse(node.URL)
-					urls = append(urls, u)
+				// Create a custom ServeMux for this test's node configuration
+				testMux := http.NewServeMux()
+
+				// Start a test server first so we have the address
+				testServer := &http.Server{
+					Addr:              "127.0.0.1:0",
+					Handler:           testMux,
+					ReadHeaderTimeout: 5 * time.Second,
 				}
+				listener, err := net.Listen("tcp", testServer.Addr)
+				require.NoError(t, err)
+				testServer.Addr = listener.Addr().String()
 
-				newRoundTripper := func() http.RoundTripper {
-					return &mockTransp{
-						RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-							nodes := make(map[string]map[string]nodeInfo)
-							nodes["nodes"] = make(map[string]nodeInfo)
-							for name, node := range tt.args.Nodes {
-								nodes["nodes"][name] = nodeInfo{Roles: node.Roles}
-							}
-
-							b, _ := json.Marshal(nodes)
-
-							return &http.Response{
-								Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-								StatusCode:    http.StatusOK,
-								ContentLength: int64(len(b)),
-								Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-								Body:          io.NopCloser(bytes.NewReader(b)),
-							}, nil
+				// Add health check handler (catch-all for /{$} and /)
+				testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
+					healthResp := map[string]any{
+						"name":         "test-node",
+						"cluster_name": "test-cluster",
+						"version": map[string]any{
+							"number": "2.0.0",
 						},
 					}
-				}
-
-				c, _ := New(Config{
-					URLs:      urls,
-					Transport: newRoundTripper(),
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusOK)
+					json.NewEncoder(w).Encode(healthResp)
 				})
-				c.DiscoverNodes()
 
-				pool, ok := c.mu.pool.(*statusConnectionPool)
+				// Catch-all 404 handler
+				testMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+					// For unknown paths, return 404
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusNotFound)
+					json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
+				})
+
+				// Add nodes info handler with this test's data
+				testMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+					// Create a simple response structure compatible with the discovery parsing
+					response := map[string]any{
+						"_nodes": map[string]any{
+							"total":      len(tt.args.Nodes),
+							"successful": len(tt.args.Nodes),
+							"failed":     0,
+						},
+						"cluster_name": "test-cluster",
+						"nodes":        make(map[string]any),
+					}
+
+					nodes := response["nodes"].(map[string]any)
+					port := 9200
+					for name, node := range tt.args.Nodes {
+						// Assign unique ports to each node so discovery treats them as separate
+						nodes[name] = map[string]any{
+							"name":  name,
+							"host":  "127.0.0.1",
+							"ip":    "127.0.0.1",
+							"roles": node.Roles,
+							"http": map[string]any{
+								"publish_address": net.JoinHostPort("127.0.0.1", strconv.Itoa(port)),
+							},
+						}
+						port++
+					}
+
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode(response)
+				})
+
+				go func() {
+					testServer.Serve(listener)
+				}()
+				defer func() { testServer.Close() }()
+
+				// Use the test server for discovery.
+				// Use a custom Transport that rewrites all requests to the test server's
+				// actual address so that health checks and subsequent discovery calls
+				// on discovered nodes (which have fake publish_addresses) still reach
+				// the test server.
+				urls := []*url.URL{{Scheme: "http", Host: testServer.Addr}}
+				redirectTransport := &http.Transport{
+					DialContext: (&net.Dialer{}).DialContext,
+				}
+				redirectTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+					// Always connect to the test server regardless of the target address
+					return (&net.Dialer{}).DialContext(ctx, network, testServer.Addr)
+				}
+				c, _ := New(Config{URLs: urls, Transport: redirectTransport})
+
+				err = c.DiscoverNodes(t.Context())
+				require.NoError(t, err, "DiscoverNodes should succeed")
+
+				pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 				if !ok {
-					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.pool)
+					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.connectionPool)
 				}
 
-				if len(pool.mu.live) != tt.want.wantsNConn {
-					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.mu.live))
+				if len(pool.mu.ready) != tt.want.wantsNConn {
+					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.mu.ready))
 				}
 
-				for _, conn := range pool.mu.live {
-					if !reflect.DeepEqual(tt.args.Nodes[conn.ID].Roles, conn.Roles) {
-						t.Errorf("Unexpected roles for node %s, want=%s, got=%s", conn.Name, tt.args.Nodes[conn.ID], conn.Roles)
+				for _, conn := range pool.mu.ready {
+					expectedRoles := make([]string, len(tt.args.Nodes[conn.ID].Roles))
+					copy(expectedRoles, tt.args.Nodes[conn.ID].Roles)
+					slices.Sort(expectedRoles)
+
+					actualRoles := conn.Roles.toSlice()
+
+					if !reflect.DeepEqual(expectedRoles, actualRoles) {
+						t.Errorf("Unexpected roles for node %q, want=%q, got=%q", conn.Name, expectedRoles, actualRoles)
 					}
 				}
 
-				if err := c.DiscoverNodes(); (err != nil) != tt.want.wantErr {
+				if err := c.DiscoverNodes(t.Context()); (err != nil) != tt.want.wantErr {
 					t.Errorf("DiscoverNodes() error = %v, wantErr %v", err, tt.want.wantErr)
 				}
 			})
@@ -844,31 +1041,63 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock transport that returns our test nodes
-			newRoundTripper := func() http.RoundTripper {
-				return &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						nodes := make(map[string]map[string]nodeInfo)
-						nodes["nodes"] = make(map[string]nodeInfo)
+			// Create a ServeMux with mock handlers
+			mux := http.NewServeMux()
 
-						for name, roles := range tt.nodes {
-							nodes["nodes"][name] = nodeInfo{
-								ID:    name + "-id",
-								Name:  name,
-								Roles: roles,
-							}
-						}
-
-						b, _ := json.Marshal(nodes)
-						return &http.Response{
-							Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-							StatusCode:    http.StatusOK,
-							ContentLength: int64(len(b)),
-							Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-							Body:          io.NopCloser(bytes.NewReader(b)),
-						}, nil
+			// Health check endpoint - exact root path match
+			mux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
+				healthResp := map[string]any{
+					"name":         "test-node",
+					"cluster_name": "test-cluster",
+					"version": map[string]any{
+						"number": "2.0.0",
 					},
 				}
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(healthResp)
+			})
+
+			// Nodes info endpoint
+			mux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+				nodes := make(map[string]map[string]nodeInfo)
+				nodes["nodes"] = make(map[string]nodeInfo)
+
+				port := 9200
+				for name, roles := range tt.nodes {
+					nodes["nodes"][name] = nodeInfo{
+						ID:    name + "-id",
+						Name:  name,
+						Roles: roles,
+						HTTP: nodeInfoHTTP{
+							PublishAddress: net.JoinHostPort("localhost", strconv.Itoa(port)),
+						},
+					}
+					port++
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(nodes)
+			})
+
+			// Catch-all 404 handler
+			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
+			})
+
+			// Create mock transport that uses the ServeMux
+			newRoundTripper := func() http.RoundTripper {
+				return mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					// Use httptest.NewRecorder to capture the ServeMux response
+					recorder := httptest.NewRecorder()
+					mux.ServeHTTP(recorder, req)
+
+					// Convert the recorded response to http.Response
+					resp := recorder.Result()
+					return resp, nil
+				},
+				)
 			}
 
 			u, _ := url.Parse("http://localhost:9200")
@@ -879,16 +1108,16 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			// Perform discovery
-			err = c.DiscoverNodes()
+			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.pool.(*statusConnectionPool)
+			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 			require.True(t, ok, "Expected statusConnectionPool")
 
 			// Check that expected nodes are included
 			actualNodes := make(map[string]bool)
-			for _, conn := range pool.mu.live {
+			for _, conn := range pool.mu.ready {
 				actualNodes[conn.Name] = true
 			}
 
@@ -952,52 +1181,111 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock transport
-			newRoundTripper := func() http.RoundTripper {
-				return &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						nodes := make(map[string]map[string]nodeInfo)
-						nodes["nodes"] = make(map[string]nodeInfo)
+			// Create a shared handler for all mock node servers.
+			testMux := http.NewServeMux()
 
-						for name, roles := range tt.nodes {
-							nodes["nodes"][name] = nodeInfo{
-								ID:    name + "-id",
-								Name:  name,
-								Roles: roles,
-							}
-						}
+			// Create one listener per node so each has a unique publish_address.
+			// nodeAddrs maps node name -> "host:port" of its listener.
+			nodeAddrs := make(map[string]string, len(tt.nodes))
+			var servers []*http.Server
+			var listeners []net.Listener
 
-						b, _ := json.Marshal(nodes)
-						return &http.Response{
-							Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-							StatusCode:    http.StatusOK,
-							ContentLength: int64(len(b)),
-							Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-							Body:          io.NopCloser(bytes.NewReader(b)),
-						}, nil
-					},
+			for name := range tt.nodes {
+				ln, err := net.Listen("tcp", "127.0.0.1:0")
+				require.NoError(t, err)
+				listeners = append(listeners, ln)
+
+				srv := &http.Server{
+					Handler:           testMux,
+					ReadHeaderTimeout: 5 * time.Second,
 				}
+				servers = append(servers, srv)
+				nodeAddrs[name] = ln.Addr().String()
+
+				go func() { srv.Serve(ln) }()
+			}
+			t.Cleanup(func() {
+				for _, srv := range servers {
+					srv.Close()
+				}
+			})
+
+			// Use the first node's address as the seed URL for discovery.
+			var seedAddr string
+			for _, addr := range nodeAddrs {
+				seedAddr = addr
+				break
 			}
 
-			u, _ := url.Parse("http://localhost:9200")
+			// Health check endpoint (catch-all for /{$} and /)
+			testMux.HandleFunc("/{$}", func(w http.ResponseWriter, r *http.Request) {
+				healthResp := map[string]any{
+					"name":         "test-node",
+					"cluster_name": "test-cluster",
+					"version": map[string]any{
+						"number": "2.0.0",
+					},
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusOK)
+				json.NewEncoder(w).Encode(healthResp)
+			})
+
+			// Nodes info endpoint
+			testMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+				response := map[string]any{
+					"_nodes": map[string]any{
+						"total":      len(tt.nodes),
+						"successful": len(tt.nodes),
+						"failed":     0,
+					},
+					"cluster_name": "test-cluster",
+					"nodes":        make(map[string]any),
+				}
+
+				nodes := response["nodes"].(map[string]any)
+				for name, roles := range tt.nodes {
+					nodes[name] = map[string]any{
+						"name":  name,
+						"host":  "127.0.0.1",
+						"ip":    "127.0.0.1",
+						"roles": roles,
+						"http": map[string]any{
+							"publish_address": nodeAddrs[name],
+						},
+					}
+				}
+
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(response)
+			})
+
+			// Catch-all 404 handler
+			testMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				json.NewEncoder(w).Encode(map[string]string{"error": "Not Found"})
+			})
+
+			// Use the seed address for discovery
+			urls := []*url.URL{{Scheme: "http", Host: seedAddr}}
 			c, err := New(Config{
-				URLs:                            []*url.URL{u},
-				Transport:                       newRoundTripper(),
+				URLs:                            urls,
 				IncludeDedicatedClusterManagers: tt.includeDedicatedClusterManagers,
 			})
 			require.NoError(t, err)
 
 			// Perform discovery
-			err = c.DiscoverNodes()
+			err = c.DiscoverNodes(t.Context())
 			assert.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.pool.(*statusConnectionPool)
+			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
 			require.True(t, ok, "Expected statusConnectionPool")
 
 			// Check included nodes
 			actualNodes := make(map[string]bool)
-			for _, conn := range pool.mu.live {
+			for _, conn := range pool.mu.ready {
 				actualNodes[conn.Name] = true
 			}
 
@@ -1017,4 +1305,722 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
+}
+
+// TestGenericRoleBasedSelector tests the new generic role-based selector
+func TestGenericRoleBasedSelector(t *testing.T) {
+	connections := []*Connection{
+		{Name: "data-node", Roles: newRoleSet([]string{RoleData})},
+		{Name: "ingest-node", Roles: newRoleSet([]string{RoleIngest})},
+		{Name: "data-ingest-node", Roles: newRoleSet([]string{RoleData, RoleIngest})},
+		{Name: "cluster-manager-node", Roles: newRoleSet([]string{RoleClusterManager})},
+		{Name: "warm-node", Roles: newRoleSet([]string{RoleWarm})},
+		{Name: "coordinating-node", Roles: newRoleSet([]string{})}, // No specific roles
+	}
+
+	t.Run("ChainPolicy with multiple role requirements (OR logic)", func(t *testing.T) {
+		// Create individual policies for each role combination
+		dataIngestPolicy, err := NewRolePolicy(RoleData, RoleIngest)
+		require.NoError(t, err)
+		dataSearchPolicy, err := NewRolePolicy(RoleData, RoleSearch)
+		require.NoError(t, err)
+
+		// Create a policy that tries (data && ingest) OR (data && search)
+		policy := NewPolicy(dataIngestPolicy, dataSearchPolicy)
+
+		// Configure pool factories for the policy (needed for tests that create policies directly)
+		err = configureTestPolicySettings(t, policy)
+		require.NoError(t, err)
+
+		// Update policy with connections
+		err = policy.DiscoveryUpdate(connections, nil, nil)
+		require.NoError(t, err)
+
+		// Policy should be enabled (has nodes with data+ingest)
+		assert.True(t, policy.IsEnabled())
+
+		// Get connection pool - should match data-ingest-node first
+		pool, err := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err)
+		require.NotNil(t, pool)
+
+		// Should match only data-ingest-node (has both data and ingest roles)
+		conn, err := pool.Next()
+		require.NoError(t, err)
+		require.Equal(t, "data-ingest-node", conn.Name)
+	})
+
+	t.Run("RolePolicy with cluster manager exclusion", func(t *testing.T) {
+		// Create connections for testing
+		connections := []*Connection{
+			{Name: "data-node", URL: &url.URL{Host: "data-node:9200"}, Roles: newRoleSet([]string{RoleData})},
+			{Name: "cluster-manager-node", URL: &url.URL{Host: "cm-node:9200"}, Roles: newRoleSet([]string{RoleClusterManager})},
+		}
+
+		// Create a RolePolicy for data nodes (excludes cluster managers)
+		policy, err := NewRolePolicy(RoleData)
+		require.NoError(t, err)
+
+		// Configure pool factories for the policy (needed for tests that create policies directly)
+		err = configureTestPolicySettings(t, policy)
+		require.NoError(t, err)
+
+		// Update policy with connections
+		err = policy.DiscoveryUpdate(connections, nil, nil)
+		require.NoError(t, err)
+
+		// Policy should be enabled (has data nodes)
+		assert.True(t, policy.IsEnabled())
+
+		// Get connection pool and verify it only contains data node
+		pool, err := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err)
+		require.NotNil(t, pool)
+
+		// The pool should contain only the data node, not the cluster manager
+		conn, err := pool.Next()
+		require.NoError(t, err)
+		assert.Equal(t, "data-node", conn.Name)
+	})
+
+	t.Run("RolePolicy for warm nodes", func(t *testing.T) {
+		// Create connections for testing (no warm nodes)
+		connections := []*Connection{
+			{Name: "data-node", URL: &url.URL{Host: "data-node:9200"}, Roles: newRoleSet([]string{RoleData})},
+			{Name: "ingest-node", URL: &url.URL{Host: "ingest-node:9200"}, Roles: newRoleSet([]string{RoleIngest})},
+		}
+
+		// Create a RolePolicy for warm nodes
+		policy, err := NewRolePolicy(RoleWarm)
+		require.NoError(t, err)
+
+		// Configure pool factories for the policy (needed for tests that create policies directly)
+		err = configureTestPolicySettings(t, policy)
+		require.NoError(t, err)
+
+		// Update policy with connections
+		err = policy.DiscoveryUpdate(connections, nil, nil)
+		require.NoError(t, err)
+
+		// Policy should NOT be enabled (no warm nodes)
+		assert.False(t, policy.IsEnabled())
+
+		// Eval should return nil (no matching connections)
+		pool, err := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err)
+		assert.Nil(t, pool)
+	})
+
+	t.Run("Options pattern flexibility", func(t *testing.T) {
+		// Test that options pattern allows flexible configuration
+		ingestPolicy, err := NewRolePolicy(RoleIngest)
+		require.NoError(t, err)
+
+		warmPolicy, err := NewRolePolicy(RoleWarm) // Try warm nodes (which don't exist)
+		require.NoError(t, err)
+
+		// Configure pool factories for the policies (needed for tests that create policies directly)
+		err = configureTestPolicySettings(t, ingestPolicy)
+		require.NoError(t, err)
+		err = configureTestPolicySettings(t, warmPolicy)
+		require.NoError(t, err)
+
+		// Update policies with connections
+		err = ingestPolicy.DiscoveryUpdate(connections, nil, nil)
+		require.NoError(t, err)
+		err = warmPolicy.DiscoveryUpdate(connections, nil, nil)
+		require.NoError(t, err)
+
+		// Test ingest policy
+		assert.True(t, ingestPolicy.IsEnabled())
+		pool1, err1 := ingestPolicy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err1)
+		require.NotNil(t, pool1)
+
+		conn1, err := pool1.Next()
+		require.NoError(t, err)
+		// Should return ingest-capable nodes
+		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn1.Name)
+
+		// Test warm policy
+		assert.True(t, warmPolicy.IsEnabled())
+		pool2, err2 := warmPolicy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err2)
+		require.NotNil(t, pool2)
+
+		conn2, err := pool2.Next()
+		require.NoError(t, err)
+		assert.Equal(t, "warm-node", conn2.Name)
+	})
+}
+
+// TestRolePolicies tests the role-based policies with various configurations
+func TestRolePolicies(t *testing.T) {
+	// Create test connections with different roles
+	connections := []*Connection{
+		{Name: "data-node", URL: &url.URL{Host: "data:9200"}, Roles: newRoleSet([]string{RoleData})},
+		{Name: "ingest-node", URL: &url.URL{Host: "ingest:9200"}, Roles: newRoleSet([]string{RoleIngest})},
+		{Name: "data-ingest-node", URL: &url.URL{Host: "data-ingest:9200"}, Roles: newRoleSet([]string{RoleData, RoleIngest})},
+		{Name: "cluster-manager-node", URL: &url.URL{Host: "cm:9200"}, Roles: newRoleSet([]string{RoleClusterManager})},
+		{Name: "warm-node", URL: &url.URL{Host: "warm:9200"}, Roles: newRoleSet([]string{RoleWarm})},
+		{Name: "search-node", URL: &url.URL{Host: "search:9200"}, Roles: newRoleSet([]string{RoleSearch})},
+		{Name: "coordinating-node", URL: &url.URL{Host: "coord:9200"}, Roles: newRoleSet([]string{})}, // No specific roles
+	}
+
+	t.Run("IngestPolicy", func(t *testing.T) {
+		policy, err := NewRolePolicy(RoleIngest)
+		require.NoError(t, err)
+
+		// Configure pool factories for the policy (needed for tests that create policies directly)
+		err = configureTestPolicySettings(t, policy)
+		require.NoError(t, err)
+
+		// Update with connections
+		err = policy.DiscoveryUpdate(connections, nil, nil)
+		require.NoError(t, err)
+
+		// Should be enabled (has ingest nodes)
+		require.True(t, policy.IsEnabled())
+
+		// Should prefer ingest nodes
+		pool, err := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err)
+		require.NotNil(t, pool)
+
+		// Connections are initially dead, need to simulate health checks
+		// Get a connection (zombie) and mark it as successful
+		conn, err := pool.Next()
+		require.NoError(t, err)
+		// Should get either "ingest-node" or "data-ingest-node"
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
+
+		// Simulate successful health check to move connection to ready pool
+		statusPool := pool.(*statusConnectionPool)
+		statusPool.OnSuccess(conn)
+
+		// Now get connection from ready pool
+		liveConn, err := pool.Next()
+		require.NoError(t, err)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, liveConn.Name)
+
+		// Test with data-only connections (no ingest nodes)
+		dataOnlyConns := []*Connection{
+			{Name: "data-node", URL: &url.URL{Host: "data:9200"}, Roles: newRoleSet([]string{RoleData})},                    // No ingest
+			{Name: "cluster-manager-node", URL: &url.URL{Host: "cm:9200"}, Roles: newRoleSet([]string{RoleClusterManager})}, // No ingest
+		}
+
+		// Adding non-matching connections should not affect the policy
+		// The role matching logic should filter them out entirely
+		err = policy.DiscoveryUpdate(dataOnlyConns, nil, nil)
+		require.NoError(t, err)
+
+		// With proper role matching, non-ingest connections should not be added at all
+		// So the policy should remain enabled with only the original ingest connections
+		require.True(t, policy.IsEnabled()) // Should remain true (original ingest connections still there)
+
+		// Get a fresh pool after the update
+		pool2, err2 := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err2)
+		require.NotNil(t, pool2) // Should not be nil
+
+		// Should still get ingest connections, not the data-only ones
+		finalConn, err := pool2.Next()
+		require.NoError(t, err)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, finalConn.Name)
+	})
+}
+
+func TestGCD(t *testing.T) {
+	tests := []struct {
+		a, b, want int
+	}{
+		{8, 16, 8},
+		{16, 8, 8},
+		{8, 24, 8},
+		{24, 32, 8},
+		{32, 40, 8},
+		{7, 13, 1},
+		{12, 18, 6},
+		{100, 100, 100},
+		{1, 1, 1},
+	}
+	for _, tt := range tests {
+		got := gcd(tt.a, tt.b)
+		assert.Equal(t, tt.want, got, "gcd(%d, %d)", tt.a, tt.b)
+	}
+}
+
+func TestComputeWeights(t *testing.T) {
+	makeConn := func(cores int) *Connection {
+		return &Connection{allocatedProcessors: cores, weight: 1}
+	}
+
+	t.Run("homogeneous cluster", func(t *testing.T) {
+		conns := []*Connection{makeConn(8), makeConn(8), makeConn(8)}
+		computeWeights(conns)
+		for _, c := range conns {
+			assert.Equal(t, 1, c.weight)
+		}
+	})
+
+	t.Run("two sizes", func(t *testing.T) {
+		conns := []*Connection{makeConn(8), makeConn(16)}
+		computeWeights(conns)
+		assert.Equal(t, 1, conns[0].weight) // 8/8
+		assert.Equal(t, 2, conns[1].weight) // 16/8
+	})
+
+	t.Run("three sizes", func(t *testing.T) {
+		conns := []*Connection{makeConn(8), makeConn(16), makeConn(24)}
+		computeWeights(conns)
+		assert.Equal(t, 1, conns[0].weight)
+		assert.Equal(t, 2, conns[1].weight)
+		assert.Equal(t, 3, conns[2].weight)
+	})
+
+	t.Run("non-power-of-2 mixed", func(t *testing.T) {
+		conns := []*Connection{makeConn(8), makeConn(16), makeConn(32), makeConn(40)}
+		computeWeights(conns)
+		assert.Equal(t, 1, conns[0].weight) // 8/8
+		assert.Equal(t, 2, conns[1].weight) // 16/8
+		assert.Equal(t, 4, conns[2].weight) // 32/8
+		assert.Equal(t, 5, conns[3].weight) // 40/8
+	})
+
+	t.Run("larger non-power-of-2", func(t *testing.T) {
+		conns := []*Connection{makeConn(24), makeConn(32), makeConn(40)}
+		computeWeights(conns)
+		assert.Equal(t, 3, conns[0].weight) // 24/8
+		assert.Equal(t, 4, conns[1].weight) // 32/8
+		assert.Equal(t, 5, conns[2].weight) // 40/8
+	})
+
+	t.Run("unknown cores get weight 1", func(t *testing.T) {
+		conns := []*Connection{makeConn(0), makeConn(16), makeConn(8)}
+		computeWeights(conns)
+		assert.Equal(t, 1, conns[0].weight) // unknown -> 1
+		assert.Equal(t, 2, conns[1].weight) // 16/8
+		assert.Equal(t, 1, conns[2].weight) // 8/8
+	})
+
+	t.Run("all unknown leaves weights unchanged", func(t *testing.T) {
+		conns := []*Connection{makeConn(0), makeConn(0)}
+		conns[0].weight = 3 // pre-set
+		conns[1].weight = 5
+		computeWeights(conns)
+		assert.Equal(t, 3, conns[0].weight) // unchanged
+		assert.Equal(t, 5, conns[1].weight) // unchanged
+	})
+
+	t.Run("empty slice is no-op", func(t *testing.T) {
+		computeWeights(nil)
+		computeWeights([]*Connection{})
+	})
+}
+
+func TestCreateOrUpdateSingleNodePool(t *testing.T) {
+	t.Run("single ready conn creates singleServerPool", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
+		conn.state.Store(int64(newConnState(lcActive)))
+
+		client := &Client{}
+		// Start with an existing singleServerPool (what you'd have in practice)
+		client.mu.connectionPool = &singleServerPool{}
+
+		client.mu.Lock()
+		pool := client.createOrUpdateSingleNodePool([]*Connection{conn}, nil)
+		client.mu.Unlock()
+
+		sp, ok := pool.(*singleServerPool)
+		require.True(t, ok, "expected singleServerPool")
+		require.Equal(t, conn, sp.connection)
+	})
+
+	t.Run("single dead conn creates singleServerPool", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
+		conn.state.Store(int64(newConnState(lcDead)))
+
+		client := &Client{}
+		client.mu.connectionPool = &singleServerPool{}
+
+		client.mu.Lock()
+		pool := client.createOrUpdateSingleNodePool(nil, []*Connection{conn})
+		client.mu.Unlock()
+
+		sp, ok := pool.(*singleServerPool)
+		require.True(t, ok, "expected singleServerPool")
+		require.Equal(t, conn, sp.connection)
+	})
+
+	t.Run("demote from multiServerPool", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
+		conn.state.Store(int64(newConnState(lcActive)))
+
+		msp := &multiServerPool{}
+		msp.mu.ready = []*Connection{conn}
+		msp.mu.activeCount = 1
+		msp.mu.dead = []*Connection{}
+
+		client := &Client{}
+		client.mu.connectionPool = msp
+
+		client.mu.Lock()
+		pool := client.createOrUpdateSingleNodePool([]*Connection{conn}, nil)
+		client.mu.Unlock()
+
+		sp, ok := pool.(*singleServerPool)
+		require.True(t, ok, "expected singleServerPool after demotion")
+		require.Equal(t, conn, sp.connection)
+	})
+
+	t.Run("preserves metrics from existing singleServerPool", func(t *testing.T) {
+		oldConn := &Connection{URL: &url.URL{Scheme: "http", Host: "old:9200"}}
+		existingMetrics := &metrics{}
+		existingPool := &singleServerPool{connection: oldConn, metrics: existingMetrics}
+
+		newConn := &Connection{URL: &url.URL{Scheme: "http", Host: "new:9200"}}
+		newConn.state.Store(int64(newConnState(lcActive)))
+
+		client := &Client{}
+		client.mu.connectionPool = existingPool
+
+		client.mu.Lock()
+		pool := client.createOrUpdateSingleNodePool([]*Connection{newConn}, nil)
+		client.mu.Unlock()
+
+		sp, ok := pool.(*singleServerPool)
+		require.True(t, ok, "expected singleServerPool")
+		require.Equal(t, newConn, sp.connection)
+		require.Equal(t, existingMetrics, sp.metrics, "metrics should be preserved")
+	})
+}
+
+func TestCompareConnectionRoles(t *testing.T) {
+	t.Run("identical connections return 0", func(t *testing.T) {
+		a := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+		b := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+		require.Equal(t, 0, compareConnectionRoles(a, b))
+	})
+
+	t.Run("different URLs return non-zero", func(t *testing.T) {
+		a := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
+			Roles: newRoleSet([]string{"data"}),
+		}
+		b := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: "node2:9200"},
+			Roles: newRoleSet([]string{"data"}),
+		}
+		require.NotEqual(t, 0, compareConnectionRoles(a, b))
+	})
+
+	t.Run("same URL different roles return non-zero", func(t *testing.T) {
+		a := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
+			Roles: newRoleSet([]string{"data"}),
+		}
+		b := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+		require.NotEqual(t, 0, compareConnectionRoles(a, b))
+	})
+}
+
+func TestFindConnectionByURL(t *testing.T) {
+	t.Run("finds in singleServerPool", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
+		pool := &singleServerPool{connection: conn}
+		client := &Client{}
+
+		found := client.findConnectionByURL(pool, "http://node1:9200")
+		require.Equal(t, conn, found)
+	})
+
+	t.Run("returns nil when not in singleServerPool", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
+		pool := &singleServerPool{connection: conn}
+		client := &Client{}
+
+		found := client.findConnectionByURL(pool, "http://other:9200")
+		require.Nil(t, found)
+	})
+
+	t.Run("finds in multiServerPool ready list", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
+		pool := &multiServerPool{}
+		pool.mu.ready = []*Connection{conn}
+		pool.mu.dead = []*Connection{}
+		client := &Client{}
+
+		found := client.findConnectionByURL(pool, "http://node1:9200")
+		require.Equal(t, conn, found)
+	})
+
+	t.Run("finds in multiServerPool dead list", func(t *testing.T) {
+		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "dead:9200"}}
+		pool := &multiServerPool{}
+		pool.mu.ready = []*Connection{}
+		pool.mu.dead = []*Connection{conn}
+		client := &Client{}
+
+		found := client.findConnectionByURL(pool, "http://dead:9200")
+		require.Equal(t, conn, found)
+	})
+
+	t.Run("returns nil when not found", func(t *testing.T) {
+		pool := &multiServerPool{}
+		pool.mu.ready = []*Connection{}
+		pool.mu.dead = []*Connection{}
+		client := &Client{}
+
+		found := client.findConnectionByURL(pool, "http://missing:9200")
+		require.Nil(t, found)
+	})
+}
+
+func TestRecalculateCapacityModel(t *testing.T) {
+	t.Run("updates fields from minimum core count", func(t *testing.T) {
+		conns := []*Connection{
+			{URL: &url.URL{Host: "a:9200"}, allocatedProcessors: 8},
+			{URL: &url.URL{Host: "b:9200"}, allocatedProcessors: 16},
+			{URL: &url.URL{Host: "c:9200"}, allocatedProcessors: 4},
+		}
+
+		client := &Client{
+			serverMaxNewConnsPerSec: 0,
+			clientsPerServer:        0,
+			healthCheckRate:         0,
+		}
+
+		client.recalculateCapacityModel(conns)
+
+		// Min cores = 4
+		require.Equal(t, float64(4)*serverMaxNewConnsPerSecMultiplier, client.serverMaxNewConnsPerSec)
+		require.Equal(t, float64(4), client.clientsPerServer)
+		require.Equal(t, float64(4)*healthCheckRateMultiplier, client.healthCheckRate)
+	})
+
+	t.Run("no-op when no cores known", func(t *testing.T) {
+		conns := []*Connection{
+			{URL: &url.URL{Host: "a:9200"}, allocatedProcessors: 0},
+		}
+
+		client := &Client{
+			serverMaxNewConnsPerSec: 99.0,
+			clientsPerServer:        99.0,
+			healthCheckRate:         99.0,
+		}
+
+		client.recalculateCapacityModel(conns)
+
+		// Should remain unchanged
+		require.Equal(t, 99.0, client.serverMaxNewConnsPerSec)
+		require.Equal(t, 99.0, client.clientsPerServer)
+		require.Equal(t, 99.0, client.healthCheckRate)
+	})
+}
+
+func TestUpdateConnectionPool(t *testing.T) {
+	makeConn := func(host string) *Connection {
+		c := &Connection{
+			URL:   &url.URL{Scheme: "http", Host: host},
+			Roles: newRoleSet([]string{"data"}),
+		}
+		c.weight.Store(1)
+		return c
+	}
+
+	newDiscoveryClient := func() *Client {
+		ctx, cancel := context.WithCancel(context.Background())
+		client := &Client{
+			ctx:        ctx,
+			cancelFunc: cancel,
+			urls:       []*url.URL{{Scheme: "http", Host: "seed:9200"}},
+		}
+		return client
+	}
+
+	t.Run("cold start creates single-node pool", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		conn := makeConn("node1:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{conn}, nil)
+		require.NoError(t, err)
+
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		_, ok := pool.(*singleServerPool)
+		require.True(t, ok, "expected singleServerPool for 1 node")
+	})
+
+	t.Run("cold start creates multi-node pool", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		conn1 := makeConn("node1:9200")
+		conn2 := makeConn("node2:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{conn1, conn2}, nil)
+		require.NoError(t, err)
+
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		_, ok := pool.(*multiServerPool)
+		require.True(t, ok, "expected multiServerPool for 2 nodes")
+	})
+
+	t.Run("observer notified of added/removed/unchanged", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		obs := newRecordingObserver()
+		var iface ConnectionObserver = obs
+		client.observer.Store(&iface)
+
+		// Initial pool with 2 nodes
+		conn1 := makeConn("node1:9200")
+		conn2 := makeConn("node2:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{conn1, conn2}, nil)
+		require.NoError(t, err)
+
+		// Second discovery: node2 gone, node3 added, node1 unchanged
+		newConn1 := makeConn("node1:9200")
+		conn3 := makeConn("node3:9200")
+		err = client.updateConnectionPool(time.Time{}, []*Connection{newConn1, conn3}, nil)
+		require.NoError(t, err)
+
+		require.Greater(t, obs.count("discovery_add"), 0)
+		require.Greater(t, obs.count("discovery_remove"), 0)
+		require.Greater(t, obs.count("discovery_unchanged"), 0)
+	})
+
+	t.Run("stale dead state resurrected", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		// Create initial pool with a connection
+		conn := makeConn("node1:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{conn}, nil)
+		require.NoError(t, err)
+
+		// Mark the connection as dead in the past
+		conn.mu.Lock()
+		conn.mu.deadSince = time.Now().Add(-5 * time.Second)
+		conn.mu.Unlock()
+		conn.failures.Store(3)
+
+		// Re-discover with healthCheckedAt AFTER the deadSince -> stale dead state
+		healthCheckedAt := time.Now()
+		newConn := makeConn("node1:9200")
+		newConn.Roles = conn.Roles // Same roles so old object is reused
+		err = client.updateConnectionPool(healthCheckedAt, []*Connection{newConn}, nil)
+		require.NoError(t, err)
+
+		// The old connection's dead state should have been cleared (resurrected)
+		conn.mu.RLock()
+		deadSince := conn.mu.deadSince
+		conn.mu.RUnlock()
+		require.True(t, deadSince.IsZero(), "stale dead state should be cleared")
+		require.Equal(t, int64(0), conn.failures.Load(), "failures should be reset")
+	})
+
+	t.Run("concurrent dead state preserved", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		// Create initial pool
+		conn := makeConn("node1:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{conn}, nil)
+		require.NoError(t, err)
+
+		// Health check at t=0
+		healthCheckedAt := time.Now()
+
+		// Mark dead AFTER the health check time
+		conn.mu.Lock()
+		conn.mu.deadSince = healthCheckedAt.Add(1 * time.Second)
+		conn.mu.Unlock()
+
+		// Re-discover: dead state is newer than healthCheckedAt -> should stay dead
+		newConn := makeConn("node1:9200")
+		newConn.Roles = conn.Roles
+		err = client.updateConnectionPool(healthCheckedAt, []*Connection{newConn}, nil)
+		require.NoError(t, err)
+
+		conn.mu.RLock()
+		deadSince := conn.mu.deadSince
+		conn.mu.RUnlock()
+		require.False(t, deadSince.IsZero(), "concurrent dead state should be preserved")
+	})
+
+	t.Run("role change treated as remove+add", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		obs := newRecordingObserver()
+		var iface ConnectionObserver = obs
+		client.observer.Store(&iface)
+
+		conn1 := makeConn("node1:9200")
+		conn2 := makeConn("node2:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{conn1, conn2}, nil)
+		require.NoError(t, err)
+
+		// Reset observer counts from initial discovery
+		obs.mu.Lock()
+		obs.events = make(map[string][]ConnectionEvent)
+		obs.mu.Unlock()
+
+		// Re-discover with node1 having different roles
+		newConn1 := makeConn("node1:9200")
+		newConn1.Roles = newRoleSet([]string{"data", "ingest"}) // Changed roles
+		newConn2 := makeConn("node2:9200")
+		err = client.updateConnectionPool(time.Time{}, []*Connection{newConn1, newConn2}, nil)
+		require.NoError(t, err)
+
+		// Role change for node1 should generate remove + add
+		addEvents := obs.get("discovery_add")
+		removeEvents := obs.get("discovery_remove")
+
+		addURLs := make([]string, len(addEvents))
+		for i, e := range addEvents {
+			addURLs[i] = e.URL
+		}
+		removeURLs := make([]string, len(removeEvents))
+		for i, e := range removeEvents {
+			removeURLs[i] = e.URL
+		}
+		require.Contains(t, addURLs, "http://node1:9200")
+		require.Contains(t, removeURLs, "http://node1:9200")
+	})
+
+	t.Run("dead connections placed in dead list", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		ready := makeConn("node1:9200")
+		dead := makeConn("node2:9200")
+		err := client.updateConnectionPool(time.Time{}, []*Connection{ready}, []*Connection{dead})
+		require.NoError(t, err)
+
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		mp, ok := pool.(*multiServerPool)
+		require.True(t, ok)
+		require.Len(t, mp.mu.dead, 1)
+		require.Equal(t, "node2:9200", mp.mu.dead[0].URL.Host)
+	})
 }
