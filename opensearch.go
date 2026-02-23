@@ -47,7 +47,22 @@ import (
 )
 
 const (
-	defaultURL         = "http://localhost:9200"
+	// SchemeInsecure is the HTTP scheme for insecure connections.
+	SchemeInsecure = "http"
+	// SchemeSecure is the HTTPS scheme for secure connections.
+	SchemeSecure = "https"
+	// DefaultScheme is the default connection scheme.
+	DefaultScheme = SchemeInsecure
+	// DefaultHost is the default OpenSearch host.
+	DefaultHost = "localhost"
+	// DefaultPort is the default OpenSearch port.
+	DefaultPort = 9200
+
+	// Internal constants
+	defaultScheme      = DefaultScheme
+	defaultHost        = DefaultHost
+	defaultPort        = "9200"
+	defaultURL         = defaultScheme + "://" + defaultHost + ":" + defaultPort
 	openSearch         = "opensearch"
 	unsupportedProduct = "the client noticed that the server is not a supported distribution"
 	envOpenSearchURL   = "OPENSEARCH_URL"
