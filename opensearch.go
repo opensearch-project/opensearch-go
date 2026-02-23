@@ -85,7 +85,8 @@ var (
 type Config struct {
 	Addresses []string // A list of nodes to use.
 	Username  string   // Username for HTTP Basic Authentication.
-	Password  string   // Password for HTTP Basic Authentication.
+	// Password for HTTP Basic Authentication.
+	Password string // #nosec G117
 
 	Header http.Header // Global HTTP request header.
 
@@ -106,14 +107,87 @@ type Config struct {
 	DiscoverNodesOnStart  bool          // Discover nodes when initializing the client. Default: false.
 	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
 
+	// Health check configuration
+	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 3s.
+	HealthCheckMaxRetries int           // Max retries for health checks. Default: 3. Set to -1 to disable health checks.
+	HealthCheckJitter     float64       // Jitter factor for health check timing (0.0-1.0). Default: 0.2.
+
+	// Resurrection timeout configuration for dead connection recovery.
+	// These control how quickly the client retries dead nodes and how aggressively
+	// it reconnects during cluster outages or rolling restarts.
+	ResurrectTimeoutInitial      time.Duration // Initial backoff for dead connections. Default: 5s.
+	ResurrectTimeoutMax          time.Duration // Max backoff before jitter. Default: 30s.
+	ResurrectTimeoutFactorCutoff int           // Exponential backoff cutoff factor. Default: 5.
+	MinimumResurrectTimeout      time.Duration // Absolute minimum retry interval. Default: 500ms.
+	JitterScale                  float64       // Jitter multiplier (0.0-1.0). Default: 0.5.
+
+	// Health check rate limiting to prevent overwhelming recovering servers.
+	// During outages, all clients reconnect simultaneously, creating TLS handshake
+	// pressure on recovering servers. Health check rates are auto-derived from the
+	// server's core count (discovered via /_nodes/http,os).
+	//
+	// MaxRetryClusterHealth controls how often to retry the cluster health probe
+	// (/_cluster/health?local=true) on nodes where it was previously unavailable due to
+	// missing cluster:monitor/health permission (401 Unauthorized or 403 Forbidden).
+	// Jitter from HealthCheckJitter is applied to the interval to prevent thundering herd.
+	// 0 = use default (4h), <0 = disable cluster health probing entirely.
+	// >0 = explicit retry interval.
+	// Default: 4h
+	MaxRetryClusterHealth time.Duration
+
+	// HealthCheckRequestModifier is called on every health check HTTP request before it is sent.
+	// This allows injecting custom authentication headers or other modifications without
+	// replacing the entire health check function.
+	// Default: nil (no modification)
+	HealthCheckRequestModifier func(*http.Request)
+
 	EnableMetrics     bool // Enable the metrics collection.
 	EnableDebugLogger bool // Enable the debug logging.
 
+	// ActiveListCap sets the maximum number of connections in the ready list's active partition per pool.
+	// When discovery adds connections that would exceed this cap, overflow connections
+	// are moved to a standby list for later rotation. This caps the number of active
+	// connections per client, preventing fan-out overload in large clusters.
+	//
+	// 0 = auto-derive from server capacity model:
+	//   cap = floor(serverMaxNewConnsPerSec * ResurrectTimeoutInitial / clientsPerServer)
+	//   With defaults (8 cores): floor(32 * 5 / 8) = 20
+	// >0 = explicit cap.
+	// <0 = disabled (all connections go to active, standby disabled).
+	// Default: 0 (auto-derive)
+	ActiveListCap int
+
+	// StandbyRotationInterval sets how often a standby connection is rotated
+	// into the ready list (and an active connection is evicted to standby).
+	// 0 = use DiscoverNodesInterval, >0 = explicit interval, <0 = disabled.
+	// Default: 0 (use DiscoverNodesInterval)
+	StandbyRotationInterval time.Duration
+
+	// StandbyRotationCount sets how many standby connections are rotated per
+	// discovery cycle. 0 = use default (1), >0 = explicit count.
+	// Default: 1
+	StandbyRotationCount int
+
+	// StandbyPromotionChecks sets the number of consecutive successful health
+	// checks required before a standby connection can be promoted to live.
+	// 0 = use default (3), >0 = explicit count.
+	// Default: 3
+	StandbyPromotionChecks int
+
 	RetryBackoff func(attempt int) time.Duration // Optional backoff duration. Default: nil.
 
-	Transport http.RoundTripper            // The HTTP transport object.
-	Logger    opensearchtransport.Logger   // The logger object.
-	Selector  opensearchtransport.Selector // The selector object.
+	Transport http.RoundTripper                      // The HTTP transport object.
+	Logger    opensearchtransport.Logger             // The logger object.
+	Selector  opensearchtransport.Selector           // The selector object.
+	Router    opensearchtransport.Router             // Optional router for request-aware routing.
+	Observer  opensearchtransport.ConnectionObserver // Optional observer for connection lifecycle events.
+
+	// Context for background operations (node discovery, health checks, stats polling).
+	// If nil, context.Background() is used. The transport derives a child context from
+	// this, so canceling the parent automatically stops all background goroutines.
+	// For example, passing t.Context() in tests ensures cleanup when the test ends.
+	//nolint:containedctx // Config struct is short-lived, context extracted during New()
+	Context context.Context
 
 	// Optional constructor function for a custom ConnectionPool. Default: nil.
 	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
@@ -165,12 +239,8 @@ func NewClient(cfg Config) (*Client, error) {
 		urls = append(urls, u)
 	}
 
-	// TODO: Refactor
-	if urls[0].User != nil {
-		cfg.Username = urls[0].User.Username()
-		pw, _ := urls[0].User.Password()
-		cfg.Password = pw
-	}
+	// Extract credentials from the first URL that has them (only if not already configured)
+	extractCredentialsFromURLs(&cfg, urls)
 
 	tp, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs:     urls,
@@ -195,10 +265,30 @@ func NewClient(cfg Config) (*Client, error) {
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
 
+		HealthCheckTimeout:    cfg.HealthCheckTimeout,
+		HealthCheckMaxRetries: cfg.HealthCheckMaxRetries,
+		HealthCheckJitter:     cfg.HealthCheckJitter,
+
+		ResurrectTimeoutInitial:      cfg.ResurrectTimeoutInitial,
+		ResurrectTimeoutMax:          cfg.ResurrectTimeoutMax,
+		ResurrectTimeoutFactorCutoff: cfg.ResurrectTimeoutFactorCutoff,
+		MinimumResurrectTimeout:      cfg.MinimumResurrectTimeout,
+		JitterScale:                  cfg.JitterScale,
+		MaxRetryClusterHealth:        cfg.MaxRetryClusterHealth,
+		HealthCheckRequestModifier:   cfg.HealthCheckRequestModifier,
+
+		ActiveListCap:           cfg.ActiveListCap,
+		StandbyRotationInterval: cfg.StandbyRotationInterval,
+		StandbyRotationCount:    cfg.StandbyRotationCount,
+		StandbyPromotionChecks:  cfg.StandbyPromotionChecks,
+
 		Transport:          cfg.Transport,
 		Logger:             cfg.Logger,
 		Selector:           cfg.Selector,
+		Router:             cfg.Router,
+		Observer:           cfg.Observer,
 		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
+		Context:            cfg.Context,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)
@@ -207,8 +297,22 @@ func NewClient(cfg Config) (*Client, error) {
 	client := &Client{Transport: tp}
 
 	if cfg.DiscoverNodesOnStart {
-		//nolint:errcheck // goroutine discards return values
-		go client.DiscoverNodes()
+		// Use the provided context or fall back to background context.
+		// The transport has its own derived child context for scheduled discovery;
+		// this is only for the initial one-shot discovery on start.
+		discoverCtx := cfg.Context
+		if discoverCtx == nil {
+			discoverCtx = context.Background()
+		}
+		go func() {
+			start := time.Now()
+			if err := client.DiscoverNodes(discoverCtx); err != nil {
+				if cfg.Logger != nil {
+					//nolint:errcheck // Logger errors are not critical for discovery
+					cfg.Logger.LogRoundTrip(nil, nil, err, start, time.Since(start))
+				}
+			}
+		}()
 	}
 
 	return client, err
@@ -300,9 +404,9 @@ func (c *Client) Metrics() (opensearchtransport.Metrics, error) {
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
-func (c *Client) DiscoverNodes() error {
+func (c *Client) DiscoverNodes(ctx context.Context) error {
 	if dt, ok := c.Transport.(opensearchtransport.Discoverable); ok {
-		return dt.DiscoverNodes()
+		return dt.DiscoverNodes(ctx)
 	}
 
 	return ErrTransportMissingMethodDiscoverNodes
@@ -339,6 +443,31 @@ func addrsToURLs(addrs []string) ([]*url.URL, error) {
 	}
 
 	return urls, nil
+}
+
+// extractCredentialsFromURLs extracts username and password from the first URL that has them.
+// Only extracts credentials that are not already configured in cfg.
+func extractCredentialsFromURLs(cfg *Config, urls []*url.URL) {
+	if len(urls) == 0 || (cfg.Username != "" && cfg.Password != "") {
+		return // No URLs or credentials already fully configured
+	}
+
+	for _, u := range urls {
+		if u.User == nil {
+			continue
+		}
+
+		if cfg.Username == "" {
+			cfg.Username = u.User.Username()
+		}
+		if cfg.Password == "" {
+			if pw, ok := u.User.Password(); ok {
+				cfg.Password = pw
+			}
+		}
+		// Stop after finding the first URL with credentials
+		break
+	}
 }
 
 // ToPointer converts any value to a pointer, mainly used for request parameters

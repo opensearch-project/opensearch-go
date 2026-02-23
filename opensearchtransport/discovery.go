@@ -644,9 +644,11 @@ func (c *Client) recalculateCapacityModel(conns []*Connection) {
 		return
 	}
 
+	c.mu.Lock()
 	c.serverMaxNewConnsPerSec = float64(minCores) * serverMaxNewConnsPerSecMultiplier
 	c.clientsPerServer = float64(minCores)
 	c.healthCheckRate = float64(minCores) * healthCheckRateMultiplier
+	c.mu.Unlock()
 }
 
 // findConnectionByURL attempts to find a connection in the pool by URL.

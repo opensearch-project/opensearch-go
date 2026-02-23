@@ -73,7 +73,17 @@ const (
 	// A node is marked overloaded (and demoted from the ready list) when any of these
 	// thresholds are breached. The stats poller promotes the node back when all
 	// conditions clear.
-	defaultNodeStatsInterval       = 30 * time.Second // poll interval for /_nodes/_local/stats/jvm,breaker
+	//
+	// The polling interval is auto-derived from the cluster size when NodeStatsInterval == 0:
+	//   nodeStatsInterval = clamp(liveNodes * clientsPerServer / healthCheckRate, min, max)
+	//
+	// With defaults (serverCoreCount=8): clientsPerServer=8, healthCheckRate=0.8:
+	//   nodeStatsInterval = clamp(liveNodes * 10, 5s, 30s)
+	//
+	// Small clusters (1-3 nodes) get aggressive 5s polling for fast overload detection.
+	// Large clusters cap at 30s to limit N×M polling amplification.
+	defaultNodeStatsIntervalMin    = 5 * time.Second  // minimum poll interval (small clusters)
+	defaultNodeStatsIntervalMax    = 30 * time.Second // maximum poll interval (large clusters)
 	defaultOverloadedHeapThreshold = 85               // JVM heap_used_percent (0-100)
 	defaultOverloadedBreakerRatio  = 0.90             // circuit breaker estimated_size / limit_size (0.0-1.0)
 

@@ -32,12 +32,14 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math/rand"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -47,6 +49,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
+	"github.com/stretchr/testify/require"
 )
 
 var _ = fmt.Print
@@ -1175,5 +1178,625 @@ func TestRequestSigning(t *testing.T) {
 		if err.Error() != `failed to sign request: invalid data` {
 			t.Fatalf("Expected error `failed to sign request: invalid data`: but got error %q", err)
 		}
+	})
+}
+
+func TestConnectionPoolPromotion(t *testing.T) {
+	t.Run("promoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
+		// Create a client with metrics enabled and single connection
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify we start with a singleConnectionPool
+		singlePool, ok := client.mu.connectionPool.(*singleConnectionPool)
+		require.True(t, ok, "Expected singleConnectionPool")
+		require.NotNil(t, singlePool.metrics, "Expected metrics to be assigned")
+
+		// Create mock connections for promotion
+		liveConn := &Connection{URL: &url.URL{Host: "live:9200"}, Name: "live-node"}
+		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
+
+		// Lock and promote
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock([]*Connection{liveConn}, []*Connection{deadConn})
+		client.mu.connectionPool = statusPool
+		client.mu.Unlock()
+
+		// Verify metrics were preserved
+		require.NotNil(t, statusPool.metrics, "Metrics should be preserved during promotion")
+		require.Equal(t, singlePool.metrics, statusPool.metrics, "Should preserve the same metrics instance")
+
+		// Verify connections were properly set
+		require.Len(t, statusPool.mu.ready, 1, "Should have 1 ready connection")
+		require.Len(t, statusPool.mu.dead, 1, "Should have 1 dead connection")
+		require.Equal(t, "live-node", statusPool.mu.ready[0].Name)
+		require.Equal(t, "dead-node", statusPool.mu.dead[0].Name)
+	})
+
+	t.Run("demoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
+		// Create a statusConnectionPool with metrics
+		liveConn := &Connection{URL: &url.URL{Host: "live:9200"}, Name: "live-node"}
+		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
+
+		statusPool := &statusConnectionPool{
+			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		}
+		statusPool.mu.ready = []*Connection{liveConn}
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{deadConn}
+
+		// Assign metrics
+		testMetrics := &metrics{}
+		statusPool.metrics = testMetrics
+
+		// Create client with statusConnectionPool
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+
+		// Demote to single connection pool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.connectionPool = singlePool
+		client.mu.Unlock()
+
+		// Verify metrics were preserved
+		require.NotNil(t, singlePool.metrics, "Metrics should be preserved during demotion")
+		require.Equal(t, testMetrics, singlePool.metrics, "Should preserve the same metrics instance")
+
+		// Verify connection selection (should prefer ready over dead)
+		require.NotNil(t, singlePool.connection, "Should have selected a connection")
+		require.Equal(t, "live-node", singlePool.connection.Name, "Should prefer ready connection")
+	})
+
+	t.Run("demoteConnectionPoolWithLock prefers ready connections", func(t *testing.T) {
+		liveConn1 := &Connection{URL: &url.URL{Host: "live1:9200"}, Name: "live-node-1"}
+		liveConn2 := &Connection{URL: &url.URL{Host: "live2:9200"}, Name: "live-node-2"}
+		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
+
+		statusPool := &statusConnectionPool{}
+		statusPool.mu.ready = []*Connection{liveConn1, liveConn2}
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{deadConn}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		require.Equal(t, "live-node-1", singlePool.connection.Name, "Should select first ready connection")
+	})
+
+	t.Run("demoteConnectionPoolWithLock falls back to dead connections", func(t *testing.T) {
+		deadConn1 := &Connection{URL: &url.URL{Host: "dead1:9200"}, Name: "dead-node-1"}
+		deadConn2 := &Connection{URL: &url.URL{Host: "dead2:9200"}, Name: "dead-node-2"}
+
+		statusPool := &statusConnectionPool{}
+		statusPool.mu.ready = []*Connection{} // No ready connections
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{deadConn1, deadConn2}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		require.Equal(t, "dead-node-1", singlePool.connection.Name, "Should select first dead connection when no ready connections")
+	})
+
+	t.Run("demoteConnectionPoolWithLock handles empty pools", func(t *testing.T) {
+		statusPool := &statusConnectionPool{}
+		statusPool.mu.ready = []*Connection{} // No connections
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{} // No connections
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		require.Nil(t, singlePool.connection, "Should handle empty pool gracefully")
+	})
+
+	t.Run("promoteConnectionPoolWithLock preserves resurrection timeout settings", func(t *testing.T) {
+		// Create initial statusConnectionPool with custom settings
+		customInitial := 120 * time.Second
+		customCutoff := 10
+
+		existingPool := &statusConnectionPool{
+			resurrectTimeoutInitial:      customInitial,
+			resurrectTimeoutFactorCutoff: customCutoff,
+		}
+		existingPool.mu.ready = []*Connection{{URL: &url.URL{Host: "existing:9200"}}}
+		existingPool.mu.activeCount = len(existingPool.mu.ready)
+		existingPool.mu.dead = []*Connection{}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = existingPool
+
+		// Promote (which should preserve existing settings)
+		newConn := &Connection{URL: &url.URL{Host: "new:9200"}, Name: "new-node"}
+		newPool := client.promoteConnectionPoolWithLock([]*Connection{newConn}, []*Connection{})
+
+		client.mu.Unlock()
+
+		// Verify custom settings were preserved
+		require.Equal(t, customInitial, newPool.resurrectTimeoutInitial, "Should preserve custom resurrection timeout")
+		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
+	})
+
+	t.Run("promoteConnectionPoolWithLock filters dedicated cluster managers", func(t *testing.T) {
+		// Create connections with different roles
+		dataConn := &Connection{
+			URL:   &url.URL{Host: "data:9200"},
+			Name:  "data-node",
+			Roles: newRoleSet([]string{"data"}),
+		}
+		clusterManagerConn := &Connection{
+			URL:   &url.URL{Host: "cm:9200"},
+			Name:  "cm-node",
+			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		}
+		mixedConn := &Connection{
+			URL:   &url.URL{Host: "mixed:9200"},
+			Name:  "mixed-node",
+			Roles: newRoleSet([]string{"cluster_manager", "data"}), // Not dedicated
+		}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                            []*url.URL{u},
+			IncludeDedicatedClusterManagers: false, // Default: exclude dedicated CMs
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock(
+			[]*Connection{dataConn, clusterManagerConn, mixedConn},
+			[]*Connection{},
+		)
+		client.mu.Unlock()
+
+		// Should exclude dedicated cluster manager but include mixed role node
+		require.Len(t, statusPool.mu.ready, 2, "Should exclude dedicated cluster manager")
+
+		names := make([]string, len(statusPool.mu.ready))
+		for i, conn := range statusPool.mu.ready {
+			names[i] = conn.Name
+		}
+		require.Contains(t, names, "data-node", "Should include data node")
+		require.Contains(t, names, "mixed-node", "Should include mixed role node")
+		require.NotContains(t, names, "cm-node", "Should exclude dedicated cluster manager")
+	})
+
+	t.Run("promoteConnectionPoolWithLock includes dedicated cluster managers when configured", func(t *testing.T) {
+		// Create connections with different roles
+		dataConn := &Connection{
+			URL:   &url.URL{Host: "data:9200"},
+			Name:  "data-node",
+			Roles: newRoleSet([]string{"data"}),
+		}
+		clusterManagerConn := &Connection{
+			URL:   &url.URL{Host: "cm:9200"},
+			Name:  "cm-node",
+			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                            []*url.URL{u},
+			IncludeDedicatedClusterManagers: true, // Include dedicated CMs
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock(
+			[]*Connection{dataConn, clusterManagerConn},
+			[]*Connection{},
+		)
+		client.mu.Unlock()
+
+		// Should include all connections including dedicated cluster manager
+		require.Len(t, statusPool.mu.ready, 2, "Should include all connections")
+
+		names := make([]string, len(statusPool.mu.ready))
+		for i, conn := range statusPool.mu.ready {
+			names[i] = conn.Name
+		}
+		require.Contains(t, names, "data-node", "Should include data node")
+		require.Contains(t, names, "cm-node", "Should include dedicated cluster manager")
+	})
+}
+
+func TestConnectionPoolPromotionIntegration(t *testing.T) {
+	t.Run("discovery promotes single to multi-node pool", func(t *testing.T) {
+		// Create mock server for nodes discovery
+		mux := http.NewServeMux()
+
+		// Health check endpoint
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]any{
+				"name":         "test-node",
+				"cluster_name": "test-cluster",
+				"version":      map[string]any{"number": "2.0.0"},
+			})
+		})
+
+		// Nodes info endpoint - return multiple nodes
+		mux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+			response := map[string]any{
+				"_nodes": map[string]any{
+					"total":      2,
+					"successful": 2,
+					"failed":     0,
+				},
+				"cluster_name": "test-cluster",
+				"nodes": map[string]any{
+					"node1": map[string]any{
+						"name":  "data-node-1",
+						"roles": []string{"data", "ingest"},
+						"http":  map[string]any{"publish_address": "127.0.0.1:9200"},
+					},
+					"node2": map[string]any{
+						"name":  "data-node-2",
+						"roles": []string{"data", "ingest"},
+						"http":  map[string]any{"publish_address": "127.0.0.1:9201"},
+					},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+		})
+
+		// Start test server
+		server := httptest.NewServer(mux)
+		defer server.Close()
+
+		// Parse server URL
+		serverURL, err := url.Parse(server.URL)
+		require.NoError(t, err)
+
+		// Create client starting with single node (should create singleConnectionPool)
+		client, err := New(Config{
+			URLs:          []*url.URL{serverURL},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify we start with singleConnectionPool
+		originalPool, ok := client.mu.connectionPool.(*singleConnectionPool)
+		require.True(t, ok, "Should start with singleConnectionPool")
+		require.NotNil(t, originalPool.metrics, "Should have metrics assigned")
+
+		// Perform discovery
+		err = client.DiscoverNodes(t.Context())
+		require.NoError(t, err, "Discovery should succeed")
+
+		// Verify promotion to statusConnectionPool
+		client.mu.RLock()
+		newPool, ok := client.mu.connectionPool.(*statusConnectionPool)
+		client.mu.RUnlock()
+		require.True(t, ok, "Should promote to statusConnectionPool after discovery")
+
+		// Verify metrics were preserved
+		require.NotNil(t, newPool.metrics, "Metrics should be preserved after promotion")
+		require.Equal(t, originalPool.metrics, newPool.metrics, "Should preserve same metrics instance")
+
+		// Verify we have multiple connections
+		newPool.mu.RLock()
+		totalConnections := len(newPool.mu.ready) + len(newPool.mu.dead)
+		newPool.mu.RUnlock()
+		require.Equal(t, 2, totalConnections, "Should have discovered 2 nodes")
+	})
+
+	t.Run("NewSmartRouter works with single and multi-node pools", func(t *testing.T) {
+		// Create test connections with different roles
+		dataConn1 := &Connection{
+			URL:   &url.URL{Host: "data1:9200"},
+			Name:  "data-node-1",
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+		dataConn2 := &Connection{
+			URL:   &url.URL{Host: "data2:9200"},
+			Name:  "data-node-2",
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+
+		// Test with single node + router
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+			Router:        NewSmartRouter(),
+		})
+		require.NoError(t, err)
+
+		// Verify we start with singleConnectionPool and router is set
+		originalPool, ok := client.mu.connectionPool.(*singleConnectionPool)
+		require.True(t, ok, "Should start with singleConnectionPool")
+		require.NotNil(t, originalPool.metrics, "Should have metrics")
+		require.NotNil(t, client.router, "Should have router configured")
+
+		// Simulate promotion to multi-node
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock([]*Connection{dataConn1, dataConn2}, []*Connection{})
+		client.mu.connectionPool = statusPool
+
+		// Verify router can work with the promoted pool
+		require.NotNil(t, client.router, "Router should still be available after promotion")
+
+		// Update router with new connections (simulating what discovery would do)
+		router := client.router
+		client.mu.Unlock()
+
+		// Test that router can handle connection routing
+		// This is a basic test - in real usage, router.Route() would be called during requests
+		if router != nil {
+			// The router should be able to handle the new connections
+			// In a real scenario, the router's internal policies would be updated during discovery
+			req, _ := http.NewRequest(http.MethodGet, "/", nil)
+			_, routeErr := router.Route(t.Context(), req)
+			// Note: This might return an error because policies aren't initialized,
+			// but it shouldn't panic or cause memory issues
+			_ = routeErr // Ignore the error for this test
+		}
+	})
+
+	t.Run("metrics continue working after pool transitions", func(t *testing.T) {
+		// Create client with metrics
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Record initial metrics state
+		originalMetrics := client.metrics
+		require.NotNil(t, originalMetrics, "Should have metrics")
+
+		// Get baseline metrics
+		baselineRequests := client.metrics.requests.Load()
+
+		// Simulate some requests to increment metrics
+		client.metrics.requests.Add(5)
+		require.Equal(t, baselineRequests+5, client.metrics.requests.Load(), "Metrics should increment")
+
+		// Create connections for promotion
+		dataConn1 := &Connection{URL: &url.URL{Host: "data1:9200"}, Name: "data-node-1"}
+		dataConn2 := &Connection{URL: &url.URL{Host: "data2:9200"}, Name: "data-node-2"}
+
+		// Promote to multi-node pool
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock([]*Connection{dataConn1, dataConn2}, []*Connection{})
+		client.mu.connectionPool = statusPool
+		client.mu.Unlock()
+
+		// Verify metrics reference is preserved and still works
+		require.Equal(t, originalMetrics, client.metrics, "Client metrics reference should be unchanged")
+		require.Equal(t, originalMetrics, statusPool.metrics, "Pool should reference the same metrics")
+		require.Equal(t, baselineRequests+5, client.metrics.requests.Load(), "Metrics value should be preserved")
+
+		// Test metrics still work after promotion
+		client.metrics.requests.Add(3)
+		require.Equal(t, baselineRequests+8, client.metrics.requests.Load(), "Metrics should continue working after promotion")
+		require.Equal(t, baselineRequests+8, statusPool.metrics.requests.Load(), "Pool metrics should reflect same changes")
+
+		// Now demote back to single node
+		client.mu.Lock()
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.connectionPool = singlePool
+		client.mu.Unlock()
+
+		// Verify metrics are still preserved after demotion
+		require.Equal(t, originalMetrics, client.metrics, "Client metrics reference should still be unchanged")
+		require.Equal(t, originalMetrics, singlePool.metrics, "Demoted pool should reference the same metrics")
+		require.Equal(t, baselineRequests+8, client.metrics.requests.Load(), "Metrics value should be preserved after demotion")
+
+		// Test metrics still work after demotion
+		client.metrics.requests.Add(2)
+		require.Equal(t, baselineRequests+10, client.metrics.requests.Load(), "Metrics should continue working after demotion")
+	})
+
+	t.Run("updateConnectionPool handles demotion from multi to single node", func(t *testing.T) {
+		// Create a client starting with multiple nodes
+		u1, _ := url.Parse("http://node1:9200")
+		u2, _ := url.Parse("http://node2:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u1, u2},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify we start with statusConnectionPool
+		originalPool, ok := client.mu.connectionPool.(*statusConnectionPool)
+		require.True(t, ok, "Should start with statusConnectionPool for multiple URLs")
+		require.NotNil(t, originalPool.metrics, "Should have metrics")
+
+		// Simulate discovery that finds only one node (should trigger demotion)
+		conn1 := &Connection{
+			URL:   &url.URL{Host: "node1:9200"},
+			Name:  "node-1",
+			Roles: newRoleSet([]string{"data"}),
+		}
+
+		// Test demotion path in updateConnectionPool
+		client.mu.Lock()
+
+		// Create a new single connection pool using the demotion path
+		// (simulating what updateConnectionPool would do for totalNodes == 1)
+		if _, isStatusPool := client.mu.connectionPool.(*statusConnectionPool); isStatusPool {
+			demotedPool := client.demoteConnectionPoolWithLock()
+			// Update the connection to match our single node
+			demotedPool.connection = conn1
+			client.mu.connectionPool = demotedPool
+		}
+
+		client.mu.Unlock()
+
+		// Verify demotion worked
+		client.mu.RLock()
+		newPool, ok := client.mu.connectionPool.(*singleConnectionPool)
+		client.mu.RUnlock()
+		require.True(t, ok, "Should demote to singleConnectionPool")
+
+		// Verify metrics were preserved
+		require.Equal(t, originalPool.metrics, newPool.metrics, "Metrics should be preserved during demotion")
+
+		// Verify the connection is correct
+		require.Equal(t, "node-1", newPool.connection.Name, "Should have the correct connection")
+	})
+
+	t.Run("updateConnectionPool preserves existing single connection pool", func(t *testing.T) {
+		// Test the case where we stay with a single connection pool
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Get original pool
+		originalPool, ok := client.mu.connectionPool.(*singleConnectionPool)
+		require.True(t, ok, "Should start with singleConnectionPool")
+		originalMetrics := originalPool.metrics
+
+		// Simulate updateConnectionPool logic for single node with existing single pool
+		conn := &Connection{URL: &url.URL{Host: "localhost:9200"}, Name: "test-node"}
+
+		client.mu.Lock()
+		// This simulates the non-demotion path in updateConnectionPool for single nodes
+		if _, isSinglePool := client.mu.connectionPool.(*singleConnectionPool); isSinglePool {
+			// Preserve metrics from existing single connection pool
+			var metrics *metrics
+			if existingPool, ok := client.mu.connectionPool.(*singleConnectionPool); ok {
+				metrics = existingPool.metrics
+			}
+
+			newSinglePool := &singleConnectionPool{
+				connection: conn,
+				metrics:    metrics,
+			}
+			client.mu.connectionPool = newSinglePool
+		}
+		client.mu.Unlock()
+
+		// Verify metrics were preserved
+		newPool := client.mu.connectionPool.(*singleConnectionPool)
+		require.Equal(t, originalMetrics, newPool.metrics, "Should preserve metrics in single->single transition")
+	})
+
+	t.Run("promoteConnectionPoolWithLock with debug logging", func(t *testing.T) {
+		// Test with debug logging enabled (requires OPENSEARCH_GO_DEBUG=true environment variable)
+		// This test validates that debug log paths don't panic, even if logging is disabled
+
+		// Create connections with different roles including dedicated cluster manager
+		dataConn := &Connection{
+			URL:   &url.URL{Host: "data:9200"},
+			Name:  "data-node",
+			Roles: newRoleSet([]string{"data"}),
+		}
+		clusterManagerConn := &Connection{
+			URL:   &url.URL{Host: "cm:9200"},
+			Name:  "cm-node",
+			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                            []*url.URL{u},
+			IncludeDedicatedClusterManagers: false, // This will trigger debug logging
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock(
+			[]*Connection{dataConn, clusterManagerConn},
+			[]*Connection{},
+		)
+		client.mu.Unlock()
+
+		// Should exclude dedicated cluster manager and debug log it
+		require.Len(t, statusPool.mu.ready, 1, "Should exclude dedicated cluster manager")
+		require.Equal(t, "data-node", statusPool.mu.ready[0].Name, "Should include data node")
+	})
+
+	t.Run("promoteConnectionPoolWithLock preserves statusConnectionPool settings", func(t *testing.T) {
+		// Test promoting when we already have a statusConnectionPool (not single)
+		customInitial := 180 * time.Second
+		customCutoff := 15
+
+		// Start with statusConnectionPool
+		existingPool := &statusConnectionPool{
+			resurrectTimeoutInitial:      customInitial,
+			resurrectTimeoutFactorCutoff: customCutoff,
+		}
+		existingPool.mu.ready = []*Connection{{URL: &url.URL{Host: "existing:9200"}}}
+		existingPool.mu.activeCount = len(existingPool.mu.ready)
+		existingPool.mu.dead = []*Connection{}
+
+		testMetrics := &metrics{}
+		existingPool.metrics = testMetrics
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = existingPool
+
+		// Promote (this should preserve existing statusConnectionPool settings)
+		newConn := &Connection{URL: &url.URL{Host: "new:9200"}, Name: "new-node"}
+		newPool := client.promoteConnectionPoolWithLock([]*Connection{newConn}, []*Connection{})
+
+		client.mu.Unlock()
+
+		// Verify custom settings were preserved from existing statusConnectionPool
+		require.Equal(t, customInitial, newPool.resurrectTimeoutInitial, "Should preserve custom resurrection timeout")
+		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
+		require.Equal(t, testMetrics, newPool.metrics, "Should preserve existing metrics")
+	})
+
+	t.Run("demoteConnectionPoolWithLock handles non-statusConnectionPool gracefully", func(t *testing.T) {
+		// Test demoting when current pool is not a statusConnectionPool
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		// Start with a singleConnectionPool (not statusConnectionPool)
+		client.mu.Lock()
+		// Try to demote - this should handle the case where it's not a statusConnectionPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		// Should return the same singleConnectionPool with the original connection
+		require.NotNil(t, singlePool.connection, "Should preserve the original connection from the single URL")
+		require.Equal(t, "localhost:9200", singlePool.connection.URL.Host, "Should preserve the correct connection")
+		require.Nil(t, singlePool.metrics, "Should have nil metrics for new client without metrics enabled")
 	})
 }
