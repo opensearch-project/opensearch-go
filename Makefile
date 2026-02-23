@@ -106,12 +106,12 @@ lint.markdown:
 		npm install -g $(package) --no-shrinkwrap; \
 	fi
 	@printf "\033[2m→ Running markdown lint...\033[0m\n"
-	if npx $(package) --prose-wrap never --check **/*.md; [[ $$? -ne 0 ]]; then \
+	if npx $(package) --prose-wrap never --print-width 300 --check **/*.md; [[ $$? -ne 0 ]]; then \
 		echo -e "\033[32m→ Found invalid files. Want to auto-format invalid files? (y/n) \033[0m"; \
 		read RESP; \
 		if [[ $$RESP = "y" || $$RESP = "Y" ]]; then \
 		  echo -e "\033[33m Formatting...\033[0m"; \
-		  npx $(package) --prose-wrap never --write **/*.md; \
+		  npx $(package) --prose-wrap never --print-width 300 --write **/*.md; \
 		  echo -e "\033[34m \nAll invalid files are formatted\033[0m"; \
 		else \
 		  echo -e "\033[33m Unfortunately you are cancelled auto fixing. But we will definitely fix it in the pipeline\033[0m"; \

@@ -1,9 +1,9 @@
 - [User Guide](#user-guide)
-	- [Example](#example)
-	- [Amazon OpenSearch Service](#amazon-opensearch-service)
-		- [AWS SDK v1](#aws-sdk-v1)
-		- [AWS SDK v2](#aws-sdk-v2)
-	- [Guides by Topic](#guides-by-topic)
+  - [Example](#example)
+  - [Amazon OpenSearch Service](#amazon-opensearch-service)
+    - [AWS SDK v1](#aws-sdk-v1)
+    - [AWS SDK v2](#aws-sdk-v2)
+  - [Guides by Topic](#guides-by-topic)
 
 # User Guide
 
