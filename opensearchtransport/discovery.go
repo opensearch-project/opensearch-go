@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"net"
 	"net/http"
@@ -335,8 +336,8 @@ func (c *Client) createConnection(node nodeInfo) *Connection {
 		Name:       node.Name,
 		Roles:      node.roleSet,
 		Attributes: node.Attributes,
-		weight:     1,
 	}
+	conn.weight.Store(1)
 
 	// Store allocated_processors if provided by the /_nodes/http,os response.
 	if node.OS.AllocatedProcessors != nil {
@@ -618,9 +619,9 @@ func computeWeights(conns []*Connection) {
 
 	for _, c := range conns {
 		if c.allocatedProcessors > 0 {
-			c.weight = c.allocatedProcessors / d
+			c.weight.Store(int32(min(c.allocatedProcessors/d, math.MaxInt32))) //nolint:gosec // core count ratio always fits
 		} else {
-			c.weight = 1
+			c.weight.Store(1)
 		}
 	}
 }
@@ -867,7 +868,8 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 			// Create temporary connections from startup URLs and use round-robin selection
 			startupConns := make([]*Connection, len(c.urls))
 			for i, u := range c.urls {
-				startupConns[i] = &Connection{URL: u, weight: 1}
+				startupConns[i] = &Connection{URL: u}
+				startupConns[i].weight.Store(1)
 			}
 
 			// Use round-robin selector to pick a startup URL

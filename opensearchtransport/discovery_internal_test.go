@@ -1552,64 +1552,66 @@ func TestGCD(t *testing.T) {
 
 func TestComputeWeights(t *testing.T) {
 	makeConn := func(cores int) *Connection {
-		return &Connection{allocatedProcessors: cores, weight: 1}
+		c := &Connection{allocatedProcessors: cores}
+		c.weight.Store(1)
+		return c
 	}
 
 	t.Run("homogeneous cluster", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(8), makeConn(8)}
 		computeWeights(conns)
 		for _, c := range conns {
-			assert.Equal(t, 1, c.weight)
+			assert.Equal(t, int32(1), c.weight.Load())
 		}
 	})
 
 	t.Run("two sizes", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(16)}
 		computeWeights(conns)
-		assert.Equal(t, 1, conns[0].weight) // 8/8
-		assert.Equal(t, 2, conns[1].weight) // 16/8
+		assert.Equal(t, int32(1), conns[0].weight.Load()) // 8/8
+		assert.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
 	})
 
 	t.Run("three sizes", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(16), makeConn(24)}
 		computeWeights(conns)
-		assert.Equal(t, 1, conns[0].weight)
-		assert.Equal(t, 2, conns[1].weight)
-		assert.Equal(t, 3, conns[2].weight)
+		assert.Equal(t, int32(1), conns[0].weight.Load())
+		assert.Equal(t, int32(2), conns[1].weight.Load())
+		assert.Equal(t, int32(3), conns[2].weight.Load())
 	})
 
 	t.Run("non-power-of-2 mixed", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(16), makeConn(32), makeConn(40)}
 		computeWeights(conns)
-		assert.Equal(t, 1, conns[0].weight) // 8/8
-		assert.Equal(t, 2, conns[1].weight) // 16/8
-		assert.Equal(t, 4, conns[2].weight) // 32/8
-		assert.Equal(t, 5, conns[3].weight) // 40/8
+		assert.Equal(t, int32(1), conns[0].weight.Load()) // 8/8
+		assert.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
+		assert.Equal(t, int32(4), conns[2].weight.Load()) // 32/8
+		assert.Equal(t, int32(5), conns[3].weight.Load()) // 40/8
 	})
 
 	t.Run("larger non-power-of-2", func(t *testing.T) {
 		conns := []*Connection{makeConn(24), makeConn(32), makeConn(40)}
 		computeWeights(conns)
-		assert.Equal(t, 3, conns[0].weight) // 24/8
-		assert.Equal(t, 4, conns[1].weight) // 32/8
-		assert.Equal(t, 5, conns[2].weight) // 40/8
+		assert.Equal(t, int32(3), conns[0].weight.Load()) // 24/8
+		assert.Equal(t, int32(4), conns[1].weight.Load()) // 32/8
+		assert.Equal(t, int32(5), conns[2].weight.Load()) // 40/8
 	})
 
 	t.Run("unknown cores get weight 1", func(t *testing.T) {
 		conns := []*Connection{makeConn(0), makeConn(16), makeConn(8)}
 		computeWeights(conns)
-		assert.Equal(t, 1, conns[0].weight) // unknown -> 1
-		assert.Equal(t, 2, conns[1].weight) // 16/8
-		assert.Equal(t, 1, conns[2].weight) // 8/8
+		assert.Equal(t, int32(1), conns[0].weight.Load()) // unknown -> 1
+		assert.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
+		assert.Equal(t, int32(1), conns[2].weight.Load()) // 8/8
 	})
 
 	t.Run("all unknown leaves weights unchanged", func(t *testing.T) {
 		conns := []*Connection{makeConn(0), makeConn(0)}
-		conns[0].weight = 3 // pre-set
-		conns[1].weight = 5
+		conns[0].weight.Store(3) // pre-set
+		conns[1].weight.Store(5)
 		computeWeights(conns)
-		assert.Equal(t, 3, conns[0].weight) // unchanged
-		assert.Equal(t, 5, conns[1].weight) // unchanged
+		assert.Equal(t, int32(3), conns[0].weight.Load()) // unchanged
+		assert.Equal(t, int32(5), conns[1].weight.Load()) // unchanged
 	})
 
 	t.Run("empty slice is no-op", func(t *testing.T) {

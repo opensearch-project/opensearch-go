@@ -152,8 +152,8 @@ type Connection struct {
 	// weight is the number of entries this connection occupies in the ready list
 	// for weighted round-robin selection. Default 1. In heterogeneous clusters,
 	// nodes with more cores get proportionally higher weights (GCD-normalized).
-	// Protected by the pool's mu -- set during discovery, read during selection.
-	weight int
+	// Atomic: set during discovery, read during selection and observer events.
+	weight atomic.Int32
 
 	// allocatedProcessors is the node's core count discovered from /_nodes/http,os.
 	// 0 means unknown (not yet discovered or unavailable).
@@ -205,10 +205,11 @@ type Connection struct {
 // effectiveWeight returns the connection's weight for round-robin selection.
 // Returns 1 if weight is zero (default for connections created without explicit weight).
 func (c *Connection) effectiveWeight() int {
-	if c.weight <= 0 {
+	w := int(c.weight.Load())
+	if w <= 0 {
 		return 1
 	}
-	return c.weight
+	return w
 }
 
 // decrementDrainingQuiescing atomically decrements the quiescing counter by 1 (if positive).

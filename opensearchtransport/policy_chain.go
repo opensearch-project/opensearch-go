@@ -191,3 +191,12 @@ func (r *PolicyChain) configurePolicySettings(config policyConfig) error {
 
 	return firstError
 }
+
+// poolSnapshots collects pool snapshots from all sub-policies.
+func (r *PolicyChain) poolSnapshots() []PoolSnapshot {
+	result := make([]PoolSnapshot, 0, len(r.policies))
+	for _, policy := range r.policies {
+		result = append(result, collectPoolSnapshots(policy)...)
+	}
+	return result
+}
