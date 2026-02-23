@@ -42,26 +42,54 @@ type Measurable interface {
 	Metrics() (Metrics, error)
 }
 
-// connectionable defines the interface for transports returning a list of connections.
-type connectionable interface {
-	connections() []*Connection
-}
-
 // Metrics represents the transport metrics.
 type Metrics struct {
 	Requests  int         `json:"requests"`
 	Failures  int         `json:"failures"`
 	Responses map[int]int `json:"responses"`
 
+	// Connection pool state.
+	// LiveConnections is the number of non-dead connections (active + standby).
+	// Named 'Live' for JSON API compatibility; corresponds to the internal ready list.
+	LiveConnections int `json:"live_connections"`
+	DeadConnections int `json:"dead_connections"`
+
+	// Connection lifecycle counters
+	ConnectionsPromoted int `json:"connections_promoted"` // Dead -> Ready (resurrected successfully)
+	ConnectionsDemoted  int `json:"connections_demoted"`  // Ready -> Dead (marked dead)
+	ZombieConnections   int `json:"zombie_connections"`   // Taken from dead list and forcibly retried
+
+	// Client capabilities and health
+	HealthChecks        int `json:"health_checks"`         // Baseline GET / health checks performed
+	ClusterHealthChecks int `json:"cluster_health_checks"` // GET /_cluster/health?local=true health checks performed
+	HealthChecksSuccess int `json:"health_checks_success"` // Successful health check outcomes
+	HealthChecksFailed  int `json:"health_checks_failed"`  // Failed health check outcomes
+	OverloadedServers   int `json:"overloaded_servers"`    // Number of servers client thinks are overloaded
+
+	// Standby pool state
+	StandbyConnections int `json:"standby_connections"` // Current standby pool size
+	StandbyPromotions  int `json:"standby_promotions"`  // Standby -> Active transitions
+	StandbyDemotions   int `json:"standby_demotions"`   // Active -> Standby transitions
+
 	Connections []fmt.Stringer `json:"connections"`
+
+	// Per-pool breakdown (only populated when router with policies is active)
+	Pools []PoolSnapshot `json:"pools,omitempty"`
 }
 
 // ConnectionMetric represents metric information for a connection.
 type ConnectionMetric struct {
-	URL       string     `json:"url"`
-	Failures  int        `json:"failures,omitempty"`
-	IsDead    bool       `json:"dead,omitempty"`
-	DeadSince *time.Time `json:"dead_since,omitempty"`
+	URL              string     `json:"url"`
+	Failures         int        `json:"failures,omitempty"`
+	IsDead           bool       `json:"dead,omitempty"`
+	IsStandby        bool       `json:"standby,omitempty"`
+	IsOverloaded     bool       `json:"overloaded,omitempty"`
+	IsWarmingUp      bool       `json:"warming_up,omitempty"`
+	IsHealthChecking bool       `json:"health_checking,omitempty"`
+	Weight           int        `json:"weight,omitempty"`
+	DeadSince        *time.Time `json:"dead_since,omitempty"`
+	OverloadedSince  *time.Time `json:"overloaded_since,omitempty"`
+	State            ConnState  `json:"state"`
 
 	Meta struct {
 		ID    string   `json:"id"`
@@ -70,10 +98,55 @@ type ConnectionMetric struct {
 	} `json:"meta"`
 }
 
+// PoolSnapshot is a point-in-time snapshot of one connection pool's partitions.
+type PoolSnapshot struct {
+	Name                string `json:"name"`
+	Enabled             bool   `json:"enabled"`
+	ActiveCount         int    `json:"active_count"`
+	StandbyCount        int    `json:"standby_count"`
+	DeadCount           int    `json:"dead_count"`
+	ActiveListCap       int    `json:"active_list_cap"`
+	WarmingCount        int    `json:"warming_count"`
+	HealthCheckingCount int    `json:"health_checking_count"`
+
+	// Per-pool request counters
+	Requests      int64 `json:"requests"`       // Connections returned by Next()
+	Successes     int64 `json:"successes"`      // Resurrections via OnSuccess()
+	Failures      int64 `json:"failures"`       // Demotions via OnFailure()
+	WarmupSkips   int64 `json:"warmup_skips"`   // Requests skipped during warmup
+	WarmupAccepts int64 `json:"warmup_accepts"` // Requests accepted during warmup
+}
+
+// String returns the pool snapshot as a compact string.
+func (ps PoolSnapshot) String() string {
+	enabledStr := "on"
+	if !ps.Enabled {
+		enabledStr = "off"
+	}
+	return fmt.Sprintf("%q (%s, cap=%d): active=%d standby=%d dead=%d warming=%d checking=%d | req=%d ok=%d fail=%d skip=%d accept=%d",
+		ps.Name, enabledStr, ps.ActiveListCap, ps.ActiveCount, ps.StandbyCount, ps.DeadCount, ps.WarmingCount, ps.HealthCheckingCount,
+		ps.Requests, ps.Successes, ps.Failures, ps.WarmupSkips, ps.WarmupAccepts)
+}
+
 // metrics represents the inner state of metrics.
 type metrics struct {
 	requests atomic.Int64
 	failures atomic.Int64
+
+	// Connection lifecycle counters
+	connectionsPromoted atomic.Int64 // Dead -> Ready (resurrected successfully)
+	connectionsDemoted  atomic.Int64 // Ready -> Dead (marked dead)
+	zombieConnections   atomic.Int64 // Taken from dead list and forcibly retried
+
+	// Health check counters
+	healthChecks        atomic.Int64 // Baseline GET / health checks performed
+	clusterHealthChecks atomic.Int64 // GET /_cluster/health?local=true health checks performed
+	healthChecksSuccess atomic.Int64 // Successful health check outcomes (from DefaultHealthCheck)
+	healthChecksFailed  atomic.Int64 // Failed health check outcomes (from DefaultHealthCheck)
+
+	// Standby pool lifecycle counters
+	standbyPromotions atomic.Int64 // Standby -> Active
+	standbyDemotions  atomic.Int64 // Active -> Standby
 
 	mu struct {
 		sync.RWMutex
@@ -100,54 +173,135 @@ func (c *Client) Metrics() (Metrics, error) {
 	maps.Copy(responses, c.metrics.mu.responses)
 	c.metrics.mu.RUnlock()
 
-	// Acquire read lock on pool since we're only reading connection state
-	if rwLock, ok := c.mu.pool.(rwLocker); ok {
-		rwLock.RLock()
-		defer rwLock.RUnlock()
+	// Get connections from current connection pool
+	var ready, dead []*Connection
+	var singleConns []*Connection
+	c.mu.RLock()
+	if c.mu.connectionPool != nil {
+		switch pool := c.mu.connectionPool.(type) {
+		case *statusConnectionPool:
+			ready, dead = pool.connectionsByState()
+		case *singleConnectionPool:
+			singleConns = pool.connections()
+		}
 	}
+	c.mu.RUnlock()
 
 	m := Metrics{
 		Requests:  int(c.metrics.requests.Load()),
 		Failures:  int(c.metrics.failures.Load()),
 		Responses: responses,
+
+		LiveConnections: len(ready) + len(singleConns),
+		DeadConnections: len(dead),
+
+		ConnectionsPromoted: int(c.metrics.connectionsPromoted.Load()),
+		ConnectionsDemoted:  int(c.metrics.connectionsDemoted.Load()),
+		ZombieConnections:   int(c.metrics.zombieConnections.Load()),
+
+		HealthChecks:        int(c.metrics.healthChecks.Load()),
+		ClusterHealthChecks: int(c.metrics.clusterHealthChecks.Load()),
+		HealthChecksSuccess: int(c.metrics.healthChecksSuccess.Load()),
+		HealthChecksFailed:  int(c.metrics.healthChecksFailed.Load()),
+		OverloadedServers:   0, // Set below when iterating connections
+
+		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
+		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
 	}
 
-	if pool, ok := c.mu.pool.(connectionable); ok {
-		connections := pool.connections()
-		for _, c := range connections {
-			c.mu.Lock()
-			isDead := c.mu.isDead
-			deadSince := c.mu.deadSince
-			c.mu.Unlock()
+	// Build per-connection metrics. Each connection's connState atomic
+	// determines isDead/isStandby/isOverloaded -- no positional tricks needed.
+	overloadedCount := 0
+	standbyCount := 0
 
-			cm := ConnectionMetric{
-				URL:      c.URL.String(),
-				IsDead:   isDead,
-				Failures: int(c.failures.Load()),
-			}
+	for _, conn := range singleConns {
+		m.Connections = append(m.Connections, buildConnectionMetric(conn))
+	}
+	for _, conn := range ready {
+		cm := buildConnectionMetric(conn)
+		if cm.IsOverloaded {
+			overloadedCount++
+		}
+		if cm.IsStandby {
+			standbyCount++
+		}
+		m.Connections = append(m.Connections, cm)
+	}
+	for _, conn := range dead {
+		cm := buildConnectionMetric(conn)
+		if cm.IsOverloaded {
+			overloadedCount++
+		}
+		m.Connections = append(m.Connections, cm)
+	}
+	m.OverloadedServers = overloadedCount
+	m.StandbyConnections = standbyCount
 
-			if !deadSince.IsZero() {
-				deadSinceCopy := deadSince
-				cm.DeadSince = &deadSinceCopy
-			}
-
-			if c.ID != "" {
-				cm.Meta.ID = c.ID
-			}
-
-			if c.Name != "" {
-				cm.Meta.Name = c.Name
-			}
-
-			if len(c.Roles) > 0 {
-				cm.Meta.Roles = c.Roles
-			}
-
-			m.Connections = append(m.Connections, cm)
+	// Collect per-pool snapshots from the router's policy tree.
+	// Also include the flat pool snapshot if available.
+	if c.router != nil {
+		m.Pools = collectPoolSnapshots(c.router)
+	}
+	c.mu.RLock()
+	if c.mu.connectionPool != nil {
+		if pool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+			snap := pool.snapshot()
+			snap.Enabled = true // flat/client pool is always enabled
+			m.Pools = append(m.Pools, snap)
 		}
 	}
+	c.mu.RUnlock()
 
 	return m, nil
+}
+
+// buildConnectionMetric creates a ConnectionMetric from a Connection.
+// State flags (isDead, isStandby, isOverloaded) are derived from the connection's
+// connState atomic -- no positional or parameter-based inference needed.
+func buildConnectionMetric(c *Connection) ConnectionMetric {
+	state := c.loadConnState()
+	lc := state.lifecycle()
+
+	c.mu.Lock()
+	deadSince := c.mu.deadSince
+	overloadedAt := c.mu.overloadedAt
+	c.mu.Unlock()
+
+	cm := ConnectionMetric{
+		URL:              c.URL.String(),
+		IsDead:           lc.has(lcUnknown) && lc&(lcActive|lcStandby) == 0,
+		IsStandby:        lc.has(lcStandby),
+		IsOverloaded:     lc.has(lcOverloaded),
+		IsWarmingUp:      state.isWarmingUp(),
+		IsHealthChecking: lc.has(lcHealthChecking),
+		Failures:         int(c.failures.Load()),
+		Weight:           c.effectiveWeight(),
+		State:            ConnState{packed: int64(state)},
+	}
+
+	if !deadSince.IsZero() {
+		deadSinceCopy := deadSince
+		cm.DeadSince = &deadSinceCopy
+	}
+
+	if cm.IsOverloaded && !overloadedAt.IsZero() {
+		overloadedAtCopy := overloadedAt
+		cm.OverloadedSince = &overloadedAtCopy
+	}
+
+	if c.ID != "" {
+		cm.Meta.ID = c.ID
+	}
+
+	if c.Name != "" {
+		cm.Meta.Name = c.Name
+	}
+
+	if len(c.Roles) > 0 {
+		cm.Meta.Roles = c.Roles.toSlice()
+	}
+
+	return cm
 }
 
 // String returns the metrics as a string.
@@ -163,6 +317,18 @@ func (m Metrics) String() string {
 
 	b.WriteString(" Failures:")
 	b.WriteString(strconv.Itoa(m.Failures))
+
+	b.WriteString(" HealthChecks:")
+	b.WriteString(strconv.Itoa(m.HealthChecks))
+
+	b.WriteString(" ClusterHealthChecks:")
+	b.WriteString(strconv.Itoa(m.ClusterHealthChecks))
+
+	b.WriteString(" HealthChecksSuccess:")
+	b.WriteString(strconv.Itoa(m.HealthChecksSuccess))
+
+	b.WriteString(" HealthChecksFailed:")
+	b.WriteString(strconv.Itoa(m.HealthChecksFailed))
 
 	if len(m.Responses) > 0 {
 		b.WriteString(" Responses: ")
@@ -189,6 +355,17 @@ func (m Metrics) String() string {
 	}
 	b.WriteString("]")
 
+	if len(m.Pools) > 0 {
+		b.WriteString(" Pools: [")
+		for i, p := range m.Pools {
+			b.WriteString(p.String())
+			if i+1 < len(m.Pools) {
+				b.WriteString(", ")
+			}
+		}
+		b.WriteString("]")
+	}
+
 	b.WriteString("}")
 	return b.String()
 }
@@ -198,14 +375,28 @@ func (cm ConnectionMetric) String() string {
 	var b strings.Builder
 	b.WriteString("{")
 	b.WriteString(cm.URL)
-	if cm.IsDead {
-		fmt.Fprintf(&b, " dead=%v", cm.IsDead)
+
+	// Show lifecycle state
+	fmt.Fprintf(&b, " state=%s", cm.State)
+
+	// Show roles if known
+	if len(cm.Meta.Roles) > 0 {
+		fmt.Fprintf(&b, " roles=%v", cm.Meta.Roles)
 	}
+
+	// Show name if known
+	if cm.Meta.Name != "" {
+		fmt.Fprintf(&b, " name=%s", cm.Meta.Name)
+	}
+
 	if cm.Failures > 0 {
 		fmt.Fprintf(&b, " failures=%d", cm.Failures)
 	}
 	if cm.DeadSince != nil {
 		fmt.Fprintf(&b, " dead_since=%s", cm.DeadSince.Local().Format(time.Stamp))
+	}
+	if cm.OverloadedSince != nil {
+		fmt.Fprintf(&b, " overloaded_since=%s", cm.OverloadedSince.Local().Format(time.Stamp))
 	}
 	b.WriteString("}")
 	return b.String()
