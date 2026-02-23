@@ -100,7 +100,7 @@ type debuggingLogger struct {
 
 // LogRoundTrip prints the information about request and response.
 func (l *TextLogger) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
-	fmt.Fprintf(l.Output, "%s %s %s [status:%d request:%s]\n",
+	fmt.Fprintf(l.Output, "%s %s %s [status:%d request:%s]\n", // #nosec G705
 		start.Format(time.RFC3339),
 		req.Method,
 		req.URL.String(),
@@ -160,7 +160,8 @@ func (l *ColorLogger) LogRoundTrip(req *http.Request, res *http.Response, err er
 		color = "\x1b[31;4m"
 	}
 
-	fmt.Fprintf(l.Output, "%6s \x1b[1;4m%s://%s%s\x1b[0m%s %s%s\x1b[0m \x1b[2m%s\x1b[0m\n",
+	fmt.Fprintf(l.Output, // #nosec G705
+		"%6s \x1b[1;4m%s://%s%s\x1b[0m%s %s%s\x1b[0m \x1b[2m%s\x1b[0m\n",
 		req.Method,
 		req.URL.Scheme,
 		req.URL.Host,
@@ -180,7 +181,7 @@ func (l *ColorLogger) LogRoundTrip(req *http.Request, res *http.Response, err er
 			buf.ReadFrom(req.Body)
 		}
 		fmt.Fprint(l.Output, "\x1b[2m")
-		logBodyAsText(l.Output, &buf, "       »")
+		logBodyAsText(l.Output, &buf, "       >>")
 		fmt.Fprint(l.Output, "\x1b[0m")
 	}
 
@@ -189,16 +190,16 @@ func (l *ColorLogger) LogRoundTrip(req *http.Request, res *http.Response, err er
 		var buf bytes.Buffer
 		buf.ReadFrom(res.Body)
 		fmt.Fprint(l.Output, "\x1b[2m")
-		logBodyAsText(l.Output, &buf, "       «")
+		logBodyAsText(l.Output, &buf, "       <<")
 		fmt.Fprint(l.Output, "\x1b[0m")
 	}
 
 	if err != nil {
-		fmt.Fprintf(l.Output, "\x1b[31;1m» ERROR \x1b[31m%v\x1b[0m\n", err)
+		fmt.Fprintf(l.Output, "\x1b[31;1m>> ERROR \x1b[31m%v\x1b[0m\n", err)
 	}
 
 	if l.RequestBodyEnabled() || l.ResponseBodyEnabled() {
-		fmt.Fprintf(l.Output, "\x1b[2m%s\x1b[0m\n", strings.Repeat("─", 80))
+		fmt.Fprintf(l.Output, "\x1b[2m%s\x1b[0m\n", strings.Repeat("-", 80))
 	}
 	return nil
 }
@@ -231,7 +232,7 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 	if req.Method == http.MethodHead {
 		b.WriteString(" --head")
 	} else {
-		fmt.Fprintf(&b, " -X %s", req.Method)
+		fmt.Fprintf(&b, " -X %s", req.Method) // #nosec G705
 	}
 
 	if len(req.Header) > 0 {
@@ -240,7 +241,7 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 				continue
 			}
 			v := strings.Join(vv, ",")
-			b.WriteString(fmt.Sprintf(" -H '%s: %s'", k, v))
+			fmt.Fprintf(&b, " -H '%s: %s'", k, v)
 		}
 	}
 
@@ -248,11 +249,11 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 	if req.URL == nil {
 		b.WriteString(" '")
 	} else {
-		b.WriteString(fmt.Sprintf(" '%s://%s%s", req.URL.Scheme, req.URL.Host, req.URL.Path))
+		fmt.Fprintf(&b, " '%s://%s%s", req.URL.Scheme, req.URL.Host, req.URL.Path) // #nosec G705
 	}
 	b.WriteString("?pretty")
 	if query != "" {
-		fmt.Fprintf(&b, "&%s", query)
+		fmt.Fprintf(&b, "&%s", query) // #nosec G705
 	}
 	b.WriteString("'")
 
@@ -275,7 +276,7 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 
 	status := res.Status
 
-	fmt.Fprintf(&b, "# => %s [%s] %s\n", start.UTC().Format(time.RFC3339), status, dur.Truncate(time.Millisecond))
+	fmt.Fprintf(&b, "# => %s [%s] %s\n", start.UTC().Format(time.RFC3339), status, dur.Truncate(time.Millisecond)) // #nosec G705
 	if l.ResponseBodyEnabled() && res != nil && res.Body != nil && res.Body != http.NoBody {
 		var buf bytes.Buffer
 		buf.ReadFrom(res.Body)
@@ -290,9 +291,8 @@ func (l *CurlLogger) LogRoundTrip(req *http.Request, res *http.Response, _ error
 		b.WriteString("\n")
 	}
 
-	b.WriteTo(l.Output)
-
-	return nil
+	_, err := b.WriteTo(l.Output)
+	return err
 }
 
 // RequestBodyEnabled returns true when the request body should be logged.
@@ -305,7 +305,7 @@ func (l *CurlLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 func (l *JSONLogger) LogRoundTrip(req *http.Request, res *http.Response, err error, start time.Time, dur time.Duration) error {
 	// TODO: Research performance optimization of using sync.Pool
 
-	bsize := 200
+	const bsize = 200
 	b := bytes.NewBuffer(make([]byte, 0, bsize))
 	v := make([]byte, 0, bsize)
 
@@ -406,14 +406,18 @@ func (l *JSONLogger) RequestBodyEnabled() bool { return l.EnableRequestBody }
 // ResponseBodyEnabled returns true when the response body should be logged.
 func (l *JSONLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 
-// Log prints the arguments to output in default format.
+// Log prints the arguments to output in default format with a timestamp prefix.
 func (l *debuggingLogger) Log(a ...any) error {
+	ts := time.Now().UTC().Format("15:04:05.000")
+	fmt.Fprintf(l.Output, "[%s] DEBUG    ", ts)
 	_, err := fmt.Fprint(l.Output, a...)
 	return err
 }
 
-// Logf prints formats the arguments and prints them to output.
+// Logf formats the arguments and prints them to output with a timestamp prefix.
 func (l *debuggingLogger) Logf(format string, a ...any) error {
+	ts := time.Now().UTC().Format("15:04:05.000")
+	fmt.Fprintf(l.Output, "[%s] DEBUG    ", ts)
 	_, err := fmt.Fprintf(l.Output, format, a...)
 	return err
 }
@@ -423,7 +427,7 @@ func logBodyAsText(dst io.Writer, body io.Reader, prefix string) {
 	for scanner.Scan() {
 		s := scanner.Text()
 		if s != "" {
-			fmt.Fprintf(dst, "%s %s\n", prefix, s)
+			fmt.Fprintf(dst, "%s %s\n", prefix, s) // #nosec G705
 		}
 	}
 }
