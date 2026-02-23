@@ -44,26 +44,20 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
-	"github.com/stretchr/testify/require"
 )
 
 var _ = fmt.Print
 
 func init() {
 	rand.New(rand.NewSource(time.Now().Unix())).Uint64()
-}
-
-type mockTransp struct {
-	RoundTripFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.RoundTripFunc(req)
 }
 
 type mockNetError struct{ error }
@@ -111,9 +105,9 @@ func TestTransport(t *testing.T) {
 		tp, _ := New(
 			Config{
 				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -144,7 +138,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected enableRetryOnTimeout: %v", tp.enableRetryOnTimeout)
 		}
 
-		if tp.maxRetries != 3 {
+		if tp.maxRetries != 6 {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
@@ -188,11 +182,11 @@ func TestTransportConnectionPool(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
 
-		if _, ok := tp.mu.pool.(*singleConnectionPool); !ok {
+		if _, ok := tp.mu.connectionPool.(*singleConnectionPool); !ok {
 			t.Errorf("Expected connection to be singleConnectionPool, got: %T", tp)
 		}
 
-		conn, err := tp.mu.pool.Next()
+		conn, err := tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -208,16 +202,19 @@ func TestTransportConnectionPool(t *testing.T) {
 			err  error
 		)
 
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "foo1"},
-			{Scheme: "http", Host: "foo2"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "foo1"},
+				{Scheme: "http", Host: "foo2"},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 
-		if _, ok := tp.mu.pool.(*statusConnectionPool); !ok {
+		if _, ok := tp.mu.connectionPool.(*statusConnectionPool); !ok {
 			t.Errorf("Expected connection to be statusConnectionPool, got: %T", tp)
 		}
 
-		conn, err = tp.mu.pool.Next()
+		conn, err = tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -225,7 +222,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected URL, want=foo1, got=%s", conn.URL)
 		}
 
-		conn, err = tp.mu.pool.Next()
+		conn, err = tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -233,7 +230,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected URL, want=http://foo2, got=%s", conn.URL)
 		}
 
-		conn, err = tp.mu.pool.Next()
+		conn, err = tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -282,22 +279,22 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 			},
 		})
 
-		if _, ok := tp.mu.pool.(*CustomConnectionPool); !ok {
-			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.mu.pool)
+		if _, ok := tp.mu.connectionPool.(*CustomConnectionPool); !ok {
+			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.mu.connectionPool)
 		}
 
-		conn, err := tp.mu.pool.Next()
+		conn, err := tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		if conn.URL == nil {
 			t.Errorf("Empty connection URL: %+v", conn)
 		}
-		if err := tp.mu.pool.OnFailure(conn); err != nil {
+		if err := tp.mu.connectionPool.OnFailure(conn); err != nil {
 			t.Errorf("Error removing the %q connection: %s", conn.URL, err)
 		}
-		if len(tp.mu.pool.URLs()) != 1 {
-			t.Errorf("Unexpected number of connections in pool: %q", tp.mu.pool)
+		if len(tp.mu.connectionPool.URLs()) != 1 {
+			t.Errorf("Unexpected number of connections in pool: %q", tp.mu.connectionPool)
 		}
 	})
 }
@@ -307,10 +304,8 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				URLs:      []*url.URL{u},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -438,10 +433,8 @@ func TestTransportPerform(t *testing.T) {
 	t.Run("Error No URL", func(t *testing.T) {
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				URLs:      []*url.URL{},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -449,8 +442,8 @@ func TestTransportPerform(t *testing.T) {
 
 		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Perform(req)
-		if err.Error() != `cannot get connection: no connection available` {
-			t.Fatalf("Expected error `cannot get URL`: but got error %q", err)
+		if err.Error() != `cannot get connection: no connections available` {
+			t.Fatalf("Expected error `cannot get connection: no connections available`: but got error %q", err)
 		}
 	})
 }
@@ -465,19 +458,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": OK\n")
-							return &http.Response{Status: "OK"}, nil
-						}
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": OK\n")
+						return &http.Response{Status: "OK"}, nil
+					}
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 			},
 		)
 
@@ -507,19 +500,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": OK\n")
-							return &http.Response{Status: "OK"}, nil
-						}
-						fmt.Print(": ERR\n")
-						return nil, io.EOF
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": OK\n")
+						return &http.Response{Status: "OK"}, nil
+					}
+					fmt.Print(": ERR\n")
+					return nil, io.EOF
+				}),
 			},
 		)
 
@@ -549,19 +542,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": 200\n")
-							return &http.Response{StatusCode: http.StatusOK}, nil
-						}
-						fmt.Print(": 502\n")
-						return &http.Response{StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": 200\n")
+						return &http.Response{StatusCode: http.StatusOK}, nil
+					}
+					fmt.Print(": 502\n")
+					return &http.Response{StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -593,15 +586,13 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:       []*url.URL{u, u, u},
 				MaxRetries: numReqs,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": 502\n")
-						body := io.NopCloser(strings.NewReader(`MOCK`))
-						return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": 502\n")
+					body := io.NopCloser(strings.NewReader(`MOCK`))
+					return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
+				}),
 			},
 		)
 
@@ -637,15 +628,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				MaxRetries:            numReqs,         // Explicitly set MaxRetries to match test expectation
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 			},
 		)
 
@@ -672,17 +664,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						body, err := io.ReadAll(req.Body)
-						if err != nil {
-							panic(err)
-						}
-						bodies = append(bodies, string(body))
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:       []*url.URL{u},
+				MaxRetries: 3, // Set to 3 retries to get 4 total requests (1 original + 3 retries)
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						panic(err)
+					}
+					bodies = append(bodies, string(body))
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -710,17 +701,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		tp, _ := New(
 			Config{
 				URLs:                []*url.URL{u},
+				MaxRetries:          3, // Set to 3 retries to get 4 total requests
 				CompressRequestBody: true,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						body, err := io.ReadAll(req.Body)
-						if err != nil {
-							panic(err)
-						}
-						bodies = append(bodies, string(body))
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						panic(err)
+					}
+					bodies = append(bodies, string(body))
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -764,13 +754,12 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		tp, _ := New(
 			Config{
-				URLs:   []*url.URL{u},
-				Signer: &signer,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:       []*url.URL{u},
+				MaxRetries: 3, // Set to 3 retries to get 4 total requests
+				Signer:     &signer,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -787,20 +776,19 @@ func TestTransportPerformRetries(t *testing.T) {
 	})
 
 	t.Run("Don't retry request on regular error", func(t *testing.T) {
-		var i int
+		var i atomic.Int32
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, fmt.Errorf("Mock regular error (%d)", i)
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					count := i.Add(1)
+					fmt.Printf("Request #%d", count)
+					fmt.Print(": ERR\n")
+					return nil, fmt.Errorf("Mock regular error (%d)", count)
+				}),
 			},
 		)
 
@@ -816,27 +804,27 @@ func TestTransportPerformRetries(t *testing.T) {
 			t.Errorf("Unexpected response: %+v", res)
 		}
 
-		if i != 1 {
-			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, i)
+		if count := i.Load(); count != 1 {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
 		}
 	})
 
 	t.Run("Don't retry request when retries are disabled", func(t *testing.T) {
-		var i int
+		var i atomic.Int32
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					count := i.Add(1)
+					fmt.Printf("Request #%d", count)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", count)}
+				}),
 				DisableRetry: true,
+				HealthCheck:  NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 			},
 		)
 
@@ -844,8 +832,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		//nolint:bodyclose // Mock response does not have a body to close
 		tp.Perform(req)
 
-		if i != 1 {
-			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, i)
+		if count := i.Load(); count != 1 {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
 		}
 	})
 
@@ -859,20 +847,19 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numReqs,
-			URLs:       []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					if i == numReqs {
-						fmt.Print(": OK\n")
-						return &http.Response{Status: "OK"}, nil
-					}
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-				},
-			},
+			MaxRetries:  numReqs,
+			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				fmt.Printf("Request #%d", i)
+				if i == numReqs {
+					fmt.Print(": OK\n")
+					return &http.Response{Status: "OK"}, nil
+				}
+				fmt.Print(": ERR\n")
+				return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+			}),
 
 			// A simple incremental backoff function
 			//
@@ -906,20 +893,18 @@ func TestTransportPerformRetries(t *testing.T) {
 	})
 
 	t.Run("Delay the retry with retry on timeout and context deadline", func(t *testing.T) {
-		var i int
+		var i atomic.Int32
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
 			EnableRetryOnTimeout: true,
 			MaxRetries:           100,
 			RetryBackoff:         func(i int) time.Duration { return time.Hour },
 			URLs:                 []*url.URL{u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					<-req.Context().Done()
-					return nil, req.Context().Err()
-				},
-			},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i.Add(1)
+				<-req.Context().Done()
+				return nil, req.Context().Err()
+			}),
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
@@ -932,8 +917,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("expected context.DeadlineExceeded, got %s", err)
 		}
-		if i != 1 {
-			t.Fatalf("unexpected number of requests: expected 1, got %d", i)
+		if count := i.Load(); count != 1 {
+			t.Fatalf("unexpected number of requests: expected 1, got %d", count)
 		}
 	})
 
@@ -947,16 +932,15 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numRetries,
-			URLs:       []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-				},
-			},
+			MaxRetries:  numRetries,
+			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				fmt.Printf("Request #%d", i)
+				fmt.Print(": ERR\n")
+				return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+			}),
 
 			// A simple incremental backoff function
 			//
@@ -1022,7 +1006,7 @@ func TestMaxRetries(t *testing.T) {
 		{
 			name:              "MaxRetries Active set to default",
 			disableRetry:      false,
-			expectedCallCount: 4,
+			expectedCallCount: 7, // 1 original + 6 retries (new default)
 		},
 		{
 			name:              "MaxRetries Active set to 1",
@@ -1040,7 +1024,7 @@ func TestMaxRetries(t *testing.T) {
 			name:              "Max Retries Active set to 3",
 			maxRetries:        3,
 			disableRetry:      false,
-			expectedCallCount: 4,
+			expectedCallCount: 4, // 1 original + 3 retries
 		},
 		{
 			name:              "MaxRetries Inactive set to 0",
@@ -1060,15 +1044,13 @@ func TestMaxRetries(t *testing.T) {
 			var callCount int
 			c, _ := New(Config{
 				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						callCount++
-						return &http.Response{
-							StatusCode: http.StatusBadGateway,
-							Status:     "MOCK",
-						}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					callCount++
+					return &http.Response{
+						StatusCode: http.StatusBadGateway,
+						Status:     "MOCK",
+					}, nil
+				}),
 				MaxRetries:   test.maxRetries,
 				DisableRetry: test.disableRetry,
 			})
@@ -1106,36 +1088,34 @@ func TestRequestCompression(t *testing.T) {
 			tp, _ := New(Config{
 				URLs:                []*url.URL{{}},
 				CompressRequestBody: test.compressionFlag,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						if req.Body == nil || req.Body == http.NoBody {
-							return nil, fmt.Errorf("unexpected body: %v", req.Body)
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					if req.Body == nil || req.Body == http.NoBody {
+						return nil, fmt.Errorf("unexpected body: %v", req.Body)
+					}
+
+					var buf bytes.Buffer
+					buf.ReadFrom(req.Body)
+
+					if req.ContentLength != int64(buf.Len()) {
+						return nil, fmt.Errorf("mismatched Content-Length: %d vs actual %d", req.ContentLength, buf.Len())
+					}
+
+					if test.compressionFlag {
+						var unBuf bytes.Buffer
+						zr, err := gzip.NewReader(&buf)
+						if err != nil {
+							return nil, fmt.Errorf("decompression error: %w", err)
 						}
+						unBuf.ReadFrom(zr)
+						buf = unBuf
+					}
 
-						var buf bytes.Buffer
-						buf.ReadFrom(req.Body)
+					if buf.String() != test.inputBody {
+						return nil, fmt.Errorf("unexpected body: %s", buf.String())
+					}
 
-						if req.ContentLength != int64(buf.Len()) {
-							return nil, fmt.Errorf("mismatched Content-Length: %d vs actual %d", req.ContentLength, buf.Len())
-						}
-
-						if test.compressionFlag {
-							var unBuf bytes.Buffer
-							zr, err := gzip.NewReader(&buf)
-							if err != nil {
-								return nil, fmt.Errorf("decompression error: %w", err)
-							}
-							unBuf.ReadFrom(zr)
-							buf = unBuf
-						}
-
-						if buf.String() != test.inputBody {
-							return nil, fmt.Errorf("unexpected body: %s", buf.String())
-						}
-
-						return &http.Response{Status: "MOCK"}, nil
-					},
-				},
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			})
 
 			req, _ := http.NewRequest(http.MethodPost, "/abc", bytes.NewBufferString(test.inputBody))
@@ -1162,11 +1142,9 @@ func TestRequestSigning(t *testing.T) {
 				Signer: &mockSigner{
 					ReturnError: true,
 				},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{Status: "MOCK"}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
