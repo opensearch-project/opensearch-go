@@ -41,7 +41,8 @@ func (r InternalUsersPutReq) GetRequest() (*http.Request, error) {
 
 // InternalUsersPutBody represents the request body for InternalUsersPutReq
 type InternalUsersPutBody struct {
-	Password      string            `json:"password,omitempty"`
+	// Password for the internal user.
+	Password      string            `json:"password,omitempty"` // #nosec G117
 	Hash          string            `json:"hash,omitempty"`
 	BackendRoles  []string          `json:"backend_roles,omitempty"`
 	Attributes    map[string]string `json:"attributes,omitempty"`
