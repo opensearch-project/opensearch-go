@@ -22,9 +22,11 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
@@ -48,6 +50,15 @@ func example() error {
 				Addresses: []string{"https://localhost:9200"},
 				Username:  "admin", // For testing only. Don't store credentials in code.
 				Password:  "myStrongPassword123!",
+
+				// Optional: Enable node discovery
+				DiscoverNodesOnStart:  true,
+				DiscoverNodesInterval: 5 * time.Minute,
+
+				// Optional: Enable intelligent request routing
+				Transport: &opensearchtransport.Client{
+					Router: opensearchtransport.NewSmartRouter(),
+				},
 			},
 		},
 	)
@@ -85,7 +96,7 @@ func example() error {
 
 	var opensearchError *opensearch.StructError
 
-	// Load err into opensearch.Error to access the fields and tolerate if the index already exists
+	// Load err into opensearch.StructError to access the fields and tolerate if the index already exists
 	if err != nil {
 		if errors.As(err, &opensearchError) {
 			if opensearchError.Err.Type != "resource_already_exists_exception" {
@@ -187,7 +198,7 @@ func example() error {
 	// Try to delete the index again which fails as it does not exist
 	_, err = client.Indices.Delete(ctx, deleteIndex)
 
-	// Load err into opensearchapi.Error to access the fields and tolerate if the index is missing
+	// Load err into opensearch.StructError to access the fields and tolerate if the index is missing
 	if err != nil {
 		if errors.As(err, &opensearchError) {
 			if opensearchError.Err.Type != "index_not_found_exception" {
@@ -210,13 +221,19 @@ Before starting, we strongly recommend reading the full AWS documentation regard
 >
 > See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
-Depending on the version of AWS SDK used, import the v1 or v2 request signer from `signer/aws` or `signer/awsv2` respectively. Both signers are equivalent in their functionality, they provide AWS Signature Version 4 (SigV4).
+Depending on the version of AWS SDK used, import the request signer from `signer/aws` (recommended) or `signer/awsv2`. Both signers use AWS SDK v2 and provide AWS Signature Version 4 (SigV4).
+
+**BREAKING CHANGE**: As of this version, the main `signer/aws` package has been migrated from AWS SDK v1 to AWS SDK v2 due to AWS SDK v1 reaching end-of-support on July 31, 2025.
 
 To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
 
 Here are some Go samples that show how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
 
-### AWS SDK v1
+### AWS SDK v2 (Recommended)
+
+**Migration Note**: If you were previously using `signer/aws` with AWS SDK v1, you need to update your imports and configuration as shown below.
+
+**Credential Caching**: The signer automatically enables credential caching for improved performance, especially when using STS credentials (assume role, web identity, etc.). This reduces API calls to AWS STS and improves signing performance.
 
 ```go
 package main
@@ -226,7 +243,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/aws"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -245,16 +263,22 @@ func main() {
 const endpoint = "" // e.g. https://opensearch-domain.region.com
 
 func example() error {
-	// Create an AWS request Signer and load AWS configuration using default config folder or env vars.
-	// See https://docs.aws.amazon.com/opensearch-service/latest/developerguide/request-signing.html#request-signing-go
-	signer, err := requestsigner.NewSignerWithService(
-		session.Options{SharedConfigState: session.SharedConfigEnable},
-		requestsigner.OpenSearchService, // Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless.
-	)
+	ctx := context.Background()
+
+	// Load AWS configuration
+	awsCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return err
 	}
-	// Create an opensearch client and use the request-signer.
+
+	// Create an AWS request Signer
+	signer, err := requestsigner.NewSignerWithService(awsCfg, requestsigner.OpenSearchService)
+	// Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless
+	if err != nil {
+		return err
+	}
+
+	// Create an opensearch client and use the request-signer
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
@@ -267,20 +291,18 @@ func example() error {
 		return err
 	}
 
-	ctx := context.Background()
-    
     ping, err := client.Ping(ctx, nil)
     if err != nil {
         return err
     }
 
-    fmt.Println(ping)
+	fmt.Println(ping)
 
 	return nil
 }
 ```
 
-### AWS SDK v2
+### Alternative: Using signer/awsv2
 
 Use the AWS SDK v2 for Go to authenticate with Amazon OpenSearch service.
 
@@ -387,6 +409,33 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 }
 ```
 
+## Debugging
+
+Set the `OPENSEARCH_GO_DEBUG` environment variable to enable debug logging for connection management, node discovery, and request routing. Debug output is written to stderr.
+
+```bash
+OPENSEARCH_GO_DEBUG=true go run myapp.go
+```
+
+For programmatic control, set `EnableDebugLogger: true` in the client configuration:
+
+```go
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses:         []string{"http://localhost:9200"},
+            EnableDebugLogger: true,
+        },
+    },
+)
+```
+
+In tests, use the `testutil.IsDebugEnabled(t)` helper which also reads `OPENSEARCH_GO_DEBUG`:
+
+```bash
+OPENSEARCH_GO_DEBUG=true go test ./...
+```
+
 ## Guides by Topic
 
 - [Index Lifecycle](guides/index_lifecycle.md)
@@ -396,4 +445,7 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 - [Advanced Index Actions](guides/advanced_index_actions.md)
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
+- [Connection Routing](guides/request_routing.md)
+- [Cluster Health Checking](guides/cluster_health_checking.md)
+- [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
 - [Retry and Backoff](guides/retry_backoff.md)
