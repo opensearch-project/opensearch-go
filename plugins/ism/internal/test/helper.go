@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 )
 
@@ -27,42 +27,48 @@ type Response interface {
 }
 
 // NewClient returns an opensearchapi.Client that is adjusted for the wanted test case
-func NewClient() (*ism.Client, error) {
-	config, err := ClientConfig()
-	if err != nil {
-		return nil, err
-	}
+func NewClient(t *testing.T) (*ism.Client, error) {
+	t.Helper()
+	config := ClientConfig(t)
 	if config == nil {
-		return ism.NewClient(ism.Config{})
+		return ism.NewClient(ism.Config{
+			Client: opensearch.Config{Context: t.Context()},
+		})
 	}
 	return ism.NewClient(*config)
 }
 
-// ClientConfig returns an opensearchapi.Config for secure opensearch
-func ClientConfig() (*ism.Config, error) {
-	if ostest.IsSecure() {
-		password, err := ostest.GetPassword()
-		if err != nil {
-			return nil, err
-		}
+// ClientConfig returns an ism.Config for secure opensearch
+func ClientConfig(t *testing.T) *ism.Config {
+	t.Helper()
+	// Use centralized URL construction
+	u := testutil.GetTestURL(t)
+
+	if testutil.IsSecure(t) {
+		password := testutil.GetPassword(t)
 
 		return &ism.Config{
 			Client: opensearch.Config{
 				Username:  "admin",
 				Password:  password,
-				Addresses: []string{"https://localhost:9200"},
+				Addresses: []string{u.String()},
+				Context:   t.Context(),
 				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Test environment only
 				},
 			},
-		}, nil
+		}
 	}
-	//nolint:nilnil // easier to test with nil rather then doing complex error handling for tests
-	return nil, nil
+
+	return nil
 }
 
-// CreateFailingClient returns an ism.Client that always return 400 with an empty object as body
-func CreateFailingClient() (*ism.Client, error) {
+// CreateFailingClient returns an ism.Client that always return 400 with an empty object as body.
+// The httptest server is closed via t.Cleanup; background pollers are stopped automatically
+// when t.Context() is cancelled at test end.
+func CreateFailingClient(t *testing.T) (*ism.Client, error) {
+	t.Helper()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil {
 			defer r.Body.Close()
@@ -70,8 +76,14 @@ func CreateFailingClient() (*ism.Client, error) {
 		w.WriteHeader(http.StatusBadRequest)
 		io.Copy(w, strings.NewReader(`{"status": "error", "reason": "Test Failing Client Response"}`))
 	}))
+	t.Cleanup(ts.Close)
 
-	return ism.NewClient(ism.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
+	return ism.NewClient(ism.Config{
+		Client: opensearch.Config{
+			Addresses: []string{ts.URL},
+			Context:   t.Context(),
+		},
+	})
 }
 
 // VerifyInspect validates the returned ism.Inspect type

@@ -9,6 +9,7 @@ package opensearchapi
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"time"
 
@@ -87,8 +88,9 @@ func NewClient(config Config) (*Client, error) {
 
 // NewDefaultClient returns a opensearchapi client using defaults
 func NewDefaultClient() (*Client, error) {
+	defaultAddress := opensearch.DefaultScheme + "://" + net.JoinHostPort(opensearch.DefaultHost, strconv.Itoa(opensearch.DefaultPort))
 	rootClient, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
+		Addresses: []string{defaultAddress},
 	})
 	if err != nil {
 		return nil, err

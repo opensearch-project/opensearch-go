@@ -36,13 +36,16 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
@@ -982,16 +985,20 @@ func TestTransportPerformRetries(t *testing.T) {
 
 func TestURLs(t *testing.T) {
 	t.Run("Returns URLs", func(t *testing.T) {
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "localhost:9200"},
-			{Scheme: "http", Host: "localhost:9201"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: mockhttp.DefaultOpenSearchSchemeInsecure, Host: net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort))},
+				{Scheme: mockhttp.DefaultOpenSearchSchemeInsecure, Host: net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort+1))},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 		urls := tp.URLs()
 		if len(urls) != 2 {
 			t.Errorf("Expected get 2 urls, but got: %d", len(urls))
 		}
-		if urls[0].Host != "localhost:9200" {
-			t.Errorf("Unexpected URL, want=localhost:9200, got=%s", urls[0].Host)
+		expectedHost := net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort))
+		if urls[0].Host != expectedHost {
+			t.Errorf("Unexpected URL, want=%s, got=%s", expectedHost, urls[0].Host)
 		}
 	})
 }
