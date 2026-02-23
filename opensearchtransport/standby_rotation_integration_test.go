@@ -213,6 +213,9 @@ func TestStandbyRotation(t *testing.T) {
 	_, err := testutil.InitClient(t)
 	require.NoError(t, err)
 
+	// These tests require a multi-node cluster (3 nodes) for standby rotation.
+	testutil.SkipIfSingleNode(t, 3)
+
 	t.Run("Discovery with cap creates standby pool", func(t *testing.T) {
 		cfg := standbyTestConfig(t)
 
