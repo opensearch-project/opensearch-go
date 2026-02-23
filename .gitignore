@@ -7,3 +7,6 @@ tmp/
 bin/
 
 .DS_Store
+# Admin certificates for testing
+admin.pem
+admin.key
