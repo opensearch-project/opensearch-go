@@ -9,6 +9,15 @@
     - [Integration Testing](#integration-testing)
     - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
+  - [Advanced Cluster Configuration](#advanced-cluster-configuration)
+    - [Cluster Scaling](#cluster-scaling)
+    - [Heterogeneous Clusters](#heterogeneous-clusters)
+      - [CPU Limits](#cpu-limits)
+      - [Node Roles](#node-roles)
+      - [Combining Overrides](#combining-overrides)
+      - [Resetting to Defaults](#resetting-to-defaults)
+    - [Testing Specific OpenSearch Versions](#testing-specific-opensearch-versions)
+    - [Cluster Status and Troubleshooting](#cluster-status-and-troubleshooting)
   - [Lint](#lint)
     - [Markdown lint](#markdown-lint)
     - [Go lint](#go-lint)
@@ -94,6 +103,110 @@ In order to differentiate unit tests from integration tests, Go has a built-in m
    ```
    make cluster.stop cluster.clean
    ```
+
+## Advanced Cluster Configuration
+
+By default, `make cluster.start` launches a 3-node cluster where every node has the same resources and roles (`cluster_manager,data,ingest`). The targets below let you customize the cluster for testing weighted round-robin routing, role-based request routing, and other behavior that only surfaces with non-uniform nodes.
+
+### Cluster Scaling
+
+Scale the running cluster to a different number of nodes without rebuilding:
+
+```
+make cluster.scale.1    # Single-node cluster
+make cluster.scale.2    # 2-node cluster
+make cluster.scale.3    # Full 3-node cluster (default)
+```
+
+### Heterogeneous Clusters
+
+Override files let you change CPU limits and node roles independently. Each target writes a Docker Compose override file under `.ci/opensearch/` that is automatically merged with `docker-compose.yml` on the next `cluster.build` or `cluster.start`. The override files are not checked into source control.
+
+The override file paths are:
+
+| Override | File |
+|----------|------|
+| CPU limits | `.ci/opensearch/docker-compose.cpu-override.yml` |
+| Node roles | `.ci/opensearch/docker-compose.roles-override.yml` |
+
+These are standard Docker Compose files. You can hand-edit them for custom configurations (e.g., different CPU ratios or role combinations not covered by the Make targets), or remove individual files to selectively reset one dimension while keeping the other:
+
+```
+# Remove only the CPU override, keep roles
+rm .ci/opensearch/docker-compose.cpu-override.yml
+
+# Remove only the roles override, keep CPU limits
+rm .ci/opensearch/docker-compose.roles-override.yml
+```
+
+#### CPU Limits
+
+Set per-node CPU limits so the client's weighted round-robin allocates proportional traffic. The `deploy.resources.limits.cpus` value is reported by each node via `GET /_nodes/os` as `allocated_processors`, which the client uses to compute connection weights.
+
+```
+# Balanced weights [1,1,2]
+make cluster.heterogeneous.cpu.1    # node1=2, node2=2, node3=4 CPUs
+
+# Skewed weights [1,2,4]
+make cluster.heterogeneous.cpu.2    # node1=1, node2=2, node3=4 CPUs
+```
+
+#### Node Roles
+
+Assign different roles to each node so the client's role-based routing policy can direct requests to the correct nodes (e.g., bulk requests to ingest-capable nodes, search requests to data nodes):
+
+```
+make cluster.heterogeneous.roles    # node1=cluster_manager+ingest, node2=data+ingest, node3=data
+```
+
+#### Combining Overrides
+
+CPU and role overrides are independent files and can be combined. Set both, then rebuild:
+
+```
+make cluster.heterogeneous.cpu.1 cluster.heterogeneous.roles
+make cluster.stop cluster.clean cluster.build cluster.start
+```
+
+Verify the resulting configuration:
+
+```
+curl -sk 'https://admin:myStrongPassword123%21@localhost:9200/_nodes/http,os?pretty' \
+  | jq '.nodes[] | {name, roles: .roles, processors: .os.allocated_processors}'
+```
+
+#### Resetting to Defaults
+
+Remove all override files and return to the default homogeneous 3-node cluster:
+
+```
+make cluster.homogeneous
+make cluster.stop cluster.clean cluster.build cluster.start
+```
+
+### Testing Specific OpenSearch Versions
+
+The cluster supports any published OpenSearch Docker image version. Always clean before switching versions to avoid stale data or cached images:
+
+```
+make cluster.stop
+OPENSEARCH_VERSION=2.19.1 make cluster.clean cluster.build cluster.start
+make test-integ
+```
+
+Set `SECURE_INTEGRATION=false` to disable TLS and basic auth:
+
+```
+SECURE_INTEGRATION=false OPENSEARCH_VERSION=2.19.1 make cluster.clean cluster.build cluster.start
+```
+
+### Cluster Status and Troubleshooting
+
+Use `make cluster.status` to display cluster health, node info, Docker container state, and index/shard details. It auto-detects whether the cluster is running in secure or insecure mode.
+
+```
+make cluster.status
+```
 
 ## Lint
 

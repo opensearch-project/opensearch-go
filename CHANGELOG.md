@@ -6,16 +6,76 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+- Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
+- opensearchapi/testutil package with test suite, client helpers, and JSON comparison utilities
+- opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
+- Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))
+  - `Policy` interface for composable routing strategies with lifecycle management
+  - `Router` interface with `Route()` method for request-based connection selection
+  - `NewPolicy()` implementing chain-of-responsibility pattern for composable routing strategies
+  - `NewIfEnabledPolicy()` for conditional routing with runtime evaluation
+  - `NewMuxPolicy()` for custom HTTP pattern matching using `http.ServeMux`
+  - `NewRolePolicy()` for role-based node selection
+  - `NewDefaultRouter()` with coordinating node preference and round-robin fallback
+  - `NewSmartRouter()` providing smart request routing with graceful fallback (recommended for most users)
+    - Automatic routing of bulk operations (including streaming bulk) to ingest nodes
+    - Automatic routing of search operations (search, count, explain, by-query operations) to data nodes
+    - Automatic routing of document retrieval operations (get, mget, source, termvectors) to data nodes for read locality
+- Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - Auto-discover server core count from `/_nodes/http,os` to derive all rate-limiting parameters (default: 8 cores)
+  - Weighted round-robin for heterogeneous clusters: nodes with more cores get proportionally more traffic via GCD-normalized duplicate pointers in the ready list
+  - `lcNeedsHardware` lifecycle bit tracks connections needing hardware info; per-node fallback via `/_nodes/_local/http,os` during health checks
+  - Capacity model dynamically recalculated on each discovery cycle from minimum `allocatedProcessors` across all nodes
+  - TLS-aware rate limiting prevents overwhelming recovering servers during outages
+  - Three-input timeout formula: `max(healthTimeout, rateLimitedTimeout, minimumFloor) + jitter`
+  - Shuffle ready connection list on add/resurrect to prevent round-robin hot-spotting
+  - Two-phase readiness health check: `GET /` then `GET /_cluster/health?local=true` with `initializing_shards` gate to prevent routing to recovering nodes
+  - Store cluster health metrics (`ClusterHealthLocal`) on each connection for observability
+  - Periodic cluster health refresh for ready connections keeps `ClusterHealthLocal` data current for load-shedding and routing decisions
+    - Refresh interval scales with cluster size: `clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 5min)`
+    - Single-node clusters skip refresh entirely (no routing benefit)
+  - Node stats polling with load shedding via `NodeStatsInterval` configuration
+    - Polls `GET /_nodes/_local/stats/jvm,breaker` to detect overloaded nodes
+    - Overloaded nodes are demoted from the ready list to the dead list
+    - Overload detection: JVM heap threshold (`OverloadedHeapThreshold`, default 85%), circuit breaker size ratio (`OverloadedBreakerRatio`, default 0.90), breaker trip delta, and cluster status red
+- Add heterogeneous Docker cluster targets for integration-testing weighted routing and role-based request routing
+  - `cluster.heterogeneous.cpu.1` and `cluster.heterogeneous.cpu.2` set per-node CPU limits via Docker Compose overrides
+  - `cluster.heterogeneous.roles` assigns distinct node roles (cluster_manager+ingest, data+ingest, data)
+  - `cluster.homogeneous` removes all overrides to reset to default configuration
+  - `cluster.status` now shows per-node roles and allocated processors via `_nodes/http,os`
 
 ### Changed
 
+- Consolidate test utilities into two canonical packages: opensearchtransport/testutil (env helpers, polling, version comparison) and opensearchapi/testutil (client-dependent helpers, test suite, JSON comparison)
+- Rename `singleConnectionPool` to `singleServerPool` and `statusConnectionPool` to `multiServerPool` for clarity ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Prevent connection pool demotion from `multiServerPool` to `singleServerPool` during discovery, preserving health checking and connection state when cluster shrinks to a single node ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
 - Refactor metrics struct to use atomic counters for lock-free request/failure tracking ([#776](https://github.com/opensearch-project/opensearch-go/pull/776))
 - Test against Opensearch 2.19.4, 3.1, 3.3, and 3.4 ([#782](https://github.com/opensearch-project/opensearch-go/pull/782))
+- Migrate all test files to context-aware API calls for proper timeout and cancellation support
+- Add cluster readiness validation and improve cluster error diagnostics
+- Update Docker cluster management to add version-aware role detection (cluster_manager vs master)
+- Generate unique document IDs in tests for parallel test execution and eliminate known test flakes
+- Reduce integration test timeout from 1h to 10m per package with parallel execution support
+- Refactor transport code for improved maintainability (rename ErrInvalidRole -> InvalidRoleError, add response body cleanup, simplify initialization)
 - **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
   - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
   - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
+- **BREAKING**: Add context support to discovery and client lifecycle management
+  - `opensearchtransport.Discoverable` interface now requires `context.Context` parameter: `DiscoverNodes(ctx context.Context) error`
+  - `opensearch.Client.DiscoverNodes()` and `opensearchtransport.Client.DiscoverNodes()` now require `context.Context` parameter
+  - `opensearch.Config` and `opensearchtransport.Config` now accept optional `Context` and `CancelFunc` fields
+  - `opensearchutil.BulkIndexerConfig` now accepts optional `Context` and `CancelFunc` fields
+  - Enables proper context propagation for timeouts, cancellation, and graceful shutdown
+  - Role compatibility validation prevents conflicting role assignments (master+cluster_manager, warm+search)
+  - OpenSearch 3.0+ searchable snapshots now use `warm` role instead of deprecated `search` role
+- **BREAKING**: Migrate `signer/aws` package from AWS SDK v1 to AWS SDK v2 due to AWS SDK v1 reaching end-of-support on July 31, 2025
+  - Constructor now takes `aws.Config` instead of `session.Options`
+  - See USER_GUIDE.md for details required to migrate
+  - Users who need access to the existing `signer/awsv2` API can still use it, however they are encouraged to migrate to `signer/aws`
 
 ### Deprecated
 
@@ -23,12 +83,17 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Fix connection lifecycle bug in multiServerPool.OnFailure where connections were scheduled for resurrection before being moved from ready to dead list, causing potential race conditions
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
+- Fix cluster readiness checks in integration tests to handle HTTPS cold start delays (increase timeout to 15s)
+- Fix GitHub Actions workflow authentication for OpenSearch 2.12.0+ password changes (admin -> myStrongPassword123!)
+- Fix Docker cluster management to properly handle version-specific configurations and clean stale images/volumes
+- Fix OpenSearch 2.8.0+ Tasks API compatibility by adding cancellation_time_millis field to TasksListTask struct
 - Fix OpenSearch 3.1.0+ API compatibility by adding phase_results_processors field to nodes API and time_in_execution fields to cluster pending tasks API
 - Fix OpenSearch 3.2.0+ API compatibility by adding max_last_index_request_timestamp and startree query fields across nodes stats, indices stats, and cat APIs, plus settings field to security plugin health API
 - Fix OpenSearch 3.3.0+ API compatibility by adding neural_search breaker, query_failed and startree_query_failed search fields, search pipeline system_generated fields across multiple APIs, plus ingestion_status field to cluster state API and jwks_uri field to security config API
 - Fix OpenSearch 3.4.0+ API compatibility by adding warmer fields to merges section, parallelism field to thread pool, and status_counter field across multiple APIs
-- Fix cat indices API field naming compatibility across OpenSearch versions by using forward-compatible field names (PrimarySearchStartreeQuery*) that match the corrected 3.3.0+ naming, with fallback support for the temporary 3.2.0 field names
+- Fix cat indices API field naming compatibility across OpenSearch versions by using forward-compatible field names (PrimarySearchStartreeQuery) that match the corrected 3.3.0+ naming, with fallback support for the temporary 3.2.0 field names
 - Fix cat APIs data type compatibility by changing byte fields from int to string to properly handle values like "0b"
 - Fix floating point precision loss in nodes stats concurrent_avg_slice_count field by changing from float32 to float64
 
@@ -256,7 +321,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps codecov action version to v4 ([#517](https://github.com/opensearch-project/opensearch-go/pull/517))
 - Changes bulk error/reason field and some cat response fields to pointer as they can be nil ([#510](https://github.com/opensearch-project/opensearch-go/pull/510))
 - Adjust workflows to work with security plugin ([#507](https://github.com/opensearch-project/opensearch-go/pull/507))
-- Updates USER_GUIDE.md and /_samples/ ([#518](https://github.com/opensearch-project/opensearch-go/pull/518))
+- Updates USER_GUIDE.md and add samples ([#518](https://github.com/opensearch-project/opensearch-go/pull/518))
 - Updates opensearchtransport.Client to use pooled gzip writer and buffer ([#521](https://github.com/opensearch-project/opensearch-go/pull/521))
 - Use go:build tags for testing ([#52?](https://github.com/opensearch-project/opensearch-go/pull/52?))
 
@@ -290,7 +355,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Updates workflow action versions ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changes integration tests to work with secure and unsecure OpenSearch ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
-- Moves functions from `opensearch/internal/test` to `internal/test` for more general test uses ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
+- Moves functions from `opensearch/internal/test` to `opensearchutil/testutil` for shared test utilities ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changes `custom_foldername` field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Changs cat indices Primary and Replica field to pointer as it can be `null` ([#488](https://github.com/opensearch-project/opensearch-go/pull/488))
 - Replaces `ioutil` with `io` in examples and integration tests [#495](https://github.com/opensearch-project/opensearch-go/pull/495)

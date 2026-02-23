@@ -11,12 +11,16 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 func main() {
@@ -27,6 +31,7 @@ func main() {
 }
 
 func example() error {
+	// Basic client setup
 	client, err := opensearchapi.NewDefaultClient()
 	if err != nil {
 		return err
@@ -34,6 +39,32 @@ func example() error {
 
 	ctx := context.Background()
 	exampleIndex := "movies"
+```
+
+### Advanced Setup: Search-Optimized Client
+
+For search-heavy applications, you can configure the client to automatically route search requests to nodes optimized for data retrieval:
+
+```go
+	// Advanced client setup optimized for search operations
+	searchClient, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{"http://localhost:9200"},
+
+		// Enable node discovery to find all data nodes
+		DiscoverNodesOnStart:  true,
+		DiscoverNodesInterval: 5 * time.Minute,
+
+		// Configure automatic routing to data nodes for search operations
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewSmartRouter(),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Use search-optimized client for better performance
+	_ = searchClient // This client will automatically route searches to data nodes
 
 	createResp, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: exampleIndex})
 	if err != nil {
@@ -238,6 +269,101 @@ The scroll example above has one weakness: if the index is updated while you are
 ```
 
 Note that a point-in-time is associated with an index or a set of index. So, when performing a search with a point-in-time, you DO NOT specify the index in the search.
+
+## Search Performance Optimization
+
+### Automatic Data Node Routing
+
+For production search workloads, you can optimize performance by ensuring search requests are routed to nodes best suited for data retrieval:
+
+```go
+	// Create a search-optimized client
+	optimizedSearchClient, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{"http://localhost:9200"},
+
+		// Enable node discovery
+		DiscoverNodesOnStart:  true,
+		DiscoverNodesInterval: 5 * time.Minute,
+
+		// Use data-preferred router for search optimization
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewRouter(
+				func() opensearchtransport.Policy {
+					policy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleData)
+					return policy
+				}(),
+				opensearchtransport.NewRoundRobinPolicy(),
+			),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Search requests will automatically route to data nodes
+	searchResp, err := optimizedSearchClient.Search(
+		ctx,
+		&opensearchapi.SearchReq{
+			Indices: []string{exampleIndex},
+			Params: opensearchapi.SearchParams{
+				Query: `title: "dark knight"`,
+				Size:  opensearchapi.ToPointer(10),
+			},
+		},
+	)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Optimized search found %d documents\n", searchResp.Hits.Total.Value)
+```
+
+### Smart Routing for Mixed Workloads
+
+The smart router automatically detects operation types and routes them to the most appropriate nodes:
+
+```go
+	// Smart routing: automatically detects search vs ingest operations
+	smartClient, err := opensearch.NewClient(opensearch.Config{
+		Addresses: []string{"http://localhost:9200"},
+
+		DiscoverNodesOnStart:  true,
+		DiscoverNodesInterval: 5 * time.Minute,
+
+		Transport: &opensearchtransport.Client{
+			Router: opensearchtransport.NewSmartRouter(),
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Search operations automatically route to data nodes
+	_, err = smartClient.Search(ctx, &opensearchapi.SearchReq{
+		Indices: []string{exampleIndex},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Multi-search operations also route to data nodes
+	_, err = smartClient.MSearch(ctx, opensearchapi.MSearchReq{
+		Body: strings.NewReader(`{}
+{"query": {"match_all": {}}}
+`),
+	})
+	if err != nil {
+		return err
+	}
+```
+
+### Routing Strategy Overview
+
+The smart router provides automatic routing based on the operation being performed:
+
+- **Search operations** (`/_search`, `/_msearch`, document retrieval) -> Data nodes
+- **Bulk operations** (`/_bulk`) -> Ingest nodes
+- **Ingest operations** (`/_ingest/`) -> Ingest nodes
+- **Other operations** -> Default round-robin routing
 
 ## Source API
 
