@@ -25,7 +25,7 @@ func BenchmarkConnectionPool(b *testing.B) {
 			URL: &url.URL{Scheme: "http", Host: "bench1:9200"},
 			ID:  "bench1",
 		}
-		pool := &singleConnectionPool{connection: conn}
+		pool := &singleServerPool{connection: conn}
 
 		b.ReportAllocs()
 		b.ResetTimer()

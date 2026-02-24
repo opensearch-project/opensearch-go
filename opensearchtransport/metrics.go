@@ -179,9 +179,9 @@ func (c *Client) Metrics() (Metrics, error) {
 	c.mu.RLock()
 	if c.mu.connectionPool != nil {
 		switch pool := c.mu.connectionPool.(type) {
-		case *statusConnectionPool:
+		case *multiServerPool:
 			ready, dead = pool.connectionsByState()
-		case *singleConnectionPool:
+		case *singleServerPool:
 			singleConns = pool.connections()
 		}
 	}
@@ -244,7 +244,7 @@ func (c *Client) Metrics() (Metrics, error) {
 	}
 	c.mu.RLock()
 	if c.mu.connectionPool != nil {
-		if pool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+		if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
 			snap := pool.snapshot()
 			snap.Enabled = true // flat/client pool is always enabled
 			m.Pools = append(m.Pools, snap)

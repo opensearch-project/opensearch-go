@@ -227,13 +227,13 @@ func (c *Connection) decrementDrainingQuiescing() int64 {
 	}
 }
 
-type singleConnectionPool struct {
+type singleServerPool struct {
 	connection *Connection
 
 	metrics *metrics
 }
 
-type statusConnectionPool struct {
+type multiServerPool struct {
 	name string // Pool identity for metrics/debug (e.g. "roundrobin", "role:data")
 
 	mu struct {
@@ -286,14 +286,14 @@ type statusConnectionPool struct {
 
 // Compile-time checks to ensure interface compliance
 var (
-	_ ConnectionPool = (*singleConnectionPool)(nil)
+	_ ConnectionPool = (*singleServerPool)(nil)
 
-	_ ConnectionPool = (*statusConnectionPool)(nil)
-	_ rwLocker       = (*statusConnectionPool)(nil)
+	_ ConnectionPool = (*multiServerPool)(nil)
+	_ rwLocker       = (*multiServerPool)(nil)
 )
 
 // snapshot returns a point-in-time PoolSnapshot of this pool's partitions and counters.
-func (cp *statusConnectionPool) snapshot() PoolSnapshot {
+func (cp *multiServerPool) snapshot() PoolSnapshot {
 	cp.mu.RLock()
 	activeCount := cp.mu.activeCount
 	standbyCount := len(cp.mu.ready) - cp.mu.activeCount
@@ -358,7 +358,7 @@ func (cp *statusConnectionPool) snapshot() PoolSnapshot {
 //	n = poolSize                   when activeListCap <= 0
 //	rounds = clamp(n, minWarmupRounds, maxWarmupRounds)
 //	skipCount = rounds * warmupSkipMultiple
-func (cp *statusConnectionPool) recalculateWarmupParams(poolSize int) {
+func (cp *multiServerPool) recalculateWarmupParams(poolSize int) {
 	// Auto-scale activeListCap when the user didn't specify an explicit value.
 	if cp.activeListCapConfig == nil && poolSize > 0 {
 		cp.activeListCap = poolSize
@@ -379,7 +379,7 @@ func (cp *statusConnectionPool) recalculateWarmupParams(poolSize int) {
 
 // getWarmupParams returns the effective warmup parameters for this pool.
 // Returns pool-specific values if set, otherwise falls back to defaults.
-func (cp *statusConnectionPool) getWarmupParams() (int, int) {
+func (cp *multiServerPool) getWarmupParams() (int, int) {
 	rounds := cp.warmupRounds
 	if rounds <= 0 {
 		rounds = defaultWarmupRounds
@@ -394,7 +394,7 @@ func (cp *statusConnectionPool) getWarmupParams() (int, int) {
 // NewConnectionPool creates and returns a default connection pool.
 func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	if len(conns) == 1 {
-		return &singleConnectionPool{connection: conns[0]}
+		return &singleServerPool{connection: conns[0]}
 	}
 
 	if selector == nil {
@@ -402,7 +402,7 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 		selector.(*roundRobinSelector).curr.Store(-1)
 	}
 
-	pool := &statusConnectionPool{
+	pool := &multiServerPool{
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutMax:          defaultResurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
@@ -419,23 +419,23 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 }
 
 // Next returns the connection from pool.
-func (cp *singleConnectionPool) Next() (*Connection, error) {
+func (cp *singleServerPool) Next() (*Connection, error) {
 	return cp.connection, nil
 }
 
 // OnSuccess is a no-op for single connection pool.
-func (cp *singleConnectionPool) OnSuccess(*Connection) {}
+func (cp *singleServerPool) OnSuccess(*Connection) {}
 
 // OnFailure is a no-op for single connection pool.
-func (cp *singleConnectionPool) OnFailure(*Connection) error { return nil }
+func (cp *singleServerPool) OnFailure(*Connection) error { return nil }
 
 // URLs returns the list of URLs of available connections.
-func (cp *singleConnectionPool) URLs() []*url.URL { return []*url.URL{cp.connection.URL} }
+func (cp *singleServerPool) URLs() []*url.URL { return []*url.URL{cp.connection.URL} }
 
-func (cp *singleConnectionPool) connections() []*Connection { return []*Connection{cp.connection} }
+func (cp *singleServerPool) connections() []*Connection { return []*Connection{cp.connection} }
 
 // OnSuccess marks the connection as successful.
-func (cp *statusConnectionPool) OnSuccess(c *Connection) {
+func (cp *multiServerPool) OnSuccess(c *Connection) {
 	// Establish consistent lock ordering: Pool -> Connection
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
@@ -471,7 +471,7 @@ func (cp *statusConnectionPool) OnSuccess(c *Connection) {
 }
 
 // shouldSkipDraining returns true if connection is draining and should not be resurrected.
-func (cp *statusConnectionPool) shouldSkipDraining(c *Connection) bool {
+func (cp *multiServerPool) shouldSkipDraining(c *Connection) bool {
 	if c.drainingQuiescingRemaining.Load() > 0 {
 		if debugLogger != nil {
 			debugLogger.Logf("[%s] OnSuccess: %s is draining (quiescing remaining=%d), skipping resurrection\n",
@@ -483,7 +483,7 @@ func (cp *statusConnectionPool) shouldSkipDraining(c *Connection) bool {
 }
 
 // shouldSkipOverloaded returns true if connection is overload-demoted and should not be resurrected.
-func (cp *statusConnectionPool) shouldSkipOverloaded(c *Connection) bool {
+func (cp *multiServerPool) shouldSkipOverloaded(c *Connection) bool {
 	if c.loadConnState().lifecycle().has(lcOverloaded) {
 		if debugLogger != nil {
 			debugLogger.Logf("[%s] OnSuccess: %s is overload-demoted, skipping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
@@ -494,7 +494,7 @@ func (cp *statusConnectionPool) shouldSkipOverloaded(c *Connection) bool {
 }
 
 // OnFailure marks the connection as failed.
-func (cp *statusConnectionPool) OnFailure(c *Connection) error {
+func (cp *multiServerPool) OnFailure(c *Connection) error {
 	cp.mu.Lock()
 	holdingCPLock := true
 	defer func() {
@@ -579,7 +579,7 @@ func (cp *statusConnectionPool) OnFailure(c *Connection) error {
 }
 
 // URLs returns the list of URLs of available connections.
-func (cp *statusConnectionPool) URLs() []*url.URL {
+func (cp *multiServerPool) URLs() []*url.URL {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
@@ -594,7 +594,7 @@ func (cp *statusConnectionPool) URLs() []*url.URL {
 	return urls
 }
 
-func (cp *statusConnectionPool) connections() []*Connection {
+func (cp *multiServerPool) connections() []*Connection {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
@@ -608,7 +608,7 @@ func (cp *statusConnectionPool) connections() []*Connection {
 // connectionsByState returns snapshots of the ready and dead lists.
 // The ready list includes both active (ready[:activeCount]) and standby (ready[activeCount:])
 // connections. Callers can use Connection.loadConnState() to distinguish them.
-func (cp *statusConnectionPool) connectionsByState() ([]*Connection, []*Connection) {
+func (cp *multiServerPool) connectionsByState() ([]*Connection, []*Connection) {
 	cp.mu.RLock()
 	defer cp.mu.RUnlock()
 
@@ -623,25 +623,25 @@ func (cp *statusConnectionPool) connectionsByState() ([]*Connection, []*Connecti
 
 // RLock acquires a read lock on the connection pool.
 // Implements rwLocker interface for efficient concurrent read access.
-func (cp *statusConnectionPool) RLock() {
+func (cp *multiServerPool) RLock() {
 	cp.mu.RLock()
 }
 
 // RUnlock releases the read lock on the connection pool.
 // Implements rwLocker interface for efficient concurrent read access.
-func (cp *statusConnectionPool) RUnlock() {
+func (cp *multiServerPool) RUnlock() {
 	cp.mu.RUnlock()
 }
 
 // Lock acquires a write lock on the connection pool.
 // Implements rwLocker interface (via embedded sync.Locker).
-func (cp *statusConnectionPool) Lock() {
+func (cp *multiServerPool) Lock() {
 	cp.mu.Lock()
 }
 
 // Unlock releases the write lock on the connection pool.
 // Implements rwLocker interface (via embedded sync.Locker).
-func (cp *statusConnectionPool) Unlock() {
+func (cp *multiServerPool) Unlock() {
 	cp.mu.Unlock()
 }
 
@@ -653,7 +653,7 @@ func (cp *statusConnectionPool) Unlock() {
 //   - Caller must verify connection health before calling this method
 //   - Caller must hold both pool lock and connection lock
 //   - Connection should exist in the dead list
-func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
+func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 	if debugLogger != nil {
 		debugLogger.Logf("[%s] Resurrecting %q\n", cp.name, c.URL)
 	}
@@ -699,7 +699,7 @@ func (cp *statusConnectionPool) resurrectWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) removeFromReadyWithLock(c *Connection) {
+func (cp *multiServerPool) removeFromReadyWithLock(c *Connection) {
 	// Remove all occurrences by filtering in-place.
 	// Track how many active entries were removed to adjust activeCount.
 	activeRemoved := 0
@@ -732,7 +732,7 @@ func (cp *statusConnectionPool) removeFromReadyWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) removeFromDeadWithLock(c *Connection) {
+func (cp *multiServerPool) removeFromDeadWithLock(c *Connection) {
 	idx := -1
 	// Search backward -- recently appended items are at the tail
 	for i := len(cp.mu.dead) - 1; i >= 0; i-- {
@@ -761,7 +761,7 @@ func (cp *statusConnectionPool) removeFromDeadWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) appendToReadyActiveWithLock(c *Connection) {
+func (cp *multiServerPool) appendToReadyActiveWithLock(c *Connection) {
 	w := c.effectiveWeight()
 	for range w {
 		tailIdx := len(cp.mu.ready)
@@ -777,7 +777,7 @@ func (cp *statusConnectionPool) appendToReadyActiveWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) appendToReadyStandbyWithLock(c *Connection) {
+func (cp *multiServerPool) appendToReadyStandbyWithLock(c *Connection) {
 	w := c.effectiveWeight()
 	for range w {
 		cp.mu.ready = append(cp.mu.ready, c)
@@ -788,7 +788,7 @@ func (cp *statusConnectionPool) appendToReadyStandbyWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) appendToDeadWithLock(c *Connection) {
+func (cp *multiServerPool) appendToDeadWithLock(c *Connection) {
 	cp.mu.dead = append(cp.mu.dead, c)
 }
 
@@ -797,7 +797,7 @@ func (cp *statusConnectionPool) appendToDeadWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) shuffleActiveWithLock() {
+func (cp *multiServerPool) shuffleActiveWithLock() {
 	if cp.mu.activeCount <= 1 {
 		return
 	}

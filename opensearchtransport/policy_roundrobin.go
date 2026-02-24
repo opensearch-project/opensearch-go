@@ -41,8 +41,8 @@ var (
 
 // RoundRobinPolicy implements round-robin routing across all available connections.
 type RoundRobinPolicy struct {
-	pool      *statusConnectionPool // Embedded connection pool for round-robin selection
-	isEnabled atomic.Bool           // Cached state: true if pool has connections (updated during DiscoveryUpdate)
+	pool      *multiServerPool // Embedded connection pool for round-robin selection
+	isEnabled atomic.Bool      // Cached state: true if pool has connections (updated during DiscoveryUpdate)
 }
 
 // NewRoundRobinPolicy creates a new round-robin routing policy.

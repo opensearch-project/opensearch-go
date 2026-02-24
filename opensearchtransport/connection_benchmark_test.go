@@ -65,8 +65,8 @@ func init() {
 	}
 }
 
-func initSingleConnectionPool() *singleConnectionPool {
-	return &singleConnectionPool{
+func initSingleServerPool() *singleServerPool {
+	return &singleServerPool{
 		connection: &Connection{
 			URL: &url.URL{
 				Scheme: "http",
@@ -76,11 +76,11 @@ func initSingleConnectionPool() *singleConnectionPool {
 	}
 }
 
-func BenchmarkSingleConnectionPool(b *testing.B) {
+func BenchmarkSingleServerPool(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("Next()", func(b *testing.B) {
-		pool := initSingleConnectionPool()
+		pool := initSingleServerPool()
 
 		b.Run("Single          ", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -105,7 +105,7 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := initSingleConnectionPool()
+		pool := initSingleServerPool()
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, _ := pool.Next()
@@ -132,8 +132,8 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 	})
 }
 
-func createStatusConnectionPool(conns []*Connection) *statusConnectionPool {
-	pool := &statusConnectionPool{
+func createMultiServerPool(conns []*Connection) *multiServerPool {
+	pool := &multiServerPool{
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
@@ -154,7 +154,7 @@ func createStatusConnectionPool(conns []*Connection) *statusConnectionPool {
 	return pool
 }
 
-func BenchmarkStatusConnectionPool(b *testing.B) {
+func BenchmarkMultiServerPool(b *testing.B) {
 	b.ReportAllocs()
 
 	conns := make([]*Connection, 1000)
@@ -163,7 +163,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	}
 
 	b.Run("Next()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -200,7 +200,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, err := pool.Next()
@@ -249,7 +249,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnSuccess()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, err := pool.Next()
@@ -292,7 +292,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("resurrect()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single", func(b *testing.B) {
 			c, err := pool.Next()

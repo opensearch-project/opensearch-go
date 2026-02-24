@@ -41,7 +41,7 @@ import (
 //
 // The stats poller calls promoteFromOverloaded when metrics improve, which
 // clears lcOverloaded and makes the connection eligible for promotion again.
-func (cp *statusConnectionPool) demoteOverloaded(c *Connection) {
+func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -99,7 +99,7 @@ func (cp *statusConnectionPool) demoteOverloaded(c *Connection) {
 // standby rotation will promote it to active when a slot is available.
 //
 // Called by the stats poller when node metrics drop below overload thresholds.
-func (cp *statusConnectionPool) promoteFromOverloaded(c *Connection) {
+func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 	c.mu.Lock()
 	if !c.loadConnState().lifecycle().has(lcOverloaded) {
 		c.mu.Unlock()
@@ -137,7 +137,7 @@ func (cp *statusConnectionPool) promoteFromOverloaded(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) enforceActiveCapWithLock() {
+func (cp *multiServerPool) enforceActiveCapWithLock() {
 	if cp.activeListCap <= 0 || cp.mu.activeCount <= cp.activeListCap {
 		return
 	}
@@ -217,7 +217,7 @@ func (cp *statusConnectionPool) enforceActiveCapWithLock() {
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
 //   - Caller should call OnSuccess() on success or OnFailure() on failure
-func (cp *statusConnectionPool) tryStandbyWithLock() *Connection {
+func (cp *multiServerPool) tryStandbyWithLock() *Connection {
 	if cp.mu.activeCount >= len(cp.mu.ready) {
 		return nil
 	}
@@ -252,7 +252,7 @@ func (cp *statusConnectionPool) tryStandbyWithLock() *Connection {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) promoteStandbyWithLock(c *Connection) bool {
+func (cp *multiServerPool) promoteStandbyWithLock(c *Connection) bool {
 	// Search backward -- recently appended items are at the tail
 	idx := -1
 	for i := len(cp.mu.ready) - 1; i >= cp.mu.activeCount; i-- {
@@ -289,7 +289,7 @@ func (cp *statusConnectionPool) promoteStandbyWithLock(c *Connection) bool {
 // performStandbyHealthCheck performs multiple consecutive health checks on a
 // standby connection before allowing promotion. Returns true only if all
 // checks pass. This pre-warms the connection before it handles production traffic.
-func (cp *statusConnectionPool) performStandbyHealthCheck(ctx context.Context, c *Connection) bool {
+func (cp *multiServerPool) performStandbyHealthCheck(ctx context.Context, c *Connection) bool {
 	if cp.healthCheck == nil {
 		return true
 	}
@@ -321,7 +321,7 @@ func (cp *statusConnectionPool) performStandbyHealthCheck(ctx context.Context, c
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool lock
-func (cp *statusConnectionPool) findActiveCandidate() *Connection {
+func (cp *multiServerPool) findActiveCandidate() *Connection {
 	// Pass 1: prefer a genuinely idle standby.
 	for i := len(cp.mu.ready) - 1; i >= cp.mu.activeCount; i-- {
 		c := cp.mu.ready[i]
@@ -366,7 +366,7 @@ func (cp *statusConnectionPool) findActiveCandidate() *Connection {
 // rotation budget -- the loop keeps trying until count successful rotations
 // occur or no standby candidates remain.
 // Returns the number of successful rotations.
-func (cp *statusConnectionPool) rotateStandby(ctx context.Context, count int) int {
+func (cp *multiServerPool) rotateStandby(ctx context.Context, count int) int {
 	rotated := 0
 	for rotated < count {
 		attempted, success := cp.rotateStandbyOnce(ctx)
@@ -388,7 +388,7 @@ func (cp *statusConnectionPool) rotateStandby(ctx context.Context, count int) in
 //   - (true, true): standby passed health check and was promoted to active
 //   - (true, false): standby found but not promotable (health check failed, state changed, or removed)
 //   - (false, false): no standby candidate available
-func (cp *statusConnectionPool) rotateStandbyOnce(ctx context.Context) (bool, bool) {
+func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool) {
 	candidate, attempted := cp.healthcheckStart(ctx)
 	if candidate == nil {
 		return attempted, false
@@ -429,7 +429,7 @@ func (cp *statusConnectionPool) rotateStandbyOnce(ctx context.Context) (bool, bo
 //   - lcUnknown connections found in the ready list are moved to dead
 //   - Candidates removed by concurrent discovery have their warmup claim cleared
 //   - Failed health checks move the candidate to dead and schedule resurrection
-func (cp *statusConnectionPool) healthcheckStart(ctx context.Context) (*Connection, bool) {
+func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, bool) {
 	cp.mu.Lock()
 
 	candidate := cp.findActiveCandidate()
@@ -499,7 +499,7 @@ func (cp *statusConnectionPool) healthcheckStart(ctx context.Context) (*Connecti
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) evictUnknownFromReadyWithLock(c *Connection) {
+func (cp *multiServerPool) evictUnknownFromReadyWithLock(c *Connection) {
 	c.mu.Lock()
 	c.markAsDeadWithLock()
 	c.mu.Unlock()
@@ -517,7 +517,7 @@ func (cp *statusConnectionPool) evictUnknownFromReadyWithLock(c *Connection) {
 // and promotes it to active. Called asynchronously after OnFailure to fill the
 // gap left by a failed connection (1:1 replacement). Unlike rotateStandby, this
 // does not evict an active connection -- it grows the active partition by one.
-func (cp *statusConnectionPool) asyncPromoteStandby(ctx context.Context) {
+func (cp *multiServerPool) asyncPromoteStandby(ctx context.Context) {
 	candidate, _ := cp.healthcheckStart(ctx)
 	if candidate == nil {
 		return
@@ -557,7 +557,7 @@ func (cp *statusConnectionPool) asyncPromoteStandby(ctx context.Context) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock (reads activeCount and len(ready))
-func (cp *statusConnectionPool) promoteStandbyGracefullyWithLock(ctx context.Context, gap int) {
+func (cp *multiServerPool) promoteStandbyGracefullyWithLock(ctx context.Context, gap int) {
 	standbyCount := len(cp.mu.ready) - cp.mu.activeCount
 	if gap <= 0 || standbyCount <= 0 {
 		return

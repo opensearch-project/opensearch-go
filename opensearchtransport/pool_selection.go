@@ -39,7 +39,7 @@ import "time"
 // The warmup skip count decrements on each selection, gradually increasing
 // traffic to the connection. If all active connections are warming and skip,
 // the one closest to its next accept is used (starvation prevention).
-func (cp *statusConnectionPool) Next() (*Connection, error) {
+func (cp *multiServerPool) Next() (*Connection, error) {
 	cp.mu.RLock()
 
 	// Return next active connection using round-robin.
@@ -146,7 +146,7 @@ func (cp *statusConnectionPool) Next() (*Connection, error) {
 // deferredCapEnforcement acquires the pool write lock and trims the active
 // partition if it exceeds activeListCap. Called as a goroutine when warmup
 // completes and the active partition is temporarily over capacity.
-func (cp *statusConnectionPool) deferredCapEnforcement() {
+func (cp *multiServerPool) deferredCapEnforcement() {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 	cp.enforceActiveCapWithLock()
@@ -159,7 +159,7 @@ func (cp *statusConnectionPool) deferredCapEnforcement() {
 //
 // The skip count is bounded by the active partition size at entry to prevent
 // infinite iteration when all connections have been externally demoted.
-func (cp *statusConnectionPool) nextWithEviction() (*Connection, error) {
+func (cp *multiServerPool) nextWithEviction() (*Connection, error) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -187,7 +187,7 @@ func (cp *statusConnectionPool) nextWithEviction() (*Connection, error) {
 }
 
 // nextFallback upgrades to write lock and tries standby, then zombie connections.
-func (cp *statusConnectionPool) nextFallback() (*Connection, error) {
+func (cp *multiServerPool) nextFallback() (*Connection, error) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
@@ -225,7 +225,7 @@ func (cp *statusConnectionPool) nextFallback() (*Connection, error) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) nextFallbackWithLock() (*Connection, error) {
+func (cp *multiServerPool) nextFallbackWithLock() (*Connection, error) {
 	// Try standby before zombie -- standby connections are healthy but idle
 	if c := cp.tryStandbyWithLock(); c != nil {
 		cp.poolRequests.Add(1)
@@ -256,7 +256,7 @@ func (cp *statusConnectionPool) nextFallbackWithLock() (*Connection, error) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-func (cp *statusConnectionPool) evictExternallyDemotedWithLock(c *Connection, state connState) {
+func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state connState) {
 	cp.removeFromReadyWithLock(c)
 
 	c.mu.Lock()
@@ -289,7 +289,7 @@ func (cp *statusConnectionPool) evictExternallyDemotedWithLock(c *Connection, st
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool read or write lock
 //   - Caller must ensure cp.mu.activeCount > 0 before calling
-func (cp *statusConnectionPool) getNextActiveConnWithLock() *Connection {
+func (cp *multiServerPool) getNextActiveConnWithLock() *Connection {
 	next := cp.nextReady.Add(1)
 	idx := int(next-1) % cp.mu.activeCount
 	return cp.mu.ready[idx]
@@ -314,7 +314,7 @@ func (cp *statusConnectionPool) getNextActiveConnWithLock() *Connection {
 //   - Caller must hold pool write lock
 //   - Caller should call OnSuccess() if the connection proves to work (which will resurrect it)
 //   - Caller should call OnFailure() if the connection fails (which is a no-op since it's already dead)
-func (cp *statusConnectionPool) tryZombieWithLock() *Connection {
+func (cp *multiServerPool) tryZombieWithLock() *Connection {
 	if len(cp.mu.dead) == 0 {
 		return nil
 	}

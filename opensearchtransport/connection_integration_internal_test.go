@@ -41,7 +41,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 )
 
-func TestStatusConnectionPool(t *testing.T) {
+func TestMultiServerPool(t *testing.T) {
 	t.Run("Real cluster connection pool", func(t *testing.T) {
 		// Verify cluster is reachable with the configured scheme
 		testutil.WaitForCluster(t)
@@ -50,7 +50,7 @@ func TestStatusConnectionPool(t *testing.T) {
 		u := testutil.GetTestURL(t)
 
 		// Get test config with secure/insecure settings
-		cfg := getTestConfig(t, []*url.URL{u, u}) // Use duplicate URLs to force statusConnectionPool
+		cfg := getTestConfig(t, []*url.URL{u, u}) // Use duplicate URLs to force multiServerPool
 
 		if _, ok := os.LookupEnv("GITHUB_ACTIONS"); !ok {
 			cfg.Logger = &TextLogger{Output: os.Stdout}
@@ -84,7 +84,7 @@ func TestStatusConnectionPool(t *testing.T) {
 
 		// Verify pool has the expected connection
 		transport.mu.RLock()
-		pool := transport.mu.connectionPool.(*statusConnectionPool)
+		pool := transport.mu.connectionPool.(*multiServerPool)
 		transport.mu.RUnlock()
 
 		pool.mu.Lock()
@@ -132,11 +132,11 @@ func TestStatusConnectionPool(t *testing.T) {
 		transport, err := New(cfg)
 		require.NoError(t, err, "Failed to create transport")
 
-		// Verify we get a statusConnectionPool with multiple URLs
+		// Verify we get a multiServerPool with multiple URLs
 		transport.mu.RLock()
-		pool, ok := transport.mu.connectionPool.(*statusConnectionPool)
+		pool, ok := transport.mu.connectionPool.(*multiServerPool)
 		transport.mu.RUnlock()
-		require.True(t, ok, "Expected statusConnectionPool, got %T", transport.mu.connectionPool)
+		require.True(t, ok, "Expected multiServerPool, got %T", transport.mu.connectionPool)
 
 		// Perform 9 requests (3x round-robin cycles with 3 servers)
 		for i := 1; i <= 9; i++ {

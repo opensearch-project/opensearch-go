@@ -92,9 +92,9 @@ func NormalizeRoles(roles []string) (string, error) {
 
 // RolePolicy implements routing based on required node roles.
 type RolePolicy struct {
-	requiredRoleKey  string                // Normalized role key for this policy
-	pool             *statusConnectionPool // Single pool for connections matching required roles
-	hasMatchingRoles atomic.Bool           // Cached state from DiscoveryUpdate
+	requiredRoleKey  string           // Normalized role key for this policy
+	pool             *multiServerPool // Single pool for connections matching required roles
+	hasMatchingRoles atomic.Bool      // Cached state from DiscoveryUpdate
 }
 
 // NewRolePolicy creates a new role-based routing policy.

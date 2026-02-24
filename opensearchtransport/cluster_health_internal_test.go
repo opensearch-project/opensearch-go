@@ -716,7 +716,7 @@ func TestCalculateClusterHealthRefreshInterval(t *testing.T) {
 		for i := range conns {
 			conns[i] = &Connection{URL: &url.URL{Host: fmt.Sprintf("node%d:9200", i)}}
 		}
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = conns
 		pool.mu.activeCount = len(conns)
 		pool.mu.dead = []*Connection{}
@@ -797,7 +797,7 @@ func TestPollClusterHealth_SingleNodeSkip(t *testing.T) {
 	conn := &Connection{URL: serverURL}
 	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
 
-	pool := &singleConnectionPool{connection: conn}
+	pool := &singleServerPool{connection: conn}
 	client := newTestClientWithPool(server.Client().Transport, pool)
 	defer client.cancelFunc()
 
@@ -819,7 +819,7 @@ func TestPollClusterHealth_EffectiveSingleNodeSkip(t *testing.T) {
 	conn := &Connection{URL: serverURL}
 	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
 
-	pool := &statusConnectionPool{}
+	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{conn}
 	pool.mu.activeCount = len(pool.mu.ready)
 	pool.mu.dead = []*Connection{}
@@ -846,7 +846,7 @@ func TestSnapshotClusterHealthConnections(t *testing.T) {
 	connWithInfo2 := &Connection{URL: &url.URL{Host: "node4:9200"}}
 	connWithInfo2.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
 
-	pool := &statusConnectionPool{}
+	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{connWithInfo, connPending, connUnavailable, connWithInfo2}
 	pool.mu.activeCount = len(pool.mu.ready)
 	pool.mu.dead = []*Connection{}
@@ -908,7 +908,7 @@ func TestRefreshClusterHealth_Success(t *testing.T) {
 	conn.mu.clusterHealthCheckedAt = time.Now().Add(-10 * time.Minute)
 	conn.mu.Unlock()
 
-	pool := &statusConnectionPool{}
+	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
 	pool.mu.activeCount = len(pool.mu.ready)
 	pool.mu.dead = []*Connection{}
@@ -955,7 +955,7 @@ func TestRefreshClusterHealth_PermissionRevoked(t *testing.T) {
 	conn.mu.clusterHealthCheckedAt = time.Now()
 	conn.mu.Unlock()
 
-	pool := &statusConnectionPool{}
+	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
 	pool.mu.activeCount = len(pool.mu.ready)
 	pool.mu.dead = []*Connection{}
@@ -998,7 +998,7 @@ func TestRefreshClusterHealth_TransientError(t *testing.T) {
 	conn.mu.clusterHealthCheckedAt = originalCheckedAt
 	conn.mu.Unlock()
 
-	pool := &statusConnectionPool{}
+	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
 	pool.mu.activeCount = len(pool.mu.ready)
 	pool.mu.dead = []*Connection{}

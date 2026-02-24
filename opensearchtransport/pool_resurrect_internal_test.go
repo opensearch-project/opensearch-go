@@ -34,12 +34,12 @@ import (
 	"time"
 )
 
-func TestStatusConnectionPoolResurrect(t *testing.T) {
+func TestMultiServerPoolResurrect(t *testing.T) {
 	t.Run("Mark the connection as dead and add/remove it to the lists", func(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = func() []*Connection {
@@ -73,7 +73,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "bar"}}
 			conn.mu.Lock()
@@ -105,7 +105,7 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{
+		pool := &multiServerPool{
 			resurrectTimeoutInitial:      0,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      0, // Allow immediate resurrection for test
@@ -163,8 +163,8 @@ func TestStatusConnectionPoolResurrect(t *testing.T) {
 
 func TestCalculateResurrectTimeout(t *testing.T) {
 	// Helper to create a pool with the given ready/dead connection counts.
-	makePool := func(nLive, nDead int) *statusConnectionPool {
-		pool := &statusConnectionPool{
+	makePool := func(nLive, nDead int) *multiServerPool {
+		pool := &multiServerPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutMax:          defaultResurrectTimeoutMax,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
