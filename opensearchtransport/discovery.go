@@ -252,7 +252,7 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 	// Each rotation health-checks one standby and, if healthy, swaps it with a random active.
 	if c.activeListCap > 0 && c.standbyRotationInterval >= 0 {
 		c.mu.RLock()
-		pool, ok := c.mu.connectionPool.(*statusConnectionPool)
+		pool, ok := c.mu.connectionPool.(*multiServerPool)
 		c.mu.RUnlock()
 
 		if ok && pool != nil {
@@ -518,7 +518,7 @@ func (c *Client) updateConnectionPool(healthCheckedAt time.Time, readyConnection
 	c.mu.connectionPool = newConnectionPool
 
 	// Set up health check function and observer for pools that support it
-	if pool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+	if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
 		pool.healthCheck = c.DefaultHealthCheck
 		if obs := c.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
@@ -656,11 +656,11 @@ func (c *Client) recalculateCapacityModel(conns []*Connection) {
 // This helper extracts connections from different pool types to get their role information.
 func (c *Client) findConnectionByURL(pool ConnectionPool, url string) *Connection {
 	switch p := pool.(type) {
-	case *singleConnectionPool:
+	case *singleServerPool:
 		if p.connection != nil && p.connection.URL.String() == url {
 			return p.connection
 		}
-	case *statusConnectionPool:
+	case *multiServerPool:
 		// Check both ready and dead lists
 		p.RLock()
 		defer p.RUnlock()
@@ -683,8 +683,8 @@ func (c *Client) findConnectionByURL(pool ConnectionPool, url string) *Connectio
 // createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
 func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections []*Connection) ConnectionPool {
-	// Single node - check if we need to demote from statusConnectionPool
-	if _, isStatusPool := c.mu.connectionPool.(*statusConnectionPool); isStatusPool {
+	// Single node - check if we need to demote from multiServerPool
+	if _, isStatusPool := c.mu.connectionPool.(*multiServerPool); isStatusPool {
 		// Demote from multi-node to single-node pool
 		return c.demoteConnectionPoolWithLock()
 	}
@@ -699,11 +699,11 @@ func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections 
 
 	// Preserve metrics from existing single connection pool
 	var metrics *metrics
-	if existingPool, ok := c.mu.connectionPool.(*singleConnectionPool); ok {
+	if existingPool, ok := c.mu.connectionPool.(*singleServerPool); ok {
 		metrics = existingPool.metrics
 	}
 
-	return &singleConnectionPool{
+	return &singleServerPool{
 		connection: connection,
 		metrics:    metrics,
 	}
@@ -712,13 +712,13 @@ func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections 
 // createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
 func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConnections []*Connection) ConnectionPool {
-	// Multi-node - check if we need to promote from singleConnectionPool
-	if _, isSinglePool := c.mu.connectionPool.(*singleConnectionPool); isSinglePool {
+	// Multi-node - check if we need to promote from singleServerPool
+	if _, isSinglePool := c.mu.connectionPool.(*singleServerPool); isSinglePool {
 		// Promote from single-node to multi-node pool
 		return c.promoteConnectionPoolWithLock(readyConnections, deadConnections)
 	}
 
-	// Update existing statusConnectionPool or create new one
+	// Update existing multiServerPool or create new one
 	// Apply client-level filtering for dedicated cluster managers
 	flatReadyConns := make([]*Connection, 0, len(readyConnections))
 	flatDeadConns := make([]*Connection, 0, len(deadConnections))
@@ -740,7 +740,7 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 		flatDeadConns = append(flatDeadConns, conn)
 	}
 
-	// Preserve settings and metrics from existing statusConnectionPool,
+	// Preserve settings and metrics from existing multiServerPool,
 	// or use client-configured settings for new pools
 	resurrectTimeoutInitial := c.resurrectTimeoutInitial
 	resurrectTimeoutMax := c.resurrectTimeoutMax
@@ -755,7 +755,7 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 	standbyPromotionChecks := c.standbyPromotionChecks
 	var metrics *metrics
 
-	if existingPool, ok := c.mu.connectionPool.(*statusConnectionPool); ok {
+	if existingPool, ok := c.mu.connectionPool.(*multiServerPool); ok {
 		// Preserve settings from existing pool (should match client settings)
 		resurrectTimeoutInitial = existingPool.resurrectTimeoutInitial
 		resurrectTimeoutMax = existingPool.resurrectTimeoutMax
@@ -778,7 +778,7 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 		})
 	}
 
-	flatPool := &statusConnectionPool{
+	flatPool := &multiServerPool{
 		name:                         "flat",
 		resurrectTimeoutInitial:      resurrectTimeoutInitial,
 		resurrectTimeoutMax:          resurrectTimeoutMax,

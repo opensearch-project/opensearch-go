@@ -31,10 +31,10 @@ func newActiveConn(host string) *Connection {
 	return c
 }
 
-// newStandbyPool creates a statusConnectionPool with the given active and standby connections.
+// newStandbyPool creates a multiServerPool with the given active and standby connections.
 // Active connections are placed in ready[:len(active)], standby in ready[len(active):].
-func newStandbyPool(active, standby []*Connection) *statusConnectionPool {
-	pool := &statusConnectionPool{
+func newStandbyPool(active, standby []*Connection) *multiServerPool {
+	pool := &multiServerPool{
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		minimumResurrectTimeout:      defaultMinimumResurrectTimeout,

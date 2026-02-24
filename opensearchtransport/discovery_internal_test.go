@@ -247,8 +247,8 @@ func TestDiscovery(t *testing.T) {
 		err = tp.DiscoverNodes(t.Context())
 		require.NoError(t, err, "Discovery should succeed")
 
-		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
-		require.True(t, ok, "Expected statusConnectionPool after discovery")
+		pool, ok := tp.mu.connectionPool.(*multiServerPool)
+		require.True(t, ok, "Expected multiServerPool after discovery")
 
 		// The discovery should include es1 and es2 (data+ingest+cluster_manager)
 		// but exclude es3 and es4 (cluster_manager only)
@@ -288,9 +288,9 @@ func TestDiscovery(t *testing.T) {
 		err := tp.DiscoverNodes(t.Context())
 		require.NoError(t, err, "DiscoverNodes should succeed with TLS")
 
-		pool, ok := tp.mu.connectionPool.(*statusConnectionPool)
+		pool, ok := tp.mu.connectionPool.(*multiServerPool)
 		if !ok {
-			t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", tp.mu.connectionPool)
+			t.Fatalf("Unexpected pool, want=multiServerPool, got=%T", tp.mu.connectionPool)
 		}
 
 		// Discovered nodes are in cold-start mode, need to force them alive for testing
@@ -733,9 +733,9 @@ func TestDiscovery(t *testing.T) {
 				err = c.DiscoverNodes(t.Context())
 				require.NoError(t, err, "DiscoverNodes should succeed")
 
-				pool, ok := c.mu.connectionPool.(*statusConnectionPool)
+				pool, ok := c.mu.connectionPool.(*multiServerPool)
 				if !ok {
-					t.Fatalf("Unexpected pool, want=statusConnectionPool, got=%T", c.mu.connectionPool)
+					t.Fatalf("Unexpected pool, want=multiServerPool, got=%T", c.mu.connectionPool)
 				}
 
 				if len(pool.mu.ready) != tt.want.wantsNConn {
@@ -1112,8 +1112,8 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
-			require.True(t, ok, "Expected statusConnectionPool")
+			pool, ok := c.mu.connectionPool.(*multiServerPool)
+			require.True(t, ok, "Expected multiServerPool")
 
 			// Check that expected nodes are included
 			actualNodes := make(map[string]bool)
@@ -1280,8 +1280,8 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
-			require.True(t, ok, "Expected statusConnectionPool")
+			pool, ok := c.mu.connectionPool.(*multiServerPool)
+			require.True(t, ok, "Expected multiServerPool")
 
 			// Check included nodes
 			actualNodes := make(map[string]bool)
@@ -1495,7 +1495,7 @@ func TestRolePolicies(t *testing.T) {
 		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
 
 		// Simulate successful health check to move connection to ready pool
-		statusPool := pool.(*statusConnectionPool)
+		statusPool := pool.(*multiServerPool)
 		statusPool.OnSuccess(conn)
 
 		// Now get connection from ready pool

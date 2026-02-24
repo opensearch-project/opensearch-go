@@ -388,8 +388,8 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
-			require.Truef(t, ok, "Expected statusConnectionPool but got %T with URLs: %v",
+			pool, ok := c.mu.connectionPool.(*multiServerPool)
+			require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
 				c.mu.connectionPool, c.mu.connectionPool.URLs())
 
 			// Check that expected nodes are included
@@ -474,8 +474,8 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			require.NoError(t, err)
 
 			// Verify results
-			pool, ok := c.mu.connectionPool.(*statusConnectionPool)
-			require.Truef(t, ok, "Expected statusConnectionPool but got %T with URLs: %v",
+			pool, ok := c.mu.connectionPool.(*multiServerPool)
+			require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
 				c.mu.connectionPool, c.mu.connectionPool.URLs())
 
 			// Check included nodes
@@ -543,7 +543,7 @@ func TestRolePolicies(t *testing.T) {
 		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
 
 		// Simulate successful health check to move connection to ready pool
-		statusPool := pool.(*statusConnectionPool)
+		statusPool := pool.(*multiServerPool)
 		statusPool.OnSuccess(conn)
 
 		// Now get connection from ready pool

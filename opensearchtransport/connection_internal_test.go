@@ -39,9 +39,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSingleConnectionPoolNext(t *testing.T) {
+func TestSingleServerPoolNext(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
-		pool := &singleConnectionPool{
+		pool := &singleServerPool{
 			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 		}
 
@@ -58,9 +58,9 @@ func TestSingleConnectionPoolNext(t *testing.T) {
 	})
 }
 
-func TestSingleConnectionPoolOnSuccess(t *testing.T) {
+func TestSingleServerPoolOnSuccess(t *testing.T) {
 	t.Run("Noop", func(t *testing.T) {
-		pool := &singleConnectionPool{
+		pool := &singleServerPool{
 			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 		}
 
@@ -70,10 +70,10 @@ func TestSingleConnectionPoolOnSuccess(t *testing.T) {
 	})
 }
 
-func TestSingleConnectionPoolURLs(t *testing.T) {
+func TestSingleServerPoolURLs(t *testing.T) {
 	t.Run("Return single URL", func(t *testing.T) {
 		expectedURL := &url.URL{Scheme: "http", Host: "foo1"}
-		pool := &singleConnectionPool{
+		pool := &singleServerPool{
 			connection: &Connection{URL: expectedURL},
 		}
 
@@ -88,10 +88,10 @@ func TestSingleConnectionPoolURLs(t *testing.T) {
 	})
 }
 
-func TestSingleConnectionPoolConnections(t *testing.T) {
+func TestSingleServerPoolConnections(t *testing.T) {
 	t.Run("Return single connection", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
-		pool := &singleConnectionPool{
+		pool := &singleServerPool{
 			connection: conn,
 		}
 
@@ -106,9 +106,9 @@ func TestSingleConnectionPoolConnections(t *testing.T) {
 	})
 }
 
-func TestSingleConnectionPoolOnFailure(t *testing.T) {
+func TestSingleServerPoolOnFailure(t *testing.T) {
 	t.Run("Noop", func(t *testing.T) {
-		pool := &singleConnectionPool{
+		pool := &singleServerPool{
 			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 		}
 
@@ -118,13 +118,13 @@ func TestSingleConnectionPoolOnFailure(t *testing.T) {
 	})
 }
 
-func TestStatusConnectionPoolOnSuccess(t *testing.T) {
+func TestMultiServerPoolOnSuccess(t *testing.T) {
 	t.Run("Move connection to ready list and mark it as healthy", func(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
 		// Initialize pool with proper timeout values for consistency
-		pool := &statusConnectionPool{
+		pool := &multiServerPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		}
@@ -165,13 +165,13 @@ func TestStatusConnectionPoolOnSuccess(t *testing.T) {
 	})
 }
 
-func TestStatusConnectionPoolOnFailure(t *testing.T) {
+func TestMultiServerPoolOnFailure(t *testing.T) {
 	t.Run("Remove connection, mark it, and sort dead connections", func(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
 		// Initialize pool with health check that prevents resurrection during test
-		pool := &statusConnectionPool{
+		pool := &multiServerPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
@@ -243,7 +243,7 @@ func TestStatusConnectionPoolOnFailure(t *testing.T) {
 		s.curr.Store(-1)
 
 		// Initialize pool with health check that prevents resurrection during test
-		pool := &statusConnectionPool{
+		pool := &multiServerPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
@@ -349,7 +349,7 @@ func TestPoolSnapshot_HealthCheckingCount(t *testing.T) {
 	conns[2].state.Store(int64(newConnState(lcDead)))
 	conns[3].state.Store(int64(newConnState(lcDead | lcHealthChecking)))
 
-	cp := &statusConnectionPool{
+	cp := &multiServerPool{
 		name:          "test",
 		activeListCap: 2,
 	}
@@ -379,7 +379,7 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 	}
 
 	t.Run("appendToReadyActiveWithLock inserts weight copies", func(t *testing.T) {
-		pool := &statusConnectionPool{name: "test"}
+		pool := &multiServerPool{name: "test"}
 		pool.mu.ready = []*Connection{}
 		pool.mu.dead = []*Connection{}
 
@@ -409,7 +409,7 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 	})
 
 	t.Run("removeFromReadyWithLock removes all copies", func(t *testing.T) {
-		pool := &statusConnectionPool{name: "test"}
+		pool := &multiServerPool{name: "test"}
 
 		c1 := makeWeightedConn("node1", 1)
 		c2 := makeWeightedConn("node2", 3)
@@ -428,7 +428,7 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 	})
 
 	t.Run("appendToReadyStandbyWithLock appends weight copies", func(t *testing.T) {
-		pool := &statusConnectionPool{name: "test"}
+		pool := &multiServerPool{name: "test"}
 
 		c1 := makeWeightedConn("active", 1)
 		c2 := makeWeightedConn("standby", 2)
@@ -446,7 +446,7 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 	})
 
 	t.Run("weighted round-robin distribution", func(t *testing.T) {
-		pool := &statusConnectionPool{name: "test"}
+		pool := &multiServerPool{name: "test"}
 		pool.mu.ready = []*Connection{}
 		pool.mu.dead = []*Connection{}
 

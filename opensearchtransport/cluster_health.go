@@ -125,7 +125,7 @@ func (c *Client) calculateNodeStatsInterval() time.Duration {
 // Overload-demoted dead connections are re-evaluated to detect recovery.
 func (c *Client) pollNodeStats() {
 	c.mu.RLock()
-	pool, ok := c.mu.connectionPool.(*statusConnectionPool)
+	pool, ok := c.mu.connectionPool.(*multiServerPool)
 	c.mu.RUnlock()
 
 	if !ok || pool == nil {
@@ -157,7 +157,7 @@ func (c *Client) pollNodeStats() {
 //
 // This avoids redundant HTTP calls since the cluster health check already collects
 // cluster health data during normal health check cycles.
-func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *statusConnectionPool) {
+func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) {
 	ctx, cancel := context.WithTimeout(c.ctx, c.healthCheckTimeout)
 	defer cancel()
 
@@ -372,9 +372,9 @@ func (c *Client) countReadyNodes() int {
 	c.mu.RUnlock()
 
 	switch p := pool.(type) {
-	case *singleConnectionPool:
+	case *singleServerPool:
 		return 1
-	case *statusConnectionPool:
+	case *multiServerPool:
 		p.mu.RLock()
 		count := len(p.mu.ready)
 		p.mu.RUnlock()
@@ -393,9 +393,9 @@ func (c *Client) pollClusterHealth() {
 
 	// Skip single-node clusters: no value in refreshing health when we cannot route away.
 	switch p := pool.(type) {
-	case *singleConnectionPool:
+	case *singleServerPool:
 		return
-	case *statusConnectionPool:
+	case *multiServerPool:
 		p.mu.RLock()
 		totalNodes := len(p.mu.ready) + len(p.mu.dead)
 		p.mu.RUnlock()
@@ -427,7 +427,7 @@ func (c *Client) snapshotClusterHealthConnections() []*Connection {
 		return nil
 	}
 
-	p, ok := pool.(*statusConnectionPool)
+	p, ok := pool.(*multiServerPool)
 	if !ok {
 		return nil
 	}

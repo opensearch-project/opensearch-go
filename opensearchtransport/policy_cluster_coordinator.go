@@ -41,8 +41,8 @@ var (
 
 // CoordinatorPolicy implements routing to coordinating-only nodes.
 type CoordinatorPolicy struct {
-	pool            *statusConnectionPool // Pool of coordinating-only connections
-	hasCoordinators atomic.Bool           // Cached state from DiscoveryUpdate
+	pool            *multiServerPool // Pool of coordinating-only connections
+	hasCoordinators atomic.Bool      // Cached state from DiscoveryUpdate
 }
 
 // NewCoordinatorPolicy creates a policy that routes to coordinating-only nodes.

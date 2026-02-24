@@ -94,7 +94,7 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 }
 
 // checkDead syncs dead/ready lists based on Connection.mu.isDead state and performs health checks.
-func (cp *statusConnectionPool) checkDead(ctx context.Context, healthCheck HealthCheckFunc) error {
+func (cp *multiServerPool) checkDead(ctx context.Context, healthCheck HealthCheckFunc) error {
 	if healthCheck == nil {
 		return errors.New("healthCheck function cannot be nil")
 	}
@@ -144,7 +144,7 @@ func (cp *statusConnectionPool) checkDead(ctx context.Context, healthCheck Healt
 // Returns true if health check passes, false if it fails.
 // Note: This method does not reschedule on failure. The caller (resurrectWithLock) is responsible
 // for ensuring checkStartedAt is reset (via defer), allowing future failures to trigger new checks.
-func (cp *statusConnectionPool) performHealthCheck(ctx context.Context, c *Connection) bool {
+func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection) bool {
 	resp, err := cp.healthCheck(ctx, c, c.URL)
 	if err != nil {
 		if debugLogger != nil {
@@ -217,7 +217,7 @@ func (cp *statusConnectionPool) performHealthCheck(ctx context.Context, c *Conne
 //  3. Minimum floor: minimumResurrectTimeout (absolute lower bound).
 //
 // The final timeout is max(healthTimeout, rateLimitedTimeout, minimum) + jitter.
-func (cp *statusConnectionPool) calculateResurrectTimeout(c *Connection) time.Duration {
+func (cp *multiServerPool) calculateResurrectTimeout(c *Connection) time.Duration {
 	// Calculate basic exponential backoff factor
 	failures := c.failures.Load()
 	factor := math.Min(float64(failures-1), float64(cp.resurrectTimeoutFactorCutoff))
@@ -262,7 +262,7 @@ func (cp *statusConnectionPool) calculateResurrectTimeout(c *Connection) time.Du
 }
 
 // scheduleResurrect schedules the connection to be resurrected using cluster-aware timing.
-func (cp *statusConnectionPool) scheduleResurrect(ctx context.Context, c *Connection) {
+func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection) {
 	// Check if a health check is already scheduled for this connection (read lock first)
 	c.mu.RLock()
 	if !c.mu.checkStartedAt.IsZero() {
@@ -371,7 +371,7 @@ func (cp *statusConnectionPool) scheduleResurrect(ctx context.Context, c *Connec
 // attemptHealthCheckWithRelock performs a health check with lock management.
 // Returns nil if health check passed and caller should proceed with resurrection.
 // Returns pointer to bool if caller should return: true to exit, false to retry.
-func (cp *statusConnectionPool) attemptHealthCheckWithRelock(ctx context.Context, c *Connection, stillInPool *bool) *bool {
+func (cp *multiServerPool) attemptHealthCheckWithRelock(ctx context.Context, c *Connection, stillInPool *bool) *bool {
 	// Release locks to perform I/O
 	c.mu.Unlock()
 	cp.mu.Unlock()

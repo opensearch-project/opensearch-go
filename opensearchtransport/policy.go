@@ -93,7 +93,7 @@ type policyConfigurable interface {
 	configurePolicySettings(config policyConfig) error
 }
 
-// PoolReporter is implemented by leaf policies that own a statusConnectionPool.
+// PoolReporter is implemented by leaf policies that own a multiServerPool.
 // It returns a point-in-time snapshot of the pool's partitions and request counters.
 type PoolReporter interface {
 	PoolSnapshot() PoolSnapshot
@@ -119,16 +119,16 @@ func collectPoolSnapshots(v any) []PoolSnapshot {
 	return result
 }
 
-// createPoolFromConfig creates a new statusConnectionPool with the given configuration.
+// createPoolFromConfig creates a new multiServerPool with the given configuration.
 // This is a helper function for leaf policies that manage their own connection pools.
-func createPoolFromConfig(config policyConfig) *statusConnectionPool {
+func createPoolFromConfig(config policyConfig) *multiServerPool {
 	// Derive effective activeListCap from config pointer.
 	var effectiveCap int
 	if config.activeListCap != nil {
 		effectiveCap = *config.activeListCap
 	}
 
-	pool := &statusConnectionPool{
+	pool := &multiServerPool{
 		name:                         config.name,
 		resurrectTimeoutInitial:      config.resurrectTimeoutInitial,
 		resurrectTimeoutMax:          config.resurrectTimeoutMax,

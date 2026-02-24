@@ -4,10 +4,10 @@ This guide explains the internal connection pool design used by the Go client's 
 
 ## Pool Structure
 
-Every policy (RoundRobin, Role, Mux, etc.) owns a `statusConnectionPool` that manages connections in two slices -- **ready** and **dead**:
+Every policy (RoundRobin, Role, Mux, etc.) owns a `multiServerPool` that manages connections in two slices -- **ready** and **dead**:
 
 ```
-statusConnectionPool
+multiServerPool
 ┌──────────────────────────────────────────────────────────────────┐
 │                                                                  │
 │  ready[]            (single slice, two logical partitions)       │
@@ -53,16 +53,16 @@ When `Next()` is called, the pool tries connections in this order:
 The `activeListCap` controls how many connections serve production traffic simultaneously. This prevents fan-out overload in large clusters where routing requests to all nodes is wasteful.
 
 ```
-                    activeListCap = 5
-                         │
-                         ▼
+                      activeListCap = 5
+                           │
+                           ▼
   ready[]:  [ A  B  C  D  E │ F  G  H  I  J  K ]
-             ├─────────────┤ ├────────────────────┤
-               active (5)          standby (6)
+             ├─────────────┤ ├────────────────┤
+                active (5)       standby (6)
 
   With cap disabled (activeListCap = 0):
   ready[]:  [ A  B  C  D  E  F  G  H  I  J  K ]
-             ├───────────────────────────────────┤
+             ├───────────────────────────────┤
                all active (11), no standby
 ```
 
@@ -114,10 +114,10 @@ Triggered when a connection leaves the active partition (failure, discovery remo
   OnFailure(C)                         asyncPromoteStandby()
   ─────────────                        ─────────────────────
 
-  1. Move C: active -> dead             1. Claim standby S (TryLock + lcStandbyWarming)
+  1. Move C: active -> dead            1. Claim standby S (TryLock + lcStandbyWarming)
   2. Schedule resurrection             2. Health-check S (N consecutive checks)
   3. Snapshot: hasStandby?             3. If healthy:
-  4. If yes -> go asyncPromoteStandby      Promote S: standby -> active (with warmup)
+  4. If yes -> go asyncPromoteStandby     Promote S: standby -> active (with warmup)
                                        4. If unhealthy:
                                           Move S: standby -> dead
 
@@ -243,7 +243,7 @@ If all active connections are warming and skip, the pool falls back to the conne
 
 ## Shared Connections Across Policies
 
-Each policy owns its own `statusConnectionPool` with independent ready/dead lists and active/standby partitions. However, all pools that contain a given node share the **same `*Connection` pointer**. The `Connection.state` is an `atomic.Int64` -- changes to lifecycle bits propagate immediately to all pools.
+Each policy owns its own `multiServerPool` with independent ready/dead lists and active/standby partitions. However, all pools that contain a given node share the **same `*Connection` pointer**. The `Connection.state` is an `atomic.Int64` -- changes to lifecycle bits propagate immediately to all pools.
 
 ```
   ┌─────────────────────┐   ┌──────────────────────┐
@@ -384,19 +384,19 @@ Each warmup manager packs two 8-bit fields into the lower 16 bits of its 26-bit 
                          └──────┬──────┘
                                 │
                                 ▼
-          ┌──────────────────────────────────────────────────────┐
-          │  lcUnknown | lcNeedsWarmup | lcNeedsHardware        │
-          │  (initial state for new conns)                      │
-          └──────────────┬──────────────────┬────────────────────┘
+          ┌──────────────────────────────────────────────┐
+          │  lcUnknown | lcNeedsWarmup | lcNeedsHardware │
+          │  (initial state for new conns)               │
+          └──────────────┬──────────────────┬────────────┘
                          │                  │
               health check               health check
                 passed                     failed
                          │                  │
                          ▼                  ▼
-    ┌────────────────────────┐    ┌───────────────────────────────┐
-    │  lcActive|lcNeedsWarmup│    │  lcUnknown | lcNeedsHardware  │
+    ┌────────────────────────┐    ┌────────────────────────────────┐
+    │  lcActive|lcNeedsWarmup│    │  lcUnknown | lcNeedsHardware   │
     │  (active + warming up) │    │  (dead list, hardware unknown) │
-    └───────────┬────────────┘    └────────┬──────────────────────┘
+    └───────────┬────────────┘    └────────┬───────────────────────┘
                 │                          │
          warmup completes          scheduleResurrect
                 │                          │
@@ -496,15 +496,15 @@ Nodes whose core count is unknown (e.g., hardware info not yet discovered) get a
 
 ### Duplicate Pointers for O(1) Selection
 
-Rather than an O(n) weighted walk per request, the pool duplicates `*Connection` pointers in `ready[]` according to weight. A connection with `weight=3` gets 3 entries:
+Rather than an O(n) weighted walk per request, the pool duplicates `*Connection` pointers in `ready[]` according to weight. A connection with `weight=3` gets 3 entries (shuffled):
 
 ```
   ready[] layout for weights [1, 2, 3]:
-    [A, B, B, C, C, C]
+    [ C, B, C, C, B, A ]
      ├─── active ─────┤ (activeCount = 6)
 ```
 
-The existing `getNextActiveConnWithLock()` stays O(1) -- it increments an atomic counter and modulos by `activeCount` to select a slot. No changes to the hot path. The cost is paid during add/remove (once every ~5min during discovery), not every request.
+The existing `getNextActiveConnWithLock()` stays O(1) -- it increments an atomic counter and modulos by `activeCount` to select a slot. No changes to the hot path. The cost is paid during add/remove (default is once every ~5min during discovery, +/- jitter), not every request.
 
 ### Add/Remove with Weights
 

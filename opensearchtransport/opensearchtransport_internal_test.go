@@ -182,8 +182,8 @@ func TestTransportConnectionPool(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
 
-		if _, ok := tp.mu.connectionPool.(*singleConnectionPool); !ok {
-			t.Errorf("Expected connection to be singleConnectionPool, got: %T", tp)
+		if _, ok := tp.mu.connectionPool.(*singleServerPool); !ok {
+			t.Errorf("Expected connection to be singleServerPool, got: %T", tp)
 		}
 
 		conn, err := tp.mu.connectionPool.Next()
@@ -210,8 +210,8 @@ func TestTransportConnectionPool(t *testing.T) {
 			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 		})
 
-		if _, ok := tp.mu.connectionPool.(*statusConnectionPool); !ok {
-			t.Errorf("Expected connection to be statusConnectionPool, got: %T", tp)
+		if _, ok := tp.mu.connectionPool.(*multiServerPool); !ok {
+			t.Errorf("Expected connection to be multiServerPool, got: %T", tp)
 		}
 
 		conn, err = tp.mu.connectionPool.Next()
@@ -1169,9 +1169,9 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Verify we start with a singleConnectionPool
-		singlePool, ok := client.mu.connectionPool.(*singleConnectionPool)
-		require.True(t, ok, "Expected singleConnectionPool")
+		// Verify we start with a singleServerPool
+		singlePool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Expected singleServerPool")
 		require.NotNil(t, singlePool.metrics, "Expected metrics to be assigned")
 
 		// Create mock connections for promotion
@@ -1196,11 +1196,11 @@ func TestConnectionPoolPromotion(t *testing.T) {
 	})
 
 	t.Run("demoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
-		// Create a statusConnectionPool with metrics
+		// Create a multiServerPool with metrics
 		liveConn := &Connection{URL: &url.URL{Host: "live:9200"}, Name: "live-node"}
 		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
 
-		statusPool := &statusConnectionPool{
+		statusPool := &multiServerPool{
 			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 		}
@@ -1212,7 +1212,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		testMetrics := &metrics{}
 		statusPool.metrics = testMetrics
 
-		// Create client with statusConnectionPool
+		// Create client with multiServerPool
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
@@ -1239,7 +1239,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		liveConn2 := &Connection{URL: &url.URL{Host: "live2:9200"}, Name: "live-node-2"}
 		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
 
-		statusPool := &statusConnectionPool{}
+		statusPool := &multiServerPool{}
 		statusPool.mu.ready = []*Connection{liveConn1, liveConn2}
 		statusPool.mu.activeCount = len(statusPool.mu.ready)
 		statusPool.mu.dead = []*Connection{deadConn}
@@ -1260,7 +1260,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		deadConn1 := &Connection{URL: &url.URL{Host: "dead1:9200"}, Name: "dead-node-1"}
 		deadConn2 := &Connection{URL: &url.URL{Host: "dead2:9200"}, Name: "dead-node-2"}
 
-		statusPool := &statusConnectionPool{}
+		statusPool := &multiServerPool{}
 		statusPool.mu.ready = []*Connection{} // No ready connections
 		statusPool.mu.activeCount = len(statusPool.mu.ready)
 		statusPool.mu.dead = []*Connection{deadConn1, deadConn2}
@@ -1278,7 +1278,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 	})
 
 	t.Run("demoteConnectionPoolWithLock handles empty pools", func(t *testing.T) {
-		statusPool := &statusConnectionPool{}
+		statusPool := &multiServerPool{}
 		statusPool.mu.ready = []*Connection{} // No connections
 		statusPool.mu.activeCount = len(statusPool.mu.ready)
 		statusPool.mu.dead = []*Connection{} // No connections
@@ -1296,11 +1296,11 @@ func TestConnectionPoolPromotion(t *testing.T) {
 	})
 
 	t.Run("promoteConnectionPoolWithLock preserves resurrection timeout settings", func(t *testing.T) {
-		// Create initial statusConnectionPool with custom settings
+		// Create initial multiServerPool with custom settings
 		customInitial := 120 * time.Second
 		customCutoff := 10
 
-		existingPool := &statusConnectionPool{
+		existingPool := &multiServerPool{
 			resurrectTimeoutInitial:      customInitial,
 			resurrectTimeoutFactorCutoff: customCutoff,
 		}
@@ -1459,27 +1459,27 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		serverURL, err := url.Parse(server.URL)
 		require.NoError(t, err)
 
-		// Create client starting with single node (should create singleConnectionPool)
+		// Create client starting with single node (should create singleServerPool)
 		client, err := New(Config{
 			URLs:          []*url.URL{serverURL},
 			EnableMetrics: true,
 		})
 		require.NoError(t, err)
 
-		// Verify we start with singleConnectionPool
-		originalPool, ok := client.mu.connectionPool.(*singleConnectionPool)
-		require.True(t, ok, "Should start with singleConnectionPool")
+		// Verify we start with singleServerPool
+		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Should start with singleServerPool")
 		require.NotNil(t, originalPool.metrics, "Should have metrics assigned")
 
 		// Perform discovery
 		err = client.DiscoverNodes(t.Context())
 		require.NoError(t, err, "Discovery should succeed")
 
-		// Verify promotion to statusConnectionPool
+		// Verify promotion to multiServerPool
 		client.mu.RLock()
-		newPool, ok := client.mu.connectionPool.(*statusConnectionPool)
+		newPool, ok := client.mu.connectionPool.(*multiServerPool)
 		client.mu.RUnlock()
-		require.True(t, ok, "Should promote to statusConnectionPool after discovery")
+		require.True(t, ok, "Should promote to multiServerPool after discovery")
 
 		// Verify metrics were preserved
 		require.NotNil(t, newPool.metrics, "Metrics should be preserved after promotion")
@@ -1514,9 +1514,9 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Verify we start with singleConnectionPool and router is set
-		originalPool, ok := client.mu.connectionPool.(*singleConnectionPool)
-		require.True(t, ok, "Should start with singleConnectionPool")
+		// Verify we start with singleServerPool and router is set
+		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Should start with singleServerPool")
 		require.NotNil(t, originalPool.metrics, "Should have metrics")
 		require.NotNil(t, client.router, "Should have router configured")
 
@@ -1611,9 +1611,9 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		// Verify we start with statusConnectionPool
-		originalPool, ok := client.mu.connectionPool.(*statusConnectionPool)
-		require.True(t, ok, "Should start with statusConnectionPool for multiple URLs")
+		// Verify we start with multiServerPool
+		originalPool, ok := client.mu.connectionPool.(*multiServerPool)
+		require.True(t, ok, "Should start with multiServerPool for multiple URLs")
 		require.NotNil(t, originalPool.metrics, "Should have metrics")
 
 		// Simulate discovery that finds only one node (should trigger demotion)
@@ -1628,7 +1628,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 
 		// Create a new single connection pool using the demotion path
 		// (simulating what updateConnectionPool would do for totalNodes == 1)
-		if _, isStatusPool := client.mu.connectionPool.(*statusConnectionPool); isStatusPool {
+		if _, isStatusPool := client.mu.connectionPool.(*multiServerPool); isStatusPool {
 			demotedPool := client.demoteConnectionPoolWithLock()
 			// Update the connection to match our single node
 			demotedPool.connection = conn1
@@ -1639,9 +1639,9 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 
 		// Verify demotion worked
 		client.mu.RLock()
-		newPool, ok := client.mu.connectionPool.(*singleConnectionPool)
+		newPool, ok := client.mu.connectionPool.(*singleServerPool)
 		client.mu.RUnlock()
-		require.True(t, ok, "Should demote to singleConnectionPool")
+		require.True(t, ok, "Should demote to singleServerPool")
 
 		// Verify metrics were preserved
 		require.Equal(t, originalPool.metrics, newPool.metrics, "Metrics should be preserved during demotion")
@@ -1660,8 +1660,8 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Get original pool
-		originalPool, ok := client.mu.connectionPool.(*singleConnectionPool)
-		require.True(t, ok, "Should start with singleConnectionPool")
+		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Should start with singleServerPool")
 		originalMetrics := originalPool.metrics
 
 		// Simulate updateConnectionPool logic for single node with existing single pool
@@ -1669,14 +1669,14 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 
 		client.mu.Lock()
 		// This simulates the non-demotion path in updateConnectionPool for single nodes
-		if _, isSinglePool := client.mu.connectionPool.(*singleConnectionPool); isSinglePool {
+		if _, isSinglePool := client.mu.connectionPool.(*singleServerPool); isSinglePool {
 			// Preserve metrics from existing single connection pool
 			var metrics *metrics
-			if existingPool, ok := client.mu.connectionPool.(*singleConnectionPool); ok {
+			if existingPool, ok := client.mu.connectionPool.(*singleServerPool); ok {
 				metrics = existingPool.metrics
 			}
 
-			newSinglePool := &singleConnectionPool{
+			newSinglePool := &singleServerPool{
 				connection: conn,
 				metrics:    metrics,
 			}
@@ -1685,7 +1685,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		client.mu.Unlock()
 
 		// Verify metrics were preserved
-		newPool := client.mu.connectionPool.(*singleConnectionPool)
+		newPool := client.mu.connectionPool.(*singleServerPool)
 		require.Equal(t, originalMetrics, newPool.metrics, "Should preserve metrics in single->single transition")
 	})
 
@@ -1724,13 +1724,13 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		require.Equal(t, "data-node", statusPool.mu.ready[0].Name, "Should include data node")
 	})
 
-	t.Run("promoteConnectionPoolWithLock preserves statusConnectionPool settings", func(t *testing.T) {
-		// Test promoting when we already have a statusConnectionPool (not single)
+	t.Run("promoteConnectionPoolWithLock preserves multiServerPool settings", func(t *testing.T) {
+		// Test promoting when we already have a multiServerPool (not single)
 		customInitial := 180 * time.Second
 		customCutoff := 15
 
-		// Start with statusConnectionPool
-		existingPool := &statusConnectionPool{
+		// Start with multiServerPool
+		existingPool := &multiServerPool{
 			resurrectTimeoutInitial:      customInitial,
 			resurrectTimeoutFactorCutoff: customCutoff,
 		}
@@ -1748,31 +1748,31 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		client.mu.Lock()
 		client.mu.connectionPool = existingPool
 
-		// Promote (this should preserve existing statusConnectionPool settings)
+		// Promote (this should preserve existing multiServerPool settings)
 		newConn := &Connection{URL: &url.URL{Host: "new:9200"}, Name: "new-node"}
 		newPool := client.promoteConnectionPoolWithLock([]*Connection{newConn}, []*Connection{})
 
 		client.mu.Unlock()
 
-		// Verify custom settings were preserved from existing statusConnectionPool
+		// Verify custom settings were preserved from existing multiServerPool
 		require.Equal(t, customInitial, newPool.resurrectTimeoutInitial, "Should preserve custom resurrection timeout")
 		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
 		require.Equal(t, testMetrics, newPool.metrics, "Should preserve existing metrics")
 	})
 
-	t.Run("demoteConnectionPoolWithLock handles non-statusConnectionPool gracefully", func(t *testing.T) {
-		// Test demoting when current pool is not a statusConnectionPool
+	t.Run("demoteConnectionPoolWithLock handles non-multiServerPool gracefully", func(t *testing.T) {
+		// Test demoting when current pool is not a multiServerPool
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
 
-		// Start with a singleConnectionPool (not statusConnectionPool)
+		// Start with a singleServerPool (not multiServerPool)
 		client.mu.Lock()
-		// Try to demote - this should handle the case where it's not a statusConnectionPool
+		// Try to demote - this should handle the case where it's not a multiServerPool
 		singlePool := client.demoteConnectionPoolWithLock()
 		client.mu.Unlock()
 
-		// Should return the same singleConnectionPool with the original connection
+		// Should return the same singleServerPool with the original connection
 		require.NotNil(t, singlePool.connection, "Should preserve the original connection from the single URL")
 		require.Equal(t, "localhost:9200", singlePool.connection.URL.Host, "Should preserve the correct connection")
 		require.Nil(t, singlePool.metrics, "Should have nil metrics for new client without metrics enabled")

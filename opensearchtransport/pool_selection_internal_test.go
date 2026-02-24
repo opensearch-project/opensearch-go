@@ -34,9 +34,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStatusConnectionPoolNext(t *testing.T) {
+func TestMultiServerPoolNext(t *testing.T) {
 	t.Run("No URL", func(t *testing.T) {
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 
 		c, err := pool.Next()
 		if err == nil {
@@ -50,7 +50,7 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -82,7 +82,7 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
@@ -122,7 +122,7 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = func() []*Connection {
@@ -165,12 +165,12 @@ func TestStatusConnectionPoolNext(t *testing.T) {
 	})
 }
 
-func TestStatusConnectionPoolNextResurrectDead(t *testing.T) {
+func TestMultiServerPoolNextResurrectDead(t *testing.T) {
 	t.Run("Resurrect dead connection when no ready connection is available", func(t *testing.T) {
 		s := &roundRobinSelector{}
 		s.curr.Store(-1)
 
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = func() []*Connection {
@@ -213,7 +213,7 @@ func TestStatusConnectionPoolNextResurrectDead(t *testing.T) {
 	})
 
 	t.Run("No connection available", func(t *testing.T) {
-		pool := &statusConnectionPool{}
+		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = []*Connection{}

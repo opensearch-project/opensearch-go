@@ -749,9 +749,9 @@ func New(cfg Config) (*Client, error) {
 	} else {
 		// Use client-configured timeout settings for the main connection pool
 		if len(conns) == 1 {
-			client.mu.connectionPool = &singleConnectionPool{connection: conns[0]}
+			client.mu.connectionPool = &singleServerPool{connection: conns[0]}
 		} else {
-			pool := &statusConnectionPool{
+			pool := &multiServerPool{
 				name:                         "client",
 				resurrectTimeoutInitial:      resurrectTimeoutInitial,
 				resurrectTimeoutMax:          resurrectTimeoutMax,
@@ -782,7 +782,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	// Set up health check function for pools that support it
-	if pool, ok := client.mu.connectionPool.(*statusConnectionPool); ok {
+	if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
 		pool.healthCheck = client.healthCheck
 		if obs := client.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
@@ -799,14 +799,14 @@ func New(cfg Config) (*Client, error) {
 
 		if len(conns) == 1 {
 			// Single node - assign metrics to connection pool
-			if pool, ok := client.mu.connectionPool.(*singleConnectionPool); ok {
+			if pool, ok := client.mu.connectionPool.(*singleServerPool); ok {
 				pool.metrics = client.metrics
 			} else {
 				return nil, fmt.Errorf("unexpected connection pool type for single node: %T", client.mu.connectionPool)
 			}
 		} else {
 			// Multi-node - assign metrics to status connection pool
-			if pool, ok := client.mu.connectionPool.(*statusConnectionPool); ok {
+			if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
 				pool.metrics = client.metrics
 			}
 		}
@@ -1862,12 +1862,12 @@ func initUserAgent() string {
 	return b.String()
 }
 
-// promoteConnectionPoolWithLock converts a singleConnectionPool to statusConnectionPool while preserving
+// promoteConnectionPoolWithLock converts a singleServerPool to multiServerPool while preserving
 // metrics, timeout settings, and client configuration. MUST be called while holding client write lock.
-// Returns existing pool unchanged if already a statusConnectionPool.
-func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *statusConnectionPool {
+// Returns existing pool unchanged if already a multiServerPool.
+func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
-	case *singleConnectionPool:
+	case *singleServerPool:
 		// Promote from single to multi-node pool using client-configured timeouts
 		metrics := currentPool.metrics
 
@@ -1883,7 +1883,7 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 		}
 
 		// Use client-configured timeouts (from Config or defaults)
-		pool := &statusConnectionPool{
+		pool := &multiServerPool{
 			resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
 			resurrectTimeoutMax:          c.resurrectTimeoutMax,
 			resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
@@ -1915,14 +1915,14 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 		pool.enforceActiveCapWithLock()
 
 		if debugLogger != nil {
-			debugLogger.Logf("Promoted singleConnectionPool to statusConnectionPool: %d ready, %d dead connections (timeouts: %v, %d)\n",
+			debugLogger.Logf("Promoted singleServerPool to multiServerPool: %d ready, %d dead connections (timeouts: %v, %d)\n",
 				len(pool.mu.ready), len(pool.mu.dead), pool.resurrectTimeoutInitial, pool.resurrectTimeoutFactorCutoff)
 		}
 
 		return pool
 
-	case *statusConnectionPool:
-		// Already a statusConnectionPool - return unchanged
+	case *multiServerPool:
+		// Already a multiServerPool - return unchanged
 		return currentPool
 
 	default:
@@ -1930,12 +1930,12 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 	}
 }
 
-// demoteConnectionPoolWithLock converts a statusConnectionPool to singleConnectionPool while preserving
+// demoteConnectionPoolWithLock converts a multiServerPool to singleServerPool while preserving
 // metrics and selecting the best available connection. MUST be called while holding client write lock.
-// Returns existing pool unchanged if already a singleConnectionPool.
-func (c *Client) demoteConnectionPoolWithLock() *singleConnectionPool {
+// Returns existing pool unchanged if already a singleServerPool.
+func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
-	case *statusConnectionPool:
+	case *multiServerPool:
 		// Demote from multi-node to single-node pool
 		metrics := currentPool.metrics
 
@@ -1946,28 +1946,28 @@ func (c *Client) demoteConnectionPoolWithLock() *singleConnectionPool {
 		case len(currentPool.mu.ready) > 0:
 			connection = currentPool.mu.ready[0]
 			if debugLogger != nil {
-				debugLogger.Logf("Demoting statusConnectionPool to singleConnectionPool using ready connection: %s\n", connection.URL)
+				debugLogger.Logf("Demoting multiServerPool to singleServerPool using ready connection: %s\n", connection.URL)
 			}
 		case len(currentPool.mu.dead) > 0:
 			connection = currentPool.mu.dead[0]
 			if debugLogger != nil {
-				debugLogger.Logf("Demoting statusConnectionPool to singleConnectionPool using dead connection: %s\n", connection.URL)
+				debugLogger.Logf("Demoting multiServerPool to singleServerPool using dead connection: %s\n", connection.URL)
 			}
 		default:
 			if debugLogger != nil {
-				debugLogger.Logf("Warning: Demoting statusConnectionPool with no connections available\n")
+				debugLogger.Logf("Warning: Demoting multiServerPool with no connections available\n")
 			}
 		}
 
 		currentPool.mu.RUnlock()
 
-		return &singleConnectionPool{
+		return &singleServerPool{
 			connection: connection,
 			metrics:    metrics,
 		}
 
-	case *singleConnectionPool:
-		// Already a singleConnectionPool - return unchanged
+	case *singleServerPool:
+		// Already a singleServerPool - return unchanged
 		return currentPool
 
 	default:
