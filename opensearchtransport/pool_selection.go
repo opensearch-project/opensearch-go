@@ -26,8 +26,6 @@
 
 package opensearchtransport
 
-import "time"
-
 // Next returns a connection from pool, or an error.
 //
 // Selection priority:
@@ -92,7 +90,7 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 				// Notify observer: warmup accept (State.IsWarmingUp() tells
 				// the observer whether warmup is still in progress or just completed).
 				if obs := observerFromAtomic(&cp.observer); obs != nil {
-					obs.OnWarmupRequest(newConnectionEvent(cp.name, conn, cp.mu.activeCount, len(cp.mu.dead)))
+					obs.OnWarmupRequest(newConnectionEvent(cp.name, conn, cp.countByLifecycleWithLock()))
 				}
 
 				cp.mu.RUnlock()
@@ -124,7 +122,7 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 		// Return the one closest to its next accept point.
 		if bestWarmingConn != nil {
 			if obs := observerFromAtomic(&cp.observer); obs != nil {
-				obs.OnWarmupRequest(newConnectionEvent(cp.name, bestWarmingConn, cp.mu.activeCount, len(cp.mu.dead)))
+				obs.OnWarmupRequest(newConnectionEvent(cp.name, bestWarmingConn, cp.countByLifecycleWithLock()))
 			}
 			cp.mu.RUnlock()
 			cp.poolRequests.Add(1)
@@ -258,13 +256,6 @@ func (cp *multiServerPool) nextFallbackWithLock() (*Connection, error) {
 //   - Caller must hold pool write lock
 func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state connState) {
 	cp.removeFromReadyWithLock(c)
-
-	c.mu.Lock()
-	if c.mu.deadSince.IsZero() {
-		c.mu.deadSince = time.Now().UTC()
-	}
-	c.mu.Unlock()
-
 	cp.appendToDeadWithLock(c)
 
 	if cp.metrics != nil {
@@ -277,22 +268,8 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 	}
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
-		obs.OnDemote(newConnectionEvent(cp.name, c, cp.mu.activeCount, len(cp.mu.dead)))
+		obs.OnDemote(newConnectionEvent(cp.name, c, cp.countByLifecycleWithLock()))
 	}
-}
-
-// getNextActiveConnWithLock returns the next active connection using round-robin selection.
-// Round-robin is constrained to ready[:activeCount] -- the active partition. Standby
-// connections (ready[activeCount:]) are not selected here; they are promoted via
-// tryStandbyWithLock when the active partition is empty.
-//
-// CALLER RESPONSIBILITIES:
-//   - Caller must hold pool read or write lock
-//   - Caller must ensure cp.mu.activeCount > 0 before calling
-func (cp *multiServerPool) getNextActiveConnWithLock() *Connection {
-	next := cp.nextReady.Add(1)
-	idx := int(next-1) % cp.mu.activeCount
-	return cp.mu.ready[idx]
 }
 
 // tryZombieWithLock returns a dead connection for temporary use without moving it to the ready list.

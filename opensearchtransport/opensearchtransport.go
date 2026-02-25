@@ -1558,8 +1558,8 @@ func (c *Client) hardwareInfoHealthCheck(
 
 	// /_nodes/_local returns exactly one node entry.
 	for _, node := range nodes {
-		if node.OS.AllocatedProcessors != nil && *node.OS.AllocatedProcessors > 0 {
-			conn.allocatedProcessors = *node.OS.AllocatedProcessors
+		if node.OS != nil && node.OS.AllocatedProcessors != nil && *node.OS.AllocatedProcessors > 0 {
+			conn.storeAllocatedProcessors(*node.OS.AllocatedProcessors)
 		}
 		break
 	}
