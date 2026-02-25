@@ -1426,7 +1426,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		})
 
 		// Nodes info endpoint - return multiple nodes
-		mux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 			response := map[string]any{
 				"_nodes": map[string]any{
 					"total":      2,
@@ -1492,7 +1492,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		require.Equal(t, 2, totalConnections, "Should have discovered 2 nodes")
 	})
 
-	t.Run("NewSmartRouter works with single and multi-node pools", func(t *testing.T) {
+	t.Run("NewMuxRouter works with single and multi-node pools", func(t *testing.T) {
 		// Create test connections with different roles
 		dataConn1 := &Connection{
 			URL:   &url.URL{Host: "data1:9200"},
@@ -1510,7 +1510,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		client, err := New(Config{
 			URLs:          []*url.URL{u},
 			EnableMetrics: true,
-			Router:        NewSmartRouter(),
+			Router:        NewMuxRouter(),
 		})
 		require.NoError(t, err)
 

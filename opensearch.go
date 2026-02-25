@@ -124,7 +124,7 @@ type Config struct {
 	// Health check rate limiting to prevent overwhelming recovering servers.
 	// During outages, all clients reconnect simultaneously, creating TLS handshake
 	// pressure on recovering servers. Health check rates are auto-derived from the
-	// server's core count (discovered via /_nodes/http,os).
+	// server's core count (discovered via /_nodes/_local/http,os per node).
 	//
 	// MaxRetryClusterHealth controls how often to retry the cluster health probe
 	// (/_cluster/health?local=true) on nodes where it was previously unavailable due to

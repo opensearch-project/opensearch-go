@@ -296,13 +296,13 @@ func (c *Connection) RTTMedian() time.Duration {
 	return bucket.Micros().Duration()
 }
 
-// RTTBucket returns the raw median RTT bucket for this connection. Each
-// bucket spans 256 microseconds (bucket = microseconds >> 8). Returns -1
-// if no RTT data is available.
+// RTTBucket returns the raw median RTT bucket for this connection.
+// Buckets use power-of-two quantization: bucket = floor(log2(microseconds)),
+// clamped to a floor of 8 (256us). Returns -1 if no RTT data is available.
 //
 // This is the value used in affinity score calculations:
 //
-//	score = rttBucket * decayCounter * writerPenalty
+//	score = rttBucket * decayCounter * shardCostMultiplier
 func (c *Connection) RTTBucket() int64 {
 	if c.rttRing == nil {
 		return -1
@@ -336,6 +336,19 @@ func (c *Connection) AffinityLoad() float64 {
 // difference isolates on-CPU processing time. Dividing by processor count
 // normalizes for node capacity.
 //
+// The cost is then divided by rttBucket to cancel the rttBucket multiplier
+// in the scoring formula. At steady state with rate r and per-request
+// server time s:
+//
+//	counter = r * s / (proc * bucket * lambda)
+//	score   = bucket * counter * wp
+//	        = r * s / (proc * lambda) * wp
+//
+// The bucket terms cancel, so setting score_i = score_j gives
+// r_i * wp_i = r_j * wp_j, i.e., rate is proportional to 1/wp
+// regardless of RTT tier. This replaces the previous maxBucket/thisBucket
+// inflation which required tracking the fan-out's maximum bucket.
+//
 // When the node acts as a coordinator, the measured duration includes time
 // spent waiting for sub-requests to other data nodes. The estimate therefore
 // reflects total interaction cost with this node, not strictly local CPU.
@@ -365,8 +378,17 @@ func (c *Connection) recordCPUTime(requestDuration time.Duration) {
 	// Integer division in nanoseconds, then convert to microseconds.
 	// This avoids any float64 intermediate for the duration conversion.
 	cpuNanos := durationNanos(int64(serverTime) / int64(processors))
-	cpuMicros := cpuNanos.Micros()
-	c.affinityCounter.add(float64(cpuMicros))
+
+	// Divide by rttBucket to cancel the bucket multiplier in the scoring
+	// formula (score = rttBucket * counter * wp). This makes the equilibrium
+	// distribution depend only on wp, not on RTT tier placement.
+	cost := float64(cpuNanos.Micros())
+	thisBucket := float64(c.rttRing.medianBucket())
+	if thisBucket > 0 {
+		cost /= thisBucket
+	}
+
+	c.affinityCounter.add(cost)
 }
 
 // String returns a readable connection representation.
