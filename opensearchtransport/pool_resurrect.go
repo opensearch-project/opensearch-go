@@ -35,8 +35,19 @@ import (
 	"math"
 	"math/rand/v2"
 	"slices"
+	"sync"
 	"time"
 )
+
+// checkDeadMaxWorkers is the maximum number of concurrent health check
+// goroutines spawned by checkDead's slow path. Bounded to avoid overwhelming
+// recovering servers with simultaneous TLS handshakes.
+const checkDeadMaxWorkers = 8
+
+// checkDeadWorkerMaxJitter is the upper bound on the random sleep each
+// checkDead worker performs before starting its first health check. Staggering
+// prevents a burst of concurrent connections to the same recovering server.
+const checkDeadWorkerMaxJitter = 50 * time.Millisecond
 
 // healthCheck performs a health check on this connection with concurrency protection.
 // Updates deadSince and checkStartedAt state based on health check results.
@@ -93,80 +104,172 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 	return nil
 }
 
-// checkDead syncs dead/ready lists based on Connection.mu.isDead state and performs health checks.
+// checkDead syncs dead/ready lists based on lifecycle bits and performs health checks.
+//
+// Two promotion paths:
+//
+//  1. Lifecycle-bit fast path (synchronous): if a connection on the dead list
+//     already has lcActive or lcStandby (set by the allConns pool's
+//     resurrection), promote it immediately without a redundant health check.
+//     This is the primary mechanism for policy pools to notice that the allConns
+//     pool resurrected a shared *Connection.
+//
+//  2. Health-check slow path (parallel): for connections still at lcDead,
+//     dispatch to a bounded pool of workers that perform HTTP health checks
+//     concurrently. Workers start with random jitter to avoid a thundering herd
+//     of TLS handshakes against recovering servers.
 func (cp *multiServerPool) checkDead(ctx context.Context, healthCheck HealthCheckFunc) error {
 	if healthCheck == nil {
 		return errors.New("healthCheck function cannot be nil")
 	}
 
-	// Get snapshot of dead connections without holding lock during health checks
+	// Get snapshot of dead connections without holding lock during health checks.
 	cp.mu.RLock()
 	deadConns := make([]*Connection, len(cp.mu.dead))
 	copy(deadConns, cp.mu.dead)
 	cp.mu.RUnlock()
 
-	// Perform health checks without holding the pool lock
+	// Fast path: promote connections the allConns pool already resurrected.
+	// Collect remaining connections that need an actual health check.
+	needsCheck := make([]*Connection, 0, len(deadConns))
 	for _, conn := range deadConns {
-		err := conn.healthCheck(ctx, healthCheck)
-		if err != nil {
-			// Health check failed or already in progress, skip
-			continue
-		}
-
-		// Health check passed -- decrement quiescing counter. If still quiescing,
-		// skip resurrection this cycle; the next health check will decrement again.
-		if remaining := conn.decrementDrainingQuiescing(); remaining > 0 {
-			continue
-		}
-
-		// Check if connection is now alive and resurrect if needed
 		conn.mu.RLock()
-		isDead := !conn.mu.deadSince.IsZero()
+		ready := conn.isReady()
 		conn.mu.RUnlock()
 
-		if !isDead {
-			// Connection is alive, resurrect it
+		if ready {
 			cp.mu.Lock()
 			conn.mu.Lock()
-			// Double-check state after acquiring locks to avoid race
-			if conn.mu.deadSince.IsZero() {
-				cp.resurrectWithLock(conn)
+			if conn.isReady() {
+				conn.markAsHealthyWithLock()
+				cp.resurrectWithLock(conn) //nolint:contextcheck // RTT probe uses pool's long-lived context.
 			}
 			conn.mu.Unlock()
 			cp.mu.Unlock()
+			continue
 		}
+
+		needsCheck = append(needsCheck, conn)
 	}
 
+	if len(needsCheck) == 0 {
+		return nil
+	}
+
+	// Slow path: fan out health checks across bounded workers.
+	workers := min(checkDeadMaxWorkers, len(needsCheck))
+	ch := make(chan *Connection, len(needsCheck))
+	for _, conn := range needsCheck {
+		ch <- conn
+	}
+	close(ch)
+
+	var wg sync.WaitGroup
+	wg.Add(workers)
+
+	for range workers {
+		go func() {
+			defer wg.Done()
+
+			// Jitter start to stagger TLS handshakes across workers.
+			// #nosec G404 - Non-cryptographic randomness is acceptable for jitter
+			jitter := time.Duration(rand.Float64() * float64(checkDeadWorkerMaxJitter))
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(jitter):
+			}
+
+			for conn := range ch {
+				if ctx.Err() != nil {
+					return
+				}
+
+				cp.checkDeadOne(ctx, conn, healthCheck)
+			}
+		}()
+	}
+
+	wg.Wait()
 	return nil
+}
+
+// checkDeadOne performs a single health check and, on success, resurrects the
+// connection. Extracted from checkDead so workers can call it independently.
+func (cp *multiServerPool) checkDeadOne(ctx context.Context, conn *Connection, healthCheck HealthCheckFunc) {
+	err := conn.healthCheck(ctx, healthCheck)
+	if err != nil {
+		return
+	}
+
+	// Health check passed -- decrement quiescing counter. If still quiescing,
+	// skip resurrection this cycle; the next health check will decrement again.
+	if remaining := conn.decrementDrainingQuiescing(); remaining > 0 {
+		return
+	}
+
+	conn.mu.RLock()
+	isDead := !conn.mu.deadSince.IsZero()
+	conn.mu.RUnlock()
+
+	if !isDead {
+		cp.mu.Lock()
+		conn.mu.Lock()
+		if conn.mu.deadSince.IsZero() {
+			cp.resurrectWithLock(conn) //nolint:contextcheck // RTT probe uses pool's long-lived context.
+		}
+		conn.mu.Unlock()
+		cp.mu.Unlock()
+	}
 }
 
 // performHealthCheck executes the health check for a connection.
 // Returns true if health check passes, false if it fails.
+// When recordRTT is true, the measured round-trip time is recorded in the
+// connection's rttRing for affinity routing. Pass false for TLS-warmup probes
+// where handshake overhead would skew the RTT measurement.
 // Note: This method does not reschedule on failure. The caller (resurrectWithLock) is responsible
 // for ensuring checkStartedAt is reset (via defer), allowing future failures to trigger new checks.
-func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection) bool {
+func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection, recordRTT bool) bool {
+	start := time.Now()
 	resp, err := cp.healthCheck(ctx, c, c.URL)
 	if err != nil {
 		if debugLogger != nil {
 			debugLogger.Logf("[%s] Health check failed for %q: %s\n", cp.name, c.URL, err)
 		}
 		if obs := observerFromAtomic(&cp.observer); obs != nil {
-			event := newConnectionEvent(cp.name, c, 0, 0)
+			event := newConnectionEvent(cp.name, c, lifecycleCounts{})
 			event.Error = err
 			obs.OnHealthCheckFail(event)
 		}
 		return false
 	}
 
+	// Record RTT measurement from the health check for affinity routing.
+	// Skipped for TLS-warmup probes where handshake overhead skews the measurement.
+	// Single-writer: only the health check goroutine calls add().
+	if recordRTT {
+		c.rttRing.add(time.Since(start))
+	}
+
 	// Notify observer of health check success (before version update so snapshot is consistent)
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
-		obs.OnHealthCheckPass(newConnectionEvent(cp.name, c, 0, 0))
+		obs.OnHealthCheckPass(newConnectionEvent(cp.name, c, lifecycleCounts{}))
 	}
 
 	// Health check passed -- decrement draining quiesce counter.
 	// This is the primary path that decrements draining; OnSuccess deliberately skips
 	// resurrection while draining is set, ensuring only verified health checks bring the node back.
 	c.decrementDrainingQuiescing()
+
+	// Advance warmup on successful health check. Connections that never win
+	// affinity selection (e.g., due to warmup penalty) would otherwise be
+	// stuck in needsWarmup forever. Each passing health check ticks the
+	// warmup counter, eventually clearing the flag so the connection can
+	// compete on merit in affinity scoring.
+	if c.loadConnState().isWarmingUp() {
+		c.tryWarmupSkip()
+	}
 
 	// Try to extract version information from the response
 	if resp == nil || resp.Body == nil {
@@ -355,10 +458,10 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				}
 
 				// Health check passed (or no health check configured), resurrect the connection
-				cp.resurrectWithLock(c)
+				cp.resurrectWithLock(c) //nolint:contextcheck // RTT probe uses pool's long-lived context.
 
 				if obs := observerFromAtomic(&cp.observer); obs != nil {
-					obs.OnPromote(newConnectionEvent(cp.name, c, cp.mu.activeCount, len(cp.mu.dead)))
+					obs.OnPromote(newConnectionEvent(cp.name, c, cp.countByLifecycleWithLock()))
 				}
 
 				return true // Successfully resurrected, exit loop
@@ -379,7 +482,7 @@ func (cp *multiServerPool) attemptHealthCheckWithRelock(ctx context.Context, c *
 	c.mu.Unlock()
 	cp.mu.Unlock()
 
-	healthCheckPassed := cp.performHealthCheck(ctx, c)
+	healthCheckPassed := cp.performHealthCheck(ctx, c, true)
 
 	// Re-acquire locks after health check
 	cp.mu.Lock()

@@ -161,6 +161,112 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 	})
 }
 
+func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
+	t.Run("successful health check advances warmup until complete", func(t *testing.T) {
+		// Create a connection in warmup state with small round count
+		// so we can drive it to completion quickly.
+		conn := &Connection{
+			URL: &url.URL{Scheme: "http", Host: "warmup-test:9200"},
+		}
+		// Initialize warmup: 3 rounds, 1 skip per round.
+		// Total tryWarmupSkip calls to complete: round3(skip1+accept) + round2(skip1+accept) + round1(accept) = 5
+		cs := warmupState(lcActive|lcNeedsWarmup, 3, 1)
+		conn.state.Store(int64(cs))
+
+		// Verify the connection starts in warmup.
+		if !conn.loadConnState().isWarmingUp() {
+			t.Fatal("Expected connection to be warming up initially")
+		}
+
+		pool := &multiServerPool{
+			name: "test",
+			healthCheck: func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       http.NoBody,
+				}, nil
+			},
+		}
+
+		ctx := context.Background()
+
+		// Drive health checks until warmup completes. Each successful
+		// performHealthCheck calls tryWarmupSkip once. With 3 rounds and
+		// 1 skip per round we need at most 3+1+1+1+1 = 7 calls (skip/accept
+		// cycle depends on smoothstep). Cap at 20 to avoid infinite loops.
+		for i := range 20 {
+			passed := pool.performHealthCheck(ctx, conn, false)
+			if !passed {
+				t.Fatalf("Health check %d failed unexpectedly", i)
+			}
+			if !conn.loadConnState().isWarmingUp() {
+				// Warmup completed.
+				return
+			}
+		}
+
+		t.Fatal("Expected warmup to complete after repeated health checks, but it did not")
+	})
+
+	t.Run("failed health check does not advance warmup", func(t *testing.T) {
+		conn := &Connection{
+			URL: &url.URL{Scheme: "http", Host: "warmup-test:9200"},
+		}
+		cs := warmupState(lcActive|lcNeedsWarmup, 3, 1)
+		conn.state.Store(int64(cs))
+
+		stateBefore := conn.state.Load()
+
+		pool := &multiServerPool{
+			name: "test",
+			healthCheck: func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+				return nil, context.DeadlineExceeded
+			},
+		}
+
+		passed := pool.performHealthCheck(context.Background(), conn, false)
+		if passed {
+			t.Fatal("Expected health check to fail")
+		}
+
+		// State should be unchanged -- no warmup advancement.
+		if conn.state.Load() != stateBefore {
+			t.Error("Expected warmup state to be unchanged after failed health check")
+		}
+	})
+
+	t.Run("non-warming connection is unaffected", func(t *testing.T) {
+		conn := &Connection{
+			URL: &url.URL{Scheme: "http", Host: "warmup-test:9200"},
+		}
+		conn.state.Store(int64(newConnState(lcActive)))
+
+		if conn.loadConnState().isWarmingUp() {
+			t.Fatal("Expected connection to NOT be warming up")
+		}
+
+		pool := &multiServerPool{
+			name: "test",
+			healthCheck: func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       http.NoBody,
+				}, nil
+			},
+		}
+
+		passed := pool.performHealthCheck(context.Background(), conn, false)
+		if !passed {
+			t.Fatal("Health check should pass")
+		}
+
+		// Should still not be warming up.
+		if conn.loadConnState().isWarmingUp() {
+			t.Fatal("Non-warming connection should remain non-warming after health check")
+		}
+	})
+}
+
 func TestCalculateResurrectTimeout(t *testing.T) {
 	// Helper to create a pool with the given ready/dead connection counts.
 	makePool := func(nLive, nDead int) *multiServerPool {

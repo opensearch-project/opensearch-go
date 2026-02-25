@@ -427,8 +427,9 @@ func TestRotateStandbyOnce(t *testing.T) {
 		var iface ConnectionObserver = obs
 		pool.observer.Store(&iface)
 
-		attempted, rotated := pool.rotateStandbyOnce(context.Background())
+		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
+		require.NoError(t, err)
 		if !attempted {
 			t.Error("Expected attempted=true")
 		}
@@ -478,7 +479,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, nil)
 		pool.healthCheck = alwaysHealthy
 
-		attempted, rotated := pool.rotateStandbyOnce(context.Background())
+		attempted, rotated, _ := pool.rotateStandbyOnce(context.Background())
 
 		if attempted {
 			t.Error("Expected attempted=false with no standby")
@@ -494,8 +495,9 @@ func TestRotateStandbyOnce(t *testing.T) {
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
 		pool.healthCheck = alwaysUnhealthy
 
-		attempted, rotated := pool.rotateStandbyOnce(context.Background())
+		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
+		require.Error(t, err)
 		if !attempted {
 			t.Error("Expected attempted=true")
 		}
@@ -519,8 +521,9 @@ func TestRotateStandbyOnce(t *testing.T) {
 		pool := newStandbyPool(nil, []*Connection{s1})
 		pool.healthCheck = alwaysHealthy
 
-		attempted, rotated := pool.rotateStandbyOnce(context.Background())
+		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
+		require.NoError(t, err)
 		if !attempted || !rotated {
 			t.Error("Expected attempted=true, rotated=true")
 		}
@@ -547,7 +550,7 @@ func TestRotateStandby(t *testing.T) {
 		)
 		pool.healthCheck = alwaysHealthy
 
-		rotated := pool.rotateStandby(context.Background(), 2)
+		rotated, _ := pool.rotateStandby(context.Background(), 2)
 
 		if rotated != 2 {
 			t.Errorf("Expected 2 rotations, got=%d", rotated)
@@ -565,7 +568,7 @@ func TestRotateStandby(t *testing.T) {
 		)
 		pool.healthCheck = alwaysHealthy
 
-		rotated := pool.rotateStandby(context.Background(), 5)
+		rotated, _ := pool.rotateStandby(context.Background(), 5)
 
 		// With deferred eviction, first rotation promotes s1 to active (activeCount 1->2).
 		// No standby remains, so only 1 rotation is possible.
@@ -590,7 +593,7 @@ func TestRotateStandby(t *testing.T) {
 			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 		}
 
-		rotated := pool.rotateStandby(context.Background(), 1)
+		rotated, _ := pool.rotateStandby(context.Background(), 1)
 
 		if rotated != 1 {
 			t.Errorf("Expected 1 rotation (s2 fails, s1 succeeds), got=%d", rotated)
@@ -608,7 +611,7 @@ func TestRotateStandby(t *testing.T) {
 		)
 		pool.healthCheck = alwaysUnhealthy
 
-		rotated := pool.rotateStandby(context.Background(), 2)
+		rotated, _ := pool.rotateStandby(context.Background(), 2)
 
 		if rotated != 0 {
 			t.Errorf("Expected 0 rotations (all unhealthy), got=%d", rotated)
@@ -630,7 +633,7 @@ func TestRotateStandby(t *testing.T) {
 		)
 		pool.healthCheck = alwaysHealthy
 
-		rotated := pool.rotateStandby(context.Background(), 0)
+		rotated, _ := pool.rotateStandby(context.Background(), 0)
 		if rotated != 0 {
 			t.Errorf("Expected 0 rotations for count=0, got=%d", rotated)
 		}
@@ -903,9 +906,10 @@ func TestHealthcheckStartPaths(t *testing.T) {
 			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 		}
 
-		candidate, attempted := pool.healthcheckStart(context.Background())
+		candidate, err := pool.healthcheckStart(context.Background())
 
-		require.True(t, attempted)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrRotationStateChanged)
 		require.Nil(t, candidate) // evicted as unknown
 		require.Len(t, pool.mu.dead, 1)
 		require.Equal(t, "s1", pool.mu.dead[0].URL.Host)
@@ -917,9 +921,10 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
 		pool.healthCheck = alwaysUnhealthy
 
-		candidate, attempted := pool.healthcheckStart(context.Background())
+		candidate, err := pool.healthcheckStart(context.Background())
 
-		require.True(t, attempted)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrRotationHealthCheckFailed)
 		require.Nil(t, candidate)
 		require.Len(t, pool.mu.dead, 1)
 		require.Equal(t, "s1", pool.mu.dead[0].URL.Host)
@@ -937,9 +942,10 @@ func TestHealthcheckStartPaths(t *testing.T) {
 			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 		}
 
-		candidate, attempted := pool.healthcheckStart(context.Background())
+		candidate, err := pool.healthcheckStart(context.Background())
 
-		require.True(t, attempted)
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrRotationPromotionRace)
 		require.Nil(t, candidate) // not found in standby after health check
 	})
 
@@ -949,9 +955,9 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
 		pool.healthCheck = alwaysHealthy
 
-		candidate, attempted := pool.healthcheckStart(context.Background())
+		candidate, err := pool.healthcheckStart(context.Background())
 
-		require.True(t, attempted)
+		require.NoError(t, err)
 		require.NotNil(t, candidate)
 		require.Equal(t, "s1", candidate.URL.Host)
 	})
