@@ -35,7 +35,7 @@ func TestSmartRouterWithDiscovery(t *testing.T) {
 
 	t.Run("Complete seed URL to smart router transition", func(t *testing.T) {
 		// Create smart router (which has IfEnabledPolicy for coordinator nodes)
-		router := opensearchtransport.NewSmartRouter()
+		router := opensearchtransport.NewMuxRouter()
 
 		// Start with test config for fast timeouts (auto-discovery disabled)
 		cfg := testConfigWithAuth(t)
@@ -78,7 +78,7 @@ func TestSmartRouterWithDiscovery(t *testing.T) {
 
 	t.Run("Verify IfEnabledPolicy condition switches after discovery", func(t *testing.T) {
 		// This test explicitly checks the condition switching behavior
-		router := opensearchtransport.NewSmartRouter()
+		router := opensearchtransport.NewMuxRouter()
 
 		cfg := testConfigWithAuth(t)
 		cfg.Router = router

@@ -19,7 +19,7 @@ import (
 )
 
 func TestDumpSmartPolicyTree(t *testing.T) {
-	router := NewSmartRouter()
+	router := NewMuxRouter()
 	chain := router.(*PolicyChain)
 
 	fmt.Println("=== BEFORE configurePolicySettings ===")
@@ -61,7 +61,7 @@ func TestDumpSmartPolicyTree(t *testing.T) {
 }
 
 func TestDumpDefaultPolicyTree(t *testing.T) {
-	router := NewDefaultRouter()
+	router := NewRoundRobinRouter()
 	chain := router.(*PolicyChain)
 
 	err := chain.configurePolicySettings(createTestConfig())
@@ -84,21 +84,21 @@ func describePolicyTree(node any, depth int) string {
 
 	switch v := node.(type) {
 	case *PolicyChain:
-		fmt.Fprintf(&b, "%sPolicyChain (isEnabled=%v, policies=%d)\n", indent, v.isEnabled.Load(), len(v.policies))
+		fmt.Fprintf(&b, "%sPolicyChain (isEnabled=%v, policies=%d)\n", indent, psIsEnabled(v.policyState.Load()), len(v.policies))
 		for i, p := range v.policies {
 			fmt.Fprintf(&b, "%s  [%d] ", indent, i)
 			b.WriteString(describePolicyTree(p, depth+2))
 		}
 
 	case *IfEnabledPolicy:
-		fmt.Fprintf(&b, "IfEnabledPolicy (isEnabled=%v)\n", v.isEnabled)
+		fmt.Fprintf(&b, "IfEnabledPolicy (isEnabled=%v)\n", psIsEnabled(v.policyState.Load()))
 		fmt.Fprintf(&b, "%s  truePolicy:  ", indent)
 		b.WriteString(describePolicyTree(v.truePolicy, depth+2))
 		fmt.Fprintf(&b, "%s  falsePolicy: ", indent)
 		b.WriteString(describePolicyTree(v.falsePolicy, depth+2))
 
 	case *MuxPolicy:
-		fmt.Fprintf(&b, "MuxPolicy (isEnabled=%v, uniquePolicies=%d)\n", v.isEnabled.Load(), len(v.uniquePolicies))
+		fmt.Fprintf(&b, "MuxPolicy (isEnabled=%v, uniquePolicies=%d)\n", psIsEnabled(v.policyState.Load()), len(v.uniquePolicies))
 		i := 0
 		for p := range v.uniquePolicies {
 			fmt.Fprintf(&b, "%s  [%d] ", indent, i)
@@ -113,7 +113,7 @@ func describePolicyTree(node any, depth int) string {
 			poolName = v.pool.name
 		}
 		fmt.Fprintf(&b, "RolePolicy(key=%q, pool=%q, enabled=%v)\n",
-			v.requiredRoleKey, poolName, v.hasMatchingRoles.Load())
+			v.requiredRoleKey, poolName, psIsEnabled(v.policyState.Load()))
 
 	case *RoundRobinPolicy:
 		hasPool := v.pool != nil
@@ -122,7 +122,7 @@ func describePolicyTree(node any, depth int) string {
 			poolName = v.pool.name
 		}
 		fmt.Fprintf(&b, "RoundRobinPolicy(pool=%q, enabled=%v)\n",
-			poolName, v.isEnabled.Load())
+			poolName, psIsEnabled(v.policyState.Load()))
 
 	case *CoordinatorPolicy:
 		hasPool := v.pool != nil
@@ -131,7 +131,7 @@ func describePolicyTree(node any, depth int) string {
 			poolName = v.pool.name
 		}
 		fmt.Fprintf(&b, "CoordinatorPolicy(pool=%q, enabled=%v)\n",
-			poolName, v.hasCoordinators.Load())
+			poolName, psIsEnabled(v.policyState.Load()))
 
 	case *NullPolicy:
 		fmt.Fprintf(&b, "NullPolicy\n")
