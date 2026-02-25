@@ -18,9 +18,11 @@ import (
 func createBenchConnection(urlStr string, id string, roles ...string) *Connection {
 	u, _ := url.Parse(urlStr)
 	conn := &Connection{
-		URL:   u,
-		ID:    id,
-		Roles: make(roleSet),
+		URL:       u,
+		URLString: urlStr,
+		ID:        id,
+		Name:      id,
+		Roles:     make(roleSet),
 	}
 	for _, role := range roles {
 		conn.Roles[role] = struct{}{}
@@ -85,7 +87,7 @@ func configureBenchPolicy(p Policy, connections []*Connection) {
 		}
 		policy.pool.mu.activeCount = len(policy.pool.mu.ready)
 		policy.pool.mu.dead = nil
-		policy.hasMatchingRoles.Store(len(policy.pool.mu.ready) > 0)
+		psSetEnabled(&policy.policyState, len(policy.pool.mu.ready) > 0)
 		policy.pool.Unlock()
 	} else if policy, ok := p.(*CoordinatorPolicy); ok && policy.pool != nil {
 		// Filter connections for coordinating-only
@@ -98,7 +100,7 @@ func configureBenchPolicy(p Policy, connections []*Connection) {
 		}
 		policy.pool.mu.activeCount = len(policy.pool.mu.ready)
 		policy.pool.mu.dead = nil
-		policy.hasCoordinators.Store(len(policy.pool.mu.ready) > 0)
+		psSetEnabled(&policy.policyState, len(policy.pool.mu.ready) > 0)
 		policy.pool.Unlock()
 	} else if policy, ok := p.(*PolicyChain); ok {
 		// Recursively configure sub-policies
@@ -161,7 +163,7 @@ func markPolicyConnectionsAlive(p Policy, connections []*Connection) {
 		}
 		policy.pool.mu.activeCount = len(policy.pool.mu.ready)
 		policy.pool.mu.dead = nil
-		policy.hasMatchingRoles.Store(len(policy.pool.mu.ready) > 0)
+		psSetEnabled(&policy.policyState, len(policy.pool.mu.ready) > 0)
 		policy.pool.Unlock()
 	} else if policy, ok := p.(*CoordinatorPolicy); ok && policy.pool != nil {
 		// Filter connections for coordinating-only
@@ -174,7 +176,7 @@ func markPolicyConnectionsAlive(p Policy, connections []*Connection) {
 		}
 		policy.pool.mu.activeCount = len(policy.pool.mu.ready)
 		policy.pool.mu.dead = nil
-		policy.hasCoordinators.Store(len(policy.pool.mu.ready) > 0)
+		psSetEnabled(&policy.policyState, len(policy.pool.mu.ready) > 0)
 		policy.pool.Unlock()
 	} else if policy, ok := p.(*PolicyChain); ok {
 		// Recursively mark sub-policies
@@ -192,5 +194,8 @@ func markPolicyConnectionsAlive(p Policy, connections []*Connection) {
 		for subPolicy := range policy.uniquePolicies {
 			markPolicyConnectionsAlive(subPolicy, connections)
 		}
+	} else if policy, ok := p.(*affinityPolicyWrapper); ok {
+		// Recurse into the inner policy
+		markPolicyConnectionsAlive(policy.inner, connections)
 	}
 }

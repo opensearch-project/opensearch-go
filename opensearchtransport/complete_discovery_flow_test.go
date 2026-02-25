@@ -36,7 +36,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	testutil.SkipIfSingleNode(t, 2)
 
 	// Create smart router (includes IfEnabledPolicy for coordinator_only nodes)
-	router := opensearchtransport.NewSmartRouter()
+	router := opensearchtransport.NewMuxRouter()
 
 	// REQUIREMENT 1: Run discovery with one or more URLs
 	cfg := testConfigWithAuth(t)
@@ -67,7 +67,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 
 	// REQUIREMENT 5: IfEnabledPolicy condition should switch after discovery
 	// coordinator_only policy.IsEnabled() returns false after seed URLs removed,
-	// causing the condition in NewSmartPolicy to evaluate to false.
+	// causing the condition in NewMuxRoutePolicy to evaluate to false.
 
 	// REQUIREMENT 6: Smart router (Else branch) should now be used
 	// Test bulk operation - should route to ingest nodes
