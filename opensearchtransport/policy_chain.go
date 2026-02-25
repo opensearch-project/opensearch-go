@@ -200,3 +200,23 @@ func (r *PolicyChain) poolSnapshots() []PoolSnapshot {
 	}
 	return result
 }
+
+// smoothedMaxBucketForIndex walks the policy tree to find an affinity cache, looks up the index slot, and
+// returns the current smoothed max RTT bucket. Returns 0 if no affinity
+// data exists for the index.
+func (r *PolicyChain) smoothedMaxBucketForIndex(indexName string) float64 {
+	if indexName == "" {
+		return 0
+	}
+	for _, p := range r.policies {
+		if cache := findAffinityCache(p); cache != nil {
+			if slot := cache.slotFor(indexName); slot != nil {
+				return slot.loadSmoothedMaxBucket()
+			}
+			// Cache found but no slot for this index. Since all affinity
+			// policies share the same cache, no point checking further.
+			return 0
+		}
+	}
+	return 0
+}
