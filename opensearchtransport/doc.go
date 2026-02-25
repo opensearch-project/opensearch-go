@@ -61,7 +61,7 @@ Three inputs compete via max() to determine the final retry interval:
 
  2. Rate-limited timeout: (liveNodes * clientsPerServer) / serverMaxNewConnsPerSec.
     Both clientsPerServer and serverMaxNewConnsPerSec are auto-derived from the
-    node's core count (discovered from /_nodes/http,os). This throttles health checks
+    node's core count (discovered from /_nodes/_local/http,os). This throttles health checks
     based on estimated TLS handshake pressure on recovering servers.
     When all nodes are dead, this term is zero (most aggressive -- we need capacity back).
 
@@ -70,7 +70,7 @@ Three inputs compete via max() to determine the final retry interval:
 The final timeout is max(healthTimeout, rateLimitedTimeout, minimum) + random jitter.
 
 Configure rate limiting via the auto-discovered server core count. The client
-discovers each node's allocated_processors from /_nodes/http,os and derives:
+discovers each node's allocated_processors from /_nodes/_local/http,os and derives:
 
   - clientsPerServer = coreCount (1 active client per core)
 
@@ -98,8 +98,13 @@ provide a Router implementation in the configuration:
 
 Available router constructors:
 
-  - NewDefaultRouter(): Coordinator preference with round-robin fallback
-  - NewSmartRouter(): HTTP pattern-based routing (bulk->ingest, search->data) with coordinator preference
+  - NewSmartRouter(): Affinity-aware routing with per-index
+    consistency (recommended). NewDefaultRouter() returns the same
+    router. When the fan-out set spans multiple RTT tiers, tier-span
+    equalization inflates cost attribution so traffic distributes
+    equally across all active tiers.
+  - NewMuxRouter(): HTTP pattern-based routing (bulk->ingest, search->data) without affinity
+  - NewRoundRobinRouter(): Coordinator preference with round-robin fallback
   - NewRouter(policies...): Custom policy chain
 
 The routing system uses a chain-of-responsibility pattern where policies are tried in sequence:
@@ -133,11 +138,17 @@ Individual routing policies that can be composed into custom strategies:
 
 The smart router automatically handles these OpenSearch operation patterns:
 
-  - Bulk operations (/_bulk, /_bulk/stream) -> Ingest-capable nodes
-  - Ingest pipelines (/_ingest/pipeline/*) -> Ingest-capable nodes
-  - Search operations (/_search, /_msearch, /_count) -> Data nodes
-  - Document retrieval (/_doc/*, /_mget, /_source/*) -> Data nodes
+  - Bulk operations (/_bulk, /_bulk/stream) -> Ingest nodes
+  - Ingest pipelines (/_ingest/pipeline/*) -> Ingest nodes
+  - Search operations (/_search, /_msearch, /_count) -> Search nodes (3.0+) -> Data nodes
+  - Document retrieval (/_doc/*, /_mget, /_source/*) -> Search nodes (3.0+) -> Data nodes
+  - Searchable snapshots (/_snapshot/{repo}/{snap}/_mount) -> Warm nodes (2.4+) -> Data nodes
+  - Index settings (/{index}/_settings) -> Warm nodes (2.4+) -> Data nodes
   - All other operations -> Round-robin fallback
+
+Each role-specific route falls through to the next tier when the preferred node type is
+unavailable in the cluster. If coordinating-only nodes exist, all requests route to them
+instead of using role-based routing.
 
 # Node Discovery
 
@@ -151,6 +162,14 @@ Enable automatic cluster discovery to maintain current node information:
 
 The discovery process respects node roles and can exclude dedicated cluster manager nodes
 from request routing (controlled by IncludeDedicatedClusterManagers configuration).
+
+When a request fails (transport error or retryable HTTP status), the failing connection is
+marked with a needsCatUpdate flag that excludes it from affinity routing candidate sets.
+The node remains available for round-robin fallback and zombie tryout, but stays out of
+index-affinity selection until a /_cat/shards refresh confirms current shard placement.
+This flag survives resurrection: a node can pass health checks and return to the active
+pool while still excluded from affinity routing. A lightweight /_cat/shards-only refresh
+is scheduled with urgency proportional to the fraction of affected connections.
 
 # Legacy Connection Pool
 
@@ -175,5 +194,40 @@ Alternatively, set the OPENSEARCH_GO_DEBUG environment variable to "true" to ena
 logging globally without code changes. When enabled, debug output is written to stderr.
 
 Use the EnableMetrics option to enable metric collection and export.
+
+# Policy Environment Variable Overrides
+
+Operators can disable specific routing policies at startup via environment variables,
+without code changes. This is useful for debugging, A/B testing routing behavior, and
+emergency overrides in production.
+
+Each policy type has a corresponding environment variable:
+
+	OPENSEARCH_GO_POLICY_CHAIN
+	OPENSEARCH_GO_POLICY_MUX
+	OPENSEARCH_GO_POLICY_IFENABLED
+	OPENSEARCH_GO_POLICY_AFFINITY
+	OPENSEARCH_GO_POLICY_ROLE
+	OPENSEARCH_GO_POLICY_ROUNDROBIN
+	OPENSEARCH_GO_POLICY_COORDINATOR
+	OPENSEARCH_GO_POLICY_NULL
+	OPENSEARCH_GO_POLICY_INDEX_AFFINITY
+	OPENSEARCH_GO_POLICY_DOCUMENT_AFFINITY
+
+Value parsing (evaluated in order):
+
+ 1. Bool: if the entire value parses as a bool (e.g., "false"), it applies to ALL
+    instances of that policy type. "true" is a no-op (same as default behavior).
+
+ 2. Comma-separated path matchers: each item is "path=bool". The path portion is
+    matched first as a regexp, then as a string prefix. Example:
+
+    OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false
+
+Policy paths use dot-delimited notation with per-type sibling indices:
+
+	chain[0].ifenabled[0].chain[0].mux[0].role[0]
+
+Set OPENSEARCH_GO_DEBUG=true to see policy paths and override actions in stderr.
 */
 package opensearchtransport

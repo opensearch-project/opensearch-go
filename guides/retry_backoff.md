@@ -1,6 +1,6 @@
-# Configure the client with retry and backoff
+# Retry and Backoff
 
-The OpenSearch client will retry on certain errors, such as `503 Service Unavailable`. And it will retry right after receiving the error. You can customize the retry behavior.
+The OpenSearch client retries on certain errors, such as `503 Service Unavailable`, immediately upon receiving the error response. The retry behavior is configurable.
 
 ## Setup
 
@@ -27,6 +27,7 @@ func main() {
 
 func example() error {
 	client, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
                 // Retry on 429 TooManyRequests statuses as well (502, 503, 504 are default values)
                 RetryOnStatus: []int{502, 503, 504, 429},
 
@@ -35,13 +36,14 @@ func example() error {
 
                 // Retry up to 5 attempts (1 initial + 4 retries)
                 MaxRetries: 4,
+		},
 	})
 	if err != nil {
 		return err
 	}
 ```
 
-If you do not want to wait too long when the server is not responsive, then control the total duration of the requests with a context. The on-going request and the backoff will be canceled when the context is canceled.
+To limit total wait time when the server is unresponsive, use a context with a deadline. Both the in-flight request and the backoff delay are cancelled when the context expires.
 
 ```go
 	rootCtx := context.Background()
@@ -54,17 +56,17 @@ If you do not want to wait too long when the server is not responsive, then cont
 
 ## Dead Connection Resurrection
 
-For details on the health check endpoint itself -- response fields, HTTP status codes, required permissions, and security configuration -- see [cluster_health_checking.md](cluster_health_checking.md).
+For details on the health check endpoint -- response fields, HTTP status codes, required permissions, and security configuration -- see [cluster_health_checking.md](cluster_health_checking.md).
 
-When a node becomes unreachable, the client marks it as dead and schedules periodic resurrection attempts using exponential backoff. The retry interval is adapted to cluster health so the client is aggressive when all nodes are down (to recover capacity fast) and conservative when the cluster is mostly healthy (to avoid TLS handshake storms on recovering servers).
+When a node becomes unreachable, the client marks it as dead and schedules periodic resurrection attempts using exponential backoff. The retry interval adapts to cluster health: the client is aggressive when all nodes are down (to recover capacity quickly) and conservative when the cluster is mostly healthy (to avoid TLS handshake storms on recovering servers).
 
 ### How It Works
 
-Each dead connection gets its own resurrection goroutine. The retry interval is determined by three competing inputs -- the largest one wins:
+Each dead connection receives its own resurrection goroutine. The retry interval is determined by three competing inputs; the largest value wins:
 
 1. **Health-ratio timeout**: Exponential backoff scaled by cluster health. `baseTimeout * (liveNodes / totalNodes)`. Healthy clusters wait longer.
 
-2. **Rate-limited timeout**: Throttles based on estimated TLS handshake pressure. `(liveNodes * clientsPerServer) / serverMaxNewConnsPerSec`. Grows as servers recover, because recovering servers face reconnections from ALL clients. The capacity model values are auto-derived from the server's core count (discovered via `/_nodes/http,os`, default: 8 cores).
+2. **Rate-limited timeout**: Throttles based on estimated TLS handshake pressure. `(liveNodes * clientsPerServer) / serverMaxNewConnsPerSec`. This value grows as servers recover, because recovering servers face reconnections from all clients simultaneously. The capacity model values are auto-derived from the server's core count (discovered via `/_nodes/http,os`, default: 8 cores).
 
 3. **Minimum floor**: `MinimumResurrectTimeout` (default: 500ms). Absolute lower bound.
 
@@ -135,11 +137,11 @@ Timeout
                     Live Nodes ->
 ```
 
-**Key insight**: the client is MOST aggressive when all servers are down (500ms retries to get capacity back fast) and MOST conservative when the cluster is nearly healthy (30s retries to avoid TLS handshake storms on the few remaining recovering servers).
+**Key property**: the client is most aggressive when all servers are down (500 ms retries to recover capacity quickly) and most conservative when the cluster is nearly healthy (30 s retries to avoid TLS handshake storms on the remaining recovering servers).
 
 ### Detailed Math: 3-Node Cluster
 
-Small clusters behave differently -- the health-ratio timeout dominates over the rate limit because few nodes produce a tiny rate-limit term:
+Small clusters behave differently: the health-ratio timeout dominates over the rate limit because few nodes produce a negligible rate-limit term:
 
 ```
 Live  Dead  Health Timeout     Rate Limit           Final Timeout
@@ -149,7 +151,7 @@ Live  Dead  Health Timeout     Rate Limit           Final Timeout
  2     1    30s * 0.67 = 20s   (2 * 8)/32 =  0.5s   20s   <- health ratio dominates
 ```
 
-In small clusters the rate limit is negligible. The health-ratio timeout alone provides proportional backoff: 1 out of 3 nodes dead -> wait 10s, 2 out of 3 -> wait 20s.
+In small clusters, the rate limit is negligible. The health-ratio timeout alone provides proportional backoff: one of three nodes dead results in a 10 s wait; two of three results in a 20 s wait.
 
 ### Exponential Backoff Progression
 
@@ -165,25 +167,28 @@ Failures  Base Timeout           Health Timeout        Final
 5+        5s  * 2^4 = 30s (cap) 30s * 0.67 = 20.0s   20.0s  <- steady state
 ```
 
-After 4 consecutive failures, the timeout reaches steady state at 20s (plus jitter). If the node recovers, its failure counter resets and the next failure starts back at 3.3s.
+After 4 consecutive failures, the timeout reaches steady state at 20 s (plus jitter). If the node recovers, its failure counter resets and the next failure starts back at 3.3 s.
 
 ### Why Rate Limit Uses Live Nodes (Not Dead Nodes)
 
-The rate limit formula uses `liveNodes`, not `deadNodes`, because the bottleneck is the **recovering** servers -- not the dead ones:
+The rate limit formula uses `liveNodes`, not `deadNodes`, because the bottleneck is the **recovering** servers, not the unreachable ones:
 
-- **Dead servers** can't do anything; they're unreachable. Retrying them faster doesn't create load anywhere.
-- **Recovering servers** (transitioning from dead to live) are the bottleneck. Each one must handle TLS handshake negotiations from every client simultaneously. Async cryptographic operations are expensive compared to established TLS connections.
-- As more servers come back, the aggregate TLS handshake load **increases** because all clients reconnect to all recovering servers at once. The rate limit grows with `liveNodes` to account for this increasing pressure.
+- **Dead servers** are unreachable; retrying them faster does not create load anywhere.
+- **Recovering servers** (transitioning from dead to live) are the bottleneck. Each must handle TLS handshake negotiations from every client simultaneously. Asynchronous cryptographic operations are expensive compared to established TLS connections.
+- As more servers come back, the aggregate TLS handshake load **increases** because all clients reconnect to all recovering servers concurrently. The rate limit grows with `liveNodes` to account for this increasing pressure.
 
 ### Configuration
 
 ```go
 client, err := opensearchapi.NewClient(opensearchapi.Config{
-    // Exponential backoff for dead connections
-    ResurrectTimeoutInitial: 5 * time.Second,        // Starting backoff (default: 5s)
-    ResurrectTimeoutMax:     30 * time.Second,        // Cap before jitter (default: 30s)
-    MinimumResurrectTimeout: 500 * time.Millisecond,  // Absolute floor (default: 500ms)
-    JitterScale:             0.5,                     // Jitter multiplier (default: 0.5)
+    Client: opensearch.Config{
+        // Exponential backoff for dead connections
+        ResurrectTimeoutInitial:      5 * time.Second,         // Starting backoff (default: 5s)
+        ResurrectTimeoutMax:          30 * time.Second,        // Cap before jitter (default: 30s)
+        ResurrectTimeoutFactorCutoff: 5,                       // Max exponent: 2^cutoff (default: 5)
+        MinimumResurrectTimeout:      500 * time.Millisecond,  // Absolute floor (default: 500ms)
+        JitterScale:                  0.5,                     // Jitter multiplier (default: 0.5)
+    },
 })
 ```
 

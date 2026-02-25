@@ -56,9 +56,7 @@ func example() error {
 				DiscoverNodesInterval: 5 * time.Minute,
 
 				// Optional: Enable intelligent request routing
-				Transport: &opensearchtransport.Client{
-					Router: opensearchtransport.NewSmartRouter(),
-				},
+				Router: opensearchtransport.NewSmartRouter(),
 			},
 		},
 	)
@@ -436,6 +434,23 @@ In tests, use the `testutil.IsDebugEnabled(t)` helper which also reads `OPENSEAR
 OPENSEARCH_GO_DEBUG=true go test ./...
 ```
 
+## Policy Overrides
+
+Disable specific routing policies at startup via environment variables for debugging, A/B testing, or emergency overrides:
+
+```bash
+# Disable all affinity routing (fall back to plain role-based)
+OPENSEARCH_GO_POLICY_AFFINITY=false myapp
+
+# Disable a specific policy instance by path
+OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
+
+# Regex path matching
+OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
+```
+
+Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Connection Routing](guides/request_routing.md#policy-environment-variable-overrides) for full documentation.
+
 ## Guides by Topic
 
 - [Index Lifecycle](guides/index_lifecycle.md)
@@ -446,6 +461,8 @@ OPENSEARCH_GO_DEBUG=true go test ./...
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
 - [Connection Routing](guides/request_routing.md)
+- [Affinity Routing](guides/affinity_routing.md)
+- [Connection Pool Architecture](guides/connection_pool.md)
 - [Cluster Health Checking](guides/cluster_health_checking.md)
 - [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
 - [Retry and Backoff](guides/retry_backoff.md)
