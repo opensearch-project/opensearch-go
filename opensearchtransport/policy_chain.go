@@ -28,6 +28,7 @@ package opensearchtransport
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 )
@@ -126,7 +127,7 @@ func (r *PolicyChain) DiscoveryUpdate(added, removed, unchanged []*Connection) e
 		}
 	}
 
-	r.isEnabled.Store(hasEnabledPolicy)
+	psSetEnabled(&r.policyState, hasEnabledPolicy)
 	return firstError
 }
 
@@ -150,14 +151,35 @@ func (r *PolicyChain) CheckDead(ctx context.Context, healthCheck HealthCheckFunc
 	return firstError
 }
 
+// RotateStandby delegates to all sub-policies, summing successful rotations.
+func (r *PolicyChain) RotateStandby(ctx context.Context, count int) (int, error) {
+	var (
+		total int
+		errs  []error
+	)
+	for _, policy := range r.policies {
+		n, err := policy.RotateStandby(ctx, count)
+		total += n
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return total, errors.Join(errs...)
+}
+
 // IsEnabled uses cached state for O(1) lookup (when PolicyChain is used as Policy).
 func (r *PolicyChain) IsEnabled() bool {
-	return r.isEnabled.Load()
+	return psIsEnabled(r.policyState.Load())
 }
 
 // Eval tries each sub-policy in sequence until one returns a connection pool or error.
 // Returns (nil, nil) only if all sub-policies return (nil, nil).
 func (r *PolicyChain) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+	if r.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
+
 	for _, policy := range r.policies {
 		pool, err := policy.Eval(ctx, req)
 		switch {
@@ -190,6 +212,11 @@ func (r *PolicyChain) configurePolicySettings(config policyConfig) error {
 	}
 
 	return firstError
+}
+
+// childPolicies returns the sub-policies for tree walking.
+func (r *PolicyChain) childPolicies() []Policy {
+	return r.policies
 }
 
 // poolSnapshots collects pool snapshots from all sub-policies.

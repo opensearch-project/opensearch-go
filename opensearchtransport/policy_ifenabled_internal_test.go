@@ -200,6 +200,10 @@ func (p *testPolicy) CheckDead(ctx context.Context, healthCheck HealthCheckFunc)
 	return nil
 }
 
+func (p *testPolicy) RotateStandby(_ context.Context, _ int) (int, error) {
+	return 0, nil
+}
+
 func (p *testPolicy) IsEnabled() bool {
 	return true
 }

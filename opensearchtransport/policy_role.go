@@ -40,6 +40,8 @@ var (
 	_ Policy             = (*RolePolicy)(nil)
 	_ policyConfigurable = (*RolePolicy)(nil)
 	_ PoolReporter       = (*RolePolicy)(nil)
+	_ policyTyped        = (*RolePolicy)(nil)
+	_ policyOverrider    = (*RolePolicy)(nil)
 )
 
 const (
@@ -92,10 +94,13 @@ func NormalizeRoles(roles []string) (string, error) {
 
 // RolePolicy implements routing based on required node roles.
 type RolePolicy struct {
-	requiredRoleKey  string           // Normalized role key for this policy
-	pool             *multiServerPool // Single pool for connections matching required roles
-	hasMatchingRoles atomic.Bool      // Cached state from DiscoveryUpdate
+	requiredRoleKey string           // Normalized role key for this policy
+	pool            *multiServerPool // Single pool for connections matching required roles
+	policyState     atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
+
+func (p *RolePolicy) policyTypeName() string      { return "role" }
+func (p *RolePolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewRolePolicy creates a new role-based routing policy.
 // Routes requests only to nodes that have ALL of the specified roles.
@@ -148,6 +153,10 @@ func (p *RolePolicy) configurePolicySettings(config policyConfig) error {
 // Adds are processed before removes so that the pool is never empty during a topology
 // change where old seed URLs are replaced by discovered node addresses.
 func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) error {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		return nil
+	}
+
 	// Compute projected pool size for warmup/activeListCap scaling.
 	// Only count connections that match this policy's required roles.
 	p.pool.RLock()
@@ -189,8 +198,11 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 			p.pool.Lock()
 			conn.mu.RLock()
 
-			// Check if connection is healthy to determine which list to add it to
-			isHealthy := conn.mu.deadSince.IsZero()
+			// Determine health from lifecycle bits, not timestamps.
+			// Multiple pools share the same *Connection, so deadSince is
+			// unreliable -- one pool's appendToDeadWithLock may set it before
+			// another pool processes the same connection.
+			isHealthy := conn.isReady()
 
 			// Release conn.mu before pool operations that may write-lock connections
 			// in the ready list (enforceActiveCapWithLock). Since conn is about to be
@@ -217,7 +229,7 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 
 			// Update hasMatching state while holding the lock
 			hasConnections := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-			p.hasMatchingRoles.Store(hasConnections)
+			psSetEnabled(&p.policyState, hasConnections)
 
 			p.pool.Unlock()
 		}
@@ -300,11 +312,11 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 	// If removal shrunk the active partition and standby exists,
 	// schedule graceful (warmed) promotions to fill the gap.
 	gap := activeCountBefore - p.pool.mu.activeCount
-	p.pool.promoteStandbyGracefullyWithLock(context.TODO(), gap)
+	p.pool.promoteStandbyGracefullyWithLock(p.pool.poolCtx(), gap)
 
 	// Update hasMatching state while holding the lock
 	hasConnections := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-	p.hasMatchingRoles.Store(hasConnections)
+	psSetEnabled(&p.policyState, hasConnections)
 	p.pool.Unlock()
 }
 
@@ -331,13 +343,18 @@ func (p *RolePolicy) connectionMatchesRoles(conn *Connection) bool {
 
 // IsEnabled uses cached state to quickly determine if matching roles are available.
 func (p *RolePolicy) IsEnabled() bool {
-	return p.hasMatchingRoles.Load()
+	return psIsEnabled(p.policyState.Load())
 }
 
 // Eval returns the connection pool for this role-based policy.
 // Returns (nil, nil) if no matching connections are found (allows fallthrough).
 func (p *RolePolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
-	if p.hasMatchingRoles.Load() {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
+
+	if p.policyState.Load()&psEnabled != 0 {
 		return p.pool, nil
 	}
 	// No matching connections found, allow fallthrough
@@ -350,13 +367,18 @@ func (p *RolePolicy) CheckDead(ctx context.Context, healthCheck HealthCheckFunc)
 	return p.pool.checkDead(ctx, healthCheck)
 }
 
+// RotateStandby rotates standby connections into active in this policy's pool.
+func (p *RolePolicy) RotateStandby(ctx context.Context, count int) (int, error) {
+	return p.pool.rotateStandby(ctx, count)
+}
+
 // PoolSnapshot returns a point-in-time snapshot of this policy's pool.
 func (p *RolePolicy) PoolSnapshot() PoolSnapshot {
 	if p.pool == nil {
 		return PoolSnapshot{Name: "role:" + p.requiredRoleKey}
 	}
 	snap := p.pool.snapshot()
-	snap.Enabled = p.hasMatchingRoles.Load()
+	snap.Enabled = psIsEnabled(p.policyState.Load())
 	return snap
 }
 

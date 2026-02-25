@@ -31,6 +31,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,12 +41,35 @@ import (
 var (
 	_ Policy             = (*MuxPolicy)(nil)
 	_ policyConfigurable = (*MuxPolicy)(nil)
+	_ policyTyped        = (*MuxPolicy)(nil)
+	_ policyOverrider    = (*MuxPolicy)(nil)
 )
 
 // ErrNoRouteMatched is returned when no route matches the request pattern.
 var ErrNoRouteMatched = errors.New("no route matched request")
 
+// routeAttr is a bitfield of per-route attributes applied when the route matches.
+// Attributes are set at route construction time and evaluated by [MuxPolicy.Eval].
+type routeAttr uint32
+
+const (
+	// routeAttrPreferLocal injects ?preference=_local on matched requests.
+	// This tells the server to prefer shard copies local to the receiving node,
+	// complementing client-side affinity routing. Only appropriate for data
+	// operations that accept the preference parameter (search, get, count, etc.).
+	routeAttrPreferLocal routeAttr = 1 << iota
+)
+
 const openSearchSystemQueryPrefix = "/_"
+
+// isSystemPath reports whether path targets an OpenSearch system endpoint
+// (paths starting with /_). System endpoints include /_cluster, /_cat,
+// /_nodes, /_ingest, /_search (cross-index), etc. These endpoints do not
+// target a specific index and generally do not accept shard-level parameters
+// like ?preference.
+func isSystemPath(path string) bool {
+	return strings.HasPrefix(path, openSearchSystemQueryPrefix)
+}
 
 //nolint:gochecknoglobals // Shared HTTP methods map for validMuxPattern
 var httpMethods = map[string]struct{}{
@@ -64,16 +88,24 @@ var httpMethods = map[string]struct{}{
 type Route interface {
 	// Policy returns the policy to use for matching requests
 	Policy() Policy
+	// Attrs returns the per-route attribute bitfield.
+	Attrs() routeAttr
 }
 
 // RouteMux represents a route that can be handled by http.ServeMux
 type RouteMux struct {
-	Pattern string // HTTP pattern (e.g., "POST /_bulk", "GET /_search", "/")
-	policy  Policy // Policy to use for matching requests
+	Pattern string    // HTTP pattern (e.g., "POST /_bulk", "GET /_search", "/")
+	policy  Policy    // Policy to use for matching requests
+	attrs   routeAttr // Per-route attributes applied when the route matches
 }
 
 // NewRouteMux creates a new ServeMux-compatible route with validation.
 func NewRouteMux(pattern string, policy Policy) (Route, error) {
+	return NewRouteMuxAttrs(pattern, policy, 0)
+}
+
+// NewRouteMuxAttrs creates a new ServeMux-compatible route with attributes.
+func NewRouteMuxAttrs(pattern string, policy Policy, attrs routeAttr) (Route, error) {
 	if policy == nil {
 		return nil, errors.New("policy cannot be nil")
 	}
@@ -85,13 +117,20 @@ func NewRouteMux(pattern string, policy Policy) (Route, error) {
 	return &RouteMux{
 		Pattern: pattern,
 		policy:  policy,
+		attrs:   attrs,
 	}, nil
 }
 
 // mustNewRouteMux creates a new ServeMux-compatible route, panicking on error.
 // Used for internal route construction where patterns are known to be valid.
 func mustNewRouteMux(pattern string, policy Policy) Route {
-	route, err := NewRouteMux(pattern, policy)
+	return mustNewRouteMuxAttrs(pattern, policy, 0)
+}
+
+// mustNewRouteMuxAttrs creates a new ServeMux-compatible route with attributes,
+// panicking on error. Used for internal route construction.
+func mustNewRouteMuxAttrs(pattern string, policy Policy, attrs routeAttr) Route {
+	route, err := NewRouteMuxAttrs(pattern, policy, attrs)
 	if err != nil {
 		panic("invalid RouteMux: " + err.Error())
 	}
@@ -101,18 +140,24 @@ func mustNewRouteMux(pattern string, policy Policy) Route {
 // Policy returns the underlying policy used by this RouteMux.
 func (r *RouteMux) Policy() Policy { return r.policy }
 
+// Attrs returns the per-route attribute bitfield.
+func (r *RouteMux) Attrs() routeAttr { return r.attrs }
+
 // MuxPolicy is a connection policy multiplexer that routes requests to different policies
 // based on HTTP patterns, using separate ServeMux instances for system vs index endpoints.
 type MuxPolicy struct {
 	systemMux      *http.ServeMux      // ServeMux for system endpoints (/_cluster, /_snapshot, etc.)
 	indexMux       *http.ServeMux      // ServeMux for index endpoints (/{index}/_search, etc.)
 	uniquePolicies map[Policy]struct{} // Set of unique policies for lifecycle management
-	isEnabled      atomic.Bool         // Cached state from DiscoveryUpdate
+	policyState    atomic.Int32        // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 
 	// Object pools for policyResponseWriter resources
 	headerPool         sync.Pool // Pool for reusing http.Header
 	responseWriterPool sync.Pool // Pool for reusing policyResponseWriter
 }
+
+func (p *MuxPolicy) policyTypeName() string      { return "mux" }
+func (p *MuxPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewMuxPolicy creates a new policy multiplexer with the given routes.
 //
@@ -154,14 +199,16 @@ func NewMuxPolicy(routes []Route) Policy {
 			}
 
 			policy := r.Policy() // Capture for closure
+			attrs := r.Attrs()   // Capture for closure
 			handler := func(w http.ResponseWriter, req *http.Request) {
 				if pw, ok := w.(*policyResponseWriter); ok {
 					pw.policy = policy
+					pw.attrs = attrs
 				}
 			}
 
 			// Route to appropriate ServeMux based on path prefix
-			if strings.HasPrefix(queryPath, openSearchSystemQueryPrefix) {
+			if isSystemPath(queryPath) {
 				systemMux.HandleFunc(r.Pattern, handler)
 			} else {
 				indexMux.HandleFunc(r.Pattern, handler)
@@ -205,10 +252,12 @@ func validMuxPattern(pattern string) (string, error) {
 	return routeFields[1], nil
 }
 
-// policyResponseWriter is a custom ResponseWriter that captures the policy.
+// policyResponseWriter is a custom ResponseWriter that captures the policy
+// and route attributes from a matched ServeMux handler.
 type policyResponseWriter struct {
 	muxPolicy *MuxPolicy // Reference to parent MuxPolicy for pool access
 	policy    Policy
+	attrs     routeAttr
 	header    http.Header
 }
 
@@ -234,6 +283,7 @@ func (w *policyResponseWriter) release() {
 		w.header = nil
 	}
 	w.policy = nil
+	w.attrs = 0
 }
 
 // DiscoveryUpdate updates all sub-policies and caches the enabled state.
@@ -253,17 +303,22 @@ func (p *MuxPolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) err
 		}
 	}
 
-	p.isEnabled.Store(hasEnabledPolicy)
+	psSetEnabled(&p.policyState, hasEnabledPolicy)
 	return firstError
 }
 
 // IsEnabled uses cached state to quickly determine if this mux can route requests.
 func (p *MuxPolicy) IsEnabled() bool {
-	return p.isEnabled.Load()
+	return psIsEnabled(p.policyState.Load())
 }
 
 // Eval routes the request based on HTTP patterns and delegates to the matching policy.
 func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
+
 	// Get writer from pool
 	pw := p.responseWriterPool.Get().(*policyResponseWriter)
 	pw.muxPolicy = p // Set reference to parent for pool access
@@ -279,7 +334,7 @@ func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool
 		return nil, nil
 	}
 
-	if strings.HasPrefix(req.URL.Path, openSearchSystemQueryPrefix) {
+	if isSystemPath(req.URL.Path) {
 		if p.systemMux == nil {
 			//nolint:nilnil // Intentional: (nil, nil) signals "no routes configured"
 			return nil, nil
@@ -297,7 +352,13 @@ func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool
 
 	// If ServeMux found a match, use it
 	if pw.policy != nil {
-		return pw.policy.Eval(ctx, req)
+		pool, err := pw.policy.Eval(ctx, req)
+		if pool != nil && err == nil {
+			if pw.attrs&routeAttrPreferLocal != 0 {
+				injectPreference(req, preferenceLocal)
+			}
+		}
+		return pool, err
 	}
 
 	// No matching route found - return nil, nil to allow fallthrough
@@ -316,6 +377,22 @@ func (p *MuxPolicy) CheckDead(ctx context.Context, healthCheck HealthCheckFunc) 
 	return firstError
 }
 
+// RotateStandby delegates to all unique sub-policies, summing successful rotations.
+func (p *MuxPolicy) RotateStandby(ctx context.Context, count int) (int, error) {
+	var (
+		total int
+		errs  []error
+	)
+	for policy := range p.uniquePolicies {
+		n, err := policy.RotateStandby(ctx, count)
+		total += n
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return total, errors.Join(errs...)
+}
+
 // configurePolicySettings configures pool settings for all unique sub-policies.
 func (p *MuxPolicy) configurePolicySettings(config policyConfig) error {
 	var firstError error
@@ -330,6 +407,19 @@ func (p *MuxPolicy) configurePolicySettings(config policyConfig) error {
 	}
 
 	return firstError
+}
+
+// childPolicies returns the unique sub-policies for tree walking.
+// Sorted by policySortKey for deterministic path assignment.
+func (p *MuxPolicy) childPolicies() []Policy {
+	policies := make([]Policy, 0, len(p.uniquePolicies))
+	for policy := range p.uniquePolicies {
+		policies = append(policies, policy)
+	}
+	slices.SortFunc(policies, func(a, b Policy) int {
+		return strings.Compare(policySortKey(a), policySortKey(b))
+	})
+	return policies
 }
 
 // poolSnapshots collects pool snapshots from all unique sub-policies.

@@ -36,8 +36,38 @@ import (
 // ---------------------------------------------------------------------------
 
 // loadConnState returns the current packed state of the connection.
-// Safe to call without holding any lock.
+// Safe to call without holding any lock -- atomics are for "dirty reads"
+// for metrics or reporting, but not for state changes.
+// For pool-placement decisions, use isPositioned under c.mu.RLock.
 func (c *Connection) loadConnState() connState { return connState(c.state.Load()) }
+
+// isReady reports whether the connection should be eligible to be in the
+// ready list or not (lcActive or lcStandby). Returns false for connections
+// that belong on the dead list (lcUnknown / lcDead -- no position bit set).
+//
+// A connection state change does not propagate to all policies and their
+// connection pools, so lifecycle bits serve as hints for cleanup when a pool
+// is exercised via its respective activities (which may be never if all
+// requests hit an upstream policy). A connection could be in one pool's dead
+// list but ready-eligible because another pool already promoted it, or in
+// the ready list as standby and therefore correctly placed.
+//
+// Every pool operation that makes placement decisions -- DiscoveryUpdate,
+// Next, CheckDead, RotateStandby -- should consult lifecycle bits rather
+// than timestamp fields (deadSince). Multiple pools share the same
+// *Connection, so timestamps set by one pool's appendToDeadWithLock are
+// visible to other pools and do not reflect that pool's own state.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold c.mu.RLock (or c.mu.Lock).
+//
+// Usage requires an atomic Load as a dirty read, but changing a connection's
+// state requires c.mu.RLock (or c.mu.Lock) and predicate re-evaluation
+// before resetting a bit to indicate a state change.
+func (c *Connection) isReady() bool {
+	lc := c.loadConnState().lifecycle()
+	return lc.has(lcActive) || lc.has(lcStandby)
+}
 
 // casLifecycle atomically modifies lifecycle bits with conflict detection.
 //

@@ -151,7 +151,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		defer server.Close()
 
 		// Add a dead connection that needs health checking
-		conn := createTestConnection(server.URL)
+		conn := createDeadTestConnection(server.URL)
 		policy.DiscoveryUpdate([]*Connection{conn}, nil, nil)
 
 		// Move connection from dead to the checkable state
