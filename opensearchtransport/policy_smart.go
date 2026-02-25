@@ -29,6 +29,7 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
+	"time"
 )
 
 // NewDefaultRoutes returns the default routing patterns for intelligent request routing.
@@ -76,102 +77,105 @@ func NewDefaultRoutes() []Route {
 
 	// Define routes for different OpenSearch operations
 	// Using the exact same patterns as OpenSearch server
+	return buildRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled)
+}
+
+// buildRoleRoutes constructs the canonical route table mapping OpenSearch REST
+// API patterns to role-based policies. Both [NewDefaultRoutes] and
+// [newAffinityRoutes] use this to avoid duplicating the pattern list.
+func buildRoleRoutes(ingest, search, warm Policy) []Route {
 	return []Route{
-		// Bulk operations - route to ingest nodes (exact patterns from RestBulkAction.java)
-		mustNewRouteMux("POST /_bulk", ingestIfEnabled),
-		mustNewRouteMux("PUT /_bulk", ingestIfEnabled),
-		mustNewRouteMux("POST /{index}/_bulk", ingestIfEnabled),
-		mustNewRouteMux("PUT /{index}/_bulk", ingestIfEnabled),
+		// Bulk operations - ingest nodes (exact patterns from RestBulkAction.java)
+		mustNewRouteMux("POST /_bulk", ingest),
+		mustNewRouteMux("PUT /_bulk", ingest),
+		mustNewRouteMux("POST /{index}/_bulk", ingest),
+		mustNewRouteMux("PUT /{index}/_bulk", ingest),
 
-		// Streaming bulk operations - route to ingest nodes (from RestBulkStreamingAction.java)
+		// Streaming bulk operations (from RestBulkStreamingAction.java)
 		// NOTE: Requires OpenSearch 3.0.0+; older versions will return HTTP 404
-		mustNewRouteMux("POST /_bulk/stream", ingestIfEnabled),
-		mustNewRouteMux("PUT /_bulk/stream", ingestIfEnabled),
-		mustNewRouteMux("POST /{index}/_bulk/stream", ingestIfEnabled),
-		mustNewRouteMux("PUT /{index}/_bulk/stream", ingestIfEnabled),
+		mustNewRouteMux("POST /_bulk/stream", ingest),
+		mustNewRouteMux("PUT /_bulk/stream", ingest),
+		mustNewRouteMux("POST /{index}/_bulk/stream", ingest),
+		mustNewRouteMux("PUT /{index}/_bulk/stream", ingest),
 
-		// Ingest pipeline operations - route to ingest nodes
-		mustNewRouteMux("PUT /_ingest/pipeline/{id}", ingestIfEnabled),
-		mustNewRouteMux("POST /_ingest/pipeline/{id}", ingestIfEnabled),
-		mustNewRouteMux("GET /_ingest/pipeline/{id}", ingestIfEnabled),
-		mustNewRouteMux("DELETE /_ingest/pipeline/{id}", ingestIfEnabled),
-		mustNewRouteMux("GET /_ingest/pipeline/", ingestIfEnabled),
-		mustNewRouteMux("GET /_ingest/pipeline", ingestIfEnabled),
-		mustNewRouteMux("GET /_ingest/pipeline/{id}/_simulate", ingestIfEnabled),
-		mustNewRouteMux("POST /_ingest/pipeline/{id}/_simulate", ingestIfEnabled),
-		mustNewRouteMux("GET /_ingest/pipeline/_simulate", ingestIfEnabled),
-		mustNewRouteMux("POST /_ingest/pipeline/_simulate", ingestIfEnabled),
+		// Ingest pipeline operations
+		mustNewRouteMux("PUT /_ingest/pipeline/{id}", ingest),
+		mustNewRouteMux("POST /_ingest/pipeline/{id}", ingest),
+		mustNewRouteMux("GET /_ingest/pipeline/{id}", ingest),
+		mustNewRouteMux("DELETE /_ingest/pipeline/{id}", ingest),
+		mustNewRouteMux("GET /_ingest/pipeline/", ingest),
+		mustNewRouteMux("GET /_ingest/pipeline", ingest),
+		mustNewRouteMux("GET /_ingest/pipeline/{id}/_simulate", ingest),
+		mustNewRouteMux("POST /_ingest/pipeline/{id}/_simulate", ingest),
+		mustNewRouteMux("GET /_ingest/pipeline/_simulate", ingest),
+		mustNewRouteMux("POST /_ingest/pipeline/_simulate", ingest),
 
-		// Searchable snapshot operations - route to warm nodes (OpenSearch 2.4+)
+		// Searchable snapshot operations (OpenSearch 2.4+)
 		// From RestRepositoryMountAction.java and RestRepositoryUnmountAction.java
-		// Now handled cleanly by dual-ServeMux routing (system vs index paths)
-		mustNewRouteMux("POST /_snapshot/{repository}/_mount", warmIfEnabled),
-		mustNewRouteMux("POST /_snapshot/{repository}/{snapshot}/_mount", warmIfEnabled),
-		mustNewRouteMux("DELETE /_snapshot/{repository}/{snapshot}/_mount/{index}", warmIfEnabled),
+		mustNewRouteMux("POST /_snapshot/{repository}/_mount", warm),
+		mustNewRouteMux("POST /_snapshot/{repository}/{snapshot}/_mount", warm),
+		mustNewRouteMux("DELETE /_snapshot/{repository}/{snapshot}/_mount/{index}", warm),
 
-		// Search operations - route to data nodes
-		mustNewRouteMux("GET /_search", searchIfEnabled),
-		mustNewRouteMux("POST /_search", searchIfEnabled),
-		mustNewRouteMux("GET /{index}/_search", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_search", searchIfEnabled),
+		// Search operations
+		mustNewRouteMux("GET /_search", search),
+		mustNewRouteMux("POST /_search", search),
+		mustNewRouteMux("GET /{index}/_search", search),
+		mustNewRouteMux("POST /{index}/_search", search),
 
-		// Multi-search operations - route to data nodes
-		mustNewRouteMux("GET /_msearch", searchIfEnabled),
-		mustNewRouteMux("POST /_msearch", searchIfEnabled),
-		mustNewRouteMux("GET /{index}/_msearch", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_msearch", searchIfEnabled),
+		// Multi-search operations
+		mustNewRouteMux("GET /_msearch", search),
+		mustNewRouteMux("POST /_msearch", search),
+		mustNewRouteMux("GET /{index}/_msearch", search),
+		mustNewRouteMux("POST /{index}/_msearch", search),
 
-		// Count queries - route to data nodes (from RestCountAction.java)
-		mustNewRouteMux("GET /_count", searchIfEnabled),
-		mustNewRouteMux("POST /_count", searchIfEnabled),
-		mustNewRouteMux("GET /{index}/_count", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_count", searchIfEnabled),
+		// Count queries (from RestCountAction.java)
+		mustNewRouteMux("GET /_count", search),
+		mustNewRouteMux("POST /_count", search),
+		mustNewRouteMux("GET /{index}/_count", search),
+		mustNewRouteMux("POST /{index}/_count", search),
 
-		// Query operations - route to data nodes
-		mustNewRouteMux("POST /{index}/_delete_by_query", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_update_by_query", searchIfEnabled),
+		// Query operations
+		mustNewRouteMux("POST /{index}/_delete_by_query", search),
+		mustNewRouteMux("POST /{index}/_update_by_query", search),
 
-		// Explain queries - route to data nodes for query analysis
-		mustNewRouteMux("GET /{index}/_explain/{id}", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_explain/{id}", searchIfEnabled),
+		// Explain queries
+		mustNewRouteMux("GET /{index}/_explain/{id}", search),
+		mustNewRouteMux("POST /{index}/_explain/{id}", search),
 
-		// Document retrieval operations - route to data nodes
-		// Get document operations (from RestGetAction.java)
-		mustNewRouteMux("GET /{index}/_doc/{id}", searchIfEnabled),
-		mustNewRouteMux("HEAD /{index}/_doc/{id}", searchIfEnabled),
+		// Document retrieval operations (from RestGetAction.java)
+		mustNewRouteMux("GET /{index}/_doc/{id}", search),
+		mustNewRouteMux("HEAD /{index}/_doc/{id}", search),
 
 		// Get source operations
-		mustNewRouteMux("GET /{index}/_source/{id}", searchIfEnabled),
-		mustNewRouteMux("HEAD /{index}/_source/{id}", searchIfEnabled),
+		mustNewRouteMux("GET /{index}/_source/{id}", search),
+		mustNewRouteMux("HEAD /{index}/_source/{id}", search),
 
-		// Multi-get operations - route to data nodes for bulk retrieval
-		mustNewRouteMux("GET /_mget", searchIfEnabled),
-		mustNewRouteMux("POST /_mget", searchIfEnabled),
-		mustNewRouteMux("GET /{index}/_mget", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_mget", searchIfEnabled),
+		// Multi-get operations
+		mustNewRouteMux("GET /_mget", search),
+		mustNewRouteMux("POST /_mget", search),
+		mustNewRouteMux("GET /{index}/_mget", search),
+		mustNewRouteMux("POST /{index}/_mget", search),
 
-		// Term vectors operations - route to data nodes for analysis tasks
-		mustNewRouteMux("GET /{index}/_termvectors", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_termvectors", searchIfEnabled),
-		mustNewRouteMux("GET /{index}/_termvectors/{id}", searchIfEnabled),
-		mustNewRouteMux("POST /{index}/_termvectors/{id}", searchIfEnabled),
+		// Term vectors operations
+		mustNewRouteMux("GET /{index}/_termvectors", search),
+		mustNewRouteMux("POST /{index}/_termvectors", search),
+		mustNewRouteMux("GET /{index}/_termvectors/{id}", search),
+		mustNewRouteMux("POST /{index}/_termvectors/{id}", search),
 
-		// Data tier operations - route to warm nodes for warm/cold management
-		// These operations are typically used for index lifecycle management
-		mustNewRouteMux("POST /{index}/_settings", warmIfEnabled), // Index settings changes often involve tier moves
-		mustNewRouteMux("PUT /{index}/_settings", warmIfEnabled),
+		// Data tier operations - index settings changes often involve tier moves
+		mustNewRouteMux("POST /{index}/_settings", warm),
+		mustNewRouteMux("PUT /{index}/_settings", warm),
 
-		// Snapshot-backed search operations - route to warm nodes
-		// These handle searches against searchable snapshots
-		mustNewRouteMux("GET /{index}/_search/template", searchIfEnabled), // Template searches on warm indices
-		mustNewRouteMux("POST /{index}/_search/template", searchIfEnabled),
-		mustNewRouteMux("GET /_search/template", searchIfEnabled),
-		mustNewRouteMux("POST /_search/template", searchIfEnabled),
+		// Template search operations
+		mustNewRouteMux("GET /{index}/_search/template", search),
+		mustNewRouteMux("POST /{index}/_search/template", search),
+		mustNewRouteMux("GET /_search/template", search),
+		mustNewRouteMux("POST /_search/template", search),
 	}
 }
 
-// NewSmartPolicy creates a request-aware policy that routes based on operation type.
-// This provides intelligent routing for OpenSearch operations based on server-side patterns:
+// NewMuxRoutePolicy creates a request-aware policy that routes based on operation type.
+// This provides role-based routing for OpenSearch operations based on server-side patterns:
 //   - If coordinating-only nodes are available, uses them exclusively (no fallback)
 //   - Otherwise falls back to role-specific routing with optimal fallback chains:
 //   - Bulk operations (including streaming bulk) -> ingest nodes
@@ -182,28 +186,13 @@ func NewDefaultRoutes() []Route {
 //   - Index settings/tier management -> warm nodes -> data nodes
 //   - Other operations -> round-robin fallback
 //
-// Role Prioritization:
-//   - Search operations prefer dedicated search nodes when available (OpenSearch 3.0+)
-//   - Warm operations prefer warm nodes for searchable snapshots (OpenSearch 2.4+)
-//   - All role-specific policies fallback to data nodes, then round-robin
-//
-// Routes are based on exact patterns from OpenSearch server REST actions to ensure
-// compatibility and optimal node utilization across all supported operations.
-//
-// Version Compatibility Notes:
-//   - Streaming bulk endpoints (/_bulk/stream) require OpenSearch 3.0.0+
-//   - Search role routing requires OpenSearch 3.0.0+ (falls back to data nodes)
-//   - Warm role routing requires OpenSearch 2.4.0+ (falls back to data nodes)
-//   - Searchable snapshot operations require OpenSearch 2.4.0+
-//   - Older versions will return HTTP 404 for unsupported endpoints
-//   - All other routes are compatible with OpenSearch 1.0.0+
-func NewSmartPolicy() Policy {
+// For affinity-aware routing that adds per-index node consistency and
+// RTT-based scoring, use [NewSmartPolicy] instead.
+func NewMuxRoutePolicy() Policy {
 	coordinatingPolicy := mustRolePolicy(RoleCoordinatingOnly)
 	muxPolicy := NewMuxPolicy(NewDefaultRoutes())
 	roundRobinPolicy := NewRoundRobinPolicy()
 
-	// Return the first applicable policy directly
-	// Note: This will be called by NewSmartRouter() which handles the policy chaining
 	return NewIfEnabledPolicy(
 		func(ctx context.Context, req *http.Request) bool { return coordinatingPolicy.IsEnabled() },
 		coordinatingPolicy,
@@ -214,9 +203,12 @@ func NewSmartPolicy() Policy {
 	)
 }
 
-// NewDefaultPolicy creates a default policy that prioritizes coordinating-only nodes
+// NewRoundRobinDefaultPolicy creates a policy that prioritizes coordinating-only nodes
 // if available, otherwise falls back to round-robin selection across all available nodes.
-func NewDefaultPolicy() Policy {
+//
+// For role-based routing, use [NewMuxRoutePolicy]. For affinity-aware routing,
+// use [NewSmartPolicy].
+func NewRoundRobinDefaultPolicy() Policy {
 	coordinatingPolicy := mustRolePolicy(RoleCoordinatingOnly)
 	roundRobinPolicy := NewRoundRobinPolicy()
 
@@ -230,34 +222,217 @@ func NewDefaultPolicy() Policy {
 	)
 }
 
-// NewSmartRouter creates a router with intelligent request routing.
-// This router provides optimal performance by routing requests to appropriate node types:
+// NewMuxRouter creates a router with role-based request routing.
+// Routes operations to appropriate node types based on HTTP method and path:
 //
-//   - If coordinating-only nodes are available, routes all requests to them (no fallback)
-//   - Otherwise, uses HTTP pattern matching:
+//   - If coordinating-only nodes are available, routes all requests to them
 //   - Bulk operations (/_bulk, /_bulk/stream) -> ingest nodes
-//   - Search operations (/_search, /_count, /_explain) -> data nodes
-//   - Document operations (/_doc, /_mget, /_source) -> data nodes
-//   - Ingest pipeline operations (/_ingest) -> ingest nodes
+//   - Search operations (/_search, /_count, /_explain) -> search nodes (3.0+) -> data nodes
+//   - Document operations (/_doc, /_mget, /_source) -> search nodes (3.0+) -> data nodes
+//   - Searchable snapshots (/_snapshot/*/_mount) -> warm nodes (2.4+) -> data nodes
+//   - Index settings (/{index}/_settings) -> warm nodes (2.4+) -> data nodes
 //   - Falls back to round-robin if specialized nodes unavailable
 //
-// This is the recommended router for production clusters with dedicated node roles.
-// Compatible with all OpenSearch versions (streaming bulk requires 3.0.0+).
-func NewSmartRouter() Router {
-	return NewRouter(NewSmartPolicy())
+// For affinity-aware routing that adds per-index node consistency and
+// RTT-based scoring on top of role routing, use [NewSmartRouter] instead.
+func NewMuxRouter() Router {
+	return NewRouter(NewMuxRoutePolicy())
 }
 
-// NewDefaultRouter creates a router with simple coordinating node preference.
-// This router provides a balance between performance and simplicity:
+// NewRoundRobinRouter creates a router with simple coordinating node preference.
 //
-//   - If coordinating-only nodes are available, routes all requests to them (no fallback)
+//   - If coordinating-only nodes are available, routes all requests to them
 //   - Otherwise, falls back to round-robin across all available nodes
 //
-// This is ideal for:
-//   - Simple production setups without dedicated node roles
-//   - Clusters where you want coordinating node preference without operation-specific routing
+// For role-based routing, use [NewMuxRouter]. For the recommended
+// production router with affinity, use [NewSmartRouter].
+func NewRoundRobinRouter() Router {
+	return NewRouter(NewRoundRobinDefaultPolicy())
+}
+
+// AffinityOption configures the affinity routing behavior.
+type AffinityOption func(*affinityConfig)
+
+type affinityConfig struct {
+	minFanOut       int
+	maxFanOut       int
+	overrides       map[string]int
+	idleEvictionTTL time.Duration
+	decay           float64
+	fanOutPerReq    float64
+}
+
+func defaultAffinityConfig() affinityConfig {
+	return affinityConfig{
+		minFanOut:       defaultMinFanOut,
+		maxFanOut:       defaultMaxFanOut,
+		idleEvictionTTL: defaultIdleEvictionTTL,
+		decay:           defaultDecayFactor,
+		fanOutPerReq:    defaultFanOutPerRequest,
+	}
+}
+
+// WithMinFanOut sets the minimum number of nodes in an index slot.
+// Default: 1.
+func WithMinFanOut(n int) AffinityOption {
+	return func(c *affinityConfig) { c.minFanOut = n }
+}
+
+// WithMaxFanOut sets the maximum number of nodes in an index slot.
+// 0 uses the default (32). Default: 32.
+func WithMaxFanOut(n int) AffinityOption {
+	return func(c *affinityConfig) { c.maxFanOut = n }
+}
+
+// WithIndexFanOut sets per-index fan-out overrides. Overrides take
+// precedence over dynamic fan-out calculation.
+func WithIndexFanOut(m map[string]int) AffinityOption {
+	return func(c *affinityConfig) { c.overrides = m }
+}
+
+// WithIdleEvictionTTL sets how long idle index slots persist before
+// being evicted from the cache. Default: 90 minutes.
+func WithIdleEvictionTTL(d time.Duration) AffinityOption {
+	return func(c *affinityConfig) { c.idleEvictionTTL = d }
+}
+
+// WithDecayFactor sets the exponential decay factor for request counters.
+// Must be between 0 and 1 exclusive. Default: 0.999.
+func WithDecayFactor(d float64) AffinityOption {
+	return func(c *affinityConfig) { c.decay = d }
+}
+
+// WithFanOutPerRequest sets the decay-counter-to-fan-out divisor.
+// When the decay counter reaches this threshold, fan-out grows by 1.
+// Default: 500.
+func WithFanOutPerRequest(f float64) AffinityOption {
+	return func(c *affinityConfig) { c.fanOutPerReq = f }
+}
+
+// NewSmartPolicy creates a request-aware policy with affinity routing.
+// This is the recommended policy for production clusters. It extends
+// role-based mux routing with per-index node affinity:
 //
-// For clusters with dedicated ingest/data nodes, consider NewSmartRouter() instead.
+//  1. If coordinating-only nodes exist, route all traffic to them
+//  2. MuxPolicy with affinity-wrapped role routes: within each role pool
+//     (data, search, ingest, warm), rendezvous hashing and RTT-based scoring
+//     select the best node for the target index
+//  3. RoundRobinPolicy fallback for unmatched requests
+//
+// See [guides/affinity_routing.md] for the full algorithm description.
+func NewSmartPolicy(opts ...AffinityOption) Policy {
+	cfg := defaultAffinityConfig()
+	for _, opt := range opts {
+		opt(&cfg)
+	}
+
+	cacheCfg := indexSlotCacheConfig{
+		minFanOut:       cfg.minFanOut,
+		maxFanOut:       cfg.maxFanOut,
+		overrides:       cfg.overrides,
+		idleEvictionTTL: cfg.idleEvictionTTL,
+		decayFactor:     cfg.decay,
+		fanOutPerReq:    cfg.fanOutPerReq,
+	}
+
+	cache := newIndexSlotCache(cacheCfg)
+
+	coordinatingPolicy := mustRolePolicy(RoleCoordinatingOnly)
+
+	// The mux policy delegates each matched request to an affinity-wrapped
+	// role policy. Within data/search/ingest/warm nodes, the affinity wrapper
+	// applies this Client's RTT worldview and rendezvous hashing to select the
+	// best node for the target index, giving us cache locality and AZ-aware
+	// load distribution within each role pool.
+	muxPolicy := NewMuxPolicy(newAffinityRoutes(cache, cfg.decay))
+
+	roundRobinPolicy := NewRoundRobinPolicy()
+
+	return NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return coordinatingPolicy.IsEnabled() },
+		coordinatingPolicy,
+		NewPolicy(
+			muxPolicy,
+			roundRobinPolicy,
+		),
+	)
+}
+
+// NewSmartRouter creates a router with affinity-aware request routing.
+// This is the recommended router for production clusters. It combines
+// role-based routing with per-index node affinity, RTT-based AZ preference,
+// and self-stabilizing load distribution.
+//
+// See [NewSmartPolicy] for the full routing chain and [guides/affinity_routing.md]
+// for the algorithm description.
+func NewSmartRouter(opts ...AffinityOption) Router {
+	return NewRouter(NewSmartPolicy(opts...))
+}
+
+// NewDefaultPolicy creates the recommended default policy for production use.
+// Equivalent to [NewSmartPolicy] with default options.
+func NewDefaultPolicy() Policy {
+	return NewSmartPolicy()
+}
+
+// NewDefaultRouter creates the recommended default router for production use.
+// Equivalent to [NewSmartRouter] with default options.
 func NewDefaultRouter() Router {
-	return NewRouter(NewDefaultPolicy())
+	return NewSmartRouter()
+}
+
+// newAffinityRoutes mirrors [NewDefaultRoutes] but wraps each role-based
+// sub-policy with an [affinityPolicyWrapper]. When the mux matches a request
+// to a role pool (e.g., data nodes for a search), the affinity wrapper applies
+// rendezvous hashing and RTT-based scoring within that pool so the same index
+// consistently routes to the same subset of role-appropriate nodes.
+func newAffinityRoutes(cache *indexSlotCache, decay float64) []Route {
+	wrapRead := func(p Policy) Policy {
+		return wrapWithAffinity(p, cache, decay, &shardCostForReads)
+	}
+	wrapWrite := func(p Policy) Policy {
+		return wrapWithAffinity(p, cache, decay, &shardCostForWrites)
+	}
+
+	// Create role-based policies (same as NewDefaultRoutes)
+	ingestPolicy := mustRolePolicy(RoleIngest)
+	ingestIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return ingestPolicy.IsEnabled() },
+		ingestPolicy,
+		NewNullPolicy(),
+	)
+
+	searchRolePolicy := mustRolePolicy(RoleSearch)
+	dataPolicy := mustRolePolicy(RoleData)
+	searchIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return searchRolePolicy.IsEnabled() },
+		searchRolePolicy,
+		NewIfEnabledPolicy(
+			func(ctx context.Context, req *http.Request) bool { return dataPolicy.IsEnabled() },
+			dataPolicy,
+			NewNullPolicy(),
+		),
+	)
+
+	warmPolicy := mustRolePolicy(RoleWarm)
+	warmDataFallbackPolicy := mustRolePolicy(RoleData)
+	warmIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return warmPolicy.IsEnabled() },
+		warmPolicy,
+		NewIfEnabledPolicy(
+			func(ctx context.Context, req *http.Request) bool { return warmDataFallbackPolicy.IsEnabled() },
+			warmDataFallbackPolicy,
+			NewNullPolicy(),
+		),
+	)
+
+	// Wrap each IfEnabled chain with affinity so that within each role pool,
+	// affinity selection picks the best node for the target index.
+	// Ingest routes handle bulk writes -> prefer primary-hosting nodes.
+	// Search and warm routes handle reads -> prefer replica-hosting nodes.
+	affinityIngest := wrapWrite(ingestIfEnabled)
+	affinitySearch := wrapRead(searchIfEnabled)
+	affinityWarm := wrapRead(warmIfEnabled)
+
+	return buildRoleRoutes(affinityIngest, affinitySearch, affinityWarm)
 }
