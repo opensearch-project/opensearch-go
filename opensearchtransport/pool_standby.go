@@ -28,7 +28,30 @@ package opensearchtransport
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"slices"
+	"sync"
 	"time"
+)
+
+// Sentinel errors for standby rotation failures.
+var (
+	// ErrRotationHealthCheckFailed indicates a standby candidate was found but its
+	// health check failed or its state changed before promotion could occur.
+	ErrRotationHealthCheckFailed = errors.New("standby rotation: health check failed")
+
+	// ErrRotationPromotionRace indicates a standby candidate passed health checks
+	// but was removed from the standby partition before it could be promoted
+	// (e.g., by concurrent discovery or another rotation goroutine).
+	ErrRotationPromotionRace = errors.New("standby rotation: candidate removed before promotion")
+
+	// ErrRotationStateChanged indicates the candidate's lifecycle state changed
+	// concurrently (e.g., marked dead by another pool) during health checking.
+	ErrRotationStateChanged = errors.New("standby rotation: candidate state changed concurrently")
+
+	// ErrRotationNoCandidate indicates no standby candidate was available for rotation.
+	ErrRotationNoCandidate = errors.New("standby rotation: no standby candidate available")
 )
 
 // demoteOverloaded moves an overloaded connection to the standby partition.
@@ -87,7 +110,7 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 	}
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
-		obs.OnOverloadDetected(newConnectionEvent(cp.name, c, cp.mu.activeCount, len(cp.mu.dead)))
+		obs.OnOverloadDetected(newConnectionEvent(cp.name, c, cp.countByLifecycleWithLock()))
 	}
 
 	// Backfill the active slot from standby
@@ -117,7 +140,7 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		cp.mu.RLock()
-		obs.OnOverloadCleared(newConnectionEvent(cp.name, c, cp.mu.activeCount, len(cp.mu.dead)))
+		obs.OnOverloadCleared(newConnectionEvent(cp.name, c, cp.countByLifecycleWithLock()))
 		cp.mu.RUnlock()
 	}
 }
@@ -201,9 +224,10 @@ func (cp *multiServerPool) enforceActiveCapWithLock() {
 	}
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
+		counts := cp.countByLifecycleWithLock()
 		for i := cp.mu.activeCount; i < cp.mu.activeCount+overflow; i++ {
-			obs.OnStandbyDemote(newConnectionEventWithStandby(
-				cp.name, cp.mu.ready[i], cp.mu.activeCount, len(cp.mu.dead), len(cp.mu.ready)-cp.mu.activeCount,
+			obs.OnStandbyDemote(newConnectionEvent(
+				cp.name, cp.mu.ready[i], counts,
 			))
 		}
 	}
@@ -294,7 +318,7 @@ func (cp *multiServerPool) performStandbyHealthCheck(ctx context.Context, c *Con
 		return true
 	}
 	for i := int64(0); i < cp.standbyPromotionChecks; i++ {
-		if !cp.performHealthCheck(ctx, c) {
+		if !cp.performHealthCheck(ctx, c, true) {
 			return false
 		}
 	}
@@ -331,15 +355,14 @@ func (cp *multiServerPool) findActiveCandidate() *Connection {
 			c.mu.Unlock()
 			continue
 		}
-		// Ensure lcNeedsWarmup is set for warmup on promotion.
-		// No-op if already set (e.g., demoted connections).
-		if !lc.has(lcNeedsWarmup) {
-			c.casLifecycle(
-				c.loadConnState(),
-				lcOverloaded|lcUnknown|lcHealthChecking,
-				lcNeedsWarmup, 0,
-			)
-		}
+		// Set lcHealthChecking to claim this candidate exclusively -- concurrent
+		// goroutines in rotateStandby will skip it in Pass 1.
+		// Also ensure lcNeedsWarmup is set for warmup on promotion.
+		c.casLifecycle(
+			c.loadConnState(),
+			lcOverloaded|lcUnknown,
+			lcHealthChecking|lcNeedsWarmup, 0,
+		)
 		c.mu.Unlock()
 		return c
 	}
@@ -360,38 +383,84 @@ func (cp *multiServerPool) findActiveCandidate() *Connection {
 	return nil
 }
 
-// rotateStandby performs up to count standby<->active rotation cycles.
-// Each rotation health-checks one standby and, if healthy, swaps it with a
-// random active connection. Failed health checks do not count toward the
-// rotation budget -- the loop keeps trying until count successful rotations
-// occur or no standby candidates remain.
-// Returns the number of successful rotations.
-func (cp *multiServerPool) rotateStandby(ctx context.Context, count int) int {
-	rotated := 0
-	for rotated < count {
-		attempted, success := cp.rotateStandbyOnce(ctx)
-		if !attempted {
-			break // no standby available
-		}
-		if success {
-			rotated++
-		}
+// rotateStandby performs up to count standby<->active rotation cycles concurrently.
+// Spins up count goroutines, each attempting one rotation via health-check and promotion.
+// If a health check fails, the goroutine retries with the next standby candidate.
+// Cancels remaining goroutines once the desired number of successful rotations is reached.
+// Returns the number of successful rotations and any errors encountered during rotation.
+// The error may be non-nil even when rotated == count (partial failures during parallel attempts).
+// Dead connections are not considered -- they have their own resurrection schedule and
+// shouldn't incur extra client-side health checks.
+func (cp *multiServerPool) rotateStandby(ctx context.Context, count int) (int, error) {
+	if count <= 0 {
+		return 0, nil
 	}
-	return rotated
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var (
+		wg      sync.WaitGroup
+		mu      sync.Mutex
+		rotated int
+		errs    []error
+	)
+
+	wg.Add(count)
+	for range count {
+		go func() {
+			defer wg.Done()
+			for {
+				if ctx.Err() != nil {
+					return
+				}
+
+				attempted, success, err := cp.rotateStandbyOnce(ctx)
+				if err != nil {
+					mu.Lock()
+					errs = append(errs, err)
+					mu.Unlock()
+				}
+				if !attempted {
+					return // no standby candidates available
+				}
+				if success {
+					mu.Lock()
+					rotated++
+					done := rotated >= count
+					mu.Unlock()
+					if done {
+						cancel() // target reached, signal others to stop
+					}
+					return
+				}
+				// Health check failed -- retry with next candidate
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	mu.Lock()
+	defer mu.Unlock()
+	return rotated, errors.Join(errs...)
 }
 
 // rotateStandbyOnce attempts one standby<->active rotation.
 // Picks a non-warming standby, health-checks it, and on success swaps it into
 // active. activeCount is unchanged on success (one in, one out via cap enforcement).
 //
-// Returns (attempted, rotated):
-//   - (true, true): standby passed health check and was promoted to active
-//   - (true, false): standby found but not promotable (health check failed, state changed, or removed)
-//   - (false, false): no standby candidate available
-func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool) {
-	candidate, attempted := cp.healthcheckStart(ctx)
+// Returns (attempted, rotated, err):
+//   - (true, true, nil): standby passed health check and was promoted to active
+//   - (true, false, err): standby found but not promotable (health check failed, state changed, or removed)
+//   - (false, false, nil): no standby candidate available
+func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool, error) {
+	candidate, err := cp.healthcheckStart(ctx)
 	if candidate == nil {
-		return attempted, false
+		if errors.Is(err, ErrRotationNoCandidate) {
+			return false, false, nil
+		}
+		return true, false, err
 	}
 
 	// Promote the verified standby to active with warmup.
@@ -399,7 +468,7 @@ func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool) {
 	defer cp.mu.Unlock()
 
 	if !cp.promoteStandbyWithLock(candidate) {
-		return true, false
+		return true, false, fmt.Errorf("[%s] %q: %w", cp.name, candidate.URL, ErrRotationPromotionRace)
 	}
 
 	if debugLogger != nil {
@@ -408,34 +477,32 @@ func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool) {
 	}
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
-		standbyCount := len(cp.mu.ready) - cp.mu.activeCount
-		obs.OnStandbyPromote(newConnectionEventWithStandby(
-			cp.name, candidate, cp.mu.activeCount, len(cp.mu.dead), standbyCount))
+		obs.OnStandbyPromote(newConnectionEvent(
+			cp.name, candidate, cp.countByLifecycleWithLock()))
 	}
 
-	return true, true
+	return true, true, nil
 }
 
 // healthcheckStart finds an idle standby candidate, health-checks it, and
 // fixes any ready-list inconsistencies discovered after re-acquiring the pool
 // lock.
 //
-// Returns (candidate, attempted):
-//   - (conn, true): candidate is healthy, in standby partition, ready for promotion
-//   - (nil, true): candidate was found but not promotable (health check failed, state changed, or removed)
-//   - (nil, false): no standby candidate available
+// Returns (candidate, err):
+//   - (conn, nil): candidate is healthy, in standby partition, ready for promotion
+//   - (nil, err): candidate was found but not promotable, or no standby candidate available
 //
 // Fixups performed while holding the pool lock:
 //   - lcUnknown connections found in the ready list are moved to dead
 //   - Candidates removed by concurrent discovery have their warmup claim cleared
 //   - Failed health checks move the candidate to dead and schedule resurrection
-func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, bool) {
+func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, error) {
 	cp.mu.Lock()
 
 	candidate := cp.findActiveCandidate()
 	if candidate == nil {
 		cp.mu.Unlock()
-		return nil, false
+		return nil, ErrRotationNoCandidate
 	}
 	cp.mu.Unlock()
 
@@ -445,11 +512,27 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, b
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
+	// Clear the lcHealthChecking claim set by findActiveCandidate, regardless
+	// of outcome. All exit paths below either move the candidate to dead
+	// (which resets lifecycle) or hand it back for promotion.
+	candidate.mu.Lock()
+	candidate.clearLifecycleBit(lcHealthChecking)
+	candidate.mu.Unlock()
+
+	// Verify candidate is still in the ready list. A concurrent goroutine
+	// (via Pass 2 in findActiveCandidate) may have already moved it to dead
+	// while we were health-checking outside the lock.
+	inReady := slices.Contains(cp.mu.ready, candidate)
+	if !inReady {
+		return nil, fmt.Errorf("[%s] %q: %w: already removed from ready by concurrent goroutine",
+			cp.name, candidate.URL, ErrRotationPromotionRace)
+	}
+
 	// Fix up: if candidate became lcUnknown concurrently, move to dead
 	if candidate.loadConnState().lifecycle().has(lcUnknown) {
 		cp.evictUnknownFromReadyWithLock(candidate)
 		cp.scheduleResurrect(ctx, candidate)
-		return nil, true
+		return nil, fmt.Errorf("[%s] %q: %w: became lcUnknown during health check", cp.name, candidate.URL, ErrRotationStateChanged)
 	}
 
 	if !healthy {
@@ -457,7 +540,7 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, b
 		candidate.mu.Lock()
 		if !candidate.casLifecycle(candidate.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby) {
 			candidate.mu.Unlock()
-			return nil, true // state changed concurrently
+			return nil, fmt.Errorf("[%s] %q: %w: lifecycle CAS failed", cp.name, candidate.URL, ErrRotationStateChanged)
 		}
 		candidate.markAsDeadWithLock()
 		candidate.mu.Unlock()
@@ -470,7 +553,7 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, b
 		}
 
 		cp.scheduleResurrect(ctx, candidate)
-		return nil, true
+		return nil, fmt.Errorf("[%s] %q: %w: moved to dead", cp.name, candidate.URL, ErrRotationHealthCheckFailed)
 	}
 
 	// Verify candidate is still in the standby partition
@@ -486,10 +569,10 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, b
 		candidate.mu.Lock()
 		candidate.clearLifecycleBit(lcNeedsWarmup)
 		candidate.mu.Unlock()
-		return nil, true
+		return nil, fmt.Errorf("[%s] %q: %w: removed by concurrent discovery", cp.name, candidate.URL, ErrRotationPromotionRace)
 	}
 
-	return candidate, true
+	return candidate, nil
 }
 
 // evictUnknownFromReadyWithLock moves an lcUnknown connection from the ready
@@ -518,8 +601,11 @@ func (cp *multiServerPool) evictUnknownFromReadyWithLock(c *Connection) {
 // gap left by a failed connection (1:1 replacement). Unlike rotateStandby, this
 // does not evict an active connection -- it grows the active partition by one.
 func (cp *multiServerPool) asyncPromoteStandby(ctx context.Context) {
-	candidate, _ := cp.healthcheckStart(ctx)
+	candidate, err := cp.healthcheckStart(ctx)
 	if candidate == nil {
+		if err != nil && !errors.Is(err, ErrRotationNoCandidate) && debugLogger != nil {
+			debugLogger.Logf("[%s] asyncPromoteStandby: healthcheckStart: %v\n", cp.name, err)
+		}
 		return
 	}
 
@@ -537,9 +623,8 @@ func (cp *multiServerPool) asyncPromoteStandby(ctx context.Context) {
 	}
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
-		standbyCount := len(cp.mu.ready) - cp.mu.activeCount
-		obs.OnStandbyPromote(newConnectionEventWithStandby(
-			cp.name, candidate, cp.mu.activeCount, len(cp.mu.dead), standbyCount))
+		obs.OnStandbyPromote(newConnectionEvent(
+			cp.name, candidate, cp.countByLifecycleWithLock()))
 	}
 }
 
