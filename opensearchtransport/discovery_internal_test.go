@@ -55,7 +55,7 @@ import (
 func TestDiscovery(t *testing.T) {
 	// Create default ServeMux for most tests
 	defaultMux := http.NewServeMux()
-	defaultMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+	defaultMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 		// Serve the default nodes info JSON
 		f, err := os.Open("testdata/nodes.info.json")
 		if err != nil {
@@ -72,7 +72,7 @@ func TestDiscovery(t *testing.T) {
 
 	// Create TLS-specific ServeMux that returns nodes on TLS ports
 	tlsMux := http.NewServeMux()
-	tlsMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+	tlsMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 		// Custom nodes info for TLS test with TLS ports
 		const (
 			clusterName = "opensearch"
@@ -294,7 +294,9 @@ func TestDiscovery(t *testing.T) {
 		}
 
 		// Discovered nodes are in cold-start mode, need to force them alive for testing
-		// Use resurrectWithLock to directly move connections from dead to ready pool
+		// Use resurrectWithLock to directly move connections from dead to ready pool.
+		// Must hold pool lock to avoid racing with scheduleResurrect goroutines.
+		pool.mu.Lock()
 		deadConnections := make([]*Connection, len(pool.mu.dead))
 		copy(deadConnections, pool.mu.dead)
 
@@ -304,8 +306,7 @@ func TestDiscovery(t *testing.T) {
 			conn.mu.Unlock()
 		}
 
-		// Check pool state after resurrection
-		// Now check that connections are ready
+		// Check pool state after resurrection (still under pool lock)
 		if len(pool.mu.ready) != 2 {
 			t.Errorf("Unexpected number of ready nodes after health simulation, want=2, got=%d", len(pool.mu.ready))
 		}
@@ -325,6 +326,7 @@ func TestDiscovery(t *testing.T) {
 				t.Errorf("Unexpected connection URL: %q (name=%q)", conn.URL.String(), conn.Name)
 			}
 		}
+		pool.mu.Unlock()
 	})
 
 	t.Run("scheduleDiscoverNodes()", func(t *testing.T) {
@@ -678,7 +680,7 @@ func TestDiscovery(t *testing.T) {
 				})
 
 				// Add nodes info handler with this test's data
-				testMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+				testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 					// Create a simple response structure compatible with the discovery parsing
 					response := map[string]any{
 						"_nodes": map[string]any{
@@ -738,11 +740,16 @@ func TestDiscovery(t *testing.T) {
 					t.Fatalf("Unexpected pool, want=multiServerPool, got=%T", c.mu.connectionPool)
 				}
 
-				if len(pool.mu.ready) != tt.want.wantsNConn {
-					t.Errorf("Unexpected number of nodes, want=%d, got=%d", tt.want.wantsNConn, len(pool.mu.ready))
+				// New connections from first discovery go to the dead list (pool
+				// resurrection handles health-checking). Verify total connections
+				// across both ready and dead lists.
+				allConns := append(pool.mu.ready, pool.mu.dead...)
+				if len(allConns) != tt.want.wantsNConn {
+					t.Errorf("Unexpected number of nodes, want=%d, got=%d (ready=%d, dead=%d)",
+						tt.want.wantsNConn, len(allConns), len(pool.mu.ready), len(pool.mu.dead))
 				}
 
-				for _, conn := range pool.mu.ready {
+				for _, conn := range allConns {
 					expectedRoles := make([]string, len(tt.args.Nodes[conn.ID].Roles))
 					copy(expectedRoles, tt.args.Nodes[conn.ID].Roles)
 					slices.Sort(expectedRoles)
@@ -1058,7 +1065,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			})
 
 			// Nodes info endpoint
-			mux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+			mux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 				nodes := make(map[string]map[string]nodeInfo)
 				nodes["nodes"] = make(map[string]nodeInfo)
 
@@ -1115,9 +1122,12 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			pool, ok := c.mu.connectionPool.(*multiServerPool)
 			require.True(t, ok, "Expected multiServerPool")
 
-			// Check that expected nodes are included
+			// Check that expected nodes are included (ready or dead list)
 			actualNodes := make(map[string]bool)
 			for _, conn := range pool.mu.ready {
+				actualNodes[conn.Name] = true
+			}
+			for _, conn := range pool.mu.dead {
 				actualNodes[conn.Name] = true
 			}
 
@@ -1232,7 +1242,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			})
 
 			// Nodes info endpoint
-			testMux.HandleFunc("/_nodes/http,os", func(w http.ResponseWriter, r *http.Request) {
+			testMux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
 				response := map[string]any{
 					"_nodes": map[string]any{
 						"total":      len(tt.nodes),
@@ -1283,9 +1293,12 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			pool, ok := c.mu.connectionPool.(*multiServerPool)
 			require.True(t, ok, "Expected multiServerPool")
 
-			// Check included nodes
+			// Check included nodes (ready or dead list)
 			actualNodes := make(map[string]bool)
 			for _, conn := range pool.mu.ready {
+				actualNodes[conn.Name] = true
+			}
+			for _, conn := range pool.mu.dead {
 				actualNodes[conn.Name] = true
 			}
 
@@ -1698,44 +1711,6 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 	})
 }
 
-func TestCompareConnectionRoles(t *testing.T) {
-	t.Run("identical connections return 0", func(t *testing.T) {
-		a := &Connection{
-			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
-			Roles: newRoleSet([]string{"data", "ingest"}),
-		}
-		b := &Connection{
-			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
-			Roles: newRoleSet([]string{"data", "ingest"}),
-		}
-		require.Equal(t, 0, compareConnectionRoles(a, b))
-	})
-
-	t.Run("different URLs return non-zero", func(t *testing.T) {
-		a := &Connection{
-			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
-			Roles: newRoleSet([]string{"data"}),
-		}
-		b := &Connection{
-			URL:   &url.URL{Scheme: "http", Host: "node2:9200"},
-			Roles: newRoleSet([]string{"data"}),
-		}
-		require.NotEqual(t, 0, compareConnectionRoles(a, b))
-	})
-
-	t.Run("same URL different roles return non-zero", func(t *testing.T) {
-		a := &Connection{
-			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
-			Roles: newRoleSet([]string{"data"}),
-		}
-		b := &Connection{
-			URL:   &url.URL{Scheme: "http", Host: "node1:9200"},
-			Roles: newRoleSet([]string{"data", "ingest"}),
-		}
-		require.NotEqual(t, 0, compareConnectionRoles(a, b))
-	})
-}
-
 func TestFindConnectionByURL(t *testing.T) {
 	t.Run("finds in singleServerPool", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
@@ -1852,6 +1827,9 @@ func TestUpdateConnectionPool(t *testing.T) {
 			ctx:        ctx,
 			cancelFunc: cancel,
 			urls:       []*url.URL{{Scheme: "http", Host: "seed:9200"}},
+			// Provide a transport that returns errors so background health checks
+			// (from scheduleResurrect goroutines) don't panic on nil transport.
+			transport: &http.Transport{},
 		}
 		return client
 	}
@@ -1861,7 +1839,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 		defer client.cancelFunc()
 
 		conn := makeConn("node1:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{conn}, nil)
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn}, nil)
 		require.NoError(t, err)
 
 		client.mu.RLock()
@@ -1878,7 +1856,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		conn1 := makeConn("node1:9200")
 		conn2 := makeConn("node2:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{conn1, conn2}, nil)
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn1, conn2}, nil)
 		require.NoError(t, err)
 
 		client.mu.RLock()
@@ -1900,13 +1878,12 @@ func TestUpdateConnectionPool(t *testing.T) {
 		// Initial pool with 2 nodes
 		conn1 := makeConn("node1:9200")
 		conn2 := makeConn("node2:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{conn1, conn2}, nil)
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn1, conn2}, nil)
 		require.NoError(t, err)
 
-		// Second discovery: node2 gone, node3 added, node1 unchanged
-		newConn1 := makeConn("node1:9200")
+		// Second discovery: node2 gone, node3 added, node1 unchanged (same pointer)
 		conn3 := makeConn("node3:9200")
-		err = client.updateConnectionPool(time.Time{}, []*Connection{newConn1, conn3}, nil)
+		err = client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn1, conn3}, nil)
 		require.NoError(t, err)
 
 		require.Greater(t, obs.count("discovery_add"), 0)
@@ -1920,7 +1897,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// Create initial pool with a connection
 		conn := makeConn("node1:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{conn}, nil)
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn}, nil)
 		require.NoError(t, err)
 
 		// Mark the connection as dead in the past
@@ -1929,11 +1906,10 @@ func TestUpdateConnectionPool(t *testing.T) {
 		conn.mu.Unlock()
 		conn.failures.Store(3)
 
-		// Re-discover with healthCheckedAt AFTER the deadSince -> stale dead state
+		// Re-discover with the SAME pointer (simulating nodeDiscovery reuse) and
+		// healthCheckedAt AFTER the deadSince -> stale dead state should be cleared
 		healthCheckedAt := time.Now()
-		newConn := makeConn("node1:9200")
-		newConn.Roles = conn.Roles // Same roles so old object is reused
-		err = client.updateConnectionPool(healthCheckedAt, []*Connection{newConn}, nil)
+		err = client.updateConnectionPool(t.Context(), healthCheckedAt, []*Connection{conn}, nil)
 		require.NoError(t, err)
 
 		// The old connection's dead state should have been cleared (resurrected)
@@ -1950,7 +1926,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// Create initial pool
 		conn := makeConn("node1:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{conn}, nil)
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn}, nil)
 		require.NoError(t, err)
 
 		// Health check at t=0
@@ -1961,10 +1937,8 @@ func TestUpdateConnectionPool(t *testing.T) {
 		conn.mu.deadSince = healthCheckedAt.Add(1 * time.Second)
 		conn.mu.Unlock()
 
-		// Re-discover: dead state is newer than healthCheckedAt -> should stay dead
-		newConn := makeConn("node1:9200")
-		newConn.Roles = conn.Roles
-		err = client.updateConnectionPool(healthCheckedAt, []*Connection{newConn}, nil)
+		// Re-discover with SAME pointer: dead state is newer than healthCheckedAt -> should stay dead
+		err = client.updateConnectionPool(t.Context(), healthCheckedAt, []*Connection{conn}, nil)
 		require.NoError(t, err)
 
 		conn.mu.RLock()
@@ -1983,7 +1957,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		conn1 := makeConn("node1:9200")
 		conn2 := makeConn("node2:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{conn1, conn2}, nil)
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn1, conn2}, nil)
 		require.NoError(t, err)
 
 		// Reset observer counts from initial discovery
@@ -1995,7 +1969,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 		newConn1 := makeConn("node1:9200")
 		newConn1.Roles = newRoleSet([]string{"data", "ingest"}) // Changed roles
 		newConn2 := makeConn("node2:9200")
-		err = client.updateConnectionPool(time.Time{}, []*Connection{newConn1, newConn2}, nil)
+		err = client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{newConn1, newConn2}, nil)
 		require.NoError(t, err)
 
 		// Role change for node1 should generate remove + add
@@ -2020,7 +1994,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		ready := makeConn("node1:9200")
 		dead := makeConn("node2:9200")
-		err := client.updateConnectionPool(time.Time{}, []*Connection{ready}, []*Connection{dead})
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{ready}, []*Connection{dead})
 		require.NoError(t, err)
 
 		client.mu.RLock()
@@ -2031,5 +2005,151 @@ func TestUpdateConnectionPool(t *testing.T) {
 		require.True(t, ok)
 		require.Len(t, mp.mu.dead, 1)
 		require.Equal(t, "node2:9200", mp.mu.dead[0].URL.Host)
+	})
+
+	t.Run("dead connections have deadSince and lcUnknown invariants", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		ready := makeConn("node1:9200")
+		dead := makeConn("node2:9200")
+
+		// Verify deadSince is initially zero
+		dead.mu.RLock()
+		require.True(t, dead.mu.deadSince.IsZero(), "deadSince should be zero before pool placement")
+		dead.mu.RUnlock()
+
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{ready}, []*Connection{dead})
+		require.NoError(t, err)
+
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		mp, ok := pool.(*multiServerPool)
+		require.True(t, ok)
+		require.Len(t, mp.mu.dead, 1)
+
+		deadConn := mp.mu.dead[0]
+
+		// Verify deadSince was set by appendToDeadWithLock
+		deadConn.mu.RLock()
+		require.False(t, deadConn.mu.deadSince.IsZero(), "deadSince must be set for dead-list connections")
+		deadConn.mu.RUnlock()
+
+		// Verify lcUnknown is set
+		lc := deadConn.loadConnState().lifecycle()
+		require.True(t, lc.has(lcUnknown), "dead-list connections must have lcUnknown set, got %s", lc)
+	})
+
+	t.Run("dead connections from discovery get resurrection scheduled", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		ready := makeConn("node1:9200")
+		dead := makeConn("node2:9200")
+		dead.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{ready}, []*Connection{dead})
+		require.NoError(t, err)
+
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		mp, ok := pool.(*multiServerPool)
+		require.True(t, ok)
+		require.Len(t, mp.mu.dead, 1)
+
+		deadConn := mp.mu.dead[0]
+
+		// Verify health checking was scheduled (lcHealthChecking bit set by scheduleResurrect)
+		require.Eventually(t, func() bool {
+			return deadConn.loadConnState().lifecycle().has(lcHealthChecking)
+		}, 2*time.Second, 10*time.Millisecond, "dead connection should have lcHealthChecking set after scheduleResurrect")
+	})
+
+	t.Run("nodeDiscovery reuses existing connections", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		// Set up initial pool with one connection
+		existing := makeConn("node1:9200")
+		existing.ID = "node-id-1"
+		existing.Name = "node1"
+		existing.state.Store(int64(newConnState(lcActive)))
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{existing}, nil)
+		require.NoError(t, err)
+
+		// Simulate discovery returning the same node
+		discovered := []nodeInfo{
+			{
+				ID:    "node-id-1",
+				Name:  "node1",
+				Roles: []string{"data"},
+				url:   existing.URL,
+			},
+		}
+
+		err = client.nodeDiscovery(t.Context(), discovered)
+		require.NoError(t, err)
+
+		// Verify the same Connection pointer was reused
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		switch p := pool.(type) {
+		case *singleServerPool:
+			require.Same(t, existing, p.connection, "should reuse existing Connection pointer")
+		case *multiServerPool:
+			require.Contains(t, p.mu.ready, existing, "should reuse existing Connection pointer in ready list")
+		default:
+			t.Fatalf("unexpected pool type: %T", pool)
+		}
+	})
+
+	t.Run("nodeDiscovery creates new connection when ID changes", func(t *testing.T) {
+		client := newDiscoveryClient()
+		defer client.cancelFunc()
+
+		// Set up initial pool with one connection
+		existing := makeConn("node1:9200")
+		existing.ID = "old-id"
+		existing.Name = "node1"
+		existing.state.Store(int64(newConnState(lcActive)))
+		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{existing}, nil)
+		require.NoError(t, err)
+
+		// Simulate discovery returning same URL but different ID (node replaced)
+		discovered := []nodeInfo{
+			{
+				ID:    "new-id",
+				Name:  "node1",
+				Roles: []string{"data"},
+				url:   existing.URL,
+			},
+		}
+
+		err = client.nodeDiscovery(t.Context(), discovered)
+		require.NoError(t, err)
+
+		// Verify a new connection was created (old one removed, new one added to dead)
+		client.mu.RLock()
+		pool := client.mu.connectionPool
+		client.mu.RUnlock()
+
+		switch p := pool.(type) {
+		case *singleServerPool:
+			require.NotSame(t, existing, p.connection, "should create new Connection when ID changes")
+			require.Equal(t, "new-id", p.connection.ID)
+		case *multiServerPool:
+			allConns := append(p.mu.ready, p.mu.dead...)
+			require.Len(t, allConns, 1)
+			require.Equal(t, "new-id", allConns[0].ID)
+			require.NotSame(t, existing, allConns[0], "should create new Connection when ID changes")
+		default:
+			t.Fatalf("unexpected pool type: %T", pool)
+		}
 	})
 }
