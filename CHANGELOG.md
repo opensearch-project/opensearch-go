@@ -18,11 +18,42 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `NewIfEnabledPolicy()` for conditional routing with runtime evaluation
   - `NewMuxPolicy()` for custom HTTP pattern matching using `http.ServeMux`
   - `NewRolePolicy()` for role-based node selection
-  - `NewDefaultRouter()` with coordinating node preference and round-robin fallback
-  - `NewSmartRouter()` providing smart request routing with graceful fallback (recommended for most users)
-    - Automatic routing of bulk operations (including streaming bulk) to ingest nodes
-    - Automatic routing of search operations (search, count, explain, by-query operations) to data nodes
-    - Automatic routing of document retrieval operations (get, mget, source, termvectors) to data nodes for read locality
+  - `NewRoundRobinRouter()` with coordinating node preference and round-robin fallback
+  - `NewMuxRouter()` providing role-based request routing with graceful fallback
+    - Automatic routing of bulk, streaming bulk, and reindex operations to ingest nodes
+    - Automatic routing of search operations (search, msearch, count, explain, by-query operations, rank eval) to search/data nodes
+    - Automatic routing of document retrieval operations (get, mget, source, termvectors, mtermvectors) to search/data nodes for read locality
+    - Automatic routing of template operations (search template, msearch template) to search/data nodes
+    - Automatic routing of shard maintenance operations (refresh, flush, synced flush, forcemerge, cache clear, segments) to data nodes
+    - Automatic routing of shard diagnostics (recovery, shard stores, stats) and rethrottle operations to data nodes
+  - `NewSmartRouter()` extending role-based routing with per-index node affinity (recommended for most users)
+  - `NewDefaultRouter()` as alias for `NewSmartRouter()` with default options
+- Add consistent hash routing with per-index node affinity for cache locality and AZ-aware load distribution ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - Rendezvous hashing selects a stable subset of nodes per index, preserving OS page cache and query cache locality
+  - RTT-bucketed scoring naturally prefers AZ-local nodes and overflows to remote AZs under load
+  - Exponential decay CPU-time accumulator provides self-stabilizing load distribution without periodic resets
+  - Tier-span equalization inflates cost attribution by `smoothedMaxBucket / thisBucket` so traffic distributes equally across all active RTT tiers at equilibrium
+  - MIAD (Multiplicative Increase, Additive Decrease) smoothing on the per-index max RTT bucket: fast exponential convergence on demand spikes, slow linear cooldown to maintain warm connections
+  - Timer-based periodic decay drains idle connections (half-life scales with cluster-size-derived tick interval)
+  - Asymmetric scale-up/scale-down thresholds with hysteresis band for stable active pool sizing
+  - Dynamic per-index fan-out driven by shard placement (`/_cat/shards`) and request rate
+  - Writer penalty in scoring biases reads toward replica-hosting nodes using a convex sqrt curve
+  - Automatic `?preference=_local` injection complements client-side affinity with server-side shard preference
+  - `AffinityOption` functional options: `WithMinFanOut`, `WithMaxFanOut`, `WithIndexFanOut`, `WithIdleEvictionTTL`, `WithDecayFactor`, `WithFanOutPerRequest`
+  - `SkipAffinityPreferLocal` config option to disable automatic preference injection
+- Add environment variable escape hatches (`OPENSEARCH_GO_POLICY_*`) to disable specific routing policies at startup ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add failure-triggered shard map invalidation for faster affinity routing recovery ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - `lcNeedsCatUpdate` lifecycle bit excludes failed connections from affinity routing candidate sets until `/_cat/shards` refresh
+  - Connections remain available for general routing (round-robin, zombie tryouts) while excluded from affinity
+  - Dedicated `discoverCatTimer` schedules lightweight `/_cat/shards`-only refresh (no full node discovery)
+  - Refresh urgency scales with cluster impact: `interval = discoverNodesInterval * (1 - flaggedFraction)`, clamped to 5s floor
+  - `OnShardMapInvalidation` observer event for monitoring invalidation triggers
+  - `NeedsCatUpdate` field in `ConnectionMetric` for observability
+- Add affinity routing observability: observer events, metrics snapshot, connection inspection ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - `OnAffinityRoute` observer event with full scoring breakdown (`AffinityRouteEvent`, `AffinityCandidate`)
+  - `AffinitySnapshot` in `Client.Metrics()` exposes per-index cache state (fan-out, shard nodes, request rate, idle-since)
+  - `Connection.RTTMedian()`, `Connection.RTTBucket()`, `Connection.AffinityLoad()` for per-connection inspection
+  - `ConnectionMetric` enriched with `rtt_bucket`, `rtt_median`, `affinity_load` fields
 - Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Auto-discover server core count from `/_nodes/http,os` to derive all rate-limiting parameters (default: 8 cores)
   - Weighted round-robin for heterogeneous clusters: nodes with more cores get proportionally more traffic via GCD-normalized duplicate pointers in the ready list
@@ -50,8 +81,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Consolidate test utilities into two canonical packages: opensearchtransport/testutil (env helpers, polling, version comparison) and opensearchapi/testutil (client-dependent helpers, test suite, JSON comparison)
 - Rename `singleConnectionPool` to `singleServerPool` and `statusConnectionPool` to `multiServerPool` for clarity ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-- Prevent connection pool demotion from `multiServerPool` to `singleServerPool` during discovery, preserving health checking and connection state when cluster shrinks to a single node ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-- Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
 - Refactor Client struct to use embedded mutex pattern for improved thread safety ([#775](https://github.com/opensearch-project/opensearch-go/pull/775))
 - Refactor metrics struct to use atomic counters for lock-free request/failure tracking ([#776](https://github.com/opensearch-project/opensearch-go/pull/776))
 - Test against Opensearch 2.19.4, 3.1, 3.3, and 3.4 ([#782](https://github.com/opensearch-project/opensearch-go/pull/782))

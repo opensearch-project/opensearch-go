@@ -50,7 +50,7 @@ When `Next()` is called, the pool tries connections in this order:
 
 ## Active List Cap
 
-The `activeListCap` controls how many connections serve production traffic simultaneously. This prevents fan-out overload in large clusters where routing requests to all nodes is wasteful.
+The `activeListCap` controls how many connections serve production traffic simultaneously. This prevents fan-out overload in large clusters where routing requests to all nodes would be wasteful.
 
 ```
                       activeListCap = 5
@@ -104,7 +104,7 @@ The warmup parameters are also recalculated at this point:
 
 ## Standby Promotion
 
-There are two promotion paths -- **graceful** and **emergency** -- and a **rotation** mechanism that keeps standby connections exercised.
+There are two promotion paths -- **graceful** and **emergency** -- and a **rotation** mechanism that keeps standby connections exercised and fresh.
 
 ### Graceful Promotion
 
@@ -133,7 +133,7 @@ Triggered when a connection leaves the active partition (failure, discovery remo
 
 ### Emergency Promotion
 
-Triggered inside `Next()` when all active connections are exhausted (dead or skipped). No health check, no warmup -- immediate service.
+Triggered inside `Next()` when all active connections are exhausted (dead or skipped). No health check and no warmup: service is immediate.
 
 ```
   Next() -> no active connections available
@@ -145,13 +145,13 @@ Triggered inside `Next()` when all active connections are exhausted (dead or ski
   4. Advance activeCount++
 
   active=[--all exhausted--]  standby=[F G]
-     ↓
+     v
   active=[F]  standby=[G]    (F promoted without warmup)
 ```
 
 ### Standby Rotation
 
-Triggered periodically by the discovery cycle to keep standby connections exercised and fresh. Each rotation health-checks a standby, promotes it with warmup, and relies on cap enforcement to demote the excess active connection once warmup completes.
+Triggered periodically by the discovery cycle to keep standby connections exercised. Each rotation health-checks a standby connection, promotes it with warmup, and relies on cap enforcement to demote the excess active connection once warmup completes.
 
 ```
   rotateStandby(count=1)
@@ -186,7 +186,7 @@ The skip count per round decays along a **smoothstep** (Hermite) curve:
 skip = maxSkip * (1 - 3t^2 + 2t^3)     where t = roundsElapsed / maxRounds
 ```
 
-This produces an S-shaped acceptance ramp: slow start while the JVM interprets cold bytecode, accelerating middle as C1/C2 JIT compilation kicks in, and a steep finish as the JVM reaches steady-state optimization. The skip count always reaches 0 by the final round, regardless of the `skipCount / rounds` ratio -- no sudden jump to 100%.
+This produces an S-shaped acceptance ramp: slow start while the JVM interprets cold bytecode, accelerating as C1/C2 JIT compilation activates, and a steep finish as the JVM reaches steady-state optimization. The skip count always reaches 0 by the final round, regardless of the `skipCount / rounds` ratio; there is no sudden jump to 100%.
 
 ```
   warmupState(rounds=16, skipCount=32)
@@ -211,7 +211,7 @@ This produces an S-shaped acceptance ramp: slow start while the JVM interprets c
   R1                                    0 100% ╯
 ```
 
-The smoothstep curve is designed around the JVM's HotSpot JIT compiler on the server side. When a node restarts (or a new connection routes traffic to a node that hasn't seen this client's request patterns), the JVM is running in interpreted mode. The slow initial trickle gives the C1 (client) and C2 (server) compilers time to profile, compile, and deoptimize/recompile hot code paths -- search execution, bulk indexing, aggregation pipelines, and codec paths -- without the node being hammered with full production load while it's still running unoptimized bytecode.
+The smoothstep curve is designed around the JVM HotSpot JIT compiler on the server side. When a node restarts (or a new connection routes traffic to a node that has not encountered this client's request patterns), the JVM runs in interpreted mode. The slow initial trickle allows the C1 (client) and C2 (server) compilers to profile, compile, and deoptimize/recompile hot code paths -- search execution, bulk indexing, aggregation pipelines, and codec paths -- without subjecting the node to full production load while it runs unoptimized bytecode.
 
 ### Skip Count Scaling (Smoothstep)
 
@@ -243,7 +243,7 @@ If all active connections are warming and skip, the pool falls back to the conne
 
 ## Shared Connections Across Policies
 
-Each policy owns its own `multiServerPool` with independent ready/dead lists and active/standby partitions. However, all pools that contain a given node share the **same `*Connection` pointer**. The `Connection.state` is an `atomic.Int64` -- changes to lifecycle bits propagate immediately to all pools.
+Each policy owns its own `multiServerPool` with independent ready/dead lists and active/standby partitions. However, all pools that contain a given node share the **same `*Connection` pointer**. The `Connection.state` is an `atomic.Int64`; changes to lifecycle bits propagate immediately to all pools.
 
 ```
   ┌─────────────────────┐   ┌──────────────────────┐
@@ -285,14 +285,15 @@ When a connection fails in one pool, the atomic lifecycle bits change immediatel
 
 ### Independent Partitions
 
-Each pool manages its own active/standby boundary independently. Connection A can be active in one pool and standby in another -- the position bits (`lcActive`, `lcStandby`) are set per-pool during pool operations.
+Each pool manages its own active/standby boundary independently. A connection can be active in one pool and standby in another; the position bits (`lcActive`, `lcStandby`) are set per-pool during pool operations.
 
 ```
   RoundRobin pool:  A=active,  B=standby     (activeListCap=3)
   RolePolicy pool:  A=active                 (activeListCap=1)
 
-  These are independent -- A serving traffic in both pools is normal.
-  Only dead/overloaded state (no position bits) triggers cross-pool eviction.
+These are independent: a connection serving traffic in both pools is normal.
+  Only dead state (lcUnknown, no position bits) triggers cross-pool eviction.
+  Overloaded connections retain lcStandby and are managed by the stats poller.
 ```
 
 ## Connection State Word
@@ -349,8 +350,8 @@ Each `Connection` stores its full state in a single `atomic.Int64`, enabling loc
     lcNeedsWarmup
   lcReady|lcActive|        0x015         Active, going through warmup
     lcNeedsWarmup
-  lcUnknown|lcOverloaded   0x022         Dead due to overload
-  lcReady|lcStandby|       0x029         Standby, overloaded
+  lcUnknown|lcOverloaded   0x022         Dead + also overloaded (was dead before overload detected)
+  lcReady|lcStandby|       0x029         Standby, demoted due to overload
     lcOverloaded
   lcUnknown|lcDraining     0x082         Dead, HTTP/2 GOAWAY received
   lcUnknown|lcNeedsWarmup| 0x112         New connection, needs hardware info
@@ -406,17 +407,26 @@ Each warmup manager packs two 8-bit fields into the lower 16 bits of its 26-bit 
     │  (fully active)        │     resurrection
     └─────────┬──────────────┘
               │
-              │ OnFailure() or
-              │ overload detected
+              │ OnFailure()
+              │
               ▼
-    ┌──────────────────────────────┐  ┌─────────────────────────┐
-    │  lcUnknown | lcNeedsHardware │  │ lcStandby|lcOverloaded  │
-    │  (dead, hardware re-check)   │  │ (parked, stats poller   │
-    └──────────────────────────────┘  │  manages lifecycle)     │
-                                      └─────────────────────────┘
+    ┌──────────────────────────────┐
+    │  lcUnknown | lcNeedsHardware │
+    │  (dead, hardware re-check)   │
+    └──────────────────────────────┘
+
+              │ overload detected
+              │ (stats poller)
+              ▼
+    ┌─────────────────────────────┐
+    │ lcStandby|lcOverloaded      │
+    │ (standby, not failed --     │
+    │  stats poller clears flag   │
+    │  when metrics improve)      │
+    └─────────────────────────────┘
 ```
 
-When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is set so that hardware info is re-verified on resurrection -- the node may have been replaced with different hardware during the outage.
+When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is set so that hardware info is re-verified on resurrection. The node may have been replaced with different hardware during the outage.
 
 ### CAS-Based Lifecycle Transitions
 
@@ -460,7 +470,7 @@ Dead connections are resurrected via scheduled health checks with cluster-aware 
 
 ### Draining Quiescing
 
-When an HTTP/2 stream reset is observed (e.g., RST_STREAM/REFUSED_STREAM), the connection requires multiple consecutive successful health checks before resurrection (default: 3). This gives the server time to fully quiesce.
+When an HTTP/2 stream reset is observed (for example, RST_STREAM/REFUSED_STREAM), the connection requires multiple consecutive successful health checks before resurrection (default: 3). This allows the server time to fully quiesce.
 
 ```
   Stream reset detected
@@ -482,7 +492,7 @@ In heterogeneous clusters where nodes have different core counts, the client dis
 
 ### How Weights Are Determined
 
-Node discovery calls `/_nodes/http,os` which returns each node's `allocated_processors` count. The client normalizes these into integer weights using GCD (greatest common divisor) reduction:
+Node discovery calls `/_nodes/http,os`, which returns each node's `allocated_processors` count. The client normalizes these into integer weights using GCD (greatest common divisor) reduction:
 
 ```
   Cluster cores:  [8, 16]          -> GCD=8  -> weights: [1, 2]
@@ -496,7 +506,7 @@ Nodes whose core count is unknown (e.g., hardware info not yet discovered) get a
 
 ### Duplicate Pointers for O(1) Selection
 
-Rather than an O(n) weighted walk per request, the pool duplicates `*Connection` pointers in `ready[]` according to weight. A connection with `weight=3` gets 3 entries (shuffled):
+Rather than performing an O(n) weighted walk per request, the pool duplicates `*Connection` pointers in `ready[]` according to weight. A connection with `weight=3` receives 3 entries (shuffled):
 
 ```
   ready[] layout for weights [1, 2, 3]:
@@ -504,7 +514,7 @@ Rather than an O(n) weighted walk per request, the pool duplicates `*Connection`
      ├─── active ─────┤ (activeCount = 6)
 ```
 
-The existing `getNextActiveConnWithLock()` stays O(1) -- it increments an atomic counter and modulos by `activeCount` to select a slot. No changes to the hot path. The cost is paid during add/remove (default is once every ~5min during discovery, +/- jitter), not every request.
+The existing `getNextActiveConnWithLock()` remains O(1): it increments an atomic counter and takes the modulus by `activeCount` to select a slot. No changes to the hot path. The cost is paid during add/remove (by default once approximately every 5 minutes during discovery, plus jitter), not on every request.
 
 ### Add/Remove with Weights
 
@@ -518,17 +528,17 @@ Functions that manipulate `ready[]` handle multiple entries per connection:
 
 ### activeCount Semantics
 
-`activeCount` counts slots (entries), not unique connections. A 3-node cluster with weights [1,2,3] has `activeCount=6`. This is correct because the round-robin counter modulos by `activeCount` to hit all weighted slots.
+`activeCount` counts slots (entries), not unique connections. A 3-node cluster with weights [1,2,3] has `activeCount=6`. This is correct because the round-robin counter takes the modulus by `activeCount` to reach all weighted slots.
 
 ### Hardware Info Discovery
 
 Each connection tracks whether it needs hardware info via the `lcNeedsHardware` lifecycle bit:
 
 - **Set on creation**: All new connections start with `lcNeedsHardware`
-- **Set on failure**: When a connection dies, `lcNeedsHardware` is set -- the node may have been replaced with different hardware
-- **Cleared**: When hardware info is successfully obtained, either from cluster-wide `/_nodes/http,os` during discovery or per-node `/_nodes/_local/http,os` during a health check
+- **Set on failure**: When a connection dies, `lcNeedsHardware` is set because the node may have been replaced with different hardware.
+- **Cleared**: When hardware info is successfully obtained, either from cluster-wide `/_nodes/http,os` during discovery or from per-node `/_nodes/_local/http,os` during a health check.
 
-When a health check is due on a connection with `lcNeedsHardware` set, the client substitutes `/_nodes/_local/http,os` for the normal health check endpoint. This gets hardware info without an extra request -- one health check cycle is traded for hardware discovery.
+When a health check is due on a connection with `lcNeedsHardware` set, the client substitutes `/_nodes/_local/http,os` for the normal health check endpoint. This obtains hardware info without an extra request: one health check cycle is traded for hardware discovery.
 
 ### Capacity Model
 
@@ -548,7 +558,7 @@ The capacity model auto-derives all rate-limiting parameters from the server's c
     - Cluster health refresh interval
 ```
 
-On each discovery cycle, the capacity model is recalculated using the minimum `allocatedProcessors` across all nodes (the smallest node is the bottleneck for rate limiting).
+On each discovery cycle, the capacity model is recalculated using the minimum `allocatedProcessors` across all nodes (the smallest node is the bottleneck for rate-limiting purposes).
 
 ## Cluster Health Probe State
 

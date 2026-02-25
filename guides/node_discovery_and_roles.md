@@ -1,10 +1,6 @@
 # Node Discovery and Role Management
 
-This guide covers OpenSearch node discovery functionality and role-based node selection in the Go client.
-
-## Overview
-
-The OpenSearch Go client can automatically discover nodes in your cluster and select appropriate nodes for routing requests based on their roles. This feature helps ensure optimal performance and follows OpenSearch best practices.
+This guide covers OpenSearch node discovery and role-based node management in the Go client.
 
 ## Basic Node Discovery
 
@@ -12,17 +8,15 @@ The OpenSearch Go client can automatically discover nodes in your cluster and se
 
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
-    Addresses: []string{"http://localhost:9200"},
-    // Discover nodes when the client starts
-    DiscoverNodesOnStart: true,
-    // Periodically refresh the node list every 5 minutes
+    Addresses:             []string{"https://localhost:9200"},
+    DiscoverNodesOnStart:  true,
     DiscoverNodesInterval: 5 * time.Minute,
 })
 ```
 
-### Manual Node Discovery
+When discovery is enabled, the client calls `/_nodes/http` to retrieve the full node list with roles and HTTP publish addresses. Hardware info (`allocated_processors`) is obtained separately: when a new node appears with `lcNeedsHardware` set, or when a node fails and may have been replaced with a different instance type, the next health check for that connection substitutes `/_nodes/_local/http,os` to discover the node's core count. This avoids fetching OS info on every discovery cycle; the info is requested only on transitions where it may have changed.
 
-You can also trigger node discovery manually:
+### Manual Node Discovery
 
 ```go
 err := client.DiscoverNodes()
@@ -33,228 +27,164 @@ if err != nil {
 
 ## Node Roles
 
-OpenSearch nodes can have various roles that determine their capabilities. The Go client provides constants for these roles:
+OpenSearch nodes have roles that determine their capabilities. The Go client provides constants for these roles:
 
 ```go
 import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 
-// Available role constants
-opensearchtransport.RoleData                // Data nodes store documents and handle search
-opensearchtransport.RoleIngest              // Ingest nodes process documents before indexing
-opensearchtransport.RoleClusterManager      // Cluster manager nodes manage cluster state
-opensearchtransport.RoleMaster              // Deprecated: use RoleClusterManager instead
-opensearchtransport.RoleSearch              // Deprecated in 3.0+: use RoleWarm for searchable snapshots
-opensearchtransport.RoleWarm                // Warm nodes for searchable snapshots (OpenSearch 3.0+)
-opensearchtransport.RoleRemoteClusterClient // Enables cross-cluster connections
+opensearchtransport.RoleData                // Data nodes: store documents, handle indexing and search (1.0+)
+opensearchtransport.RoleIngest              // Ingest nodes: pre-process documents via pipelines (1.0+)
+opensearchtransport.RoleClusterManager      // Cluster manager nodes: manage cluster state (1.0+)
+opensearchtransport.RoleSearch              // Search nodes: dedicated search replicas (3.0+)
+opensearchtransport.RoleWarm                // Warm nodes: searchable snapshots (2.4+)
+opensearchtransport.RoleRemoteClusterClient // Cross-cluster client capability (1.0+)
+opensearchtransport.RoleML                  // Machine learning tasks (ML Commons plugin)
+opensearchtransport.RoleCoordinatingOnly    // Derived: no explicit roles, acts as coordinator
+opensearchtransport.RoleMaster              // Deprecated: use RoleClusterManager
 ```
+
+### Role Descriptions
+
+**Data** (`data`): Store documents in local shards. Handle indexing, search, and aggregation operations. The primary workhorse role present in most clusters.
+
+**Ingest** (`ingest`): Pre-process documents through ingest pipelines before indexing. Separating pipeline CPU load from search and indexing workloads can improve overall cluster stability.
+
+**Cluster Manager** (`cluster_manager`): Manage cluster state, index creation and deletion, shard allocation, and node health. Dedicated cluster-manager nodes improve cluster stability under load.
+
+**Search** (`search`): Host dedicated search replicas. Added in OpenSearch 3.0 to allow separation of search workloads from indexing workloads. Search nodes host search-only replicas of shards and do not participate in indexing. This is a distinct role from data nodes: search nodes receive replicated data but never handle write operations. The server enforces that search nodes cannot hold other data-related roles.
+
+**Warm** (`warm`): Provide access to warm indexes and searchable snapshots. Added in OpenSearch 2.4. In OpenSearch 3.0+, the warm role replaced the earlier use of the search role for searchable snapshot functionality. Warm nodes store snapshot data on local or remote storage and serve read requests from it.
+
+**Coordinating-only** (`coordinating_only`): Nodes with no explicit roles (`node.roles: []`). These nodes accept client requests, route them to the appropriate data or search nodes, and aggregate results. They do not store data or manage cluster state. Ideal for absorbing coordinator overhead in large clusters.
+
+**Remote Cluster Client** (`remote_cluster_client`): A capability role that enables outbound connections to remote clusters for cross-cluster search and replication. This role does not affect request routing and is ignored during node filtering.
 
 ### OpenSearch 3.0 Role Changes
 
-**Important**: As of OpenSearch 3.0, there have been significant changes to node roles:
+OpenSearch 3.0 introduced two significant role changes:
 
-- **Searchable Snapshots**: Nodes that use the searchable snapshots feature must have the `warm` node role instead of the `search` role.
-- **Role Migration**: The `search` role is deprecated for searchable snapshots functionality in OpenSearch 3.0+.
+1. **Search role** (`search`): New dedicated role for hosting search replicas. Separates search traffic from indexing on data nodes. Not to be confused with the warm role.
 
-## Role-Based Node Selection
+2. **Warm role for searchable snapshots**: In OpenSearch 2.x, searchable snapshots used the `search` role. In 3.0+, this functionality moved to the `warm` role. Nodes running searchable snapshots must use `warm`, not `search`.
 
-### Dedicated Cluster Manager Nodes
+These are distinct roles serving different purposes:
 
-By default, the client includes all discovered nodes in request routing. However, you can enable Java client compatible behavior to exclude dedicated cluster manager nodes from receiving client requests:
+| Role     | Purpose                   | Data Source                      | Write Traffic             |
+| -------- | ------------------------- | -------------------------------- | ------------------------- |
+| `search` | Dedicated search replicas | Replicated from primary shards   | None (read-only replicas) |
+| `warm`   | Searchable snapshots      | Snapshot storage (local/remote)  | None (read-only)          |
+| `data`   | General purpose           | Local shards (primary + replica) | Yes (indexing + search)   |
 
-```go
-client, err := opensearch.NewClient(opensearch.Config{
-    Addresses: []string{"http://localhost:9200"},
+## Cluster Manager Filtering
 
-    // Enable node discovery
-    DiscoverNodesOnStart: true,
-    DiscoverNodesInterval: 5 * time.Minute,
+By default, the client excludes dedicated cluster manager nodes from request routing. These nodes are EXCLUDED:
 
-    // Enable Java client compatible behavior
-    IncludeDedicatedClusterManagers: false, // Default: excludes dedicated cluster managers
-})
-```
+- Nodes with only `cluster_manager` role
+- Nodes with only `master` role (deprecated)
+- Nodes with `cluster_manager` + `remote_cluster_client` roles only
 
-When `IncludeDedicatedClusterManagers` is disabled (default), these nodes will be EXCLUDED from request routing:
-
-- Nodes with only "cluster_manager" role
-- Nodes with only "master" role (deprecated)
-- Nodes with "cluster_manager" + "remote_cluster_client" roles only
-
-These nodes will be INCLUDED (even with IncludeDedicatedClusterManagers disabled):
+These nodes are INCLUDED (they have data-serving capabilities):
 
 - Cluster manager + data nodes
 - Cluster manager + ingest nodes
-- Cluster manager + warm nodes (OpenSearch 3.0+ for searchable snapshots)
-- Pure data nodes
-- Pure ingest nodes
-- Pure warm nodes
-- Search nodes (backward compatibility)
-- Pure remote_cluster_client nodes (coordinating nodes with cross-cluster capability)
-
-### Remote Cluster Client Role
-
-The `remote_cluster_client` role is a **capability role** that enables cross-cluster connections but does not affect node selection for request routing. Nodes with this role can make outbound connections to remote clusters for cross-cluster search and replication operations.
+- Cluster manager + warm nodes
+- Pure data, ingest, warm, or search nodes
+- Pure `remote_cluster_client` nodes (effectively coordinating-only)
 
 ```go
-// Valid: Pure remote cluster client (treated as coordinating node)
-roles := []string{opensearchtransport.RoleRemoteClusterClient} // INCLUDED - effectively coordinating-only
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:            []string{"https://localhost:9200"},
+    DiscoverNodesOnStart: true,
 
-// Valid: Combined with other roles
-roles := []string{opensearchtransport.RoleData, opensearchtransport.RoleRemoteClusterClient} // INCLUDED - data node with capability
-
-// Filtered: Cluster manager + remote cluster client only (follows cluster manager filtering)
-roles := []string{opensearchtransport.RoleClusterManager, opensearchtransport.RoleRemoteClusterClient} // EXCLUDED - dedicated cluster manager
-```
-
-Since `remote_cluster_client` is a capability role, it is ignored during node filtering. This matches OpenSearch server behavior where the role enables outbound connections but doesn't determine inbound request eligibility.
-
-### Warm Nodes for Searchable Snapshots (OpenSearch 3.0+)
-
-Warm nodes are now the preferred method for searchable snapshots:
-
-```go
-// Recommended for OpenSearch 3.0+: Warm node for searchable snapshots
-roles := []string{opensearchtransport.RoleWarm}
-
-// Also valid: Warm node combined with data
-roles := []string{opensearchtransport.RoleWarm, opensearchtransport.RoleData}
-
-// DEPRECATED in OpenSearch 3.0+: Search role for searchable snapshots
-roles := []string{opensearchtransport.RoleSearch} // Will log deprecation warning
-```
-
-### Search Node Constraints
-
-Search nodes have special constraints for backward compatibility:
-
-```go
-// Valid: Search-only node (backward compatibility)
-roles := []string{opensearchtransport.RoleSearch}
-
-// INVALID: Search nodes cannot have other roles
-roles := []string{opensearchtransport.RoleSearch, opensearchtransport.RoleData} // Will cause validation error
-
-// INVALID: Cannot mix warm and search roles (OpenSearch 3.0+)
-roles := []string{opensearchtransport.RoleWarm, opensearchtransport.RoleSearch} // Will cause validation error
+    // Default: false (excludes dedicated cluster managers)
+    IncludeDedicatedClusterManagers: false,
+})
 ```
 
 ## Role Validation
 
-The client validates node roles for compatibility and logs warnings for deprecated configurations:
+The client validates discovered node roles and logs warnings for deprecated or conflicting configurations.
 
 ### Deprecated Roles
 
-```go
-// Master role deprecation warning:
-// "DEPRECATION WARNING: Node [node-1] uses deprecated 'master' role.
-//  Please use 'cluster_manager' role instead to promote inclusive language"
+The client logs warnings for deprecated role usage:
 
-// Search role deprecation warning (OpenSearch 3.0+):
-// "DEPRECATION WARNING: Node [node-1] uses 'search' role. As of OpenSearch 3.0,
-//  searchable snapshots functionality requires 'warm' role instead.
-//  Consider migrating to 'warm' role for future compatibility"
-```
+- **`master` role**: Deprecated in favor of `cluster_manager`. Functionally identical, but `cluster_manager` is the preferred name.
+- **`search` role for searchable snapshots**: In OpenSearch 3.0+, searchable snapshots require the `warm` role instead.
 
-### Conflicting Roles
+### Conflicting Roles (Server-Enforced)
 
-```go
-// This configuration will cause an error:
-// "node [node-1] has conflicting roles ["master", "cluster_manager"] -
-//  these cannot be assigned together"
+OpenSearch enforces role constraints server-side. The following combinations produce validation errors when configuring the server:
 
-// This configuration will cause an error (OpenSearch 3.0+):
-// "node [node-1] cannot have both "warm" and "search" roles -
-//  use "warm" for searchable snapshots in OpenSearch 3.0+"
-```
+- `master` + `cluster_manager` on the same node (contradictory names for the same role)
+- `search` + other data-related roles (search nodes are search-only by design)
+- `warm` + `search` on the same node in OpenSearch 3.0+ (distinct purposes)
 
-## OpenSearch 3.X Compatibility
-
-The enhanced role validation ensures compatibility with OpenSearch 3.X best practices:
-
-- **Prevents anti-patterns**: Master + data role combinations that can impact cluster stability
-- **Enforces role separation**: Encourages dedicated cluster manager nodes
-- **Searchable snapshots migration**: Guides users from deprecated `search` role to `warm` role
-- **Future compatibility**: Graceful handling of deprecated roles with warnings
+The client detects these conflicts during discovery and logs errors to help diagnose misconfigured clusters.
 
 ## Migration Guide
 
 ### From Master to Cluster Manager
 
-If you're using deprecated "master" roles, migrate to "cluster_manager":
-
 ```yaml
-# Old configuration (deprecated)
+# Deprecated
 node.roles: ["master", "data"]
 
-# New configuration (recommended)
+# Recommended
 node.roles: ["cluster_manager", "data"]
 ```
 
-### From Search to Warm (OpenSearch 3.0+)
-
-For searchable snapshots, migrate from "search" to "warm":
+### From Search to Warm for Searchable Snapshots (OpenSearch 3.0+)
 
 ```yaml
-# Old configuration (deprecated in OpenSearch 3.0+)
+# Deprecated for searchable snapshots in OpenSearch 3.0+
 node.roles: ["search"]
 node.search.cache.size: 50gb
 
-# New configuration (OpenSearch 3.0+)
+# Recommended for searchable snapshots
 node.roles: ["warm"]
 node.search.cache.size: 50gb
 ```
+
+Note: The `search` role in 3.0+ is _not_ deprecated; it has a new purpose (dedicated search replicas). Only its use for searchable snapshots is deprecated in favor of `warm`.
 
 ### Role Separation Best Practices
 
-For production clusters, consider separating roles:
+For production clusters, separate roles for workload isolation:
 
 ```yaml
-# Dedicated cluster manager nodes
+# Dedicated cluster manager (3 nodes for quorum)
 node.roles: ["cluster_manager"]
 
-# Dedicated data nodes
+# Data + ingest (combined is common for smaller clusters)
 node.roles: ["data", "ingest"]
 
-# Dedicated warm nodes for searchable snapshots (OpenSearch 3.0+)
+# Dedicated search replicas (OpenSearch 3.0+)
+node.roles: ["search"]
+
+# Searchable snapshots (OpenSearch 2.4+)
 node.roles: ["warm"]
 node.search.cache.size: 50gb
+
+# Coordinating-only (absorbs coordinator overhead)
+node.roles: []
 ```
-
-## Performance Optimizations
-
-The client includes several performance improvements for handling node roles:
-
-- **Fast role lookups**: Role checking is optimized for speed
-- **Efficient validation**: Role compatibility is checked only when nodes are discovered
-- **Minimal overhead**: Role information is processed once per node during discovery
 
 ## Troubleshooting
 
-### Common Issues
+### All nodes excluded from routing
 
-1. **All nodes excluded from routing**
-   - Check that you have non-dedicated cluster manager nodes
-   - Ensure data/ingest nodes are available
+Check that non-dedicated-cluster-manager nodes exist. If the cluster contains only `cluster_manager`-role nodes plus the seed addresses, the client will have no nodes to route to after discovery.
 
-2. **Role validation errors**
-   - Remove conflicting master+cluster_manager combinations
-   - Ensure search nodes don't have other roles
+### Role validation errors in logs
 
-3. **Discovery failures**
-   - Verify network connectivity to cluster nodes
-   - Check authentication credentials
-   - Review cluster node configuration
+Remove conflicting role combinations from the server's `opensearch.yml`. Common conflicts: `master` + `cluster_manager`, `search` + `data`, `warm` + `search` (3.0+).
 
-### Debug Logging
+### Discovery failures
 
-Enable debug logging to see node discovery details:
-
-```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-
-// The client will log discovered nodes and role validation results
-// when debug logging is enabled in your application
-```
+- Verify network connectivity to cluster nodes on their HTTP publish addresses, not only the seed addresses.
+- Check authentication credentials: discovery calls `/_nodes/http,os`, which requires the `cluster:monitor/nodes` permission.
+- Ensure the seed addresses are reachable and point to nodes in the target cluster.
 
 ## Example: Complete Setup
 
@@ -263,7 +193,6 @@ package main
 
 import (
     "log"
-    "net/http"
     "time"
 
     "github.com/opensearch-project/opensearch-go/v4"
@@ -271,18 +200,15 @@ import (
 )
 
 func main() {
-    client, err := opensearch.NewClient(opensearch.Config{
-        Addresses: []string{"http://localhost:9200"},
+    router := opensearchtransport.NewSmartRouter()
 
-        // Enable automatic node discovery
+    client, err := opensearch.NewClient(opensearch.Config{
+        Addresses:             []string{"https://localhost:9200"},
+        Username:              "admin",
+        Password:              "changeme",
         DiscoverNodesOnStart:  true,
         DiscoverNodesInterval: 5 * time.Minute,
-
-        // Optional: Custom HTTP transport for additional configuration
-        Transport: &http.Transport{
-            MaxIdleConnsPerHost:   10,
-            ResponseHeaderTimeout: time.Second,
-        },
+        Router:                router,
     })
     if err != nil {
         log.Fatalf("Error creating client: %s", err)
@@ -291,8 +217,9 @@ func main() {
     // Client will automatically:
     // 1. Discover cluster nodes on startup
     // 2. Validate node roles for compatibility
-    // 3. Route requests only to appropriate nodes
-    // 4. Refresh node list periodically
+    // 3. Route requests to appropriate nodes based on roles + affinity
+    // 4. Refresh node list every 5 minutes
     // 5. Log deprecation warnings for old role names
+    _ = client
 }
 ```
