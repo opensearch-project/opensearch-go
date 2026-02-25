@@ -187,11 +187,14 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	}
 
 	// Log version changes during rolling upgrades (not on initial startup)
-	if debugLogger != nil && c.Version != "" && c.Version != info.Version.Number {
-		debugLogger.Logf("[%s] Version changed for %q: %s -> %s\n", cp.name, c.URL, c.Version, info.Version.Number)
+	if debugLogger != nil {
+		prev := c.loadVersion()
+		if prev != "" && prev != info.Version.Number {
+			debugLogger.Logf("[%s] Version changed for %q: %s -> %s\n", cp.name, c.URL, prev, info.Version.Number)
+		}
 	}
 	// Update the connection version
-	c.Version = info.Version.Number
+	c.storeVersion(info.Version.Number)
 
 	return true
 }

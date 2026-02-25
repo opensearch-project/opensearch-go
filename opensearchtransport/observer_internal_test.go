@@ -38,12 +38,12 @@ func TestNewConnectionEvent(t *testing.T) {
 	require.NoError(t, err)
 
 	conn := &Connection{
-		URL:     u,
-		ID:      "node-abc",
-		Name:    "node-1",
-		Roles:   roleSet{"data": {}, "ingest": {}},
-		Version: "2.11.0",
+		URL:   u,
+		ID:    "node-abc",
+		Name:  "node-1",
+		Roles: roleSet{"data": {}, "ingest": {}},
 	}
+	conn.storeVersion("2.11.0")
 	conn.failures.Store(3)
 	conn.weight.Store(2)
 
@@ -89,12 +89,12 @@ func TestNewConnectionEventWithStandby(t *testing.T) {
 	require.NoError(t, err)
 
 	conn := &Connection{
-		URL:     u,
-		ID:      "node-standby",
-		Name:    "node-3",
-		Roles:   roleSet{"data": {}},
-		Version: "2.12.0",
+		URL:   u,
+		ID:    "node-standby",
+		Name:  "node-3",
+		Roles: roleSet{"data": {}},
 	}
+	conn.storeVersion("2.12.0")
 	conn.failures.Store(1)
 
 	event := newConnectionEventWithStandby("role:data", conn, 3, 1, 4)

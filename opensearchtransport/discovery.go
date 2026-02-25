@@ -339,9 +339,10 @@ func (c *Client) createConnection(node nodeInfo) *Connection {
 	}
 	conn.weight.Store(1)
 
-	// Store allocated_processors if provided by the /_nodes/http,os response.
-	if node.OS.AllocatedProcessors != nil {
-		conn.allocatedProcessors = *node.OS.AllocatedProcessors
+	// Store allocated_processors if present (populated when nodeInfo was parsed
+	// from a /_nodes/_local/http,os response; nil from /_nodes/http discovery).
+	if node.OS != nil && node.OS.AllocatedProcessors != nil {
+		conn.storeAllocatedProcessors(*node.OS.AllocatedProcessors)
 		initialState &^= lcNeedsHardware // hardware info obtained
 	}
 
@@ -603,11 +604,11 @@ func computeWeights(conns []*Connection) {
 	// Collect all known core counts.
 	d := 0
 	for _, c := range conns {
-		if c.allocatedProcessors > 0 {
+		if ap := c.loadAllocatedProcessors(); ap > 0 {
 			if d == 0 {
-				d = c.allocatedProcessors
+				d = ap
 			} else {
-				d = gcd(d, c.allocatedProcessors)
+				d = gcd(d, ap)
 			}
 		}
 	}
@@ -618,8 +619,8 @@ func computeWeights(conns []*Connection) {
 	}
 
 	for _, c := range conns {
-		if c.allocatedProcessors > 0 {
-			c.weight.Store(int32(min(c.allocatedProcessors/d, math.MaxInt32))) //nolint:gosec // core count ratio always fits
+		if ap := c.loadAllocatedProcessors(); ap > 0 {
+			c.weight.Store(int32(min(ap/d, math.MaxInt32))) //nolint:gosec // core count ratio always fits
 		} else {
 			c.weight.Store(1)
 		}
@@ -633,9 +634,9 @@ func computeWeights(conns []*Connection) {
 func (c *Client) recalculateCapacityModel(conns []*Connection) {
 	minCores := 0
 	for _, conn := range conns {
-		if conn.allocatedProcessors > 0 {
-			if minCores == 0 || conn.allocatedProcessors < minCores {
-				minCores = conn.allocatedProcessors
+		if ap := conn.loadAllocatedProcessors(); ap > 0 {
+			if minCores == 0 || ap < minCores {
+				minCores = ap
 			}
 		}
 	}

@@ -31,6 +31,22 @@ func createBenchConnection(urlStr string, id string, roles ...string) *Connectio
 	return conn
 }
 
+// createBenchAffinityConnection creates a connection with RTT ring and affinity
+// counter populated, suitable for benchmarking affinity-based routing.
+func createBenchAffinityConnection(urlStr string, id string, rtt time.Duration, load float64, roles ...string) *Connection {
+	conn := createBenchConnection(urlStr, id, roles...)
+	conn.rttRing = newRTTRing(4)
+	for range 4 {
+		conn.rttRing.add(rtt)
+	}
+	// Freeze the clock so load() returns exactly what store() wrote.
+	conn.affinityCounter.clock = newTestClock()
+	if load > 0 {
+		conn.affinityCounter.store(load)
+	}
+	return conn
+}
+
 // configureBenchPolicy configures a policy for benchmarking.
 func configureBenchPolicy(p Policy, connections []*Connection) {
 	// Configure policy settings

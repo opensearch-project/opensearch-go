@@ -1552,7 +1552,8 @@ func TestGCD(t *testing.T) {
 
 func TestComputeWeights(t *testing.T) {
 	makeConn := func(cores int) *Connection {
-		c := &Connection{allocatedProcessors: cores}
+		c := &Connection{}
+		c.storeAllocatedProcessors(cores)
 		c.weight.Store(1)
 		return c
 	}
@@ -1788,11 +1789,17 @@ func TestFindConnectionByURL(t *testing.T) {
 }
 
 func TestRecalculateCapacityModel(t *testing.T) {
+	makeConnWithCores := func(host string, cores int) *Connection {
+		c := &Connection{URL: &url.URL{Host: host}}
+		c.storeAllocatedProcessors(cores)
+		return c
+	}
+
 	t.Run("updates fields from minimum core count", func(t *testing.T) {
 		conns := []*Connection{
-			{URL: &url.URL{Host: "a:9200"}, allocatedProcessors: 8},
-			{URL: &url.URL{Host: "b:9200"}, allocatedProcessors: 16},
-			{URL: &url.URL{Host: "c:9200"}, allocatedProcessors: 4},
+			makeConnWithCores("a:9200", 8),
+			makeConnWithCores("b:9200", 16),
+			makeConnWithCores("c:9200", 4),
 		}
 
 		client := &Client{
@@ -1811,7 +1818,7 @@ func TestRecalculateCapacityModel(t *testing.T) {
 
 	t.Run("no-op when no cores known", func(t *testing.T) {
 		conns := []*Connection{
-			{URL: &url.URL{Host: "a:9200"}, allocatedProcessors: 0},
+			makeConnWithCores("a:9200", 0),
 		}
 
 		client := &Client{
