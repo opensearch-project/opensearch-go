@@ -18,7 +18,7 @@ func TestBaseConnectionObserver_NoOps(_ *testing.T) {
 	var obs BaseConnectionObserver
 	event := ConnectionEvent{URL: "http://localhost:9200"}
 
-	// All 12 methods should be callable without panic
+	// All 13 methods should be callable without panic
 	obs.OnPromote(event)
 	obs.OnDemote(event)
 	obs.OnOverloadDetected(event)
@@ -31,6 +31,7 @@ func TestBaseConnectionObserver_NoOps(_ *testing.T) {
 	obs.OnStandbyPromote(event)
 	obs.OnStandbyDemote(event)
 	obs.OnWarmupRequest(event)
+	obs.OnAffinityRoute(AffinityRouteEvent{})
 }
 
 func TestNewConnectionEvent(t *testing.T) {
@@ -47,7 +48,7 @@ func TestNewConnectionEvent(t *testing.T) {
 	conn.failures.Store(3)
 	conn.weight.Store(2)
 
-	event := newConnectionEvent("roundrobin", conn, 5, 2)
+	event := newConnectionEvent("roundrobin", conn, lifecycleCounts{active: 5, dead: 2})
 
 	require.Equal(t, "http://node1.example.com:9200", event.URL)
 	require.Equal(t, "node-abc", event.ID)
@@ -76,7 +77,7 @@ func TestNewConnectionEvent_EmptyRoles(t *testing.T) {
 		ID:  "node-xyz",
 	}
 
-	event := newConnectionEvent("test-pool", conn, 1, 0)
+	event := newConnectionEvent("test-pool", conn, lifecycleCounts{active: 1})
 
 	require.Equal(t, "http://node2.example.com:9200", event.URL)
 	require.Equal(t, "node-xyz", event.ID)
@@ -97,7 +98,7 @@ func TestNewConnectionEventWithStandby(t *testing.T) {
 	conn.storeVersion("2.12.0")
 	conn.failures.Store(1)
 
-	event := newConnectionEventWithStandby("role:data", conn, 3, 1, 4)
+	event := newConnectionEvent("role:data", conn, lifecycleCounts{active: 3, dead: 1, standby: 4})
 
 	require.Equal(t, "http://node3.example.com:9200", event.URL)
 	require.Equal(t, "role:data", event.PoolName)

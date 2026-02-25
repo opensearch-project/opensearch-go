@@ -30,6 +30,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -75,6 +76,64 @@ type Metrics struct {
 
 	// Per-pool breakdown (only populated when router with policies is active)
 	Pools []PoolSnapshot `json:"pools,omitempty"`
+
+	// Affinity routing cache state (only populated when affinity routing is active)
+	Affinity *AffinitySnapshot `json:"affinity,omitempty"`
+}
+
+// AffinitySnapshot is a point-in-time summary of the affinity routing cache.
+type AffinitySnapshot struct {
+	Indexes []IndexAffinityState   `json:"indexes,omitempty"`
+	Config  AffinitySnapshotConfig `json:"config"`
+}
+
+// IndexAffinityState is per-index routing state from the affinity cache.
+type IndexAffinityState struct {
+	Name        string     `json:"name"`
+	FanOut      int        `json:"fan_out"`
+	ShardNodes  int        `json:"shard_nodes"`
+	RequestRate float64    `json:"request_rate"`
+	IdleSince   *time.Time `json:"idle_since,omitempty"`
+}
+
+// AffinitySnapshotConfig holds the effective configuration values for
+// the affinity routing cache.
+type AffinitySnapshotConfig struct {
+	MinFanOut       int     `json:"min_fan_out"`
+	MaxFanOut       int     `json:"max_fan_out"`
+	DecayFactor     float64 `json:"decay_factor"`
+	FanOutPerReq    float64 `json:"fan_out_per_request"`
+	IdleEvictionTTL string  `json:"idle_eviction_ttl"`
+}
+
+// sortIndexAffinityStates sorts index states by name for deterministic output.
+func sortIndexAffinityStates(states []IndexAffinityState) {
+	slices.SortFunc(states, func(a, b IndexAffinityState) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+}
+
+// affinitySnapshotProvider is implemented by policies that hold an
+// indexSlotCache and can produce an AffinitySnapshot.
+type affinitySnapshotProvider interface {
+	affinitySnapshot() AffinitySnapshot
+}
+
+// collectAffinitySnapshot walks a policy tree and returns the first
+// AffinitySnapshot found. Returns nil if no provider exists in the tree.
+func collectAffinitySnapshot(v any) *AffinitySnapshot {
+	if provider, ok := v.(affinitySnapshotProvider); ok {
+		snap := provider.affinitySnapshot()
+		return &snap
+	}
+	if walker, ok := v.(policyTreeWalker); ok {
+		for _, child := range walker.childPolicies() {
+			if snap := collectAffinitySnapshot(child); snap != nil {
+				return snap
+			}
+		}
+	}
+	return nil
 }
 
 // ConnectionMetric represents metric information for a connection.
@@ -84,12 +143,18 @@ type ConnectionMetric struct {
 	IsDead           bool       `json:"dead,omitempty"`
 	IsStandby        bool       `json:"standby,omitempty"`
 	IsOverloaded     bool       `json:"overloaded,omitempty"`
+	NeedsCatUpdate   bool       `json:"needs_cat_update,omitempty"`
 	IsWarmingUp      bool       `json:"warming_up,omitempty"`
 	IsHealthChecking bool       `json:"health_checking,omitempty"`
 	Weight           int        `json:"weight,omitempty"`
 	DeadSince        *time.Time `json:"dead_since,omitempty"`
 	OverloadedSince  *time.Time `json:"overloaded_since,omitempty"`
 	State            ConnState  `json:"state"`
+
+	// Affinity routing fields (populated when RTT ring or affinity counter has data)
+	RTTBucket    *int64   `json:"rtt_bucket,omitempty"`
+	RTTMedian    *string  `json:"rtt_median,omitempty"`
+	AffinityLoad *float64 `json:"affinity_load,omitempty"`
 
 	Meta struct {
 		ID    string   `json:"id"`
@@ -241,6 +306,7 @@ func (c *Client) Metrics() (Metrics, error) {
 	// Also include the flat pool snapshot if available.
 	if c.router != nil {
 		m.Pools = collectPoolSnapshots(c.router)
+		m.Affinity = collectAffinitySnapshot(c.router)
 	}
 	c.mu.RLock()
 	if c.mu.connectionPool != nil {
@@ -272,6 +338,7 @@ func buildConnectionMetric(c *Connection) ConnectionMetric {
 		IsDead:           lc.has(lcUnknown) && lc&(lcActive|lcStandby) == 0,
 		IsStandby:        lc.has(lcStandby),
 		IsOverloaded:     lc.has(lcOverloaded),
+		NeedsCatUpdate:   lc.has(lcNeedsCatUpdate),
 		IsWarmingUp:      state.isWarmingUp(),
 		IsHealthChecking: lc.has(lcHealthChecking),
 		Failures:         int(c.failures.Load()),
@@ -299,6 +366,16 @@ func buildConnectionMetric(c *Connection) ConnectionMetric {
 
 	if len(c.Roles) > 0 {
 		cm.Meta.Roles = c.Roles.toSlice()
+	}
+
+	// Populate affinity routing fields when data is available.
+	if bucket := c.RTTBucket(); bucket >= 0 {
+		cm.RTTBucket = &bucket
+		median := c.RTTMedian().String()
+		cm.RTTMedian = &median
+	}
+	if load := c.AffinityLoad(); load > 0 {
+		cm.AffinityLoad = &load
 	}
 
 	return cm

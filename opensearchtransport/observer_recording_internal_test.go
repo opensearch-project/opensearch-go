@@ -13,8 +13,9 @@ import "sync"
 type recordingObserver struct {
 	BaseConnectionObserver
 
-	mu     sync.Mutex
-	events map[string][]ConnectionEvent
+	mu             sync.Mutex
+	events         map[string][]ConnectionEvent
+	affinityEvents []AffinityRouteEvent
 }
 
 func newRecordingObserver() *recordingObserver {
@@ -39,6 +40,12 @@ func (o *recordingObserver) count(kind string) int {
 	return len(o.events[kind])
 }
 
+func (o *recordingObserver) getAffinityEvents() []AffinityRouteEvent {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return append([]AffinityRouteEvent(nil), o.affinityEvents...)
+}
+
 func (o *recordingObserver) OnPromote(e ConnectionEvent)          { o.record("promote", e) }
 func (o *recordingObserver) OnDemote(e ConnectionEvent)           { o.record("demote", e) }
 func (o *recordingObserver) OnOverloadDetected(e ConnectionEvent) { o.record("overload_detected", e) }
@@ -53,3 +60,8 @@ func (o *recordingObserver) OnHealthCheckFail(e ConnectionEvent) { o.record("hea
 func (o *recordingObserver) OnStandbyPromote(e ConnectionEvent)  { o.record("standby_promote", e) }
 func (o *recordingObserver) OnStandbyDemote(e ConnectionEvent)   { o.record("standby_demote", e) }
 func (o *recordingObserver) OnWarmupRequest(e ConnectionEvent)   { o.record("warmup_request", e) }
+func (o *recordingObserver) OnAffinityRoute(e AffinityRouteEvent) {
+	o.mu.Lock()
+	o.affinityEvents = append(o.affinityEvents, e)
+	o.mu.Unlock()
+}
