@@ -426,3 +426,7 @@ type unsupportedRoute struct{}
 func (r *unsupportedRoute) Policy() Policy {
 	return NewNullPolicy()
 }
+
+func (r *unsupportedRoute) Attrs() routeAttr {
+	return 0
+}

@@ -29,18 +29,26 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 )
 
 // Compile-time interface compliance checks
 var (
 	_ Policy             = (*NullPolicy)(nil)
 	_ policyConfigurable = (*NullPolicy)(nil)
+	_ policyTyped        = (*NullPolicy)(nil)
+	_ policyOverrider    = (*NullPolicy)(nil)
 )
 
 // NullPolicy is a policy that always returns no connections.
 // This is used as a terminating policy when you want to explicitly
 // return "no connections available" rather than "try next policy".
-type NullPolicy struct{}
+type NullPolicy struct {
+	policyState atomic.Int32 // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
+}
+
+func (p *NullPolicy) policyTypeName() string      { return "null" }
+func (p *NullPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewNullPolicy creates a new null policy that always returns no connections.
 func NewNullPolicy() Policy {
@@ -62,13 +70,23 @@ func (p *NullPolicy) CheckDead(ctx context.Context, healthCheck HealthCheckFunc)
 	return nil
 }
 
-// IsEnabled always returns true since null policy can always "provide" no connections.
+// RotateStandby is a no-op for null policy.
+func (p *NullPolicy) RotateStandby(_ context.Context, _ int) (int, error) {
+	return 0, nil
+}
+
+// IsEnabled always returns true since null policy can always "provide" no connections,
+// unless force-disabled by env override.
 func (p *NullPolicy) IsEnabled() bool {
-	return true
+	return p.policyState.Load()&psEnvDisabled == 0
 }
 
 // Eval always returns (nil, nil) indicating no connections are available.
 func (p *NullPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
 	//nolint:nilnil // Intentional: (nil, nil) signals "no connections available, continue chain"
 	return nil, nil
 }

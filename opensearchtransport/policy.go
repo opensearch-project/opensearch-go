@@ -42,7 +42,8 @@ type HealthCheckFunc func(ctx context.Context, conn *Connection, url *url.URL) (
 // This unexported struct allows policies to create pools with consistent settings
 // and provides a single place to add new configuration options in the future.
 type policyConfig struct {
-	name                         string // Pool identity for metrics/debug
+	name                         string          // Pool identity for metrics/debug
+	ctx                          context.Context //nolint:containedctx // Long-lived pool context, not a request context.
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutMax          time.Duration
 	resurrectTimeoutFactorCutoff int
@@ -78,6 +79,13 @@ type Policy interface {
 	// The first policy should perform actual health checks on dead connections.
 	// Subsequent policies should resurrect connections based on the state of Connection.mu.isDead.
 	CheckDead(ctx context.Context, healthCheck HealthCheckFunc) error
+
+	// RotateStandby rotates standby connections into active across all owned pools.
+	// Each rotation health-checks a standby and, if healthy, promotes it to active.
+	// Returns the total number of successful rotations and any errors encountered
+	// during rotation (including partial failures). Called synchronously from
+	// DiscoverNodes -- blocks until rotations complete or no candidates remain.
+	RotateStandby(ctx context.Context, count int) (int, error)
 
 	// IsEnabled performs a quick check if this policy can be evaluated.
 	// This should use cached state for maximum performance.
@@ -130,6 +138,7 @@ func createPoolFromConfig(config policyConfig) *multiServerPool {
 
 	pool := &multiServerPool{
 		name:                         config.name,
+		ctx:                          config.ctx,
 		resurrectTimeoutInitial:      config.resurrectTimeoutInitial,
 		resurrectTimeoutMax:          config.resurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: config.resurrectTimeoutFactorCutoff,

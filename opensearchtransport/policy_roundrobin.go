@@ -37,13 +37,18 @@ var (
 	_ Policy             = (*RoundRobinPolicy)(nil)
 	_ policyConfigurable = (*RoundRobinPolicy)(nil)
 	_ PoolReporter       = (*RoundRobinPolicy)(nil)
+	_ policyTyped        = (*RoundRobinPolicy)(nil)
+	_ policyOverrider    = (*RoundRobinPolicy)(nil)
 )
 
 // RoundRobinPolicy implements round-robin routing across all available connections.
 type RoundRobinPolicy struct {
-	pool      *multiServerPool // Embedded connection pool for round-robin selection
-	isEnabled atomic.Bool      // Cached state: true if pool has connections (updated during DiscoveryUpdate)
+	pool        *multiServerPool // Embedded connection pool for round-robin selection
+	policyState atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
+
+func (p *RoundRobinPolicy) policyTypeName() string      { return "roundrobin" }
+func (p *RoundRobinPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewRoundRobinPolicy creates a new round-robin routing policy.
 func NewRoundRobinPolicy() Policy {
@@ -72,10 +77,23 @@ func (p *RoundRobinPolicy) CheckDead(ctx context.Context, healthCheck HealthChec
 	return p.pool.checkDead(ctx, healthCheck)
 }
 
+// RotateStandby rotates standby connections into active in this policy's pool.
+func (p *RoundRobinPolicy) RotateStandby(ctx context.Context, count int) (int, error) {
+	if p.pool == nil {
+		return 0, nil
+	}
+
+	return p.pool.rotateStandby(ctx, count)
+}
+
 // DiscoveryUpdate updates the internal connection pool based on cluster topology changes.
 // Adds are processed before removes so that the pool is never empty during a topology
 // change where old seed URLs are replaced by discovered node addresses.
 func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) error {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		return nil
+	}
+
 	if p.pool == nil {
 		return nil
 	}
@@ -97,7 +115,7 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 	if added != nil {
 		for _, conn := range added {
 			conn.mu.RLock()
-			isHealthy := conn.mu.deadSince.IsZero()
+			isHealthy := conn.isReady()
 			conn.mu.RUnlock()
 
 			if isHealthy {
@@ -152,23 +170,28 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 			// If removal shrunk the active partition and standby exists,
 			// schedule graceful (warmed) promotions to fill the gap.
 			gap := activeCountBefore - p.pool.mu.activeCount
-			p.pool.promoteStandbyGracefullyWithLock(context.TODO(), gap)
+			p.pool.promoteStandbyGracefullyWithLock(p.pool.poolCtx(), gap)
 		}
 	}
 
 	// Update cached enabled state
-	p.isEnabled.Store(len(p.pool.mu.ready)+len(p.pool.mu.dead) > 0)
+	psSetEnabled(&p.policyState, len(p.pool.mu.ready)+len(p.pool.mu.dead) > 0)
 
 	return nil
 }
 
 // IsEnabled uses cached state to quickly determine if connections are available.
 func (p *RoundRobinPolicy) IsEnabled() bool {
-	return p.isEnabled.Load()
+	return psIsEnabled(p.policyState.Load())
 }
 
 // Eval returns the round-robin connection pool for all available connections.
 func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
+
 	if p.pool == nil {
 		//nolint:nilnil // Intentional: (nil, nil) signals "no pool configured, continue chain"
 		return nil, nil // No connections available
@@ -182,6 +205,6 @@ func (p *RoundRobinPolicy) PoolSnapshot() PoolSnapshot {
 		return PoolSnapshot{Name: "roundrobin"}
 	}
 	snap := p.pool.snapshot()
-	snap.Enabled = p.isEnabled.Load()
+	snap.Enabled = psIsEnabled(p.policyState.Load())
 	return snap
 }

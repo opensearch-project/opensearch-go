@@ -37,13 +37,18 @@ var (
 	_ Policy             = (*CoordinatorPolicy)(nil)
 	_ policyConfigurable = (*CoordinatorPolicy)(nil)
 	_ PoolReporter       = (*CoordinatorPolicy)(nil)
+	_ policyTyped        = (*CoordinatorPolicy)(nil)
+	_ policyOverrider    = (*CoordinatorPolicy)(nil)
 )
 
 // CoordinatorPolicy implements routing to coordinating-only nodes.
 type CoordinatorPolicy struct {
-	pool            *multiServerPool // Pool of coordinating-only connections
-	hasCoordinators atomic.Bool      // Cached state from DiscoveryUpdate
+	pool        *multiServerPool // Pool of coordinating-only connections
+	policyState atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
+
+func (p *CoordinatorPolicy) policyTypeName() string      { return "coordinator" }
+func (p *CoordinatorPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewCoordinatorPolicy creates a policy that routes to coordinating-only nodes.
 func NewCoordinatorPolicy() Policy {
@@ -72,10 +77,23 @@ func (p *CoordinatorPolicy) CheckDead(ctx context.Context, healthCheck HealthChe
 	return p.pool.checkDead(ctx, healthCheck)
 }
 
+// RotateStandby rotates standby connections into active in this policy's pool.
+func (p *CoordinatorPolicy) RotateStandby(ctx context.Context, count int) (int, error) {
+	if p.pool == nil {
+		return 0, nil
+	}
+
+	return p.pool.rotateStandby(ctx, count)
+}
+
 // DiscoveryUpdate updates the coordinating-only connection pool based on cluster topology changes.
 // Adds are processed before removes so that the pool is never empty during a topology
 // change where old seed URLs are replaced by discovered node addresses.
 func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) error {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		return nil
+	}
+
 	if p.pool == nil {
 		return nil
 	}
@@ -123,7 +141,7 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 			// If removal shrunk the active partition and standby exists,
 			// schedule graceful (warmed) promotions to fill the gap.
 			gap := activeCountBefore - p.pool.mu.activeCount
-			p.pool.promoteStandbyGracefullyWithLock(context.TODO(), gap)
+			p.pool.promoteStandbyGracefullyWithLock(p.pool.poolCtx(), gap)
 		}
 
 		// Remove connections from dead list
@@ -140,20 +158,25 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 
 	// Update cached state
 	hasCoords := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-	p.hasCoordinators.Store(hasCoords)
+	psSetEnabled(&p.policyState, hasCoords)
 
 	return nil
 }
 
 // IsEnabled uses cached state to quickly determine if coordinating-only nodes are available.
 func (p *CoordinatorPolicy) IsEnabled() bool {
-	return p.hasCoordinators.Load()
+	return psIsEnabled(p.policyState.Load())
 }
 
 // Eval attempts to route to coordinating-only nodes.
 // Returns (nil, nil) if no coordinating-only nodes are available (allows fallthrough).
 func (p *CoordinatorPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
-	if !p.hasCoordinators.Load() {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
+
+	if p.policyState.Load()&psEnabled == 0 {
 		//nolint:nilnil // Intentional: (nil, nil) signals "policy not applicable, try next"
 		return nil, nil // No coordinating-only nodes, allow fallthrough
 	}
@@ -167,6 +190,6 @@ func (p *CoordinatorPolicy) PoolSnapshot() PoolSnapshot {
 		return PoolSnapshot{Name: "coordinator"}
 	}
 	snap := p.pool.snapshot()
-	snap.Enabled = p.hasCoordinators.Load()
+	snap.Enabled = psIsEnabled(p.policyState.Load())
 	return snap
 }

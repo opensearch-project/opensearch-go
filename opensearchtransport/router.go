@@ -37,6 +37,8 @@ var (
 	_ Router             = (*PolicyChain)(nil)
 	_ Policy             = (*PolicyChain)(nil)
 	_ policyConfigurable = (*PolicyChain)(nil)
+	_ policyTyped        = (*PolicyChain)(nil)
+	_ policyOverrider    = (*PolicyChain)(nil)
 )
 
 // Router defines the interface for request routing.
@@ -46,13 +48,17 @@ type Router interface {
 	OnFailure(*Connection) error                                      // Report failed connection use
 	DiscoveryUpdate(added, removed, unchanged []*Connection) error    // Update router with discovered nodes
 	CheckDead(ctx context.Context, healthCheck HealthCheckFunc) error // Health check dead connections across all policies
+	RotateStandby(ctx context.Context, count int) (int, error)        // Rotate standby connections across all policy pools
 }
 
 // PolicyChain implements both Router and Policy interfaces by trying policies in sequence until one matches.
 type PolicyChain struct {
-	policies  []Policy
-	isEnabled atomic.Bool // Cached state from DiscoveryUpdate (for Policy interface)
+	policies    []Policy
+	policyState atomic.Int32 // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
+
+func (r *PolicyChain) policyTypeName() string      { return "chain" }
+func (r *PolicyChain) setEnvOverride(enabled bool) { psSetEnvOverride(&r.policyState, enabled) }
 
 // NewRouter creates a router that tries policies in order.
 func NewRouter(policies ...Policy) Router {

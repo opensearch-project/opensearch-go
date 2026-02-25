@@ -29,12 +29,15 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 )
 
 // Compile-time interface compliance checks
 var (
 	_ Policy             = (*IfEnabledPolicy)(nil)
 	_ policyConfigurable = (*IfEnabledPolicy)(nil)
+	_ policyTyped        = (*IfEnabledPolicy)(nil)
+	_ policyOverrider    = (*IfEnabledPolicy)(nil)
 )
 
 // ConditionFunc defines a function that evaluates a condition based on request context.
@@ -46,8 +49,11 @@ type IfEnabledPolicy struct {
 	condition   ConditionFunc // Condition to evaluate at runtime
 	truePolicy  Policy        // Policy to use when condition is true
 	falsePolicy Policy        // Policy to use when condition is false
-	isEnabled   bool          // Set once during construction
+	policyState atomic.Int32  // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
+
+func (p *IfEnabledPolicy) policyTypeName() string      { return "ifenabled" }
+func (p *IfEnabledPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewIfEnabledPolicy creates a new conditional policy.
 //
@@ -62,12 +68,14 @@ type IfEnabledPolicy struct {
 //	    NewRoundRobinPolicy(),
 //	)
 func NewIfEnabledPolicy(condition ConditionFunc, truePolicy, falsePolicy Policy) Policy {
-	return &IfEnabledPolicy{
+	p := &IfEnabledPolicy{
 		condition:   condition,
 		truePolicy:  truePolicy,
 		falsePolicy: falsePolicy,
-		isEnabled:   condition != nil && truePolicy != nil && falsePolicy != nil,
 	}
+	isConfigured := condition != nil && truePolicy != nil && falsePolicy != nil
+	psSetEnabled(&p.policyState, isConfigured)
+	return p
 }
 
 // DiscoveryUpdate calls DiscoveryUpdate on sub-policies.
@@ -106,11 +114,16 @@ func (p *IfEnabledPolicy) configurePolicySettings(config policyConfig) error {
 
 // IsEnabled returns true if the policy is properly configured with condition and both sub-policies.
 func (p *IfEnabledPolicy) IsEnabled() bool {
-	return p.isEnabled
+	return psIsEnabled(p.policyState.Load())
 }
 
 // Eval evaluates the condition and delegates to the appropriate policy.
 func (p *IfEnabledPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		//nolint:nilnil // Intentional: force-disabled policy returns no match
+		return nil, nil
+	}
+
 	// Evaluate condition and choose policy
 	if p.condition(ctx, req) {
 		return p.truePolicy.Eval(ctx, req)
@@ -130,6 +143,21 @@ func (p *IfEnabledPolicy) CheckDead(ctx context.Context, healthCheck HealthCheck
 	}
 
 	return firstError
+}
+
+// RotateStandby delegates to the enabled sub-policy only.
+// Unlike CheckDead (which must sync both branches), rotation only applies
+// to the branch that is actively serving traffic.
+func (p *IfEnabledPolicy) RotateStandby(ctx context.Context, count int) (int, error) {
+	if p.truePolicy.IsEnabled() {
+		return p.truePolicy.RotateStandby(ctx, count)
+	}
+	return p.falsePolicy.RotateStandby(ctx, count)
+}
+
+// childPolicies returns the sub-policies for tree walking.
+func (p *IfEnabledPolicy) childPolicies() []Policy {
+	return []Policy{p.truePolicy, p.falsePolicy}
 }
 
 // poolSnapshots collects pool snapshots from both sub-policies.
