@@ -392,22 +392,28 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
 				c.mu.connectionPool, c.mu.connectionPool.URLs())
 
-			// Check that expected nodes are included
-			actualNodes := make(map[string]bool)
+			// Check that expected nodes are included (in either ready or dead lists,
+			// since newly discovered nodes start in dead state pending health checks)
+			actualNodes := make(map[string]struct{})
 			for _, conn := range pool.mu.ready {
-				actualNodes[conn.Name] = true
+				actualNodes[conn.Name] = struct{}{}
+			}
+			for _, conn := range pool.mu.dead {
+				actualNodes[conn.Name] = struct{}{}
 			}
 
 			assert.Len(t, actualNodes, len(tt.expectedNodes),
 				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
 
 			for _, expectedNode := range tt.expectedNodes {
-				assert.True(t, actualNodes[expectedNode],
+				_, ok := actualNodes[expectedNode]
+				assert.True(t, ok,
 					"Expected node %q to be included but it wasn't", expectedNode)
 			}
 
 			for _, skippedNode := range tt.expectedSkipped {
-				assert.False(t, actualNodes[skippedNode],
+				_, ok := actualNodes[skippedNode]
+				assert.False(t, ok,
 					"Expected node %q to be skipped but it was included", skippedNode)
 			}
 		})
@@ -478,19 +484,25 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
 				c.mu.connectionPool, c.mu.connectionPool.URLs())
 
-			// Check included nodes
-			actualNodes := make(map[string]bool)
+			// Check included nodes (in either ready or dead lists,
+			// since newly discovered nodes start in dead state pending health checks)
+			actualNodes := make(map[string]struct{})
 			for _, conn := range pool.mu.ready {
-				actualNodes[conn.Name] = true
+				actualNodes[conn.Name] = struct{}{}
+			}
+			for _, conn := range pool.mu.dead {
+				actualNodes[conn.Name] = struct{}{}
 			}
 
 			for _, expectedNode := range tt.expectedIncluded {
-				assert.True(t, actualNodes[expectedNode],
+				_, ok := actualNodes[expectedNode]
+				assert.True(t, ok,
 					"Expected node %q to be included but it wasn't", expectedNode)
 			}
 
 			for _, excludedNode := range tt.expectedExcluded {
-				assert.False(t, actualNodes[excludedNode],
+				_, ok := actualNodes[excludedNode]
+				assert.False(t, ok,
 					"Expected node %q to be excluded but it was included", excludedNode)
 			}
 
