@@ -340,6 +340,7 @@ type Client struct {
 	resurrectTimeoutMax          time.Duration
 	resurrectTimeoutFactorCutoff int
 	minimumResurrectTimeout      time.Duration
+	rttRingSize                  int
 	jitterScale                  float64
 	serverMaxNewConnsPerSec      float64
 	clientsPerServer             float64
@@ -389,7 +390,9 @@ type Client struct {
 		sync.RWMutex
 		connectionPool      ConnectionPool // Used for both single-node and multi-node
 		discoverNodesTimer  *time.Timer
-		discoveryInProgress bool // Prevents concurrent discovery operations
+		discoverCatTimer    *time.Timer // Failure-triggered /_cat/shards refresh
+		nextCatRefresh      time.Time   // When discoverCatTimer is scheduled to fire
+		discoveryInProgress bool        // Prevents concurrent discovery operations
 	}
 }
 
@@ -499,7 +502,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	// Derive capacity model from defaultServerCoreCount.
-	// Auto-discovery will update these when /_nodes/http,os returns allocated_processors.
+	// Auto-discovery will update these when /_nodes/_local/http,os returns allocated_processors.
 	serverCoreCount := defaultServerCoreCount
 	serverMaxNewConnsPerSec := float64(serverCoreCount) * serverMaxNewConnsPerSecMultiplier
 	clientsPerServer := float64(serverCoreCount)
@@ -648,7 +651,8 @@ func New(cfg Config) (*Client, error) {
 
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conn := &Connection{URL: u}
+		conn := &Connection{URL: u, URLString: u.String()}
+		conn.affinityCounter.clock = realClock{}
 		conn.weight.Store(1)
 		conns[idx] = conn
 	}
@@ -688,6 +692,7 @@ func New(cfg Config) (*Client, error) {
 		resurrectTimeoutMax:          resurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
 		minimumResurrectTimeout:      minimumResurrectTimeout,
+		rttRingSize:                  rttRingSizeFor(cfg.DiscoverNodesInterval, resurrectTimeoutInitial),
 		jitterScale:                  jitterScale,
 		serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
 		clientsPerServer:             clientsPerServer,
@@ -753,6 +758,7 @@ func New(cfg Config) (*Client, error) {
 		} else {
 			pool := &multiServerPool{
 				name:                         "client",
+				ctx:                          ctx,
 				resurrectTimeoutInitial:      resurrectTimeoutInitial,
 				resurrectTimeoutMax:          resurrectTimeoutMax,
 				resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
@@ -825,6 +831,7 @@ func New(cfg Config) (*Client, error) {
 	// Configure policy settings for all policies in the router
 	if client.router != nil {
 		config := policyConfig{
+			ctx:                          client.ctx,
 			resurrectTimeoutInitial:      client.resurrectTimeoutInitial,
 			resurrectTimeoutMax:          client.resurrectTimeoutMax,
 			resurrectTimeoutFactorCutoff: client.resurrectTimeoutFactorCutoff,
@@ -841,6 +848,15 @@ func New(cfg Config) (*Client, error) {
 		if configurablePolicy, ok := client.router.(policyConfigurable); ok {
 			if err := configurablePolicy.configurePolicySettings(config); err != nil {
 				return nil, fmt.Errorf("failed to configure policy settings: %w", err)
+			}
+		}
+
+		// Apply environment variable overrides (OPENSEARCH_GO_POLICY_*) before
+		// the first DiscoveryUpdate so that force-disabled policies never
+		// accumulate connections.
+		if routerPolicy, ok := client.router.(Policy); ok {
+			if overrides := parsePolicyOverrides(); len(overrides) > 0 {
+				applyPolicyOverrides(routerPolicy, overrides)
 			}
 		}
 
@@ -906,6 +922,10 @@ func (c *Client) Close() error {
 	if c.mu.discoverNodesTimer != nil {
 		c.mu.discoverNodesTimer.Stop()
 		c.mu.discoverNodesTimer = nil
+	}
+	if c.mu.discoverCatTimer != nil {
+		c.mu.discoverCatTimer.Stop()
+		c.mu.discoverCatTimer = nil
 	}
 	c.mu.Unlock()
 
@@ -1070,6 +1090,19 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 				c.mu.Unlock()
 			}
 
+			// Mark connection as needing shard placement confirmation.
+			// The node stays out of affinity routing candidate sets until
+			// /_cat/shards refresh confirms current shard-to-node mappings.
+			if conn.setNeedsCatUpdate() {
+				if obs := observerFromAtomic(&c.observer); obs != nil {
+					obs.OnShardMapInvalidation(ShardMapInvalidationEvent{
+						ConnURL: conn.URLString, ConnName: conn.Name,
+						Reason: "transport_error", Timestamp: time.Now().UTC(),
+					})
+				}
+			}
+			c.scheduleCatRefresh()
+
 			// Retry on EOF errors (connection closed by peer)
 			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
 				shouldRetry = true
@@ -1092,6 +1125,9 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 				c.mu.Unlock()
 			}
 
+			// Record estimated CPU time for affinity scoring.
+			conn.recordCPUTime(dur)
+
 			// When the server signals it will close the connection (Connection: close header
 			// or HTTP/1.0 without keep-alive), proactively verify the node is still healthy.
 			// This detects graceful shutdowns before the next request fails on a dead connection.
@@ -1112,6 +1148,19 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 					shouldRetry = true
 					shouldCloseBody = true
 				}
+			}
+			// Retryable HTTP status (typically 502/503/504) suggests the
+			// target node is unhealthy -- flag it for shard placement refresh.
+			if shouldCloseBody {
+				if conn.setNeedsCatUpdate() {
+					if obs := observerFromAtomic(&c.observer); obs != nil {
+						obs.OnShardMapInvalidation(ShardMapInvalidationEvent{
+							ConnURL: conn.URLString, ConnName: conn.Name,
+							Reason: "http_status_retry", Timestamp: time.Now().UTC(),
+						})
+					}
+				}
+				c.scheduleCatRefresh()
 			}
 		}
 
@@ -1523,7 +1572,9 @@ func (c *Client) hardwareInfoHealthCheck(
 		}
 		// Non-200 (e.g. 403 from security plugin) -- fall back to baseline.
 		// Clear the lcNeedsHardware bit so we don't retry every health check cycle.
+		conn.mu.Lock()
 		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+		conn.mu.Unlock()
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
@@ -1544,14 +1595,18 @@ func (c *Client) hardwareInfoHealthCheck(
 	if err := json.Unmarshal(body, &env); err != nil {
 		// Parse failure -- clear bit and treat as successful health check
 		// (the node responded, just not in expected format).
+		conn.mu.Lock()
 		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+		conn.mu.Unlock()
 		res.Body = io.NopCloser(bytes.NewReader(body))
 		return res, nil
 	}
 
 	var nodes map[string]nodeInfo
 	if err := json.Unmarshal(env["nodes"], &nodes); err != nil {
+		conn.mu.Lock()
 		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+		conn.mu.Unlock()
 		res.Body = io.NopCloser(bytes.NewReader(body))
 		return res, nil
 	}
@@ -1565,7 +1620,9 @@ func (c *Client) hardwareInfoHealthCheck(
 	}
 
 	// Clear lcNeedsHardware -- hardware info obtained (or not available).
+	conn.mu.Lock()
 	conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+	conn.mu.Unlock()
 
 	res.Body = io.NopCloser(bytes.NewReader(body))
 	return res, nil
@@ -1811,6 +1868,10 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 // healthCheckWithRetries performs health checks with exponential backoff retry logic.
 // It attempts up to the configured maxRetries times with jittered delays between attempts.
 // Returns true if the connection is healthy, false otherwise.
+//
+// On success, records the RTT of the final (successful) attempt to the
+// connection's rttRing so that affinity scoring has data even for connections
+// that have never been through the resurrection path.
 func (c *Client) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
 	// Use the provided maxRetries parameter, but respect client's timeout/jitter config
 	baseDelay := c.healthCheckTimeout / 2 // Start with half the timeout as base delay
@@ -1818,11 +1879,14 @@ func (c *Client) healthCheckWithRetries(ctx context.Context, conn *Connection, m
 		baseDelay = defaultHealthCheckTimeout / 2 // Fallback if timeout is disabled
 	}
 
+	var lastRTT time.Duration
 	err := backoffRetry(baseDelay, maxRetries, c.healthCheckJitter, func() error {
+		start := time.Now()
 		res, err := c.DefaultHealthCheck(ctx, conn, conn.URL)
 		if err != nil {
 			return err
 		}
+		lastRTT = time.Since(start)
 		if res != nil && res.Body != nil {
 			res.Body.Close()
 		}
@@ -1830,6 +1894,7 @@ func (c *Client) healthCheckWithRetries(ctx context.Context, conn *Connection, m
 	})
 
 	if err == nil {
+		conn.rttRing.add(lastRTT)
 		conn.mu.Lock()
 		conn.markAsHealthyWithLock()
 		conn.mu.Unlock()
@@ -1884,6 +1949,7 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 
 		// Use client-configured timeouts (from Config or defaults)
 		pool := &multiServerPool{
+			ctx:                          c.ctx,
 			resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
 			resurrectTimeoutMax:          c.resurrectTimeoutMax,
 			resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
@@ -1998,6 +2064,26 @@ func (c *Client) applyConnectionFiltering(readyConnections, deadConnections []*C
 // NoOpHealthCheck is a no-operation health check that always succeeds.
 // This can be used to disable health checking while maintaining the function signature.
 // Returns nil, nil to indicate success without creating response objects.
-func NoOpHealthCheck(ctx context.Context, conn *Connection, url *url.URL) (*http.Response, error) {
-	return nil, nil //nolint:nilnil // Intentional no-op behavior
+func NoOpHealthCheck(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+	return nil, nil //nolint:nilnil // Intentional no-op: nil response + nil error signals "healthy, no body".
+}
+
+// preferenceParam is the query parameter name for OpenSearch's shard preference routing.
+const preferenceParam = "preference"
+
+// preferenceLocal is the shard preference value that tells OpenSearch to prefer
+// shard copies local to the receiving node, reducing cross-node forwarding.
+const preferenceLocal = "_local"
+
+// injectPreference adds ?preference=<value> to the request if the request
+// does not already have a preference parameter set. The value controls
+// OpenSearch's shard routing preference (e.g., "_local" to prefer shard
+// copies on the receiving node).
+func injectPreference(req *http.Request, value string) {
+	q := req.URL.Query()
+	if q.Has(preferenceParam) {
+		return // Don't override a user-set preference.
+	}
+	q.Set(preferenceParam, value)
+	req.URL.RawQuery = q.Encode()
 }
