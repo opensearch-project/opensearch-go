@@ -421,3 +421,55 @@ func TestToPointer(t *testing.T) {
 	assert.NotNil(t, testPointer)
 	assert.True(t, *testPointer)
 }
+
+func TestClientGetConfig(t *testing.T) {
+	t.Run("returns config", func(t *testing.T) {
+		expectedAddresses := []string{"http://localhost:9200"}
+		expectedUsername := "admin"
+		expectedMaxRetries := 5
+
+		osClient, err := NewClient(Config{
+			Addresses:  expectedAddresses,
+			Username:   expectedUsername,
+			MaxRetries: expectedMaxRetries,
+			Transport:  &mockTransp{},
+		})
+		require.NoError(t, err)
+
+		config := osClient.GetConfig()
+
+		assert.Equal(t, expectedAddresses, config.Addresses)
+		assert.Equal(t, expectedUsername, config.Username)
+		assert.Equal(t, expectedMaxRetries, config.MaxRetries)
+	})
+
+	t.Run("preserves all config fields", func(t *testing.T) {
+		expectedConfig := Config{
+			Addresses:            []string{"http://localhost:9200", "http://localhost:9201"},
+			Username:             "testuser",
+			Password:             "testpass",
+			DisableRetry:         true,
+			MaxRetries:           10,
+			EnableMetrics:        true,
+			EnableDebugLogger:    true,
+			CompressRequestBody:  true,
+			EnableRetryOnTimeout: true,
+			Transport:            &mockTransp{},
+		}
+
+		osClient, err := NewClient(expectedConfig)
+		require.NoError(t, err)
+
+		config := osClient.GetConfig()
+
+		assert.Equal(t, expectedConfig.Addresses, config.Addresses)
+		assert.Equal(t, expectedConfig.Username, config.Username)
+		assert.Equal(t, expectedConfig.Password, config.Password)
+		assert.Equal(t, expectedConfig.DisableRetry, config.DisableRetry)
+		assert.Equal(t, expectedConfig.MaxRetries, config.MaxRetries)
+		assert.Equal(t, expectedConfig.EnableMetrics, config.EnableMetrics)
+		assert.Equal(t, expectedConfig.EnableDebugLogger, config.EnableDebugLogger)
+		assert.Equal(t, expectedConfig.CompressRequestBody, config.CompressRequestBody)
+		assert.Equal(t, expectedConfig.EnableRetryOnTimeout, config.EnableRetryOnTimeout)
+	})
+}

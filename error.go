@@ -7,6 +7,7 @@
 package opensearch
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -148,6 +149,8 @@ func ParseError(resp *Response) error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrReadBody, err)
 	}
+
+	resp.Body = io.NopCloser(bytes.NewReader(body))
 
 	var testResp struct {
 		Status  any `json:"status"`

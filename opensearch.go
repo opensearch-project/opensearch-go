@@ -107,6 +107,7 @@ type Config struct {
 // Client represents the OpenSearch client.
 type Client struct {
 	Transport opensearchtransport.Interface
+	config    *Config
 }
 
 // NewDefaultClient creates a new client with default options.
@@ -189,7 +190,10 @@ func NewClient(cfg Config) (*Client, error) {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)
 	}
 
-	client := &Client{Transport: tp}
+	client := &Client{
+		Transport: tp,
+		config:    &cfg,
+	}
 
 	if cfg.DiscoverNodesOnStart {
 		//nolint:errcheck // goroutine discards return values
@@ -291,6 +295,11 @@ func (c *Client) DiscoverNodes() error {
 	}
 
 	return ErrTransportMissingMethodDiscoverNodes
+}
+
+// GetConfig returns the client configuration.
+func (c *Client) GetConfig() *Config {
+	return c.config
 }
 
 // addrsFromEnvironment returns a list of addresses by splitting
