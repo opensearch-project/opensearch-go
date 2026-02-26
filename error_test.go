@@ -301,4 +301,31 @@ func TestError(t *testing.T) {
 			assert.ErrorIs(t, err, opensearch.ErrJSONUnmarshalBody)
 		})
 	})
+
+	t.Run("ParseError preserves response body", func(t *testing.T) {
+		expectedBody := `{
+			"error":{
+				"type":"resource_already_exists_exception",
+				"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"
+			},
+			"status":400
+		}`
+
+		resp := &opensearch.Response{
+			StatusCode: http.StatusBadRequest,
+			Body:       io.NopCloser(strings.NewReader(expectedBody)),
+		}
+
+		// Parse the error
+		err := opensearch.ParseError(resp)
+		require.NotNil(t, err)
+
+		// Verify the body is still readable after ParseError
+		body, readErr := io.ReadAll(resp.Body)
+		require.Nil(t, readErr, "body should be readable after ParseError")
+		require.NotEmpty(t, body, "body should not be empty after ParseError")
+
+		// Verify the body content matches the original
+		require.JSONEq(t, expectedBody, string(body), "body content should match original")
+	})
 }

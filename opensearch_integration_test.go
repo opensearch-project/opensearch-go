@@ -328,3 +328,146 @@ func TestClientAPI(t *testing.T) {
 		}
 	})
 }
+
+func TestClientGetConfigIntegration(t *testing.T) {
+	t.Run("GetConfig returns valid configuration", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a client with specific configuration
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Retrieve the config
+		retrievedConfig := osClient.GetConfig()
+
+		// Verify the config matches what was originally provided
+		require.Equal(t, cfg.Client.Addresses, retrievedConfig.Addresses)
+		require.Equal(t, cfg.Client.Username, retrievedConfig.Username)
+		require.Equal(t, cfg.Client.Password, retrievedConfig.Password)
+	})
+
+	t.Run("GetConfig with live client", func(t *testing.T) {
+		// Create a client from test helper
+		apiClient, err := testutil.NewClient(t)
+		require.Nil(t, err)
+
+		// Get config from the underlying opensearch client
+		config := apiClient.Client.GetConfig()
+
+		// Verify config has expected values
+		require.NotEmpty(t, config.Addresses, "addresses should not be empty")
+
+		// Verify we can create a new client with the retrieved config
+		newClient, err := opensearch.NewClient(*config)
+		require.Nil(t, err)
+		require.NotNil(t, newClient)
+
+		// Verify the new client works by making a request
+		req, err := opensearch.BuildRequest("GET", "/", nil, nil, nil)
+		require.Nil(t, err)
+
+		resp, err := newClient.Perform(req)
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		defer resp.Body.Close()
+	})
+}
+
+func TestNewFromClientIntegration(t *testing.T) {
+	t.Run("creates working api client from opensearch client", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+		require.NotNil(t, osClient)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+		require.NotNil(t, apiClient)
+
+		// Verify the api client can make requests
+		resp, err := apiClient.Info(nil, nil)
+		require.Nil(t, err)
+		require.NotEmpty(t, resp)
+		require.NotEmpty(t, resp.ClusterName)
+	})
+
+	t.Run("shares transport with original client", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+
+		// Verify both clients share the same transport
+		require.Equal(t, osClient.Transport, apiClient.Client.Transport)
+
+		// Verify both clients can make requests successfully
+		req, err := opensearch.BuildRequest("GET", "/", nil, nil, nil)
+		require.Nil(t, err)
+
+		resp1, err := osClient.Perform(req)
+		require.Nil(t, err)
+		require.NotNil(t, resp1)
+		defer resp1.Body.Close()
+
+		resp2, err := apiClient.Info(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, resp2)
+	})
+
+	t.Run("maintains config through wrapped client", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client with specific config
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+
+		// Retrieve config through the api client's wrapped opensearch client
+		retrievedConfig := apiClient.Client.GetConfig()
+
+		// Verify the config matches the original
+		require.Equal(t, cfg.Client.Addresses, retrievedConfig.Addresses)
+		require.Equal(t, cfg.Client.Username, retrievedConfig.Username)
+		require.Equal(t, cfg.Client.Password, retrievedConfig.Password)
+	})
+
+	t.Run("all sub-clients are functional", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+
+		// Test a few sub-clients to ensure they're properly initialized
+		// Cat client
+		catResp, err := apiClient.Cat.Health(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, catResp)
+
+		// Cluster client
+		clusterResp, err := apiClient.Cluster.Health(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, clusterResp)
+
+		// Nodes client
+		nodesResp, err := apiClient.Nodes.Info(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, nodesResp)
+	})
+}
