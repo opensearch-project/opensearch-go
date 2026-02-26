@@ -407,3 +407,51 @@ func TestToPointer(t *testing.T) {
 	assert.NotNil(t, testPointer)
 	assert.True(t, *testPointer)
 }
+
+func TestClientGetConfig(t *testing.T) {
+	t.Run("returns config", func(t *testing.T) {
+		expectedAddresses := []string{"http://localhost:9200"}
+		expectedUsername := "admin"
+		expectedMaxRetries := 5
+
+		osClient, err := NewClient(Config{
+			Addresses:  expectedAddresses,
+			Username:   expectedUsername,
+			MaxRetries: expectedMaxRetries,
+			Transport:  mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+		})
+		require.NoError(t, err)
+
+		config := osClient.GetConfig()
+
+		require.Equal(t, expectedAddresses, config.Addresses)
+		require.Equal(t, expectedUsername, config.Username)
+		require.Equal(t, expectedMaxRetries, config.MaxRetries)
+	})
+
+	t.Run("preserves all config fields", func(t *testing.T) {
+		expectedConfig := Config{
+			Addresses:            []string{"http://localhost:9200", "http://localhost:9201"},
+			Username:             "testuser",
+			Password:             "testpass",
+			DisableRetry:         true,
+			MaxRetries:           10,
+			CompressRequestBody:  true,
+			EnableRetryOnTimeout: true,
+			Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+		}
+
+		osClient, err := NewClient(expectedConfig)
+		require.NoError(t, err)
+
+		config := osClient.GetConfig()
+
+		require.Equal(t, expectedConfig.Addresses, config.Addresses)
+		require.Equal(t, expectedConfig.Username, config.Username)
+		require.Equal(t, expectedConfig.Password, config.Password)
+		require.Equal(t, expectedConfig.DisableRetry, config.DisableRetry)
+		require.Equal(t, expectedConfig.MaxRetries, config.MaxRetries)
+		require.Equal(t, expectedConfig.CompressRequestBody, config.CompressRequestBody)
+		require.Equal(t, expectedConfig.EnableRetryOnTimeout, config.EnableRetryOnTimeout)
+	})
+}

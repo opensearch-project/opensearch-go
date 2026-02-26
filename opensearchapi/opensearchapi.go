@@ -99,6 +99,11 @@ func NewDefaultClient() (*Client, error) {
 	return clientInit(rootClient), nil
 }
 
+// NewFromClient creates an opensearchapi client from an existing opensearch.Client
+func NewFromClient(client *opensearch.Client) *Client {
+	return clientInit(client)
+}
+
 // do calls the opensearch.Client.Do() and checks the response for openseach api errors
 func (c *Client) do(ctx context.Context, req opensearch.Request, dataPointer any) (*opensearch.Response, error) {
 	resp, err := c.Client.Do(ctx, req, dataPointer)
