@@ -167,6 +167,7 @@ With `NewMuxRouter()` (if no coordinating-only nodes):
 
 - `POST /_bulk` -> ingest-1
 - `POST /my-index/_search` -> data-1
+- `POST /my-index/_refresh` -> data-1
 - `GET /_cluster/health` -> round-robin across all non-manager nodes
 
 ### Production Cluster with Search Nodes (OpenSearch 3.0+)
@@ -188,6 +189,8 @@ With `NewSmartRouter()`:
 - `POST /_bulk` -> ingest-1 (with affinity)
 - `POST /products/_search` -> search-1 (with per-index affinity)
 - `GET /products/_doc/123` -> search-1 (with document affinity)
+- `POST /products/_search/scroll` -> search-1 (with per-index affinity)
+- `POST /products/_refresh` -> data-1 or data-2 (shard maintenance targets data nodes)
 
 If search-1 is removed, search operations automatically fall back to data nodes.
 

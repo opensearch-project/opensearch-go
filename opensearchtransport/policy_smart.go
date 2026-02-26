@@ -37,6 +37,7 @@ import (
 //   - Search operations: search nodes (3.0+) -> data nodes -> null
 //   - Warm operations: warm nodes (2.4+) -> data nodes -> null
 //   - Ingest operations: ingest nodes -> null
+//   - Data operations: data nodes -> null (shard maintenance: refresh, flush, forcemerge, segments)
 //
 // This is broken out as a helper function for composability and testing.
 func NewDefaultRoutes() []Route {
@@ -75,15 +76,35 @@ func NewDefaultRoutes() []Route {
 		),
 	)
 
+	// Direct data node routing: for shard-maintenance operations (refresh, flush, forcemerge)
+	// that must target actual data shards, not search-only nodes.
+	dataDirectPolicy := mustRolePolicy(RoleData)
+	dataIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return dataDirectPolicy.IsEnabled() },
+		dataDirectPolicy,
+		NewNullPolicy(),
+	)
+
 	// Define routes for different OpenSearch operations
 	// Using the exact same patterns as OpenSearch server
-	return buildRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled)
+	return buildRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled, dataIfEnabled)
 }
 
 // buildRoleRoutes constructs the canonical route table mapping OpenSearch REST
 // API patterns to role-based policies. Both [NewDefaultRoutes] and
 // [newAffinityRoutes] use this to avoid duplicating the pattern list.
-func buildRoleRoutes(ingest, search, warm Policy) []Route {
+//
+// Parameters:
+//   - ingest: policy for bulk indexing and ingest pipeline operations
+//   - search: policy for search, retrieval, and query operations (search → data fallback)
+//   - warm: policy for searchable snapshot and data tier operations (warm → data fallback)
+//   - data: policy for shard-maintenance operations that must target data nodes directly
+func buildRoleRoutes(ingest, search, warm, data Policy) []Route {
+	// Shorthand for routes that benefit from ?preference=_local.
+	// Read operations that accept the preference parameter use this
+	// so the server prefers shard copies local to the receiving node.
+	pl := routeAttrPreferLocal
+
 	return []Route{
 		// Bulk operations - ingest nodes (exact patterns from RestBulkAction.java)
 		mustNewRouteMux("POST /_bulk", ingest),
@@ -97,6 +118,9 @@ func buildRoleRoutes(ingest, search, warm Policy) []Route {
 		mustNewRouteMux("PUT /_bulk/stream", ingest),
 		mustNewRouteMux("POST /{index}/_bulk/stream", ingest),
 		mustNewRouteMux("PUT /{index}/_bulk/stream", ingest),
+
+		// Reindex operations (from RestReindexAction.java, module: reindex)
+		mustNewRouteMux("POST /_reindex", ingest),
 
 		// Ingest pipeline operations
 		mustNewRouteMux("PUT /_ingest/pipeline/{id}", ingest),
@@ -116,61 +140,178 @@ func buildRoleRoutes(ingest, search, warm Policy) []Route {
 		mustNewRouteMux("POST /_snapshot/{repository}/{snapshot}/_mount", warm),
 		mustNewRouteMux("DELETE /_snapshot/{repository}/{snapshot}/_mount/{index}", warm),
 
-		// Search operations
-		mustNewRouteMux("GET /_search", search),
-		mustNewRouteMux("POST /_search", search),
-		mustNewRouteMux("GET /{index}/_search", search),
-		mustNewRouteMux("POST /{index}/_search", search),
+		// Search operations (from RestSearchAction.java)
+		mustNewRouteMuxAttrs("GET /_search", search, pl),
+		mustNewRouteMuxAttrs("POST /_search", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_search", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_search", search, pl),
 
-		// Multi-search operations
-		mustNewRouteMux("GET /_msearch", search),
-		mustNewRouteMux("POST /_msearch", search),
-		mustNewRouteMux("GET /{index}/_msearch", search),
-		mustNewRouteMux("POST /{index}/_msearch", search),
+		// Multi-search operations (from RestMultiSearchAction.java)
+		mustNewRouteMuxAttrs("GET /_msearch", search, pl),
+		mustNewRouteMuxAttrs("POST /_msearch", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_msearch", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_msearch", search, pl),
 
 		// Count queries (from RestCountAction.java)
-		mustNewRouteMux("GET /_count", search),
-		mustNewRouteMux("POST /_count", search),
-		mustNewRouteMux("GET /{index}/_count", search),
-		mustNewRouteMux("POST /{index}/_count", search),
+		mustNewRouteMuxAttrs("GET /_count", search, pl),
+		mustNewRouteMuxAttrs("POST /_count", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_count", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_count", search, pl),
 
 		// Query operations
 		mustNewRouteMux("POST /{index}/_delete_by_query", search),
 		mustNewRouteMux("POST /{index}/_update_by_query", search),
 
-		// Explain queries
-		mustNewRouteMux("GET /{index}/_explain/{id}", search),
-		mustNewRouteMux("POST /{index}/_explain/{id}", search),
+		// Explain queries (from RestExplainAction.java)
+		mustNewRouteMuxAttrs("GET /{index}/_explain/{id}", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_explain/{id}", search, pl),
 
 		// Document retrieval operations (from RestGetAction.java)
-		mustNewRouteMux("GET /{index}/_doc/{id}", search),
-		mustNewRouteMux("HEAD /{index}/_doc/{id}", search),
+		mustNewRouteMuxAttrs("GET /{index}/_doc/{id}", search, pl),
+		mustNewRouteMuxAttrs("HEAD /{index}/_doc/{id}", search, pl),
 
-		// Get source operations
-		mustNewRouteMux("GET /{index}/_source/{id}", search),
-		mustNewRouteMux("HEAD /{index}/_source/{id}", search),
+		// Single-document write operations (from RestIndexAction.java)
+		mustNewRouteMux("PUT /{index}/_doc/{id}", data),
+		mustNewRouteMux("POST /{index}/_doc/{id}", data),
+		mustNewRouteMux("POST /{index}/_doc", data),
 
-		// Multi-get operations
-		mustNewRouteMux("GET /_mget", search),
-		mustNewRouteMux("POST /_mget", search),
-		mustNewRouteMux("GET /{index}/_mget", search),
-		mustNewRouteMux("POST /{index}/_mget", search),
+		// Single-document create operations (from RestIndexAction.java)
+		mustNewRouteMux("PUT /{index}/_create/{id}", data),
+		mustNewRouteMux("POST /{index}/_create/{id}", data),
 
-		// Term vectors operations
-		mustNewRouteMux("GET /{index}/_termvectors", search),
-		mustNewRouteMux("POST /{index}/_termvectors", search),
-		mustNewRouteMux("GET /{index}/_termvectors/{id}", search),
-		mustNewRouteMux("POST /{index}/_termvectors/{id}", search),
+		// Single-document update operations (from RestUpdateAction.java)
+		mustNewRouteMux("POST /{index}/_update/{id}", data),
+
+		// Single-document delete operations (from RestDeleteAction.java)
+		mustNewRouteMux("DELETE /{index}/_doc/{id}", data),
+
+		// Get source operations (from RestGetSourceAction.java)
+		mustNewRouteMuxAttrs("GET /{index}/_source/{id}", search, pl),
+		mustNewRouteMuxAttrs("HEAD /{index}/_source/{id}", search, pl),
+
+		// Multi-get operations (from RestMultiGetAction.java)
+		mustNewRouteMuxAttrs("GET /_mget", search, pl),
+		mustNewRouteMuxAttrs("POST /_mget", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_mget", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_mget", search, pl),
+
+		// Term vectors operations (from RestTermVectorsAction.java)
+		mustNewRouteMuxAttrs("GET /{index}/_termvectors", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_termvectors", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_termvectors/{id}", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_termvectors/{id}", search, pl),
+
+		// Multi-term vectors operations (from RestMultiTermVectorsAction.java)
+		mustNewRouteMuxAttrs("GET /_mtermvectors", search, pl),
+		mustNewRouteMuxAttrs("POST /_mtermvectors", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_mtermvectors", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_mtermvectors", search, pl),
+
+		// Template search operations (from RestSearchTemplateAction.java)
+		mustNewRouteMuxAttrs("GET /{index}/_search/template", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_search/template", search, pl),
+		mustNewRouteMuxAttrs("GET /_search/template", search, pl),
+		mustNewRouteMuxAttrs("POST /_search/template", search, pl),
+
+		// Multi-search template operations (from RestMultiSearchTemplateAction.java, module: lang-mustache)
+		mustNewRouteMuxAttrs("GET /_msearch/template", search, pl),
+		mustNewRouteMuxAttrs("POST /_msearch/template", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_msearch/template", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_msearch/template", search, pl),
+
+		// Search shards (from RestClusterSearchShardsAction.java)
+		// Used for cross-cluster search coordination; server internally
+		// routes to remote_cluster_client nodes when needed.
+		mustNewRouteMuxAttrs("GET /_search_shards", search, pl),
+		mustNewRouteMuxAttrs("POST /_search_shards", search, pl),
+		mustNewRouteMuxAttrs("GET /{index}/_search_shards", search, pl),
+		mustNewRouteMuxAttrs("POST /{index}/_search_shards", search, pl),
+
+		// Scroll operations (from RestSearchScrollAction.java, RestClearScrollAction.java)
+		mustNewRouteMux("GET /_search/scroll", search),
+		mustNewRouteMux("POST /_search/scroll", search),
+		mustNewRouteMux("GET /_search/scroll/{scroll_id}", search),
+		mustNewRouteMux("POST /_search/scroll/{scroll_id}", search),
+		mustNewRouteMux("DELETE /_search/scroll", search),
+		mustNewRouteMux("DELETE /_search/scroll/{scroll_id}", search),
+
+		// Point-in-time operations (OpenSearch 2.0+)
+		// From RestCreatePitAction.java, RestDeletePitAction.java, RestGetAllPitsAction.java
+		mustNewRouteMux("POST /{index}/_search/point_in_time", search),
+		mustNewRouteMux("DELETE /_search/point_in_time", search),
+		mustNewRouteMux("DELETE /_search/point_in_time/_all", search),
+		mustNewRouteMux("GET /_search/point_in_time/_all", search),
+
+		// Field capabilities (from RestFieldCapabilitiesAction.java)
+		mustNewRouteMux("GET /_field_caps", search),
+		mustNewRouteMux("POST /_field_caps", search),
+		mustNewRouteMux("GET /{index}/_field_caps", search),
+		mustNewRouteMux("POST /{index}/_field_caps", search),
+
+		// Validate query (from RestValidateQueryAction.java)
+		mustNewRouteMux("GET /_validate/query", search),
+		mustNewRouteMux("POST /_validate/query", search),
+		mustNewRouteMux("GET /{index}/_validate/query", search),
+		mustNewRouteMux("POST /{index}/_validate/query", search),
+
+		// Rank evaluation (from RestRankEvalAction.java, module: rank-eval)
+		mustNewRouteMux("GET /_rank_eval", search),
+		mustNewRouteMux("POST /_rank_eval", search),
+		mustNewRouteMux("GET /{index}/_rank_eval", search),
+		mustNewRouteMux("POST /{index}/_rank_eval", search),
 
 		// Data tier operations - index settings changes often involve tier moves
 		mustNewRouteMux("POST /{index}/_settings", warm),
 		mustNewRouteMux("PUT /{index}/_settings", warm),
 
-		// Template search operations
-		mustNewRouteMux("GET /{index}/_search/template", search),
-		mustNewRouteMux("POST /{index}/_search/template", search),
-		mustNewRouteMux("GET /_search/template", search),
-		mustNewRouteMux("POST /_search/template", search),
+		// Shard maintenance operations - must target data nodes directly since
+		// search-only nodes (OpenSearch 3.0+) don't hold primary/replica data shards.
+		// From RestRefreshAction.java
+		mustNewRouteMux("GET /_refresh", data),
+		mustNewRouteMux("POST /_refresh", data),
+		mustNewRouteMux("GET /{index}/_refresh", data),
+		mustNewRouteMux("POST /{index}/_refresh", data),
+
+		// From RestFlushAction.java
+		mustNewRouteMux("GET /_flush", data),
+		mustNewRouteMux("POST /_flush", data),
+		mustNewRouteMux("GET /{index}/_flush", data),
+		mustNewRouteMux("POST /{index}/_flush", data),
+
+		// From RestSyncedFlushAction.java (deprecated in OpenSearch 2.0+, returns deprecation warning)
+		mustNewRouteMux("GET /_flush/synced", data),
+		mustNewRouteMux("POST /_flush/synced", data),
+		mustNewRouteMux("GET /{index}/_flush/synced", data),
+		mustNewRouteMux("POST /{index}/_flush/synced", data),
+
+		// From RestForceMergeAction.java
+		mustNewRouteMux("POST /_forcemerge", data),
+		mustNewRouteMux("POST /{index}/_forcemerge", data),
+
+		// From RestIndicesSegmentsAction.java
+		mustNewRouteMux("GET /_segments", data),
+		mustNewRouteMux("GET /{index}/_segments", data),
+
+		// From RestClearIndicesCacheAction.java
+		mustNewRouteMux("POST /_cache/clear", data),
+		mustNewRouteMux("POST /{index}/_cache/clear", data),
+
+		// From RestRecoveryAction.java
+		mustNewRouteMux("GET /{index}/_recovery", data),
+
+		// From RestIndicesShardStoresAction.java
+		mustNewRouteMux("GET /{index}/_shard_stores", data),
+
+		// From RestIndicesStatsAction.java
+		mustNewRouteMux("GET /_stats", data),
+		mustNewRouteMux("GET /_stats/{metric}", data),
+		mustNewRouteMux("GET /{index}/_stats", data),
+		mustNewRouteMux("GET /{index}/_stats/{metric}", data),
+
+		// Rethrottle operations (from RestRethrottleAction.java, module: reindex)
+		mustNewRouteMux("POST /_reindex/{taskId}/_rethrottle", data),
+		mustNewRouteMux("POST /_update_by_query/{taskId}/_rethrottle", data),
+		mustNewRouteMux("POST /_delete_by_query/{taskId}/_rethrottle", data),
 	}
 }
 
@@ -178,12 +319,16 @@ func buildRoleRoutes(ingest, search, warm Policy) []Route {
 // This provides role-based routing for OpenSearch operations based on server-side patterns:
 //   - If coordinating-only nodes are available, uses them exclusively (no fallback)
 //   - Otherwise falls back to role-specific routing with optimal fallback chains:
-//   - Bulk operations (including streaming bulk) -> ingest nodes
+//   - Bulk operations (including streaming bulk), reindex -> ingest nodes
 //   - Ingest pipeline management -> ingest nodes
-//   - Search operations -> search nodes (OpenSearch 3.0+) -> data nodes
-//   - Document retrieval (get, mget, source, termvectors) -> search nodes -> data nodes
+//   - Search operations (search, msearch, count, scroll, PIT, field_caps, validate, rank_eval) -> search nodes (3.0+) -> data nodes
+//   - Document retrieval (get, mget, source, termvectors, mtermvectors) -> search nodes -> data nodes
+//   - Template operations (search template, msearch template) -> search nodes -> data nodes
 //   - Searchable snapshot operations -> warm nodes (OpenSearch 2.4+) -> data nodes
 //   - Index settings/tier management -> warm nodes -> data nodes
+//   - Shard maintenance (refresh, flush, synced flush, forcemerge, segments, cache clear) -> data nodes
+//   - Shard diagnostics (recovery, shard_stores, stats) -> data nodes
+//   - Rethrottle operations (reindex, update_by_query, delete_by_query) -> data nodes
 //   - Other operations -> round-robin fallback
 //
 // For affinity-aware routing that adds per-index node consistency and
@@ -226,11 +371,14 @@ func NewRoundRobinDefaultPolicy() Policy {
 // Routes operations to appropriate node types based on HTTP method and path:
 //
 //   - If coordinating-only nodes are available, routes all requests to them
-//   - Bulk operations (/_bulk, /_bulk/stream) -> ingest nodes
-//   - Search operations (/_search, /_count, /_explain) -> search nodes (3.0+) -> data nodes
-//   - Document operations (/_doc, /_mget, /_source) -> search nodes (3.0+) -> data nodes
+//   - Bulk operations (/_bulk, /_bulk/stream), reindex -> ingest nodes
+//   - Search operations (/_search, /_msearch, /_count, scroll, PIT, field_caps, validate, rank_eval) -> search nodes (3.0+) -> data nodes
+//   - Document operations (/_doc, /_mget, /_source, /_termvectors, /_mtermvectors) -> search nodes (3.0+) -> data nodes
+//   - Template operations (/_search/template, /_msearch/template) -> search nodes (3.0+) -> data nodes
 //   - Searchable snapshots (/_snapshot/*/_mount) -> warm nodes (2.4+) -> data nodes
 //   - Index settings (/{index}/_settings) -> warm nodes (2.4+) -> data nodes
+//   - Shard maintenance (/_refresh, /_flush, /_flush/synced, /_forcemerge, /_segments, /_cache/clear) -> data nodes
+//   - Shard diagnostics (/_recovery, /_shard_stores, /_stats) -> data nodes
 //   - Falls back to round-robin if specialized nodes unavailable
 //
 // For affinity-aware routing that adds per-index node consistency and
@@ -426,13 +574,22 @@ func newAffinityRoutes(cache *indexSlotCache, decay float64) []Route {
 		),
 	)
 
+	// Direct data node routing for shard-maintenance operations
+	dataDirectPolicy := mustRolePolicy(RoleData)
+	dataIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return dataDirectPolicy.IsEnabled() },
+		dataDirectPolicy,
+		NewNullPolicy(),
+	)
+
 	// Wrap each IfEnabled chain with affinity so that within each role pool,
 	// affinity selection picks the best node for the target index.
 	// Ingest routes handle bulk writes -> prefer primary-hosting nodes.
-	// Search and warm routes handle reads -> prefer replica-hosting nodes.
+	// Search, warm, and data routes handle reads/maintenance -> prefer replica-hosting nodes.
 	affinityIngest := wrapWrite(ingestIfEnabled)
 	affinitySearch := wrapRead(searchIfEnabled)
 	affinityWarm := wrapRead(warmIfEnabled)
+	affinityData := wrapWrite(dataIfEnabled)
 
-	return buildRoleRoutes(affinityIngest, affinitySearch, affinityWarm)
+	return buildRoleRoutes(affinityIngest, affinitySearch, affinityWarm, affinityData)
 }
