@@ -50,14 +50,14 @@ func TestDumpSmartPolicyTree(t *testing.T) {
 	require.True(t, names["role:warm"], "missing warm pool")
 	require.True(t, names["roundrobin"], "missing roundrobin pool")
 
-	// data appears twice (search fallback + warm fallback)
+	// data appears three times (search fallback + warm fallback + direct data for shard maintenance)
 	dataCount := 0
 	for _, snap := range snapshots {
 		if snap.Name == "role:data" {
 			dataCount++
 		}
 	}
-	require.Equal(t, 2, dataCount, "expected 2 role:data pools")
+	require.Equal(t, 3, dataCount, "expected 3 role:data pools")
 }
 
 func TestDumpDefaultPolicyTree(t *testing.T) {
