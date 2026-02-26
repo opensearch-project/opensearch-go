@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -26,10 +27,26 @@ func TestScrollClient(t *testing.T) {
 	failingClient, err := osapitest.CreateFailingClient(t)
 	require.NoError(t, err)
 
+	testIndex := testutil.MustUniqueString(t, "test-scroll")
+	t.Cleanup(func() {
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+	})
+
+	_, err = client.Document.Create(
+		t.Context(),
+		opensearchapi.DocumentCreateReq{
+			Index:      testIndex,
+			Body:       strings.NewReader(`{"foo": "bar"}`),
+			DocumentID: "scroll-doc-1",
+			Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
+		},
+	)
+	require.NoError(t, err)
+
 	search, err := client.Search(
 		t.Context(),
 		&opensearchapi.SearchReq{
-			Indices: []string{"*"},
+			Indices: []string{testIndex},
 			Params:  opensearchapi.SearchParams{Scroll: 5 * time.Minute},
 		},
 	)
