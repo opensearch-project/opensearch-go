@@ -92,6 +92,17 @@ func rendezvousTopK(
 	if len(conns) == 0 || k <= 0 {
 		return nil
 	}
+
+	// Exclude connections flagged as needing a /_cat/shards refresh.
+	// These connections have stale shard placement data and must not
+	// participate in affinity routing until discovery confirms current
+	// state. Fast path: scan once for any flagged connection; only
+	// allocate a filtered slice on the rare path when flags are set.
+	conns = filterNeedsCatUpdate(conns)
+	if len(conns) == 0 {
+		return nil
+	}
+
 	if k > len(conns) {
 		k = len(conns)
 	}
@@ -266,4 +277,31 @@ func rotateConns(s []*Connection, offset int) {
 	slices.Reverse(s[:offset])
 	slices.Reverse(s[offset:])
 	slices.Reverse(s)
+}
+
+// filterNeedsCatUpdate returns conns with any needsCatUpdate-flagged
+// connections removed. On the common path (no flags set), returns the
+// original slice with zero allocations. On the rare path, allocates a
+// new slice excluding flagged connections.
+func filterNeedsCatUpdate(conns []*Connection) []*Connection {
+	// Fast scan: check if any connection has the flag set.
+	hasAny := false
+	for _, c := range conns {
+		if c.needsCatUpdate() {
+			hasAny = true
+			break
+		}
+	}
+	if !hasAny {
+		return conns
+	}
+
+	// Rare path: build filtered list.
+	filtered := make([]*Connection, 0, len(conns))
+	for _, c := range conns {
+		if !c.needsCatUpdate() {
+			filtered = append(filtered, c)
+		}
+	}
+	return filtered
 }

@@ -140,6 +140,29 @@ func (c *Connection) clearLifecycleBit(bit connLifecycle) bool {
 	return c.casLifecycle(c.loadConnState(), 0, 0, bit)
 }
 
+// setNeedsCatUpdate marks this connection as needing a /_cat/shards refresh
+// before it can participate in affinity routing. The connection remains
+// available for general routing (round-robin, zombie tryouts) but is
+// excluded from rendezvousTopK candidate sets until the flag is cleared
+// by a successful shard placement refresh.
+func (c *Connection) setNeedsCatUpdate() bool {
+	return c.setLifecycleBit(lcNeedsCatUpdate)
+}
+
+// clearNeedsCatUpdate removes the shard-placement-stale flag, allowing
+// the connection to participate in affinity routing again. Called after
+// a successful /_cat/shards refresh confirms current shard placement.
+func (c *Connection) clearNeedsCatUpdate() bool {
+	return c.clearLifecycleBit(lcNeedsCatUpdate)
+}
+
+// needsCatUpdate reports whether this connection has been flagged as needing
+// a /_cat/shards refresh. When true, the connection is excluded from affinity
+// routing candidate sets.
+func (c *Connection) needsCatUpdate() bool {
+	return c.loadConnState().lifecycle().has(lcNeedsCatUpdate)
+}
+
 // ---------------------------------------------------------------------------
 // connLifecycle -- 12-bit packed lifecycle bitfield
 // ---------------------------------------------------------------------------
@@ -204,6 +227,7 @@ const (
 	lcHealthChecking connLifecycle = 0x40  // health check goroutine running
 	lcDraining       connLifecycle = 0x80  // HTTP/2 GOAWAY; no new requests
 	lcNeedsHardware  connLifecycle = 0x100 // needs hardware info (/_nodes/_local/http,os)
+	lcNeedsCatUpdate connLifecycle = 0x200 // shard placement stale; excluded from affinity routing until /_cat/shards refresh
 )
 
 // Compound aliases for common lifecycle combinations.
@@ -225,7 +249,7 @@ func (lc connLifecycle) hasAny(flags connLifecycle) bool {
 }
 
 // connLifecycleBits maps each bit to its human-readable name.
-var connLifecycleBits = [9]struct { //nolint:gochecknoglobals // lookup table, not mutable state
+var connLifecycleBits = [10]struct { //nolint:gochecknoglobals // lookup table, not mutable state
 	bit  connLifecycle
 	name string
 }{
@@ -238,6 +262,7 @@ var connLifecycleBits = [9]struct { //nolint:gochecknoglobals // lookup table, n
 	{lcHealthChecking, "healthChecking"},
 	{lcDraining, "draining"},
 	{lcNeedsHardware, "needsHardware"},
+	{lcNeedsCatUpdate, "needsCatUpdate"},
 }
 
 // String returns a human-readable name for the lifecycle.
