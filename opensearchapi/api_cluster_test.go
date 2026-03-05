@@ -368,7 +368,7 @@ func TestClusterClient(t *testing.T) {
 	for catType, value := range testCases {
 		t.Run(catType, func(t *testing.T) {
 			if strings.Contains(catType, "Decommission") {
-				testutil.SkipIfBelowVersion(t, client, 2, 4, catType)
+				testutil.SkipIfVersion(t, client, "<", "2.4", catType)
 			}
 			for _, testCase := range value {
 				t.Run(testCase.Name, func(t *testing.T) {

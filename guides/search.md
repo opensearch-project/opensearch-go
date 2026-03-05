@@ -56,7 +56,7 @@ For search-heavy applications, you can configure the client to automatically rou
 
 		// Configure automatic routing to data nodes for search operations
 		Transport: &opensearchtransport.Client{
-			Router: opensearchtransport.NewSmartRouter(),
+			Router: opensearchtransport.NewDefaultRouter(),
 		},
 	})
 	if err != nil {
@@ -317,20 +317,20 @@ For production search workloads, you can optimize performance by ensuring search
 	fmt.Printf("Optimized search found %d documents\n", searchResp.Hits.Total.Value)
 ```
 
-### Smart Routing for Mixed Workloads
+### Routing for Mixed Workloads
 
-The smart router automatically detects operation types and routes them to the most appropriate nodes:
+The router automatically detects operation types and routes them to the most appropriate nodes:
 
 ```go
-	// Smart routing: automatically detects search vs ingest operations
-	smartClient, err := opensearch.NewClient(opensearch.Config{
+	// Routing: automatically detects search vs ingest operations
+	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		DiscoverNodesOnStart:  true,
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		Transport: &opensearchtransport.Client{
-			Router: opensearchtransport.NewSmartRouter(),
+			Router: opensearchtransport.NewDefaultRouter(),
 		},
 	})
 	if err != nil {
@@ -338,7 +338,7 @@ The smart router automatically detects operation types and routes them to the mo
 	}
 
 	// Search operations automatically route to data nodes
-	_, err = smartClient.Search(ctx, &opensearchapi.SearchReq{
+	_, err = client.Search(ctx, &opensearchapi.SearchReq{
 		Indices: []string{exampleIndex},
 	})
 	if err != nil {
@@ -346,7 +346,7 @@ The smart router automatically detects operation types and routes them to the mo
 	}
 
 	// Multi-search operations also route to data nodes
-	_, err = smartClient.MSearch(ctx, opensearchapi.MSearchReq{
+	_, err = client.MSearch(ctx, opensearchapi.MSearchReq{
 		Body: strings.NewReader(`{}
 {"query": {"match_all": {}}}
 `),
@@ -358,7 +358,7 @@ The smart router automatically detects operation types and routes them to the mo
 
 ### Routing Strategy Overview
 
-The smart router provides automatic routing based on the operation being performed:
+The router provides automatic routing based on the operation being performed:
 
 - **Search operations** (`/_search`, `/_msearch`, document retrieval) -> Data nodes
 - **Bulk operations** (`/_bulk`) -> Ingest nodes

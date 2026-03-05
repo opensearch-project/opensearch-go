@@ -45,7 +45,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
@@ -235,8 +234,8 @@ func TestDiscovery(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = tp.getNodesInfo(t.Context())
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "unexpected empty body")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "unexpected empty body")
 	})
 
 	t.Run("DiscoverNodes()", func(t *testing.T) {
@@ -327,30 +326,6 @@ func TestDiscovery(t *testing.T) {
 			}
 		}
 		pool.mu.Unlock()
-	})
-
-	t.Run("scheduleDiscoverNodes()", func(t *testing.T) {
-		t.Skip("Skip") // TODO(karmi): Investigate the intermittent failures of this test
-
-		var numURLs int
-		u, _ := url.Parse("http://" + srv.Addr)
-
-		tp, _ := New(Config{URLs: []*url.URL{u}, DiscoverNodesInterval: 10 * time.Millisecond})
-
-		tp.mu.Lock()
-		numURLs = len(tp.mu.connectionPool.URLs())
-		tp.mu.Unlock()
-		if numURLs != 1 {
-			t.Errorf("Unexpected number of nodes, want=1, got=%d", numURLs)
-		}
-
-		time.Sleep(18 * time.Millisecond) // Wait until (*Client).scheduleDiscoverNodes()
-		tp.mu.Lock()
-		numURLs = len(tp.mu.connectionPool.URLs())
-		tp.mu.Unlock()
-		if numURLs != 2 {
-			t.Errorf("Unexpected number of nodes, want=2, got=%d", numURLs)
-		}
 	})
 
 	t.Run("Role based nodes discovery", func(t *testing.T) {
@@ -771,15 +746,15 @@ func TestDiscovery(t *testing.T) {
 
 // TestRoleConstants verifies that role constants match expected values
 func TestRoleConstants(t *testing.T) {
-	assert.Equal(t, "data", RoleData)
-	assert.Equal(t, "ingest", RoleIngest)
-	assert.Equal(t, "master", RoleMaster)
-	assert.Equal(t, "cluster_manager", RoleClusterManager)
-	assert.Equal(t, "remote_cluster_client", RoleRemoteClusterClient)
-	assert.Equal(t, "search", RoleSearch)
-	assert.Equal(t, "warm", RoleWarm)
-	assert.Equal(t, "ml", RoleML)
-	assert.Equal(t, "coordinating_only", RoleCoordinatingOnly)
+	require.Equal(t, "data", RoleData)
+	require.Equal(t, "ingest", RoleIngest)
+	require.Equal(t, "master", RoleMaster)
+	require.Equal(t, "cluster_manager", RoleClusterManager)
+	require.Equal(t, "remote_cluster_client", RoleRemoteClusterClient)
+	require.Equal(t, "search", RoleSearch)
+	require.Equal(t, "warm", RoleWarm)
+	require.Equal(t, "ml", RoleML)
+	require.Equal(t, "coordinating_only", RoleCoordinatingOnly)
 }
 
 // TestNewRoleSet verifies efficient role set creation
@@ -813,7 +788,7 @@ func TestNewRoleSet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := newRoleSet(tt.roles)
-			assert.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -822,12 +797,12 @@ func TestNewRoleSet(t *testing.T) {
 func TestRoleSetHas(t *testing.T) {
 	rs := newRoleSet([]string{RoleData, RoleClusterManager, RoleIngest})
 
-	assert.True(t, rs.has(RoleData))
-	assert.True(t, rs.has(RoleClusterManager))
-	assert.True(t, rs.has(RoleIngest))
-	assert.False(t, rs.has(RoleMaster))
-	assert.False(t, rs.has(RoleSearch))
-	assert.False(t, rs.has("nonexistent"))
+	require.True(t, rs.has(RoleData))
+	require.True(t, rs.has(RoleClusterManager))
+	require.True(t, rs.has(RoleIngest))
+	require.False(t, rs.has(RoleMaster))
+	require.False(t, rs.has(RoleSearch))
+	require.False(t, rs.has("nonexistent"))
 }
 
 // TestRoleCheckFunctions verifies role-specific check functions
@@ -894,11 +869,11 @@ func TestRoleCheckFunctions(t *testing.T) {
 
 			// Check cluster manager eligibility
 			isClusterManagerEligible := rs.has(RoleMaster) || rs.has(RoleClusterManager)
-			assert.Equal(t, tt.expectClusterManager, isClusterManagerEligible)
-			assert.Equal(t, tt.expectData, rs.has(RoleData))
-			assert.Equal(t, tt.expectIngest, rs.has(RoleIngest))
-			assert.Equal(t, tt.expectSearch, rs.has(RoleSearch))
-			assert.Equal(t, tt.expectWarm, rs.has(RoleWarm))
+			require.Equal(t, tt.expectClusterManager, isClusterManagerEligible)
+			require.Equal(t, tt.expectData, rs.has(RoleData))
+			require.Equal(t, tt.expectIngest, rs.has(RoleIngest))
+			require.Equal(t, tt.expectSearch, rs.has(RoleSearch))
+			require.Equal(t, tt.expectWarm, rs.has(RoleWarm))
 		})
 	}
 }
@@ -996,7 +971,7 @@ func TestShouldSkipDedicatedClusterManagers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rs := newRoleSet(tt.roles)
 			result := rs.isDedicatedClusterManager()
-			assert.Equal(t, tt.shouldSkip, result)
+			require.Equal(t, tt.shouldSkip, result)
 		})
 	}
 }
@@ -1116,7 +1091,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 			// Perform discovery
 			err = c.DiscoverNodes(t.Context())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify results
 			pool, ok := c.mu.connectionPool.(*multiServerPool)
@@ -1131,16 +1106,16 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				actualNodes[conn.Name] = true
 			}
 
-			assert.Equal(t, len(tt.expectedNodes), len(actualNodes),
+			require.Equal(t, len(tt.expectedNodes), len(actualNodes),
 				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
 
 			for _, expectedNode := range tt.expectedNodes {
-				assert.True(t, actualNodes[expectedNode],
+				require.True(t, actualNodes[expectedNode],
 					"Expected node %q to be included but it wasn't", expectedNode)
 			}
 
 			for _, skippedNode := range tt.expectedSkipped {
-				assert.False(t, actualNodes[skippedNode],
+				require.False(t, actualNodes[skippedNode],
 					"Expected node %q to be skipped but it was included", skippedNode)
 			}
 		})
@@ -1287,7 +1262,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			// Perform discovery
 			err = c.DiscoverNodes(t.Context())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify results
 			pool, ok := c.mu.connectionPool.(*multiServerPool)
@@ -1303,18 +1278,18 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			}
 
 			for _, expectedNode := range tt.expectedIncluded {
-				assert.True(t, actualNodes[expectedNode],
+				require.True(t, actualNodes[expectedNode],
 					"Expected node %q to be included but it wasn't", expectedNode)
 			}
 
 			for _, excludedNode := range tt.expectedExcluded {
-				assert.False(t, actualNodes[excludedNode],
+				require.False(t, actualNodes[excludedNode],
 					"Expected node %q to be excluded but it was included", excludedNode)
 			}
 
 			// Verify total count
 			expectedTotal := len(tt.expectedIncluded)
-			assert.Equal(t, expectedTotal, len(actualNodes),
+			require.Equal(t, expectedTotal, len(actualNodes),
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
@@ -1350,17 +1325,15 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Policy should be enabled (has nodes with data+ingest)
-		assert.True(t, policy.IsEnabled())
+		require.True(t, policy.IsEnabled())
 
-		// Get connection pool - should match data-ingest-node first
-		pool, err := policy.Eval(t.Context(), &http.Request{})
+		// Get connection - should match data-ingest-node first
+		hop, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		require.NotNil(t, pool)
+		require.NotNil(t, hop.Conn)
 
 		// Should match only data-ingest-node (has both data and ingest roles)
-		conn, err := pool.Next()
-		require.NoError(t, err)
-		require.Equal(t, "data-ingest-node", conn.Name)
+		require.Equal(t, "data-ingest-node", hop.Conn.Name)
 	})
 
 	t.Run("RolePolicy with cluster manager exclusion", func(t *testing.T) {
@@ -1383,17 +1356,15 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Policy should be enabled (has data nodes)
-		assert.True(t, policy.IsEnabled())
+		require.True(t, policy.IsEnabled())
 
-		// Get connection pool and verify it only contains data node
-		pool, err := policy.Eval(t.Context(), &http.Request{})
+		// Get connection and verify it only contains data node
+		hop, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		require.NotNil(t, pool)
+		require.NotNil(t, hop.Conn)
 
-		// The pool should contain only the data node, not the cluster manager
-		conn, err := pool.Next()
-		require.NoError(t, err)
-		assert.Equal(t, "data-node", conn.Name)
+		// The result should contain only the data node, not the cluster manager
+		require.Equal(t, "data-node", hop.Conn.Name)
 	})
 
 	t.Run("RolePolicy for warm nodes", func(t *testing.T) {
@@ -1416,12 +1387,12 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Policy should NOT be enabled (no warm nodes)
-		assert.False(t, policy.IsEnabled())
+		require.False(t, policy.IsEnabled())
 
-		// Eval should return nil (no matching connections)
-		pool, err := policy.Eval(t.Context(), &http.Request{})
+		// Eval should return nil conn (no matching connections)
+		hop, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		assert.Nil(t, pool)
+		require.Nil(t, hop.Conn)
 	})
 
 	t.Run("Options pattern flexibility", func(t *testing.T) {
@@ -1445,25 +1416,21 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		require.NoError(t, err)
 
 		// Test ingest policy
-		assert.True(t, ingestPolicy.IsEnabled())
-		pool1, err1 := ingestPolicy.Eval(t.Context(), &http.Request{})
+		require.True(t, ingestPolicy.IsEnabled())
+		hop1, err1 := ingestPolicy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err1)
-		require.NotNil(t, pool1)
+		require.NotNil(t, hop1.Conn)
 
-		conn1, err := pool1.Next()
-		require.NoError(t, err)
 		// Should return ingest-capable nodes
-		assert.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn1.Name)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop1.Conn.Name)
 
 		// Test warm policy
-		assert.True(t, warmPolicy.IsEnabled())
-		pool2, err2 := warmPolicy.Eval(t.Context(), &http.Request{})
+		require.True(t, warmPolicy.IsEnabled())
+		hop2, err2 := warmPolicy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err2)
-		require.NotNil(t, pool2)
+		require.NotNil(t, hop2.Conn)
 
-		conn2, err := pool2.Next()
-		require.NoError(t, err)
-		assert.Equal(t, "warm-node", conn2.Name)
+		require.Equal(t, "warm-node", hop2.Conn.Name)
 	})
 }
 
@@ -1496,25 +1463,23 @@ func TestRolePolicies(t *testing.T) {
 		require.True(t, policy.IsEnabled())
 
 		// Should prefer ingest nodes
-		pool, err := policy.Eval(t.Context(), &http.Request{})
+		hop, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		require.NotNil(t, pool)
+		require.NotNil(t, hop.Conn)
 
-		// Connections are initially dead, need to simulate health checks
-		// Get a connection (zombie) and mark it as successful
-		conn, err := pool.Next()
-		require.NoError(t, err)
 		// Should get either "ingest-node" or "data-ingest-node"
-		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop.Conn.Name)
 
-		// Simulate successful health check to move connection to ready pool
-		statusPool := pool.(*multiServerPool)
-		statusPool.OnSuccess(conn)
+		// Simulate successful health check to move connection to ready pool.
+		// Access the underlying pool directly since Eval now returns NextHop.
+		rolePolicy := policy.(*RolePolicy)
+		rolePolicy.pool.OnSuccess(hop.Conn)
 
 		// Now get connection from ready pool
-		liveConn, err := pool.Next()
+		hop2, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, liveConn.Name)
+		require.NotNil(t, hop2.Conn)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop2.Conn.Name)
 
 		// Test with data-only connections (no ingest nodes)
 		dataOnlyConns := []*Connection{
@@ -1531,15 +1496,13 @@ func TestRolePolicies(t *testing.T) {
 		// So the policy should remain enabled with only the original ingest connections
 		require.True(t, policy.IsEnabled()) // Should remain true (original ingest connections still there)
 
-		// Get a fresh pool after the update
-		pool2, err2 := policy.Eval(t.Context(), &http.Request{})
-		require.NoError(t, err2)
-		require.NotNil(t, pool2) // Should not be nil
+		// Get a fresh hop after the update
+		hop3, err3 := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err3)
+		require.NotNil(t, hop3.Conn) // Should not be nil
 
 		// Should still get ingest connections, not the data-only ones
-		finalConn, err := pool2.Next()
-		require.NoError(t, err)
-		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, finalConn.Name)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop3.Conn.Name)
 	})
 }
 
@@ -1559,7 +1522,7 @@ func TestGCD(t *testing.T) {
 	}
 	for _, tt := range tests {
 		got := gcd(tt.a, tt.b)
-		assert.Equal(t, tt.want, got, "gcd(%d, %d)", tt.a, tt.b)
+		require.Equal(t, tt.want, got, "gcd(%d, %d)", tt.a, tt.b)
 	}
 }
 
@@ -1575,48 +1538,48 @@ func TestComputeWeights(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(8), makeConn(8)}
 		computeWeights(conns)
 		for _, c := range conns {
-			assert.Equal(t, int32(1), c.weight.Load())
+			require.Equal(t, int32(1), c.weight.Load())
 		}
 	})
 
 	t.Run("two sizes", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(16)}
 		computeWeights(conns)
-		assert.Equal(t, int32(1), conns[0].weight.Load()) // 8/8
-		assert.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
+		require.Equal(t, int32(1), conns[0].weight.Load()) // 8/8
+		require.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
 	})
 
 	t.Run("three sizes", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(16), makeConn(24)}
 		computeWeights(conns)
-		assert.Equal(t, int32(1), conns[0].weight.Load())
-		assert.Equal(t, int32(2), conns[1].weight.Load())
-		assert.Equal(t, int32(3), conns[2].weight.Load())
+		require.Equal(t, int32(1), conns[0].weight.Load())
+		require.Equal(t, int32(2), conns[1].weight.Load())
+		require.Equal(t, int32(3), conns[2].weight.Load())
 	})
 
 	t.Run("non-power-of-2 mixed", func(t *testing.T) {
 		conns := []*Connection{makeConn(8), makeConn(16), makeConn(32), makeConn(40)}
 		computeWeights(conns)
-		assert.Equal(t, int32(1), conns[0].weight.Load()) // 8/8
-		assert.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
-		assert.Equal(t, int32(4), conns[2].weight.Load()) // 32/8
-		assert.Equal(t, int32(5), conns[3].weight.Load()) // 40/8
+		require.Equal(t, int32(1), conns[0].weight.Load()) // 8/8
+		require.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
+		require.Equal(t, int32(4), conns[2].weight.Load()) // 32/8
+		require.Equal(t, int32(5), conns[3].weight.Load()) // 40/8
 	})
 
 	t.Run("larger non-power-of-2", func(t *testing.T) {
 		conns := []*Connection{makeConn(24), makeConn(32), makeConn(40)}
 		computeWeights(conns)
-		assert.Equal(t, int32(3), conns[0].weight.Load()) // 24/8
-		assert.Equal(t, int32(4), conns[1].weight.Load()) // 32/8
-		assert.Equal(t, int32(5), conns[2].weight.Load()) // 40/8
+		require.Equal(t, int32(3), conns[0].weight.Load()) // 24/8
+		require.Equal(t, int32(4), conns[1].weight.Load()) // 32/8
+		require.Equal(t, int32(5), conns[2].weight.Load()) // 40/8
 	})
 
 	t.Run("unknown cores get weight 1", func(t *testing.T) {
 		conns := []*Connection{makeConn(0), makeConn(16), makeConn(8)}
 		computeWeights(conns)
-		assert.Equal(t, int32(1), conns[0].weight.Load()) // unknown -> 1
-		assert.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
-		assert.Equal(t, int32(1), conns[2].weight.Load()) // 8/8
+		require.Equal(t, int32(1), conns[0].weight.Load()) // unknown -> 1
+		require.Equal(t, int32(2), conns[1].weight.Load()) // 16/8
+		require.Equal(t, int32(1), conns[2].weight.Load()) // 8/8
 	})
 
 	t.Run("all unknown leaves weights unchanged", func(t *testing.T) {
@@ -1624,8 +1587,8 @@ func TestComputeWeights(t *testing.T) {
 		conns[0].weight.Store(3) // pre-set
 		conns[1].weight.Store(5)
 		computeWeights(conns)
-		assert.Equal(t, int32(3), conns[0].weight.Load()) // unchanged
-		assert.Equal(t, int32(5), conns[1].weight.Load()) // unchanged
+		require.Equal(t, int32(3), conns[0].weight.Load()) // unchanged
+		require.Equal(t, int32(5), conns[1].weight.Load()) // unchanged
 	})
 
 	t.Run("empty slice is no-op", func(t *testing.T) {

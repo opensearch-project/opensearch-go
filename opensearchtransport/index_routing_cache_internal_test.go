@@ -142,7 +142,7 @@ func TestIndexSlotCacheEffectiveFanOut(t *testing.T) {
 			minFanOut: 1,
 		})
 		slot := &indexSlot{}
-		slot.shardNodes.Store(4) // 4 shard-hosting nodes
+		slot.shardNodeCount.Store(4) // 4 shard-hosting nodes
 
 		// Fan-out should be at least the shard node count.
 		require.Equal(t, 4, c.effectiveFanOut(slot, "idx", 10))
@@ -155,7 +155,7 @@ func TestIndexSlotCacheEffectiveFanOut(t *testing.T) {
 			maxFanOut: 8,
 		})
 		slot := &indexSlot{}
-		slot.shardNodes.Store(100) // pathological: 100 shard-hosting nodes
+		slot.shardNodeCount.Store(100) // pathological: 100 shard-hosting nodes
 
 		// shardFloor=100 but maxFanOut=8 caps it.
 		require.Equal(t, 8, c.effectiveFanOut(slot, "idx", 200))
@@ -165,7 +165,7 @@ func TestIndexSlotCacheEffectiveFanOut(t *testing.T) {
 		t.Parallel()
 		c := newIndexSlotCache(indexSlotCacheConfig{}) // defaultMaxFanOut = 32
 		slot := &indexSlot{}
-		slot.shardNodes.Store(100)
+		slot.shardNodeCount.Store(100)
 
 		require.Equal(t, 32, c.effectiveFanOut(slot, "idx", 200))
 	})
@@ -225,7 +225,7 @@ func TestIndexSlotCacheUpdateFromDiscovery(t *testing.T) {
 
 		c.updateFromDiscovery(shardPlacement, 10, time.Now())
 
-		require.Equal(t, int32(3), slot.shardNodes.Load())
+		require.Equal(t, int32(3), slot.shardNodeCount.Load())
 		ids := slot.shardNodeNameSet()
 		require.Len(t, ids, 3)
 		require.Contains(t, ids, "node1")
@@ -235,10 +235,10 @@ func TestIndexSlotCacheUpdateFromDiscovery(t *testing.T) {
 		t.Parallel()
 		c := newIndexSlotCache(indexSlotCacheConfig{})
 		slot := c.getOrCreate("my-index")
-		slot.shardNodes.Store(5)
+		slot.shardNodeCount.Store(5)
 
 		c.updateFromDiscovery(nil, 10, time.Now())
-		require.Equal(t, int32(5), slot.shardNodes.Load())
+		require.Equal(t, int32(5), slot.shardNodeCount.Load())
 	})
 
 	t.Run("evicts idle entries", func(t *testing.T) {
@@ -278,7 +278,7 @@ func TestIndexSlotCacheUpdateFromDiscovery(t *testing.T) {
 		t.Parallel()
 		c := newIndexSlotCache(indexSlotCacheConfig{})
 		slot := c.getOrCreate("deleted-index")
-		slot.shardNodes.Store(3)
+		slot.shardNodeCount.Store(3)
 		nodeIDs := map[string]*shardNodeInfo{"n1": {Primaries: 1}, "n2": {Replicas: 1}, "n3": {Primaries: 1, Replicas: 1}}
 		slot.shardNodeNames.Store(&nodeIDs)
 
@@ -290,7 +290,7 @@ func TestIndexSlotCacheUpdateFromDiscovery(t *testing.T) {
 		}
 		c.updateFromDiscovery(shardPlacement, 10, time.Now())
 
-		require.Equal(t, int32(0), slot.shardNodes.Load())
+		require.Equal(t, int32(0), slot.shardNodeCount.Load())
 		require.Nil(t, slot.shardNodeNameSet())
 	})
 }

@@ -126,7 +126,7 @@ func TestMuxPolicy(t *testing.T) {
 		require.True(t, policy.IsEnabled())
 	})
 
-	t.Run("Eval routes system endpoints to systemMux", func(t *testing.T) {
+	t.Run("Eval routes system endpoints", func(t *testing.T) {
 		dataPolicy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		dataPolicy.configurePolicySettings(createTestConfig())
 
@@ -138,12 +138,13 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.NotNil(t, pool)
-		require.NoError(t, err)
+		// dataPolicy has a pool but no connections -> Next() returns ErrNoConnections
+		hop, err := policy.Eval(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, hop.Conn)
 	})
 
-	t.Run("Eval routes index endpoints to indexMux", func(t *testing.T) {
+	t.Run("Eval routes index endpoints", func(t *testing.T) {
 		dataPolicy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		dataPolicy.configurePolicySettings(createTestConfig())
 
@@ -155,9 +156,10 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodPost, "/myindex/_search", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.NotNil(t, pool)
-		require.NoError(t, err)
+		// dataPolicy has a pool but no connections -> Next() returns ErrNoConnections
+		hop, err := policy.Eval(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, hop.Conn)
 	})
 
 	t.Run("Eval returns nil when no route matches", func(t *testing.T) {
@@ -169,12 +171,12 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
-	t.Run("Eval with nil systemMux", func(t *testing.T) {
+	t.Run("Eval returns nil for unmatched system endpoint", func(t *testing.T) {
 		// Create policy with only index routes
 		routes := []Route{
 			mustNewRouteMux("POST /index/_search", NewNullPolicy()),
@@ -184,12 +186,12 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
-	t.Run("Eval with nil indexMux", func(t *testing.T) {
+	t.Run("Eval returns nil for unmatched index endpoint", func(t *testing.T) {
 		// Create policy with only system routes
 		routes := []Route{
 			mustNewRouteMux("POST /_bulk", NewNullPolicy()),
@@ -199,8 +201,8 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodPost, "/index/_search", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
@@ -327,96 +329,49 @@ func TestMuxPolicy(t *testing.T) {
 	})
 }
 
-func TestValidMuxPattern(t *testing.T) {
+func TestSplitMuxPattern(t *testing.T) {
 	t.Run("valid pattern with method and path", func(t *testing.T) {
-		path, err := validMuxPattern("POST /_bulk")
+		method, path, err := splitMuxPattern("POST /_bulk")
 		require.NoError(t, err)
+		require.Equal(t, "POST", method)
 		require.Equal(t, "/_bulk", path)
 	})
 
 	t.Run("valid pattern with GET", func(t *testing.T) {
-		path, err := validMuxPattern("GET /_search")
+		method, path, err := splitMuxPattern("GET /_search")
 		require.NoError(t, err)
+		require.Equal(t, "GET", method)
 		require.Equal(t, "/_search", path)
 	})
 
 	t.Run("empty pattern returns error", func(t *testing.T) {
-		path, err := validMuxPattern("")
+		_, _, err := splitMuxPattern("")
 		require.Error(t, err)
-		require.Empty(t, path)
 	})
 
 	t.Run("pattern without method returns error", func(t *testing.T) {
-		path, err := validMuxPattern("/_bulk")
+		_, _, err := splitMuxPattern("/_bulk")
 		require.Error(t, err)
-		require.Empty(t, path)
 	})
 
 	t.Run("pattern with invalid method returns error", func(t *testing.T) {
-		path, err := validMuxPattern("INVALID /_bulk")
+		_, _, err := splitMuxPattern("INVALID /_bulk")
 		require.Error(t, err)
-		require.Empty(t, path)
 	})
 
 	t.Run("pattern with extra fields returns error", func(t *testing.T) {
-		path, err := validMuxPattern("POST /_bulk extra")
+		_, _, err := splitMuxPattern("POST /_bulk extra")
 		require.Error(t, err)
-		require.Empty(t, path)
 	})
 
 	t.Run("all HTTP methods are valid", func(t *testing.T) {
 		methods := []string{"GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "CONNECT", "OPTIONS", "TRACE"}
 		for _, method := range methods {
-			path, err := validMuxPattern(method + " /_test")
+			gotMethod, path, err := splitMuxPattern(method + " /_test")
 			require.NoError(t, err, "Method %s should be valid", method)
+			require.Equal(t, method, gotMethod)
 			require.Equal(t, "/_test", path)
 		}
-	})
-}
-
-// getResponseWriter gets a policyResponseWriter from the pool and initializes it.
-// Caller must call releaseResponseWriter when done.
-func getResponseWriter(policy *MuxPolicy) *policyResponseWriter {
-	pw := policy.responseWriterPool.Get().(*policyResponseWriter)
-	pw.muxPolicy = policy
-	return pw
-}
-
-// releaseResponseWriter releases the writer back to the pool.
-func releaseResponseWriter(policy *MuxPolicy, pw *policyResponseWriter) {
-	pw.release()
-	policy.responseWriterPool.Put(pw)
-}
-
-func TestPolicyResponseWriter(t *testing.T) {
-	// Create a minimal MuxPolicy for testing the writer
-	policy := NewMuxPolicy([]Route{}).(*MuxPolicy)
-
-	t.Run("Header returns empty header", func(t *testing.T) {
-		pw := getResponseWriter(policy)
-		defer releaseResponseWriter(policy, pw)
-
-		header := pw.Header()
-		require.NotNil(t, header)
-		require.Empty(t, header)
-	})
-
-	t.Run("Write is no-op", func(t *testing.T) {
-		pw := getResponseWriter(policy)
-		defer releaseResponseWriter(policy, pw)
-
-		n, err := pw.Write([]byte("test"))
-		require.Equal(t, 0, n)
-		require.NoError(t, err)
-	})
-
-	t.Run("WriteHeader is no-op", func(t *testing.T) {
-		pw := getResponseWriter(policy)
-		defer releaseResponseWriter(policy, pw)
-
-		require.NotPanics(t, func() {
-			pw.WriteHeader(http.StatusOK)
-		})
 	})
 }
 
@@ -429,4 +384,8 @@ func (r *unsupportedRoute) Policy() Policy {
 
 func (r *unsupportedRoute) Attrs() routeAttr {
 	return 0
+}
+
+func (r *unsupportedRoute) PoolName() string {
+	return ""
 }

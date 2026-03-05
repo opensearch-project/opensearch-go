@@ -47,7 +47,8 @@ To limit total wait time when the server is unresponsive, use a context with a d
 
 ```go
 	rootCtx := context.Background()
-	ctx := context.WithTimeout(rootCtx, time.Second)
+	ctx, cancel := context.WithTimeout(rootCtx, time.Second)
+	defer cancel()
 
 	infoResp, err := client.Info(ctx, nil)
 	return nil

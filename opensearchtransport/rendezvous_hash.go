@@ -95,7 +95,7 @@ func rendezvousTopK(
 
 	// Exclude connections flagged as needing a /_cat/shards refresh.
 	// These connections have stale shard placement data and must not
-	// participate in affinity routing until discovery confirms current
+	// participate in routing until discovery confirms current
 	// state. Fast path: scan once for any flagged connection; only
 	// allocate a filtered slice on the rare path when flags are set.
 	conns = filterNeedsCatUpdate(conns)
@@ -234,7 +234,7 @@ func rankByHash(keyA, keyB string, conns []*Connection) []*Connection {
 //
 // The key is specified as two parts: keyA and keyB. When keyB is non-empty,
 // the effective key is keyA + "/" + keyB (e.g., index name + doc ID for
-// document-level affinity). When keyB is empty, the key is just keyA.
+// document-level routing). When keyB is empty, the key is just keyA.
 // This avoids a string concatenation allocation for compound keys.
 //
 // This is a deterministic pseudo-random number used for consistent

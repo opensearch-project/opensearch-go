@@ -18,7 +18,7 @@ func TestBaseConnectionObserver_NoOps(_ *testing.T) {
 	var obs BaseConnectionObserver
 	event := ConnectionEvent{URL: "http://localhost:9200"}
 
-	// All 13 methods should be callable without panic
+	// All 14 methods should be callable without panic
 	obs.OnPromote(event)
 	obs.OnDemote(event)
 	obs.OnOverloadDetected(event)
@@ -31,7 +31,8 @@ func TestBaseConnectionObserver_NoOps(_ *testing.T) {
 	obs.OnStandbyPromote(event)
 	obs.OnStandbyDemote(event)
 	obs.OnWarmupRequest(event)
-	obs.OnAffinityRoute(AffinityRouteEvent{})
+	obs.OnRoute(RouteEvent{})
+	obs.OnShardMapInvalidation(ShardMapInvalidationEvent{})
 }
 
 func TestNewConnectionEvent(t *testing.T) {

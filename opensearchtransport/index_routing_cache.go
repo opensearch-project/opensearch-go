@@ -62,6 +62,10 @@ type indexSlotCache struct {
 	idleEvictionTTL time.Duration
 	decayFactor     float64
 	fanOutPerReq    float64 // decay-counter-to-fan-out divisor
+
+	// Feature configuration from OPENSEARCH_GO_ROUTING_CONFIG.
+	// Evaluated once at client init time and immutable after.
+	features routingFeatures // bitfield: zero = all enabled
 }
 
 // indexSlot is the per-index routing state.
@@ -77,7 +81,7 @@ type indexSlot struct {
 	// Shard placement: number of distinct nodes hosting shards for this
 	// index. Updated from /_cat/shards during discovery. Acts as a floor
 	// for fan-out (can't usefully fan out to fewer nodes than hold data).
-	shardNodes atomic.Int32
+	shardNodeCount atomic.Int32
 
 	// Per-node shard placement for this index: node name -> primary/replica
 	// counts. Updated during discovery from /_cat/shards (which returns
@@ -85,6 +89,13 @@ type indexSlot struct {
 	// node name set for rendezvousTopK's hard partition; the values provide
 	// primary/replica detail for replica-preference scoring.
 	shardNodeNames atomic.Pointer[map[string]*shardNodeInfo]
+
+	// Per-shard-number placement data for murmur3 shard-exact routing.
+	// Maps shard number -> nodes hosting that shard (primary + replicas).
+	// Updated from /_cat/shards during discovery. When non-nil and the
+	// request has ?routing=X, the client can compute the exact target
+	// shard via murmur3 and route directly to a node hosting it.
+	shardMap atomic.Pointer[indexShardMap]
 
 	// Smoothed max RTT bucket across the candidate set for this index.
 	// Used for tier-span cost equalization: when the fan-out expands to
@@ -112,6 +123,37 @@ type indexSlot struct {
 	idleSince atomic.Int64 // UnixNano; 0 = active
 }
 
+// indexShardMap holds per-shard-number placement data for an index.
+// Used by murmur3 shard-exact routing to resolve a computed shard number
+// to the node(s) hosting that shard.
+type indexShardMap struct {
+	// NumberOfPrimaryShards is the count of distinct primary shards.
+	NumberOfPrimaryShards int
+
+	// RoutingNumShards is the index's routing_num_shards metadata value,
+	// fetched once per index from _cluster/state/metadata. OpenSearch
+	// uses this (not NumberOfPrimaryShards) as the hash modulus to
+	// allow future index splitting:
+	//
+	//   shard = floorMod(hash, RoutingNumShards) / RoutingFactor
+	//
+	// where RoutingFactor = RoutingNumShards / NumberOfPrimaryShards.
+	// For a newly created 5-shard index, RoutingNumShards is typically
+	// 640 and RoutingFactor is 128.
+	//
+	// Zero means not yet fetched from the server; shard-exact routing
+	// is unavailable until this is populated.
+	//
+	// Server references:
+	//   OperationRouting.java:calculateScaledShardId     -- the routing formula
+	//   MetadataCreateIndexService.java:calculateNumRoutingShards -- default computation
+	//   IndexMetadata.java:getRoutingNumShards           -- stored per-index metadata
+	RoutingNumShards int
+
+	// Shards maps shard number -> nodes hosting that shard.
+	Shards map[int]*shardNodes
+}
+
 // newIndexSlotCache creates a cache with the given configuration.
 func newIndexSlotCache(cfg indexSlotCacheConfig) *indexSlotCache {
 	c := &indexSlotCache{
@@ -121,6 +163,7 @@ func newIndexSlotCache(cfg indexSlotCacheConfig) *indexSlotCache {
 		idleEvictionTTL: cfg.idleEvictionTTL,
 		decayFactor:     cfg.decayFactor,
 		fanOutPerReq:    cfg.fanOutPerReq,
+		features:        cfg.features,
 	}
 	c.entries.Store(new(sync.Map))
 
@@ -151,6 +194,9 @@ type indexSlotCacheConfig struct {
 	idleEvictionTTL time.Duration
 	decayFactor     float64
 	fanOutPerReq    float64
+
+	// Feature configuration from OPENSEARCH_GO_ROUTING_CONFIG.
+	features routingFeatures // bitfield: zero = all enabled
 }
 
 // getOrCreate returns the slot for indexName, creating one if needed.
@@ -195,7 +241,7 @@ func (c *indexSlotCache) getOrCreate(indexName string) *indexSlot {
 //     load. Also capped by maxFanOut.
 //   - minFanOut: absolute floor (default 1).
 //
-// The server handles shard-level scatter/gather internally; our routing choice
+// The server handles shard-level scatter/gather internally; the routing choice
 // determines coordinator consistency, cache warmth, and RTT.
 func (c *indexSlotCache) effectiveFanOut(slot *indexSlot, indexName string, activeNodeCount int) int {
 	// Check for per-index override first.
@@ -209,7 +255,7 @@ func (c *indexSlotCache) effectiveFanOut(slot *indexSlot, indexName string, acti
 	// Floor from shard placement: ensures the candidate set covers all
 	// shard-hosting nodes for well-designed indexes. For pathological indexes
 	// (shards on every node), maxFanOut caps the damage.
-	shardFloor := int(slot.shardNodes.Load())
+	shardFloor := int(slot.shardNodeCount.Load())
 
 	fanOut := max(c.minFanOut, shardFloor, rateFanOut)
 
@@ -252,15 +298,28 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 		slot := value.(*indexSlot)
 
 		// Update shard placement if data is available.
-		if shardPlacement != nil {
+		if shardPlacement != nil { //nolint:nestif // shard placement update requires nested map access
 			if placement, ok := shardPlacement[indexName]; ok {
 				nodes := placement.Nodes
-				slot.shardNodes.Store(int32(len(nodes))) //nolint:gosec // Node count bounded by cluster size.
+				slot.shardNodeCount.Store(int32(len(nodes))) //nolint:gosec // Node count bounded by cluster size.
 				slot.shardNodeNames.Store(&nodes)
+
+				// Update per-shard-number map for murmur3 routing.
+				if len(placement.ShardToNodes) > 0 {
+					sm := &indexShardMap{
+						NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
+						RoutingNumShards:      placement.RoutingNumShards,
+						Shards:                placement.ShardToNodes,
+					}
+					slot.shardMap.Store(sm)
+				} else {
+					slot.shardMap.Store(nil)
+				}
 			} else {
 				// Index not in shard data -- may have been deleted.
-				slot.shardNodes.Store(0)
+				slot.shardNodeCount.Store(0)
 				slot.shardNodeNames.Store(nil)
+				slot.shardMap.Store(nil)
 			}
 		}
 
@@ -323,7 +382,7 @@ func (slot *indexSlot) shardNodeNameSet() map[string]struct{} {
 }
 
 // shardNodeInfoFor returns the shard info for a specific node on this index,
-// or nil if unknown. Used by affinityScore for replica-preference scoring.
+// or nil if unknown. Used by calcConnScore for replica-preference scoring.
 // The nodeName must be the node's human-readable name (matching /_cat/shards).
 func (slot *indexSlot) shardNodeInfoFor(nodeName string) *shardNodeInfo {
 	p := slot.shardNodeNames.Load()
@@ -440,17 +499,17 @@ func (c *indexSlotCache) compactEntries(old *sync.Map, liveCount int64) {
 
 // snapshot returns a point-in-time snapshot of all index slots and the
 // effective configuration. Used by Metrics() for observability.
-func (c *indexSlotCache) snapshot() AffinitySnapshot {
-	var indexes []IndexAffinityState
+func (c *indexSlotCache) snapshot() RouterSnapshot {
+	var indexes []IndexRouterState
 
 	c.entries.Load().Range(func(key, value any) bool {
 		indexName := key.(string)
 		slot := value.(*indexSlot)
 
-		state := IndexAffinityState{
+		state := IndexRouterState{
 			Name:        indexName,
 			FanOut:      int(slot.fanOut.Load()),
-			ShardNodes:  int(slot.shardNodes.Load()),
+			ShardNodes:  int(slot.shardNodeCount.Load()),
 			RequestRate: slot.requestDecay.load(),
 		}
 
@@ -464,11 +523,11 @@ func (c *indexSlotCache) snapshot() AffinitySnapshot {
 	})
 
 	// Sort by name for deterministic output.
-	sortIndexAffinityStates(indexes)
+	sortIndexRouterStates(indexes)
 
-	return AffinitySnapshot{
+	return RouterSnapshot{
 		Indexes: indexes,
-		Config: AffinitySnapshotConfig{
+		Config: RouterSnapshotConfig{
 			MinFanOut:       c.minFanOut,
 			MaxFanOut:       c.maxFanOut,
 			DecayFactor:     c.decayFactor,

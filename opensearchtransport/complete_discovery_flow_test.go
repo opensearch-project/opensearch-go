@@ -26,7 +26,7 @@ import (
 // 3. Immediately run discovery
 // 4. The policy that had connections in the coordinator_only role needs to remove those nodes
 // 5. The IfEnabledPolicy should be disabled after discovery
-// 6. The smart router should be used (Else branch of the IfEnabledPolicy)
+// 6. The router should be used (Else branch of the IfEnabledPolicy)
 func TestCompleteDiscoveryFlow(t *testing.T) {
 	// Verify cluster is reachable with the configured scheme
 	_, err := testutil.InitClient(t)
@@ -35,7 +35,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
 	testutil.SkipIfSingleNode(t, 2)
 
-	// Create smart router (includes IfEnabledPolicy for coordinator_only nodes)
+	// Create mux router (includes IfEnabledPolicy for coordinator_only nodes)
 	router := opensearchtransport.NewMuxRouter()
 
 	// REQUIREMENT 1: Run discovery with one or more URLs
@@ -69,7 +69,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	// coordinator_only policy.IsEnabled() returns false after seed URLs removed,
 	// causing the condition in NewMuxRoutePolicy to evaluate to false.
 
-	// REQUIREMENT 6: Smart router (Else branch) should now be used
+	// REQUIREMENT 6: Router (Else branch) should now be used
 	// Test bulk operation - should route to ingest nodes
 	// Use a minimal valid NDJSON body to avoid EOF from server rejecting empty POST /_bulk
 	bulkBody := "{\"index\":{\"_index\":\"test-discovery-flow\"}}\n{\"field\":\"value\"}\n"

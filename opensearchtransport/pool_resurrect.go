@@ -67,10 +67,10 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 
 	// Set checking timestamp
 	c.mu.checkStartedAt = time.Now()
-	c.setLifecycleBit(lcHealthChecking)
+	c.setLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	defer func() {
 		c.mu.checkStartedAt = time.Time{}
-		c.clearLifecycleBit(lcHealthChecking)
+		c.clearLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	}()
 
 	// Perform actual health check
@@ -81,9 +81,9 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 	}
 	c.mu.Lock() // Reacquire for state update
 
-	// Check if connection was marked dead more recently than when we started
+	// Check if connection was marked dead more recently than when the check started
 	if c.mu.deadSince.After(originalDeadSince) {
-		// Connection was marked dead while we were checking, discard result
+		// Connection was marked dead during the check; discard result
 		return nil
 	}
 
@@ -226,10 +226,10 @@ func (cp *multiServerPool) checkDeadOne(ctx context.Context, conn *Connection, h
 // performHealthCheck executes the health check for a connection.
 // Returns true if health check passes, false if it fails.
 // When recordRTT is true, the measured round-trip time is recorded in the
-// connection's rttRing for affinity routing. Pass false for TLS-warmup probes
+// connection's rttRing for RTT-based scoring. Pass false for TLS-warmup probes
 // where handshake overhead would skew the RTT measurement.
-// Note: This method does not reschedule on failure. The caller (resurrectWithLock) is responsible
-// for ensuring checkStartedAt is reset (via defer), allowing future failures to trigger new checks.
+// Note: This method does not reschedule on failure; the caller is responsible
+// for retry logic and resetting checkStartedAt.
 func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection, recordRTT bool) bool {
 	start := time.Now()
 	resp, err := cp.healthCheck(ctx, c, c.URL)
@@ -245,7 +245,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 		return false
 	}
 
-	// Record RTT measurement from the health check for affinity routing.
+	// Record RTT measurement from the health check for connection scoring.
 	// Skipped for TLS-warmup probes where handshake overhead skews the measurement.
 	// Single-writer: only the health check goroutine calls add().
 	if recordRTT {
@@ -263,10 +263,10 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	c.decrementDrainingQuiescing()
 
 	// Advance warmup on successful health check. Connections that never win
-	// affinity selection (e.g., due to warmup penalty) would otherwise be
-	// stuck in needsWarmup forever. Each passing health check ticks the
-	// warmup counter, eventually clearing the flag so the connection can
-	// compete on merit in affinity scoring.
+	// selection (e.g., due to warmup penalty) would otherwise be stuck in
+	// needsWarmup forever. Each passing health check ticks the warmup
+	// counter, eventually clearing the flag so the connection can compete
+	// on merit in scoring.
 	if c.loadConnState().isWarmingUp() {
 		c.tryWarmupSkip()
 	}
@@ -316,7 +316,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 //     so as more servers come back online and clients reconnect, each server faces
 //     increasing handshake load from all clients.
 //     rateLimitedTimeout = (liveNodes * clientsPerServer) / serverMaxNewConnsPerSec
-//     All dead (0 ready) -> 0 -> minimum floor (aggressive, we need capacity)
+//     All dead (0 ready) -> 0 -> minimum floor (aggressive, capacity is needed)
 //     Recovering (some ready) -> increases (back off, servers busy with TLS ramp-up)
 //     Mostly healthy -> capped at resurrectTimeoutMax (very conservative)
 //
@@ -381,13 +381,13 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 	// Upgrade to write lock and re-check
 	c.mu.Lock()
 	if !c.mu.checkStartedAt.IsZero() {
-		// Another goroutine started a health check between our read and write lock
+		// Another goroutine started a health check between the read and write lock
 		c.mu.Unlock()
 		return
 	}
-	// Mark that we're starting a health check
+	// Mark that the health check is starting
 	c.mu.checkStartedAt = time.Now().UTC()
-	c.setLifecycleBit(lcHealthChecking)
+	c.setLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	c.mu.Unlock()
 
 	// Spawn goroutine to handle resurrection attempts with retries
@@ -396,7 +396,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 		defer func() {
 			c.mu.Lock()
 			c.mu.checkStartedAt = time.Time{}
-			c.clearLifecycleBit(lcHealthChecking)
+			c.clearLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			c.mu.Unlock()
 		}()
 
@@ -496,7 +496,7 @@ func (cp *multiServerPool) attemptHealthCheckWithRelock(ctx context.Context, c *
 		return &shouldRetry
 	}
 
-	// Re-check if connection was resurrected while we were checking
+	// Re-check if connection was resurrected during the health check
 	if c.mu.deadSince.IsZero() {
 		shouldReturn := true
 		return &shouldReturn
@@ -511,7 +511,7 @@ func (cp *multiServerPool) attemptHealthCheckWithRelock(ctx context.Context, c *
 
 	// If connection is still quiescing (draining countdown > 0), continue the health check
 	// loop without incrementing failures. performHealthCheck already decremented the counter,
-	// so we just need to wait for the next resurrection interval (with jitter) and re-check.
+	// so the next resurrection interval handles the re-check.
 	if c.drainingQuiescingRemaining.Load() > 0 {
 		shouldRetry := false
 		return &shouldRetry

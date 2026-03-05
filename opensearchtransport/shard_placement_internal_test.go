@@ -243,13 +243,13 @@ func TestShardConstants(t *testing.T) {
 	require.Equal(t, "r", shardTypeReplica)
 }
 
-func TestAffinitySmartPolicyConstruction(t *testing.T) {
+func TestDefaultRouterConfig(t *testing.T) {
 	t.Parallel()
 
 	t.Run("default config values match constants", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		require.Equal(t, defaultMinFanOut, cfg.minFanOut)
 		require.Equal(t, defaultMaxFanOut, cfg.maxFanOut)
 		require.Equal(t, defaultIdleEvictionTTL, cfg.idleEvictionTTL)
@@ -261,7 +261,7 @@ func TestAffinitySmartPolicyConstruction(t *testing.T) {
 	t.Run("WithMinFanOut sets value", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		WithMinFanOut(5)(&cfg)
 		require.Equal(t, 5, cfg.minFanOut)
 	})
@@ -269,7 +269,7 @@ func TestAffinitySmartPolicyConstruction(t *testing.T) {
 	t.Run("WithMaxFanOut sets value", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		WithMaxFanOut(64)(&cfg)
 		require.Equal(t, 64, cfg.maxFanOut)
 	})
@@ -278,7 +278,7 @@ func TestAffinitySmartPolicyConstruction(t *testing.T) {
 		t.Parallel()
 
 		overrides := map[string]int{"my-index": 10, "other-index": 3}
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		WithIndexFanOut(overrides)(&cfg)
 		require.Equal(t, overrides, cfg.overrides)
 	})
@@ -286,7 +286,7 @@ func TestAffinitySmartPolicyConstruction(t *testing.T) {
 	t.Run("WithIdleEvictionTTL sets value", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		WithIdleEvictionTTL(30 * time.Minute)(&cfg)
 		require.Equal(t, 30*time.Minute, cfg.idleEvictionTTL)
 	})
@@ -294,7 +294,7 @@ func TestAffinitySmartPolicyConstruction(t *testing.T) {
 	t.Run("WithDecayFactor sets value", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		WithDecayFactor(0.995)(&cfg)
 		require.InDelta(t, 0.995, cfg.decay, 1e-9)
 	})
@@ -302,22 +302,22 @@ func TestAffinitySmartPolicyConstruction(t *testing.T) {
 	t.Run("WithFanOutPerRequest sets value", func(t *testing.T) {
 		t.Parallel()
 
-		cfg := defaultAffinityConfig()
+		cfg := defaultRouterConfig()
 		WithFanOutPerRequest(1000)(&cfg)
 		require.InDelta(t, 1000.0, cfg.fanOutPerReq, 1e-9)
 	})
 
-	t.Run("NewSmartPolicy returns non-nil", func(t *testing.T) {
+	t.Run("NewDefaultPolicy returns non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		p := NewSmartPolicy()
+		p := NewDefaultPolicy()
 		require.NotNil(t, p)
 	})
 
-	t.Run("NewSmartRouter returns non-nil", func(t *testing.T) {
+	t.Run("NewDefaultRouter returns non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		r := NewSmartRouter()
+		r := NewDefaultRouter()
 		require.NotNil(t, r)
 	})
 

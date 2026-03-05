@@ -29,6 +29,7 @@ package opensearchtransport
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -37,11 +38,12 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 )
 
-// Node role constants to match upstream OpenSearch server definitions
+// Node role constants matching upstream OpenSearch server definitions.
 const (
 	// RoleData nodes store and retrieve data, perform indexing, searching, and
 	// aggregating operations on local shards. Available since OpenSearch 1.0.
@@ -93,8 +95,9 @@ const (
 	// See: https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/configuration-system/
 	RoleCoordinatingOnly = "coordinating_only"
 
-	// RoleMaster is Deprecated: Use RoleClusterManager instead for inclusive language.
-	// Both roles are functionally identical but master role is deprecated.
+	// RoleMaster is the deprecated role name for cluster manager nodes.
+	//
+	// Deprecated: Use RoleClusterManager instead.
 	// See: https://docs.opensearch.org/latest/install-and-configure/configuring-opensearch/configuration-system/
 	RoleMaster = "master"
 )
@@ -122,21 +125,20 @@ func newRoleSet(roles []string) roleSet {
 		rs[role] = struct{}{}
 		if role == RoleMaster {
 			// Alias deprecated "master" role to "cluster_manager" for internal checks,
-			// so we only need to perform a single check for "cluster_manager" elsewhere in the library.
+			// so only a single check is needed for "cluster_manager" elsewhere in the library.
 			rs[RoleClusterManager] = struct{}{}
 		}
 	}
 	return rs
 }
 
-// has checks if the roleSet contains a specific role using O(1) map lookup.
+// has reports whether the roleSet contains the named role.
 func (rs roleSet) has(roleName string) bool {
 	_, exists := rs[roleName]
 	return exists
 }
 
-// toSlice converts the roleSet back to a []string slice for compatibility.
-// The roles are sorted alphabetically for consistent ordering.
+// toSlice returns the roles as a sorted string slice.
 func (rs roleSet) toSlice() []string {
 	if len(rs) == 0 {
 		return nil
@@ -178,8 +180,7 @@ type Discoverable interface {
 	DiscoverNodes(ctx context.Context) error
 }
 
-// nodeInfo represents the information about node in a cluster.
-// nodeInfoHTTP represents the HTTP configuration from node info
+// nodeInfoHTTP represents the HTTP configuration from node info.
 type nodeInfoHTTP struct {
 	PublishAddress string `json:"publish_address"` // Available since OpenSearch 1.0.0
 }
@@ -189,6 +190,18 @@ type nodeInfoOS struct {
 	AllocatedProcessors *int `json:"allocated_processors"` // Available since OpenSearch 1.0.0
 }
 
+// nodeInfoThreadPool represents the configuration for a single thread pool
+// from the /_nodes/_local/http,os,thread_pool response.
+type nodeInfoThreadPool struct {
+	Type      string `json:"type"`                 // "fixed", "scaling", "resizable"
+	Size      int    `json:"size,omitempty"`       // configured size (fixed/resizable)
+	QueueSize int    `json:"queue_size"`           // queue capacity (-1 = unbounded)
+	Core      int    `json:"core,omitempty"`       // min threads (scaling pools)
+	Max       int    `json:"max,omitempty"`        // max threads (scaling/resizable)
+	KeepAlive string `json:"keep_alive,omitempty"` // idle timeout
+}
+
+// nodeInfo represents a node discovered via the /_nodes API.
 type nodeInfo struct {
 	ID         string         `json:"id"`   // Available since OpenSearch 1.0.0
 	Name       string         `json:"name"` // Available since OpenSearch 1.0.0
@@ -197,6 +210,10 @@ type nodeInfo struct {
 	Attributes map[string]any `json:"attributes"`   // Available since OpenSearch 1.0.0
 	HTTP       nodeInfoHTTP   `json:"http"`         // Available since OpenSearch 1.0.0
 	OS         *nodeInfoOS    `json:"os,omitempty"` // Present in /_nodes/_local/http,os responses; nil from /_nodes/http
+
+	// ThreadPool maps pool name -> configuration. Present in
+	// /_nodes/_local/http,os,thread_pool responses; nil from /_nodes/http.
+	ThreadPool map[string]nodeInfoThreadPool `json:"thread_pool,omitempty"`
 
 	// Internal fields (not part of JSON)
 	roleSet roleSet
@@ -247,8 +264,8 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 		}
 	}
 
-	// Fetch shard placement data for affinity routing. This is non-blocking:
-	// if /_cat/shards fails (e.g., missing permissions), affinity routing
+	// Fetch shard placement data for scored routing. This is non-blocking:
+	// if /_cat/shards fails (e.g., missing permissions), scored routing
 	// continues with minFanOut and no shard-aware partitioning.
 	if c.router != nil {
 		c.fetchAndUpdateShardPlacement(ctx)
@@ -332,7 +349,7 @@ func (c *Client) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeI
 //
 //   - Same pointer (reused): the node's identity (ID, Name, Roles) is unchanged.
 //     The existing *Connection is passed through, preserving all accumulated state
-//     (RTT ring, allocatedProcessors, warmup progress, affinity counters, etc.).
+//     (RTT ring, allocatedProcessors, warmup progress, load estimates, etc.).
 //
 //   - New pointer (replaced): the node is new or its identity changed (different ID,
 //     Name, or Roles). A fresh *Connection is created via createConnection() and placed
@@ -411,19 +428,38 @@ func (c *Client) createConnection(node nodeInfo) *Connection {
 		Roles:      node.roleSet,
 		Attributes: node.Attributes,
 	}
-	conn.affinityCounter.clock = realClock{}
+	conn.estLoad.clock = realClock{}
 	conn.weight.Store(1)
 	conn.rttRing = newRTTRing(c.rttRingSize)
 
 	// Store allocated_processors if present (populated when nodeInfo was parsed
-	// from a /_nodes/_local/http,os response; nil from /_nodes/http discovery).
+	// from a /_nodes/_local/http,os,thread_pool response; nil from /_nodes/http discovery).
 	if node.OS != nil && node.OS.AllocatedProcessors != nil {
 		conn.storeAllocatedProcessors(*node.OS.AllocatedProcessors)
 		initialState &^= lcNeedsHardware // hardware info obtained
 	}
 
+	// Store thread pool sizes if present (same response as OS data).
+	storeThreadPoolSizes(conn, node.ThreadPool)
+
 	conn.state.Store(int64(newConnState(initialState)))
 	return conn
+}
+
+// storeThreadPoolSizes iterates a node's thread pool configuration and
+// stores each pool's effective size as the cwnd ceiling on the connection.
+// Scaling pools report max instead of size; whichever is positive is used.
+// Called from createConnection and hardwareInfoHealthCheck.
+func storeThreadPoolSizes(conn *Connection, pools map[string]nodeInfoThreadPool) {
+	for name, tp := range pools {
+		size := tp.Size
+		if size <= 0 && tp.Max > 0 {
+			size = tp.Max // scaling pools report max, not size
+		}
+		if size > 0 {
+			conn.storeMaxCwnd(name, size)
+		}
+	}
 }
 
 // updateConnectionPool atomically updates the connection pool with new connection information
@@ -456,7 +492,7 @@ func (c *Client) updateConnectionPool(
 		currentConnectionsByURL = make(map[string]*Connection, len(currentURLs))
 
 		// Get actual connections from the pool to preserve old role information
-		// We need the old connections to detect role changes
+		// Old connections are needed to detect role changes
 		for _, urlPtr := range currentURLs {
 			url := urlPtr.String()
 			// Try to find this URL in the current pool
@@ -528,10 +564,10 @@ func (c *Client) updateConnectionPool(
 		}
 	}
 
-	// Build final ready/dead lists from the connection objects we've chosen to use
+	// Build final ready/dead lists from the connection objects chosen for use
 	// (mix of reused old objects and new objects).
 	//
-	// When we reuse an old Connection object that has deadSince set, we compare it
+	// When reusing an old Connection object that has deadSince set, compare it
 	// against healthCheckedAt to determine which information is newer:
 	//   - deadSince < healthCheckedAt -> dead state is stale, health check is newer -> resurrect
 	//   - deadSince >= healthCheckedAt -> dead state set concurrently/after health check -> keep dead
@@ -598,7 +634,6 @@ func (c *Client) updateConnectionPool(
 		newConnectionPool = c.createOrUpdateMultiNodePoolWithLock(finalReady, finalDead)
 	}
 
-	// Perform swap of connection pools
 	c.mu.connectionPool = newConnectionPool
 
 	// Set up health check function and observer for pools that support it
@@ -622,7 +657,7 @@ func (c *Client) updateConnectionPool(
 
 	// Schedule RTT probes for reused connections that have no RTT measurements.
 	// This handles connections reused by nodeDiscovery() that were never health-checked,
-	// which would otherwise leave rttRing at rttBucketUnknown and break affinity routing.
+	// which would otherwise leave rttRing at rttBucketUnknown and break connection scoring.
 	if pool, ok := newConnectionPool.(*multiServerPool); ok {
 		for _, conn := range finalReady {
 			if conn.rttRing != nil && conn.rttRing.medianBucket().IsUnknown() && pool.healthCheck != nil {
@@ -781,7 +816,7 @@ func (c *Client) findConnectionByURL(pool ConnectionPool, url string) *Connectio
 // createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
 func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections []*Connection) ConnectionPool {
-	// Single node - check if we need to demote from multiServerPool
+	// Single node - check if demotion from multiServerPool is needed
 	if _, isStatusPool := c.mu.connectionPool.(*multiServerPool); isStatusPool {
 		// Demote from multi-node to single-node pool
 		return c.demoteConnectionPoolWithLock()
@@ -810,7 +845,7 @@ func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections 
 // createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
 func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConnections []*Connection) ConnectionPool {
-	// Multi-node - check if we need to promote from singleServerPool
+	// Multi-node - check if promotion from singleServerPool is needed
 	if _, isSinglePool := c.mu.connectionPool.(*singleServerPool); isSinglePool {
 		// Promote from single-node to multi-node pool
 		return c.promoteConnectionPoolWithLock(readyConnections, deadConnections)
@@ -893,7 +928,12 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 		standbyPromotionChecks:       standbyPromotionChecks,
 	}
 	allConnsPool.mu.ready = allReadyConns
+	allConnsPool.mu.members = make(map[*Connection]struct{}, max(len(allReadyConns)+len(allDeadConns), defaultMembersCapacity))
+	for _, conn := range allReadyConns {
+		allConnsPool.mu.members[conn] = struct{}{}
+	}
 	for _, conn := range allDeadConns {
+		allConnsPool.mu.members[conn] = struct{}{}
 		allConnsPool.appendToDeadWithLock(conn)
 	}
 
@@ -929,7 +969,7 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 			// New connection (lcDead from createConnection) or unexpected state.
 			// Transition to active with warmup for gradual traffic ramp-up.
 			conn.mu.Lock()
-			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
+			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			conn.mu.Unlock()
 			rounds, skip := allConnsPool.getWarmupParams()
 			conn.startWarmup(rounds, skip)
@@ -941,7 +981,7 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 	}
 	allConnsPool.mu.activeCount = activeCount
 
-	// NOTE: We intentionally do NOT call enforceActiveCapWithLock() here.
+	// NOTE: enforceActiveCapWithLock() is intentionally NOT called here.
 	// The allConns pool is a transport-level container for discovery bookkeeping.
 	// Cap enforcement is owned by the policy pools (RoundRobinPolicy, RolePolicy),
 	// which manage their own active/standby partitions via DiscoveryUpdate.
@@ -963,27 +1003,11 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	}
 
 	conn, err := getConnectionFromPool(c, req)
-	// TODO: If no connection is returned, fallback to original URLs
+	if err != nil && errors.Is(err, ErrNoConnections) && c.seedFallbackPool != nil {
+		conn, err = c.seedFallbackPool.Next()
+	}
 	if err != nil {
-		if len(c.urls) > 0 {
-			// Create temporary connections from startup URLs and use round-robin selection
-			startupConns := make([]*Connection, len(c.urls))
-			for i, u := range c.urls {
-				startupConns[i] = &Connection{URL: u, URLString: u.String()}
-				startupConns[i].affinityCounter.clock = realClock{}
-				startupConns[i].weight.Store(1)
-			}
-
-			// Use round-robin selector to pick a startup URL
-			selector := &roundRobinSelector{}
-			selector.curr.Store(-1)
-			conn, err = selector.Select(startupConns)
-			if err != nil {
-				return nil, fmt.Errorf("failed to select startup URL: %w", err)
-			}
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	c.setReqURL(conn.URL, req)
@@ -992,8 +1016,7 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
-		// Report connection failure to the pool if we got the connection from the pool
-		// Note: getConnectionFromPool always uses pool, so we always report
+		// Report connection failure to the pool.
 		c.mu.RLock()
 		pool := c.mu.connectionPool
 		c.mu.RUnlock()
@@ -1039,8 +1062,7 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		idx++
 	}
 
-	// Report connection success to the pool if we got the connection from the pool
-	// Note: getConnectionFromPool always uses pool, so we always report
+	// Report connection success to the pool.
 	c.mu.RLock()
 	pool := c.mu.connectionPool
 	c.mu.RUnlock()
@@ -1078,25 +1100,126 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	return u
 }
 
-func (c *Client) scheduleDiscoverNodes() {
-	// Don't schedule or run discovery if the client is shutting down.
-	if c.ctx.Err() != nil {
-		return
+// ---------------------------------------------------------------------------
+// Discovery loop
+// ---------------------------------------------------------------------------
+
+// discoveryLoop is a single goroutine that owns both node discovery and
+// catalog (/_cat/shards) refresh. It wakes at the sooner of:
+//
+//   - nextNodes: periodic full discovery (default discoverNodesInterval, 30s)
+//   - nextCat:   catalog-only refresh (set by jittered follow-up after
+//     discovery, or when the request path signals stale shard data)
+//
+// After each full node discovery, a jittered catalog follow-up is scheduled.
+// The follow-up fires in [0, catRefreshTimeout], giving requests time to
+// create index cache entries via getOrCreate so the refresh can merge shard
+// placement into them. Jitter avoids thundering herd when many clients
+// start simultaneously.
+//
+// Catalog entry lifecycle (see indexSlotCache):
+//   - Created lazily by getOrCreate on first request per index.
+//   - Shard data merged by updateFromDiscovery each refresh.
+//   - Stale shard data cleared when an index disappears from
+//     /_cat/shards (shardNodeCount zeroed, shardNodeNames nilled).
+//   - Idle slots (decay counter < 1 for > idleEvictionTTL,
+//     default 90m) are evicted entirely.
+//   - sync.Map compacted when live count falls to 50% of the
+//     high-water mark, reclaiming internal hash table memory.
+//
+// The request path signals stale catalog data via requestCatRefresh
+// (atomic flag, zero contention). The loop picks up the flag on its
+// next wake and schedules a cat refresh after minCatRefreshInterval.
+//
+// A "refresh now" request (requestDiscoveryNow) is also supported:
+// it sets a separate atomic flag that causes the loop to run a full
+// node + catalog discovery on its next wake, then resets the interval.
+func (c *Client) discoveryLoop() {
+	nextNodes := time.Now().Add(c.discoverNodesInterval)
+	var nextCat time.Time // zero = nothing scheduled
+
+	timer := time.NewTimer(c.discoverNodesInterval)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-c.ctx.Done():
+			return
+		case <-timer.C:
+		}
+
+		now := time.Now()
+
+		// Pick up request-path signal: "shard catalog may be stale."
+		if c.catRefreshNeeded.Swap(false) && nextCat.IsZero() {
+			nextCat = now.Add(minCatRefreshInterval)
+		}
+
+		// Pick up "discover now" signal (e.g., large topology change).
+		if c.discoveryNeeded.Swap(false) {
+			nextNodes = now // run immediately on this iteration
+		}
+
+		switch {
+		case !now.Before(nextNodes):
+			// Full node + shard discovery.
+			c.DiscoverNodes(c.ctx) //nolint:errcheck // errors logged inside
+
+			nextNodes = time.Now().Add(c.discoverNodesInterval)
+			nextCat = time.Time{}
+
+			// Jittered follow-up for cold-start cache entries.
+			if c.router != nil {
+				//nolint:gosec // jitter; cryptographic randomness not needed
+				jitter := time.Duration(rand.Int64N(int64(catRefreshTimeout)))
+				nextCat = time.Now().Add(jitter)
+			}
+
+		case !nextCat.IsZero() && !now.Before(nextCat):
+			// Cat-only refresh (no /_nodes call, no topology changes).
+			if c.router != nil {
+				ctx, cancel := context.WithTimeout(c.ctx, catRefreshTimeout)
+				c.fetchAndUpdateShardPlacement(ctx)
+				cancel()
+			}
+			nextCat = time.Time{}
+		}
+
+		// Compute next wake-up.
+		wakeAt := nextNodes
+		if !nextCat.IsZero() && nextCat.Before(wakeAt) {
+			wakeAt = nextCat
+		}
+
+		// If another signal arrived while we were working, poll sooner.
+		if c.catRefreshNeeded.Load() || c.discoveryNeeded.Load() {
+			earliest := time.Now().Add(minCatRefreshInterval)
+			if earliest.Before(wakeAt) {
+				wakeAt = earliest
+			}
+		}
+
+		delay := time.Until(wakeAt)
+		if delay <= 0 {
+			delay = time.Millisecond
+		}
+		timer.Reset(delay)
 	}
+}
 
-	//nolint:errcheck // errors are logged inside the function
-	go c.DiscoverNodes(c.ctx)
+// requestCatRefresh signals the discovery loop that shard placement data
+// may be stale (e.g., a connection error suggests a node went down).
+// Lock-free: sets an atomic flag consumed by discoveryLoop.
+func (c *Client) requestCatRefresh() {
+	c.catRefreshNeeded.Store(true)
+}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.mu.discoverNodesTimer != nil {
-		c.mu.discoverNodesTimer.Stop()
-	}
-
-	c.mu.discoverNodesTimer = time.AfterFunc(c.discoverNodesInterval, func() {
-		c.scheduleDiscoverNodes()
-	})
+// requestDiscoveryNow signals the discovery loop to run a full node +
+// catalog discovery on its next wake-up, rather than waiting for the
+// regular interval. Used after large topology changes.
+// Lock-free: sets an atomic flag consumed by discoveryLoop.
+func (c *Client) requestDiscoveryNow() {
+	c.discoveryNeeded.Store(true)
 }
 
 const (
@@ -1106,88 +1229,10 @@ const (
 	minCatRefreshInterval = 5 * time.Second
 )
 
-// scheduleCatRefresh computes a catalog refresh interval scaled by the
-// fraction of connections flagged with needsCatUpdate and resets the
-// discoverCatTimer accordingly. If the timer is already pending at a
-// sooner time, this is a no-op.
-//
-// The urgency scales with cluster impact:
-//
-//	interval = discoverNodesInterval * (1 - fraction)
-//	clamped to [minCatRefreshInterval, discoverNodesInterval]
-//
-// Non-blocking: uses TryLock to avoid contention on the request path.
-func (c *Client) scheduleCatRefresh() {
-	if c.discoverNodesInterval <= 0 {
-		return // discovery not enabled
-	}
-
-	if !c.mu.TryLock() {
-		return // another goroutine holds the lock; avoid blocking the request path
-	}
-	defer c.mu.Unlock()
-
-	// Count connections needing catalog refresh to determine urgency.
-	var flagged, total int
-	if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
-		pool.mu.RLock()
-		total = len(pool.mu.ready) + len(pool.mu.dead)
-		for _, conn := range pool.mu.ready {
-			if conn.needsCatUpdate() {
-				flagged++
-			}
-		}
-		for _, conn := range pool.mu.dead {
-			if conn.needsCatUpdate() {
-				flagged++
-			}
-		}
-		pool.mu.RUnlock()
-	}
-
-	if flagged == 0 || total == 0 {
-		return
-	}
-
-	// Scale urgency: more flagged connections -> shorter interval.
-	fraction := float64(flagged) / float64(total)
-	interval := max(time.Duration(float64(c.discoverNodesInterval)*(1-fraction)), minCatRefreshInterval)
-
-	// Only schedule if sooner than what's already pending.
-	now := time.Now()
-	desired := now.Add(interval)
-	if c.mu.discoverCatTimer != nil && !c.mu.nextCatRefresh.IsZero() && !desired.Before(c.mu.nextCatRefresh) {
-		return // already scheduled to fire sooner
-	}
-
-	c.mu.nextCatRefresh = desired
-
-	if c.mu.discoverCatTimer != nil {
-		c.mu.discoverCatTimer.Stop()
-	}
-	c.mu.discoverCatTimer = time.AfterFunc(interval, func() {
-		c.runCatRefresh()
-	})
-
-	if debugLogger != nil {
-		debugLogger.Logf("Shard map invalidation: scheduling catalog refresh in %v (flagged=%d/%d, fraction=%.2f)\n",
-			interval, flagged, total, fraction)
-	}
-}
-
-// runCatRefresh runs a standalone /_cat/shards refresh and clears
-// needsCatUpdate on all connections. Called by discoverCatTimer.
-// Unlike scheduleDiscoverNodes, this does NOT run full node discovery
-// (no /_nodes call, no topology changes) -- just shard placement.
-func (c *Client) runCatRefresh() {
-	if c.ctx.Err() != nil {
-		return
-	}
-
-	if c.router != nil {
-		c.fetchAndUpdateShardPlacement(c.ctx)
-	}
-}
+// catRefreshTimeout bounds the time spent on a standalone /_cat/shards
+// refresh triggered by the follow-up timer. Prevents a stalled HTTP
+// request from blocking subsequent refreshes indefinitely.
+const catRefreshTimeout = 10 * time.Second
 
 // clearAllNeedsCatUpdate clears the lcNeedsCatUpdate flag on all connections
 // in the pool. Called after a successful /_cat/shards refresh confirms current
@@ -1200,26 +1245,43 @@ func (c *Client) clearAllNeedsCatUpdate() {
 	if mp, ok := pool.(*multiServerPool); ok {
 		mp.mu.RLock()
 		for _, conn := range mp.mu.ready {
-			conn.clearNeedsCatUpdate()
+			conn.clearNeedsCatUpdate() //nolint:errcheck // pool lock held; only errLifecycleNoop possible
 		}
 		for _, conn := range mp.mu.dead {
-			conn.clearNeedsCatUpdate()
+			conn.clearNeedsCatUpdate() //nolint:errcheck // pool lock held; only errLifecycleNoop possible
 		}
 		mp.mu.RUnlock()
 	}
 }
 
 // fetchAndUpdateShardPlacement fetches shard-to-node mappings from
-// /_cat/shards and propagates the data to affinity policies in the router
-// tree. Non-blocking: failures are logged and affinity routing falls back
+// /_cat/shards and propagates the data to router policies in the router
+// tree. Non-blocking: failures are logged and scored routing falls back
 // to minFanOut without shard-aware partitioning.
+//
+// Gated by discoveryFeatures: when catShardsEnabled() returns false,
+// the entire fetch is skipped.
 func (c *Client) fetchAndUpdateShardPlacement(ctx context.Context) {
+	if !c.discoveryFeatures.catShardsEnabled() {
+		return
+	}
+
 	shardPlacement, err := c.getShardPlacement(ctx)
 	if err != nil {
 		if debugLogger != nil {
 			debugLogger.Logf("Discovery: shard placement fetch failed (continuing with minFanOut): %v\n", err)
 		}
 		return
+	}
+
+	// Enrich placement data with routing metadata (routing_num_shards and
+	// number_of_shards) for indexes that don't have it cached yet. This is
+	// a one-time fetch per index from _cluster/state/metadata. Both values
+	// are needed for murmur3 shard-exact routing; number_of_shards from
+	// metadata is the authoritative shard count (the _cat/shards-derived
+	// count can be transiently wrong during shard relocation).
+	if c.discoveryFeatures.routingNumShardsEnabled() {
+		c.fetchRoutingNumShards(ctx, shardPlacement)
 	}
 
 	// Count active nodes for fan-out clamping.
@@ -1232,21 +1294,16 @@ func (c *Client) fetchAndUpdateShardPlacement(ctx context.Context) {
 		activeNodeCount = len(pool.URLs())
 	}
 
-	// Walk the router's policy tree and update any affinity caches.
+	// Walk the router's policy tree and update any index slot caches.
 	updateShardPlacementTree(c.router, shardPlacement, activeNodeCount)
 
 	// Shard placement is now fresh -- clear needsCatUpdate on all connections
-	// so they can re-enter affinity routing candidate sets.
+	// so they can re-enter scored routing candidate sets.
 	c.clearAllNeedsCatUpdate()
 
-	// Cancel any pending failure-triggered cat refresh since we just refreshed.
-	c.mu.Lock()
-	if c.mu.discoverCatTimer != nil {
-		c.mu.discoverCatTimer.Stop()
-		c.mu.discoverCatTimer = nil
-	}
-	c.mu.nextCatRefresh = time.Time{}
-	c.mu.Unlock()
+	// Clear the atomic flag so the discovery loop doesn't schedule a
+	// redundant cat-only refresh on its next wake-up.
+	c.catRefreshNeeded.Store(false)
 }
 
 // Shard state constants from OpenSearch's IndexShardState.
@@ -1288,11 +1345,34 @@ type shardNodeInfo struct {
 	Replicas  int // Number of replica shards on this node
 }
 
+// shardNodes tracks which nodes host a specific shard number.
+// Used by murmur3 shard-exact routing to find the node(s) holding
+// the target shard.
+type shardNodes struct {
+	Primary  string   // Node name hosting the primary copy ("" if unknown/unassigned)
+	Replicas []string // Node names hosting replica copies
+}
+
 // indexShardPlacement holds the full shard placement data for a single index.
 type indexShardPlacement struct {
 	// Nodes maps node name -> shard counts on that node.
 	// Keyed by the /_cat/shards "node" column, which returns node names.
+	// Used for aggregate scoring (replica-preference cost multiplier).
 	Nodes map[string]*shardNodeInfo
+
+	// NumberOfPrimaryShards is the count of distinct primary shard numbers
+	// for this index. Derived from /_cat/shards by counting distinct
+	// entries where prirep == "p".
+	NumberOfPrimaryShards int
+
+	// RoutingNumShards is the index's routing_num_shards metadata value,
+	// fetched from _cluster/state/metadata. Zero until populated.
+	RoutingNumShards int
+
+	// ShardToNodes maps shard number -> the nodes hosting that shard.
+	// Used by murmur3 shard-exact routing to resolve the target shard
+	// to specific node(s) for direct routing.
+	ShardToNodes map[int]*shardNodes
 }
 
 // nodeNameSet returns the set of node names for use by rendezvousTopK's hard partition.
@@ -1325,6 +1405,9 @@ func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardP
 	req.URL.RawQuery = "format=json&h=index,shard,prirep,state,node"
 
 	conn, err := getConnectionFromPool(c, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && c.seedFallbackPool != nil {
+		conn, err = c.seedFallbackPool.Next()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("getting connection for shard placement: %w", err)
 	}
@@ -1372,22 +1455,232 @@ func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardP
 		placement, ok := result[entry.Index]
 		if !ok {
 			placement = &indexShardPlacement{
-				Nodes: make(map[string]*shardNodeInfo),
+				Nodes:        make(map[string]*shardNodeInfo),
+				ShardToNodes: make(map[int]*shardNodes),
 			}
 			result[entry.Index] = placement
 		}
 
+		// Update per-node aggregate counts (existing scoring).
 		info, ok := placement.Nodes[entry.Node]
 		if !ok {
 			info = &shardNodeInfo{}
 			placement.Nodes[entry.Node] = info
 		}
 
+		// Parse shard number for per-shard tracking.
+		shardNum, shardErr := strconv.Atoi(entry.Shard)
+
 		switch entry.PriRep {
 		case shardTypePrimary:
 			info.Primaries++
+			if shardErr == nil {
+				copies := placement.ShardToNodes[shardNum]
+				if copies == nil {
+					copies = &shardNodes{}
+					placement.ShardToNodes[shardNum] = copies
+				}
+				copies.Primary = entry.Node
+			}
 		case shardTypeReplica:
 			info.Replicas++
+			if shardErr == nil {
+				copies := placement.ShardToNodes[shardNum]
+				if copies == nil {
+					copies = &shardNodes{}
+					placement.ShardToNodes[shardNum] = copies
+				}
+				copies.Replicas = append(copies.Replicas, entry.Node)
+			}
+		}
+	}
+
+	// Compute NumberOfPrimaryShards per index from the shard map.
+	for _, placement := range result {
+		primaryCount := 0
+		for _, copies := range placement.ShardToNodes {
+			if copies.Primary != "" {
+				primaryCount++
+			}
+		}
+		placement.NumberOfPrimaryShards = primaryCount
+	}
+
+	return result, nil
+}
+
+// fetchRoutingNumShards fetches routing metadata (routing_num_shards and
+// number_of_shards) from the cluster state for indexes that don't have it
+// cached yet. This is a one-time fetch per index --once populated, the values
+// are stored in the indexShardMap and persist across subsequent discovery cycles.
+//
+// Both values are needed for murmur3 shard-exact routing:
+//
+//	shard = floorMod(hash, routingNumShards) / routingFactor
+//
+// where routingFactor = routingNumShards / numberOfShards.
+//
+// number_of_shards from index settings is the authoritative shard count.
+// The _cat/shards-derived count can be transiently wrong when shards are
+// RELOCATING (e.g., during cluster rebalancing triggered by security plugin
+// audit index creation), leading to an incorrect routing_factor and wrong
+// shard computations.
+//
+// Server reference:
+//
+//	OperationRouting.java:calculateScaledShardId
+//	MetadataCreateIndexService.java:calculateNumRoutingShards
+func (c *Client) fetchRoutingNumShards(ctx context.Context, shardPlacement map[string]*indexShardPlacement) {
+	if c.router == nil || len(shardPlacement) == 0 {
+		return
+	}
+
+	// Find which indexes need routing metadata by checking the cache.
+	routerPolicy, ok := c.router.(Policy)
+	if !ok {
+		return
+	}
+	cache := findRouterCache(routerPolicy)
+	var needFetch []string
+	for indexName := range shardPlacement {
+		if cache == nil {
+			needFetch = append(needFetch, indexName)
+			continue
+		}
+
+		slot := cache.slotFor(indexName)
+		if slot == nil {
+			needFetch = append(needFetch, indexName)
+			continue
+		}
+
+		sm := slot.shardMap.Load()
+		if sm == nil || sm.RoutingNumShards == 0 {
+			needFetch = append(needFetch, indexName)
+			continue
+		}
+
+		// Already cached — carry forward into the placement data.
+		shardPlacement[indexName].RoutingNumShards = sm.RoutingNumShards
+		if sm.NumberOfPrimaryShards > 0 {
+			shardPlacement[indexName].NumberOfPrimaryShards = sm.NumberOfPrimaryShards
+		}
+	}
+
+	if len(needFetch) == 0 {
+		return
+	}
+
+	rns, err := c.getRoutingMeta(ctx, needFetch)
+	if err != nil {
+		if debugLogger != nil {
+			debugLogger.Logf(
+				"Discovery: routing metadata fetch failed for %d indexes (shard-exact routing unavailable): %v\n",
+				len(needFetch), err)
+		}
+		return
+	}
+
+	for indexName, meta := range rns {
+		if placement, ok := shardPlacement[indexName]; ok {
+			placement.RoutingNumShards = meta.RoutingNumShards
+			// Use the authoritative number_of_shards from index metadata
+			// rather than the _cat/shards-derived count, which can be
+			// transiently wrong when shards are RELOCATING.
+			if meta.NumberOfShards > 0 {
+				placement.NumberOfPrimaryShards = meta.NumberOfShards
+			}
+		}
+	}
+}
+
+// indexRoutingMeta holds the authoritative routing metadata for an index,
+// fetched from _cluster/state/metadata. These values are immutable for the
+// lifetime of an index and are needed by murmur3 shard-exact routing.
+type indexRoutingMeta struct {
+	RoutingNumShards int // Hash modulus (e.g. 640 for a 5-shard index)
+	NumberOfShards   int // Configured number_of_shards from index settings
+}
+
+// getRoutingMeta fetches routing metadata (routing_num_shards and
+// number_of_shards) for the given indexes from _cluster/state/metadata.
+//
+// number_of_shards from index settings is the authoritative shard count,
+// unlike the _cat/shards-derived count which can be transiently wrong when
+// shards are RELOCATING or INITIALIZING. The server's shard routing formula
+// uses the configured number_of_shards (via routingFactor), so the client
+// must use the same value for correct murmur3 shard computation.
+func (c *Client) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
+	path := "/_cluster/state/metadata/" + strings.Join(indexes, ",")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating routing metadata request: %w", err)
+	}
+	req.URL.RawQuery = "filter_path=metadata.indices.*.routing_num_shards,metadata.indices.*.settings.index.number_of_shards"
+
+	conn, err := getConnectionFromPool(c, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && c.seedFallbackPool != nil {
+		conn, err = c.seedFallbackPool.Next()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("getting connection for routing metadata: %w", err)
+	}
+
+	c.setReqURL(conn.URL, req)
+	c.setReqAuth(conn.URL, req)
+	c.setReqUserAgent(req)
+
+	res, err := c.transport.RoundTrip(req)
+	if err != nil {
+		return nil, fmt.Errorf("routing metadata request failed: %w", err)
+	}
+	if res == nil {
+		return nil, fmt.Errorf("nil response from _cluster/state/metadata")
+	}
+	defer func() {
+		if res.Body != nil {
+			res.Body.Close()
+		}
+	}()
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("_cluster/state/metadata returned status %d", res.StatusCode)
+	}
+
+	if res.Body == nil {
+		return nil, fmt.Errorf("nil response body from _cluster/state/metadata")
+	}
+
+	// Response shape:
+	// {"metadata":{"indices":{"idx":{
+	//   "routing_num_shards": 640,
+	//   "settings": {"index": {"number_of_shards": "5"}}
+	// }}}}
+	var clusterState struct {
+		Metadata struct {
+			Indices map[string]struct {
+				RoutingNumShards int `json:"routing_num_shards"`
+				Settings         struct {
+					Index struct {
+						NumberOfShards string `json:"number_of_shards"`
+					} `json:"index"`
+				} `json:"settings"`
+			} `json:"indices"`
+		} `json:"metadata"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&clusterState); err != nil {
+		return nil, fmt.Errorf("parsing _cluster/state/metadata response: %w", err)
+	}
+
+	result := make(map[string]indexRoutingMeta, len(clusterState.Metadata.Indices))
+	for name, meta := range clusterState.Metadata.Indices {
+		if meta.RoutingNumShards > 0 {
+			rm := indexRoutingMeta{RoutingNumShards: meta.RoutingNumShards}
+			if n, err := strconv.Atoi(meta.Settings.Index.NumberOfShards); err == nil && n > 0 {
+				rm.NumberOfShards = n
+			}
+			result[name] = rm
 		}
 	}
 

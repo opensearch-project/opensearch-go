@@ -56,9 +56,10 @@ func TestIfEnabledPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.NotNil(t, pool)
-		require.NoError(t, err)
+		// truePolicy has a pool but no connections -> Next() returns ErrNoConnections
+		hop, err := policy.Eval(ctx, req)
+		require.Error(t, err)
+		require.Nil(t, hop.Conn)
 	})
 
 	t.Run("Eval uses falsePolicy when condition is false", func(t *testing.T) {
@@ -72,8 +73,8 @@ func TestIfEnabledPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
@@ -94,14 +95,15 @@ func TestIfEnabledPolicy(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		// First call: condition returns false (callCount=1)
-		pool1, err1 := policy.Eval(ctx, req)
-		require.Nil(t, pool1)
+		hop1, err1 := policy.Eval(ctx, req)
+		require.Nil(t, hop1.Conn)
 		require.NoError(t, err1)
 
 		// Second call: condition returns true (callCount=2)
-		pool2, err2 := policy.Eval(ctx, req)
-		require.NotNil(t, pool2)
-		require.NoError(t, err2)
+		// truePolicy has a pool but no connections -> Next() returns ErrNoConnections
+		hop2, err2 := policy.Eval(ctx, req)
+		require.Error(t, err2)
+		require.Nil(t, hop2.Conn)
 	})
 
 	t.Run("DiscoveryUpdate updates both sub-policies", func(t *testing.T) {
@@ -208,7 +210,6 @@ func (p *testPolicy) IsEnabled() bool {
 	return true
 }
 
-//nolint:nilnil // Test stub - Eval is never called in tests, only CheckDead/DiscoveryUpdate are tested
-func (p *testPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
-	return nil, nil
+func (p *testPolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
+	return NextHop{}, nil
 }

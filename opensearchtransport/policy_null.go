@@ -81,12 +81,7 @@ func (p *NullPolicy) IsEnabled() bool {
 	return p.policyState.Load()&psEnvDisabled == 0
 }
 
-// Eval always returns (nil, nil) indicating no connections are available.
-func (p *NullPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
-	if p.policyState.Load()&psEnvDisabled != 0 {
-		//nolint:nilnil // Intentional: force-disabled policy returns no match
-		return nil, nil
-	}
-	//nolint:nilnil // Intentional: (nil, nil) signals "no connections available, continue chain"
-	return nil, nil
+// Eval always returns (NextHop{}, nil) indicating no connections are available.
+func (p *NullPolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
+	return NextHop{}, nil
 }

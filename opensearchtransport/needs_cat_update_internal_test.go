@@ -27,16 +27,16 @@ func TestNeedsCatUpdate_LifecycleBit(t *testing.T) {
 		c := newTestConn(t, "node1")
 		require.False(t, c.needsCatUpdate())
 
-		ok := c.setNeedsCatUpdate()
-		require.True(t, ok, "first set should return true")
+		err := c.setNeedsCatUpdate()
+		require.NoError(t, err, "first set should return nil")
 		require.True(t, c.needsCatUpdate())
 	})
 
 	t.Run("idempotent set", func(t *testing.T) {
 		t.Parallel()
 		c := newTestConn(t, "node1")
-		require.True(t, c.setNeedsCatUpdate())
-		require.False(t, c.setNeedsCatUpdate(), "second set should return false (already set)")
+		require.NoError(t, c.setNeedsCatUpdate())
+		require.Error(t, c.setNeedsCatUpdate(), "second set should return error (already set)")
 		require.True(t, c.needsCatUpdate())
 	})
 
@@ -46,16 +46,16 @@ func TestNeedsCatUpdate_LifecycleBit(t *testing.T) {
 		c.setNeedsCatUpdate()
 		require.True(t, c.needsCatUpdate())
 
-		ok := c.clearNeedsCatUpdate()
-		require.True(t, ok)
+		err := c.clearNeedsCatUpdate()
+		require.NoError(t, err)
 		require.False(t, c.needsCatUpdate())
 	})
 
 	t.Run("clear when not set is no-op", func(t *testing.T) {
 		t.Parallel()
 		c := newTestConn(t, "node1")
-		ok := c.clearNeedsCatUpdate()
-		require.False(t, ok, "clear on unflagged connection should return false")
+		err := c.clearNeedsCatUpdate()
+		require.Error(t, err, "clear on unflagged connection should return error")
 	})
 
 	t.Run("survives resurrection to active", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestRendezvousTopK_FilterNeedsCatUpdate(t *testing.T) {
 			newTestConnRTT(t, "node2", 2*time.Millisecond),
 			newTestConnRTT(t, "node3", 3*time.Millisecond),
 		}
-		conns[1].setNeedsCatUpdate() // flag node2
+		conns[1].setNeedsCatUpdate()
 
 		var jitter atomic.Int64
 		result := rendezvousTopK("my-index", "", conns, 3, &jitter, nil, nil)
@@ -246,109 +246,54 @@ func TestClearAllNeedsCatUpdate(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// scheduleCatRefresh scaling tests
+// requestCatRefresh tests
 // ---------------------------------------------------------------------------
 
-func TestScheduleCatRefresh_Scaling(t *testing.T) {
+func TestRequestCatRefresh(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no-op when discovery disabled", func(t *testing.T) {
+	t.Run("sets atomic flag", func(t *testing.T) {
 		t.Parallel()
-		client := &Client{discoverNodesInterval: 0}
-		client.scheduleCatRefresh() // should not panic
+		client := &Client{}
+		require.False(t, client.catRefreshNeeded.Load(), "flag should start false")
+
+		client.requestCatRefresh()
+		require.True(t, client.catRefreshNeeded.Load(), "flag should be set after request")
 	})
 
-	t.Run("no-op when no connections flagged", func(t *testing.T) {
+	t.Run("idempotent", func(t *testing.T) {
 		t.Parallel()
-		conns := []*Connection{
-			newTestConn(t, "node1"),
-			newTestConn(t, "node2"),
-		}
-		pool := testPool(conns)
-		ctx := t.Context()
+		client := &Client{}
 
-		client := &Client{
-			discoverNodesInterval: 30 * time.Second,
-			ctx:                   ctx,
-		}
-		client.mu.connectionPool = pool
-
-		client.scheduleCatRefresh()
-
-		client.mu.RLock()
-		timer := client.mu.discoverCatTimer
-		client.mu.RUnlock()
-		require.Nil(t, timer, "no timer should be set when nothing is flagged")
+		client.requestCatRefresh()
+		client.requestCatRefresh()
+		require.True(t, client.catRefreshNeeded.Load(), "flag should still be set")
 	})
 
-	t.Run("schedules timer when connections flagged", func(t *testing.T) {
+	t.Run("swap clears flag", func(t *testing.T) {
 		t.Parallel()
-		conns := []*Connection{
-			newTestConn(t, "node1"),
-			newTestConn(t, "node2"),
-			newTestConn(t, "node3"),
-			newTestConn(t, "node4"),
-		}
-		conns[0].setNeedsCatUpdate()
-		pool := testPool(conns)
-		ctx := t.Context()
+		client := &Client{}
 
-		client := &Client{
-			discoverNodesInterval: 30 * time.Second,
-			ctx:                   ctx,
-		}
-		client.mu.connectionPool = pool
-
-		client.scheduleCatRefresh()
-
-		client.mu.RLock()
-		timer := client.mu.discoverCatTimer
-		nextRefresh := client.mu.nextCatRefresh
-		client.mu.RUnlock()
-		require.NotNil(t, timer, "timer should be set")
-		require.False(t, nextRefresh.IsZero(), "nextCatRefresh should be set")
-
-		// Cleanup
-		timer.Stop()
+		client.requestCatRefresh()
+		require.True(t, client.catRefreshNeeded.Swap(false), "swap should return true")
+		require.False(t, client.catRefreshNeeded.Load(), "flag should be cleared after swap")
 	})
+}
 
-	t.Run("does not reschedule if already sooner", func(t *testing.T) {
+// ---------------------------------------------------------------------------
+// requestDiscoveryNow tests
+// ---------------------------------------------------------------------------
+
+func TestRequestDiscoveryNow(t *testing.T) {
+	t.Parallel()
+
+	t.Run("sets atomic flag", func(t *testing.T) {
 		t.Parallel()
-		conns := []*Connection{
-			newTestConn(t, "node1"),
-			newTestConn(t, "node2"),
-		}
-		conns[0].setNeedsCatUpdate()
-		pool := testPool(conns)
-		ctx := t.Context()
+		client := &Client{}
+		require.False(t, client.discoveryNeeded.Load(), "flag should start false")
 
-		client := &Client{
-			discoverNodesInterval: 30 * time.Second,
-			ctx:                   ctx,
-		}
-		client.mu.connectionPool = pool
-
-		// First schedule
-		client.scheduleCatRefresh()
-		client.mu.RLock()
-		firstRefresh := client.mu.nextCatRefresh
-		client.mu.RUnlock()
-
-		// Second schedule with same state should not change the time
-		client.scheduleCatRefresh()
-		client.mu.RLock()
-		secondRefresh := client.mu.nextCatRefresh
-		client.mu.RUnlock()
-
-		require.Equal(t, firstRefresh, secondRefresh,
-			"should not reschedule when existing timer is already sooner")
-
-		// Cleanup
-		client.mu.Lock()
-		if client.mu.discoverCatTimer != nil {
-			client.mu.discoverCatTimer.Stop()
-		}
-		client.mu.Unlock()
+		client.requestDiscoveryNow()
+		require.True(t, client.discoveryNeeded.Load(), "flag should be set after request")
 	})
 }
 

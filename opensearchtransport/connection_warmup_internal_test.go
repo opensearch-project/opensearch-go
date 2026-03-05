@@ -56,7 +56,7 @@ func TestRequestManagerPackUnpack(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			rm := packRequestManager(tt.rounds, tt.skipCount)
+			rm := packWarmupManager(tt.rounds, tt.skipCount)
 
 			if got := rm.rounds(); got != tt.rounds {
 				t.Errorf("rounds: got=%d want=%d", got, tt.rounds)
@@ -96,7 +96,7 @@ func TestRequestManagerWithSkipCountPreservesRounds(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			rm := packRequestManager(tt.initRounds, tt.initSkip)
+			rm := packWarmupManager(tt.initRounds, tt.initSkip)
 			rm2 := rm.withSkipCount(tt.newSkip)
 
 			if got := rm2.rounds(); got != tt.wantRounds {
@@ -132,7 +132,7 @@ func TestRequestManagerWithRoundsPreservesSkip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			rm := packRequestManager(tt.initRounds, tt.initSkip)
+			rm := packWarmupManager(tt.initRounds, tt.initSkip)
 			rm2 := rm.withRounds(tt.newRounds)
 
 			if got := rm2.rounds(); got != tt.wantRounds {
@@ -171,8 +171,8 @@ func TestConnStateRoundTrip(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			lcMgr := packRequestManager(tt.lcRounds, tt.lcSkip)
-			rdMgr := packRequestManager(tt.rdRounds, tt.rdSkip)
+			lcMgr := packWarmupManager(tt.lcRounds, tt.lcSkip)
+			rdMgr := packWarmupManager(tt.rdRounds, tt.rdSkip)
 			state := packConnState(tt.lc, lcMgr, rdMgr)
 
 			if got := state.lifecycle(); got != tt.lc {
@@ -204,9 +204,9 @@ func TestConnStateWithManagersPreservesLifecycle(t *testing.T) {
 	t.Parallel()
 
 	for _, lc := range []connLifecycle{lcActive, lcStandby, lcDead, lcUnknown | lcOverloaded, lcDraining} {
-		state := packConnState(lc, packRequestManager(8, 8), packRequestManager(8, 8))
-		newLcMgr := packRequestManager(3, 2)
-		newRdMgr := packRequestManager(1, 0)
+		state := packConnState(lc, packWarmupManager(8, 8), packWarmupManager(8, 8))
+		newLcMgr := packWarmupManager(3, 2)
+		newRdMgr := packWarmupManager(1, 0)
 		state2 := state.withManagers(newLcMgr, newRdMgr)
 
 		if got := state2.lifecycle(); got != lc {

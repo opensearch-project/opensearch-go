@@ -33,7 +33,6 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
@@ -96,15 +95,15 @@ func TestDiscoveryIntegration(t *testing.T) {
 
 // TestRoleConstants verifies that role constants match expected values
 func TestRoleConstants(t *testing.T) {
-	assert.Equal(t, "data", RoleData)
-	assert.Equal(t, "ingest", RoleIngest)
-	assert.Equal(t, "master", RoleMaster)
-	assert.Equal(t, "cluster_manager", RoleClusterManager)
-	assert.Equal(t, "remote_cluster_client", RoleRemoteClusterClient)
-	assert.Equal(t, "search", RoleSearch)
-	assert.Equal(t, "warm", RoleWarm)
-	assert.Equal(t, "ml", RoleML)
-	assert.Equal(t, "coordinating_only", RoleCoordinatingOnly)
+	require.Equal(t, "data", RoleData)
+	require.Equal(t, "ingest", RoleIngest)
+	require.Equal(t, "master", RoleMaster)
+	require.Equal(t, "cluster_manager", RoleClusterManager)
+	require.Equal(t, "remote_cluster_client", RoleRemoteClusterClient)
+	require.Equal(t, "search", RoleSearch)
+	require.Equal(t, "warm", RoleWarm)
+	require.Equal(t, "ml", RoleML)
+	require.Equal(t, "coordinating_only", RoleCoordinatingOnly)
 }
 
 // TestNewRoleSet verifies efficient role set creation
@@ -138,7 +137,7 @@ func TestNewRoleSet(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := newRoleSet(tt.roles)
-			assert.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -147,12 +146,12 @@ func TestNewRoleSet(t *testing.T) {
 func TestRoleSetHas(t *testing.T) {
 	rs := newRoleSet([]string{RoleData, RoleClusterManager, RoleIngest})
 
-	assert.True(t, rs.has(RoleData))
-	assert.True(t, rs.has(RoleClusterManager))
-	assert.True(t, rs.has(RoleIngest))
-	assert.False(t, rs.has(RoleMaster))
-	assert.False(t, rs.has(RoleSearch))
-	assert.False(t, rs.has("nonexistent"))
+	require.True(t, rs.has(RoleData))
+	require.True(t, rs.has(RoleClusterManager))
+	require.True(t, rs.has(RoleIngest))
+	require.False(t, rs.has(RoleMaster))
+	require.False(t, rs.has(RoleSearch))
+	require.False(t, rs.has("nonexistent"))
 }
 
 // TestRoleCheckFunctions verifies role-specific check functions
@@ -219,11 +218,11 @@ func TestRoleCheckFunctions(t *testing.T) {
 
 			// Check cluster manager eligibility
 			isClusterManagerEligible := rs.has(RoleMaster) || rs.has(RoleClusterManager)
-			assert.Equal(t, tt.expectClusterManager, isClusterManagerEligible)
-			assert.Equal(t, tt.expectData, rs.has(RoleData))
-			assert.Equal(t, tt.expectIngest, rs.has(RoleIngest))
-			assert.Equal(t, tt.expectSearch, rs.has(RoleSearch))
-			assert.Equal(t, tt.expectWarm, rs.has(RoleWarm))
+			require.Equal(t, tt.expectClusterManager, isClusterManagerEligible)
+			require.Equal(t, tt.expectData, rs.has(RoleData))
+			require.Equal(t, tt.expectIngest, rs.has(RoleIngest))
+			require.Equal(t, tt.expectSearch, rs.has(RoleSearch))
+			require.Equal(t, tt.expectWarm, rs.has(RoleWarm))
 		})
 	}
 }
@@ -321,7 +320,7 @@ func TestShouldSkipDedicatedClusterManagers(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rs := newRoleSet(tt.roles)
 			result := rs.isDedicatedClusterManager()
-			assert.Equal(t, tt.shouldSkip, result)
+			require.Equal(t, tt.shouldSkip, result)
 		})
 	}
 }
@@ -402,18 +401,18 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				actualNodes[conn.Name] = struct{}{}
 			}
 
-			assert.Len(t, actualNodes, len(tt.expectedNodes),
+			require.Len(t, actualNodes, len(tt.expectedNodes),
 				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
 
 			for _, expectedNode := range tt.expectedNodes {
 				_, ok := actualNodes[expectedNode]
-				assert.True(t, ok,
+				require.True(t, ok,
 					"Expected node %q to be included but it wasn't", expectedNode)
 			}
 
 			for _, skippedNode := range tt.expectedSkipped {
 				_, ok := actualNodes[skippedNode]
-				assert.False(t, ok,
+				require.False(t, ok,
 					"Expected node %q to be skipped but it was included", skippedNode)
 			}
 		})
@@ -496,19 +495,19 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			for _, expectedNode := range tt.expectedIncluded {
 				_, ok := actualNodes[expectedNode]
-				assert.True(t, ok,
+				require.True(t, ok,
 					"Expected node %q to be included but it wasn't", expectedNode)
 			}
 
 			for _, excludedNode := range tt.expectedExcluded {
 				_, ok := actualNodes[excludedNode]
-				assert.False(t, ok,
+				require.False(t, ok,
 					"Expected node %q to be excluded but it was included", excludedNode)
 			}
 
 			// Verify total count
 			expectedTotal := len(tt.expectedIncluded)
-			assert.Len(t, actualNodes, expectedTotal,
+			require.Len(t, actualNodes, expectedTotal,
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
@@ -543,25 +542,23 @@ func TestRolePolicies(t *testing.T) {
 		require.True(t, policy.IsEnabled())
 
 		// Should prefer ingest nodes
-		pool, err := policy.Eval(t.Context(), &http.Request{})
+		hop, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		require.NotNil(t, pool)
+		require.NotNil(t, hop.Conn)
 
-		// Connections are initially dead, need to simulate health checks
-		// Get a connection (zombie) and mark it as successful
-		conn, err := pool.Next()
-		require.NoError(t, err)
 		// Should get either "ingest-node" or "data-ingest-node"
-		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, conn.Name)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop.Conn.Name)
 
-		// Simulate successful health check to move connection to ready pool
-		statusPool := pool.(*multiServerPool)
-		statusPool.OnSuccess(conn)
+		// Simulate successful health check to move connection to ready pool.
+		// Access the underlying pool directly since Eval now returns NextHop.
+		rolePolicy := policy.(*RolePolicy)
+		rolePolicy.pool.OnSuccess(hop.Conn)
 
 		// Now get connection from ready pool
-		liveConn, err := pool.Next()
+		hop2, err := policy.Eval(t.Context(), &http.Request{})
 		require.NoError(t, err)
-		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, liveConn.Name)
+		require.NotNil(t, hop2.Conn)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop2.Conn.Name)
 
 		// Test with data-only connections (no ingest nodes)
 		dataOnlyConns := []*Connection{
@@ -578,14 +575,12 @@ func TestRolePolicies(t *testing.T) {
 		// So the policy should remain enabled with only the original ingest connections
 		require.True(t, policy.IsEnabled()) // Should remain true (original ingest connections still there)
 
-		// Get a fresh pool after the update
-		pool2, err2 := policy.Eval(t.Context(), &http.Request{})
-		require.NoError(t, err2)
-		require.NotNil(t, pool2) // Should not be nil
+		// Get a fresh hop after the update
+		hop3, err3 := policy.Eval(t.Context(), &http.Request{})
+		require.NoError(t, err3)
+		require.NotNil(t, hop3.Conn) // Should not be nil
 
 		// Should still get ingest connections, not the data-only ones
-		finalConn, err := pool2.Next()
-		require.NoError(t, err)
-		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, finalConn.Name)
+		require.Contains(t, []string{"ingest-node", "data-ingest-node"}, hop3.Conn.Name)
 	})
 }

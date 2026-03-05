@@ -54,17 +54,46 @@ func (s *OpenSearchTestSuite) Version() string {
 	return fmt.Sprintf("%d.%d.%d", s.Major, s.Minor, s.Patch)
 }
 
-// SkipIfBelowVersion skips a test if the cluster version is below a given major.minor version.
-// Uses semver.Compare for standards-compliant version comparison.
-func (s *OpenSearchTestSuite) SkipIfBelowVersion(major, minor int64, testName string) {
+// SkipIfVersion skips a test when the cluster version satisfies the given
+// operator and version constraint. See the package-level SkipIfVersion for
+// full documentation and examples.
+func (s *OpenSearchTestSuite) SkipIfVersion(operator string, version string, testName string) {
 	t := s.T()
 	t.Helper()
 
-	serverVersion := fmt.Sprintf("v%d.%d.%d", s.Major, s.Minor, s.Patch)
-	minVersion := fmt.Sprintf("v%d.%d.0", major, minor)
+	cMajor, cMinor, cPatch, hasPatch := parseVersion(t, version)
 
-	if semver.Compare(serverVersion, minVersion) < 0 {
-		t.Skipf("Skipping %s: server version %s is below minimum %s", testName, serverVersion, minVersion)
+	serverSemver := fmt.Sprintf("v%d.%d.%d", s.Major, s.Minor, s.Patch)
+	targetSemver := fmt.Sprintf("v%d.%d.%d", cMajor, cMinor, cPatch)
+
+	var matches bool
+	switch {
+	case operator == "=" && !hasPatch:
+		matches = s.Major == cMajor && s.Minor == cMinor
+	case operator == "!=" && !hasPatch:
+		matches = s.Major != cMajor || s.Minor != cMinor
+	default:
+		cmp := semver.Compare(serverSemver, targetSemver)
+		switch operator {
+		case "=":
+			matches = cmp == 0
+		case "!=":
+			matches = cmp != 0
+		case "<":
+			matches = cmp < 0
+		case "<=":
+			matches = cmp <= 0
+		case ">":
+			matches = cmp > 0
+		case ">=":
+			matches = cmp >= 0
+		default:
+			t.Fatalf("SkipIfVersion: unsupported operator %q: must be =, !=, <, <=, >, or >=", operator)
+		}
+	}
+
+	if matches {
+		t.Skipf("Skipping %s: server version %s matches constraint %q %s", testName, serverSemver[1:], operator, version)
 	}
 }
 

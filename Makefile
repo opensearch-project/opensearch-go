@@ -14,11 +14,11 @@ COMPOSE_OVERRIDES = $(wildcard $(COMPOSE_DIR)/docker-compose.*-override.yml)
 COMPOSE_FILES = $(if $(COMPOSE_OVERRIDES),-f $(COMPOSE_DIR)/docker-compose.yml $(addprefix -f ,$(COMPOSE_OVERRIDES)))
 DOCKER_COMPOSE = docker compose --project-directory $(COMPOSE_DIR) $(COMPOSE_FILES)
 
-##@ Format project using goimports tool
-format:
+##@ Formatting
+format:  ## Format all Go files with goimports
 	goimports -w .;
 
-##@ Test
+##@ Testing
 test-unit:  ## Run unit tests
 	@printf "\033[2m-> Running unit tests...\033[0m\n"
 ifdef race
@@ -61,7 +61,7 @@ test-integ-core:  ## Run base integration tests
 test-integ-plugins:  ## Run plugin integration tests
 	@$(MAKE) test-integ testintegtags=integration,plugins testintegdir=integration-plugins
 
-test-integ-secure: ##Run secure integration tests
+test-integ-secure:  ## Run secure integration tests
 	@SECURE_INTEGRATION=true $(MAKE) test-integ
 
 test-integ-core-secure:  ## Run secure base integration tests
@@ -238,15 +238,31 @@ godoc: ## Display documentation for the package
 	@printf "\n"
 	godoc --http=localhost:6060 --play
 
-cluster.build:
+workflow:  ## Run full CI workflow locally (lint, test, integration)
+# Lint
+	$(MAKE) lint
+# License Checker
+	.github/check-license-headers.sh
+# Unit Test
+	$(MAKE) test-unit race=true
+# Benchmarks Test
+	$(MAKE) test-bench
+# Integration Test
+### OpenSearch
+	$(MAKE) cluster.clean cluster.build cluster.start
+	$(MAKE) test-integ race=true
+	$(MAKE) cluster.stop
+
+##@ Cluster Lifecycle
+cluster.build:  ## Build OpenSearch Docker images (version-aware)
 	@$(MAKE) cluster.docker-build
 
-cluster.start:
+cluster.start:  ## Build, start cluster, wait for ready, and fetch certs
 	@$(MAKE) cluster.docker-up
 	@$(MAKE) cluster.wait-ready
 	@$(MAKE) cluster.get-cert
 
-cluster.stop:
+cluster.stop:  ## Stop the OpenSearch cluster
 	$(DOCKER_COMPOSE) down;
 
 cluster.status: ## Show detailed cluster status and health information
@@ -365,6 +381,7 @@ cluster.docker-up:
 	export OPENSEARCH_JAVA_OPTS_EXTRA="$(java_opts_extra)"; \
 	$(DOCKER_COMPOSE) up -d
 
+##@ Cluster Scaling & Configuration
 cluster.scale.1: ## Start single-node cluster
 	$(DOCKER_COMPOSE) up -d --scale opensearch-node2=0 --scale opensearch-node3=0;
 
@@ -538,6 +555,7 @@ cluster.homogeneous:  ## Remove all override files (reset to defaults)
 	@rm -f $(COMPOSE_DIR)/docker-compose.*-override.yml
 	@echo "Removed all overrides — cluster will use default (homogeneous) config"
 
+##@ Network Latency Simulation
 cluster.latency.asymmetric:  ## Add asymmetric latency: node1=0ms, node2=50ms, node3=150ms
 	@printf "\033[2m-> Applying asymmetric latency...\033[0m\n"
 	@NODES="$$($(DOCKER_COMPOSE) ps --format '{{.Name}}')"; \
@@ -605,160 +623,86 @@ cluster.latency.show:  ## Show current tc qdisc rules on each node
 		docker exec --user root $$NODE tc qdisc show dev eth0 2>/dev/null || echo "  (tc not available)"; \
 	done
 
-demo.build:  ## Build the demo binary
-	@printf "\033[2m-> Building demo binary...\033[0m\n"
-	cd cmd/demo && go build -o ../../bin/demo .
-	@echo "Built: bin/demo"
-
-demo.run:  ## Build and run demo with affinity-visible settings
-	@$(MAKE) demo.build
-	./bin/demo \
-		-addresses http://localhost:9200,http://localhost:9201,http://localhost:9202 \
-		-router smart \
-		-discover-nodes-on-start \
-		-discover-nodes-interval 15s \
-		-interval 200ms \
-		-stats-interval 10s \
-		-metrics-interval 15s
-
-##@ Verification Matrix
-#------------------------------------------------------------------------------
-# Common settings for verification runs. Override with environment variables.
-VERIFY_DIR      ?= reports
-VERIFY_COUNT    ?= 1000
-VERIFY_INTERVAL ?= 100ms
-
-# Detect secure vs insecure cluster for verification targets.
-# Set SECURE_INTEGRATION=true (default) for HTTPS + basic auth, false for HTTP.
-SECURE_INTEGRATION ?= true
-
-ifeq ($(SECURE_INTEGRATION),true)
-VERIFY_ADDRESSES = 'https://admin:myStrongPassword123%21@localhost:9200,https://admin:myStrongPassword123%21@localhost:9201,https://admin:myStrongPassword123%21@localhost:9202'
-VERIFY_AUTH_FLAGS = -insecure
-else
-VERIFY_ADDRESSES = http://localhost:9200,http://localhost:9201,http://localhost:9202
-VERIFY_AUTH_FLAGS =
-endif
-
-# Shared flags for all verification runs.
-VERIFY_COMMON_FLAGS = \
-	-addresses $(VERIFY_ADDRESSES) \
-	$(VERIFY_AUTH_FLAGS) \
-	-router smart \
-	-discover-nodes-on-start \
-	-discover-nodes-interval 15s \
-	-interval $(VERIFY_INTERVAL) \
-	-count $(VERIFY_COUNT) \
-	-silent
-
-# verify.run: internal helper — requires VERIFY_NAME, VERIFY_WORKLOAD, VERIFY_FLAGS.
-verify.run: demo.build
-	@mkdir -p $(VERIFY_DIR)
-	./bin/demo $(VERIFY_COMMON_FLAGS) \
-		-workload $(VERIFY_WORKLOAD) \
-		$(VERIFY_FLAGS) \
-		-report $(VERIFY_DIR)/$(VERIFY_NAME).json \
-		2>&1 | tee $(VERIFY_DIR)/$(VERIFY_NAME).log
-	@echo "=> Report: $(VERIFY_DIR)/$(VERIFY_NAME).json"
-
-verify.symmetric:  ## Verify equal distribution with symmetric latency (all nodes same tier)
-	@$(MAKE) cluster.latency.symmetric
-	@$(MAKE) verify.run VERIFY_NAME=symmetric-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-
-verify.asymmetric:  ## Verify tier equalization with asymmetric latency (0ms/50ms/150ms)
-	@$(MAKE) cluster.latency.asymmetric
-	@$(MAKE) verify.run VERIFY_NAME=asymmetric-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-
-verify.bimodal:  ## Verify 2-local + 1-remote equalization (1ms/1ms/20ms)
-	@$(MAKE) cluster.latency.bimodal
-	@$(MAKE) verify.run VERIFY_NAME=bimodal-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-
-verify.graduated:  ## Verify wide tier-spread equalization (1ms/10ms/100ms)
-	@$(MAKE) cluster.latency.graduated
-	@$(MAKE) verify.run VERIFY_NAME=graduated-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-
-verify.fanout:  ## Compare fanout=1 vs fanout=2 vs fanout=3 distribution under bimodal latency
-	@$(MAKE) cluster.latency.bimodal
-	@$(MAKE) verify.run VERIFY_NAME=bimodal-search-f1 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 1 -max-fanout 1"
-	@$(MAKE) verify.run VERIFY_NAME=bimodal-search-f2 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 2 -max-fanout 2"
-	@$(MAKE) verify.run VERIFY_NAME=bimodal-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-
-verify.workloads:  ## Compare search vs read-write vs bulk-write distribution under asymmetric latency
-	@$(MAKE) cluster.latency.asymmetric
-	@$(MAKE) verify.run VERIFY_NAME=asymmetric-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-	@$(MAKE) verify.run VERIFY_NAME=asymmetric-readwrite-f3 VERIFY_WORKLOAD=read-write VERIFY_FLAGS="-min-fanout 3"
-	@$(MAKE) verify.run VERIFY_NAME=asymmetric-bulkwrite-f3 VERIFY_WORKLOAD=bulk-write VERIFY_FLAGS="-min-fanout 3"
-
-verify.hetero.cpu:  ## Verify CPU-proportional distribution with heterogeneous CPUs [1,2,4]
-	@$(MAKE) cluster.latency.clear
-	@$(MAKE) cluster.heterogeneous.cpu.2
-	@echo "Restarting cluster with CPU overrides..."
-	@$(MAKE) cluster.stop cluster.docker-up cluster.wait-ready
-	@$(MAKE) cluster.latency.symmetric
-	@$(MAKE) verify.run VERIFY_NAME=hetero-cpu2-search-f3 VERIFY_WORKLOAD=search VERIFY_FLAGS="-min-fanout 3"
-
-verify.matrix:  ## Run the full verification matrix (latency x workload x fanout)
-	@echo "========================================"
-	@echo "  Affinity Routing Verification Matrix"
-	@echo "========================================"
-	@$(MAKE) verify.symmetric
-	@$(MAKE) verify.asymmetric
-	@$(MAKE) verify.bimodal
-	@$(MAKE) verify.graduated
-	@$(MAKE) verify.fanout
-	@$(MAKE) verify.workloads
-	@echo "========================================"
-	@echo "  All reports in: $(VERIFY_DIR)/"
-	@echo "========================================"
-	@ls -la $(VERIFY_DIR)/*.json 2>/dev/null || echo "(no reports found)"
-
-verify.summary:  ## Print summary of all verification reports (requires jq)
-	@echo "========================================"
-	@echo "  Verification Report Summary"
-	@echo "========================================"
-	@printf "%-40s %6s %7s %7s %7s  %s\n" "NAME" "TOTAL" "RPS" "P50" "P99" "CONNECTIONS"
-	@printf "%-40s %6s %7s %7s %7s  %s\n" "----" "-----" "------" "------" "------" "-----------"
-	@for f in $(VERIFY_DIR)/*.json; do \
-		if [ -f "$$f" ]; then \
-			NAME=$$(basename "$$f" .json); \
-			TOTAL=$$(jq -r '.summary.total' "$$f"); \
-			RPS=$$(jq -r '.summary.rps | . * 100 | round / 100' "$$f"); \
-			P50=$$(jq -r '.latency.p50_ms' "$$f"); \
-			P99=$$(jq -r '.latency.p99_ms' "$$f"); \
-			CONNS=$$(jq -r '[.connections[] | "\(.url | split("/") | .[-1]):\(.percent | . * 10 | round / 10)%"] | join(" ")' "$$f"); \
-			printf "%-40s %6s %7s %7s %7s  %s\n" \
-				"$$NAME" "$$TOTAL" "$$RPS" "$$P50" "$$P99" "$$CONNS"; \
-		fi; \
-	done
-
-verify.check:  ## Validate distribution expectations in verification reports
-	@bash cmd/demo/verify.sh $(VERIFY_DIR)
-
 linters:
 	docker run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/$(GOLANGCI_LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
 
-workflow: ## Run all github workflow commands here sequentially
+##@ GitHub CI
+#------------------------------------------------------------------------------
+# Fetch and filter CI check results from GitHub Actions using the gh CLI.
+# These targets extract only the actual failures from CI logs, avoiding false
+# positives from test names that contain words like "fail", "error", or "panic".
 
-# Lint
-	$(MAKE) lint
-# License Checker
-	.github/check-license-headers.sh
-# Unit Test
-	$(MAKE) test-unit race=true
-# Benchmarks Test
-	$(MAKE) test-bench
-# Integration Test
-### OpenSearch
-	$(MAKE) cluster.clean cluster.build cluster.start
-	$(MAKE) test-integ race=true
-	$(MAKE) cluster.stop
+# GH_RUN_ID: override to inspect a specific run. When unset, targets auto-detect
+# the most recent failed run on the current branch.
+GH_RUN_ID ?=
+
+# Internal: resolve GH_RUN_ID lazily. If the caller didn't set it, pick the
+# latest failed run for the current branch.
+_gh_run_id = $(or $(GH_RUN_ID),$(shell gh run list --branch "$$(git branch --show-current)" --status failure --limit 1 --json databaseId --jq '.[0].databaseId'))
+
+gh.checks:  ## Show all CI check statuses for the current branch
+	@gh run list --branch "$$(git branch --show-current)" --limit 10
+
+gh.checks.failed:  ## List only failed CI runs for the current branch
+	@gh run list --branch "$$(git branch --show-current)" --status failure --limit 10
+
+gh.fail:  ## Show failed test names and error messages from the latest (or GH_RUN_ID) failed run
+	@RUN_ID=$(_gh_run_id); \
+	if [ -z "$$RUN_ID" ]; then \
+		echo "No failed runs found on branch $$(git branch --show-current)"; \
+		exit 0; \
+	fi; \
+	printf "\033[1m=== Failed run: $$RUN_ID ===\033[0m\n"; \
+	gh run view "$$RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion == "failure") | "  \(.name)"' 2>/dev/null; \
+	printf "\n"; \
+	gh run view "$$RUN_ID" --log-failed 2>&1 \
+	| grep -E -e '--- FAIL:' -e 'FAIL	' -e 'panic:' \
+	| cut -f3- \
+	| sed 's/^[^ ]* //'
+
+gh.fail.full:  ## Show full failed-step logs from the latest (or GH_RUN_ID) failed run
+	@RUN_ID=$(_gh_run_id); \
+	if [ -z "$$RUN_ID" ]; then \
+		echo "No failed runs found on branch $$(git branch --show-current)"; \
+		exit 0; \
+	fi; \
+	printf "\033[1m=== Failed run: $$RUN_ID ===\033[0m\n\n"; \
+	gh run view "$$RUN_ID" --log-failed
+
+gh.fail.context:  ## Show failed tests with 5 lines of context before each failure
+	@RUN_ID=$(_gh_run_id); \
+	if [ -z "$$RUN_ID" ]; then \
+		echo "No failed runs found on branch $$(git branch --show-current)"; \
+		exit 0; \
+	fi; \
+	printf "\033[1m=== Failed run: $$RUN_ID ===\033[0m\n\n"; \
+	gh run view "$$RUN_ID" --log-failed 2>&1 \
+	| cut -f3- \
+	| sed 's/^[^ ]* //' \
+	| grep -B5 -E -e '--- FAIL:' -e 'panic:'
+
+gh.fail.summary:  ## One-line-per-failure summary from the latest (or GH_RUN_ID) failed run
+	@RUN_ID=$(_gh_run_id); \
+	if [ -z "$$RUN_ID" ]; then \
+		echo "No failed runs found on branch $$(git branch --show-current)"; \
+		exit 0; \
+	fi; \
+	printf "\033[1mRun $$RUN_ID — failed jobs:\033[0m\n"; \
+	gh run view "$$RUN_ID" --json jobs --jq '.jobs[] | select(.conclusion == "failure") | "  \u001b[31m✗\u001b[0m \(.name)"' 2>/dev/null; \
+	printf "\n\033[1mFailed tests:\033[0m\n"; \
+	gh run view "$$RUN_ID" --log-failed 2>&1 \
+	| grep -E -- '--- FAIL:' \
+	| cut -f3- \
+	| sed 's/^[^ ]* //' \
+	| sort -u \
+	| sed 's/^/  /'
 
 ##@ Other
 #------------------------------------------------------------------------------
 help:  ## Display help
-	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_][a-zA-Z0-9._-]+:.*?##/ { printf "  \033[36m%-35s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show demo.build demo.run verify.run verify.symmetric verify.asymmetric verify.bimodal verify.graduated verify.fanout verify.workloads verify.hetero.cpu verify.matrix verify.summary verify.check coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
 .SILENT: lint.markdown

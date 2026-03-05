@@ -16,48 +16,73 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `Router` interface with `Route()` method for request-based connection selection
   - `NewPolicy()` implementing chain-of-responsibility pattern for composable routing strategies
   - `NewIfEnabledPolicy()` for conditional routing with runtime evaluation
-  - `NewMuxPolicy()` for custom HTTP pattern matching using `http.ServeMux`
+  - `NewMuxPolicy()` for trie-based HTTP pattern matching with zero-allocation route lookup
   - `NewRolePolicy()` for role-based node selection
   - `NewRoundRobinRouter()` with coordinating node preference and round-robin fallback
   - `NewMuxRouter()` providing role-based request routing with graceful fallback
     - Automatic routing of bulk, streaming bulk, and reindex operations to ingest nodes
-    - Automatic routing of search operations (search, msearch, count, explain, by-query operations, rank eval) to search/data nodes
-    - Automatic routing of document retrieval operations (get, mget, source, termvectors, mtermvectors) to search/data nodes for read locality
-    - Automatic routing of template operations (search template, msearch template) to search/data nodes
+    - Automatic routing of search operations (search, msearch, count, by-query operations, scroll, PIT, validate, rank eval) to search/data nodes
+    - Automatic routing of document retrieval operations (get, mget, source, explain, termvectors, mtermvectors) to search/data nodes for read locality
+    - Automatic routing of template operations (search template, msearch template) and search shards to search/data nodes
+    - Automatic routing of field capabilities to search/data nodes
     - Automatic routing of shard maintenance operations (refresh, flush, synced flush, forcemerge, cache clear, segments) to data nodes
+    - Automatic routing of single-document writes (index, create, update, delete) to data nodes
     - Automatic routing of shard diagnostics (recovery, shard stores, stats) and rethrottle operations to data nodes
-  - `NewSmartRouter()` extending role-based routing with per-index node affinity (recommended for most users)
-  - `NewDefaultRouter()` as alias for `NewSmartRouter()` with default options
+  - `NewDefaultRouter()` extending role-based routing with per-index node affinity (recommended for most users)
 - Add consistent hash routing with per-index node affinity for cache locality and AZ-aware load distribution ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Rendezvous hashing selects a stable subset of nodes per index, preserving OS page cache and query cache locality
   - RTT-bucketed scoring naturally prefers AZ-local nodes and overflows to remote AZs under load
-  - Exponential decay CPU-time accumulator provides self-stabilizing load distribution without periodic resets
-  - Tier-span equalization inflates cost attribution by `smoothedMaxBucket / thisBucket` so traffic distributes equally across all active RTT tiers at equilibrium
-  - MIAD (Multiplicative Increase, Additive Decrease) smoothing on the per-index max RTT bucket: fast exponential convergence on demand spikes, slow linear cooldown to maintain warm connections
-  - Timer-based periodic decay drains idle connections (half-life scales with cluster-size-derived tick interval)
+  - Per-pool congestion window (cwnd) routing using TCP-style AIMD congestion control for capacity-aware connection scoring
+  - Thread pool discovery via `/_nodes/_local/http,os,thread_pool` provides per-pool capacity ceiling (maxCwnd)
+  - Thread pool stats polling via `/_nodes/_local/stats/jvm,breaker,thread_pool` drives AIMD window adjustments
+  - Scoring formula: `RTTBucket * (InFlight + 1) / Cwnd * ShardCostMultiplier` -- nearest node with most headroom wins
+  - In-flight request tracking per node per pool with atomic add/release bracketing each RoundTrip
+  - AIMD slow start (double cwnd) transitions to congestion avoidance (additive increase) at ssthresh
+  - Multiplicative decrease on congestion signals: `total_wait_time_in_nanos` for RESIZABLE pools, queue saturation fallback for others
+  - Pool overload detection: `delta(rejected) > 0` or HTTP 429 marks pool overloaded, cleared only by stats poller
+  - HTTP 429 handling: TryLock + set overloaded + halve cwnd + retry on different node
+  - Quorum gating: pre-quorum uses `4 * defaultServerCoreCount` (= 32) as synthetic cwnd, post-discovery uses `4 * allocatedProcessors`, post-quorum uses real pool cwnd
   - Asymmetric scale-up/scale-down thresholds with hysteresis band for stable active pool sizing
   - Dynamic per-index fan-out driven by shard placement (`/_cat/shards`) and request rate
-  - Writer penalty in scoring biases reads toward replica-hosting nodes using a convex sqrt curve
-  - Automatic `?preference=_local` injection complements client-side affinity with server-side shard preference
-  - `AffinityOption` functional options: `WithMinFanOut`, `WithMaxFanOut`, `WithIndexFanOut`, `WithIdleEvictionTTL`, `WithDecayFactor`, `WithFanOutPerRequest`
-  - `SkipAffinityPreferLocal` config option to disable automatic preference injection
+  - `RouterOption` functional options: `WithMinFanOut`, `WithMaxFanOut`, `WithIndexFanOut`, `WithIdleEvictionTTL`, `WithDecayFactor`, `WithFanOutPerRequest`
 - Add environment variable escape hatches (`OPENSEARCH_GO_POLICY_*`) to disable specific routing policies at startup ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-- Add failure-triggered shard map invalidation for faster affinity routing recovery ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-  - `lcNeedsCatUpdate` lifecycle bit excludes failed connections from affinity routing candidate sets until `/_cat/shards` refresh
-  - Connections remain available for general routing (round-robin, zombie tryouts) while excluded from affinity
+- Add failure-triggered shard map invalidation for faster routing recovery ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - `lcNeedsCatUpdate` lifecycle bit excludes failed connections from routing candidate sets until `/_cat/shards` refresh
+  - Connections remain available for general routing (round-robin, zombie tryouts) while excluded from scored routing
   - Dedicated `discoverCatTimer` schedules lightweight `/_cat/shards`-only refresh (no full node discovery)
   - Refresh urgency scales with cluster impact: `interval = discoverNodesInterval * (1 - flaggedFraction)`, clamped to 5s floor
   - `OnShardMapInvalidation` observer event for monitoring invalidation triggers
   - `NeedsCatUpdate` field in `ConnectionMetric` for observability
-- Add affinity routing observability: observer events, metrics snapshot, connection inspection ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-  - `OnAffinityRoute` observer event with full scoring breakdown (`AffinityRouteEvent`, `AffinityCandidate`)
-  - `AffinitySnapshot` in `Client.Metrics()` exposes per-index cache state (fan-out, shard nodes, request rate, idle-since)
-  - `Connection.RTTMedian()`, `Connection.RTTBucket()`, `Connection.AffinityLoad()` for per-connection inspection
-  - `ConnectionMetric` enriched with `rtt_bucket`, `rtt_median`, `affinity_load` fields
+- Add routing observability: observer events, metrics snapshot, connection inspection ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - `OnRoute` observer event with full scoring breakdown (`RouteEvent`, `RouteCandidate`)
+  - `RouterSnapshot` in `Client.Metrics()` exposes per-index cache state (fan-out, shard nodes, request rate, idle-since)
+  - `Connection.RTTMedian()`, `Connection.RTTBucket()`, `Connection.EstLoad()` for per-connection inspection
+  - `ConnectionMetric` enriched with `rtt_bucket`, `rtt_median`, `est_load` fields
+- Add murmur3 shard-exact routing for `?routing=` and document ID requests ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - Client-side murmur3 x86 32-bit hash matching OpenSearch's `Murmur3HashFunction.hash(String)` for shard-exact targeting
+  - Document-level requests (`_doc`, `_source`, `_update`, `_explain`, `_termvectors`) use doc ID as default routing value when no explicit `?routing=` present, matching OpenSearch's `OperationRouting.generateShardId()` behavior
+  - Client-side murmur3 shard-exact candidate selection routes requests to nodes hosting the target shard
+  - Per-shard-number placement data from `/_cat/shards` maps shard numbers to primary and replica node names
+  - Graceful fallback to rendezvous hashing when shard map data is unavailable
+  - `RoutingValue`, `EffectiveRoutingKey`, `TargetShard`, `ShardExactMatch` fields in `RouteEvent` for observability
+- Add `OPENSEARCH_GO_ROUTING_CONFIG` and `OPENSEARCH_GO_DISCOVERY_CONFIG` environment variables for runtime feature control ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - `OPENSEARCH_GO_ROUTING_CONFIG`: toggle shard-exact routing (`-shard_exact`)
+  - `OPENSEARCH_GO_DISCOVERY_CONFIG`: skip individual discovery server calls (`-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats`)
+  - Bitfield flags use `+`/`-` prefix convention for explicit opt-in/out; zero-initialized = all features enabled
+  - `WithShardExactRouting(bool)` `RouterOption` for programmatic control (env var overrides)
+  - Evaluated once at client init time; immutable after
+  - Document environment variables in `guides/connection_scoring.md` and `guides/request_routing.md`
+  - Document read-after-write visibility guarantees with operation-aware routing in `guides/connection_scoring.md`
+- Add seed URL fallback as last-resort connection source when all router pools are exhausted ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+  - Builds a dedicated `multiServerPool` from fresh copies of the original seed URLs at client init
+  - Fires after the entire retry loop when all router policies and connection pools return `ErrNoConnections`
+  - On success: triggers immediate cluster rediscovery to repopulate router pools
+  - `OPENSEARCH_GO_FALLBACK=false` disables seed fallback (enabled by default)
+- Add consolidated environment variable reference in `guides/request_routing.md` and `USER_GUIDE.md` ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-  - Auto-discover server core count from `/_nodes/http,os` to derive all rate-limiting parameters (default: 8 cores)
+  - Auto-discover server core count from `/_nodes/http,os,thread_pool` to derive all rate-limiting and congestion window parameters (default: 8 cores)
   - Weighted round-robin for heterogeneous clusters: nodes with more cores get proportionally more traffic via GCD-normalized duplicate pointers in the ready list
-  - `lcNeedsHardware` lifecycle bit tracks connections needing hardware info; per-node fallback via `/_nodes/_local/http,os` during health checks
+  - `lcNeedsHardware` lifecycle bit tracks connections needing hardware info; per-node fallback via `/_nodes/_local/http,os,thread_pool` during health checks
   - Capacity model dynamically recalculated on each discovery cycle from minimum `allocatedProcessors` across all nodes
   - TLS-aware rate limiting prevents overwhelming recovering servers during outages
   - Three-input timeout formula: `max(healthTimeout, rateLimitedTimeout, minimumFloor) + jitter`
@@ -68,14 +93,17 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
     - Refresh interval scales with cluster size: `clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 5min)`
     - Single-node clusters skip refresh entirely (no routing benefit)
   - Node stats polling with load shedding via `NodeStatsInterval` configuration
-    - Polls `GET /_nodes/_local/stats/jvm,breaker` to detect overloaded nodes
-    - Overloaded nodes are demoted from the ready list to the dead list
+    - Polls `GET /_nodes/_local/stats/jvm,breaker,thread_pool` to detect overloaded nodes and update congestion windows
+    - Per-pool AIMD congestion control adjusts cwnd based on thread pool wait time and queue saturation
+    - Overloaded nodes are demoted from the ready list to the standby partition
     - Overload detection: JVM heap threshold (`OverloadedHeapThreshold`, default 85%), circuit breaker size ratio (`OverloadedBreakerRatio`, default 0.90), breaker trip delta, and cluster status red
 - Add heterogeneous Docker cluster targets for integration-testing weighted routing and role-based request routing
   - `cluster.heterogeneous.cpu.1` and `cluster.heterogeneous.cpu.2` set per-node CPU limits via Docker Compose overrides
   - `cluster.heterogeneous.roles` assigns distinct node roles (cluster_manager+ingest, data+ingest, data)
   - `cluster.homogeneous` removes all overrides to reset to default configuration
   - `cluster.status` now shows per-node roles and allocated processors via `_nodes/http,os`
+- Add request lifecycle guide (`guides/request_lifecycle.md`) tracing requests from API call through policy chain to connection selection ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add client lifecycle guide (`guides/client_lifecycle.md`) covering startup, background goroutines, connection state machine, cache management, failure response timeline, and shutdown ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 
 ### Changed
 

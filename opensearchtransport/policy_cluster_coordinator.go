@@ -86,6 +86,13 @@ func (p *CoordinatorPolicy) RotateStandby(ctx context.Context, count int) (int, 
 	return p.pool.rotateStandby(ctx, count)
 }
 
+// isCoordinatingOnly returns true if the connection is a coordinating-only node.
+// Matches both nodes with an explicit "coordinating_only" role and nodes with
+// an empty role set (which OpenSearch uses for coordinating-only nodes).
+func isCoordinatingOnly(conn *Connection) bool {
+	return len(conn.Roles) == 0 || conn.Roles.has(RoleCoordinatingOnly)
+}
+
 // DiscoveryUpdate updates the coordinating-only connection pool based on cluster topology changes.
 // Adds are processed before removes so that the pool is never empty during a topology
 // change where old seed URLs are replaced by discovered node addresses.
@@ -106,16 +113,60 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 	p.pool.Lock()
 	defer p.pool.Unlock()
 
-	// Add new coordinating-only connections to dead list
+	// Calculate projected pool size and recalculate warmup parameters.
+	targetPoolSize := len(p.pool.mu.ready) + len(p.pool.mu.dead)
+	for _, conn := range added {
+		if isCoordinatingOnly(conn) {
+			targetPoolSize++
+		}
+	}
+	for _, conn := range removed {
+		if isCoordinatingOnly(conn) {
+			targetPoolSize--
+		}
+	}
+	p.pool.recalculateWarmupParams(targetPoolSize)
+
+	// Add new coordinating-only connections
 	for _, newConn := range added {
-		if _, hasRole := newConn.Roles[RoleCoordinatingOnly]; hasRole {
-			newConn.state.Store(int64(newConnState(lcDead)))
+		if !isCoordinatingOnly(newConn) {
+			continue
+		}
+
+		// Guard: skip if already a member of this pool.
+		if _, exists := p.pool.mu.members[newConn]; exists {
+			continue
+		}
+		p.pool.mu.members[newConn] = struct{}{}
+
+		newConn.mu.RLock()
+		isHealthy := newConn.isReady()
+		newConn.mu.RUnlock()
+
+		if isHealthy {
+			newConn.mu.Lock()
+			newConn.casLifecycle(newConn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck,lll // lock held; only errLifecycleNoop possible
+			newConn.mu.Unlock()
+			rounds, skip := p.pool.getWarmupParams()
+			newConn.startWarmup(rounds, skip)
+			p.pool.appendToReadyActiveWithLock(newConn)
+		} else {
+			//nolint:errcheck // pool lock held; only errLifecycleNoop possible
+			newConn.casLifecycle(
+				newConn.loadConnState(), 0,
+				lcDead|lcNeedsWarmup,
+				lcReady|lcActive|lcStandby|lcOverloaded,
+			)
 			p.pool.appendToDeadWithLock(newConn)
 		}
 	}
+	if added != nil {
+		p.pool.shuffleActiveWithLock()
+		p.pool.enforceActiveCapWithLock()
+	}
 
 	// Remove old connections
-	if removed != nil {
+	if removed != nil { //nolint:nestif // filtering ready and dead lists requires nested iteration
 		removedConns := make(map[string]struct{}, len(removed))
 		for _, node := range removed {
 			removedConns[node.URL.String()] = struct{}{}
@@ -133,6 +184,8 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 					if i < p.pool.mu.activeCount {
 						activeCount++
 					}
+				} else {
+					delete(p.pool.mu.members, conn)
 				}
 			}
 			p.pool.mu.ready = filtered
@@ -150,6 +203,8 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 			for _, conn := range p.pool.mu.dead {
 				if _, found := removedConns[conn.URL.String()]; !found {
 					filtered = append(filtered, conn)
+				} else {
+					delete(p.pool.mu.members, conn)
 				}
 			}
 			p.pool.mu.dead = filtered
@@ -169,19 +224,21 @@ func (p *CoordinatorPolicy) IsEnabled() bool {
 }
 
 // Eval attempts to route to coordinating-only nodes.
-// Returns (nil, nil) if no coordinating-only nodes are available (allows fallthrough).
-func (p *CoordinatorPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+// Returns (NextHop{}, nil) if no coordinating-only nodes are available (allows fallthrough).
+func (p *CoordinatorPolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if p.policyState.Load()&psEnvDisabled != 0 {
-		//nolint:nilnil // Intentional: force-disabled policy returns no match
-		return nil, nil
+		return NextHop{}, nil
 	}
 
 	if p.policyState.Load()&psEnabled == 0 {
-		//nolint:nilnil // Intentional: (nil, nil) signals "policy not applicable, try next"
-		return nil, nil // No coordinating-only nodes, allow fallthrough
+		return NextHop{}, nil
 	}
 
-	return p.pool, nil
+	conn, err := p.pool.Next()
+	if err != nil {
+		return NextHop{}, err
+	}
+	return NextHop{Conn: conn}, nil
 }
 
 // PoolSnapshot returns a point-in-time snapshot of this policy's pool.

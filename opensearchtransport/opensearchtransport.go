@@ -54,7 +54,7 @@ import (
 )
 
 const (
-	// Version returns the package version as a string.
+	// Version is the package version as a string.
 	Version                      = version.Client
 	defaultMaxRetries            = 6
 	defaultHealthCheckTimeout    = 5 * time.Second
@@ -71,8 +71,8 @@ var (
 func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
 	if c.router != nil {
 		// Use request routing
-		conn, err := c.router.Route(req.Context(), req)
-		return conn, err
+		hop, err := c.router.Route(req.Context(), req)
+		return hop.Conn, err
 	}
 
 	// Fall back to original connection pool behavior
@@ -83,7 +83,7 @@ func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
 	return conn, err
 }
 
-// Interface defines the interface for HTTP client.
+// Interface is the HTTP client contract used by the OpenSearch API layer.
 type Interface interface {
 	Perform(*http.Request) (*http.Response, error)
 }
@@ -365,6 +365,12 @@ type Client struct {
 	overloadedHeapThreshold int
 	overloadedBreakerRatio  float64
 
+	// Pool congestion quorum: true once at least one connection has reported
+	// thread pool configurations. Before quorum, loadCwnd returns a synthetic
+	// ceiling based on allocatedProcessors.
+	poolInfoReady atomic.Bool
+	poolInfoCount atomic.Int32 // connections with known thread pool configs
+
 	healthCheck HealthCheckFunc
 
 	compressRequestBody  bool
@@ -379,6 +385,12 @@ type Client struct {
 	observer  atomic.Pointer[ConnectionObserver]
 	poolFunc  func([]*Connection, Selector) ConnectionPool
 
+	// Seed URL fallback: last-resort pool built from the original seed URLs.
+	// Used when all router policies and connection pools are exhausted.
+	// Disabled when OPENSEARCH_GO_FALLBACK=false.
+	seedFallbackPool     *multiServerPool
+	seedFallbackDisabled bool // true when OPENSEARCH_GO_FALLBACK=false
+
 	// Context for background operations like node discovery.
 	// This context is created during client initialization and manages the lifecycle
 	// of background goroutines (e.g., periodic node discovery).
@@ -386,13 +398,25 @@ type Client struct {
 	ctx        context.Context
 	cancelFunc context.CancelFunc
 
+	// catRefreshNeeded is set by the request path when a connection
+	// error suggests shard placement data may be stale. The discovery
+	// loop picks up the flag on its next wake.
+	catRefreshNeeded atomic.Bool
+
+	// discoveryFeatures controls which server calls are made during
+	// the discovery cycle. Parsed from OPENSEARCH_GO_DISCOVERY_CONFIG
+	// at client init time and immutable after.
+	discoveryFeatures discoveryFeatures
+
+	// discoveryNeeded is set when a large topology change requires
+	// an immediate full node + catalog discovery (e.g., after a
+	// cluster membership change detected by the request path).
+	discoveryNeeded atomic.Bool
+
 	mu struct {
 		sync.RWMutex
 		connectionPool      ConnectionPool // Used for both single-node and multi-node
-		discoverNodesTimer  *time.Timer
-		discoverCatTimer    *time.Timer // Failure-triggered /_cat/shards refresh
-		nextCatRefresh      time.Time   // When discoverCatTimer is scheduled to fire
-		discoveryInProgress bool        // Prevents concurrent discovery operations
+		discoveryInProgress bool           // Prevents concurrent discovery operations
 	}
 }
 
@@ -604,7 +628,7 @@ func New(cfg Config) (*Client, error) {
 			activeListCap = int(derived)
 		}
 	case activeListCap < 0:
-		// Explicitly disabled -- store the resolved zero so we don't auto-scale.
+		// Explicitly disabled -- store the resolved zero to prevent auto-scaling.
 		disabled := 0
 		activeListCapConfig = &disabled
 		activeListCap = 0
@@ -652,7 +676,7 @@ func New(cfg Config) (*Client, error) {
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
 		conn := &Connection{URL: u, URLString: u.String()}
-		conn.affinityCounter.clock = realClock{}
+		conn.estLoad.clock = realClock{}
 		conn.weight.Store(1)
 		conns[idx] = conn
 	}
@@ -730,6 +754,56 @@ func New(cfg Config) (*Client, error) {
 
 	client.userAgent = initUserAgent()
 
+	// Parse discovery feature config from environment variable.
+	// Controls which server calls are made during the discovery cycle.
+	if val, ok := os.LookupEnv(envDiscoveryConfig); ok && val != "" {
+		client.discoveryFeatures = parseDiscoveryConfig(val)
+	}
+
+	// Parse seed URL fallback config. Default: enabled (zero-value).
+	if val, ok := os.LookupEnv(envFallbackConfig); ok && val != "" {
+		if b, err := strconv.ParseBool(val); err == nil && !b {
+			client.seedFallbackDisabled = true
+		}
+	}
+
+	// Build the seed URL fallback pool eagerly. This pool holds fresh copies
+	// of the original seed URLs and is never modified by DiscoveryUpdate.
+	// It serves as the absolute last resort when all router policies and
+	// connection pools are exhausted.
+	if !client.seedFallbackDisabled && len(cfg.URLs) > 0 {
+		seedConns := make([]*Connection, len(cfg.URLs))
+		for i, u := range cfg.URLs {
+			conn := &Connection{URL: u, URLString: u.String()}
+			conn.estLoad.clock = realClock{}
+			conn.weight.Store(1)
+			conn.mu.Lock()
+			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
+			conn.mu.Unlock()
+			seedConns[i] = conn
+		}
+
+		seedPool := &multiServerPool{
+			name:                         "seed-fallback",
+			ctx:                          ctx,
+			resurrectTimeoutInitial:      resurrectTimeoutInitial,
+			resurrectTimeoutMax:          resurrectTimeoutMax,
+			resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:      minimumResurrectTimeout,
+			jitterScale:                  jitterScale,
+			serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
+			clientsPerServer:             clientsPerServer,
+		}
+		seedPool.mu.ready = seedConns
+		seedPool.mu.activeCount = len(seedConns)
+		seedPool.mu.dead = []*Connection{}
+		seedPool.mu.members = make(map[*Connection]struct{}, len(seedConns))
+		for _, conn := range seedConns {
+			seedPool.mu.members[conn] = struct{}{}
+		}
+		client.seedFallbackPool = seedPool
+	}
+
 	// Store observer for connection lifecycle notifications
 	if cfg.Observer != nil {
 		client.observer.Store(&cfg.Observer)
@@ -773,12 +847,16 @@ func New(cfg Config) (*Client, error) {
 			// Initialize all connections as active with proper state.
 			for _, conn := range conns {
 				conn.mu.Lock()
-				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
+				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 				conn.mu.Unlock()
 			}
 			pool.mu.ready = conns
 			pool.mu.activeCount = len(conns)
 			pool.mu.dead = []*Connection{}
+			pool.mu.members = make(map[*Connection]struct{}, max(len(conns), defaultMembersCapacity))
+			for _, conn := range conns {
+				pool.mu.members[conn] = struct{}{}
+			}
 
 			// Enforce the active list cap: moves overflow connections to standby.
 			pool.enforceActiveCapWithLock()
@@ -793,6 +871,11 @@ func New(cfg Config) (*Client, error) {
 		if obs := client.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
 		}
+	}
+
+	// Set health check on the seed fallback pool so resurrection works.
+	if client.seedFallbackPool != nil {
+		client.seedFallbackPool.healthCheck = client.healthCheck
 	}
 
 	if cfg.EnableDebugLogger {
@@ -819,9 +902,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	if client.discoverNodesInterval > 0 {
-		time.AfterFunc(client.discoverNodesInterval, func() {
-			client.scheduleDiscoverNodes()
-		})
+		go client.discoveryLoop()
 	}
 
 	if cfg.CompressRequestBody {
@@ -841,6 +922,7 @@ func New(cfg Config) (*Client, error) {
 			clientsPerServer:             client.clientsPerServer,
 			healthCheck:                  client.healthCheck,
 			observer:                     client.observer.Load(),
+			poolInfoReady:                &client.poolInfoReady,
 			activeListCap:                client.activeListCapConfig,
 			standbyPromotionChecks:       client.standbyPromotionChecks,
 		}
@@ -897,8 +979,9 @@ func New(cfg Config) (*Client, error) {
 		}()
 	}
 
-	// Start node stats poller for load shedding if configured
-	if client.nodeStatsInterval > 0 {
+	// Start node stats poller for load shedding if configured.
+	// Gated by OPENSEARCH_GO_DISCOVERY_CONFIG=-node_stats.
+	if client.nodeStatsInterval > 0 && client.discoveryFeatures.nodeStatsEnabled() {
 		client.scheduleNodeStats()
 	}
 
@@ -911,23 +994,13 @@ func New(cfg Config) (*Client, error) {
 }
 
 // Close cancels background operations and cleans up resources.
+// The discovery loop goroutine exits when the context is cancelled.
 //
 //nolint:unparam // Returns error to satisfy io.Closer interface; CloseIdleConnections() is void
 func (c *Client) Close() error {
 	if c.cancelFunc != nil {
 		c.cancelFunc()
 	}
-
-	c.mu.Lock()
-	if c.mu.discoverNodesTimer != nil {
-		c.mu.discoverNodesTimer.Stop()
-		c.mu.discoverNodesTimer = nil
-	}
-	if c.mu.discoverCatTimer != nil {
-		c.mu.discoverCatTimer.Stop()
-		c.mu.discoverCatTimer = nil
-	}
-	c.mu.Unlock()
 
 	// Close idle connections if the transport supports it
 	if transport, ok := c.transport.(interface{ CloseIdleConnections() }); ok {
@@ -962,7 +1035,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			}
 
 			req.GetBody = func() (io.ReadCloser, error) {
-				// We have to return a new reader each time so that retries don't read from an already-consumed body.
+				// A new reader must be returned each time so that retries don't read from an already-consumed body.
 				reader := bytes.NewReader(buf.Bytes())
 				return io.NopCloser(reader), nil
 			}
@@ -990,12 +1063,16 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	for i := 0; i <= c.maxRetries; i++ {
 		var (
 			conn            *Connection
+			poolName        string
 			shouldRetry     bool
 			shouldCloseBody bool
 		)
 
 		if c.router != nil {
-			conn, err = c.router.Route(req.Context(), req)
+			var hop NextHop
+			hop, err = c.router.Route(req.Context(), req)
+			conn = hop.Conn
+			poolName = hop.PoolName
 		} else {
 			c.mu.RLock()
 			pool := c.mu.connectionPool
@@ -1006,7 +1083,13 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			if c.logger != nil {
 				c.logRoundTrip(req, nil, err, time.Time{}, time.Duration(0))
 			}
-			return nil, fmt.Errorf("cannot get connection: %w", err)
+			// Wrap the error for context. If all pools are exhausted
+			// (ErrNoConnections), break to allow post-loop seed fallback.
+			err = fmt.Errorf("cannot get connection: %w", err)
+			if errors.Is(err, ErrNoConnections) {
+				break
+			}
+			return nil, err
 		}
 
 		// Update request
@@ -1026,9 +1109,15 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		}
 
 		// Set up time measures and execute the request
+		if poolName != "" {
+			conn.addInFlight(poolName)
+		}
 		start := time.Now().UTC()
 		res, err = c.transport.RoundTrip(req)
 		dur := time.Since(start)
+		if poolName != "" {
+			conn.releaseInFlight(poolName)
+		}
 
 		// Log request and response
 		if c.logger != nil {
@@ -1052,7 +1141,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			// Retry on HTTP/2 stream resets (RST_STREAM frames such as REFUSED_STREAM).
 			// Go 1.21+ added As bridging on the vendored internal http2.StreamError
 			// (h2_error.go), which matches target structs by field name and type
-			// convertibility. Our local h2StreamError has the same layout, so
+			// convertibility. The local h2StreamError has the same layout, so
 			// errors.As succeeds without importing x/net/http2.
 			//
 			// Note: GOAWAY is handled transparently by Go's HTTP/2 transport, which
@@ -1091,9 +1180,9 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			}
 
 			// Mark connection as needing shard placement confirmation.
-			// The node stays out of affinity routing candidate sets until
+			// The node stays out of scored routing candidate sets until
 			// /_cat/shards refresh confirms current shard-to-node mappings.
-			if conn.setNeedsCatUpdate() {
+			if conn.setNeedsCatUpdate() == nil {
 				if obs := observerFromAtomic(&c.observer); obs != nil {
 					obs.OnShardMapInvalidation(ShardMapInvalidationEvent{
 						ConnURL: conn.URLString, ConnName: conn.Name,
@@ -1101,7 +1190,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 					})
 				}
 			}
-			c.scheduleCatRefresh()
+			c.requestCatRefresh()
 
 			// Retry on EOF errors (connection closed by peer)
 			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
@@ -1124,9 +1213,6 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 				c.mu.connectionPool.OnSuccess(conn)
 				c.mu.Unlock()
 			}
-
-			// Record estimated CPU time for affinity scoring.
-			conn.recordCPUTime(dur)
 
 			// When the server signals it will close the connection (Connection: close header
 			// or HTTP/1.0 without keep-alive), proactively verify the node is still healthy.
@@ -1152,7 +1238,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			// Retryable HTTP status (typically 502/503/504) suggests the
 			// target node is unhealthy -- flag it for shard placement refresh.
 			if shouldCloseBody {
-				if conn.setNeedsCatUpdate() {
+				if conn.setNeedsCatUpdate() == nil {
 					if obs := observerFromAtomic(&c.observer); obs != nil {
 						obs.OnShardMapInvalidation(ShardMapInvalidationEvent{
 							ConnURL: conn.URLString, ConnName: conn.Name,
@@ -1160,7 +1246,29 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 						})
 					}
 				}
-				c.scheduleCatRefresh()
+				c.requestCatRefresh()
+			}
+		}
+
+		// HTTP 429 (Too Many Requests): mark the pool overloaded and halve
+		// cwnd so subsequent requests route to less-loaded nodes. The
+		// overloaded flag is only cleared by the stats poller when
+		// delta(rejected) == 0.
+		if res != nil && res.StatusCode == http.StatusTooManyRequests && poolName != "" {
+			if pc := conn.pools.get(poolName); pc != nil {
+				if pc.mu.TryLock() {
+					if !pc.overloaded.Load() {
+						pc.overloaded.Store(true)
+						newCwnd := max(pc.cwnd.Load()/2, 1)
+						pc.cwnd.Store(newCwnd)
+						pc.mu.ssthresh = newCwnd
+					}
+					pc.mu.Unlock()
+				}
+			}
+			if !c.disableRetry {
+				shouldRetry = true
+				shouldCloseBody = true
 			}
 		}
 
@@ -1172,7 +1280,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		// Drain and close body when retrying after response
 		if shouldCloseBody && i < c.maxRetries {
 			if res.Body != nil {
-				//nolint:errcheck // undexpected but okay if it failes
+				//nolint:errcheck // unexpected but okay if it fails
 				io.Copy(io.Discard, res.Body)
 				res.Body.Close()
 			}
@@ -1194,6 +1302,13 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			}
 		}
 	}
+
+	// Seed URL fallback: absolute last resort when the entire retry loop
+	// failed to obtain a connection from any router policy or pool.
+	if err != nil && errors.Is(err, ErrNoConnections) && !c.seedFallbackDisabled && c.seedFallbackPool != nil {
+		res, err = c.performSeedFallback(req.Context(), req)
+	}
+
 	// Read, close and replace the http response body to close the connection
 	if res != nil && res.Body != nil {
 		body, err := io.ReadAll(res.Body)
@@ -1203,8 +1318,70 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		}
 	}
 
-	// TODO(karmi): Wrap error
+	// TODO: Consider wrapping the error with request context.
 	return res, err
+}
+
+// performSeedFallback attempts a single request using the seed URL fallback pool.
+// Called as the absolute last resort when all router policies and connection pools
+// are exhausted. Does not retry — this is already the final fallback.
+//
+// On success: marks the seed connection healthy and sets discoveryNeeded to
+// expedite full cluster rediscovery.
+// On failure: marks the seed connection as failed so the pool's resurrection
+// timer can schedule retries.
+func (c *Client) performSeedFallback(ctx context.Context, req *http.Request) (*http.Response, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	conn, err := c.seedFallbackPool.Next()
+	if err != nil {
+		return nil, fmt.Errorf("cannot get connection: %w (seed fallback also exhausted)", err)
+	}
+
+	if debugLogger != nil {
+		debugLogger.Logf("Seed fallback: attempting request via %s\n", conn.URL)
+	}
+
+	c.setReqURL(conn.URL, req)
+	c.setReqAuth(conn.URL, req)
+
+	// Reset body for the fallback attempt.
+	if req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {
+		body, err := req.GetBody()
+		if err != nil {
+			return nil, fmt.Errorf("cannot get request body for seed fallback: %w", err)
+		}
+		req.Body = body
+	}
+
+	if err := c.signRequest(req); err != nil {
+		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
+	}
+
+	start := time.Now().UTC()
+	res, err := c.transport.RoundTrip(req)
+	dur := time.Since(start)
+
+	if c.logger != nil {
+		c.logRoundTrip(req, res, err, start, dur)
+	}
+
+	if err != nil {
+		if debugLogger != nil {
+			debugLogger.Logf("Seed fallback: request to %s failed: %v\n", conn.URL, err)
+		}
+		c.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
+		return nil, fmt.Errorf("seed fallback request failed: %w", err)
+	}
+
+	if debugLogger != nil {
+		debugLogger.Logf("Seed fallback: request to %s succeeded, triggering rediscovery\n", conn.URL)
+	}
+	c.seedFallbackPool.OnSuccess(conn) //nolint:contextcheck // fire-and-forget; context in req
+	c.discoveryNeeded.Store(true)
+	return res, nil
 }
 
 // scheduleProactiveHealthCheck fires an asynchronous health check when a server signals
@@ -1226,7 +1403,7 @@ func (c *Client) scheduleProactiveHealthCheck(conn *Connection) {
 	}
 
 	// Fast path: read-lock to check if a recent proactive check already ran.
-	// If TryRLock fails, a writer is active (scheduling a check), so we're covered.
+	// If TryRLock fails, a writer is active (scheduling a check), so no action is needed.
 	if !conn.proactiveCheck.mu.TryRLock() {
 		return
 	}
@@ -1242,7 +1419,7 @@ func (c *Client) scheduleProactiveHealthCheck(conn *Connection) {
 		return
 	}
 	// Re-check under write lock: another goroutine may have updated lastAt between
-	// our RUnlock and TryLock.
+	// the RUnlock above and TryLock.
 	if time.Since(conn.proactiveCheck.mu.lastAt) < c.resurrectTimeoutInitial {
 		conn.proactiveCheck.mu.Unlock()
 		return
@@ -1423,7 +1600,12 @@ func (c *Client) DefaultHealthCheck(ctx context.Context, conn *Connection, u *ur
 		return nil, err
 	}
 
-	// After successful baseline, conditionally launch async probe for cluster health
+	// After successful baseline, conditionally launch async probe for cluster health.
+	// Skip when cluster health probing is disabled via OPENSEARCH_GO_DISCOVERY_CONFIG.
+	if !c.discoveryFeatures.clusterHealthEnabled() {
+		return res, nil
+	}
+
 	switch {
 	case info.Pending():
 		// Never probed -- launch async probe
@@ -1524,10 +1706,11 @@ func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModif
 }
 
 // hardwareInfoHealthCheck substitutes one health check cycle with a
-// GET /_nodes/_local/http,os call to discover the node's core count.
-// On success it stores allocatedProcessors and clears lcNeedsHardware.
-// On any failure it falls back to the baseline health check so the
-// connection is not penalized for a hardware info failure.
+// GET /_nodes/_local/http,os,thread_pool call to discover the node's
+// core count and thread pool configurations. On success it stores
+// allocatedProcessors and per-pool cwnd ceilings, then clears
+// lcNeedsHardware. On any failure it falls back to the baseline health
+// check so the connection is not penalized for a hardware info failure.
 func (c *Client) hardwareInfoHealthCheck(
 	ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request),
 ) (*http.Response, error) {
@@ -1545,7 +1728,7 @@ func (c *Client) hardwareInfoHealthCheck(
 		healthCtx = ctx
 	}
 
-	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_nodes/_local/http,os", nil)
+	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_nodes/_local/http,os,thread_pool", nil)
 	if err != nil {
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
@@ -1573,7 +1756,7 @@ func (c *Client) hardwareInfoHealthCheck(
 		// Non-200 (e.g. 403 from security plugin) -- fall back to baseline.
 		// Clear the lcNeedsHardware bit so we don't retry every health check cycle.
 		conn.mu.Lock()
-		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		conn.mu.Unlock()
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
@@ -1596,7 +1779,7 @@ func (c *Client) hardwareInfoHealthCheck(
 		// Parse failure -- clear bit and treat as successful health check
 		// (the node responded, just not in expected format).
 		conn.mu.Lock()
-		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware) //nolint:errcheck // parse failure; only errLifecycleNoop possible
 		conn.mu.Unlock()
 		res.Body = io.NopCloser(bytes.NewReader(body))
 		return res, nil
@@ -1605,7 +1788,7 @@ func (c *Client) hardwareInfoHealthCheck(
 	var nodes map[string]nodeInfo
 	if err := json.Unmarshal(env["nodes"], &nodes); err != nil {
 		conn.mu.Lock()
-		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware) //nolint:errcheck // parse failure; only errLifecycleNoop possible
 		conn.mu.Unlock()
 		res.Body = io.NopCloser(bytes.NewReader(body))
 		return res, nil
@@ -1616,12 +1799,18 @@ func (c *Client) hardwareInfoHealthCheck(
 		if node.OS != nil && node.OS.AllocatedProcessors != nil && *node.OS.AllocatedProcessors > 0 {
 			conn.storeAllocatedProcessors(*node.OS.AllocatedProcessors)
 		}
+		if len(node.ThreadPool) > 0 {
+			storeThreadPoolSizes(conn, node.ThreadPool)
+			if c.poolInfoCount.Add(1) >= 1 {
+				c.poolInfoReady.Store(true)
+			}
+		}
 		break
 	}
 
 	// Clear lcNeedsHardware -- hardware info obtained (or not available).
 	conn.mu.Lock()
-	conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware)
+	conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	conn.mu.Unlock()
 
 	res.Body = io.NopCloser(bytes.NewReader(body))
@@ -1870,7 +2059,7 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 // Returns true if the connection is healthy, false otherwise.
 //
 // On success, records the RTT of the final (successful) attempt to the
-// connection's rttRing so that affinity scoring has data even for connections
+// connection's rttRing so that connection scoring has data even for connections
 // that have never been through the resurrection path.
 func (c *Client) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
 	// Use the provided maxRetries parameter, but respect client's timeout/jitter config
@@ -1968,11 +2157,18 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 		}
 		pool.mu.ready = filteredReady
 		pool.mu.dead = filteredDead
+		pool.mu.members = make(map[*Connection]struct{}, max(len(filteredReady)+len(filteredDead), defaultMembersCapacity))
+		for _, conn := range filteredReady {
+			pool.mu.members[conn] = struct{}{}
+		}
+		for _, conn := range filteredDead {
+			pool.mu.members[conn] = struct{}{}
+		}
 
 		// All ready connections start as active with proper state.
 		for _, conn := range filteredReady {
 			conn.mu.Lock()
-			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
+			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			conn.mu.Unlock()
 		}
 		pool.mu.activeCount = len(filteredReady)
@@ -2068,22 +2264,46 @@ func NoOpHealthCheck(_ context.Context, _ *Connection, _ *url.URL) (*http.Respon
 	return nil, nil //nolint:nilnil // Intentional no-op: nil response + nil error signals "healthy, no body".
 }
 
-// preferenceParam is the query parameter name for OpenSearch's shard preference routing.
-const preferenceParam = "preference"
+const routingParam = "routing"
 
-// preferenceLocal is the shard preference value that tells OpenSearch to prefer
-// shard copies local to the receiving node, reducing cross-node forwarding.
-const preferenceLocal = "_local"
+// extractRouting returns the value of ?routing=X from the request's query
+// string, or "" if absent. Uses a zero-alloc linear scan to avoid
+// url.Query() overhead on the hot path.
+//
+// The returned value is URL-decoded (percent-encoded sequences are resolved)
+// since OpenSearch's Murmur3HashFunction hashes the decoded routing string.
+func extractRouting(req *http.Request) string {
+	raw := req.URL.RawQuery
 
-// injectPreference adds ?preference=<value> to the request if the request
-// does not already have a preference parameter set. The value controls
-// OpenSearch's shard routing preference (e.g., "_local" to prefer shard
-// copies on the receiving node).
-func injectPreference(req *http.Request, value string) {
-	q := req.URL.Query()
-	if q.Has(preferenceParam) {
-		return // Don't override a user-set preference.
+	const needle = routingParam + "="
+	for i := 0; i <= len(raw)-len(needle); i++ {
+		if raw[i:i+len(needle)] == needle && (i == 0 || raw[i-1] == '&' || raw[i-1] == '?') {
+			// Found "routing=" at a valid anchor point.
+			valStart := i + len(needle)
+
+			// Find end of value (next '&' or end of string).
+			valEnd := valStart
+			for valEnd < len(raw) && raw[valEnd] != '&' {
+				valEnd++
+			}
+
+			val := raw[valStart:valEnd]
+			if val == "" {
+				return ""
+			}
+
+			// Fast path: no percent-encoding present.
+			if !strings.Contains(val, "%") {
+				return val
+			}
+
+			// Slow path: URL-decode the value.
+			decoded, err := url.QueryUnescape(val)
+			if err != nil {
+				return val // Return raw value on decode error.
+			}
+			return decoded
+		}
 	}
-	q.Set(preferenceParam, value)
-	req.URL.RawQuery = q.Encode()
+	return ""
 }

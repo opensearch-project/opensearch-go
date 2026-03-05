@@ -9,13 +9,13 @@
 package opensearchtransport_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
@@ -160,21 +160,29 @@ func drainWarmup(transport *opensearchtransport.Client) {
 
 // discoverWithStandby runs DiscoverNodes then pumps requests to complete
 // warmup so that deferred cap enforcement can fire. Retries until the expected
-// number of standby connections is reached or maxAttempts is exhausted.
+// number of standby connections is reached or the deadline expires.
 // Returns the final metrics. Handles transient discovery failures (e.g., EOF)
-// by retrying with a short delay.
+// by retrying. Each cycle's DiscoverNodes + drainWarmup provides natural
+// backoff without explicit sleeps.
 func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) opensearchtransport.Metrics {
 	t.Helper()
 
 	var m opensearchtransport.Metrics
 	var lastErr error
 
-	for attempt := range 5 {
-		err := transport.DiscoverNodes(t.Context())
+	// On slower clusters (e.g. v2.0.1 with security plugin), health checks
+	// during discovery can take several seconds per cycle. Allow up to 30s
+	// total for the pool to stabilize with the expected standby count.
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	attempt := 0
+	for ctx.Err() == nil {
+		attempt++
+		err := transport.DiscoverNodes(ctx)
 		if err != nil {
 			lastErr = err
-			t.Logf("Discovery attempt %d failed: %v", attempt+1, err)
-			time.Sleep(500 * time.Millisecond)
+			t.Logf("Discovery attempt %d failed: %v", attempt, err)
 			continue
 		}
 		lastErr = nil
@@ -187,12 +195,11 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 		require.NoError(t, err)
 
 		t.Logf("Discovery attempt %d: active=%d, standby=%d, dead=%d",
-			attempt+1, m.LiveConnections-m.StandbyConnections, m.StandbyConnections, m.DeadConnections)
+			attempt, m.LiveConnections-m.StandbyConnections, m.StandbyConnections, m.DeadConnections)
 
 		if m.StandbyConnections >= 2 {
 			return m
 		}
-		time.Sleep(500 * time.Millisecond)
 	}
 
 	if lastErr != nil {
@@ -228,8 +235,8 @@ func TestStandbyRotation(t *testing.T) {
 
 		// With 3 discovered nodes and cap=1, we expect 1 active + 2 standby.
 		activeCount := m.LiveConnections - m.StandbyConnections
-		assert.Equal(t, 1, activeCount, "expected 1 active connection (ActiveListCap=1)")
-		assert.Equal(t, 2, m.StandbyConnections, "expected 2 standby connections")
+		require.Equal(t, 1, activeCount, "expected 1 active connection (ActiveListCap=1)")
+		require.Equal(t, 2, m.StandbyConnections, "expected 2 standby connections")
 
 		// Verify per-connection metrics show standby flags
 		standbyCount := 0
@@ -242,7 +249,7 @@ func TestStandbyRotation(t *testing.T) {
 				standbyCount++
 			}
 		}
-		assert.Equal(t, 2, standbyCount, "expected 2 connections marked as standby in per-connection metrics")
+		require.Equal(t, 2, standbyCount, "expected 2 connections marked as standby in per-connection metrics")
 
 		// Perform requests -- only the active connection should serve them
 		nodesSeen := make(map[string]bool)
@@ -263,7 +270,7 @@ func TestStandbyRotation(t *testing.T) {
 		}
 
 		// With cap=1, all requests should hit the same single active node
-		assert.Len(t, nodesSeen, 1, "expected all requests to hit the same active node, saw: %v", nodesSeen)
+		require.Len(t, nodesSeen, 1, "expected all requests to hit the same active node, saw: %v", nodesSeen)
 		t.Logf("Active node: %v", nodesSeen)
 	})
 
@@ -434,13 +441,13 @@ func TestStandbyRotation(t *testing.T) {
 
 		// With 12 cycles and StandbyRotationCount=1, the observer should have
 		// recorded many promotion events across multiple distinct nodes.
-		assert.GreaterOrEqual(t, obs.promotionCount(), 3,
+		require.GreaterOrEqual(t, obs.promotionCount(), 3,
 			"expected at least 3 standby promotions over 12 rotation cycles")
-		assert.GreaterOrEqual(t, obs.demotionCount(), 3,
+		require.GreaterOrEqual(t, obs.demotionCount(), 3,
 			"expected at least 3 standby demotions over 12 rotation cycles")
 		// With 3 nodes and 12 rotations, at least 2 distinct nodes should have
 		// been promoted from standby.
-		assert.GreaterOrEqual(t, len(promoted), 2,
+		require.GreaterOrEqual(t, len(promoted), 2,
 			"expected at least 2 distinct nodes promoted from standby, saw: %v", promoted)
 	})
 }

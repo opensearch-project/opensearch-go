@@ -7,8 +7,8 @@ Request-based connection routing automatically directs operations to appropriate
 ```go
 import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 
-// Recommended: affinity-aware smart router (production default)
-router := opensearchtransport.NewSmartRouter()
+// Recommended: default router with connection scoring (production default)
+router := opensearchtransport.NewDefaultRouter()
 
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://localhost:9200"},
@@ -18,22 +18,22 @@ client, err := opensearch.NewClient(opensearch.Config{
 })
 ```
 
-This provides role-based routing, per-index node affinity, RTT-based AZ preference, and dynamic fan-out. See [Affinity Routing](affinity_routing.md) for the full algorithm description.
+This provides role-based routing, per-index connection scoring, RTT-based AZ preference, and dynamic fan-out. See [Connection Scoring](connection_scoring.md) for the full algorithm description.
 
 Without a router, the client uses round-robin across all discovered nodes (the pre-existing default behavior).
 
 ## Pre-Built Routers
 
-| Router           | Constructor             | Use Case                                                                     |
-| ---------------- | ----------------------- | ---------------------------------------------------------------------------- |
-| Smart (Affinity) | `NewSmartRouter()`      | **Production default.** Role-based + per-index affinity with RTT scoring.    |
-| Mux              | `NewMuxRouter()`        | Role-based routing without affinity. Useful for debugging routing decisions. |
-| Round-Robin      | `NewRoundRobinRouter()` | Coordinating-only preference with round-robin fallback. Simplest option.     |
+| Router      | Constructor             | Use Case                                                                                                |
+| ----------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
+| Default     | `NewDefaultRouter()`    | **Production default.** Role-based + per-index connection scoring with RTT, congestion, and shard cost. |
+| Mux         | `NewMuxRouter()`        | Role-based routing without connection scoring. Useful for debugging routing decisions.                  |
+| Round-Robin | `NewRoundRobinRouter()` | Coordinating-only preference with round-robin fallback. Simplest option.                                |
 
-`NewDefaultRouter()` currently returns the same router as `NewSmartRouter()`.
+`NewDefaultRouter()` is the recommended router for production use.
 
 ```go
-// Role-based routing without affinity (useful for comparing behavior)
+// Role-based routing without connection scoring (useful for comparing behavior)
 router := opensearchtransport.NewMuxRouter()
 
 // Simple coordinating-only preference with round-robin fallback
@@ -43,7 +43,7 @@ router := opensearchtransport.NewRoundRobinRouter()
 All three routers share the same policy chain structure:
 
 1. **Coordinating-only nodes** (if any exist, routes all traffic to them exclusively)
-2. **Operation-specific routing** (Smart/Mux only: bulk/reindex->ingest, search/msearch/count->search/data, scroll/PIT->search/data, refresh/flush/cache clear->data, stats/recovery->data, etc.)
+2. **Operation-specific routing** (Default/Mux only: bulk/reindex->ingest, search/msearch/count/scroll/PIT/validate/rank_eval->search/data, get/mget/termvectors->search/data, refresh/flush/forcemerge->data, stats/recovery/shard_stores->data, etc.)
 3. **Round-robin fallback** (high availability)
 
 ## Routing Architecture
@@ -53,8 +53,8 @@ All three routers share the same policy chain structure:
 The routing system uses a **chain-of-responsibility pattern**:
 
 - **Router**: Top-level coordinator that tries policies in sequence
-- **Policy**: Individual routing strategy that returns a connection pool or `(nil, nil)` to pass
-- **Fallthrough**: Policies return `(nil, nil)` when they do not match, allowing the next policy to try
+- **Policy**: Individual routing strategy that returns a `NextHop` (connection + pool name) or `(NextHop{}, nil)` to pass
+- **Fallthrough**: Policies return `(NextHop{}, nil)` when they do not match, allowing the next policy to try
 
 ### Policy Primitives
 
@@ -77,7 +77,7 @@ opensearchtransport.NewMuxPolicy(routes)
 // Conditional: evaluate a predicate at request time
 opensearchtransport.NewIfEnabledPolicy(conditionFunc, truePolicy, falsePolicy)
 
-// Null: always returns (nil, nil) -- used as a fallthrough terminator
+// Null: always returns (NextHop{}, nil) -- used as a fallthrough terminator
 opensearchtransport.NewNullPolicy()
 ```
 
@@ -159,7 +159,7 @@ nodes:
     roles: [] # coordinating-only
 ```
 
-With `NewSmartRouter()`:
+With `NewDefaultRouter()`:
 
 - All requests -> coordinator-1 (coordinating-only nodes get exclusive traffic)
 
@@ -184,12 +184,12 @@ nodes:
     roles: [ingest]
 ```
 
-With `NewSmartRouter()`:
+With `NewDefaultRouter()`:
 
-- `POST /_bulk` -> ingest-1 (with affinity)
-- `POST /products/_search` -> search-1 (with per-index affinity)
-- `GET /products/_doc/123` -> search-1 (with document affinity)
-- `POST /products/_search/scroll` -> search-1 (with per-index affinity)
+- `POST /_bulk` -> ingest-1 (with connection scoring)
+- `POST /products/_search` -> search-1 (with per-index scoring)
+- `GET /products/_doc/123` -> search-1 (with document-level scoring)
+- `POST /products/_search/scroll` -> search-1 (with per-index scoring)
 - `POST /products/_refresh` -> data-1 or data-2 (shard maintenance targets data nodes)
 
 If search-1 is removed, search operations automatically fall back to data nodes.
@@ -290,22 +290,24 @@ Overloaded nodes are demoted from the active partition to the standby partition 
 
 ## Performance
 
-Routing decisions are evaluated in the hot path of every request. All policies and routers are designed to add minimal overhead with zero or near-zero heap allocations.
+Routing decisions are evaluated in the hot path of every request. All policies and routers evaluate with **zero heap allocations**.
 
-**Policy evaluation cost** ranges from ~145 ns (pass-through policies like NullPolicy, IfEnabledPolicy, and role misses) to ~580 ns (IndexAffinityPolicy with rendezvous hashing over 10 nodes). All policies evaluate at **0 allocs/op**.
+**Policy evaluation cost** ranges from ~144 ns (pass-through policies like NullPolicy, IfEnabledPolicy, and role misses) to ~464 ns (IndexRouter with rendezvous hashing over 10 nodes). All policies evaluate at **0 allocs/op**.
 
 **End-to-end router cost** for matched routes:
 
-| Router      | Matched Route                  | ns/op | allocs/op |
-| ----------- | ------------------------------ | ----- | --------- |
-| MuxRouter   | Search, Bulk, Get, IndexSearch | ~155  | 0         |
-| SmartRouter | Search, Bulk                   | ~220  | 0         |
-| SmartRouter | IndexSearch                    | ~490  | 1         |
-| SmartRouter | Get (document affinity)        | ~520  | 2         |
+| Router        | Matched Route          | ns/op | allocs/op |
+| ------------- | ---------------------- | ----- | --------- |
+| MuxRouter     | Search, Bulk, Get      | ~160  | 0         |
+| MuxRouter     | IndexSearch            | ~161  | 0         |
+| DefaultRouter | Search                 | ~259  | 0         |
+| DefaultRouter | Bulk                   | ~231  | 0         |
+| DefaultRouter | Get (document scoring) | ~452  | 0         |
+| DefaultRouter | IndexSearch            | ~431  | 0         |
 
-SmartRouter's additional latency over MuxRouter comes from rendezvous hashing and affinity scoring. The 1-2 allocations on Get/IndexSearch paths are from Go's `http.ServeMux` wildcard capture and `sync.Pool` miss rate, both internal to the Go standard library.
+Route matching uses a zero-allocation trie (`routeTrie`). Literal path segments always match before wildcards, so system endpoints (`/_search`) and index endpoints (`/{index}/_search`) coexist without ambiguity.
 
-Routes that do not match any registered pattern (for example, `PUT /{index}/_doc/{id}`) fall through to round-robin. On the fallthrough path, Go's `http.ServeMux` enumerates allowed methods internally, which adds 18-35 allocations. This affects only unmatched routes and does not impact the primary Search, Bulk, and Get paths.
+DefaultRouter's additional latency over MuxRouter comes from rendezvous hashing and connection scoring. Unmatched routes (e.g., `GET /_cluster/health`) fall through to round-robin at ~187 ns, 0 allocs/op.
 
 See `opensearchtransport/routing_benchmark_test.go` for the full benchmark suite and reference data.
 
@@ -313,7 +315,7 @@ See `opensearchtransport/routing_benchmark_test.go` for the full benchmark suite
 
 **Q: How do I verify routing is working?**
 
-Enable debug logging to see which connections are selected by policies.
+Enable debug logging to see which connections are selected by policies. Set `OPENSEARCH_GO_DEBUG=true` to see policy paths, scoring decisions, and override actions logged to stderr.
 
 **Q: Can I disable request routing?**
 
@@ -339,18 +341,18 @@ Operators can disable specific routing policies at process startup via environme
 
 Each policy type has a corresponding variable:
 
-| Variable                                 | Policy Type            |
-| ---------------------------------------- | ---------------------- |
-| `OPENSEARCH_GO_POLICY_CHAIN`             | PolicyChain            |
-| `OPENSEARCH_GO_POLICY_MUX`               | MuxPolicy              |
-| `OPENSEARCH_GO_POLICY_IFENABLED`         | IfEnabledPolicy        |
-| `OPENSEARCH_GO_POLICY_AFFINITY`          | affinityPolicyWrapper  |
-| `OPENSEARCH_GO_POLICY_ROLE`              | RolePolicy             |
-| `OPENSEARCH_GO_POLICY_ROUNDROBIN`        | RoundRobinPolicy       |
-| `OPENSEARCH_GO_POLICY_COORDINATOR`       | CoordinatorPolicy      |
-| `OPENSEARCH_GO_POLICY_NULL`              | NullPolicy             |
-| `OPENSEARCH_GO_POLICY_INDEX_AFFINITY`    | IndexAffinityPolicy    |
-| `OPENSEARCH_GO_POLICY_DOCUMENT_AFFINITY` | DocumentAffinityPolicy |
+| Variable                               | Policy Type                             |
+| -------------------------------------- | --------------------------------------- |
+| `OPENSEARCH_GO_POLICY_CHAIN`           | PolicyChain                             |
+| `OPENSEARCH_GO_POLICY_MUX`             | MuxPolicy                               |
+| `OPENSEARCH_GO_POLICY_IFENABLED`       | IfEnabledPolicy                         |
+| `OPENSEARCH_GO_POLICY_ROUTER`          | poolRouter                              |
+| `OPENSEARCH_GO_POLICY_ROLE`            | RolePolicy                              |
+| `OPENSEARCH_GO_POLICY_ROUNDROBIN`      | RoundRobinPolicy                        |
+| `OPENSEARCH_GO_POLICY_COORDINATOR`     | CoordinatorPolicy (custom routers only) |
+| `OPENSEARCH_GO_POLICY_NULL`            | NullPolicy                              |
+| `OPENSEARCH_GO_POLICY_INDEX_ROUTER`    | IndexRouter                             |
+| `OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER` | DocRouter                               |
 
 ### Value Format
 
@@ -360,8 +362,8 @@ Each policy type has a corresponding variable:
 # Disable all RolePolicy instances (falls through to round-robin)
 OPENSEARCH_GO_POLICY_ROLE=false
 
-# Disable affinity routing (falls back to plain role-based)
-OPENSEARCH_GO_POLICY_AFFINITY=false
+# Disable connection scoring (falls back to plain role-based)
+OPENSEARCH_GO_POLICY_ROUTER=false
 ```
 
 **Disable a specific instance by path:**
@@ -405,7 +407,69 @@ Enable `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions logge
 When a policy is env-disabled:
 
 - `IsEnabled()` returns `false`
-- `Eval()` returns `(nil, nil)` (pass-through to next policy)
+- `Eval()` returns `(NextHop{}, nil)` (pass-through to next policy)
 - `DiscoveryUpdate()` is a no-op on leaf policies (prevents accumulating connections)
 
 The env override is applied once at startup, after policy configuration but before the first `DiscoveryUpdate`. It cannot be changed at runtime.
+
+## Feature Configuration Environment Variables
+
+Two additional environment variables control routing and discovery features at a finer granularity than policy-level overrides. See the [Connection Scoring Guide](connection_scoring.md#environment-variables) for full documentation.
+
+| Variable                         | Scope     | Effect                                              |
+| -------------------------------- | --------- | --------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTING_CONFIG`   | Routing   | Toggle shard-exact routing (`-shard_exact`)         |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Discovery | Skip individual server calls (`/_cat/shards`, etc.) |
+| `OPENSEARCH_GO_FALLBACK`         | Transport | Disable seed URL fallback when all pools exhausted  |
+
+## Complete Environment Variable Reference
+
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. Environment variable settings override programmatic configuration values.
+
+### Debug and Diagnostics
+
+| Variable              | Format | Default | Description                                                                |
+| --------------------- | ------ | ------- | -------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_DEBUG` | Bool   | `false` | Enable debug logging to stderr for routing, discovery, and pool operations |
+
+### Feature Configuration
+
+| Variable                         | Format                          | Default       | Description                                                                                  |
+| -------------------------------- | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled) | Toggle shard-exact routing (`-shard_exact`)                                                  |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled) | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
+| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`        | Seed URL fallback when all pools exhausted. `false` = disable                                |
+
+### Load Shedding and Stats Polling
+
+| Variable                                  | Format              | Default       | Description                                                      |
+| ----------------------------------------- | ------------------- | ------------- | ---------------------------------------------------------------- |
+| `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto. Negative = disabled |
+| `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100)     | `85`          | JVM heap threshold. `100` = disable heap detection               |
+| `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Float (0.0-1.0)     | `0.90`        | Breaker ratio threshold. `1.0` = disable breaker detection       |
+
+### Connection Pool Tuning
+
+| Variable                                  | Format              | Default | Description                                                             |
+| ----------------------------------------- | ------------------- | ------- | ----------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ACTIVE_LIST_CAP`           | Integer             | auto    | Max active connections per pool. `0` or unset = auto-scale with cluster |
+| `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | Duration or seconds | `30s`   | Interval between standby rotation cycles                                |
+| `OPENSEARCH_GO_STANDBY_ROTATION_COUNT`    | Integer             | `1`     | Standby connections rotated per cycle                                   |
+| `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`  | Integer             | `3`     | Consecutive health checks before standby-to-active promotion            |
+
+### Policy Overrides
+
+Each policy type has a corresponding `OPENSEARCH_GO_POLICY_<TYPE>` variable. See [Policy Environment Variable Overrides](#policy-environment-variable-overrides) for syntax and examples.
+
+| Variable                               | Policy Type                             |
+| -------------------------------------- | --------------------------------------- |
+| `OPENSEARCH_GO_POLICY_CHAIN`           | PolicyChain                             |
+| `OPENSEARCH_GO_POLICY_MUX`             | MuxPolicy                               |
+| `OPENSEARCH_GO_POLICY_IFENABLED`       | IfEnabledPolicy                         |
+| `OPENSEARCH_GO_POLICY_ROUTER`          | poolRouter                              |
+| `OPENSEARCH_GO_POLICY_ROLE`            | RolePolicy                              |
+| `OPENSEARCH_GO_POLICY_ROUNDROBIN`      | RoundRobinPolicy                        |
+| `OPENSEARCH_GO_POLICY_COORDINATOR`     | CoordinatorPolicy (custom routers only) |
+| `OPENSEARCH_GO_POLICY_NULL`            | NullPolicy                              |
+| `OPENSEARCH_GO_POLICY_INDEX_ROUTER`    | IndexRouter                             |
+| `OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER` | DocRouter                               |

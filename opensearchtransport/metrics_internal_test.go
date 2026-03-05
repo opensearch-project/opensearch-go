@@ -29,7 +29,6 @@
 package opensearchtransport
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -76,8 +75,6 @@ func TestMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
-
-		fmt.Println(m)
 
 		if m.Requests != 4 {
 			t.Errorf("Unexpected output, want=4, got=%d", m.Requests)

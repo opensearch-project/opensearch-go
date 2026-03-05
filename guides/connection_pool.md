@@ -72,7 +72,7 @@ The cap is recalculated on every `DiscoveryUpdate`:
 
 ```
   activeListCapConfig = nil (auto-scale)
-  ──────────────────────────────────────
+  ──────────────────────────────────────────
 
     DiscoveryUpdate(poolSize=N):
       activeListCap <- N           (scales with cluster)
@@ -169,6 +169,8 @@ Triggered periodically by the discovery cycle to keep standby connections exerci
   After:   active=[B C D E F]  standby=[A G H]  cap=5
 ```
 
+The rotation period for a full cycle through all nodes is `N * discoveryInterval`, where N is the pool size. On a 3-node cluster with `activeListCap=2` and 15s discovery interval, each node spends ~15s on standby before being rotated back to active. This keeps RTT estimates and congestion window values current across all nodes.
+
 ## Connection Warmup
 
 When a connection joins the active partition (from standby, dead, or discovery), it goes through a non-linear warmup ramp that gradually increases the fraction of requests it accepts.
@@ -193,22 +195,22 @@ This produces an S-shaped acceptance ramp: slow start while the JVM interprets c
   smoothstep: skip = maxSkip * (1 - 3t^2 + 2t^3)
   (each █ = 1 request skipped before next accept)
 
-  R16 ████████████████████████████████ 32   3% ╮
-  R15 ███████████████████████████████  31   3% │ slow soak:
-  R14 ██████████████████████████████   30   3% │ JVM interprets
-  R13 █████████████████████████████    29   3% ╯ cold bytecode
-  R12 ███████████████████████████      27   4% ╮
-  R11 ████████████████████████         24   4% │ accelerating:
-  R10 █████████████████████            21   5% │ C1/C2 JIT
-  R9  ██████████████████               18   5% │ compiles hot
-  R8  ████████████████                 16   6% │ methods
-  R7  █████████████                    13   7% │
-  R6  ██████████                       10   9% ╯
-  R5  ███████                           7  13% ╮
-  R4  █████                             5  17% │ decelerating:
-  R3  ██                                2  33% │ smooth arrival
-  R2  █                                 1  50% │ at full traffic
-  R1                                    0 100% ╯
+  R16 ████████████████████████████████ 32    3% ╮
+  R15 ███████████████████████████████  31    3% │ slow soak:
+  R14 ██████████████████████████████   30    3% │ JVM interprets
+  R13 █████████████████████████████    29    3% ╯ cold bytecode
+  R12 ███████████████████████████      27    4% ╮
+  R11 ████████████████████████         24    4% │ accelerating:
+  R10 █████████████████████            21    5% │ C1/C2 JIT
+  R9  ██████████████████               18    5% │ compiles hot
+  R8  ████████████████                 16    6% │ methods
+  R7  █████████████                    13    7% │
+  R6  ██████████                       10    9% ╯
+  R5  ███████                           7   13% ╮
+  R4  █████                             5   17% │ decelerating:
+  R3  ██                                2   33% │ smooth arrival
+  R2  █                                 1   50% │ at full traffic
+  R1                                    0  100% ╯
 ```
 
 The smoothstep curve is designed around the JVM HotSpot JIT compiler on the server side. When a node restarts (or a new connection routes traffic to a node that has not encountered this client's request patterns), the JVM runs in interpreted mode. The slow initial trickle allows the C1 (client) and C2 (server) compilers to profile, compile, and deoptimize/recompile hot code paths -- search execution, bulk indexing, aggregation pipelines, and codec paths -- without subjecting the node to full production load while it runs unoptimized bytecode.
@@ -315,21 +317,22 @@ Each `Connection` stores its full state in a single `atomic.Int64`, enabling loc
 ### Lifecycle Bits (bits 63-52)
 
 ```
-  Bit   Hex    Name             Group        Description
-  ────  ─────  ───────────────  ──────────   ──────────────────────────────
-   0    0x001  lcReady          Readiness    Believed functional
-   1    0x002  lcUnknown        Readiness    Status uncertain; needs check
+  Bit   Hex    Name               Group        Description
+  ────  ─────  ───────────────    ──────────   ─────────────────────────────────────────────────────────────────────────
+   0    0x001  lcReady            Readiness    Believed functional
+   1    0x002  lcUnknown          Readiness    Status uncertain; needs check
 
-   2    0x004  lcActive         Position     In active partition, serving
-   3    0x008  lcStandby        Position     In standby partition, idle
+   2    0x004  lcActive           Position     In active partition, serving
+   3    0x008  lcStandby          Position     In standby partition, idle
 
-   4    0x010  lcNeedsWarmup    Metadata     Needs warmup before full traffic
-   5    0x020  lcOverloaded     Metadata     Node resource overload
-   6    0x040  lcHealthChecking Metadata     Health check goroutine running
-   7    0x080  lcDraining       Metadata     HTTP/2 GOAWAY; no new requests
+   4    0x010  lcNeedsWarmup      Metadata     Needs warmup before full traffic
+   5    0x020  lcOverloaded       Metadata     Node resource overload
+   6    0x040  lcHealthChecking   Metadata     Health check goroutine running
+   7    0x080  lcDraining         Metadata     HTTP/2 GOAWAY; no new requests
 
-   8    0x100  lcNeedsHardware  Extended     Needs hardware info (/_nodes/_local/http,os)
-   9-11        (reserved)       Extended     Available for future use
+   8    0x100  lcNeedsHardware    Extended     Needs hardware info (/_nodes/_local/http,os)
+   9    0x200  lcNeedsCatUpdate   Extended     Shard placement stale; excluded from scored routing until /_cat/shards refresh
+  10-11        (reserved)         Extended     Available for future use
 
   Readiness: exactly one of {lcReady, lcUnknown} must be set
   Position:  at most one of {lcActive, lcStandby}; neither = dead list
@@ -340,21 +343,21 @@ Each `Connection` stores its full state in a single `atomic.Int64`, enabling loc
 ### Common State Combinations
 
 ```
-  State                    Bits          Meaning
-  ───────────────────────  ───────────   ─────────────────────────────────
-  lcReady|lcActive         0x005         Normal active connection
-  lcReady|lcStandby        0x009         Healthy but idle in standby
-  lcUnknown                0x002         Dead (no position bits)
-  lcUnknown|lcStandby      0x00A         Standby, needs health check
-  lcUnknown|lcStandby|     0x01A         Claimed for standby warming
+  State                      Bits          Meaning
+  ─────────────────────────  ───────────   ──────────────────────────────────────────────────────
+  lcReady|lcActive           0x005         Normal active connection
+  lcReady|lcStandby          0x009         Healthy but idle in standby
+  lcUnknown                  0x002         Dead (no position bits)
+  lcUnknown|lcStandby        0x00A         Standby, needs health check
+  lcUnknown|lcStandby|       0x01A         Claimed for standby warming
     lcNeedsWarmup
-  lcReady|lcActive|        0x015         Active, going through warmup
+  lcReady|lcActive|          0x015         Active, going through warmup
     lcNeedsWarmup
-  lcUnknown|lcOverloaded   0x022         Dead + also overloaded (was dead before overload detected)
-  lcReady|lcStandby|       0x029         Standby, demoted due to overload
+  lcUnknown|lcOverloaded     0x022         Dead + also overloaded (was dead before overload detected)
+  lcReady|lcStandby|         0x029         Standby, demoted due to overload
     lcOverloaded
-  lcUnknown|lcDraining     0x082         Dead, HTTP/2 GOAWAY received
-  lcUnknown|lcNeedsWarmup| 0x112         New connection, needs hardware info
+  lcUnknown|lcDraining       0x082         Dead, HTTP/2 GOAWAY received
+  lcUnknown|lcNeedsWarmup|   0x112         New connection, needs hardware info
     lcNeedsHardware
 ```
 
@@ -363,7 +366,7 @@ Each `Connection` stores its full state in a single `atomic.Int64`, enabling loc
 Each warmup manager packs two 8-bit fields into the lower 16 bits of its 26-bit slot (upper 10 bits reserved):
 
 ```
-  25              16 15        8 7         0
+  25             16 15        8 7         0
   ┌────────────────┬───────────┬───────────┐
   │   reserved     │  rounds   │ skipCount │
   │   (10 bits)    │  (8 bits) │ (8 bits)  │
@@ -430,7 +433,7 @@ When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is se
 
 ### CAS-Based Lifecycle Transitions
 
-The `casLifecycle()` method atomically modifies lifecycle bits with conflict detection. It uses a CAS loop because lock-free warmup decrements may modify the lower 56 bits concurrently:
+The `casLifecycle()` method atomically modifies lifecycle bits with conflict detection. It uses a CAS loop because lock-free warmup decrements may modify the lower 52 bits concurrently:
 
 ```
   casLifecycle(current, conflict, set, clear):
@@ -442,7 +445,7 @@ The `casLifecycle()` method atomically modifies lifecycle bits with conflict det
     Otherwise -> CAS and return true
 ```
 
-This is replacing `advanceLifecycle()` throughout the codebase for safer concurrent state transitions with explicit conflict detection.
+All lifecycle transitions use `casLifecycle()` for safe concurrent state changes with explicit conflict detection.
 
 ## Resurrection and Backoff
 
@@ -492,7 +495,7 @@ In heterogeneous clusters where nodes have different core counts, the client dis
 
 ### How Weights Are Determined
 
-Node discovery calls `/_nodes/http,os`, which returns each node's `allocated_processors` count. The client normalizes these into integer weights using GCD (greatest common divisor) reduction:
+Node discovery calls `/_nodes/http,os,thread_pool`, which returns each node's `allocated_processors` count and thread pool configuration. The client normalizes processor counts into integer weights using GCD (greatest common divisor) reduction:
 
 ```
   Cluster cores:  [8, 16]          -> GCD=8  -> weights: [1, 2]
@@ -536,13 +539,13 @@ Each connection tracks whether it needs hardware info via the `lcNeedsHardware` 
 
 - **Set on creation**: All new connections start with `lcNeedsHardware`
 - **Set on failure**: When a connection dies, `lcNeedsHardware` is set because the node may have been replaced with different hardware.
-- **Cleared**: When hardware info is successfully obtained, either from cluster-wide `/_nodes/http,os` during discovery or from per-node `/_nodes/_local/http,os` during a health check.
+- **Cleared**: When hardware info is successfully obtained, either from cluster-wide `/_nodes/http,os,thread_pool` during discovery or from per-node `/_nodes/_local/http,os` during a health check.
 
 When a health check is due on a connection with `lcNeedsHardware` set, the client substitutes `/_nodes/_local/http,os` for the normal health check endpoint. This obtains hardware info without an extra request: one health check cycle is traded for hardware discovery.
 
 ### Capacity Model
 
-The capacity model auto-derives all rate-limiting parameters from the server's core count (discovered via `/_nodes/http,os`):
+The capacity model auto-derives all rate-limiting parameters from the server's core count (discovered via `/_nodes/http,os,thread_pool`):
 
 ```
   Primary input:  allocatedProcessors (auto-discovered, default: 8)
@@ -569,7 +572,7 @@ Each connection tracks whether `/_cluster/health?local=true` is available using 
   Bit 1 (0x02): clusterHealthAvailable  -- probe succeeded
 
   State    Probed  Available  Meaning
-  ──────   ──────  ─────────  ───────────────────────────────
+  ──────   ──────  ─────────  ───────────────────────────────────
   0x00     no      no         Pending -- never probed
   0x01     yes     no         Unavailable -- 401/403 response
   0x03     yes     yes        Available -- endpoint works

@@ -87,21 +87,21 @@ const policyTypeNameUnknown = "unknown"
 // policySortKey returns a structural identity string for a policy that
 // encodes its type name plus distinguishing configuration and children.
 // Used as a deterministic sort key when sibling policies share the same
-// policyTypeName (e.g., multiple affinityPolicyWrapper instances under
+// policyTypeName (e.g., multiple poolRouter instances under
 // a MuxPolicy).
 //
 // Examples:
 //
 //	RolePolicy("data")          -> "role:data"
-//	affinityPolicyWrapper       -> "affinity(role:ingest)"
+//	poolRouter       -> "router:write(role:ingest)"
 //	IfEnabledPolicy             -> "ifenabled(role:coordinating_only,null)"
 //	PolicyChain                 -> "chain(ifenabled(...),roundrobin)"
 func policySortKey(p Policy) string {
 	switch v := p.(type) {
 	case *RolePolicy:
 		return "role:" + v.requiredRoleKey
-	case *affinityPolicyWrapper:
-		return "affinity(" + policySortKey(v.inner) + ")"
+	case *poolRouter:
+		return "router:" + v.poolName + "(" + policySortKey(v.inner) + ")"
 	case *IfEnabledPolicy:
 		return "ifenabled(" + policySortKey(v.truePolicy) + "," + policySortKey(v.falsePolicy) + ")"
 	case *PolicyChain:
@@ -163,13 +163,13 @@ var policyTypeNames = []string{
 	"chain",
 	"mux",
 	"ifenabled",
-	"affinity",
+	"router",
 	"role",
 	"roundrobin",
 	"coordinator",
 	"null",
-	"index_affinity",
-	"document_affinity",
+	"index_router",
+	"document_router",
 }
 
 // parsePolicyOverrides reads OPENSEARCH_GO_POLICY_* environment variables

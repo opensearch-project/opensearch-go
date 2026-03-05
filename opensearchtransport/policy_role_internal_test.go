@@ -82,12 +82,12 @@ func TestRolePolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
-	t.Run("Eval returns pool when matching connections available", func(t *testing.T) {
+	t.Run("Eval returns conn when matching connections available", func(t *testing.T) {
 		policy, err := NewRolePolicy(RoleData)
 		require.NoError(t, err)
 
@@ -101,8 +101,8 @@ func TestRolePolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.NotNil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.NotNil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 

@@ -56,26 +56,27 @@ func TestRoundRobinPolicy(t *testing.T) {
 		require.True(t, policy.IsEnabled())
 	})
 
-	t.Run("Eval returns nil when no pool", func(t *testing.T) {
+	t.Run("Eval returns nil conn when no pool", func(t *testing.T) {
 		policy := NewRoundRobinPolicy()
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
-	t.Run("Eval returns pool when configured", func(t *testing.T) {
+	t.Run("Eval returns error when pool has no connections", func(t *testing.T) {
 		policy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		policy.configurePolicySettings(createTestConfig())
 
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.NotNil(t, pool)
-		require.NoError(t, err)
+		hop, err := policy.Eval(ctx, req)
+		// Pool exists but has no connections -> Next() returns ErrNoConnections
+		require.Error(t, err)
+		require.Nil(t, hop.Conn)
 	})
 
 	t.Run("DiscoveryUpdate with nil changes is no-op", func(t *testing.T) {

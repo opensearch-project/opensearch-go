@@ -326,7 +326,7 @@ func TestSearch(t *testing.T) {
 
 	t.Run("request with phase took", func(t *testing.T) {
 		t.Parallel()
-		testutil.SkipIfBelowVersion(t, client, 2, 12, "request with phase took")
+		testutil.SkipIfVersion(t, client, "<", "2.12", "request with phase took")
 		resp, err := client.Search(
 			t.Context(),
 			&opensearchapi.SearchReq{

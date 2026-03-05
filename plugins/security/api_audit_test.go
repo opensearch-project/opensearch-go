@@ -25,7 +25,12 @@ func TestSecurityAuditClient(t *testing.T) {
 	osAPIclient, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	testutil.SkipIfBelowVersion(t, osAPIclient, 2, 15, "Audit API")
+	// OpenSearch 2.15.0 has a server bug where the audit config document is not
+	// loaded into the security index during demo config initialization, causing
+	// isAuditHotReloadingEnabled() to return false and the Audit API to reject
+	// all requests with "Method X not supported for this action." (NOT_FOUND).
+	// This is confirmed failing in upstream CI as well. Fixed in 2.16.0.
+	testutil.SkipIfVersion(t, osAPIclient, "=", "2.15", "Audit API")
 
 	client, err := ossectest.NewClient(t)
 	require.NoError(t, err)

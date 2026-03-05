@@ -62,6 +62,7 @@ const (
 	// With defaults (serverCoreCount=8): serverMaxNewConnsPerSec=32, clientsPerServer=8,
 	// perClientRate=4.0 health checks/sec.
 	defaultServerCoreCount            = 8    // default assumed core count per server
+	defaultMembersCapacity            = 8    // initial capacity for pool members map
 	serverMaxNewConnsPerSecMultiplier = 4.0  // serverMaxNewConnsPerSec = cores * this
 	healthCheckRateMultiplier         = 0.10 // unified health check rate = cores * this
 
@@ -126,7 +127,7 @@ type ConnectionPool interface {
 // RequestRoutingConnectionPool extends ConnectionPool to support request-based connection routing.
 type RequestRoutingConnectionPool interface {
 	ConnectionPool
-	NextForRequest(*http.Request) (*Connection, error) // NextForRequest returns connection optimized for the request.
+	NextForRequest(*http.Request) (*Connection, error) // NextForRequest returns a connection optimized for the request.
 }
 
 // rwLocker defines the interface for connection pools that support read-write locking.
@@ -166,12 +167,18 @@ type Connection struct {
 	// rendezvousTopK for RTT-aware slot selection.
 	rttRing *rttRing
 
-	// affinityCounter tracks estimated CPU time deposited on this node by
-	// this client. Updated after each successful request with the estimated
-	// server-side processing time normalized by the node's core count.
-	// Includes coordinator overhead when the node proxies to shard nodes.
+	// estLoad tracks estimated server-side wall-clock processing time
+	// deposited on this node by this client. Updated after each successful
+	// request with (requestDuration - healthCheckRTT) / allocatedProcessors.
+	// Does not distinguish on-CPU vs off-CPU time.
 	// Uses time-weighted EWMA: decay is tied to wall clock, not request rate.
-	affinityCounter timeWeightedCounter
+	estLoad timeWeightedCounter
+
+	// pools tracks per-thread-pool congestion state for this connection.
+	// Each pool has its own AIMD congestion window, in-flight counter,
+	// and overloaded flag. Used by calcConnScore for the utilization
+	// ratio: (inFlight + 1) / cwnd.
+	pools poolRegistry
 
 	failures           atomic.Int64
 	clusterHealthState atomic.Int64 // Bitfield: clusterHealthProbed | clusterHealthAvailable
@@ -300,9 +307,9 @@ func (c *Connection) RTTMedian() time.Duration {
 // Buckets use power-of-two quantization: bucket = floor(log2(microseconds)),
 // clamped to a floor of 8 (256us). Returns -1 if no RTT data is available.
 //
-// This is the value used in affinity score calculations:
+// This is the value used in routing score calculations:
 //
-//	score = rttBucket * decayCounter * shardCostMultiplier
+//	score = rttBucket * (inFlight + 1) / cwnd * shardCostMultiplier
 func (c *Connection) RTTBucket() int64 {
 	if c.rttRing == nil {
 		return -1
@@ -314,22 +321,24 @@ func (c *Connection) RTTBucket() int64 {
 	return bucket.Int64()
 }
 
-// AffinityLoad returns the current CPU-load accumulator value for this
-// connection. The value reflects the exponentially decaying sum of estimated
-// server-side processing time per processor. Higher values indicate the node
-// is handling more work from this client.
+// EstLoad returns the exponentially decaying sum of estimated server-side
+// wall-clock processing time per processor for this connection. The estimate
+// is (requestDuration - healthCheckRTT) / allocatedProcessors, accumulated
+// via time-weighted EWMA. Higher values indicate the node is handling more
+// work from this client.
 //
-// Note: the estimate includes time the node spends coordinating sub-requests
-// to other nodes, not only local CPU time. This is directionally correct for
-// load-shedding (a busy coordinator is still a busy node from this client's
-// perspective) and most accurate when affinity routing is effective (requests
-// hit shard-hosting nodes, minimizing coordinator overhead).
-func (c *Connection) AffinityLoad() float64 {
-	return c.affinityCounter.load()
+// The estimate does not distinguish between on-CPU and off-CPU time: it
+// includes time the server spends waiting on I/O, garbage collection, or
+// coordinating sub-requests to other nodes. This is directionally correct
+// for load-shedding (a busy node is busy regardless of where time is spent)
+// and most accurate when shard-aware routing is effective (requests hit
+// shard-hosting nodes, minimizing coordinator overhead).
+func (c *Connection) EstLoad() float64 {
+	return c.estLoad.load()
 }
 
 // recordCPUTime estimates the server-side CPU time consumed by a completed
-// request and adds it to the connection's affinity accumulator.
+// request and adds it to the connection's load accumulator.
 //
 // The estimate is: (requestDuration - healthCheckRTT) / allocatedProcessors.
 // healthCheckRTT approximates wire time (GET / is near-zero CPU), so the
@@ -353,7 +362,7 @@ func (c *Connection) AffinityLoad() float64 {
 // spent waiting for sub-requests to other data nodes. The estimate therefore
 // reflects total interaction cost with this node, not strictly local CPU.
 // This is acceptable: a node doing more coordinating work is busier from
-// this client's perspective, and affinity routing minimizes coordinator
+// this client's perspective, and shard-aware routing minimizes coordinator
 // overhead by preferring shard-hosting nodes.
 //
 // All arithmetic is performed in integer nanoseconds via [durationNanos],
@@ -388,7 +397,58 @@ func (c *Connection) recordCPUTime(requestDuration time.Duration) {
 		cost /= thisBucket
 	}
 
-	c.affinityCounter.add(cost)
+	c.estLoad.add(cost)
+}
+
+// addInFlight atomically increments the in-flight counter for the named
+// thread pool and returns the new value. Empty poolName uses the default pool.
+func (c *Connection) addInFlight(poolName string) int32 {
+	pc := c.pools.getForScoring(poolName)
+	return pc.inFlight.Add(1)
+}
+
+// releaseInFlight atomically decrements the in-flight counter for the named
+// thread pool and returns the new value. Empty poolName uses the default pool.
+func (c *Connection) releaseInFlight(poolName string) int32 {
+	pc := c.pools.getForScoring(poolName)
+	return pc.inFlight.Add(-1)
+}
+
+// loadInFlight returns the current in-flight count for the named thread pool.
+// Empty poolName uses the default pool.
+func (c *Connection) loadInFlight(poolName string) int32 {
+	return c.pools.getForScoring(poolName).inFlight.Load()
+}
+
+// loadCwnd returns the current congestion window for the named thread pool.
+// Returns at least 1. When pool info is not yet available (pre-quorum),
+// returns defaultSyntheticCwndMultiplier * allocatedProcessors.
+// Empty poolName or unknown pool uses the default pool.
+func (c *Connection) loadCwnd(poolName string, poolInfoReady bool) int32 {
+	if !poolInfoReady {
+		procs := c.allocatedProcessors.Load()
+		if procs <= 0 {
+			procs = int32(defaultServerCoreCount)
+		}
+		return max(int32(defaultSyntheticCwndMultiplier)*procs, 1)
+	}
+	cwnd := c.pools.getForScoring(poolName).cwnd.Load()
+	if cwnd < 1 {
+		return 1
+	}
+	return cwnd
+}
+
+// isPoolOverloaded returns true if the named thread pool is overloaded
+// (delta(rejected) > 0 or HTTP 429). Empty poolName checks the default pool.
+func (c *Connection) isPoolOverloaded(poolName string) bool {
+	return c.pools.getForScoring(poolName).overloaded.Load()
+}
+
+// storeMaxCwnd sets the thread pool's configured size as the cwnd ceiling.
+// Called by discovery when pool sizes are received.
+func (c *Connection) storeMaxCwnd(poolName string, size int) {
+	c.pools.setMaxCwnd(poolName, int32(size)) //nolint:gosec // pool sizes fit int32
 }
 
 // String returns a readable connection representation.

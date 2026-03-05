@@ -22,8 +22,6 @@ import (
 //
 // The pool's selection strategy is pluggable via the [poolSelector] interface.
 // By default ([poolRoundRobin]), selection is an atomic counter with modulo.
-// The [poolLoadAffinity] selector adds RTT * decay scoring with dynamic cap
-// growth/shrink signaling.
 type multiServerPool struct {
 	name string // Pool identity for metrics/debug (e.g. "roundrobin", "role:data")
 
@@ -35,9 +33,10 @@ type multiServerPool struct {
 
 	mu struct {
 		sync.RWMutex
-		ready       []*Connection // Partitioned: ready[:activeCount] are active, ready[activeCount:] are standby
-		dead        []*Connection // List of dead connections
-		activeCount int           // Number of active connections; elements past this index are standby
+		ready       []*Connection            // Partitioned: ready[:activeCount] are active, ready[activeCount:] are standby
+		dead        []*Connection            // List of dead connections
+		activeCount int                      // Number of active connections; elements past this index are standby
+		members     map[*Connection]struct{} // O(1) containment check; tracks all conns in ready+dead
 	}
 
 	// selector determines how the pool picks the next connection from the
@@ -143,7 +142,7 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 
 	c := cp.mu.ready[cp.mu.activeCount]
 	c.mu.Lock()
-	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby|lcNeedsWarmup)
+	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby|lcNeedsWarmup) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	c.mu.Unlock()
 	cp.mu.activeCount++
 
@@ -295,14 +294,14 @@ func (cp *multiServerPool) getWarmupParams() (int, int) {
 }
 
 // NewConnectionPool creates and returns a default connection pool.
+// The selector parameter is accepted for backward compatibility but is not
+// used by the internal pool selection logic; the pool uses its own round-robin
+// counter. Pass nil for default behavior.
+//
+//nolint:unparam // public API; selector kept for backward compatibility
 func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	if len(conns) == 1 {
 		return &singleServerPool{connection: conns[0]}
-	}
-
-	if selector == nil {
-		selector = &roundRobinSelector{}
-		selector.(*roundRobinSelector).curr.Store(-1)
 	}
 
 	pool := &multiServerPool{
@@ -317,6 +316,10 @@ func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	pool.mu.ready = conns
 	pool.mu.activeCount = len(conns)
 	pool.mu.dead = []*Connection{}
+	pool.mu.members = make(map[*Connection]struct{}, max(len(conns), defaultMembersCapacity))
+	for _, c := range conns {
+		pool.mu.members[c] = struct{}{}
+	}
 
 	return pool
 }
@@ -398,7 +401,7 @@ func (cp *multiServerPool) OnFailure(c *Connection) error {
 		return nil
 	}
 
-	if !c.casLifecycle(c.loadConnState(), 0, lcDead|lcNeedsWarmup|lcNeedsHardware, lcReady|lcActive|lcStandby|lcOverloaded) {
+	if err := c.casLifecycle(c.loadConnState(), 0, lcDead|lcNeedsWarmup|lcNeedsHardware, lcReady|lcActive|lcStandby|lcOverloaded); err != nil {
 		c.mu.Unlock()
 		return nil
 	}
@@ -538,14 +541,14 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 	// Otherwise the connection lands in the standby portion (warmup deferred to promotion).
 	if cp.activeListCap <= 0 || cp.mu.activeCount < cp.activeListCap {
 		// Transition state: dead -> active with warmup (lcNeedsWarmup preserved if set)
-		c.casLifecycle(c.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
+		c.casLifecycle(c.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		rounds, skip := cp.getWarmupParams()
 		c.startWarmup(rounds, skip)
 		cp.appendToReadyActiveWithLock(c)
 		cp.shuffleActiveWithLock()
 	} else {
 		// Transition state: dead -> standby (warmup deferred to promotion, lcNeedsWarmup preserved)
-		c.casLifecycle(c.loadConnState(), 0, lcStandby, lcUnknown|lcActive)
+		c.casLifecycle(c.loadConnState(), 0, lcStandby, lcUnknown|lcActive) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		cp.appendToReadyStandbyWithLock(c)
 		if debugLogger != nil {
 			debugLogger.Logf("[%s] Resurrected %q to standby (active at cap=%d, standby=%d)\n",
@@ -671,7 +674,7 @@ func (cp *multiServerPool) appendToDeadWithLock(c *Connection) {
 		c.mu.deadSince = time.Now().UTC()
 	}
 	if !c.loadConnState().lifecycle().has(lcUnknown) {
-		c.setLifecycleBit(lcUnknown)
+		c.setLifecycleBit(lcUnknown) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	}
 	c.mu.Unlock()
 	cp.mu.dead = append(cp.mu.dead, c)

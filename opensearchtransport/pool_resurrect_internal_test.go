@@ -32,13 +32,12 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMultiServerPoolResurrect(t *testing.T) {
 	t.Run("Mark the connection as dead and add/remove it to the lists", func(t *testing.T) {
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
-
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
@@ -70,9 +69,6 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 	})
 
 	t.Run("Short circuit removal when the connection is not in the dead list", func(t *testing.T) {
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
-
 		pool := &multiServerPool{}
 		pool.mu.dead = func() []*Connection {
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "bar"}}
@@ -100,10 +96,6 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 	t.Run("Schedule resurrect", func(t *testing.T) {
 		// Channel to signal when health check is called
 		healthCheckCalled := make(chan struct{})
-
-		// Create round-robin selector
-		s := &roundRobinSelector{}
-		s.curr.Store(-1)
 
 		pool := &multiServerPool{
 			resurrectTimeoutInitial:      0,
@@ -133,7 +125,6 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 			conn.failures.Store(100)
 			conn.mu.Lock()
 			conn.mu.deadSince = time.Now().UTC()
-			conn.mu.deadSince = time.Now().UTC()
 			conn.mu.Unlock()
 			return []*Connection{conn}
 		}()
@@ -145,19 +136,13 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 		// Wait for the health check to be called
 		<-healthCheckCalled
 
-		// Give the goroutine time to complete resurrection after health check
-		// The goroutine needs to: reacquire locks, call resurrectWithLock(), and release locks
-		time.Sleep(100 * time.Millisecond)
-
-		pool.mu.Lock()
-		defer pool.mu.Unlock()
-
-		if len(pool.mu.ready) != 1 {
-			t.Errorf("Expected 1 ready connection, got: %d", len(pool.mu.ready))
-		}
-		if len(pool.mu.dead) != 0 {
-			t.Errorf("Expected no dead connections, got: %d", len(pool.mu.dead))
-		}
+		// Poll until the goroutine completes resurrection (reacquires locks,
+		// calls resurrectWithLock, and releases locks).
+		require.Eventually(t, func() bool {
+			pool.mu.Lock()
+			defer pool.mu.Unlock()
+			return len(pool.mu.ready) == 1 && len(pool.mu.dead) == 0
+		}, 5*time.Second, 10*time.Millisecond, "connection should be resurrected after health check")
 	})
 }
 
