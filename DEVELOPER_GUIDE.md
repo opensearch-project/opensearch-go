@@ -18,6 +18,21 @@
       - [Resetting to Defaults](#resetting-to-defaults)
     - [Testing Specific OpenSearch Versions](#testing-specific-opensearch-versions)
     - [Cluster Status and Troubleshooting](#cluster-status-and-troubleshooting)
+  - [Network Latency Simulation](#network-latency-simulation)
+    - [Latency Profiles](#latency-profiles)
+    - [Inspecting and Clearing Latency](#inspecting-and-clearing-latency)
+  - [Demo](#demo)
+  - [Verification Matrix](#verification-matrix)
+    - [Individual Verifications](#individual-verifications)
+    - [Workload and Fanout Comparisons](#workload-and-fanout-comparisons)
+    - [Full Matrix](#full-matrix)
+    - [Reviewing Results](#reviewing-results)
+  - [Inspecting CI Failures](#inspecting-ci-failures)
+    - [Quick Summary](#quick-summary)
+    - [Detailed Failure Output](#detailed-failure-output)
+    - [Failure Context](#failure-context)
+    - [Full Logs](#full-logs)
+    - [Inspecting a Specific Run](#inspecting-a-specific-run)
   - [Lint](#lint)
     - [Markdown lint](#markdown-lint)
     - [Go lint](#go-lint)
@@ -206,6 +221,165 @@ Use `make cluster.status` to display cluster health, node info, Docker container
 
 ```
 make cluster.status
+```
+
+## Network Latency Simulation
+
+The `cluster.latency.*` targets inject artificial network delay into running Docker containers using Linux `tc` (traffic control). This lets you test the client's RTT-bucketed connection scoring and congestion-aware routing under realistic network topologies without leaving your development machine.
+
+All latency targets use `tc qdisc` with `netem` delay and require the cluster to be running. They operate on the Docker container network interfaces directly.
+
+### Latency Profiles
+
+Four predefined profiles cover common deployment topologies:
+
+```
+# Asymmetric — simulates 3 availability zones at different distances
+make cluster.latency.asymmetric    # node1=0ms, node2=50ms ±5ms, node3=150ms ±15ms
+
+# Symmetric — single data center, all nodes equidistant
+make cluster.latency.symmetric     # all nodes 1ms ±100us
+
+# Bimodal — 2 local nodes + 1 remote node
+make cluster.latency.bimodal       # node1=1ms, node2=1ms, node3=20ms
+
+# Graduated — wide spread across 3 tiers
+make cluster.latency.graduated     # node1=1ms, node2=10ms, node3=100ms
+```
+
+### Inspecting and Clearing Latency
+
+```
+# Show current tc qdisc rules on each node
+make cluster.latency.show
+
+# Remove all artificial latency
+make cluster.latency.clear
+```
+
+## Demo
+
+The `cmd/demo` binary exercises the client with affinity routing enabled, printing live per-node request distribution and latency statistics. It connects to a running cluster and generates configurable workloads.
+
+```
+make demo.build     # Build bin/demo
+make demo.run       # Build and run with default affinity-visible settings
+```
+
+`demo.run` connects to all three local nodes with smart routing, node discovery, and periodic stats output. The binary accepts flags for concurrency, workload type, fanout, and report output — run `bin/demo -help` for the full list.
+
+## Verification Matrix
+
+The `verify.*` targets automate end-to-end validation of the client's affinity routing behavior. Each target applies a latency profile, runs a workload through the demo binary, and writes a JSON report to `reports/verify/`.
+
+### Individual Verifications
+
+Run a single latency profile with the default search workload:
+
+```
+make verify.symmetric     # Equal distribution under symmetric latency
+make verify.asymmetric    # Tier equalization under asymmetric latency (0/50/150ms)
+make verify.bimodal       # 2-local + 1-remote equalization (1/1/20ms)
+make verify.graduated     # Wide tier-spread equalization (1/10/100ms)
+```
+
+### Workload and Fanout Comparisons
+
+```
+# Compare fanout=1 vs fanout=2 vs fanout=3 under bimodal latency
+make verify.fanout
+
+# Compare search, read-write, bulk-write, and write-only across all latency profiles
+make verify.workloads
+
+# Verify CPU-proportional distribution with heterogeneous CPUs [1,2,4]
+make verify.hetero.cpu
+```
+
+### Full Matrix
+
+Run every combination of latency profile, workload, fanout, and hardware configuration:
+
+```
+make verify.matrix
+```
+
+Reports are written to `reports/verify/`. The full matrix takes several minutes to complete.
+
+### Reviewing Results
+
+```
+# Print a tabular summary of all reports (name, total, RPS, P50, P99, connections)
+make verify.summary
+
+# Validate that distribution expectations are met
+make verify.check
+```
+
+## Inspecting CI Failures
+
+When a GitHub Actions check fails, searching the raw logs for keywords like "fail" or "error" produces many false positives from test names that legitimately contain those words. The `gh.fail.*` Makefile targets use the `gh` CLI to fetch only the failed steps and extract Go's structured failure markers (`--- FAIL:`, `FAIL\t`, `panic:`), giving clean output with no noise.
+
+All targets auto-detect the most recent failed run on the current branch. Requires the [GitHub CLI](https://cli.github.com/) (`gh`) to be installed and authenticated.
+
+### Quick Summary
+
+Show which jobs failed and a deduplicated list of failed test names:
+
+```
+make gh.fail.summary
+```
+
+Example output:
+
+```
+Run 22722089811 — failed jobs:
+  ✗ integ-test-compat (true, 2.14.0)
+  ✗ integ-test-compat (false, 3.1.0)
+
+Failed tests:
+  --- FAIL: TestShardExactRouting_FullPipeline_Integration (2.56s)
+      --- FAIL: TestShardExactRouting_FullPipeline_Integration/pipeline/routing=0 (0.01s)
+      --- FAIL: TestShardExactRouting_FullPipeline_Integration/pipeline/routing=order-12345 (0.01s)
+```
+
+### Detailed Failure Output
+
+Show all `--- FAIL:`, `FAIL`, and `panic:` lines with the job/step/timestamp prefix stripped:
+
+```
+make gh.fail
+```
+
+### Failure Context
+
+Show 5 lines of context before each `--- FAIL:` or `panic:` line. This surfaces the assertion error messages (e.g., `Error:`, `Messages:`, `Error Trace:`) that explain why the test failed:
+
+```
+make gh.fail.context
+```
+
+### Full Logs
+
+Dump the complete log output from all failed steps (raw `gh run view --log-failed`):
+
+```
+make gh.fail.full
+```
+
+### Inspecting a Specific Run
+
+All targets accept a `GH_RUN_ID` override to inspect any run, not just the most recent failure:
+
+```
+make gh.fail.summary GH_RUN_ID=22705106053
+```
+
+To find run IDs, list recent checks:
+
+```
+make gh.checks            # All checks on the current branch
+make gh.checks.failed     # Only failed checks
 ```
 
 ## Lint

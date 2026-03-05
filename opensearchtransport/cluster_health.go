@@ -34,17 +34,19 @@ import (
 	"time"
 )
 
-// NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker.
+// NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool.
 // Only the "nodes" map is used; the top-level "_nodes" and "cluster_name" fields are ignored.
 // All fields are present in OpenSearch 1.3.0+.
 type NodeStatsResponse struct {
 	Nodes map[string]NodeStats `json:"nodes"`
 }
 
-// NodeStats represents per-node statistics used for load shedding decisions.
+// NodeStats represents per-node statistics used for load shedding and
+// congestion window updates.
 type NodeStats struct {
-	JVM      JVMStats                `json:"jvm"`
-	Breakers map[string]BreakerStats `json:"breakers"`
+	JVM         JVMStats                   `json:"jvm"`
+	Breakers    map[string]BreakerStats    `json:"breakers"`
+	ThreadPools map[string]ThreadPoolStats `json:"thread_pool,omitempty"`
 }
 
 // JVMStats contains JVM-level statistics.
@@ -149,19 +151,21 @@ func (c *Client) pollNodeStats() {
 	}
 }
 
-// fetchAndEvaluateNodeStats polls a single node's stats and updates its overloaded state.
+// fetchAndEvaluateNodeStats polls a single node's stats, updates per-pool
+// congestion windows (AIMD), and evaluates node-level overload state.
 //
 // Two data sources are combined for the overload decision:
-//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker (fetched here)
+//  1. Node-level stats from GET /_nodes/_local/stats/jvm,breaker,thread_pool (fetched here)
 //  2. Cluster health from conn.mu.clusterHealth (already populated by clusterHealthCheck)
 //
+// Thread pool stats drive per-pool AIMD congestion control via [updatePoolCongestion].
 // This avoids redundant HTTP calls since the cluster health check already collects
 // cluster health data during normal health check cycles.
 func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) {
 	ctx, cancel := context.WithTimeout(c.ctx, c.healthCheckTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
 	if err != nil {
 		return
 	}
@@ -180,7 +184,12 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 		// resurrection scheduler can take over (the node may actually be down, not just overloaded).
 		if conn.loadConnState().lifecycle().has(lcOverloaded) {
 			conn.mu.Lock()
-			conn.casLifecycle(conn.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby)
+			//nolint:errcheck // lock held; only errLifecycleNoop possible
+			conn.casLifecycle(
+				conn.loadConnState(), 0,
+				lcDead|lcNeedsWarmup,
+				lcReady|lcActive|lcStandby,
+			)
 			conn.mu.Unlock()
 			if debugLogger != nil {
 				debugLogger.Logf("Stats poll failed for %q, clearing overloaded flag (resurrection scheduler will handle): %v\n", conn.URL, err)
@@ -192,7 +201,7 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 		defer res.Body.Close()
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode != http.StatusOK || res.Body == nil {
 		return
 	}
 
@@ -215,6 +224,9 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 	if nodeStats == nil {
 		return
 	}
+
+	// Update per-pool congestion windows (AIMD) from thread pool stats.
+	updatePoolCongestion(conn, nodeStats.ThreadPools)
 
 	overloaded := c.evaluateOverload(conn, nodeStats)
 

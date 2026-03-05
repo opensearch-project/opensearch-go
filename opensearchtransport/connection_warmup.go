@@ -190,7 +190,7 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 		delta := lcMgr.rounds() - newRounds
 		newSkip := smoothstepSkip(lcMgr.skipCount(), lcMgr.rounds(), delta)
 
-		newRdMgr := packRequestManager(newRounds, newSkip)
+		newRdMgr := packWarmupManager(newRounds, newSkip)
 		newState := current.withManagers(lcMgr, newRdMgr)
 		if c.state.CompareAndSwap(raw, int64(newState)) {
 			if debugLogger != nil {

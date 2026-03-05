@@ -44,7 +44,7 @@ func example() error {
 For high-throughput bulk operations, you can configure the client to automatically route requests to appropriate nodes:
 
 ```go
-	// Advanced client setup with smart routing for mixed workloads
+	// Advanced client setup with connection scoring for mixed workloads
 	advancedClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
@@ -52,8 +52,8 @@ For high-throughput bulk operations, you can configure the client to automatical
 		DiscoverNodesOnStart:  true,
 		DiscoverNodesInterval: 5 * time.Minute,
 
-		// Configure smart routing: bulk operations go to ingest nodes, searches go to data nodes
-		Router: opensearchtransport.NewSmartRouter(),
+		// Configure routing: bulk operations go to ingest nodes, searches go to data nodes
+		Router: opensearchtransport.NewDefaultRouter(),
 	})
 	if err != nil {
 		return err
@@ -353,8 +353,8 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 		DiscoverNodesOnStart:  true,
 		DiscoverNodesInterval: 5 * time.Minute,
 
-		// Use smart router for automatic operation routing (recommended)
-		Router: opensearchtransport.NewSmartRouter(),
+		// Use default router for automatic operation routing (recommended)
+		Router: opensearchtransport.NewDefaultRouter(),
 	})
 	if err != nil {
 		return err
@@ -393,9 +393,9 @@ You can choose different routing strategies based on your cluster setup:
 	ingestOnly := opensearchtransport.NewRouter(ingestPolicy)
 
 	// Option 3: Automatically detect operation type and route appropriately (recommended)
-	// NewSmartRouter() is affinity-aware (currently what NewDefaultRouter() returns).
-	// Use NewMuxRouter() for role-based routing without affinity.
-	smartRouter := opensearchtransport.NewSmartRouter()
+	// NewDefaultRouter() includes connection scoring.
+	// Use NewMuxRouter() for role-based routing without connection scoring.
+	defaultRouter := opensearchtransport.NewDefaultRouter()
 
 	// Option 4: Custom policy for specific requirements
 	// Note: In practice, avoid excluding cluster managers as they're excluded by default
@@ -406,7 +406,7 @@ You can choose different routing strategies based on your cluster setup:
 	)
 ```
 
-The smart router automatically detects different operation types:
+The router automatically detects different operation types:
 
 - **Bulk operations** (`/_bulk`) -> Routes to ingest nodes
 - **Ingest pipeline operations** (`/_ingest/`) -> Routes to ingest nodes

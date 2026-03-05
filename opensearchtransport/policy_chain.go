@@ -31,9 +31,10 @@ import (
 	"errors"
 	"net/http"
 	"slices"
+	"time"
 )
 
-// Compile-time interface compliance checks
+// Compile-time interface compliance checks.
 var (
 	_ Policy             = (*PolicyChain)(nil)
 	_ policyConfigurable = (*PolicyChain)(nil)
@@ -45,60 +46,115 @@ func NewPolicy(policies ...Policy) Policy {
 	return &PolicyChain{policies: policies}
 }
 
-// Route tries each policy in sequence until one returns a connection pool.
-// Gets a connection from the first matching pool.
-func (r *PolicyChain) Route(ctx context.Context, req *http.Request) (*Connection, error) {
+// Route tries each policy in sequence until one returns a NextHop with a connection.
+func (r *PolicyChain) Route(ctx context.Context, req *http.Request) (NextHop, error) {
 	for _, policy := range r.policies {
 		// Quick check if policy is enabled before evaluation
 		if !policy.IsEnabled() {
 			continue
 		}
 
-		pool, err := policy.Eval(ctx, req)
+		hop, err := policy.Eval(ctx, req)
 		switch {
 		case err != nil:
-			return nil, err // Error occurred, stop
-		case pool != nil:
-			// Found a pool, get connection from it
-			conn, connErr := pool.Next()
-			if debugLogger != nil && connErr != nil {
-				debugLogger.Logf("Route: Policy returned pool but Next() failed: %v (type: %T)\n", connErr, policy)
-			}
-			return conn, connErr
+			return NextHop{}, err // Error occurred, stop
+		case hop.Conn != nil:
+			return hop, nil
 		default:
-			// pool == nil && err == nil: no match, try next policy
+			// hop.Conn == nil && err == nil: no match, try next policy
 			continue
 		}
 	}
 
-	return nil, ErrNoConnections // No policies matched
+	return NextHop{}, ErrNoConnections // No policies matched
 }
 
-// OnSuccess reports that a connection was successful.
-// Delegates to all policies to update their connection health state.
+// OnSuccess reports that a request completed without transport errors.
+//
+// Transport success means the HTTP round-trip completed (regardless of
+// status code). This does not reflect thread pool health (managed by
+// the stats poller via applyPoolAIMD) or connection-level health checks
+// (managed by checkDead).
+//
+// Marks the connection as healthy atomically. Each pool lazily resurrects
+// the connection from its dead list during the next checkDead() cycle.
 func (r *PolicyChain) OnSuccess(conn *Connection) {
-	for _, policy := range r.policies {
-		// Get the pool from each policy and call OnSuccess
-		if pool, err := policy.Eval(context.Background(), nil); err == nil && pool != nil {
-			pool.OnSuccess(conn)
-		}
+	// Fast path (RLock): most requests hit an already-alive connection.
+	// Only upgrade to write lock when the connection was dead and needs
+	// resurrection --concurrent successful requests are the common case.
+	conn.mu.RLock()
+	if conn.mu.deadSince.IsZero() {
+		conn.mu.RUnlock()
+		return
 	}
+	conn.mu.RUnlock()
+
+	// Slow path: connection was dead and succeeded --try to mark healthy.
+	conn.mu.Lock()
+
+	// Double-check under write lock (another goroutine may have resurrected).
+	if conn.mu.deadSince.IsZero() {
+		conn.mu.Unlock()
+		return
+	}
+
+	// Skip draining connections (HTTP/2 stream reset quiescing).
+	if conn.drainingQuiescingRemaining.Load() > 0 {
+		conn.mu.Unlock()
+		return
+	}
+
+	// Skip overload-demoted connections (stats poller manages lifecycle).
+	if conn.loadConnState().lifecycle().has(lcOverloaded) {
+		conn.mu.Unlock()
+		return
+	}
+
+	conn.markAsHealthyWithLock()
+	conn.mu.Unlock()
 }
 
-// OnFailure reports that a connection failed.
-// Delegates to all policies to update their connection health state.
-// Returns the first error encountered.
+// OnFailure reports that a request suffered a transport-level failure
+// (e.g., connection refused, EOF, TLS error, timeout).
+//
+// This does not handle HTTP-level errors like 429 or 503 --those are
+// successful transports with error status codes, handled in Perform.
+// Thread pool congestion is managed separately by the stats poller.
+//
+// Marks the connection as dead atomically. Each pool lazily evicts the
+// connection from its ready list when Next() encounters it (handled by
+// nextWithEviction -> evictExternallyDemotedWithLock in pool_selection.go).
 func (r *PolicyChain) OnFailure(conn *Connection) error {
-	var firstError error
-	for _, policy := range r.policies {
-		// Get the pool from each policy and call OnFailure
-		if pool, err := policy.Eval(context.Background(), nil); err == nil && pool != nil {
-			if err := pool.OnFailure(conn); err != nil && firstError == nil {
-				firstError = err
-			}
-		}
+	// Pre-check without lock: lcUnknown connections are seed URLs that
+	// haven't been discovered yet --never mark them dead.
+	if conn.loadConnState().lifecycle().has(lcUnknown) {
+		return nil
 	}
-	return firstError
+
+	conn.mu.Lock()
+
+	// Re-check under lock.
+	if conn.loadConnState().lifecycle().has(lcUnknown) {
+		conn.mu.Unlock()
+		return nil
+	}
+
+	err := conn.casLifecycle(
+		conn.loadConnState(), 0,
+		lcDead|lcNeedsWarmup|lcNeedsHardware,
+		lcReady|lcActive|lcStandby|lcOverloaded,
+	)
+	if err != nil {
+		// CAS failed (lifecycle noop) --another goroutine already
+		// transitioned this connection. Nothing more to do.
+		conn.mu.Unlock()
+		return nil //nolint:nilerr // intentional: casLifecycle noop is not a caller-visible error
+	}
+	conn.mu.overloadedAt = time.Time{}
+	conn.markAsDeadWithLock()
+	conn.mu.Unlock()
+
+	return nil
 }
 
 // DiscoveryUpdate notifies all policies that node discovery has occurred.
@@ -172,30 +228,26 @@ func (r *PolicyChain) IsEnabled() bool {
 	return psIsEnabled(r.policyState.Load())
 }
 
-// Eval tries each sub-policy in sequence until one returns a connection pool or error.
-// Returns (nil, nil) only if all sub-policies return (nil, nil).
-func (r *PolicyChain) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+// Eval tries each sub-policy in sequence until one returns a NextHop with a connection.
+// Returns (NextHop{}, nil) only if all sub-policies return (NextHop{}, nil).
+func (r *PolicyChain) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if r.policyState.Load()&psEnvDisabled != 0 {
-		//nolint:nilnil // Intentional: force-disabled policy returns no match
-		return nil, nil
+		return NextHop{}, nil
 	}
 
 	for _, policy := range r.policies {
-		pool, err := policy.Eval(ctx, req)
+		hop, err := policy.Eval(ctx, req)
 		switch {
 		case err != nil:
-			return nil, err // Error occurred, stop
-		case pool != nil:
-			return pool, nil // Found connection pool, use it
+			return NextHop{}, err
+		case hop.Conn != nil:
+			return hop, nil
 		default:
-			// pool == nil && err == nil: no match, try next policy
 			continue
 		}
 	}
 
-	// All policies returned (nil, nil), so we return (nil, nil) for fallthrough
-	//nolint:nilnil // Intentional: (nil, nil) signals "no match, continue" in policy chain
-	return nil, nil
+	return NextHop{}, nil
 }
 
 // configurePolicySettings configures pool settings for all sub-policies.
@@ -228,19 +280,19 @@ func (r *PolicyChain) poolSnapshots() []PoolSnapshot {
 	return result
 }
 
-// smoothedMaxBucketForIndex walks the policy tree to find an affinity cache, looks up the index slot, and
-// returns the current smoothed max RTT bucket. Returns 0 if no affinity
-// data exists for the index.
+// smoothedMaxBucketForIndex walks the policy tree to find the index slot cache,
+// looks up the slot, and returns the current smoothed max RTT bucket. Returns 0
+// if no scoring data exists for the index.
 func (r *PolicyChain) smoothedMaxBucketForIndex(indexName string) float64 {
 	if indexName == "" {
 		return 0
 	}
 	for _, p := range r.policies {
-		if cache := findAffinityCache(p); cache != nil {
+		if cache := findRouterCache(p); cache != nil {
 			if slot := cache.slotFor(indexName); slot != nil {
 				return slot.loadSmoothedMaxBucket()
 			}
-			// Cache found but no slot for this index. Since all affinity
+			// Cache found but no slot for this index. Since all scored
 			// policies share the same cache, no point checking further.
 			return 0
 		}

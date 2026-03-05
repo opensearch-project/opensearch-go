@@ -56,7 +56,7 @@ func example() error {
 				DiscoverNodesInterval: 5 * time.Minute,
 
 				// Optional: Enable intelligent request routing
-				Router: opensearchtransport.NewSmartRouter(),
+				Router: opensearchtransport.NewDefaultRouter(),
 			},
 		},
 	)
@@ -439,8 +439,8 @@ OPENSEARCH_GO_DEBUG=true go test ./...
 Disable specific routing policies at startup via environment variables for debugging, A/B testing, or emergency overrides:
 
 ```bash
-# Disable all affinity routing (fall back to plain role-based)
-OPENSEARCH_GO_POLICY_AFFINITY=false myapp
+# Disable all connection scoring (fall back to plain role-based)
+OPENSEARCH_GO_POLICY_ROUTER=false myapp
 
 # Disable a specific policy instance by path
 OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
@@ -450,6 +450,22 @@ OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
 ```
 
 Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Connection Routing](guides/request_routing.md#policy-environment-variable-overrides) for full documentation.
+
+## Environment Variables
+
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization. A complete reference is in [Connection Routing: Environment Variable Reference](guides/request_routing.md#complete-environment-variable-reference). Quick summary:
+
+| Variable                            | Default       | Description                                         |
+| ----------------------------------- | ------------- | --------------------------------------------------- |
+| `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                             |
+| `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG`    | (all enabled) | Skip specific discovery calls                       |
+| `OPENSEARCH_GO_FALLBACK`            | `true`        | Seed URL fallback when all pools exhausted          |
+| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | auto (5s-30s) | Stats polling interval                              |
+| `OPENSEARCH_GO_POLICY_*`            | (all enabled) | Disable specific routing policies (10 variables)    |
+| `OPENSEARCH_GO_ACTIVE_LIST_CAP`     | auto          | Max active connections per pool                     |
+| `OPENSEARCH_GO_STANDBY_*`           | (see guide)   | Standby rotation and promotion tuning (3 variables) |
+| `OPENSEARCH_GO_OVERLOADED_*`        | (see guide)   | JVM heap and breaker thresholds (2 variables)       |
 
 ## Guides by Topic
 
@@ -461,8 +477,12 @@ Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Co
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
 - [Connection Routing](guides/request_routing.md)
-- [Affinity Routing](guides/affinity_routing.md)
+- [Connection Scoring](guides/connection_scoring.md)
 - [Connection Pool Architecture](guides/connection_pool.md)
 - [Cluster Health Checking](guides/cluster_health_checking.md)
 - [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
 - [Retry and Backoff](guides/retry_backoff.md)
+- [Request Lifecycle](guides/request_lifecycle.md)
+- [Client Lifecycle](guides/client_lifecycle.md)
+- [Routing Efficiency](guides/routing_efficiency.md)
+- [Error Handling](guides/error_handling.md)

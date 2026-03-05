@@ -6,7 +6,7 @@
 
 package opensearchtransport
 
-// capAdjust represents a requested change to a pool partition size.
+// Partition adjustment signals returned by poolSelector.selectNext.
 const (
 	capShrink = -1 // Reduce the partition by one
 	capRemain = 0  // No change
@@ -30,7 +30,8 @@ type poolSelector interface {
 	//   err        -- non-nil to signal selection failure
 	//
 	// For round-robin: always returns (conn, capRemain, nil).
-	// For load affinity: returns capGrow when all active connections exceed
-	// a saturation threshold, signaling the pool to promote from standby.
+	// For congestion-aware selection: returns capGrow when all active
+	// connections exceed a saturation threshold, signaling the pool to
+	// promote from standby.
 	selectNext(ready []*Connection, activeCount int) (conn *Connection, activeCap int, standbyCap int, err error)
 }

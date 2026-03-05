@@ -9,7 +9,7 @@ package opensearchtransport
 import "sync/atomic"
 
 // ConnectionObserver receives notifications about connection lifecycle events
-// and affinity routing decisions.
+// and routing decisions.
 //
 // Implementations must be safe for concurrent use from multiple goroutines.
 // Methods should return quickly to avoid blocking transport operations.
@@ -55,11 +55,11 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	OnHealthCheckFail(event ConnectionEvent)
 
 	// OnStandbyPromote is called when a standby connection is promoted
-	// to the ready list after passing health checks.
+	// to the active partition after passing consecutive health checks.
 	OnStandbyPromote(event ConnectionEvent)
 
-	// OnStandbyDemote is called when a ready connection is moved to the
-	// standby list (during rotation or discovery overflow).
+	// OnStandbyDemote is called when an active connection is moved to the
+	// standby partition (during rotation or discovery overflow).
 	OnStandbyDemote(event ConnectionEvent)
 
 	// OnWarmupRequest is called when a request is about to be served by a
@@ -70,14 +70,14 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	// State.WarmupSkipRemaining() to inspect progress.
 	OnWarmupRequest(event ConnectionEvent)
 
-	// OnAffinityRoute is called after affinity routing selects a node for a
+	// OnRoute is called after the router selects a node for a
 	// request. The event contains the full scoring breakdown for all
 	// candidates considered during the routing decision.
-	OnAffinityRoute(event AffinityRouteEvent)
+	OnRoute(event RouteEvent)
 
 	// OnShardMapInvalidation is called when a routing failure flags a
 	// connection's shard placement as stale. The connection is excluded
-	// from affinity routing candidates until a /_cat/shards refresh.
+	// from routing candidates until a /_cat/shards refresh.
 	OnShardMapInvalidation(event ShardMapInvalidationEvent)
 }
 
@@ -130,8 +130,8 @@ func (BaseConnectionObserver) OnStandbyDemote(ConnectionEvent) {}
 // OnWarmupRequest implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnWarmupRequest(ConnectionEvent) {}
 
-// OnAffinityRoute implements ConnectionObserver (no-op).
-func (BaseConnectionObserver) OnAffinityRoute(AffinityRouteEvent) {}
+// OnRoute implements ConnectionObserver (no-op).
+func (BaseConnectionObserver) OnRoute(RouteEvent) {}
 
 // OnShardMapInvalidation implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnShardMapInvalidation(ShardMapInvalidationEvent) {}

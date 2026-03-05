@@ -139,7 +139,7 @@ func TestPoliciesClient(t *testing.T) {
 					Name: "Create with Channel",
 					Results: func(t *testing.T) (osismtest.Response, error) {
 						t.Helper()
-						testutil.SkipIfBelowVersion(t, osClient, 2, 0, "policy with error notification channel")
+						testutil.SkipIfVersion(t, osClient, "<", "2.0", "policy with error notification channel")
 						return client.Policies.Put(
 							t.Context(),
 							ism.PoliciesPutReq{
@@ -182,7 +182,7 @@ func TestPoliciesClient(t *testing.T) {
 					Name: "Create with Alias",
 					Results: func(t *testing.T) (osismtest.Response, error) {
 						t.Helper()
-						testutil.SkipIfBelowVersion(t, osClient, 2, 4, "policy with alias action")
+						testutil.SkipIfVersion(t, osClient, "<", "2.4", "policy with alias action")
 						return client.Policies.Put(
 							t.Context(),
 							ism.PoliciesPutReq{

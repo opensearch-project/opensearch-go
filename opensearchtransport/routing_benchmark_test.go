@@ -17,48 +17,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Reference benchmark data (Apple M4 Pro, arm64, 2025-02-25):
+// Reference benchmark data (Apple M4 Pro, arm64, 2026-03-04):
 //
-//	Policy/Router                                  ns/op    B/op  allocs/op
-//	─────────────────────────────────────────────  ──────  ─────  ─────────
-//	ConnectionPool/Single                            149      0       0
-//	ConnectionPool/Status_3Nodes                     169     16       0
-//	Policy/NullPolicy                                145      0       0
-//	Policy/RoundRobin                                316      0       0
-//	Policy/RolePolicy_Match                          325      0       0
-//	Policy/RolePolicy_NoMatch                        145      0       0
-//	Policy/CoordinatorPolicy_Match                   326      0       0
-//	Policy/MuxPolicy                                 375      0       0
-//	Policy/IfEnabledPolicy                           149      0       0
-//	Policy/PolicyChain_3Policies                     320      0       0
-//	Policy/IndexAffinityPolicy_3Nodes                566      0       0
-//	Policy/IndexAffinityPolicy_10Nodes               583      0       0
-//	Policy/IndexAffinityPolicy_NoIndex               148      0       0
-//	Router/RoundRobin                                155      0       0
-//	Router/DefaultRouter                             162      0       0
-//	Router/MuxRouter                                 158      0       0
-//	Router/SmartRouter                               504     16       1
-//	RouterOperations/MuxRouter/Matched/Search        159      0       0
-//	RouterOperations/SmartRouter/Matched/Search      226      0       0
-//	RouterOperations/MuxRouter/Matched/Bulk          155      0       0
-//	RouterOperations/SmartRouter/Matched/Bulk        218      0       0
-//	RouterOperations/MuxRouter/Matched/Get           157      0       0
-//	RouterOperations/SmartRouter/Matched/Get         520     48       2
-//	RouterOperations/MuxRouter/Matched/IndexSearch   155      0       0
-//	RouterOperations/SmartRouter/Matched/IndexSearch 489     16       1
-//	RouterOperations/MuxRouter/Unmatched/*           ~158     0       0
-//	RouterOperations/SmartRouter/Unmatched/PUT      1368    801      35
-//	RouterOperations/SmartRouter/Unmatched/Delete   1214    705      31
-//	RouterOperations/SmartRouter/Unmatched/Health    769    320      18
+//	Policy/Router                                            ns/op    B/op  allocs/op
+//	------------------------------------------------------  ------  -----  ---------
+//	ConnectionPool/Single                                      148      0       0
+//	ConnectionPool/Status_3Nodes                               171     16       0
+//	Policy/NullPolicy                                          144      0       0
+//	Policy/RoundRobin                                          149      0       0
+//	Policy/RolePolicy_Match                                    153      0       0
+//	Policy/RolePolicy_NoMatch                                  147      0       0
+//	Policy/CoordinatorPolicy_Match                             151      0       0
+//	Policy/MuxPolicy                                           181      0       0
+//	Policy/IfEnabledPolicy                                     148      0       0
+//	Policy/PolicyChain_3Policies                               154      0       0
+//	Policy/IndexRouter_3Nodes                                  348      0       0
+//	Policy/IndexRouter_10Nodes                                 464      0       0
+//	Policy/IndexRouter_NoIndex                                 182      0       0
+//	Router/RoundRobin                                          154      0       0
+//	Router/DefaultRouter                                       159      0       0
+//	Router/MuxRouter                                           158      0       0
+//	Router/DefaultRouter/IndexSearch                            438      0       0
+//	RouterOperations/MuxRouter/Matched/Search                  160      0       0
+//	RouterOperations/DefaultRouter/Matched/Search              259      0       0
+//	RouterOperations/MuxRouter/Matched/Bulk                    161      0       0
+//	RouterOperations/DefaultRouter/Matched/Bulk                231      0       0
+//	RouterOperations/MuxRouter/Matched/Get                     160      0       0
+//	RouterOperations/DefaultRouter/Matched/Get                 452      0       0
+//	RouterOperations/MuxRouter/Matched/IndexSearch             161      0       0
+//	RouterOperations/DefaultRouter/Matched/IndexSearch         431      0       0
+//	RouterOperations/MuxRouter/Unmatched/*                    ~160      0       0
+//	RouterOperations/DefaultRouter/Unmatched/PUT               445      0       0
+//	RouterOperations/DefaultRouter/Unmatched/Delete            444      0       0
+//	RouterOperations/DefaultRouter/Unmatched/ClusterHealth     187      0       0
 //
 // Key observations:
-//   - All policies evaluate at 0 allocs/op. Latency ranges from ~145 ns (pass-through)
-//     to ~580 ns (index affinity with rendezvous hashing over 10 nodes).
-//   - SmartRouter matched paths (Search, Bulk) achieve 0 allocs. The Get path has
-//     2 allocs from Go's http.ServeMux wildcard capture and sync.Pool miss rate.
-//   - SmartRouter unmatched paths (PUT, DELETE, system endpoints) show 18-35 allocs
-//     from Go's http.ServeMux.matchingMethods() enumerating allowed methods for 405
-//     responses. This is internal to net/http and does not affect matched routes.
+//   - All policies and routers evaluate at 0 allocs/op. Latency ranges from ~144 ns
+//     (pass-through) to ~464 ns (IndexRouter with rendezvous hashing over 10 nodes).
+//   - Route matching uses a custom trie (routeTrie) with zero-allocation
+//     path lookup. Literal segments match before wildcards.
 //
 // Run with: go test -run '^$' -bench 'Benchmark(ConnectionPool|Policy|Router)' -benchmem ./opensearchtransport/
 
@@ -103,15 +100,15 @@ func BenchmarkConnectionPool(b *testing.B) {
 
 // BenchmarkPolicy measures the overhead of individual policy evaluation.
 //
-// Each benchmark measures policy.Eval() + pool.Next() to get the full cost
+// Each benchmark measures policy.Eval() to get the full cost
 // of policy-based routing. No actual HTTP requests are made - we're measuring
 // the routing decision overhead only.
 func BenchmarkPolicy(b *testing.B) {
 	connections := []*Connection{
-		createBenchConnection("http://bench-coord-1:9200", "bench-coord-1"), // coordinator
-		createBenchConnection("http://bench-data-1:9200", "bench-data-1", RoleData),
-		createBenchConnection("http://bench-data-2:9200", "bench-data-2", RoleData),
-		createBenchConnection("http://bench-ingest-1:9200", "bench-ingest-1", RoleIngest),
+		createBenchBaseConnection("http://bench-coord-1:9200", "bench-coord-1"), // coordinator
+		createBenchBaseConnection("http://bench-data-1:9200", "bench-data-1", RoleData),
+		createBenchBaseConnection("http://bench-data-2:9200", "bench-data-2", RoleData),
+		createBenchBaseConnection("http://bench-ingest-1:9200", "bench-ingest-1", RoleIngest),
 	}
 
 	req := &http.Request{
@@ -125,9 +122,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.Nil(b, pool)
+			require.Nil(b, hop.Conn)
 		}
 	})
 
@@ -138,12 +135,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
@@ -154,12 +148,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
@@ -170,9 +161,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.Nil(b, pool) // No match returns nil pool
+			require.Nil(b, hop.Conn) // No match returns nil conn
 		}
 	})
 
@@ -183,12 +174,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
@@ -206,12 +194,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
@@ -225,9 +210,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), req)
+			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.Nil(b, pool) // NullPolicy returns nil
+			require.Nil(b, hop.Conn) // NullPolicy returns nil
 		}
 	})
 
@@ -246,23 +231,20 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := chain.Eval(b.Context(), req)
+			hop, err := chain.Eval(b.Context(), req)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
-	b.Run("IndexAffinityPolicy_3Nodes", func(b *testing.B) {
-		affinityConns := []*Connection{
-			createBenchAffinityConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData),
-			createBenchAffinityConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 300.0, RoleData),
-			createBenchAffinityConnection("http://bench-data-3:9200", "bench-data-3", 2*time.Millisecond, 100.0, RoleData),
+	b.Run("IndexRouter_3Nodes", func(b *testing.B) {
+		scoredConns := []*Connection{
+			createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData),
+			createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 300.0, RoleData),
+			createBenchConnection("http://bench-data-3:9200", "bench-data-3", 2*time.Millisecond, 100.0, RoleData),
 		}
-		policy := NewIndexAffinityPolicy(indexSlotCacheConfig{})
-		_ = policy.DiscoveryUpdate(affinityConns, nil, nil)
+		policy := NewIndexRouter(indexSlotCacheConfig{})
+		_ = policy.DiscoveryUpdate(scoredConns, nil, nil)
 
 		indexReq := &http.Request{
 			Method: http.MethodPost,
@@ -272,25 +254,22 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), indexReq)
+			hop, err := policy.Eval(b.Context(), indexReq)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
-	b.Run("IndexAffinityPolicy_10Nodes", func(b *testing.B) {
-		affinityConns := make([]*Connection, 10)
-		for i := range affinityConns {
+	b.Run("IndexRouter_10Nodes", func(b *testing.B) {
+		scoredConns := make([]*Connection, 10)
+		for i := range scoredConns {
 			id := "bench-data-" + string(rune('a'+i))
 			rtt := time.Duration(500+i*200) * time.Microsecond
 			load := float64(100 + i*50)
-			affinityConns[i] = createBenchAffinityConnection("http://"+id+":9200", id, rtt, load, RoleData)
+			scoredConns[i] = createBenchConnection("http://"+id+":9200", id, rtt, load, RoleData)
 		}
-		policy := NewIndexAffinityPolicy(indexSlotCacheConfig{})
-		_ = policy.DiscoveryUpdate(affinityConns, nil, nil)
+		policy := NewIndexRouter(indexSlotCacheConfig{})
+		_ = policy.DiscoveryUpdate(scoredConns, nil, nil)
 
 		indexReq := &http.Request{
 			Method: http.MethodPost,
@@ -300,22 +279,19 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), indexReq)
+			hop, err := policy.Eval(b.Context(), indexReq)
 			require.NoError(b, err)
-			require.NotNil(b, pool)
-			c, err := pool.Next()
-			require.NoError(b, err)
-			require.NotNil(b, c)
+			require.NotNil(b, hop.Conn)
 		}
 	})
 
-	b.Run("IndexAffinityPolicy_NoIndex", func(b *testing.B) {
-		affinityConns := []*Connection{
-			createBenchAffinityConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
-			createBenchAffinityConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 100.0, RoleData),
+	b.Run("IndexRouter_NoIndex", func(b *testing.B) {
+		scoredConns := []*Connection{
+			createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
+			createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 100.0, RoleData),
 		}
-		policy := NewIndexAffinityPolicy(indexSlotCacheConfig{})
-		_ = policy.DiscoveryUpdate(affinityConns, nil, nil)
+		policy := NewIndexRouter(indexSlotCacheConfig{})
+		_ = policy.DiscoveryUpdate(scoredConns, nil, nil)
 
 		sysReq := &http.Request{
 			Method: http.MethodGet,
@@ -325,9 +301,9 @@ func BenchmarkPolicy(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			pool, err := policy.Eval(b.Context(), sysReq)
+			hop, err := policy.Eval(b.Context(), sysReq)
 			require.NoError(b, err)
-			require.Nil(b, pool) // No index -> pass-through
+			require.NotNil(b, hop.Conn) // No index -> scores all connections by RTT + congestion
 		}
 	})
 }
@@ -339,10 +315,10 @@ func BenchmarkPolicy(b *testing.B) {
 // we're only measuring the routing decision overhead.
 func BenchmarkRouter(b *testing.B) {
 	connections := []*Connection{
-		createBenchConnection("http://bench-coord-1:9200", "bench-coord-1"),
-		createBenchConnection("http://bench-data-1:9200", "bench-data-1", RoleData),
-		createBenchConnection("http://bench-data-2:9200", "bench-data-2", RoleData),
-		createBenchConnection("http://bench-ingest-1:9200", "bench-ingest-1", RoleIngest),
+		createBenchBaseConnection("http://bench-coord-1:9200", "bench-coord-1"),
+		createBenchBaseConnection("http://bench-data-1:9200", "bench-data-1", RoleData),
+		createBenchBaseConnection("http://bench-data-2:9200", "bench-data-2", RoleData),
+		createBenchBaseConnection("http://bench-ingest-1:9200", "bench-ingest-1", RoleIngest),
 	}
 
 	req := &http.Request{
@@ -363,7 +339,7 @@ func BenchmarkRouter(b *testing.B) {
 		}
 	})
 
-	b.Run("DefaultRouter", func(b *testing.B) {
+	b.Run("RoundRobinRouter", func(b *testing.B) {
 		router := NewRoundRobinRouter()
 		configureBenchRouter(router, connections)
 
@@ -389,14 +365,14 @@ func BenchmarkRouter(b *testing.B) {
 		}
 	})
 
-	b.Run("SmartRouter", func(b *testing.B) {
-		affinityConns := []*Connection{
-			createBenchAffinityConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
-			createBenchAffinityConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 200.0, RoleData),
-			createBenchAffinityConnection("http://bench-data-3:9200", "bench-data-3", 2*time.Millisecond, 100.0, RoleData),
+	b.Run("DefaultRouter/IndexSearch", func(b *testing.B) {
+		scoredConns := []*Connection{
+			createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
+			createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 200.0, RoleData),
+			createBenchConnection("http://bench-data-3:9200", "bench-data-3", 2*time.Millisecond, 100.0, RoleData),
 		}
-		router := NewSmartRouter()
-		configureBenchRouter(router, affinityConns)
+		router := NewDefaultRouter()
+		configureBenchRouter(router, scoredConns)
 
 		indexReq := &http.Request{
 			Method: http.MethodPost,
@@ -416,26 +392,23 @@ func BenchmarkRouter(b *testing.B) {
 // BenchmarkRouterOperations measures routing overhead for different HTTP operations.
 //
 // Operations are split into "matched" (route exists in MuxPolicy) and
-// "unmatched" (falls through to round-robin). This distinction matters because
-// Go's http.ServeMux has significant allocation overhead on the fallthrough path
-// when it enumerates allowed methods for 405 responses.
+// "unmatched" (falls through to round-robin).
 //
 // No actual HTTP requests are performed - only the routing decision based on HTTP method and path.
 func BenchmarkRouterOperations(b *testing.B) {
 	connections := []*Connection{
-		createBenchConnection("http://bench-coord-1:9200", "bench-coord-1"),
-		createBenchConnection("http://bench-data-1:9200", "bench-data-1", RoleData),
-		createBenchConnection("http://bench-ingest-1:9200", "bench-ingest-1", RoleIngest),
+		createBenchBaseConnection("http://bench-coord-1:9200", "bench-coord-1"),
+		createBenchBaseConnection("http://bench-data-1:9200", "bench-data-1", RoleData),
+		createBenchBaseConnection("http://bench-ingest-1:9200", "bench-ingest-1", RoleIngest),
 	}
 
-	affinityConns := []*Connection{
-		createBenchAffinityConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
-		createBenchAffinityConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 100.0, RoleData),
-		createBenchAffinityConnection("http://bench-ingest-1:9200", "bench-ingest-1", 1*time.Millisecond, 100.0, RoleIngest),
+	scoredConns := []*Connection{
+		createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
+		createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 100.0, RoleData),
+		createBenchConnection("http://bench-ingest-1:9200", "bench-ingest-1", 1*time.Millisecond, 100.0, RoleIngest),
 	}
 
 	// Matched operations: these have registered routes in the MuxPolicy.
-	// The route is found on the first ServeMux lookup.
 	matchedOps := []struct {
 		name   string
 		method string
@@ -448,9 +421,7 @@ func BenchmarkRouterOperations(b *testing.B) {
 	}
 
 	// Unmatched operations: no route registered for this method+path combination.
-	// The MuxPolicy falls through to round-robin. On the fallthrough path,
-	// Go's ServeMux enumerates allowed methods (matchingMethods), which
-	// allocates heavily for wildcard patterns.
+	// The MuxPolicy falls through to round-robin.
 	unmatchedOps := []struct {
 		name   string
 		method string
@@ -480,9 +451,9 @@ func BenchmarkRouterOperations(b *testing.B) {
 			}
 		})
 
-		b.Run("SmartRouter/Matched/"+op.name, func(b *testing.B) {
-			router := NewSmartRouter()
-			configureBenchRouter(router, affinityConns)
+		b.Run("DefaultRouter/Matched/"+op.name, func(b *testing.B) {
+			router := NewDefaultRouter()
+			configureBenchRouter(router, scoredConns)
 
 			req := &http.Request{
 				Method: op.method,
@@ -518,9 +489,9 @@ func BenchmarkRouterOperations(b *testing.B) {
 			}
 		})
 
-		b.Run("SmartRouter/Unmatched/"+op.name, func(b *testing.B) {
-			router := NewSmartRouter()
-			configureBenchRouter(router, affinityConns)
+		b.Run("DefaultRouter/Unmatched/"+op.name, func(b *testing.B) {
+			router := NewDefaultRouter()
+			configureBenchRouter(router, scoredConns)
 
 			req := &http.Request{
 				Method: op.method,
@@ -540,8 +511,8 @@ func BenchmarkRouterOperations(b *testing.B) {
 
 // BenchmarkRoutingPrimitives measures the cost of low-level routing operations.
 //
-// These are the building blocks used by the affinity system: rendezvous hashing,
-// path extraction, RTT sorting, and affinity scoring. Understanding their
+// These are the building blocks used by the routing system: rendezvous hashing,
+// path extraction, RTT sorting, and connection scoring. Understanding their
 // individual costs helps identify optimization targets.
 func BenchmarkRoutingPrimitives(b *testing.B) {
 	b.Run("ExtractIndexFromPath", func(b *testing.B) {
@@ -564,7 +535,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		conns := make([]*Connection, 5)
 		for i := range conns {
 			id := "bench-node-" + string(rune('a'+i))
-			conns[i] = createBenchAffinityConnection("http://"+id+":9200", id, 1*time.Millisecond, 100.0, RoleData)
+			conns[i] = createBenchConnection("http://"+id+":9200", id, 1*time.Millisecond, 100.0, RoleData)
 		}
 		var jitter atomic.Int64
 
@@ -580,7 +551,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		for i := range conns {
 			id := "bench-node-" + string(rune('a'+i))
 			rtt := time.Duration(500+i*200) * time.Microsecond
-			conns[i] = createBenchAffinityConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
+			conns[i] = createBenchConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
 		}
 		var jitter atomic.Int64
 
@@ -597,7 +568,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		for i := range conns {
 			id := "bench-node-" + string(rune('a'+i))
 			rtt := time.Duration(500+i*200) * time.Microsecond
-			conns[i] = createBenchAffinityConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
+			conns[i] = createBenchConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
 			if i < 4 { // First 4 nodes host shards
 				shardNodes[id] = struct{}{}
 			}
@@ -611,24 +582,24 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		}
 	})
 
-	b.Run("AffinityScore", func(b *testing.B) {
-		conn := createBenchAffinityConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData)
+	b.Run("CalcConnScore", func(b *testing.B) {
+		conn := createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData)
 		info := &shardNodeInfo{Primaries: 1, Replicas: 2}
 
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = affinityScore(conn, info, &shardCostForReads)
+			_ = calcConnScore(conn, shardCostForReads.forNode(info), "", true)
 		}
 	})
 
-	b.Run("AffinityScore_NilInfo", func(b *testing.B) {
-		conn := createBenchAffinityConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData)
+	b.Run("CalcConnScore_NilInfo", func(b *testing.B) {
+		conn := createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData)
 
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = affinityScore(conn, nil, &shardCostForReads)
+			_ = calcConnScore(conn, shardCostForReads.forNode(nil), "", true)
 		}
 	})
 
@@ -637,7 +608,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		for i := range template {
 			id := "bench-node-" + string(rune('a'+i))
 			rtt := time.Duration(5-i) * time.Millisecond // Reverse order
-			template[i] = createBenchAffinityConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
+			template[i] = createBenchConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
 		}
 
 		b.ReportAllocs()
@@ -654,7 +625,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		for i := range template {
 			id := "bench-node-" + string(rune('a'+i))
 			rtt := time.Duration(10-i) * time.Millisecond // Reverse order
-			template[i] = createBenchAffinityConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
+			template[i] = createBenchConnection("http://"+id+":9200", id, rtt, 100.0, RoleData)
 		}
 
 		b.ReportAllocs()

@@ -63,14 +63,14 @@ func TestParsePolicyOverrides_CommaSeparated(t *testing.T) {
 }
 
 func TestParsePolicyOverrides_RegexPattern(t *testing.T) {
-	t.Setenv("OPENSEARCH_GO_POLICY_AFFINITY", ".*mux.*=false")
+	t.Setenv("OPENSEARCH_GO_POLICY_ROUTER", ".*mux.*=false")
 
 	overrides := parsePolicyOverrides()
 	require.Len(t, overrides, 1)
 
 	m := overrides[0].matchers[0]
 	require.NotNil(t, m.regex, "expected regex to be compiled")
-	require.True(t, m.regex.MatchString("chain[0].mux[0].affinity[0]"))
+	require.True(t, m.regex.MatchString("chain[0].mux[0].router[0]"))
 }
 
 func TestParsePolicyOverrides_UnsetVar(t *testing.T) {
@@ -101,13 +101,13 @@ func TestParsePolicyOverrides_FallbackRegex(t *testing.T) {
 
 // --- buildPolicyPaths ---
 
-func TestBuildPolicyPaths_SmartPolicy(t *testing.T) {
-	root := NewSmartPolicy()
+func TestBuildPolicyPaths_DefaultPolicy(t *testing.T) {
+	root := NewDefaultPolicy()
 
 	paths := buildPolicyPaths(root)
 	require.NotEmpty(t, paths)
 
-	// NewSmartPolicy returns an IfEnabledPolicy at the root.
+	// NewDefaultPolicy returns an IfEnabledPolicy at the root.
 	rootPath, ok := paths[root]
 	require.True(t, ok, "root policy not in paths map")
 	require.Equal(t, "ifenabled[0]", rootPath)
@@ -132,7 +132,7 @@ func TestBuildPolicyPaths_RoundRobinDefault(t *testing.T) {
 
 func TestBuildPolicyPaths_Deterministic(t *testing.T) {
 	// Building paths twice should produce identical results.
-	root := NewSmartPolicy()
+	root := NewDefaultPolicy()
 
 	paths1 := buildPolicyPaths(root)
 	paths2 := buildPolicyPaths(root)
@@ -149,7 +149,7 @@ func TestBuildPolicyPaths_Deterministic(t *testing.T) {
 // --- applyPolicyOverrides ---
 
 func TestApplyPolicyOverrides_DisableAllRole(t *testing.T) {
-	root := NewSmartPolicy()
+	root := NewDefaultPolicy()
 
 	b := false
 	overrides := []policyOverride{{
@@ -171,7 +171,7 @@ func TestApplyPolicyOverrides_DisableAllRole(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_EnableNoOp(t *testing.T) {
-	root := NewSmartPolicy()
+	root := NewDefaultPolicy()
 
 	b := true
 	overrides := []policyOverride{{
@@ -197,7 +197,7 @@ func TestApplyPolicyOverrides_EnableNoOp(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_PathMatch(t *testing.T) {
-	root := NewSmartPolicy()
+	root := NewDefaultPolicy()
 
 	paths := buildPolicyPaths(root)
 
@@ -211,7 +211,7 @@ func TestApplyPolicyOverrides_PathMatch(t *testing.T) {
 			break
 		}
 	}
-	require.NotNil(t, targetPolicy, "no RolePolicy found in smart policy tree")
+	require.NotNil(t, targetPolicy, "no RolePolicy found in default policy tree")
 
 	overrides := []policyOverride{{
 		typeName: "role",
@@ -239,7 +239,7 @@ func TestApplyPolicyOverrides_PathMatch(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_RegexMatch(t *testing.T) {
-	root := NewSmartPolicy()
+	root := NewDefaultPolicy()
 
 	overrides := parsePolicyOverridesForTest(t, "OPENSEARCH_GO_POLICY_ROUNDROBIN", ".*roundrobin.*=false")
 
@@ -276,9 +276,9 @@ func TestForceDisabled_Eval(t *testing.T) {
 	rr.setEnvOverride(false)
 
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:9200/", nil)
-	pool, err := rr.Eval(context.Background(), req)
+	hop, err := rr.Eval(context.Background(), req)
 	require.NoError(t, err)
-	require.Nil(t, pool, "force-disabled Eval should return nil pool")
+	require.Nil(t, hop.Conn, "force-disabled Eval should return nil conn")
 }
 
 func TestForceDisabled_DiscoveryUpdate_Leaf(t *testing.T) {
@@ -313,9 +313,9 @@ func TestForceDisabled_CoordinatorPolicy(t *testing.T) {
 	require.False(t, cp.IsEnabled(), "CoordinatorPolicy should be disabled after setEnvOverride(false)")
 
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://localhost:9200/", nil)
-	pool, err := cp.Eval(context.Background(), req)
+	hop, err := cp.Eval(context.Background(), req)
 	require.NoError(t, err)
-	require.Nil(t, pool, "force-disabled Eval should return nil pool")
+	require.Nil(t, hop.Conn, "force-disabled Eval should return nil conn")
 }
 
 // --- policyState bitfield ---

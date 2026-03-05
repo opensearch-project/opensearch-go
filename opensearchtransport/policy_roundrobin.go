@@ -112,24 +112,37 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 	p.pool.recalculateWarmupParams(targetPoolSize)
 
 	// Add new connections based on their health status
-	if added != nil {
-		for _, conn := range added {
-			conn.mu.RLock()
-			isHealthy := conn.isReady()
-			conn.mu.RUnlock()
+	for _, conn := range added {
+		// Guard: skip if already a member of this pool.
+		if _, exists := p.pool.mu.members[conn]; exists {
+			continue
+		}
+		p.pool.mu.members[conn] = struct{}{}
 
-			if isHealthy {
-				conn.mu.Lock()
-				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
-				conn.mu.Unlock()
-				rounds, skip := p.pool.getWarmupParams()
-				conn.startWarmup(rounds, skip)
-				p.pool.appendToReadyActiveWithLock(conn)
-			} else {
-				conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup)))
-				p.pool.appendToDeadWithLock(conn)
+		conn.mu.RLock()
+		isHealthy := conn.isReady()
+		conn.mu.RUnlock()
+
+		if isHealthy {
+			conn.mu.Lock()
+			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
+			conn.mu.Unlock()
+			rounds, skip := p.pool.getWarmupParams()
+			conn.startWarmup(rounds, skip)
+			p.pool.appendToReadyActiveWithLock(conn)
+
+			continue
+		}
+
+		if err := conn.casLifecycle(conn.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby|lcOverloaded); err != nil {
+			if debugLogger != nil {
+				debugLogger.Logf("[roundrobin] casLifecycle failed for %s (lc=%s): %v; appending to dead anyway\n",
+					conn.URL, conn.loadConnState().lifecycle(), err)
 			}
 		}
+		p.pool.appendToDeadWithLock(conn)
+	}
+	if added != nil {
 		p.pool.shuffleActiveWithLock()
 		p.pool.enforceActiveCapWithLock()
 	}
@@ -153,6 +166,8 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 					if i < p.pool.mu.activeCount {
 						activeCount++
 					}
+				} else {
+					delete(p.pool.mu.members, conn)
 				}
 			}
 			p.pool.mu.ready = ready
@@ -163,6 +178,8 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 			for _, conn := range p.pool.mu.dead {
 				if _, found := removedMap[conn.URL.String()]; !found {
 					dead = append(dead, conn)
+				} else {
+					delete(p.pool.mu.members, conn)
 				}
 			}
 			p.pool.mu.dead = dead
@@ -185,18 +202,20 @@ func (p *RoundRobinPolicy) IsEnabled() bool {
 	return psIsEnabled(p.policyState.Load())
 }
 
-// Eval returns the round-robin connection pool for all available connections.
-func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+// Eval returns a NextHop from the round-robin pool.
+func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if p.policyState.Load()&psEnvDisabled != 0 {
-		//nolint:nilnil // Intentional: force-disabled policy returns no match
-		return nil, nil
+		return NextHop{}, nil
 	}
 
 	if p.pool == nil {
-		//nolint:nilnil // Intentional: (nil, nil) signals "no pool configured, continue chain"
-		return nil, nil // No connections available
+		return NextHop{}, nil
 	}
-	return p.pool, nil
+	conn, err := p.pool.Next()
+	if err != nil {
+		return NextHop{}, err
+	}
+	return NextHop{Conn: conn}, nil
 }
 
 // PoolSnapshot returns a point-in-time snapshot of this policy's pool.

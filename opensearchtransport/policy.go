@@ -30,6 +30,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	"time"
 )
 
@@ -38,9 +39,7 @@ import (
 // to read connection state (e.g., clusterHealthState) to choose the appropriate endpoint.
 type HealthCheckFunc func(ctx context.Context, conn *Connection, url *url.URL) (*http.Response, error)
 
-// policyConfig contains configuration settings for policy connection pools.
-// This unexported struct allows policies to create pools with consistent settings
-// and provides a single place to add new configuration options in the future.
+// policyConfig holds shared configuration for policy-owned connection pools.
 type policyConfig struct {
 	name                         string          // Pool identity for metrics/debug
 	ctx                          context.Context //nolint:containedctx // Long-lived pool context, not a request context.
@@ -53,46 +52,55 @@ type policyConfig struct {
 	clientsPerServer             float64
 	healthCheck                  HealthCheckFunc
 	observer                     *ConnectionObserver // nil means no observer
+	poolInfoReady                *atomic.Bool        // nil-safe; true once thread pool quorum is reached
 
 	// Standby pool configuration
 	activeListCap          *int  // nil = auto-scale; non-nil = user-specified cap value
 	standbyPromotionChecks int64 // consecutive health checks before standby->ready
 }
 
-// Policy defines the interface for individual routing policies.
-// Policies return (pool, nil) for matches, (nil, error) for errors,
-// and (nil, nil) for "no match, try next policy".
+// Policy is a routing strategy that selects a connection for a request.
+// See [Eval] for return value semantics.
 type Policy interface {
-	// DiscoveryUpdate is called when node discovery is run and is the callback used to update
-	// a policy's route cache. DiscoveryUpdate will be called every time node discovery is run
-	// to provide the ability to update existing connections, in addition to recording when
-	// there are changes to the cluster's topology from new nodes being added or old nodes being removed.
-	// DiscoveryUpdate() is called on every configured policies in the router, regardless of whether
-	// or IsEnabled is true.
-	// added: new nodes being added to the cluster, removed: nodes being removed from cluster,
-	// unchanged: existing nodes that remain between discovery runs.
-	// Most calls will have nil added/removed with unchanged containing the full node list.
-	// Policies typically only need to handle added != nil and removed != nil cases.
+	// DiscoveryUpdate notifies the policy of topology changes from node discovery.
+	// Called on every discovery cycle for all configured policies, regardless of
+	// IsEnabled state. Parameters:
+	//   - added: newly discovered nodes (nil if none)
+	//   - removed: nodes that left since the last cycle (nil if none)
+	//   - unchanged: nodes present in both the previous and current topology
 	DiscoveryUpdate(added, removed, unchanged []*Connection) error
 
-	// CheckDead is called periodically by the router's health checker to sync dead connections.
-	// The first policy should perform actual health checks on dead connections.
-	// Subsequent policies should resurrect connections based on the state of Connection.mu.isDead.
+	// CheckDead health-checks dead connections and resurrects those that respond.
+	// Leaf policies that own a connection pool perform the actual health check;
+	// wrapper policies delegate to their children.
 	CheckDead(ctx context.Context, healthCheck HealthCheckFunc) error
 
-	// RotateStandby rotates standby connections into active across all owned pools.
-	// Each rotation health-checks a standby and, if healthy, promotes it to active.
-	// Returns the total number of successful rotations and any errors encountered
-	// during rotation (including partial failures). Called synchronously from
-	// DiscoverNodes -- blocks until rotations complete or no candidates remain.
+	// RotateStandby promotes standby connections to active by health-checking
+	// each candidate. Returns the number of successful promotions and any error.
+	// Blocks until count rotations complete or no candidates remain.
 	RotateStandby(ctx context.Context, count int) (int, error)
 
 	// IsEnabled performs a quick check if this policy can be evaluated.
 	// This should use cached state for maximum performance.
 	IsEnabled() bool
 
-	// Eval evaluates the policy and returns a connection pool if applicable.
-	Eval(ctx context.Context, req *http.Request) (ConnectionPool, error)
+	// Eval evaluates the policy and returns a NextHop if applicable.
+	// A NextHop with Conn != nil means "use this connection".
+	// A zero-value NextHop (Conn == nil) with nil error means "no match, try next".
+	Eval(ctx context.Context, req *http.Request) (NextHop, error)
+}
+
+// NextHop is the result of a routing decision. Returned by Policy.Eval and
+// Router.Route with the selected connection and optional routing metadata.
+//
+// NOTE: This is intentionally a concrete struct rather than an interface.
+// As a value type it is returned on the stack with zero heap allocation --
+// critical since every HTTP request produces one. The PoolName field is a
+// string literal (e.g., "search", "write") which does not allocate.
+// Adding fields to the struct is always non-breaking.
+type NextHop struct {
+	Conn     *Connection
+	PoolName string // Thread pool name for in-flight tracking; empty for non-scored routes.
 }
 
 // policyConfigurable is a package-internal interface for policies that need configuration.
@@ -151,6 +159,7 @@ func createPoolFromConfig(config policyConfig) *multiServerPool {
 		activeListCapConfig:          config.activeListCap,
 		standbyPromotionChecks:       config.standbyPromotionChecks,
 	}
+	pool.mu.members = make(map[*Connection]struct{}, defaultMembersCapacity)
 	if config.observer != nil {
 		pool.observer.Store(config.observer)
 	}

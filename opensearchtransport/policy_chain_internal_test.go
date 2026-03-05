@@ -102,9 +102,9 @@ func TestPolicyChain(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		conn, err := chain.Route(ctx, req)
+		hop, err := chain.Route(ctx, req)
 		require.NoError(t, err)
-		require.NotNil(t, conn)
+		require.NotNil(t, hop.Conn)
 	})
 
 	t.Run("Route returns ErrNoConnections when no policies match", func(t *testing.T) {
@@ -114,12 +114,12 @@ func TestPolicyChain(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		conn, err := chain.Route(ctx, req)
+		hop, err := chain.Route(ctx, req)
 		require.ErrorIs(t, err, ErrNoConnections)
-		require.Nil(t, conn)
+		require.Nil(t, hop.Conn)
 	})
 
-	t.Run("Eval returns pool from first matching policy", func(t *testing.T) {
+	t.Run("Eval returns hop from first matching policy", func(t *testing.T) {
 		firstPolicy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		firstPolicy.configurePolicySettings(createTestConfig())
 
@@ -130,19 +130,21 @@ func TestPolicyChain(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.NotNil(t, pool)
-		require.NoError(t, err)
+		hop, err := policy.Eval(ctx, req)
+		// With no connections in the pool, Next() returns ErrNoConnections,
+		// which the chain propagates.
+		require.Error(t, err)
+		require.Nil(t, hop.Conn)
 	})
 
-	t.Run("Eval returns nil when all policies return nil", func(t *testing.T) {
+	t.Run("Eval returns zero NextHop when all policies return nil conn", func(t *testing.T) {
 		policy := NewPolicy(NewNullPolicy(), NewNullPolicy())
 
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 
@@ -155,9 +157,9 @@ func TestPolicyChain(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
+		hop, err := policy.Eval(ctx, req)
 		require.ErrorIs(t, err, testErr)
-		require.Nil(t, pool)
+		require.Nil(t, hop.Conn)
 	})
 
 	t.Run("DiscoveryUpdate updates all policies in reverse", func(t *testing.T) {
@@ -340,6 +342,6 @@ func (p *testPolicyWithError) IsEnabled() bool {
 	return true
 }
 
-func (p *testPolicyWithError) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
-	return nil, p.err
+func (p *testPolicyWithError) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
+	return NextHop{}, p.err
 }

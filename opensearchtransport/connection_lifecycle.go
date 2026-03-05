@@ -27,8 +27,20 @@
 package opensearchtransport
 
 import (
+	"errors"
 	"fmt"
 	"strings"
+)
+
+// Sentinel errors for casLifecycle.
+var (
+	// errLifecycleConflict indicates that masked lifecycle bits were mutated by
+	// a concurrent transition between the initial load and the CAS attempt.
+	errLifecycleConflict = errors.New("lifecycle conflict: masked bits mutated concurrently")
+
+	// errLifecycleNoop indicates that the requested transition would not change
+	// the lifecycle state (bits already in the desired configuration).
+	errLifecycleNoop = errors.New("lifecycle noop: state already matches")
 )
 
 // ---------------------------------------------------------------------------
@@ -38,7 +50,7 @@ import (
 // loadConnState returns the current packed state of the connection.
 // Safe to call without holding any lock -- atomics are for "dirty reads"
 // for metrics or reporting, but not for state changes.
-// For pool-placement decisions, use isPositioned under c.mu.RLock.
+// For pool-placement decisions, use isReady under c.mu.RLock.
 func (c *Connection) loadConnState() connState { return connState(c.state.Load()) }
 
 // isReady reports whether the connection should be eligible to be in the
@@ -92,8 +104,9 @@ func (c *Connection) isReady() bool {
 // than retrying -- a mutation in those bits indicates a concurrent lifecycle
 // transition (race) that this caller should not overwrite.
 //
-// Returns true if the lifecycle was changed. Returns false if masked bits
-// were mutated or if the computed next state equals the current state (no-op).
+// Returns nil if the lifecycle was changed. Returns errLifecycleConflict if
+// masked bits were mutated concurrently, or errLifecycleNoop if the computed
+// next state equals the current state (no change needed).
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold c.mu (Lock or TryLock).
@@ -101,25 +114,25 @@ func (c *Connection) isReady() bool {
 func (c *Connection) casLifecycle(
 	current connState,
 	conflict, set, clr connLifecycle,
-) bool {
+) error {
 	mask := conflict | set | clr
 	raw := int64(current)
 	initialMasked := current.lifecycle() & mask
 	for {
 		lc := connState(raw).lifecycle()
 		if lc&mask != initialMasked {
-			return false // masked bits mutated by concurrent transition
+			return errLifecycleConflict
 		}
 		next := (lc | set) &^ clr
 		if next == lc {
-			return false // no change
+			return errLifecycleNoop
 		}
 		target := connState(raw).withLifecycle(next)
 		if c.state.CompareAndSwap(raw, int64(target)) {
 			if debugLogger != nil {
 				debugLogger.Logf("casLifecycle: %s -> %s on %s\n", lc, next, c.URL)
 			}
-			return true
+			return nil
 		}
 		// CAS failed -- re-load and re-check masked bits before retrying.
 		raw = c.state.Load()
@@ -127,37 +140,37 @@ func (c *Connection) casLifecycle(
 }
 
 // setLifecycleBit atomically sets a single metadata bit.
-// Returns true if the bit was newly set, false if already set or
-// if a concurrent transition mutated the bit.
-func (c *Connection) setLifecycleBit(bit connLifecycle) bool {
+// Returns nil if the bit was newly set, errLifecycleNoop if already set,
+// or errLifecycleConflict if a concurrent transition mutated the bit.
+func (c *Connection) setLifecycleBit(bit connLifecycle) error {
 	return c.casLifecycle(c.loadConnState(), 0, bit, 0)
 }
 
 // clearLifecycleBit atomically clears a single metadata bit.
-// Returns true if the bit was cleared, false if already clear or
-// if a concurrent transition mutated the bit.
-func (c *Connection) clearLifecycleBit(bit connLifecycle) bool {
+// Returns nil if the bit was cleared, errLifecycleNoop if already clear,
+// or errLifecycleConflict if a concurrent transition mutated the bit.
+func (c *Connection) clearLifecycleBit(bit connLifecycle) error {
 	return c.casLifecycle(c.loadConnState(), 0, 0, bit)
 }
 
 // setNeedsCatUpdate marks this connection as needing a /_cat/shards refresh
-// before it can participate in affinity routing. The connection remains
+// before it can participate in shard-aware routing. The connection remains
 // available for general routing (round-robin, zombie tryouts) but is
 // excluded from rendezvousTopK candidate sets until the flag is cleared
 // by a successful shard placement refresh.
-func (c *Connection) setNeedsCatUpdate() bool {
+func (c *Connection) setNeedsCatUpdate() error {
 	return c.setLifecycleBit(lcNeedsCatUpdate)
 }
 
 // clearNeedsCatUpdate removes the shard-placement-stale flag, allowing
-// the connection to participate in affinity routing again. Called after
+// the connection to participate in shard-aware routing again. Called after
 // a successful /_cat/shards refresh confirms current shard placement.
-func (c *Connection) clearNeedsCatUpdate() bool {
+func (c *Connection) clearNeedsCatUpdate() error {
 	return c.clearLifecycleBit(lcNeedsCatUpdate)
 }
 
 // needsCatUpdate reports whether this connection has been flagged as needing
-// a /_cat/shards refresh. When true, the connection is excluded from affinity
+// a /_cat/shards refresh. When true, the connection is excluded from shard-aware
 // routing candidate sets.
 func (c *Connection) needsCatUpdate() bool {
 	return c.loadConnState().lifecycle().has(lcNeedsCatUpdate)
@@ -197,7 +210,8 @@ func (c *Connection) needsCatUpdate() bool {
 // Extended metadata (bits 8-11) -- independent flags, freely combinable:
 //
 //	lcNeedsHardware  (0x100) -- needs hardware info (/_nodes/_local/http,os)
-//	bits 9-11: reserved for future use
+//	lcNeedsCatUpdate (0x200) -- shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
+//	bits 10-11: reserved for future use
 //
 // Metadata bits are observability signals for metrics and monitoring.
 // They do NOT serve as concurrency guards -- mutexes and actual field
@@ -227,7 +241,7 @@ const (
 	lcHealthChecking connLifecycle = 0x40  // health check goroutine running
 	lcDraining       connLifecycle = 0x80  // HTTP/2 GOAWAY; no new requests
 	lcNeedsHardware  connLifecycle = 0x100 // needs hardware info (/_nodes/_local/http,os)
-	lcNeedsCatUpdate connLifecycle = 0x200 // shard placement stale; excluded from affinity routing until /_cat/shards refresh
+	lcNeedsCatUpdate connLifecycle = 0x200 // shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
 )
 
 // Compound aliases for common lifecycle combinations.
@@ -349,13 +363,6 @@ func (wm warmupManager) withSkipCount(skipCount int) warmupManager {
 // Backward-compatible aliases
 // ---------------------------------------------------------------------------
 
-// packRequestManager is a backward-compatible alias for packWarmupManager.
-//
-// Deprecated: Use packWarmupManager directly.
-func packRequestManager(rounds, skipCount int) warmupManager {
-	return packWarmupManager(rounds, skipCount)
-}
-
 // ---------------------------------------------------------------------------
 // connState -- packed 64-bit connection state word
 // ---------------------------------------------------------------------------
@@ -383,7 +390,7 @@ func packRequestManager(rounds, skipCount int) warmupManager {
 // readiness (bits 0-1):  lcReady=0x01, lcUnknown=0x02 (mutually exclusive)
 // position  (bits 2-3):  lcActive=0x04, lcStandby=0x08 (at most one; 0=dead)
 // metadata  (bits 4-7):  lcNeedsWarmup, lcOverloaded, lcHealthChecking, lcDraining
-// extended  (bits 8-11): lcNeedsHardware=0x100, 3 reserved
+// extended  (bits 8-11): lcNeedsHardware=0x100, lcNeedsCatUpdate=0x200, 2 reserved
 //
 // Each 26-bit warmupManager field uses the lower 16 bits:
 //

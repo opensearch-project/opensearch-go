@@ -78,19 +78,21 @@ discovers each node's allocated_processors from /_nodes/_local/http,os and deriv
 
   - healthCheckRate = coreCount * 0.10 (10% of core budget)
 
-    transport, err := opensearchtransport.New(opensearchtransport.Config{
-    URLs: urls,
-    // Rate limiting is auto-derived from server hardware.
-    // No manual tuning required.
-    })
+Example:
+
+	transport, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs: urls,
+		// Rate limiting is auto-derived from server hardware.
+		// No manual tuning required.
+	})
 
 # Request-Based Connection Routing
 
 To enable intelligent request routing that routes operations to appropriate node types,
 provide a Router implementation in the configuration:
 
-	// Enable smart routing (recommended for production clusters)
-	router := opensearchtransport.NewSmartRouter()
+	// Enable routing (recommended for production clusters)
+	router := opensearchtransport.NewDefaultRouter()
 	transport, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs:   []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
 		Router: router,
@@ -98,20 +100,19 @@ provide a Router implementation in the configuration:
 
 Available router constructors:
 
-  - NewSmartRouter(): Affinity-aware routing with per-index
-    consistency (recommended). NewDefaultRouter() returns the same
-    router. When the fan-out set spans multiple RTT tiers, tier-span
-    equalization inflates cost attribution so traffic distributes
-    equally across all active tiers.
-  - NewMuxRouter(): HTTP pattern-based routing (bulk->ingest, search->data) without affinity
-  - NewRoundRobinRouter(): Coordinator preference with round-robin fallback
+  - NewDefaultRouter(): Connection-scoring routing with per-index
+    consistency (recommended). When the fan-out set spans multiple
+    RTT tiers, tier-span equalization inflates cost attribution so
+    traffic distributes equally across all active tiers.
+  - NewMuxRouter(): HTTP pattern-based routing (bulk->ingest, search->data) without connection scoring
+  - NewRoundRobinRouter(): Coordinator-only preference with round-robin fallback
   - NewRouter(policies...): Custom policy chain
 
 The routing system uses a chain-of-responsibility pattern where policies are tried in sequence:
 
   - Router: Top-level coordinator that tries policies until one matches
   - Policy: Individual routing strategy that may match or pass to next policy
-  - Fallthrough: Policies return (nil, nil) when they don't match
+  - Fallthrough: Policies return (NextHop{}, nil) when they don't match
 
 # Available Policies
 
@@ -136,7 +137,7 @@ Individual routing policies that can be composed into custom strategies:
 
 # Request Routing Patterns
 
-The smart router automatically handles these OpenSearch operation patterns:
+The router automatically handles these OpenSearch operation patterns:
 
   - Bulk operations (/_bulk, /_bulk/stream) -> Ingest nodes
   - Ingest pipelines (/_ingest/pipeline/*) -> Ingest nodes
@@ -157,18 +158,18 @@ Enable automatic cluster discovery to maintain current node information:
 	transport, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs: []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
 		DiscoverNodesInterval: 5 * time.Minute,
-		Router: opensearchtransport.NewSmartRouter(),
+		Router: opensearchtransport.NewDefaultRouter(),
 	})
 
 The discovery process respects node roles and can exclude dedicated cluster manager nodes
 from request routing (controlled by IncludeDedicatedClusterManagers configuration).
 
 When a request fails (transport error or retryable HTTP status), the failing connection is
-marked with a needsCatUpdate flag that excludes it from affinity routing candidate sets.
+marked with a needsCatUpdate flag that excludes it from scored routing candidate sets.
 The node remains available for round-robin fallback and zombie tryout, but stays out of
-index-affinity selection until a /_cat/shards refresh confirms current shard placement.
+index-level selection until a /_cat/shards refresh confirms current shard placement.
 This flag survives resurrection: a node can pass health checks and return to the active
-pool while still excluded from affinity routing. A lightweight /_cat/shards-only refresh
+pool while still excluded from scored routing. A lightweight /_cat/shards-only refresh
 is scheduled with urgency proportional to the fraction of affected connections.
 
 # Legacy Connection Pool
@@ -206,13 +207,13 @@ Each policy type has a corresponding environment variable:
 	OPENSEARCH_GO_POLICY_CHAIN
 	OPENSEARCH_GO_POLICY_MUX
 	OPENSEARCH_GO_POLICY_IFENABLED
-	OPENSEARCH_GO_POLICY_AFFINITY
+	OPENSEARCH_GO_POLICY_ROUTER
 	OPENSEARCH_GO_POLICY_ROLE
 	OPENSEARCH_GO_POLICY_ROUNDROBIN
 	OPENSEARCH_GO_POLICY_COORDINATOR
 	OPENSEARCH_GO_POLICY_NULL
-	OPENSEARCH_GO_POLICY_INDEX_AFFINITY
-	OPENSEARCH_GO_POLICY_DOCUMENT_AFFINITY
+	OPENSEARCH_GO_POLICY_INDEX_ROUTER
+	OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER
 
 Value parsing (evaluated in order):
 
@@ -229,5 +230,14 @@ Policy paths use dot-delimited notation with per-type sibling indices:
 	chain[0].ifenabled[0].chain[0].mux[0].role[0]
 
 Set OPENSEARCH_GO_DEBUG=true to see policy paths and override actions in stderr.
+
+# Seed URL Fallback
+
+When all router policies and connection pools are exhausted (every discovered node is
+dead), the client falls back to the original seed URLs as a last resort. A dedicated
+pool built from fresh copies of the seed URLs is tried once after the retry loop is
+fully exhausted. On success, discoveryNeeded is set to trigger immediate rediscovery.
+
+Set OPENSEARCH_GO_FALLBACK=false to disable this behavior.
 */
 package opensearchtransport

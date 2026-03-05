@@ -118,10 +118,9 @@ func (p *IfEnabledPolicy) IsEnabled() bool {
 }
 
 // Eval evaluates the condition and delegates to the appropriate policy.
-func (p *IfEnabledPolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+func (p *IfEnabledPolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if p.policyState.Load()&psEnvDisabled != 0 {
-		//nolint:nilnil // Intentional: force-disabled policy returns no match
-		return nil, nil
+		return NextHop{}, nil
 	}
 
 	// Evaluate condition and choose policy

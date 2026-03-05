@@ -33,8 +33,8 @@ func TestNullPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		pool, err := policy.Eval(ctx, req)
-		require.Nil(t, pool)
+		hop, err := policy.Eval(ctx, req)
+		require.Nil(t, hop.Conn)
 		require.NoError(t, err)
 	})
 

@@ -25,7 +25,7 @@ import (
 func TestPointInTimeClient(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	testutil.SkipIfBelowVersion(t, client, 2, 4, "Point_In_Time")
+	testutil.SkipIfVersion(t, client, "<", "2.4", "Point_In_Time")
 	failingClient, err := osapitest.CreateFailingClient(t)
 	require.NoError(t, err)
 

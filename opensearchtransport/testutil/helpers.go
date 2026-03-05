@@ -376,6 +376,111 @@ func EvaluateVersionCondition(t *testing.T, serverVersion, condition string) boo
 	}
 }
 
+// GetServerVersion queries the cluster root endpoint (GET /) and returns the
+// server's version string in semver format (e.g., "v2.1.0"). This works at
+// the transport level without requiring an opensearchapi.Client.
+func GetServerVersion(t *testing.T) string {
+	t.Helper()
+
+	u := GetTestURL(t)
+	rootURL := *u
+	rootURL.Path = "/"
+
+	client := &http.Client{
+		Transport: GetTestTransport(t),
+		Timeout:   5 * time.Second,
+	}
+
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, rootURL.String(), nil)
+	if err != nil {
+		t.Fatalf("GetServerVersion: failed to create request: %v", err)
+	}
+	if IsSecure(t) {
+		req.SetBasicAuth("admin", GetPassword(t))
+	}
+
+	resp, err := client.Do(req) //nolint:gosec // URL comes from test configuration
+	if err != nil {
+		t.Fatalf("GetServerVersion: failed to query cluster: %v", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Version struct {
+			Number string `json:"number"`
+		} `json:"version"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		t.Fatalf("GetServerVersion: failed to decode response: %v", err)
+	}
+	if result.Version.Number == "" {
+		t.Fatal("GetServerVersion: server returned empty version number")
+	}
+
+	return NormalizeVersion(t, result.Version.Number)
+}
+
+// SkipIfVersion skips a test when the cluster version satisfies the given
+// operator and version constraint. Queries the server directly via HTTP,
+// so it can be used in transport-level tests without an opensearchapi.Client.
+//
+// Examples:
+//
+//	SkipIfVersion(t, "=",  "2.1.0", "shard-exact routing")  // skip on exactly 2.1.0
+//	SkipIfVersion(t, "<",  "2.4",   "feature X")            // skip below 2.4.0
+//	SkipIfVersion(t, "<=", "2.1",   "known server bug")     // skip on 2.1.x and below
+//
+// Supported operators: =, !=, <, <=, >, >=
+//
+// When the version has no patch component (e.g. "2.1"), the = and !=
+// operators match on major.minor only (any patch). All other operators
+// treat the missing patch as 0.
+func SkipIfVersion(t *testing.T, operator string, version string, testName string) {
+	t.Helper()
+
+	serverVersion := GetServerVersion(t)
+
+	// Parse the constraint version.
+	constraintParts := strings.Split(version, ".")
+	hasPatch := len(constraintParts) == 3
+	constraintSemver := NormalizeVersion(t, version)
+	if !hasPatch {
+		constraintSemver = NormalizeVersion(t, version+".0")
+	}
+
+	var matches bool
+	switch {
+	case operator == "=" && !hasPatch:
+		// Match on major.minor only (any patch).
+		matches = semver.MajorMinor(serverVersion) == semver.MajorMinor(constraintSemver)
+	case operator == "!=" && !hasPatch:
+		matches = semver.MajorMinor(serverVersion) != semver.MajorMinor(constraintSemver)
+	default:
+		cmp := semver.Compare(serverVersion, constraintSemver)
+		switch operator {
+		case "=":
+			matches = cmp == 0
+		case "!=":
+			matches = cmp != 0
+		case "<":
+			matches = cmp < 0
+		case "<=":
+			matches = cmp <= 0
+		case ">":
+			matches = cmp > 0
+		case ">=":
+			matches = cmp >= 0
+		default:
+			t.Fatalf("SkipIfVersion: unsupported operator %q: must be =, !=, <, <=, >, or >=", operator)
+		}
+	}
+
+	if matches {
+		t.Skipf("Skipping %s: server version %s matches constraint %q %s",
+			testName, serverVersion[1:], operator, version)
+	}
+}
+
 // NormalizeVersion ensures the version string is in semver format (v1.2.3)
 func NormalizeVersion(t *testing.T, version string) string {
 	t.Helper()

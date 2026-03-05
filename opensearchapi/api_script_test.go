@@ -169,7 +169,7 @@ func TestScriptClient(t *testing.T) {
 	for _, value := range testCases {
 		t.Run(value.Name, func(t *testing.T) {
 			if strings.Contains(value.Name, "Language") {
-				testutil.SkipIfBelowVersion(t, client, 2, 4, value.Name)
+				testutil.SkipIfVersion(t, client, "<", "2.4", value.Name)
 			}
 			for _, testCase := range value.Tests {
 				t.Run(testCase.Name, func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestScriptClient(t *testing.T) {
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Language", func(t *testing.T) {
-			testutil.SkipIfBelowVersion(t, client, 2, 4, "Language")
+			testutil.SkipIfVersion(t, client, "<", "2.4", "Language")
 			resp, err := client.Script.Language(t.Context(), nil)
 			require.NoError(t, err)
 			assert.NotNil(t, resp)

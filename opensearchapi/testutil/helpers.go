@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -117,19 +118,92 @@ func GetVersion(t *testing.T, ctx context.Context, client *opensearchapi.Client)
 	return opensearch.ParseVersion(resp.Version.Number)
 }
 
-// SkipIfBelowVersion skips a test if the cluster version is below the given major.minor version.
-// Uses semver.Compare for standards-compliant version comparison.
-func SkipIfBelowVersion(t *testing.T, client *opensearchapi.Client, major, minor int64, testName string) {
+// SkipIfVersion skips a test when the cluster version satisfies the given
+// operator and version constraint.
+//
+// Examples:
+//
+//	SkipIfVersion(t, client, "<",  "2.15",   "Point_In_Time")  // skip below 2.15.0
+//	SkipIfVersion(t, client, "=",  "2.15",   "Audit API")      // skip on 2.15.x (any patch)
+//	SkipIfVersion(t, client, ">=", "3.0",    "NewFeature")      // skip on 3.0.0+
+//	SkipIfVersion(t, client, "=",  "2.15.0", "ExactMatch")      // skip on exactly 2.15.0
+//
+// Supported operators: =, !=, <, <=, >, >=
+//
+// When the version has no patch component (e.g. "2.15"), the = and !=
+// operators match on major.minor only (any patch). All other operators
+// treat the missing patch as 0.
+func SkipIfVersion(t *testing.T, client *opensearchapi.Client, operator string, version string, testName string) {
 	t.Helper()
 	sMajor, sMinor, sPatch, err := GetVersion(t, t.Context(), client)
 	require.NoError(t, err)
 
-	serverVersion := fmt.Sprintf("v%d.%d.%d", sMajor, sMinor, sPatch)
-	minVersion := fmt.Sprintf("v%d.%d.0", major, minor)
+	cMajor, cMinor, cPatch, hasPatch := parseVersion(t, version)
 
-	if semver.Compare(serverVersion, minVersion) < 0 {
-		t.Skipf("Skipping %s: server version %s is below minimum %s", testName, serverVersion, minVersion)
+	serverSemver := fmt.Sprintf("v%d.%d.%d", sMajor, sMinor, sPatch)
+	targetSemver := fmt.Sprintf("v%d.%d.%d", cMajor, cMinor, cPatch)
+
+	var matches bool
+	switch {
+	case operator == "=" && !hasPatch:
+		matches = sMajor == cMajor && sMinor == cMinor
+	case operator == "!=" && !hasPatch:
+		matches = sMajor != cMajor || sMinor != cMinor
+	default:
+		cmp := semver.Compare(serverSemver, targetSemver)
+		switch operator {
+		case "=":
+			matches = cmp == 0
+		case "!=":
+			matches = cmp != 0
+		case "<":
+			matches = cmp < 0
+		case "<=":
+			matches = cmp <= 0
+		case ">":
+			matches = cmp > 0
+		case ">=":
+			matches = cmp >= 0
+		default:
+			t.Fatalf("SkipIfVersion: unsupported operator %q: must be =, !=, <, <=, >, or >=", operator)
+		}
 	}
+
+	if matches {
+		t.Skipf("Skipping %s: server version %s matches constraint %q %s", testName, serverSemver[1:], operator, version)
+	}
+}
+
+// parseVersion parses a version string like "2.15" or "2.4.0" into its
+// components. When the patch is absent, hasPatch is false and patch is 0.
+func parseVersion(t *testing.T, version string) (int64, int64, int64, bool) {
+	t.Helper()
+
+	var major, minor, patch int64
+	var hasPatch bool
+
+	parts := strings.Split(version, ".")
+	switch len(parts) {
+	case 2:
+		var err error
+		major, err = strconv.ParseInt(parts[0], 10, 64)
+		require.NoError(t, err, "SkipIfVersion: invalid major version in %q", version)
+		minor, err = strconv.ParseInt(parts[1], 10, 64)
+		require.NoError(t, err, "SkipIfVersion: invalid minor version in %q", version)
+	case 3:
+		hasPatch = true
+		var err error
+		major, err = strconv.ParseInt(parts[0], 10, 64)
+		require.NoError(t, err, "SkipIfVersion: invalid major version in %q", version)
+		minor, err = strconv.ParseInt(parts[1], 10, 64)
+		require.NoError(t, err, "SkipIfVersion: invalid minor version in %q", version)
+		patch, err = strconv.ParseInt(parts[2], 10, 64)
+		require.NoError(t, err, "SkipIfVersion: invalid patch version in %q", version)
+	default:
+		t.Fatalf("SkipIfVersion: version %q must be major.minor or major.minor.patch", version)
+	}
+
+	return major, minor, patch, hasPatch
 }
 
 // ExtendedReadinessCheck performs validation checks to ensure the

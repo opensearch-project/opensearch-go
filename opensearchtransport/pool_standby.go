@@ -73,7 +73,7 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 
 	// Already dead -- just add overloaded flag
 	if lc.has(lcUnknown) {
-		c.setLifecycleBit(lcOverloaded)
+		c.setLifecycleBit(lcOverloaded) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		c.mu.overloadedAt = time.Now()
 		c.mu.Unlock()
 		return
@@ -81,14 +81,14 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 
 	// Already in standby -- just add overloaded flag
 	if lc.has(lcStandby) {
-		c.setLifecycleBit(lcOverloaded)
+		c.setLifecycleBit(lcOverloaded) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		c.mu.overloadedAt = time.Now()
 		c.mu.Unlock()
 		return
 	}
 
 	// Active -> standby with overloaded flag
-	if !c.casLifecycle(c.loadConnState(), 0, lcStandby|lcOverloaded, lcActive) {
+	if err := c.casLifecycle(c.loadConnState(), 0, lcStandby|lcOverloaded, lcActive); err != nil {
 		c.mu.Unlock()
 		return // state changed concurrently
 	}
@@ -129,7 +129,7 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 		return
 	}
 
-	c.clearLifecycleBit(lcOverloaded)
+	c.clearLifecycleBit(lcOverloaded) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	c.mu.overloadedAt = time.Time{}
 	c.mu.Unlock()
 
@@ -203,7 +203,12 @@ func (cp *multiServerPool) enforceActiveCapWithLock() {
 	// leaving the connection with lcStandby lifecycle in the active partition.
 	for i := newActiveCount; i < cp.mu.activeCount; i++ {
 		cp.mu.ready[i].mu.Lock()
-		cp.mu.ready[i].casLifecycle(cp.mu.ready[i].loadConnState(), 0, lcStandby|lcNeedsWarmup, lcActive)
+		//nolint:errcheck // lock held; only errLifecycleNoop possible
+		cp.mu.ready[i].casLifecycle(
+			cp.mu.ready[i].loadConnState(), 0,
+			lcStandby|lcNeedsWarmup,
+			lcActive,
+		)
 		cp.mu.ready[i].clearWarmup()
 		cp.mu.ready[i].mu.Unlock()
 	}
@@ -250,7 +255,7 @@ func (cp *multiServerPool) tryStandbyWithLock() *Connection {
 	// Under duress: all active connections exhausted. Promote immediately
 	// without warmup -- strip lcNeedsWarmup to maximize throughput.
 	c.mu.Lock()
-	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby|lcNeedsWarmup)
+	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby|lcNeedsWarmup) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	c.mu.Unlock()
 	cp.mu.activeCount++
 
@@ -295,7 +300,7 @@ func (cp *multiServerPool) promoteStandbyWithLock(c *Connection) bool {
 	}
 
 	c.mu.Lock()
-	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby)
+	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	c.mu.Unlock()
 	rounds, skip := cp.getWarmupParams()
 	c.startWarmup(rounds, skip)
@@ -358,7 +363,7 @@ func (cp *multiServerPool) findActiveCandidate() *Connection {
 		// Set lcHealthChecking to claim this candidate exclusively -- concurrent
 		// goroutines in rotateStandby will skip it in Pass 1.
 		// Also ensure lcNeedsWarmup is set for warmup on promotion.
-		c.casLifecycle(
+		c.casLifecycle( //nolint:errcheck // lock held; only errLifecycleNoop possible
 			c.loadConnState(),
 			lcOverloaded|lcUnknown,
 			lcHealthChecking|lcNeedsWarmup, 0,
@@ -516,7 +521,7 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, e
 	// of outcome. All exit paths below either move the candidate to dead
 	// (which resets lifecycle) or hand it back for promotion.
 	candidate.mu.Lock()
-	candidate.clearLifecycleBit(lcHealthChecking)
+	candidate.clearLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	candidate.mu.Unlock()
 
 	// Verify candidate is still in the ready list. A concurrent goroutine
@@ -538,7 +543,7 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, e
 	if !healthy {
 		// Health check failed -- move to dead
 		candidate.mu.Lock()
-		if !candidate.casLifecycle(candidate.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby) {
+		if err := candidate.casLifecycle(candidate.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby); err != nil {
 			candidate.mu.Unlock()
 			return nil, fmt.Errorf("[%s] %q: %w: lifecycle CAS failed", cp.name, candidate.URL, ErrRotationStateChanged)
 		}
@@ -567,7 +572,7 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, e
 	if !found {
 		// Removed by concurrent discovery -- clear warmup claim
 		candidate.mu.Lock()
-		candidate.clearLifecycleBit(lcNeedsWarmup)
+		candidate.clearLifecycleBit(lcNeedsWarmup) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		candidate.mu.Unlock()
 		return nil, fmt.Errorf("[%s] %q: %w: removed by concurrent discovery", cp.name, candidate.URL, ErrRotationPromotionRace)
 	}

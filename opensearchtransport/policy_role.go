@@ -196,6 +196,16 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 		if p.connectionMatchesRoles(conn) {
 			// Establish consistent lock ordering: Pool -> Connection
 			p.pool.Lock()
+
+			// Guard: skip if this connection is already a member of this pool.
+			// Multiple poolRouters sharing the same inner RolePolicy
+			// each propagate DiscoveryUpdate independently, so the same *Connection
+			// can arrive here N times per discovery cycle.
+			if _, exists := p.pool.mu.members[conn]; exists {
+				p.pool.Unlock()
+				continue
+			}
+
 			conn.mu.RLock()
 
 			// Determine health from lifecycle bits, not timestamps.
@@ -211,10 +221,13 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 			// entry would self-deadlock if conn is the eviction target.
 			conn.mu.RUnlock()
 
+			// Record membership before appending to pool lists.
+			p.pool.mu.members[conn] = struct{}{}
+
 			if isHealthy {
 				// Add healthy connection to active partition with warmup
 				conn.mu.Lock()
-				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby)
+				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 				conn.mu.Unlock()
 				rounds, skip := p.pool.getWarmupParams()
 				conn.startWarmup(rounds, skip)
@@ -223,7 +236,12 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 				p.pool.enforceActiveCapWithLock()
 			} else {
 				// Add unhealthy connection to dead list - will be health checked later
-				conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup)))
+				//nolint:errcheck // pool lock held; only errLifecycleNoop possible
+				conn.casLifecycle(
+					conn.loadConnState(), 0,
+					lcDead|lcNeedsWarmup,
+					lcReady|lcActive|lcStandby|lcOverloaded,
+				)
 				p.pool.appendToDeadWithLock(conn)
 			}
 
@@ -284,6 +302,8 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 				if i < p.pool.mu.activeCount {
 					activeCount++
 				}
+			} else {
+				delete(p.pool.mu.members, conn)
 			}
 		}
 		p.pool.mu.ready = filtered
@@ -296,6 +316,8 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 		for _, conn := range p.pool.mu.dead {
 			if _, found := removedConns[conn.URL.String()]; !found {
 				filtered = append(filtered, conn)
+			} else {
+				delete(p.pool.mu.members, conn)
 			}
 		}
 		p.pool.mu.dead = filtered
@@ -346,20 +368,21 @@ func (p *RolePolicy) IsEnabled() bool {
 	return psIsEnabled(p.policyState.Load())
 }
 
-// Eval returns the connection pool for this role-based policy.
-// Returns (nil, nil) if no matching connections are found (allows fallthrough).
-func (p *RolePolicy) Eval(ctx context.Context, req *http.Request) (ConnectionPool, error) {
+// Eval returns a NextHop from this role-based policy's pool.
+// Returns (NextHop{}, nil) if no matching connections are found (allows fallthrough).
+func (p *RolePolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error) {
 	if p.policyState.Load()&psEnvDisabled != 0 {
-		//nolint:nilnil // Intentional: force-disabled policy returns no match
-		return nil, nil
+		return NextHop{}, nil
 	}
 
 	if p.policyState.Load()&psEnabled != 0 {
-		return p.pool, nil
+		conn, err := p.pool.Next()
+		if err != nil {
+			return NextHop{}, err
+		}
+		return NextHop{Conn: conn}, nil
 	}
-	// No matching connections found, allow fallthrough
-	//nolint:nilnil // Intentional: (nil, nil) signals "no matching roles, continue chain"
-	return nil, nil
+	return NextHop{}, nil
 }
 
 // CheckDead syncs the pool based on Connection.mu.isDead state.

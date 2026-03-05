@@ -200,7 +200,7 @@ import (
 )
 
 func main() {
-    router := opensearchtransport.NewSmartRouter()
+    router := opensearchtransport.NewDefaultRouter()
 
     client, err := opensearch.NewClient(opensearch.Config{
         Addresses:             []string{"https://localhost:9200"},
@@ -217,7 +217,7 @@ func main() {
     // Client will automatically:
     // 1. Discover cluster nodes on startup
     // 2. Validate node roles for compatibility
-    // 3. Route requests to appropriate nodes based on roles + affinity
+    // 3. Route requests to appropriate nodes based on roles + connection scoring
     // 4. Refresh node list every 5 minutes
     // 5. Log deprecation warnings for old role names
     _ = client
