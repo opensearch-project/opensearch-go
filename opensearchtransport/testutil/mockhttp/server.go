@@ -269,7 +269,7 @@ func WaitForServerReady(t *testing.T, addr string, timeout time.Duration) error 
 			continue
 		}
 
-		resp, err := http.DefaultClient.Do(req) //nolint:gosec // G704: URL comes from mock test server, not user input
+		resp, err := http.DefaultClient.Do(req)
 		cancel()
 		if err == nil && resp.StatusCode == http.StatusOK {
 			resp.Body.Close()

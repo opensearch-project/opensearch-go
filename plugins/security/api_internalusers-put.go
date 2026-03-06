@@ -25,7 +25,7 @@ type InternalUsersPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r InternalUsersPutReq) GetRequest() (*http.Request, error) {
-	body, err := json.Marshal(r.Body)
+	body, err := json.Marshal(r.Body) //nolint:gosec // G117: Password field is intentional for this security API
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func (r InternalUsersPutReq) GetRequest() (*http.Request, error) {
 // InternalUsersPutBody represents the request body for InternalUsersPutReq
 type InternalUsersPutBody struct {
 	// Password for the internal user.
-	Password      string            `json:"password,omitempty"` // #nosec G117
+	Password      string            `json:"password,omitempty"`
 	Hash          string            `json:"hash,omitempty"`
 	BackendRoles  []string          `json:"backend_roles,omitempty"`
 	Attributes    map[string]string `json:"attributes,omitempty"`

@@ -112,6 +112,7 @@ func TestPollUntil_MaxAttempts(t *testing.T) {
 
 func TestPollUntil_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	attempts := 0
 
 	// Cancel after first attempt
