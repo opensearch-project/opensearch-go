@@ -193,4 +193,4 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 })
 ```
 
-The rate-limiting parameters (`clientsPerServer`, `serverMaxNewConnsPerSec`) are auto-derived from the server's core count discovered via `/_nodes/http,os`. With the default of 8 cores: `clientsPerServer=8`, `serverMaxNewConnsPerSec=32`. See [connection_pool.md](connection_pool.md#capacity-model) for details.
+The rate-limiting parameters (`clientsPerServer`, `serverMaxNewConnsPerSec`) are auto-derived from the server's core count discovered via `/_nodes/http,os`. With the default of 8 cores: `clientsPerServer=8`, `serverMaxNewConnsPerSec=32`.

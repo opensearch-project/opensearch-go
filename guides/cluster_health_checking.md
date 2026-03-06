@@ -2,7 +2,7 @@
 
 The Go client performs active health checks using a two-phase approach: it begins with `GET /` (which requires no special permissions) and asynchronously probes `GET /_cluster/health?local=true` to determine whether richer health data is available. This guide covers how capability detection works, the permissions required when the OpenSearch Security plugin is enabled, and how to interpret the response.
 
-For health check **timing and backoff**, see [retry_backoff.md](retry_backoff.md). For health check **routing** (which node receives the probe), see [request_routing.md](request_routing.md).
+For health check **timing and backoff**, see [retry_backoff.md](retry_backoff.md). For health check **routing** (which node receives the probe), see [routing.md](routing.md).
 
 ## Capability Detection Lifecycle
 
@@ -58,7 +58,7 @@ refreshInterval = clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 5min
 
 The formula spreads polls across all clients sharing a server. As the cluster grows, each client polls less frequently to remain within the per-server budget. After each cycle, the interval is recalculated; if node discovery changes the ready count, the ticker adjusts automatically.
 
-The capacity model values (`clientsPerServer`, `healthCheckRate`) are auto-derived from the server's core count (discovered via `/_nodes/http,os`, default: 8 cores). See [connection_pool.md](connection_pool.md#capacity-model) for the derivation formulas.
+The capacity model values (`clientsPerServer`, `healthCheckRate`) are auto-derived from the server's core count (discovered via `/_nodes/http,os`, default: 8 cores).
 
 **Example intervals** (default 8-core servers: `clientsPerServer=8`, `healthCheckRate=0.8`):
 
