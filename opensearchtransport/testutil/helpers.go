@@ -158,7 +158,7 @@ func SkipIfSingleNode(t *testing.T, minNodes int) {
 		req.SetBasicAuth("admin", GetPassword(t))
 	}
 
-	resp, err := client.Do(req) //nolint:gosec // URL comes from test configuration
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Skipf("Skipping %s: cannot reach cluster to check node count: %v", t.Name(), err)
 	}
@@ -212,7 +212,7 @@ func WaitForCluster(t *testing.T) {
 			req.SetBasicAuth("admin", GetPassword(t))
 		}
 
-		resp, err := client.Do(req) //nolint:gosec // G704: URL comes from test configuration, not user input
+		resp, err := client.Do(req)
 		cancel()
 
 		if err != nil {
@@ -399,7 +399,7 @@ func GetServerVersion(t *testing.T) string {
 		req.SetBasicAuth("admin", GetPassword(t))
 	}
 
-	resp, err := client.Do(req) //nolint:gosec // URL comes from test configuration
+	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("GetServerVersion: failed to query cluster: %v", err)
 	}

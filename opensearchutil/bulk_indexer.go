@@ -281,7 +281,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 			ch:  bi.queue,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
-			//nolint:gomnd // Predefine the slice capacity
+			//nolint:mnd // Predefine the slice capacity
 			aux: make([]byte, 0, 512),
 		}
 		w.run(ctx)

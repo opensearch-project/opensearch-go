@@ -330,7 +330,7 @@ func getAddressFromEnvironment() []string {
 func ParseVersion(version string) (int64, int64, int64, error) {
 	reVersion := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)`)
 	matches := reVersion.FindStringSubmatch(version)
-	//nolint:gomnd // 4 is the minium regexp match length
+	//nolint:mnd // 4 is the minimum regexp match length
 	if len(matches) < 4 {
 		return 0, 0, 0, fmt.Errorf("%w: regexp does not match on version string", ErrParseVersion)
 	}

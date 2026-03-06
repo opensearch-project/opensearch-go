@@ -16,8 +16,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.10.1
-          only-new-issues: true
+          version: v2.11.1
           args: --fix --build-tags "integration core plugins plugin_security plugin_index_management multinode"
 
   prettify:
