@@ -266,7 +266,7 @@ make demo.build     # Build bin/demo
 make demo.run       # Build and run with default affinity-visible settings
 ```
 
-`demo.run` connects to all three local nodes with smart routing, node discovery, and periodic stats output. The binary accepts flags for concurrency, workload type, fanout, and report output — run `bin/demo -help` for the full list.
+`demo.run` connects to all three local nodes with request routing, node discovery, and periodic stats output. The binary accepts flags for concurrency, workload type, fanout, and report output — run `bin/demo -help` for the full list.
 
 ## Verification Matrix
 

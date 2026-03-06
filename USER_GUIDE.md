@@ -449,11 +449,11 @@ OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
 OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
 ```
 
-Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Connection Routing](guides/request_routing.md#policy-environment-variable-overrides) for full documentation.
+Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/routing.md#policy-override-variables) for full documentation.
 
 ## Environment Variables
 
-All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization. A complete reference is in [Connection Routing: Environment Variable Reference](guides/request_routing.md#complete-environment-variable-reference). Quick summary:
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization. A complete reference is in [Request Routing: Configuration Reference](guides/routing.md#14-configuration-reference). Quick summary:
 
 | Variable                            | Default       | Description                                         |
 | ----------------------------------- | ------------- | --------------------------------------------------- |
@@ -476,13 +476,8 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 - [Advanced Index Actions](guides/advanced_index_actions.md)
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
-- [Connection Routing](guides/request_routing.md)
-- [Connection Scoring](guides/connection_scoring.md)
-- [Connection Pool Architecture](guides/connection_pool.md)
+- [Request Routing](guides/routing.md)
 - [Cluster Health Checking](guides/cluster_health_checking.md)
 - [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
 - [Retry and Backoff](guides/retry_backoff.md)
-- [Request Lifecycle](guides/request_lifecycle.md)
-- [Client Lifecycle](guides/client_lifecycle.md)
-- [Routing Efficiency](guides/routing_efficiency.md)
 - [Error Handling](guides/error_handling.md)

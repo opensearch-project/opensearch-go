@@ -71,14 +71,14 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Bitfield flags use `+`/`-` prefix convention for explicit opt-in/out; zero-initialized = all features enabled
   - `WithShardExactRouting(bool)` `RouterOption` for programmatic control (env var overrides)
   - Evaluated once at client init time; immutable after
-  - Document environment variables in `guides/connection_scoring.md` and `guides/request_routing.md`
-  - Document read-after-write visibility guarantees with operation-aware routing in `guides/connection_scoring.md`
+  - Document environment variables in `guides/routing.md`
+  - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
 - Add seed URL fallback as last-resort connection source when all router pools are exhausted ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Builds a dedicated `multiServerPool` from fresh copies of the original seed URLs at client init
   - Fires after the entire retry loop when all router policies and connection pools return `ErrNoConnections`
   - On success: triggers immediate cluster rediscovery to repopulate router pools
   - `OPENSEARCH_GO_FALLBACK=false` disables seed fallback (enabled by default)
-- Add consolidated environment variable reference in `guides/request_routing.md` and `USER_GUIDE.md` ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add consolidated environment variable reference in `guides/routing.md` and `USER_GUIDE.md` ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Auto-discover server core count from `/_nodes/http,os,thread_pool` to derive all rate-limiting and congestion window parameters (default: 8 cores)
   - Weighted round-robin for heterogeneous clusters: nodes with more cores get proportionally more traffic via GCD-normalized duplicate pointers in the ready list
@@ -102,8 +102,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `cluster.heterogeneous.roles` assigns distinct node roles (cluster_manager+ingest, data+ingest, data)
   - `cluster.homogeneous` removes all overrides to reset to default configuration
   - `cluster.status` now shows per-node roles and allocated processors via `_nodes/http,os`
-- Add request lifecycle guide (`guides/request_lifecycle.md`) tracing requests from API call through policy chain to connection selection ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
-- Add client lifecycle guide (`guides/client_lifecycle.md`) covering startup, background goroutines, connection state machine, cache management, failure response timeline, and shutdown ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add request routing guide (`guides/routing.md`) consolidating routing architecture, connection scoring, pool lifecycle, cost model, and configuration reference ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 
 ### Changed
 
