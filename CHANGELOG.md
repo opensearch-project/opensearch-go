@@ -33,7 +33,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
-- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.7 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767))
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.11 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767), [#796](https://github.com/opensearch-project/opensearch-go/pull/796))
 
 ## [4.6.0]
 
