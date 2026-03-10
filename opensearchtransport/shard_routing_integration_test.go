@@ -334,13 +334,13 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	require.NoError(t, err)
 	warmResp.Body.Close()
 
-	// --- Run DiscoverNodes until the shard map is fully populated ---
-	// A single DiscoverNodes call may not suffice: the /_cat/shards
-	// response, routing_num_shards metadata fetch, and connection name
-	// population all need to converge. On slower CI clusters the first
-	// cycle may see incomplete data. Poll until the index slot's shardMap
-	// has RoutingNumShards > 0 and at least one shard entry, proving the
-	// full pipeline (cat shards + cluster state metadata) completed.
+	// --- Run DiscoverNodes until shard-exact routing works end-to-end ---
+	// The shard map, connection Name fields, and needsCatUpdate flags all
+	// need to converge before shardExactCandidates returns matches. Rather
+	// than checking each piece individually, issue a probe search with a
+	// routing value and verify ShardExactMatch via the observer. This tests
+	// the full pipeline: shard map populated, routing_num_shards fetched,
+	// connection names populated, and no connections filtered by needsCatUpdate.
 	routerPolicy, ok := transport.router.(Policy)
 	require.True(t, ok, "router does not implement Policy")
 	cache := findRouterCache(routerPolicy)
@@ -350,6 +350,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		if err := transport.DiscoverNodes(ctx); err != nil {
 			return false
 		}
+		// Quick structural check: shard map must have all shards populated.
 		slot := cache.slotFor(index)
 		if slot == nil {
 			return false
@@ -358,17 +359,24 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		if sm == nil || sm.RoutingNumShards == 0 || len(sm.Shards) < numShards {
 			return false
 		}
-		// Verify every shard has at least one node with a matching connection.
-		// This catches the race where /_cat/shards returned data but the
-		// poolRouter's sortedConns don't yet have Name fields populated.
-		for _, sn := range sm.Shards {
-			if sn == nil || (sn.Primary == "" && len(sn.Replicas) == 0) {
-				return false
-			}
+
+		// End-to-end probe: issue a routed search and verify ShardExactMatch.
+		// Use a fixed routing value as the canary. If it gets shard-exact
+		// routing, the full pipeline is working.
+		obs.reset()
+		probeReq, _ := http.NewRequestWithContext(ctx, http.MethodPost,
+			fmt.Sprintf("/%s/_search?routing=%s", url.PathEscape(index), url.QueryEscape("probe-canary")),
+			bytes.NewReader([]byte(`{"query":{"match_all":{}},"size":0}`)))
+		probeReq.Header.Set("Content-Type", "application/json")
+		resp, err := transport.Perform(probeReq)
+		if err != nil {
+			return false
 		}
-		return true
+		resp.Body.Close()
+		event := obs.lastEvent()
+		return event != nil && event.ShardExactMatch
 	}, 30*time.Second, 500*time.Millisecond,
-		"shard map for %s not populated after repeated DiscoverNodes", index)
+		"shard-exact routing for index %q not working after repeated DiscoverNodes", index)
 
 	// Build a plain transport (no router) for ground truth queries.
 	plainCfg := getTestConfig(t, []*url.URL{u})
