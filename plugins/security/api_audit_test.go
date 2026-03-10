@@ -9,7 +9,9 @@
 package security_test
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,18 +24,39 @@ import (
 func TestSecurityAuditClient(t *testing.T) {
 	testutil.SkipIfNotSecure(t)
 
-	osAPIclient, err := testutil.NewClient(t)
-	require.NoError(t, err)
-
-	// OpenSearch 2.15.0 has a server bug where the audit config document is not
-	// loaded into the security index during demo config initialization, causing
-	// isAuditHotReloadingEnabled() to return false and the Audit API to reject
-	// all requests with "Method X not supported for this action." (NOT_FOUND).
-	// This is confirmed failing in upstream CI as well. Fixed in 2.16.0.
-	testutil.SkipIfVersion(t, osAPIclient, "=", "2.15", "Audit API")
-
+	// The security plugin has a race condition during multi-node cluster init:
+	// opensearch-onetime-setup.sh runs on all nodes, but only one wins the
+	// .opendistro_security index initialization. ConfigurationLoaderSecurity7
+	// can reload before the audit config doc is fully replicated, leaving
+	// isAuditConfigDocPresentInIndex=false. When that happens, the Audit API
+	// rejects all requests with "Method X not supported for this action."
+	//
+	// The flag is not re-evaluated on a timer — only on config reload events.
+	// Flushing the security cache (DELETE /_plugins/_security/api/cache) fires
+	// a ConfigUpdateAction with all CType values, forcing cl.load() to re-read
+	// the audit doc from the index. If the doc was already replicated (it was —
+	// it ships in every Docker image since 1.0), the flag flips to true.
 	client, err := ossectest.NewClient(t)
 	require.NoError(t, err)
+
+	if _, getErr := client.Audit.Get(t.Context(), nil); getErr != nil {
+		if strings.Contains(getErr.Error(), "not supported for this action") {
+			// Force a config reload by flushing the security cache.
+			_, flushErr := client.FlushCache(t.Context(), nil)
+			require.NoError(t, flushErr, "failed to flush security cache")
+
+			// After the flush, the config reload is synchronous on the node
+			// that handled the request. Give a brief window for the reload
+			// to propagate, then retry.
+			require.Eventually(t, func() bool {
+				_, retryErr := client.Audit.Get(t.Context(), nil)
+				return retryErr == nil
+			}, 10*time.Second, 500*time.Millisecond,
+				"audit config still unavailable after cache flush — security plugin init race")
+		} else {
+			require.NoError(t, getErr)
+		}
+	}
 
 	failingClient, err := ossectest.CreateFailingClient(t)
 	require.NoError(t, err)
