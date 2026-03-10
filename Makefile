@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 # Tool versions
-GOLANGCI_LINT_VERSION := v2.11.1
+GOLANGCI_LINT_VERSION := v2.11.2
 
 GOLANGCI_LINT_BUILD_TAGS := "integration core plugins plugin_security plugin_index_management multinode"
 
