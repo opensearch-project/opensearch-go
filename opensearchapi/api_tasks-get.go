@@ -69,6 +69,22 @@ type TasksGetResp struct {
 				ActiveThreads    int `json:"active_threads"`
 			} `json:"thread_info"`
 		} `json:"resource_stats"`
+		Status struct {
+			Total            int `json:"total"`
+			Created          int `json:"created"`
+			Updated          int `json:"updated"`
+			Deleted          int `json:"deleted"`
+			Batches          int `json:"batches"`
+			VersionConflicts int `json:"version_conflicts"`
+			Noops            int `json:"noops"`
+			Retries          struct {
+				Bulk   int `json:"bulk"`
+				Search int `json:"search"`
+			} `json:"retries"`
+			ThrottledMillis      int     `json:"throttled_millis"`
+			RequestsPerSecond    float64 `json:"requests_per_second"`
+			ThrottledUntilMillis int     `json:"throttled_until_millis"`
+		} `json:"status"`
 	} `json:"task"`
 	response *opensearch.Response
 }

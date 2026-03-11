@@ -15,6 +15,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
   - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
   - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
+- Updated TasksGetResp struct to include status data ([#797](https://github.com/opensearch-project/opensearch-go/pull/797))
 
 ### Deprecated
 
