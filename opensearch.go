@@ -111,6 +111,11 @@ type Config struct {
 
 	CompressRequestBody bool // Default: false.
 
+	// DisableResponseBuffering, when true, skips buffering the entire response
+	// body in Perform(). The caller receives the raw body stream and must fully
+	// read and close it. Useful for proxy and streaming use cases.
+	DisableResponseBuffering bool // Default: false.
+
 	DiscoverNodesOnStart  bool          // Discover nodes when initializing the client. Default: false.
 	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
 
@@ -267,7 +272,8 @@ func NewClient(cfg Config) (*Client, error) {
 		RetryBackoff:         cfg.RetryBackoff,
 		RequestTimeout:       cfg.RequestTimeout,
 
-		CompressRequestBody: cfg.CompressRequestBody,
+		CompressRequestBody:      cfg.CompressRequestBody,
+		DisableResponseBuffering: cfg.DisableResponseBuffering,
 
 		EnableMetrics:     cfg.EnableMetrics,
 		EnableDebugLogger: cfg.EnableDebugLogger,
