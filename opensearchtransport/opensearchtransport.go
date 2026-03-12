@@ -29,6 +29,7 @@ package opensearchtransport
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -122,6 +123,14 @@ type Config struct {
 
 	Header http.Header
 	CACert []byte
+
+	// InsecureSkipVerify disables TLS certificate verification.
+	// When true, the transport's TLS config is set to skip verification,
+	// cloning the existing transport (or http.DefaultTransport) to preserve
+	// connection pooling, HTTP/2, and other defaults.
+	// This avoids the need to construct a custom http.Transport just for TLS,
+	// which is error-prone (bare transports lose DefaultTransport defaults).
+	InsecureSkipVerify bool
 
 	Signer signer.Signer
 
@@ -463,6 +472,21 @@ func New(cfg Config) (*Client, error) {
 		if ok := httpTransport.TLSClientConfig.RootCAs.AppendCertsFromPEM(cfg.CACert); !ok {
 			return nil, errors.New("unable to add CA certificate")
 		}
+
+		cfg.Transport = httpTransport
+	}
+
+	if cfg.InsecureSkipVerify {
+		httpTransport, ok := cfg.Transport.(*http.Transport)
+		if !ok {
+			return nil, fmt.Errorf("unable to set InsecureSkipVerify for transport of type %T", cfg.Transport)
+		}
+
+		httpTransport = httpTransport.Clone()
+		if httpTransport.TLSClientConfig == nil {
+			httpTransport.TLSClientConfig = &tls.Config{}
+		}
+		httpTransport.TLSClientConfig.InsecureSkipVerify = true
 
 		cfg.Transport = httpTransport
 	}

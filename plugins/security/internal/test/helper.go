@@ -7,7 +7,6 @@
 package ossectest
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,13 +47,11 @@ func ClientConfig(t *testing.T) *security.Config {
 
 		return &security.Config{
 			Client: opensearch.Config{
-				Username:  "admin",
-				Password:  password,
-				Addresses: []string{u.String()},
-				Context:   t.Context(),
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Test environment only
-				},
+				Username:           "admin",
+				Password:           password,
+				Addresses:          []string{u.String()},
+				Context:            t.Context(),
+				InsecureSkipVerify: true,
 			},
 		}
 	}

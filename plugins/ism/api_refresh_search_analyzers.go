@@ -41,7 +41,7 @@ func (r RefreshSearchAnalyzersReq) GetRequest() (*http.Request, error) {
 
 	var path strings.Builder
 	path.Grow(len("/_plugins/_refresh_search_analyzers/") + len(indices))
-	path.WriteString("_plugins/_refresh_search_analyzers")
+	path.WriteString("/_plugins/_refresh_search_analyzers")
 	if len(r.Indices) > 0 {
 		path.WriteString("/")
 		path.WriteString(indices)

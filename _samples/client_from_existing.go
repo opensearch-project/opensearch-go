@@ -7,9 +7,7 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"os"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -26,12 +24,10 @@ func main() {
 func example() error {
 	// Create a base opensearch.Client with custom configuration
 	osClient, err := opensearch.NewClient(opensearch.Config{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
-		},
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "admin", // For testing only. Don't store credentials in code.
-		Password:  "myStrongPassword123!",
+		InsecureSkipVerify: true, // For testing only. Use certificate for validation.
+		Addresses:          []string{"https://localhost:9200"},
+		Username:           "admin", // For testing only. Don't store credentials in code.
+		Password:           "myStrongPassword123!",
 	})
 	if err != nil {
 		return err

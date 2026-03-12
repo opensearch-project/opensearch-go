@@ -7,7 +7,6 @@
 package osismtest
 
 import (
-	"crypto/tls"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -49,13 +48,11 @@ func ClientConfig(t *testing.T) *ism.Config {
 
 		return &ism.Config{
 			Client: opensearch.Config{
-				Username:  "admin",
-				Password:  password,
-				Addresses: []string{u.String()},
-				Context:   t.Context(),
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Test environment only
-				},
+				Username:           "admin",
+				Password:           password,
+				Addresses:          []string{u.String()},
+				Context:            t.Context(),
+				InsecureSkipVerify: true,
 			},
 		}
 	}

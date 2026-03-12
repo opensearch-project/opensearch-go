@@ -3,6 +3,7 @@
   - [Amazon OpenSearch Service](#amazon-opensearch-service)
     - [AWS SDK v1](#aws-sdk-v1)
     - [AWS SDK v2](#aws-sdk-v2)
+  - [Custom Transport](#custom-transport)
   - [Guides by Topic](#guides-by-topic)
 
 # User Guide
@@ -16,10 +17,8 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -44,12 +43,10 @@ func example() error {
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
-				},
-				Addresses: []string{"https://localhost:9200"},
-				Username:  "admin", // For testing only. Don't store credentials in code.
-				Password:  "myStrongPassword123!",
+				InsecureSkipVerify: true, // For testing only. Use certificate for validation.
+				Addresses:          []string{"https://localhost:9200"},
+				Username:           "admin", // For testing only. Don't store credentials in code.
+				Password:           "myStrongPassword123!",
 
 				// Optional: Enable node discovery
 				DiscoverNodesOnStart:  true,
@@ -406,6 +403,49 @@ func getCredentialProvider(accessKey, secretAccessKey, token string) aws.Credent
 	}
 }
 ```
+
+## Custom Transport
+
+For common TLS options, prefer the built-in config fields (`InsecureSkipVerify`, `CACert`) over constructing a custom `http.Transport`. These options clone the default transport internally, preserving connection pooling, HTTP/2, and timeout defaults.
+
+If you need a custom transport (e.g. for mutual TLS or a corporate proxy), **always clone `http.DefaultTransport` rather than constructing a bare `&http.Transport{}`**. A bare transport defaults to `MaxIdleConnsPerHost: 2`, disables HTTP/2 multiplexing, and has no dialer timeouts -- causing excessive TLS handshakes and connection churn under concurrency.
+
+```go
+// Good: clone DefaultTransport, then customize.
+tp := http.DefaultTransport.(*http.Transport).Clone()
+tp.TLSClientConfig.Certificates = []tls.Certificate{cert}
+
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses: []string{"https://localhost:9200"},
+    Transport: tp,
+})
+```
+
+```go
+// Bad: bare transport loses all DefaultTransport defaults.
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses: []string{"https://localhost:9200"},
+    Transport: &http.Transport{
+        TLSClientConfig: &tls.Config{
+            Certificates: []tls.Certificate{cert},
+        },
+    },
+    // MaxIdleConnsPerHost = 2, no HTTP/2, no dialer timeouts!
+})
+```
+
+Key settings to verify on any custom transport:
+
+| Setting                | `DefaultTransport` | Bare `&http.Transport{}` |
+| ---------------------- | ------------------ | ------------------------ |
+| `MaxIdleConns`         | 100                | 0 (unlimited)            |
+| `MaxIdleConnsPerHost`  | 2                  | 2                        |
+| `ForceAttemptHTTP2`    | true               | false                    |
+| `IdleConnTimeout`      | 90s                | 0 (no timeout)           |
+| `TLSHandshakeTimeout`  | 10s                | 0 (no timeout)           |
+| `DialContext` timeouts | 30s                | none                     |
+
+`Clone()` copies all of these. If you must build from scratch (e.g. for a non-`*http.Transport` round tripper), set at minimum `ForceAttemptHTTP2: true` and `MaxIdleConnsPerHost` >= your expected concurrency.
 
 ## Debugging
 

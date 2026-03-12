@@ -171,9 +171,7 @@ client, err := opensearch.NewDefaultClient()
 // with config
 client, err := opensearch.NewClient(
     opensearch.Config{
-	    Transport: &http.Transport{
-		    TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
+	    InsecureSkipVerify: true,
 		Addresses: []string{"https://localhost:9200"},
 		Username:  "admin",
 		Password:  "admin",
@@ -191,12 +189,10 @@ client, err := opensearchapi.NewDefaultClient()
 client, err := opensearchapi.NewClient(
     opensearchapi.Config{
 		Client: opensearch.Config{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
-			},
-			Addresses: []string{"https://localhost:9200"},
-			Username:  "admin", // For testing only. Don't store credentials in code.
-			Password:  "admin",
+			InsecureSkipVerify: true, // For testing only. Use certificate for validation.
+			Addresses:          []string{"https://localhost:9200"},
+			Username:           "admin", // For testing only. Don't store credentials in code.
+			Password:           "admin",
 		},
 	},
 )
@@ -355,6 +351,7 @@ if err != nil {
 Version 3.0.0 reorganized APIs into logical sub-clients. The following tables cover every method that moved, was renamed, or was removed.
 
 **Naming conventions changed:**
+
 - Request types: `*Request` to `*Req` (e.g., `SearchRequest` to `SearchReq`)
 - Query parameters: separate `*Params` sub-struct (e.g., `SearchParams`)
 - Functional options (`With*`) removed entirely
@@ -362,120 +359,120 @@ Version 3.0.0 reorganized APIs into logical sub-clients. The following tables co
 
 #### Document Operations -- Moved to `client.Document`
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Create(...)` | `client.Document.Create(ctx, req)` |
-| `client.Delete(...)` | `client.Document.Delete(ctx, req)` |
-| `client.DeleteByQuery(...)` | `client.Document.DeleteByQuery(ctx, req)` |
+| Before 3.0.0                          | With 3.0.0                                          |
+| ------------------------------------- | --------------------------------------------------- |
+| `client.Create(...)`                  | `client.Document.Create(ctx, req)`                  |
+| `client.Delete(...)`                  | `client.Document.Delete(ctx, req)`                  |
+| `client.DeleteByQuery(...)`           | `client.Document.DeleteByQuery(ctx, req)`           |
 | `client.DeleteByQueryRethrottle(...)` | `client.Document.DeleteByQueryRethrottle(ctx, req)` |
-| `client.Exists(...)` | `client.Document.Exists(ctx, req)` |
-| `client.ExistsSource(...)` | `client.Document.ExistsSource(ctx, req)` |
-| `client.Explain(...)` | `client.Document.Explain(ctx, req)` |
-| `client.Get(...)` | `client.Document.Get(ctx, req)` |
-| `client.GetSource(...)` | `client.Document.Source(ctx, req)` |
+| `client.Exists(...)`                  | `client.Document.Exists(ctx, req)`                  |
+| `client.ExistsSource(...)`            | `client.Document.ExistsSource(ctx, req)`            |
+| `client.Explain(...)`                 | `client.Document.Explain(ctx, req)`                 |
+| `client.Get(...)`                     | `client.Document.Get(ctx, req)`                     |
+| `client.GetSource(...)`               | `client.Document.Source(ctx, req)`                  |
 
 #### Scroll Operations -- Moved to `client.Scroll`
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
+| Before 3.0.0              | With 3.0.0                       |
+| ------------------------- | -------------------------------- |
 | `client.ClearScroll(...)` | `client.Scroll.Delete(ctx, req)` |
-| `client.Scroll(...)` | `client.Scroll.Get(ctx, req)` |
+| `client.Scroll(...)`      | `client.Scroll.Get(ctx, req)`    |
 
 #### Script Operations -- Moved to `client.Script`
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.DeleteScript(...)` | `client.Script.Delete(ctx, req)` |
-| `client.GetScript(...)` | `client.Script.Get(ctx, req)` |
-| `client.GetScriptContext(...)` | `client.Script.Context(ctx, req)` |
-| `client.GetScriptLanguages(...)` | `client.Script.Language(ctx, req)` |
-| `client.PutScript(...)` | `client.Script.Put(ctx, req)` |
+| Before 3.0.0                         | With 3.0.0                                |
+| ------------------------------------ | ----------------------------------------- |
+| `client.DeleteScript(...)`           | `client.Script.Delete(ctx, req)`          |
+| `client.GetScript(...)`              | `client.Script.Get(ctx, req)`             |
+| `client.GetScriptContext(...)`       | `client.Script.Context(ctx, req)`         |
+| `client.GetScriptLanguages(...)`     | `client.Script.Language(ctx, req)`        |
+| `client.PutScript(...)`              | `client.Script.Put(ctx, req)`             |
 | `client.ScriptsPainlessExecute(...)` | `client.Script.PainlessExecute(ctx, req)` |
 
 #### Index Alias, Mapping, Settings -- Moved to Nested Sub-clients
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Indices.DeleteAlias(...)` | `client.Indices.Alias.Delete(ctx, req)` |
-| `client.Indices.ExistsAlias(...)` | `client.Indices.Alias.Exists(ctx, req)` |
-| `client.Indices.GetAlias(...)` | `client.Indices.Alias.Get(ctx, req)` |
-| `client.Indices.PutAlias(...)` | `client.Indices.Alias.Put(ctx, req)` |
-| `client.Indices.UpdateAliases(...)` | `client.Aliases(ctx, req)` |
-| `client.Indices.GetMapping(...)` | `client.Indices.Mapping.Get(ctx, req)` |
-| `client.Indices.PutMapping(...)` | `client.Indices.Mapping.Put(ctx, req)` |
+| Before 3.0.0                          | With 3.0.0                               |
+| ------------------------------------- | ---------------------------------------- |
+| `client.Indices.DeleteAlias(...)`     | `client.Indices.Alias.Delete(ctx, req)`  |
+| `client.Indices.ExistsAlias(...)`     | `client.Indices.Alias.Exists(ctx, req)`  |
+| `client.Indices.GetAlias(...)`        | `client.Indices.Alias.Get(ctx, req)`     |
+| `client.Indices.PutAlias(...)`        | `client.Indices.Alias.Put(ctx, req)`     |
+| `client.Indices.UpdateAliases(...)`   | `client.Aliases(ctx, req)`               |
+| `client.Indices.GetMapping(...)`      | `client.Indices.Mapping.Get(ctx, req)`   |
+| `client.Indices.PutMapping(...)`      | `client.Indices.Mapping.Put(ctx, req)`   |
 | `client.Indices.GetFieldMapping(...)` | `client.Indices.Mapping.Field(ctx, req)` |
-| `client.Indices.GetSettings(...)` | `client.Indices.Settings.Get(ctx, req)` |
-| `client.Indices.PutSettings(...)` | `client.Indices.Settings.Put(ctx, req)` |
+| `client.Indices.GetSettings(...)`     | `client.Indices.Settings.Get(ctx, req)`  |
+| `client.Indices.PutSettings(...)`     | `client.Indices.Settings.Put(ctx, req)`  |
 
 #### Templates -- Moved to Top-level Sub-clients
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Indices.DeleteIndexTemplate(...)` | `client.IndexTemplate.Delete(ctx, req)` |
-| `client.Indices.ExistsIndexTemplate(...)` | `client.IndexTemplate.Exists(ctx, req)` |
-| `client.Indices.GetIndexTemplate(...)` | `client.IndexTemplate.Get(ctx, req)` |
-| `client.Indices.PutIndexTemplate(...)` | `client.IndexTemplate.Create(ctx, req)` |
-| `client.Indices.SimulateIndexTemplate(...)` | `client.IndexTemplate.SimulateIndex(ctx, req)` |
-| `client.Indices.SimulateTemplate(...)` | `client.IndexTemplate.Simulate(ctx, req)` |
-| `client.Indices.DeleteTemplate(...)` | `client.Template.Delete(ctx, req)` |
-| `client.Indices.ExistsTemplate(...)` | `client.Template.Exists(ctx, req)` |
-| `client.Indices.GetTemplate(...)` | `client.Template.Get(ctx, req)` |
-| `client.Indices.PutTemplate(...)` | `client.Template.Create(ctx, req)` |
-| `client.Cluster.DeleteComponentTemplate(...)` | `client.ComponentTemplate.Delete(ctx, req)` |
-| `client.Cluster.ExistsComponentTemplate(...)` | `client.ComponentTemplate.Exists(ctx, req)` |
-| `client.Cluster.GetComponentTemplate(...)` | `client.ComponentTemplate.Get(ctx, req)` |
-| `client.Cluster.PutComponentTemplate(...)` | `client.ComponentTemplate.Create(ctx, req)` |
+| Before 3.0.0                                  | With 3.0.0                                     |
+| --------------------------------------------- | ---------------------------------------------- |
+| `client.Indices.DeleteIndexTemplate(...)`     | `client.IndexTemplate.Delete(ctx, req)`        |
+| `client.Indices.ExistsIndexTemplate(...)`     | `client.IndexTemplate.Exists(ctx, req)`        |
+| `client.Indices.GetIndexTemplate(...)`        | `client.IndexTemplate.Get(ctx, req)`           |
+| `client.Indices.PutIndexTemplate(...)`        | `client.IndexTemplate.Create(ctx, req)`        |
+| `client.Indices.SimulateIndexTemplate(...)`   | `client.IndexTemplate.SimulateIndex(ctx, req)` |
+| `client.Indices.SimulateTemplate(...)`        | `client.IndexTemplate.Simulate(ctx, req)`      |
+| `client.Indices.DeleteTemplate(...)`          | `client.Template.Delete(ctx, req)`             |
+| `client.Indices.ExistsTemplate(...)`          | `client.Template.Exists(ctx, req)`             |
+| `client.Indices.GetTemplate(...)`             | `client.Template.Get(ctx, req)`                |
+| `client.Indices.PutTemplate(...)`             | `client.Template.Create(ctx, req)`             |
+| `client.Cluster.DeleteComponentTemplate(...)` | `client.ComponentTemplate.Delete(ctx, req)`    |
+| `client.Cluster.ExistsComponentTemplate(...)` | `client.ComponentTemplate.Exists(ctx, req)`    |
+| `client.Cluster.GetComponentTemplate(...)`    | `client.ComponentTemplate.Get(ctx, req)`       |
+| `client.Cluster.PutComponentTemplate(...)`    | `client.ComponentTemplate.Create(ctx, req)`    |
 
 #### Data Streams -- Moved to `client.DataStream`
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Indices.CreateDataStream(...)` | `client.DataStream.Create(ctx, req)` |
-| `client.Indices.DeleteDataStream(...)` | `client.DataStream.Delete(ctx, req)` |
-| `client.Indices.GetDataStream(...)` | `client.DataStream.Get(ctx, req)` |
-| `client.Indices.GetDataStreamStats(...)` | `client.DataStream.Stats(ctx, req)` |
+| Before 3.0.0                             | With 3.0.0                           |
+| ---------------------------------------- | ------------------------------------ |
+| `client.Indices.CreateDataStream(...)`   | `client.DataStream.Create(ctx, req)` |
+| `client.Indices.DeleteDataStream(...)`   | `client.DataStream.Delete(ctx, req)` |
+| `client.Indices.GetDataStream(...)`      | `client.DataStream.Get(ctx, req)`    |
+| `client.Indices.GetDataStreamStats(...)` | `client.DataStream.Stats(ctx, req)`  |
 
 #### Snapshot Repository -- Moved to `client.Snapshot.Repository`
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Snapshot.CreateRepository(...)` | `client.Snapshot.Repository.Create(ctx, req)` |
-| `client.Snapshot.DeleteRepository(...)` | `client.Snapshot.Repository.Delete(ctx, req)` |
-| `client.Snapshot.GetRepository(...)` | `client.Snapshot.Repository.Get(ctx, req)` |
+| Before 3.0.0                             | With 3.0.0                                     |
+| ---------------------------------------- | ---------------------------------------------- |
+| `client.Snapshot.CreateRepository(...)`  | `client.Snapshot.Repository.Create(ctx, req)`  |
+| `client.Snapshot.DeleteRepository(...)`  | `client.Snapshot.Repository.Delete(ctx, req)`  |
+| `client.Snapshot.GetRepository(...)`     | `client.Snapshot.Repository.Get(ctx, req)`     |
 | `client.Snapshot.CleanupRepository(...)` | `client.Snapshot.Repository.Cleanup(ctx, req)` |
-| `client.Snapshot.VerifyRepository(...)` | `client.Snapshot.Repository.Verify(ctx, req)` |
+| `client.Snapshot.VerifyRepository(...)`  | `client.Snapshot.Repository.Verify(ctx, req)`  |
 
 #### Ingest -- Renamed Methods
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Ingest.PutPipeline(...)` | `client.Ingest.Create(ctx, req)` |
+| Before 3.0.0                        | With 3.0.0                       |
+| ----------------------------------- | -------------------------------- |
+| `client.Ingest.PutPipeline(...)`    | `client.Ingest.Create(ctx, req)` |
 | `client.Ingest.DeletePipeline(...)` | `client.Ingest.Delete(ctx, req)` |
-| `client.Ingest.GetPipeline(...)` | `client.Ingest.Get(ctx, req)` |
-| `client.Ingest.ProcessorGrok(...)` | `client.Ingest.Grok(ctx, req)` |
+| `client.Ingest.GetPipeline(...)`    | `client.Ingest.Get(ctx, req)`    |
+| `client.Ingest.ProcessorGrok(...)`  | `client.Ingest.Grok(ctx, req)`   |
 
 #### Dangling Indices -- Moved to `client.Dangling`
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
+| Before 3.0.0                                     | With 3.0.0                         |
+| ------------------------------------------------ | ---------------------------------- |
 | `client.DanglingIndicesDeleteDanglingIndex(...)` | `client.Dangling.Delete(ctx, req)` |
 | `client.DanglingIndicesImportDanglingIndex(...)` | `client.Dangling.Import(ctx, req)` |
-| `client.DanglingIndicesListDanglingIndices(...)` | `client.Dangling.Get(ctx, req)` |
+| `client.DanglingIndicesListDanglingIndices(...)` | `client.Dangling.Get(ctx, req)`    |
 
 #### Other Renames
 
-| Before 3.0.0 | With 3.0.0 |
-|---|---|
-| `client.Count(...)` | `client.Indices.Count(ctx, req)` |
-| `client.FieldCaps(...)` | `client.Indices.FieldCaps(ctx, req)` |
-| `client.Mget(...)` | `client.MGet(ctx, req)` |
-| `client.Msearch(...)` | `client.MSearch(ctx, req)` |
-| `client.MsearchTemplate(...)` | `client.MSearchTemplate(ctx, req)` |
-| `client.Mtermvectors(...)` | `client.MTermvectors(ctx, req)` |
-| `client.Indices.AddBlock(...)` | `client.Indices.Block(ctx, req)` |
-| `client.Indices.ResolveIndex(...)` | `client.Indices.Resolve(ctx, req)` |
-| `client.Cat.Fielddata(...)` | `client.Cat.FieldData(ctx, req)` |
-| `client.Cat.Nodeattrs(...)` | `client.Cat.NodeAttrs(ctx, req)` |
+| Before 3.0.0                             | With 3.0.0                              |
+| ---------------------------------------- | --------------------------------------- |
+| `client.Count(...)`                      | `client.Indices.Count(ctx, req)`        |
+| `client.FieldCaps(...)`                  | `client.Indices.FieldCaps(ctx, req)`    |
+| `client.Mget(...)`                       | `client.MGet(ctx, req)`                 |
+| `client.Msearch(...)`                    | `client.MSearch(ctx, req)`              |
+| `client.MsearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
+| `client.Mtermvectors(...)`               | `client.MTermvectors(ctx, req)`         |
+| `client.Indices.AddBlock(...)`           | `client.Indices.Block(ctx, req)`        |
+| `client.Indices.ResolveIndex(...)`       | `client.Indices.Resolve(ctx, req)`      |
+| `client.Cat.Fielddata(...)`              | `client.Cat.FieldData(ctx, req)`        |
+| `client.Cat.Nodeattrs(...)`              | `client.Cat.NodeAttrs(ctx, req)`        |
 | `client.Nodes.ReloadSecureSettings(...)` | `client.Nodes.ReloadSecurity(ctx, req)` |
 
 #### Removed APIs (no v3+ equivalent)

@@ -205,16 +205,17 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 
 **TLS Client Certificates (mutual TLS):**
 
+> **Important:** When constructing a custom `http.Transport`, you lose `http.DefaultTransport` defaults (connection pooling, HTTP/2, timeouts). Use `http.DefaultTransport.(*http.Transport).Clone()` as your starting point and modify the clone. See [Custom Transport](#custom-transport) in the User Guide.
+
 ```go
 cert, _ := tls.LoadX509KeyPair("client.crt", "client.key")
+tp := http.DefaultTransport.(*http.Transport).Clone()
+tp.TLSClientConfig.Certificates = []tls.Certificate{cert}
+
 client, err := opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{
         Addresses: []string{"https://localhost:9200"},
-        Transport: &http.Transport{
-            TLSClientConfig: &tls.Config{
-                Certificates: []tls.Certificate{cert},
-            },
-        },
+        Transport: tp,
     },
 })
 ```
