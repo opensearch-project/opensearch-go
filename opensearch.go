@@ -102,6 +102,13 @@ type Config struct {
 	EnableRetryOnTimeout bool  // Default: false.
 	MaxRetries           int   // Default: 3.
 
+	// RequestTimeout sets a per-attempt timeout for each HTTP round-trip.
+	// When set, a context deadline is applied to each individual request attempt
+	// (including each retry). This bounds the maximum time a single request can
+	// block, preventing indefinite hangs on stalled connections.
+	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
+	RequestTimeout time.Duration
+
 	CompressRequestBody bool // Default: false.
 
 	DiscoverNodesOnStart  bool          // Discover nodes when initializing the client. Default: false.
@@ -258,6 +265,7 @@ func NewClient(cfg Config) (*Client, error) {
 		EnableRetryOnTimeout: cfg.EnableRetryOnTimeout,
 		MaxRetries:           cfg.MaxRetries,
 		RetryBackoff:         cfg.RetryBackoff,
+		RequestTimeout:       cfg.RequestTimeout,
 
 		CompressRequestBody: cfg.CompressRequestBody,
 

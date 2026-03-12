@@ -1728,6 +1728,7 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 
 | Setting                   | Default      | Env Override                              | Description                                            |
 | ------------------------- | ------------ | ----------------------------------------- | ------------------------------------------------------ |
+| `RequestTimeout`          | 0 (none)     | `OPENSEARCH_GO_REQUEST_TIMEOUT`           | Per-attempt timeout for each HTTP round-trip           |
 | `DiscoverNodesInterval`   | 5m           | --                                        | Full topology + shard refresh interval                 |
 | `HealthCheckTimeout`      | 5s           | --                                        | Per-request health check timeout                       |
 | `ResurrectTimeoutInitial` | 5s           | --                                        | Starting backoff for dead connections                  |
