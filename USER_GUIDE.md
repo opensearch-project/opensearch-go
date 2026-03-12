@@ -480,5 +480,6 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 - [Request Routing](guides/routing.md)
 - [Cluster Health Checking](guides/cluster_health_checking.md)
 - [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
+- [Response Body Buffering](guides/response_buffering.md)
 - [Retry and Backoff](guides/retry_backoff.md)
 - [Error Handling](guides/error_handling.md)

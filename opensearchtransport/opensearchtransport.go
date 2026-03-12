@@ -138,6 +138,20 @@ type Config struct {
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
+	// DisableResponseBuffering, when true, skips reading and buffering the
+	// entire response body in Perform(). The caller receives the raw response
+	// body from the underlying RoundTrip and is responsible for fully reading
+	// and closing it to release the connection back to the pool.
+	//
+	// This is useful for proxy and streaming use cases where the caller wants
+	// to forward the response incrementally rather than buffering it in memory.
+	// With HTTP/2, streams are independent so draining is not required for
+	// connection reuse. With HTTP/1.1, the caller must fully read the body
+	// before it can be reused.
+	//
+	// Default: false (existing behavior — body is fully buffered).
+	DisableResponseBuffering bool
+
 	CompressRequestBody bool
 
 	EnableMetrics     bool
@@ -381,8 +395,9 @@ type Client struct {
 
 	healthCheck HealthCheckFunc
 
-	compressRequestBody  bool
-	pooledGzipCompressor *gzipCompressor
+	compressRequestBody      bool
+	disableResponseBuffering bool
+	pooledGzipCompressor     *gzipCompressor
 
 	metrics *metrics
 
@@ -754,7 +769,8 @@ func New(cfg Config) (*Client, error) {
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
-		compressRequestBody: cfg.CompressRequestBody,
+		compressRequestBody:      cfg.CompressRequestBody,
+		disableResponseBuffering: cfg.DisableResponseBuffering,
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1351,8 +1367,10 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		res, err = c.performSeedFallback(req.Context(), req)
 	}
 
-	// Read, close and replace the http response body to close the connection
-	if res != nil && res.Body != nil {
+	// Read, close and replace the http response body to close the connection.
+	// Skipped when DisableResponseBuffering is set — the caller is responsible
+	// for fully reading and closing the body.
+	if !c.disableResponseBuffering && res != nil && res.Body != nil {
 		body, err := io.ReadAll(res.Body)
 		res.Body.Close()
 		if err == nil {

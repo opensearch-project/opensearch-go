@@ -145,15 +145,20 @@ func TestTransportConfig(t *testing.T) {
 		if tp.compressRequestBody {
 			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
 		}
+
+		if tp.disableResponseBuffering {
+			t.Errorf("Unexpected disableResponseBuffering: %v", tp.disableResponseBuffering)
+		}
 	})
 
 	t.Run("Custom", func(t *testing.T) {
 		tp, _ := New(Config{
-			RetryOnStatus:        []int{404, 408},
-			DisableRetry:         true,
-			EnableRetryOnTimeout: true,
-			MaxRetries:           5,
-			CompressRequestBody:  true,
+			RetryOnStatus:            []int{404, 408},
+			DisableRetry:             true,
+			EnableRetryOnTimeout:     true,
+			MaxRetries:               5,
+			CompressRequestBody:      true,
+			DisableResponseBuffering: true,
 		})
 
 		if !reflect.DeepEqual(tp.retryOnStatus, []int{404, 408}) {
@@ -174,6 +179,10 @@ func TestTransportConfig(t *testing.T) {
 
 		if !tp.compressRequestBody {
 			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
+		}
+
+		if !tp.disableResponseBuffering {
+			t.Errorf("Unexpected disableResponseBuffering: %v", tp.disableResponseBuffering)
 		}
 	})
 }
@@ -1131,6 +1140,152 @@ func TestRequestCompression(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResponseBuffering(t *testing.T) {
+	const largeBody = "ABCDEFGHIJ" // representative payload
+
+	t.Run("Default buffers response body", func(t *testing.T) {
+		// With default config (DisableResponseBuffering=false), Perform() reads the
+		// entire body into memory and replaces it with a bytes.Reader. The original
+		// body (a trackingReadCloser) must be fully read and closed.
+		bodyRead := false
+		bodyClosed := false
+
+		u, _ := url.Parse("http://localhost:9200")
+		tp, _ := New(Config{
+			URLs: []*url.URL{u},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: &trackingReadCloser{
+						Reader:  strings.NewReader(largeBody),
+						onRead:  func() { bodyRead = true },
+						onClose: func() { bodyClosed = true },
+					},
+				}, nil
+			}),
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		defer res.Body.Close()
+
+		if !bodyRead {
+			t.Error("Expected original body to be read (buffered)")
+		}
+		if !bodyClosed {
+			t.Error("Expected original body to be closed after buffering")
+		}
+
+		// Verify the buffered body is still readable by the caller
+		got, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Failed to read buffered body: %s", err)
+		}
+		if string(got) != largeBody {
+			t.Errorf("Body content mismatch, want=%q, got=%q", largeBody, string(got))
+		}
+	})
+
+	t.Run("Disabled skips response body buffering", func(t *testing.T) {
+		// With DisableResponseBuffering=true, Perform() returns the raw body
+		// from RoundTrip without reading or closing it.
+		bodyRead := false
+		bodyClosed := false
+
+		u, _ := url.Parse("http://localhost:9200")
+		tp, _ := New(Config{
+			URLs:                     []*url.URL{u},
+			DisableResponseBuffering: true,
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: &trackingReadCloser{
+						Reader:  strings.NewReader(largeBody),
+						onRead:  func() { bodyRead = true },
+						onClose: func() { bodyClosed = true },
+					},
+				}, nil
+			}),
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+
+		// Body should NOT have been read or closed by Perform()
+		if bodyRead {
+			t.Error("Expected original body NOT to be read when buffering is disabled")
+		}
+		if bodyClosed {
+			t.Error("Expected original body NOT to be closed when buffering is disabled")
+		}
+
+		// Caller reads and closes the body themselves
+		got, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Failed to read raw body: %s", err)
+		}
+		res.Body.Close()
+
+		if string(got) != largeBody {
+			t.Errorf("Body content mismatch, want=%q, got=%q", largeBody, string(got))
+		}
+		if !bodyRead {
+			t.Error("Expected body to be read by caller")
+		}
+		if !bodyClosed {
+			t.Error("Expected body to be closed by caller")
+		}
+	})
+
+	t.Run("Disabled with nil body does not panic", func(t *testing.T) {
+		u, _ := url.Parse("http://localhost:9200")
+		tp, _ := New(Config{
+			URLs:                     []*url.URL{u},
+			DisableResponseBuffering: true,
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: http.StatusNoContent}, nil
+			}),
+		})
+
+		req, _ := http.NewRequest(http.MethodHead, "/test", nil)
+		//nolint:bodyclose // Response has no body
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		if res.StatusCode != http.StatusNoContent {
+			t.Errorf("Unexpected status code: %d", res.StatusCode)
+		}
+	})
+}
+
+// trackingReadCloser wraps a Reader and records whether Read and Close were called.
+type trackingReadCloser struct {
+	io.Reader
+	onRead  func()
+	onClose func()
+}
+
+func (t *trackingReadCloser) Read(p []byte) (int, error) {
+	if t.onRead != nil {
+		t.onRead()
+	}
+	return t.Reader.Read(p)
+}
+
+func (t *trackingReadCloser) Close() error {
+	if t.onClose != nil {
+		t.onClose()
+	}
+	return nil
 }
 
 func TestRequestSigning(t *testing.T) {
