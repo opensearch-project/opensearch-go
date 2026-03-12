@@ -131,6 +131,13 @@ type Config struct {
 	MaxRetries           int
 	RetryBackoff         func(attempt int) time.Duration
 
+	// RequestTimeout sets an per-attempt timeout for each HTTP round-trip.
+	// When set, a context deadline is applied to each individual request attempt
+	// (including each retry). This bounds the maximum time a single RoundTrip
+	// can block, preventing indefinite hangs on stalled connections.
+	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
+	RequestTimeout time.Duration
+
 	CompressRequestBody bool
 
 	EnableMetrics     bool
@@ -328,6 +335,7 @@ type Client struct {
 	enableRetryOnTimeout  bool
 	maxRetries            int
 	retryBackoff          func(attempt int) time.Duration
+	requestTimeout        time.Duration
 	discoverNodesInterval time.Duration
 
 	includeDedicatedClusterManagers bool
@@ -456,6 +464,15 @@ func New(cfg Config) (*Client, error) {
 		cfg.DiscoveryHealthCheckRetries = 3
 	}
 
+	// RequestTimeout: 0 = no per-attempt timeout (default), >0 = explicit.
+	// OPENSEARCH_GO_REQUEST_TIMEOUT: time.ParseDuration format, integer seconds, or float seconds.
+	requestTimeout := cfg.RequestTimeout
+	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_REQUEST_TIMEOUT"); ok && envVal != "" {
+		if d, ok := parseDuration(envVal); ok {
+			requestTimeout = d
+		}
+	}
+
 	// Set health check defaults using the 0=default, <0=disable, >0=explicit pattern
 	var healthCheckTimeout time.Duration
 	var healthCheckMaxRetries int
@@ -560,12 +577,9 @@ func New(cfg Config) (*Client, error) {
 	nodeStatsInterval := cfg.NodeStatsInterval
 	nodeStatsIntervalAuto := false
 	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_NODE_STATS_INTERVAL"); ok && envVal != "" {
-		if d, err := time.ParseDuration(envVal); err == nil {
+		if d, ok := parseDuration(envVal); ok {
 			nodeStatsInterval = d
-		} else if secs, err := strconv.ParseInt(envVal, 10, 64); err == nil {
-			nodeStatsInterval = time.Duration(secs) * time.Second
 		}
-		// If both parse attempts fail, ignore the env var and use programmatic value.
 	}
 	switch {
 	case nodeStatsInterval == 0:
@@ -642,10 +656,8 @@ func New(cfg Config) (*Client, error) {
 	// OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL: time.ParseDuration format or integer seconds.
 	standbyRotationInterval := cfg.StandbyRotationInterval
 	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL"); ok && envVal != "" {
-		if d, err := time.ParseDuration(envVal); err == nil {
+		if d, ok := parseDuration(envVal); ok {
 			standbyRotationInterval = d
-		} else if secs, err := strconv.ParseInt(envVal, 10, 64); err == nil {
-			standbyRotationInterval = time.Duration(secs) * time.Second
 		}
 	}
 
@@ -704,6 +716,7 @@ func New(cfg Config) (*Client, error) {
 		enableRetryOnTimeout:  cfg.EnableRetryOnTimeout,
 		maxRetries:            cfg.MaxRetries,
 		retryBackoff:          cfg.RetryBackoff,
+		requestTimeout:        requestTimeout,
 		discoverNodesInterval: cfg.DiscoverNodesInterval,
 
 		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
@@ -1113,7 +1126,36 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			conn.addInFlight(poolName)
 		}
 		start := time.Now().UTC()
-		res, err = c.transport.RoundTrip(req)
+
+		// Apply per-attempt timeout if configured. This creates a child context
+		// with a deadline so that each individual RoundTrip is bounded, preventing
+		// indefinite hangs on stalled TCP connections.
+		attemptReq := req
+		var attemptCancel context.CancelFunc
+		if c.requestTimeout > 0 {
+			var attemptCtx context.Context
+			attemptCtx, attemptCancel = context.WithTimeout(req.Context(), c.requestTimeout)
+			attemptReq = req.WithContext(attemptCtx)
+		}
+
+		res, err = c.transport.RoundTrip(attemptReq)
+
+		if attemptCancel != nil {
+			// If the response body is non-nil, the caller is responsible for
+			// reading and closing it. Cancel the attempt context only after
+			// the body is fully consumed or on error. For now, cancel
+			// immediately — http.Transport will not abort an in-progress
+			// body read on a completed RoundTrip when the context expires.
+			// The timeout bounds the headers-received phase; body reads
+			// proceed independently.
+			if err != nil || res == nil {
+				attemptCancel()
+			} else {
+				// Wrap the response body so the attempt context is cancelled
+				// when the caller closes the body.
+				res.Body = &cancelOnCloseBody{ReadCloser: res.Body, cancel: attemptCancel}
+			}
+		}
 		dur := time.Since(start)
 		if poolName != "" {
 			conn.releaseInFlight(poolName)
@@ -1361,7 +1403,25 @@ func (c *Client) performSeedFallback(ctx context.Context, req *http.Request) (*h
 	}
 
 	start := time.Now().UTC()
-	res, err := c.transport.RoundTrip(req)
+
+	// Apply per-attempt timeout if configured.
+	attemptReq := req
+	var attemptCancel context.CancelFunc
+	if c.requestTimeout > 0 {
+		var attemptCtx context.Context
+		attemptCtx, attemptCancel = context.WithTimeout(req.Context(), c.requestTimeout)
+		attemptReq = req.WithContext(attemptCtx) //nolint:contextcheck // child of req.Context()
+	}
+
+	res, err := c.transport.RoundTrip(attemptReq)
+
+	if attemptCancel != nil {
+		if err != nil || res == nil {
+			attemptCancel()
+		} else {
+			res.Body = &cancelOnCloseBody{ReadCloser: res.Body, cancel: attemptCancel}
+		}
+	}
 	dur := time.Since(start)
 
 	if c.logger != nil {
@@ -2306,4 +2366,19 @@ func extractRouting(req *http.Request) string {
 		}
 	}
 	return ""
+}
+
+// cancelOnCloseBody wraps a response body so that a context cancel function
+// is called when the body is closed. This ensures per-attempt timeout contexts
+// are cleaned up after the caller finishes reading the response.
+type cancelOnCloseBody struct {
+	io.ReadCloser
+	cancel context.CancelFunc
+}
+
+// Close closes the underlying body and cancels the per-attempt context.
+func (b *cancelOnCloseBody) Close() error {
+	err := b.ReadCloser.Close()
+	b.cancel()
+	return err
 }

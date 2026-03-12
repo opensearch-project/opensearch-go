@@ -36,6 +36,13 @@ func example() error {
 
                 // Retry up to 5 attempts (1 initial + 4 retries)
                 MaxRetries: 4,
+
+                // Per-attempt timeout: each individual HTTP round-trip is bounded.
+                // This prevents indefinite hangs on stalled connections. Each retry
+                // gets its own fresh timeout. Set to 0 to disable (default).
+                // Use a generous value here to accommodate slow bulk operations;
+                // callers can enforce tighter SLAs with per-request context deadlines.
+                RequestTimeout: 5 * time.Minute,
 		},
 	})
 	if err != nil {
@@ -54,6 +61,36 @@ To limit total wait time when the server is unresponsive, use a context with a d
 	return nil
 }
 ```
+
+### Per-Attempt vs. Total Timeout
+
+`RequestTimeout` and context deadlines serve different purposes:
+
+| Mechanism             | Scope       | Applies to                                                  |
+| --------------------- | ----------- | ----------------------------------------------------------- |
+| `RequestTimeout`      | Per-attempt | Each individual HTTP round-trip (including each retry)      |
+| `context.WithTimeout` | Total       | The entire operation across all attempts and backoff delays |
+
+Use both together for defense in depth: `RequestTimeout` prevents any single attempt from hanging indefinitely, while a context deadline caps the total wall-clock time.
+
+```go
+client, _ := opensearchapi.NewClient(opensearchapi.Config{
+    Client: opensearch.Config{
+        RequestTimeout: 5 * time.Minute, // Safety net for bulk/slow operations
+        MaxRetries:     3,               // Up to 4 attempts total
+    },
+})
+
+// Search with a tight SLA: 5s total across all retries.
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+resp, err := client.Search(ctx, &opensearchapi.SearchReq{
+    Indices: []string{"my-index"},
+    Body:    strings.NewReader(`{"query":{"match_all":{}}}`),
+})
+```
+
+`RequestTimeout` can also be set via the `OPENSEARCH_GO_REQUEST_TIMEOUT` environment variable. The variable accepts `time.ParseDuration` format (`30s`, `1m`), integer seconds (`30`), or fractional seconds (`1.5`). The environment variable overrides the programmatic value.
 
 ## Dead Connection Resurrection
 

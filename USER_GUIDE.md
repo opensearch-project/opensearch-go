@@ -457,6 +457,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 | Variable                            | Default       | Description                                         |
 | ----------------------------------- | ------------- | --------------------------------------------------- |
+| `OPENSEARCH_GO_REQUEST_TIMEOUT`     | 0 (none)      | Per-attempt HTTP request timeout (duration or secs) |
 | `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                             |
 | `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                |
 | `OPENSEARCH_GO_DISCOVERY_CONFIG`    | (all enabled) | Skip specific discovery calls                       |
