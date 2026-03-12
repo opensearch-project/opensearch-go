@@ -329,7 +329,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 		require.NotEmpty(t, config.Addresses, "addresses should not be empty")
 
 		// Verify we can create a new client with the retrieved config
-		newClient, err := opensearch.NewClient(config)
+		newClient, err := opensearch.NewClient(*config)
 		require.Nil(t, err)
 		require.NotNil(t, newClient)
 
