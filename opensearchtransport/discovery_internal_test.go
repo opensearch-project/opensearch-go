@@ -30,7 +30,6 @@ package opensearchtransport
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -273,15 +272,11 @@ func TestDiscovery(t *testing.T) {
 	t.Run("DiscoverNodes() with SSL and authorization", func(t *testing.T) {
 		u, _ := url.Parse("https://" + srvTLS1.Addr)
 		tp, _ := New(Config{
-			URLs:        []*url.URL{u},
-			Username:    "foo",
-			Password:    "bar",
-			HealthCheck: NoOpHealthCheck, // Disable health checks for test resurrection simulation
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
+			URLs:               []*url.URL{u},
+			Username:           "foo",
+			Password:           "bar",
+			HealthCheck:        NoOpHealthCheck, // Disable health checks for test resurrection simulation
+			InsecureSkipVerify: true,
 		})
 
 		err := tp.DiscoverNodes(t.Context())
@@ -698,9 +693,7 @@ func TestDiscovery(t *testing.T) {
 				// on discovered nodes (which have fake publish_addresses) still reach
 				// the test server.
 				urls := []*url.URL{{Scheme: "http", Host: testServer.Addr}}
-				redirectTransport := &http.Transport{
-					DialContext: (&net.Dialer{}).DialContext,
-				}
+				redirectTransport := http.DefaultTransport.(*http.Transport).Clone()
 				redirectTransport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 					// Always connect to the test server regardless of the target address
 					return (&net.Dialer{}).DialContext(ctx, network, testServer.Addr)
@@ -1792,7 +1785,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 			urls:       []*url.URL{{Scheme: "http", Host: "seed:9200"}},
 			// Provide a transport that returns errors so background health checks
 			// (from scheduleResurrect goroutines) don't panic on nil transport.
-			transport: &http.Transport{},
+			transport: http.DefaultTransport.(*http.Transport).Clone(),
 		}
 		return client
 	}

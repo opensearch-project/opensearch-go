@@ -97,6 +97,12 @@ type Config struct {
 	// The option is only valid when the transport is not specified, or when it's http.Transport.
 	CACert []byte
 
+	// InsecureSkipVerify disables TLS certificate verification.
+	// When true, the transport's TLS config is set to skip verification,
+	// cloning the existing transport (or http.DefaultTransport) to preserve
+	// connection pooling, HTTP/2, and other defaults.
+	InsecureSkipVerify bool
+
 	RetryOnStatus        []int // List of status codes for retry. Default: 502, 503, 504.
 	DisableRetry         bool  // Default: false.
 	EnableRetryOnTimeout bool  // Default: false.
@@ -262,6 +268,8 @@ func NewClient(cfg Config) (*Client, error) {
 
 		Header: cfg.Header,
 		CACert: cfg.CACert,
+
+		InsecureSkipVerify: cfg.InsecureSkipVerify,
 
 		Signer: cfg.Signer,
 

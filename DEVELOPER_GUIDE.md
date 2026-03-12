@@ -139,9 +139,9 @@ Override files let you change CPU limits and node roles independently. Each targ
 
 The override file paths are:
 
-| Override | File |
-|----------|------|
-| CPU limits | `.ci/opensearch/docker-compose.cpu-override.yml` |
+| Override   | File                                               |
+| ---------- | -------------------------------------------------- |
+| CPU limits | `.ci/opensearch/docker-compose.cpu-override.yml`   |
 | Node roles | `.ci/opensearch/docker-compose.roles-override.yml` |
 
 These are standard Docker Compose files. You can hand-edit them for custom configurations (e.g., different CPU ratios or role combinations not covered by the Make targets), or remove individual files to selectively reset one dimension while keeping the other:

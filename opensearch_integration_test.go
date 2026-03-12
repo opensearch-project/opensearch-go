@@ -122,18 +122,17 @@ func TestClientTransport(t *testing.T) {
 	})
 
 	t.Run("Configured", func(t *testing.T) {
+		tp := http.DefaultTransport.(*http.Transport).Clone()
+		tp.MaxIdleConnsPerHost = 10
+		tp.ResponseHeaderTimeout = time.Second
+		tp.DialContext = (&net.Dialer{Timeout: time.Nanosecond}).DialContext
+		tp.TLSClientConfig.MinVersion = tls.VersionTLS11
+		tp.TLSClientConfig.InsecureSkipVerify = true
+
 		cfg := opensearchapi.Config{
 			Client: opensearch.Config{
-				Context: t.Context(),
-				Transport: &http.Transport{
-					MaxIdleConnsPerHost:   10,
-					ResponseHeaderTimeout: time.Second,
-					DialContext:           (&net.Dialer{Timeout: time.Nanosecond}).DialContext,
-					TLSClientConfig: &tls.Config{
-						MinVersion:         tls.VersionTLS11,
-						InsecureSkipVerify: true,
-					},
-				},
+				Context:   t.Context(),
+				Transport: tp,
 			},
 		}
 
@@ -175,11 +174,11 @@ func TestClientCustomTransport(t *testing.T) {
 		cfg := testutil.ClientConfig(t)
 
 		if cfg != nil {
+			customTP := http.DefaultTransport.(*http.Transport).Clone()
+			customTP.TLSClientConfig.InsecureSkipVerify = true
 			cfg.Client.Transport = &CustomTransport{
 				client: &http.Client{
-					Transport: &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-					},
+					Transport: customTP,
 				},
 				logger: func(format string, v ...any) {
 					if testutil.IsDebugEnabled(t) {

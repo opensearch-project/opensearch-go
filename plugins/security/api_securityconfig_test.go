@@ -28,12 +28,10 @@ func TestSecurityConfigClient(t *testing.T) {
 	clientTLSCert, err := tls.LoadX509KeyPair("../../admin.pem", "../../admin.key")
 	require.NoError(t, err)
 
-	config.Client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // #nosec G402 -- Test environment only
-			Certificates:       []tls.Certificate{clientTLSCert},
-		},
-	}
+	config.Client.InsecureSkipVerify = true
+	tp := http.DefaultTransport.(*http.Transport).Clone()
+	tp.TLSClientConfig.Certificates = []tls.Certificate{clientTLSCert}
+	config.Client.Transport = tp
 
 	client, err := security.NewClient(*config)
 	require.NoError(t, err)

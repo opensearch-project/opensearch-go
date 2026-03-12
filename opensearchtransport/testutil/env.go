@@ -7,7 +7,6 @@
 package testutil
 
 import (
-	"crypto/tls"
 	"net/http"
 	"net/url"
 	"os"
@@ -94,12 +93,13 @@ func GetTestURL(t *testing.T) *url.URL {
 
 // GetTestTransport returns an http.RoundTripper configured for the test environment.
 // Returns a TLS-skipping transport when SECURE_INTEGRATION=true, otherwise http.DefaultTransport.
+// When cloning, all DefaultTransport defaults (connection pooling, HTTP/2, timeouts) are preserved.
 func GetTestTransport(t *testing.T) http.RoundTripper {
 	t.Helper()
 	if IsSecure(t) {
-		return &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // #nosec G402 -- Test environment only
-		}
+		tp := http.DefaultTransport.(*http.Transport).Clone()
+		tp.TLSClientConfig.InsecureSkipVerify = true // #nosec G402 -- Test environment only
+		return tp
 	}
 	return http.DefaultTransport
 }
