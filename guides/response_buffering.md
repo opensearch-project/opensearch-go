@@ -54,15 +54,15 @@ In both cases, always call `res.Body.Close()` when done.
 
 ## When to Use
 
-| Scenario                                           | Recommendation                    |
-| -------------------------------------------------- | --------------------------------- |
-| Standard API calls (CRUD, search, cluster ops)     | Leave buffering enabled (default) |
-| Reverse proxy forwarding large responses           | Disable buffering                 |
-| Streaming bulk responses to clients                | Disable buffering                 |
-| Scroll/PIT with large result sets piped downstream | Disable buffering                 |
+| Scenario | Recommendation |
+| --- | --- |
+| Standard API calls (CRUD, search, cluster ops) | Leave buffering enabled (default) |
+| Reverse proxy forwarding large responses | Disable buffering |
+| Streaming bulk responses to clients | Disable buffering |
+| Scroll/PIT with large result sets piped downstream | Disable buffering |
 
 ## Configuration Reference
 
-| Field                      | Type   | Default | Location                                          |
-| -------------------------- | ------ | ------- | ------------------------------------------------- |
+| Field | Type | Default | Location |
+| --- | --- | --- | --- |
 | `DisableResponseBuffering` | `bool` | `false` | `opensearch.Config`, `opensearchtransport.Config` |
