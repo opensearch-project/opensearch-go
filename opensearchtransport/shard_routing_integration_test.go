@@ -445,10 +445,13 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		t.Run("pipeline/routing="+routing, func(t *testing.T) {
 			gt := truth[routing]
 
-			// Clear the observer's last event.
+			// The canary probe above already proved the shard-exact
+			// pipeline is working end-to-end. A single request per
+			// routing value is sufficient -- if ShardExactMatch is
+			// false here, that's a real bug (e.g., the shard map was
+			// cleared by a discovery race), not a timing issue.
 			obs.reset()
 
-			// Build the search request with ?routing=.
 			searchReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
 				fmt.Sprintf("/%s/_search?routing=%s", index, url.QueryEscape(routing)),
 				bytes.NewReader([]byte(`{"query":{"match_all":{}}}`)))
@@ -460,30 +463,27 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 			defer resp.Body.Close()
 			body, _ := io.ReadAll(resp.Body)
 			require.Equal(t, http.StatusOK, resp.StatusCode,
-				"search failed for routing=%q: %s", routing, string(body))
+				"routing=%q: search returned %d: %s", routing, resp.StatusCode, string(body))
 
-			// Verify the observer captured the routing event.
-			event := obs.lastEvent()
-			require.NotNil(t, event,
-				"observer did not capture an RouteEvent for routing=%q", routing)
-
-			// (a) Shard-exact routing was used.
-			require.True(t, event.ShardExactMatch,
-				"routing=%q: expected ShardExactMatch=true, got false (shard map not loaded?)", routing)
+			lastEvent := obs.lastEvent()
+			require.NotNil(t, lastEvent,
+				"routing=%q: no RouteEvent observed", routing)
+			require.True(t, lastEvent.ShardExactMatch,
+				"routing=%q: ShardExactMatch=false (shard map cleared by discovery race?)", routing)
 
 			// (b) TargetShard matches server ground truth.
-			require.Equal(t, gt.shardNum, event.TargetShard,
+			require.Equal(t, gt.shardNum, lastEvent.TargetShard,
 				"routing=%q: TargetShard=%d but server says shard=%d",
-				routing, event.TargetShard, gt.shardNum)
+				routing, lastEvent.TargetShard, gt.shardNum)
 
 			// Also verify against our client-side murmur3.
 			clientShard := shardForRouting(routing, routingNumShards, numShards)
-			require.Equal(t, clientShard, event.TargetShard,
+			require.Equal(t, clientShard, lastEvent.TargetShard,
 				"routing=%q: observer TargetShard=%d but shardForRouting=%d",
-				routing, event.TargetShard, clientShard)
+				routing, lastEvent.TargetShard, clientShard)
 
 			// (c) Selected node hosts the target shard.
-			selectedNode := event.Selected.Name
+			selectedNode := lastEvent.Selected.Name
 			_, nodeHostsShard := gt.nodeNames[selectedNode]
 			require.True(t, nodeHostsShard,
 				"routing=%q shard=%d: selected node %q does not host this shard; "+
@@ -491,11 +491,11 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 				routing, gt.shardNum, selectedNode, gt.nodeNames)
 
 			// (d) RoutingValue was captured correctly.
-			require.Equal(t, routing, event.RoutingValue)
+			require.Equal(t, routing, lastEvent.RoutingValue)
 
 			if testutil.IsDebugEnabled(t) {
 				t.Logf("routing=%q -> shard %d -> node %q (verified against server)",
-					routing, event.TargetShard, selectedNode)
+					routing, lastEvent.TargetShard, selectedNode)
 			}
 		})
 	}
@@ -608,7 +608,7 @@ func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.C
 			return false
 		}
 
-		// Retry on 5xx — server may still be settling cluster state
+		// Retry on 5xx -- server may still be settling cluster state
 		// (e.g. OptionalDataException on OpenSearch 2.0.x).
 		if resp.StatusCode >= 500 {
 			if testutil.IsDebugEnabled(t) {

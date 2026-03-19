@@ -28,6 +28,7 @@ package opensearchtransport
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"sync/atomic"
@@ -226,16 +227,16 @@ func buildRoleRoutes(r roleRoutes) []Route {
 
 		// -- Search operations -- search/data nodes, "search" pool
 		// From RestSearchAction.java
-		NewRoute("GET /_search", r.searchRead).MustBuild(),
-		NewRoute("POST /_search", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_search", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_search", r.searchRead).MustBuild(),
+		NewRoute("GET /_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /{index}/_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /{index}/_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
 
 		// Multi-search operations (from RestMultiSearchAction.java)
-		NewRoute("GET /_msearch", r.searchRead).MustBuild(),
-		NewRoute("POST /_msearch", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_msearch", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_msearch", r.searchRead).MustBuild(),
+		NewRoute("GET /_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /{index}/_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /{index}/_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
 
 		// Count queries (from RestCountAction.java)
 		NewRoute("GET /_count", r.searchRead).MustBuild(),
@@ -496,6 +497,14 @@ type routerConfig struct {
 	// Applied after programmatic options; env overrides options.
 	routingFeatures   routingFeatures
 	discoveryFeatures discoveryFeatures
+
+	// Adaptive max_concurrent_shard_requests configuration.
+	// Set via WithAdaptiveConcurrencyLimits or OPENSEARCH_GO_SHARD_REQUESTS.
+	adaptiveConcurrency adaptiveConcurrencyConfig
+
+	// errs collects configuration errors from RouterOption functions.
+	// Logged at router creation time via debugLogger.
+	errs []error
 }
 
 func defaultRouterConfig() routerConfig {
@@ -561,6 +570,61 @@ func WithShardExactRouting(enabled bool) RouterOption {
 	}
 }
 
+// WithAdaptiveConcurrency enables or disables adaptive
+// max_concurrent_shard_requests injection on search requests.
+// When enabled, the transport derives the shard fan-out limit from the
+// selected connection's search pool congestion window. Default: true.
+//
+// Can also be controlled via OPENSEARCH_GO_SHARD_REQUESTS=false.
+// The environment variable takes precedence over this option.
+func WithAdaptiveConcurrency(enabled bool) RouterOption {
+	return func(c *routerConfig) {
+		if enabled {
+			c.routingFeatures &^= routingSkipAdaptiveConcurrency
+		} else {
+			c.routingFeatures |= routingSkipAdaptiveConcurrency
+		}
+	}
+}
+
+// WithAdaptiveConcurrencyLimits sets the min and max for adaptive
+// max_concurrent_shard_requests. Zero values retain the defaults
+// (minVal=5, maxVal=256). Negative values for both min and max disable
+// adaptive concurrency entirely -- equivalent to
+// WithAdaptiveConcurrency(false).
+//
+// If min > max after applying both values, a configuration error is
+// recorded and logged at router creation time. The invalid bounds are
+// preserved as-is (no swap) so the caller observes the bug.
+//
+// The max can be set above the compile-time default of 256 when the
+// cluster has large search thread pools -- e.g.,
+// WithAdaptiveConcurrencyLimits(10, 512).
+//
+// Can also be controlled via OPENSEARCH_GO_SHARD_REQUESTS=10:512.
+// The environment variable takes precedence over this option.
+func WithAdaptiveConcurrencyLimits(minVal, maxVal int) RouterOption {
+	return func(c *routerConfig) {
+		if minVal < 0 && maxVal < 0 {
+			c.routingFeatures |= routingSkipAdaptiveConcurrency
+			return
+		}
+		c.routingFeatures &^= routingSkipAdaptiveConcurrency
+		if minVal > 0 {
+			c.adaptiveConcurrency.minVal = minVal
+		}
+		if maxVal > 0 {
+			c.adaptiveConcurrency.maxVal = maxVal
+		}
+		if c.adaptiveConcurrency.minVal > 0 && c.adaptiveConcurrency.maxVal > 0 &&
+			c.adaptiveConcurrency.minVal > c.adaptiveConcurrency.maxVal {
+			c.errs = append(c.errs, fmt.Errorf(
+				"WithAdaptiveConcurrencyLimits(%d, %d): min exceeds max",
+				minVal, maxVal))
+		}
+	}
+}
+
 // NewDefaultPolicy creates a request-aware policy with connection-scoring routing.
 // This is the recommended policy for production clusters. It extends
 // role-based mux routing with per-index connection scoring:
@@ -589,15 +653,33 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 	if val, ok := os.LookupEnv(envDiscoveryConfig); ok && val != "" {
 		cfg.discoveryFeatures = parseDiscoveryConfig(val)
 	}
+	if val, ok := os.LookupEnv(envShardRequests); ok && val != "" {
+		cfg.adaptiveConcurrency, cfg.routingFeatures = parseShardRequests(val, cfg.routingFeatures)
+		// Validate after env override (env may have set min > max).
+		if cfg.adaptiveConcurrency.minVal > 0 && cfg.adaptiveConcurrency.maxVal > 0 &&
+			cfg.adaptiveConcurrency.minVal > cfg.adaptiveConcurrency.maxVal {
+			cfg.errs = append(cfg.errs, fmt.Errorf(
+				"%s=%q: min (%d) exceeds max (%d)",
+				envShardRequests, val, cfg.adaptiveConcurrency.minVal, cfg.adaptiveConcurrency.maxVal))
+		}
+	}
+
+	// Log configuration errors. These are caller bugs that should be fixed.
+	if debugLogger != nil {
+		for _, err := range cfg.errs {
+			debugLogger.Logf("routerConfig error: %v\n", err)
+		}
+	}
 
 	cacheCfg := indexSlotCacheConfig{
-		minFanOut:       cfg.minFanOut,
-		maxFanOut:       cfg.maxFanOut,
-		overrides:       cfg.overrides,
-		idleEvictionTTL: cfg.idleEvictionTTL,
-		decayFactor:     cfg.decay,
-		fanOutPerReq:    cfg.fanOutPerReq,
-		features:        cfg.routingFeatures,
+		minFanOut:           cfg.minFanOut,
+		maxFanOut:           cfg.maxFanOut,
+		overrides:           cfg.overrides,
+		idleEvictionTTL:     cfg.idleEvictionTTL,
+		decayFactor:         cfg.decay,
+		fanOutPerReq:        cfg.fanOutPerReq,
+		features:            cfg.routingFeatures,
+		adaptiveConcurrency: cfg.adaptiveConcurrency,
 	}
 
 	cache := newIndexSlotCache(cacheCfg)

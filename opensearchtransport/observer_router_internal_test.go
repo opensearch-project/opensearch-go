@@ -80,7 +80,10 @@ func TestBuildRouteEvent(t *testing.T) {
 	slot := &indexSlot{}
 	candidates := []*Connection{conn1, conn2}
 
-	event := buildRouteEvent("test-index", "test-index", 3, 5, candidates, conn1, slot, nil, &shardCostForReads, "", "", "", -1, false, true)
+	event := buildRouteEvent(
+		"test-index", "test-index", 3, 5, candidates, conn1, slot, nil,
+		&shardCostForReads, "", "", "", -1, false, true, 0,
+	)
 
 	require.Equal(t, "test-index", event.IndexName)
 	require.Equal(t, "test-index", event.Key)

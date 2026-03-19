@@ -53,6 +53,7 @@ type policyConfig struct {
 	healthCheck                  HealthCheckFunc
 	observer                     *ConnectionObserver // nil means no observer
 	poolInfoReady                *atomic.Bool        // nil-safe; true once thread pool quorum is reached
+	clusterSearchCwnd            *atomic.Int32       // nil-safe; cluster-wide search cwnd for MCSR
 
 	// Standby pool configuration
 	activeListCap          *int  // nil = auto-scale; non-nil = user-specified cap value
@@ -101,6 +102,13 @@ type Policy interface {
 type NextHop struct {
 	Conn     *Connection
 	PoolName string // Thread pool name for in-flight tracking; empty for non-scored routes.
+
+	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
+	// from the selected connection's search pool congestion window. When > 0,
+	// Perform() injects it as the max_concurrent_shard_requests query parameter
+	// on search requests routed through a coordinator node. Zero means "not set"
+	// (shard-exact routing, non-search request, or feature disabled).
+	MaxConcurrentShardRequests int
 }
 
 // policyConfigurable is a package-internal interface for policies that need configuration.

@@ -49,8 +49,17 @@ var ErrNoRouteMatched = errors.New("no route matched request")
 
 // routeAttr is a bitfield of per-route attributes applied when the route matches.
 // Attributes are set at route construction time and evaluated by [MuxPolicy.Eval].
-// Currently reserved for future use; no attributes are defined.
 type routeAttr uint32
+
+const (
+	// attrInjectAdaptiveMCSR marks a route as eligible for client-side adaptive
+	// max_concurrent_shard_requests injection. Only endpoints that accept this
+	// query parameter (_search and _msearch) should set this bit. Other
+	// search-pool endpoints (_count, _delete_by_query, _validate/query, etc.)
+	// are routed to the same pool for connection selection but do not accept
+	// the parameter — OpenSearch returns HTTP 400 if it is present.
+	attrInjectAdaptiveMCSR routeAttr = 1 << iota
+)
 
 //nolint:gochecknoglobals // Shared HTTP methods map for splitMuxPattern
 var httpMethods = map[string]struct{}{
@@ -140,6 +149,15 @@ func NewRoute(pattern string, policy Policy) *RouteBuilder {
 // Pool sets the thread pool name for congestion tracking.
 func (b *RouteBuilder) Pool(name string) *RouteBuilder {
 	b.poolName = name
+	return b
+}
+
+// InjectAdaptiveMCSR marks this route for client-side adaptive
+// max_concurrent_shard_requests injection. Only endpoints whose server-side
+// REST action accepts the parameter should use this (currently _search and
+// _msearch). See [attrInjectAdaptiveMCSR].
+func (b *RouteBuilder) InjectAdaptiveMCSR() *RouteBuilder {
+	b.attrs |= attrInjectAdaptiveMCSR
 	return b
 }
 
@@ -271,6 +289,12 @@ func (p *MuxPolicy) Eval(ctx context.Context, req *http.Request) (NextHop, error
 	if hop.Conn != nil && err == nil {
 		if hop.PoolName == "" && m.poolName != "" {
 			hop.PoolName = m.poolName
+		}
+		// Only inject adaptive MCSR for routes that explicitly opt in.
+		// The poolRouter computes the value for the entire "search" pool,
+		// but only _search and _msearch accept the query parameter.
+		if hop.MaxConcurrentShardRequests > 0 && m.attrs&attrInjectAdaptiveMCSR == 0 {
+			hop.MaxConcurrentShardRequests = 0
 		}
 	}
 	return hop, err

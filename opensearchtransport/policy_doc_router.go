@@ -141,7 +141,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 			key := indexName + "/" + docID
 			obs.OnRoute(buildRouteEvent(
 				indexName, key, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, &shardCostForReads, "",
-				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
+				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), 0,
 			))
 		}
 
@@ -180,7 +180,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 		key := indexName + "/" + docID
 		obs.OnRoute(buildRouteEvent(
 			indexName, key, fanOut, len(conns), candidates, best, slot, nil, &shardCostForReads, "",
-			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
+			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), 0,
 		))
 	}
 

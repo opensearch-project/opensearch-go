@@ -8,12 +8,12 @@
 //
 // OpenSearch uses MurmurHash3 (x86, 32-bit) on UTF-16 LE encoded routing
 // strings to deterministically assign documents to shards. This package
-// exposes that algorithm so external tools—custom routers, data pipelines,
-// test harnesses—can compute the same shard placement as the server.
+// exposes that algorithm so external tools -- custom routers, data pipelines,
+// test harnesses -- can compute the same shard placement as the server.
 //
 // The two primary functions are:
 //
-//   - [Hash]       — returns the raw murmur3 hash of a routing string.
-//   - [ForRouting] — returns the shard number for a given routing value,
+//   - [Hash]       -- returns the raw murmur3 hash of a routing string.
+//   - [ForRouting] -- returns the shard number for a given routing value,
 //     matching OperationRouting.calculateScaledShardId on the server.
 package shardhash
