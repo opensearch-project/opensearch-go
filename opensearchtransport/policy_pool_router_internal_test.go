@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -692,5 +693,282 @@ func TestChildPolicies(t *testing.T) {
 		children := wrapper.childPolicies()
 		require.Len(t, children, 1)
 		require.Equal(t, inner, children[0])
+	})
+}
+
+// --- Test: adaptive max_concurrent_shard_requests on poolRouter ---
+
+func TestPoolRouterAdaptiveMCSR(t *testing.T) {
+	t.Parallel()
+
+	// makeSearchConn creates an active connection with a known search pool cwnd.
+	makeSearchConn := func(t *testing.T, name string, searchCwnd int32) *Connection {
+		t.Helper()
+		conn := makeTestConn(t, "http://"+name+":9200", name, 200*time.Microsecond)
+		// Seed the search pool with a known cwnd.
+		pc := conn.pools.getOrCreate("search")
+		pc.cwnd.Store(searchCwnd)
+		pc.mu.Lock()
+		pc.mu.maxCwnd = 13
+		pc.mu.ssthresh = 13
+		pc.mu.Unlock()
+		return conn
+	}
+
+	t.Run("search request returns MaxConcurrentShardRequests", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 10)
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		// Set poolInfoReady so loadCwnd reads the real cwnd.
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		// Populate the pre-sorted connection list.
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, "search", hop.PoolName)
+		require.Equal(t, 10, hop.MaxConcurrentShardRequests,
+			"search pool cwnd=10 should produce MaxConcurrentShardRequests=10")
+	})
+
+	t.Run("write request returns zero MaxConcurrentShardRequests", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 10)
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+
+		// "write" pool -- not "search", so MCSR should not be computed.
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForWrites, "write")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPut, "/my-index/_doc/123", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, 0, hop.MaxConcurrentShardRequests,
+			"write requests should not set MaxConcurrentShardRequests")
+	})
+
+	t.Run("search request with low cwnd clamps to min", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 1) // cwnd=1 -> clamped to min=5
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, adaptiveConcurrencyMinDefault, hop.MaxConcurrentShardRequests,
+			"cwnd=1 should be clamped to min default")
+	})
+
+	t.Run("search request with high cwnd clamps to max", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 500) // cwnd=500 -> clamped to max=256
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, adaptiveConcurrencyMaxDefault, hop.MaxConcurrentShardRequests,
+			"cwnd=500 should be clamped to max default")
+	})
+
+	t.Run("search request with adaptive concurrency disabled returns zero", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 10)
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+
+		// Create cache with adaptive concurrency disabled.
+		cache := newIndexSlotCache(indexSlotCacheConfig{
+			minFanOut:    1,
+			maxFanOut:    32,
+			decayFactor:  defaultDecayFactor,
+			fanOutPerReq: defaultFanOutPerRequest,
+			features:     routingSkipAdaptiveConcurrency,
+		})
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, 0, hop.MaxConcurrentShardRequests,
+			"disabled adaptive concurrency should return 0")
+	})
+
+	t.Run("shard-exact search returns zero MaxConcurrentShardRequests", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 10)
+		conn.Name = "node1" // Required for shard placement matching.
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		// Populate shard placement so shardExactCandidates returns a match.
+		// Use a single primary shard with RoutingNumShards matching so that
+		// any routing value resolves to shard 0.
+		slot := cache.getOrCreate("my-index")
+		slot.shardMap.Store(&indexShardMap{
+			NumberOfPrimaryShards: 1,
+			RoutingNumShards:      1,
+			Shards: map[int]*shardNodes{
+				0: {Primary: "node1"},
+			},
+		})
+
+		// Shard-exact routing uses ?routing=X. When shard data is populated,
+		// the shard-exact path handles the request and does NOT set MCSR
+		// (the request goes directly to the hosting node, no coordinator fan-out).
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search?routing=abc", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, 0, hop.MaxConcurrentShardRequests,
+			"shard-exact routed requests should not set MaxConcurrentShardRequests")
+	})
+
+	t.Run("cluster cwnd used when available", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 10) // per-node cwnd=10
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		// Wire a cluster cwnd of 25 (different from per-node 10).
+		var clusterCwnd atomic.Int32
+		clusterCwnd.Store(25)
+		w.clusterSearchCwnd = &clusterCwnd
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, 25, hop.MaxConcurrentShardRequests,
+			"should use cluster cwnd (25) not per-node cwnd (10)")
+	})
+
+	t.Run("falls back to per-node when cluster cwnd is zero", func(t *testing.T) {
+		t.Parallel()
+
+		conn := makeSearchConn(t, "node1", 10) // per-node cwnd=10
+		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
+		cache := testIndexSlotCache()
+
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		w := wrapper.(*poolRouter)
+
+		pir := &atomic.Bool{}
+		pir.Store(true)
+		w.poolInfoReady = pir
+
+		// Cluster cwnd is 0 (not yet initialized).
+		var clusterCwnd atomic.Int32
+		w.clusterSearchCwnd = &clusterCwnd
+
+		w.mu.Lock()
+		w.mu.sortedConns = []*Connection{conn}
+		w.mu.Unlock()
+
+		req, err := http.NewRequest(http.MethodPost, "/my-index/_search", nil)
+		require.NoError(t, err)
+
+		hop, evalErr := wrapper.Eval(context.Background(), req)
+		require.NoError(t, evalErr)
+		require.NotNil(t, hop.Conn)
+		require.Equal(t, 10, hop.MaxConcurrentShardRequests,
+			"should fall back to per-node cwnd (10) when cluster cwnd is 0")
 	})
 }

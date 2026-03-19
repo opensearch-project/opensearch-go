@@ -168,7 +168,7 @@ func TestOpensearchShardHash_Supplementary(t *testing.T) {
 
 	t.Run("long string uses heap buffer", func(t *testing.T) {
 		t.Parallel()
-		// > 64 code units → heap allocation path (buf = make([]byte, n))
+		// > 64 code units -> heap allocation path (buf = make([]byte, n))
 		var longStr strings.Builder
 		for range 70 {
 			longStr.WriteString("ab")

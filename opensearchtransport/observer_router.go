@@ -68,6 +68,12 @@ type RouteEvent struct {
 	// rendezvous hashing (e.g., shard map not yet loaded).
 	ShardExactMatch bool
 
+	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
+	// from the selected connection's search pool cwnd. Zero when adaptive
+	// concurrency does not apply (shard-exact routing, non-search pool,
+	// feature disabled, or pre-existing caller override).
+	MaxConcurrentShardRequests int
+
 	// Timestamp is when the routing decision was made.
 	Timestamp time.Time
 }
@@ -199,6 +205,7 @@ func buildRouteEvent(
 	targetShard int,
 	shardExactMatch bool,
 	poolInfoReady bool,
+	maxConcurrentShardRequests int,
 ) RouteEvent {
 	cs := make([]RouteCandidate, len(candidates))
 	var selected RouteCandidate
@@ -210,19 +217,20 @@ func buildRouteEvent(
 	}
 
 	return RouteEvent{
-		IndexName:           indexName,
-		Key:                 key,
-		FanOut:              fanOut,
-		TotalNodes:          totalNodes,
-		CandidateCount:      len(candidates),
-		Selected:            selected,
-		Candidates:          cs,
-		ShardMapLoaded:      slot != nil && slot.shardNodeNames.Load() != nil,
-		RoutingValue:        routingValue,
-		EffectiveRoutingKey: effectiveRoutingKey,
-		TargetShard:         targetShard,
-		ShardExactMatch:     shardExactMatch,
-		Timestamp:           time.Now().UTC(),
+		IndexName:                  indexName,
+		Key:                        key,
+		FanOut:                     fanOut,
+		TotalNodes:                 totalNodes,
+		CandidateCount:             len(candidates),
+		Selected:                   selected,
+		Candidates:                 cs,
+		ShardMapLoaded:             slot != nil && slot.shardNodeNames.Load() != nil,
+		RoutingValue:               routingValue,
+		EffectiveRoutingKey:        effectiveRoutingKey,
+		TargetShard:                targetShard,
+		ShardExactMatch:            shardExactMatch,
+		MaxConcurrentShardRequests: maxConcurrentShardRequests,
+		Timestamp:                  time.Now().UTC(),
 	}
 }
 
