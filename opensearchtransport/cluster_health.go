@@ -122,32 +122,52 @@ func (c *Client) calculateNodeStatsInterval() time.Duration {
 	return interval
 }
 
-// pollNodeStats snapshots connections and evaluates overload for each.
-// Ready connections are polled via /_nodes/_local/stats/jvm,breaker.
-// Overload-demoted dead connections are re-evaluated to detect recovery.
+// pollNodeStats polls node stats for all connections in the connection pool,
+// regardless of pool type. Updates per-pool AIMD congestion windows and
+// evaluates node-level overload state.
+//
+// Connection pointers are shared across all policies (see guides/routing.md
+// "Shared Connections Across Policies"). Polling a connection updates the
+// authoritative atomic state on the Connection itself, which is immediately
+// visible to every policy.
 func (c *Client) pollNodeStats() {
 	c.mu.RLock()
-	pool, ok := c.mu.connectionPool.(*multiServerPool)
+	cp := c.mu.connectionPool
 	c.mu.RUnlock()
 
-	if !ok || pool == nil {
-		return
-	}
-
-	// Snapshot connections to evaluate.
-	pool.RLock()
-	snapshot := make([]*Connection, 0, len(pool.mu.ready)+len(pool.mu.dead))
-	snapshot = append(snapshot, pool.mu.ready...)
-	// Include overload-demoted dead connections so we can promote them if recovered
-	for _, conn := range pool.mu.dead {
-		if conn.loadConnState().lifecycle().has(lcOverloaded) {
-			snapshot = append(snapshot, conn)
+	switch pool := cp.(type) {
+	case *multiServerPool:
+		// Snapshot connections to evaluate.
+		pool.RLock()
+		snapshot := make([]*Connection, 0, len(pool.mu.ready)+len(pool.mu.dead))
+		snapshot = append(snapshot, pool.mu.ready...)
+		// Include overload-demoted dead connections so we can promote them if recovered.
+		for _, conn := range pool.mu.dead {
+			if conn.loadConnState().lifecycle().has(lcOverloaded) {
+				snapshot = append(snapshot, conn)
+			}
 		}
-	}
-	pool.RUnlock()
+		pool.RUnlock()
 
-	for _, conn := range snapshot {
-		c.fetchAndEvaluateNodeStats(conn, pool)
+		samples := make([]nodeSearchSample, 0, len(snapshot))
+		for _, conn := range snapshot {
+			if sample, ok := c.fetchAndEvaluateNodeStats(conn, pool); ok {
+				samples = append(samples, sample)
+			}
+		}
+		if len(samples) > 0 {
+			c.clusterSearch.update(samples)
+		}
+
+	case *singleServerPool:
+		// Single-node pool: poll the connection for AIMD updates.
+		// Overload demotion is not applicable (no pool to demote within).
+		conn := pool.connection
+		if conn != nil {
+			if sample, ok := c.fetchAndEvaluateNodeStats(conn, nil); ok {
+				c.clusterSearch.update([]nodeSearchSample{sample})
+			}
+		}
 	}
 }
 
@@ -161,13 +181,19 @@ func (c *Client) pollNodeStats() {
 // Thread pool stats drive per-pool AIMD congestion control via [updatePoolCongestion].
 // This avoids redundant HTTP calls since the cluster health check already collects
 // cluster health data during normal health check cycles.
-func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) {
+//
+// Returns the search thread pool sample for cluster-wide aggregation (see
+// [clusterSearchAIMD]). ok is false when the poll fails or the node has no
+// search pool data.
+func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
+	var sample nodeSearchSample
+
 	ctx, cancel := context.WithTimeout(c.ctx, c.healthCheckTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
 	if err != nil {
-		return
+		return sample, false
 	}
 
 	c.setReqURL(conn.URL, req)
@@ -195,24 +221,24 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 				debugLogger.Logf("Stats poll failed for %q, clearing overloaded flag (resurrection scheduler will handle): %v\n", conn.URL, err)
 			}
 		}
-		return
+		return sample, false
 	}
 	if res.Body != nil {
 		defer res.Body.Close()
 	}
 
 	if res.StatusCode != http.StatusOK || res.Body == nil {
-		return
+		return sample, false
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		return
+		return sample, false
 	}
 
 	var stats NodeStatsResponse
 	if err := json.Unmarshal(body, &stats); err != nil {
-		return
+		return sample, false
 	}
 
 	// The response contains a map with a single node entry (since we used _local)
@@ -222,13 +248,36 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 		break
 	}
 	if nodeStats == nil {
-		return
+		return sample, false
 	}
 
 	// Update per-pool congestion windows (AIMD) from thread pool stats.
 	updatePoolCongestion(conn, nodeStats.ThreadPools)
 
+	// Extract search pool stats for cluster-wide MCSR aggregation.
+	var ok bool
+	if searchTP, found := nodeStats.ThreadPools["search"]; found {
+		var searchMaxCwnd int32
+		if searchPC := conn.pools.get("search"); searchPC != nil {
+			searchPC.mu.Lock()
+			searchMaxCwnd = searchPC.mu.maxCwnd
+			searchPC.mu.Unlock()
+		}
+		sample = nodeSearchSample{
+			conn:    conn,
+			stats:   searchTP,
+			maxCwnd: searchMaxCwnd,
+		}
+		ok = true
+	}
+
 	overloaded := c.evaluateOverload(conn, nodeStats)
+
+	// Overload demotion/promotion requires a multiServerPool (single-node pools
+	// pass nil since there is nowhere to demote to).
+	if pool == nil {
+		return sample, ok
+	}
 
 	wasOverloaded := conn.loadConnState().lifecycle().has(lcOverloaded)
 
@@ -238,6 +287,8 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 	case !overloaded && wasOverloaded:
 		pool.promoteFromOverloaded(conn)
 	}
+
+	return sample, ok
 }
 
 // evaluateOverload checks both node-level stats and cluster health against overload thresholds.

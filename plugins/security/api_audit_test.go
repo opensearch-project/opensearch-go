@@ -31,10 +31,10 @@ func TestSecurityAuditClient(t *testing.T) {
 	// isAuditConfigDocPresentInIndex=false. When that happens, the Audit API
 	// rejects all requests with "Method X not supported for this action."
 	//
-	// The flag is not re-evaluated on a timer — only on config reload events.
+	// The flag is not re-evaluated on a timer -- only on config reload events.
 	// Flushing the security cache (DELETE /_plugins/_security/api/cache) fires
 	// a ConfigUpdateAction with all CType values, forcing cl.load() to re-read
-	// the audit doc from the index. If the doc was already replicated (it was —
+	// the audit doc from the index. If the doc was already replicated (it was --
 	// it ships in every Docker image since 1.0), the flag flips to true.
 	client, err := ossectest.NewClient(t)
 	require.NoError(t, err)
@@ -52,7 +52,7 @@ func TestSecurityAuditClient(t *testing.T) {
 				_, retryErr := client.Audit.Get(t.Context(), nil)
 				return retryErr == nil
 			}, 10*time.Second, 500*time.Millisecond,
-				"audit config still unavailable after cache flush — security plugin init race")
+				"audit config still unavailable after cache flush -- security plugin init race")
 		} else {
 			require.NoError(t, getErr)
 		}

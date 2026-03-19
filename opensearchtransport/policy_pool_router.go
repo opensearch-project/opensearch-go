@@ -36,16 +36,17 @@ var (
 // For non-index requests or when the inner policy returns nil, the wrapper
 // passes through transparently.
 type poolRouter struct {
-	inner         Policy
-	cache         *indexSlotCache
-	shardCosts    *shardCostMultiplier
-	scoreFunc     connScoreFunc // non-nil for read routes (search, get); nil for write routes
-	poolName      string        // Thread pool name for congestion tracking (e.g., "search", "write")
-	jitter        atomic.Int64
-	decay         float64
-	observer      atomic.Pointer[ConnectionObserver]
-	poolInfoReady *atomic.Bool // nil-safe; true once thread pool quorum is reached
-	policyState   atomic.Int32 // Bitfield: env override bits only (dynamic state from inner)
+	inner             Policy
+	cache             *indexSlotCache
+	shardCosts        *shardCostMultiplier
+	scoreFunc         connScoreFunc // non-nil for read routes (search, get); nil for write routes
+	poolName          string        // Thread pool name for congestion tracking (e.g., "search", "write")
+	jitter            atomic.Int64
+	decay             float64
+	observer          atomic.Pointer[ConnectionObserver]
+	poolInfoReady     *atomic.Bool  // nil-safe; true once thread pool quorum is reached
+	clusterSearchCwnd *atomic.Int32 // nil-safe; cluster-wide search cwnd for MCSR
+	policyState       atomic.Int32  // Bitfield: env override bits only (dynamic state from inner)
 
 	// mu guards sortedConns -- a pre-sorted (by RTT) snapshot of active
 	// connections from the inner policy's pool. Rebuilt on DiscoveryUpdate;
@@ -132,7 +133,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			obs.OnRoute(buildRouteEvent(
 				"", "", len(conns), len(conns), conns, best,
 				nil, nil, p.shardCosts, p.poolName,
-				"", "", -1, false, pir, p.scoreFunc,
+				"", "", -1, false, pir, p.scoreFunc, 0,
 			))
 		}
 
@@ -175,7 +176,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			}
 			obs.OnRoute(buildRouteEvent(
 				indexName, key, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, p.poolName,
-				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc,
+				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc, 0,
 			))
 		}
 
@@ -216,6 +217,21 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	}
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), scores, p.scoreFunc)
 
+	// Compute adaptive max_concurrent_shard_requests for search requests
+	// routed through a coordinator (non-shard-exact).
+	//
+	// Prefer the cluster-wide search pool cwnd (aggregated across all polled
+	// data nodes) when available. Falls back to the selected connection's
+	// per-node cwnd before the first poll cycle completes.
+	var adaptiveMCSR int
+	if p.poolName == "search" && best != nil {
+		cwnd := loadClusterSearchCwnd(p.clusterSearchCwnd)
+		if cwnd <= 0 {
+			cwnd = best.loadCwnd(p.poolName, loadPoolInfoReady(p.poolInfoReady))
+		}
+		adaptiveMCSR = computeAdaptiveConcurrency(cwnd, p.cache.adaptiveConcurrency, p.cache.features)
+	}
+
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := keyA
 		if keyB != "" {
@@ -223,7 +239,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		}
 		obs.OnRoute(buildRouteEvent(
 			indexName, key, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, p.poolName,
-			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc,
+			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc, adaptiveMCSR,
 		))
 	}
 
@@ -236,7 +252,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		return hop, nil
 	}
 
-	return NextHop{Conn: best, PoolName: p.poolName}, nil
+	return NextHop{Conn: best, PoolName: p.poolName, MaxConcurrentShardRequests: adaptiveMCSR}, nil
 }
 
 // DiscoveryUpdate delegates to the inner policy, then rebuilds the
@@ -344,6 +360,7 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 		p.observer.Store(config.observer)
 	}
 	p.poolInfoReady = config.poolInfoReady
+	p.clusterSearchCwnd = config.clusterSearchCwnd
 	if configurable, ok := p.inner.(policyConfigurable); ok {
 		return configurable.configurePolicySettings(config)
 	}

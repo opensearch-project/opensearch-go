@@ -138,7 +138,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			obs.OnRoute(buildRouteEvent(
 				indexName, indexName, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, "",
-				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), nil,
+				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), nil, 0,
 			))
 		}
 
@@ -180,7 +180,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		obs.OnRoute(buildRouteEvent(
 			indexName, indexName, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, "",
-			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), nil,
+			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), nil, 0,
 		))
 	}
 
@@ -289,6 +289,49 @@ func (p *IndexRouter) DiscoveryUpdate(added, removed, _ []*Connection) error {
 // e.g. in unit tests that construct policies directly.
 func loadPoolInfoReady(p *atomic.Bool) bool {
 	return p != nil && p.Load()
+}
+
+// loadClusterSearchCwnd returns the cluster-wide search cwnd from the atomic
+// pointer. Nil-safe: returns 0 when no Client is wired up (e.g., tests
+// without a full Client). A return value <= 0 signals the cluster aggregate
+// is not yet available.
+func loadClusterSearchCwnd(p *atomic.Int32) int32 {
+	if p == nil {
+		return 0
+	}
+	return p.Load()
+}
+
+// calcConnScore computes the node selection score for a connection.
+// Lower score = preferred node.
+//
+// The score is: rttBucket * (inFlight + 1) / cwnd * shardCost
+//
+// The shardCost parameter is pre-computed by the caller via [forShard] (shard
+// lookup) or [forNode] (index/cluster lookup). poolInfoReady indicates whether
+// thread pool quorum has been reached; when false, cwnd falls back to a
+// synthetic ceiling based on allocatedProcessors.
+//
+// When the named thread pool is overloaded (rejected requests or HTTP 429),
+// the score is math.MaxFloat64 to skip the node for that pool.
+//
+// Warmup state is NOT included in the score. Instead, warming connections
+// are handled by [connScoreSelect] which tries candidates in score order
+// and uses [tryWarmupSkip] to gate actual traffic via the S-curve ramp.
+// This avoids a circular dependency where warmup penalty prevents selection,
+// which prevents warmup advancement.
+func calcConnScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
+	if poolName != "" && conn.isPoolOverloaded(poolName) {
+		return math.MaxFloat64
+	}
+
+	rtt := float64(conn.rttRing.medianBucket())
+
+	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
+	inFlight := float64(conn.loadInFlight(poolName))
+	utilization := (inFlight + 1.0) / cwnd
+
+	return rtt * utilization * shardCost
 }
 
 const (
@@ -475,4 +518,38 @@ func extractIndexFromPath(path string) string {
 		return before
 	}
 	return path
+}
+
+// computeAdaptiveConcurrency derives max_concurrent_shard_requests from the
+// selected connection's congestion window for the search thread pool.
+//
+// The cwnd reflects queue-pressure-informed capacity: AIMD halves cwnd when
+// per-request queue wait-time exceeds 1ms, well before the thread pool
+// rejects requests. Since max_concurrent_shard_requests controls the
+// coordinator's fan-out across the cluster (shard requests land on many
+// data nodes' thread pools), the cwnd of the coordinator node -- not any
+// single data node's thread pool size -- is the right scaling signal.
+//
+// The returned value is clamped to [minVal, maxVal] from the config.
+//
+// Parameters:
+//   - cwnd: the connection's current cwnd for the search pool
+//   - cfg: adaptive concurrency config (min/max overrides)
+//   - features: routing feature flags (checked for adaptiveConcurrencyEnabled)
+//
+// Returns 0 when the feature is disabled, meaning Perform() should not inject
+// the query parameter.
+func computeAdaptiveConcurrency(cwnd int32, cfg adaptiveConcurrencyConfig, features routingFeatures) int {
+	if !features.adaptiveConcurrencyEnabled() {
+		return 0
+	}
+
+	minVal := cfg.effectiveMin()
+	maxVal := cfg.effectiveMax()
+
+	value := int(cwnd)
+	value = min(value, maxVal)
+	value = max(value, minVal)
+
+	return value
 }

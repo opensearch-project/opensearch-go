@@ -169,13 +169,12 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 func TestPollNodeStats(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no-op for singleServerPool", func(t *testing.T) {
+	t.Run("singleServerPool with nil connection is skipped", func(t *testing.T) {
 		t.Parallel()
-		conn := createTestConnection("http://localhost:9200")
 		c := &Client{}
-		c.mu.connectionPool = &singleServerPool{connection: conn}
+		c.mu.connectionPool = &singleServerPool{connection: nil}
 
-		// Should not panic
+		// Should not panic -- nil connection means nothing to poll.
 		c.pollNodeStats()
 	})
 

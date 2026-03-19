@@ -1433,6 +1433,167 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		// Invalid JSON -> no action
 		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
 	})
+
+	t.Run("nil pool updates AIMD without panic", func(t *testing.T) {
+		// When pollNodeStats discovers a singleServerPool it calls
+		// fetchAndEvaluateNodeStats(conn, nil). AIMD must still run
+		// (updatePoolCongestion), but overload demotion/promotion must
+		// be skipped because there is no multiServerPool to demote within.
+		waitNanos := int64(500)
+		statsJSON := makeStatsResponseWithThreadPools(30, map[string]ThreadPoolStats{
+			"search": {Threads: 13, Active: 5, Completed: 100, TotalWaitTimeInNanos: &waitNanos},
+		})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(statsJSON))
+		}))
+		defer server.Close()
+
+		serverURL, _ := url.Parse(server.URL)
+		conn := &Connection{URL: serverURL}
+		conn.state.Store(int64(newConnState(lcActive)))
+
+		// Use singleServerPool so the client calls with pool=nil.
+		singlePool := &singleServerPool{connection: conn}
+
+		client := newTestClientWithPool(server.Client().Transport, singlePool)
+		client.overloadedHeapThreshold = 85
+
+		// Should not panic with nil pool.
+		require.NotPanics(t, func() {
+			client.fetchAndEvaluateNodeStats(conn, nil)
+		})
+
+		// Connection should remain active (healthy stats, no overload).
+		require.True(t, conn.loadConnState().lifecycle().has(lcActive))
+
+		// AIMD should have run: the search pool should exist on the connection.
+		pc := conn.pools.getForScoring("search")
+		require.NotNil(t, pc, "search pool should be created by updatePoolCongestion")
+	})
+
+	t.Run("nil pool with overloaded node skips demotion", func(t *testing.T) {
+		// High heap but nil pool: overload is detected but demotion
+		// cannot happen (no pool). The connection state should not change
+		// because demotion requires a multiServerPool.
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(makeStatsResponseWithThreadPools(95, nil)))
+		}))
+		defer server.Close()
+
+		serverURL, _ := url.Parse(server.URL)
+		conn := &Connection{URL: serverURL}
+		conn.state.Store(int64(newConnState(lcActive)))
+
+		client := newTestClientWithPool(server.Client().Transport, &singleServerPool{connection: conn})
+		client.overloadedHeapThreshold = 85
+
+		require.NotPanics(t, func() {
+			client.fetchAndEvaluateNodeStats(conn, nil)
+		})
+
+		// Should NOT have lcOverloaded -- demotion was skipped due to nil pool.
+		require.False(t, conn.loadConnState().lifecycle().has(lcOverloaded),
+			"overload demotion should be skipped when pool is nil")
+		require.True(t, conn.loadConnState().lifecycle().has(lcActive),
+			"connection should remain active")
+	})
+}
+
+func TestPollNodeStats_SingleServerPool(t *testing.T) {
+	t.Run("polls single connection", func(t *testing.T) {
+		var polled atomic.Int64
+		waitNanos := int64(500)
+		statsJSON := makeStatsResponseWithThreadPools(30, map[string]ThreadPoolStats{
+			"search": {Threads: 13, Active: 5, Completed: 100, TotalWaitTimeInNanos: &waitNanos},
+		})
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			polled.Add(1)
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(statsJSON))
+		}))
+		defer server.Close()
+
+		serverURL, _ := url.Parse(server.URL)
+		conn := &Connection{URL: serverURL}
+		conn.state.Store(int64(newConnState(lcActive)))
+		singlePool := &singleServerPool{connection: conn}
+
+		client := newTestClientWithPool(server.Client().Transport, singlePool)
+
+		client.pollNodeStats()
+
+		require.Equal(t, int64(1), polled.Load(), "should have polled the single connection once")
+
+		// AIMD should have run on the connection.
+		pc := conn.pools.getForScoring("search")
+		require.NotNil(t, pc, "search pool should be created by updatePoolCongestion")
+	})
+
+	t.Run("nil connection is skipped", func(t *testing.T) {
+		singlePool := &singleServerPool{connection: nil}
+
+		client := newTestClientWithPool(http.DefaultTransport, singlePool)
+
+		require.NotPanics(t, func() {
+			client.pollNodeStats()
+		})
+	})
+
+	t.Run("multi server pool polls all ready and overloaded dead connections", func(t *testing.T) {
+		var polled atomic.Int64
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			polled.Add(1)
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(makeStatsResponseWithThreadPools(30, nil)))
+		}))
+		defer server.Close()
+
+		serverURL, _ := url.Parse(server.URL)
+		a1 := &Connection{URL: serverURL, Name: "a1"}
+		a1.state.Store(int64(newConnState(lcActive)))
+		a2 := &Connection{URL: serverURL, Name: "a2"}
+		a2.state.Store(int64(newConnState(lcActive)))
+
+		// Dead connection without overloaded flag should NOT be polled.
+		dead := &Connection{URL: serverURL, Name: "dead"}
+		dead.state.Store(int64(newConnState(lcDead)))
+
+		// Dead connection WITH overloaded flag SHOULD be polled.
+		overloaded := &Connection{URL: serverURL, Name: "overloaded"}
+		overloaded.state.Store(int64(newConnState(lcDead | lcOverloaded)))
+
+		pool := &multiServerPool{}
+		pool.mu.ready = []*Connection{a1, a2}
+		pool.mu.activeCount = 2
+		pool.mu.dead = []*Connection{dead, overloaded}
+
+		client := newTestClientWithPool(server.Client().Transport, pool)
+
+		client.pollNodeStats()
+
+		// 2 ready + 1 overloaded dead = 3 polls (plain dead is excluded).
+		require.Equal(t, int64(3), polled.Load(),
+			"should poll ready connections and overloaded dead connections")
+	})
+}
+
+// makeStatsResponseWithThreadPools extends makeStatsResponse with thread pool data.
+func makeStatsResponseWithThreadPools(heapPct int, threadPools map[string]ThreadPoolStats) string {
+	stats := NodeStatsResponse{
+		Nodes: map[string]NodeStats{
+			"testnode": {
+				JVM:         JVMStats{Mem: JVMMemStats{HeapUsedPercent: heapPct}},
+				ThreadPools: threadPools,
+			},
+		},
+	}
+	b, err := json.Marshal(stats)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
 }
 
 func TestPollClusterHealthMultiNode(t *testing.T) {
@@ -1486,4 +1647,229 @@ func TestSnapshotClusterHealthConnectionsEdgeCases(t *testing.T) {
 		result := client.snapshotClusterHealthConnections()
 		require.Nil(t, result)
 	})
+}
+
+// --- Debug logging coverage for evaluateOverload ---
+
+func TestEvaluateOverload_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	makeClient := func() *Client {
+		return &Client{
+			overloadedHeapThreshold: defaultOverloadedHeapThreshold,
+			overloadedBreakerRatio:  defaultOverloadedBreakerRatio,
+		}
+	}
+
+	makeConn := func() *Connection {
+		return &Connection{URL: &url.URL{Host: "node1:9200"}}
+	}
+
+	t.Run("red cluster status debug log", func(t *testing.T) {
+		c := makeClient()
+		conn := makeConn()
+		conn.mu.Lock()
+		conn.mu.clusterHealth = &ClusterHealthLocal{Status: "red"}
+		conn.mu.Unlock()
+
+		stats := &NodeStats{
+			JVM:      JVMStats{Mem: JVMMemStats{HeapUsedPercent: 50}},
+			Breakers: map[string]BreakerStats{},
+		}
+		require.True(t, c.evaluateOverload(conn, stats))
+	})
+
+	t.Run("heap threshold debug log", func(t *testing.T) {
+		c := makeClient()
+		conn := makeConn()
+		stats := &NodeStats{
+			JVM:      JVMStats{Mem: JVMMemStats{HeapUsedPercent: 90}},
+			Breakers: map[string]BreakerStats{},
+		}
+		require.True(t, c.evaluateOverload(conn, stats))
+	})
+
+	t.Run("breaker ratio debug log", func(t *testing.T) {
+		c := makeClient()
+		conn := makeConn()
+		stats := &NodeStats{
+			JVM: JVMStats{Mem: JVMMemStats{HeapUsedPercent: 50}},
+			Breakers: map[string]BreakerStats{
+				"parent": {LimitSizeInBytes: 1000, EstimatedSizeInBytes: 950, Tripped: 0},
+			},
+		}
+		require.True(t, c.evaluateOverload(conn, stats))
+	})
+
+	t.Run("breaker trip delta debug log", func(t *testing.T) {
+		c := makeClient()
+		conn := makeConn()
+		stats := &NodeStats{
+			JVM: JVMStats{Mem: JVMMemStats{HeapUsedPercent: 50}},
+			Breakers: map[string]BreakerStats{
+				"fielddata": {LimitSizeInBytes: 1000, EstimatedSizeInBytes: 100, Tripped: 5},
+			},
+		}
+		// First poll: baseline
+		c.evaluateOverload(conn, stats)
+		// Second poll: trip count increased
+		stats.Breakers["fielddata"] = BreakerStats{LimitSizeInBytes: 1000, EstimatedSizeInBytes: 100, Tripped: 8}
+		require.True(t, c.evaluateOverload(conn, stats))
+	})
+}
+
+// --- refreshClusterHealth network error coverage ---
+
+func TestRefreshClusterHealth_NetworkError(t *testing.T) {
+	// Server that immediately closes connections to trigger a network error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		conn, _, _ := hj.Hijack()
+		conn.Close()
+	}))
+	defer server.Close()
+
+	serverURL, _ := url.Parse(server.URL)
+	conn := &Connection{URL: serverURL}
+	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+
+	originalHealth := &ClusterHealthLocal{Status: "green", NumberOfNodes: 3}
+	conn.mu.Lock()
+	conn.mu.clusterHealth = originalHealth
+	conn.mu.clusterHealthCheckedAt = time.Now()
+	conn.mu.Unlock()
+
+	pool := &multiServerPool{}
+	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
+	pool.mu.activeCount = len(pool.mu.ready)
+	pool.mu.dead = []*Connection{}
+
+	client := newTestClientWithPool(server.Client().Transport, pool)
+	defer client.cancelFunc()
+
+	client.refreshClusterHealth(conn)
+
+	// Network error: state should remain available, health preserved
+	require.True(t, conn.loadClusterHealthState().HasClusterHealth())
+	conn.mu.RLock()
+	health := conn.mu.clusterHealth
+	conn.mu.RUnlock()
+	require.NotNil(t, health, "cluster health should be preserved on network error")
+}
+
+func TestRefreshClusterHealth_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	// Test the debug logging path for network errors
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		conn, _, _ := hj.Hijack()
+		conn.Close()
+	}))
+	defer server.Close()
+
+	serverURL, _ := url.Parse(server.URL)
+	conn := &Connection{URL: serverURL}
+	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+
+	pool := &multiServerPool{}
+	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
+	pool.mu.activeCount = len(pool.mu.ready)
+	pool.mu.dead = []*Connection{}
+
+	client := newTestClientWithPool(server.Client().Transport, pool)
+	defer client.cancelFunc()
+
+	// Should not panic; exercises the debug logging in refreshClusterHealth error path
+	client.refreshClusterHealth(conn)
+}
+
+func TestRefreshClusterHealth_PermissionRevoked_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+		w.Write([]byte(`{"error":"no permissions"}`))
+	}))
+	defer server.Close()
+
+	serverURL, _ := url.Parse(server.URL)
+	conn := &Connection{URL: serverURL}
+	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.mu.Lock()
+	conn.mu.clusterHealth = &ClusterHealthLocal{Status: "green"}
+	conn.mu.Unlock()
+
+	pool := &multiServerPool{}
+	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
+	pool.mu.activeCount = len(pool.mu.ready)
+	pool.mu.dead = []*Connection{}
+
+	client := newTestClientWithPool(server.Client().Transport, pool)
+	defer client.cancelFunc()
+
+	client.refreshClusterHealth(conn)
+
+	// Should reset to pending (exercises the 401/403 debug log path)
+	require.True(t, conn.loadClusterHealthState().Pending())
+}
+
+// --- fetchAndEvaluateNodeStats debug logging ---
+
+func TestFetchAndEvaluateNodeStats_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	t.Run("network error with overloaded conn debug log", func(t *testing.T) {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			hj, ok := w.(http.Hijacker)
+			if !ok {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			c, _, _ := hj.Hijack()
+			c.Close()
+		}))
+		defer server.Close()
+
+		serverURL, _ := url.Parse(server.URL)
+		conn := &Connection{URL: serverURL}
+		conn.state.Store(int64(newConnState(lcActive | lcOverloaded)))
+
+		pool := newStandbyPool([]*Connection{conn}, nil)
+		client := newTestClientWithPool(server.Client().Transport, pool)
+
+		client.fetchAndEvaluateNodeStats(conn, pool)
+
+		// Network error with overloaded flag exercises the debug log
+		lc := conn.loadConnState().lifecycle()
+		require.False(t, lc.has(lcOverloaded))
+	})
+}
+
+// --- pollClusterHealth with empty connections ---
+
+func TestPollClusterHealth_EmptyConnections(*testing.T) {
+	// Pool with multiple nodes but none have HasClusterHealth.
+	conn1 := &Connection{URL: &url.URL{Host: "node1:9200"}}
+	conn2 := &Connection{URL: &url.URL{Host: "node2:9200"}}
+	// clusterHealthState = 0 (pending), so HasClusterHealth() = false
+
+	pool := &multiServerPool{}
+	pool.mu.ready = []*Connection{conn1, conn2}
+	pool.mu.activeCount = 2
+	pool.mu.dead = []*Connection{}
+
+	client := newTestClientWithPool(http.DefaultTransport, pool)
+	defer client.cancelFunc()
+
+	// Should not panic; exercises the len(conns) == 0 early return
+	client.pollClusterHealth()
 }
