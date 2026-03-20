@@ -119,9 +119,13 @@ func (r AliasGetReq) GetRequest() (*http.Request, error) {
 
 	var path strings.Builder
 	path.Grow(9 + len(indices) + len(aliases))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
+	if indices != "" {
+		path.WriteString("/")
+		path.WriteString(indices)
+		path.WriteString("/_alias/")
+	} else {
+		path.WriteString("/_alias/")
+	}
 	path.WriteString(aliases)
 	return opensearch.BuildRequest(
 		"GET",
