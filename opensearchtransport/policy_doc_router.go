@@ -139,10 +139,22 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
-			obs.OnRoute(buildRouteEvent(
-				indexName, key, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, &shardCostForReads, "",
-				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), 0,
-			))
+			obs.OnRoute(buildRouteEvent(routeEventParams{
+				indexName:           indexName,
+				key:                 key,
+				fanOut:              len(shardCandidates),
+				totalNodes:          len(conns),
+				candidates:          shardCandidates,
+				best:                best,
+				slot:                slot,
+				shard:               shard,
+				costs:               &shardCostForReads,
+				routingValue:        routingValue,
+				effectiveRoutingKey: effectiveRoutingKey,
+				targetShard:         shardNum,
+				shardExactMatch:     true,
+				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+			}))
 		}
 
 		return NextHop{Conn: best}, nil
@@ -178,10 +190,20 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := indexName + "/" + docID
-		obs.OnRoute(buildRouteEvent(
-			indexName, key, fanOut, len(conns), candidates, best, slot, nil, &shardCostForReads, "",
-			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), 0,
-		))
+		obs.OnRoute(buildRouteEvent(routeEventParams{
+			indexName:           indexName,
+			key:                 key,
+			fanOut:              fanOut,
+			totalNodes:          len(conns),
+			candidates:          candidates,
+			best:                best,
+			slot:                slot,
+			costs:               &shardCostForReads,
+			routingValue:        routingValue,
+			effectiveRoutingKey: effectiveRoutingKey,
+			targetShard:         shardNum,
+			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+		}))
 	}
 
 	putConnSlice(bp)
