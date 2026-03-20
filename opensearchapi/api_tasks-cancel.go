@@ -76,4 +76,5 @@ type TaskCancelInfo struct {
 	Cancellable            bool            `json:"cancellable"`
 	Cancelled              bool            `json:"cancelled"`
 	Headers                json.RawMessage `json:"headers"`
+	Status                 json.RawMessage `json:"status,omitempty"` // Polymorphic; shape depends on task action.
 }
