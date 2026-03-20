@@ -137,16 +137,9 @@ type MappingPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MappingPutReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(10 + len(indices))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_mapping")
 	return opensearch.BuildRequest(
 		"PUT",
-		path.String(),
+		buildPath(strings.Join(r.Indices, ","), "_mapping"),
 		r.Body,
 		r.Params.get(),
 		r.Header,
