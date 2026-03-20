@@ -80,10 +80,18 @@ func TestBuildRouteEvent(t *testing.T) {
 	slot := &indexSlot{}
 	candidates := []*Connection{conn1, conn2}
 
-	event := buildRouteEvent(
-		"test-index", "test-index", 3, 5, candidates, conn1,
-		slot, nil, &shardCostForReads, "", "", "", -1, false, true, nil, 0,
-	)
+	event := buildRouteEvent(routeEventParams{
+		indexName:     "test-index",
+		key:           "test-index",
+		fanOut:        3,
+		totalNodes:    5,
+		candidates:    candidates,
+		best:          conn1,
+		slot:          slot,
+		costs:         &shardCostForReads,
+		targetShard:   -1,
+		poolInfoReady: true,
+	})
 
 	require.Equal(t, "test-index", event.IndexName)
 	require.Equal(t, "test-index", event.Key)

@@ -136,10 +136,22 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
-			obs.OnRoute(buildRouteEvent(
-				indexName, indexName, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, "",
-				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), nil, 0,
-			))
+			obs.OnRoute(buildRouteEvent(routeEventParams{
+				indexName:           indexName,
+				key:                 indexName,
+				fanOut:              len(shardCandidates),
+				totalNodes:          len(conns),
+				candidates:          shardCandidates,
+				best:                best,
+				slot:                slot,
+				shard:               shard,
+				costs:               p.shardCosts,
+				routingValue:        routingValue,
+				effectiveRoutingKey: routingValue,
+				targetShard:         shardNum,
+				shardExactMatch:     true,
+				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+			}))
 		}
 
 		return NextHop{Conn: best}, nil
@@ -178,10 +190,20 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
-		obs.OnRoute(buildRouteEvent(
-			indexName, indexName, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, "",
-			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), nil, 0,
-		))
+		obs.OnRoute(buildRouteEvent(routeEventParams{
+			indexName:           indexName,
+			key:                 indexName,
+			fanOut:              fanOut,
+			totalNodes:          len(conns),
+			candidates:          candidates,
+			best:                best,
+			slot:                slot,
+			costs:               p.shardCosts,
+			routingValue:        routingValue,
+			effectiveRoutingKey: routingValue,
+			targetShard:         shardNum,
+			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+		}))
 	}
 
 	putConnSlice(bp)

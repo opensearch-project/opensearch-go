@@ -130,11 +130,17 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		}
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
-			obs.OnRoute(buildRouteEvent(
-				"", "", len(conns), len(conns), conns, best,
-				nil, nil, p.shardCosts, p.poolName,
-				"", "", -1, false, pir, p.scoreFunc, 0,
-			))
+			obs.OnRoute(buildRouteEvent(routeEventParams{
+				totalNodes:    len(conns),
+				fanOut:        len(conns),
+				candidates:    conns,
+				best:          best,
+				costs:         p.shardCosts,
+				poolName:      p.poolName,
+				targetShard:   -1,
+				poolInfoReady: pir,
+				scoreFunc:     p.scoreFunc,
+			}))
 		}
 
 		return NextHop{Conn: best, PoolName: p.poolName}, nil
@@ -174,10 +180,24 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			if keyB != "" {
 				key = keyA + "/" + keyB
 			}
-			obs.OnRoute(buildRouteEvent(
-				indexName, key, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, p.poolName,
-				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc, 0,
-			))
+			obs.OnRoute(buildRouteEvent(routeEventParams{
+				indexName:           indexName,
+				key:                 key,
+				fanOut:              len(shardCandidates),
+				totalNodes:          len(conns),
+				candidates:          shardCandidates,
+				best:                best,
+				slot:                slot,
+				shard:               shard,
+				costs:               p.shardCosts,
+				poolName:            p.poolName,
+				routingValue:        routingValue,
+				effectiveRoutingKey: effectiveRoutingKey,
+				targetShard:         shardNum,
+				shardExactMatch:     true,
+				poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
+				scoreFunc:           p.scoreFunc,
+			}))
 		}
 
 		// Verify the selected connection is still active.
@@ -237,10 +257,23 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		if keyB != "" {
 			key = keyA + "/" + keyB
 		}
-		obs.OnRoute(buildRouteEvent(
-			indexName, key, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, p.poolName,
-			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc, adaptiveMCSR,
-		))
+		obs.OnRoute(buildRouteEvent(routeEventParams{
+			indexName:           indexName,
+			key:                 key,
+			fanOut:              fanOut,
+			totalNodes:          len(conns),
+			candidates:          candidates,
+			best:                best,
+			slot:                slot,
+			costs:               p.shardCosts,
+			poolName:            p.poolName,
+			routingValue:        routingValue,
+			effectiveRoutingKey: effectiveRoutingKey,
+			targetShard:         shardNum,
+			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
+			adaptiveMCSR:        adaptiveMCSR,
+			scoreFunc:           p.scoreFunc,
+		}))
 	}
 
 	putConnSlice(bp)
