@@ -7,6 +7,7 @@
 package opensearchapi
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -67,6 +68,7 @@ type TasksListTask struct {
 	CancellationTimeMillis *int64                 `json:"cancellation_time_millis,omitempty"` // Added in OpenSearch 2.8.0
 	Headers                map[string]string      `json:"headers"`
 	ResourceStats          TasksListResourceStats `json:"resource_stats"`
+	Status                 json.RawMessage        `json:"status,omitempty"` // Polymorphic; shape depends on task action.
 	ParentTaskID           string                 `json:"parent_task_id"`
 	Children               []TasksListTask        `json:"children,omitempty"`
 }
