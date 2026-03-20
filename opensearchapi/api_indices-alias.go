@@ -74,18 +74,9 @@ type AliasDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasDeleteReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Alias, ",")
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(aliases))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(aliases)
 	return opensearch.BuildRequest(
 		"DELETE",
-		path.String(),
+		buildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -114,18 +105,9 @@ type AliasGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasGetReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Alias, ",")
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(aliases))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(aliases)
 	return opensearch.BuildRequest(
 		"GET",
-		path.String(),
+		buildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -173,17 +155,9 @@ type AliasPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasPutReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Alias))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(r.Alias)
 	return opensearch.BuildRequest(
 		"PUT",
-		path.String(),
+		buildPath(strings.Join(r.Indices, ","), "_alias", r.Alias),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -212,18 +186,9 @@ type AliasExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasExistsReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Alias, ",")
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Alias))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(aliases)
 	return opensearch.BuildRequest(
 		"HEAD",
-		path.String(),
+		buildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,
