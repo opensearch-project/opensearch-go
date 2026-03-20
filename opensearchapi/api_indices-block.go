@@ -24,17 +24,9 @@ type IndicesBlockReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesBlockReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Block))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_block/")
-	path.WriteString(r.Block)
 	return opensearch.BuildRequest(
 		"PUT",
-		path.String(),
+		buildPath(strings.Join(r.Indices, ","), "_block", r.Block),
 		nil,
 		r.Params.get(),
 		r.Header,
