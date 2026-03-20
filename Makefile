@@ -84,7 +84,7 @@ test-race:  ## Run all tests with race detection enabled
 
 test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
-	go test -run=none -bench=. -benchmem ./...
+	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
 
 coverage:  ## Print test coverage report
 	@$(MAKE) gen-coverage
