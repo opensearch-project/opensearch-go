@@ -245,7 +245,7 @@ func TestStandbyRotation(t *testing.T) {
 	require.NoError(t, err)
 
 	// These tests require a multi-node cluster (3 nodes) for standby rotation.
-	testutil.SkipIfSingleNode(t, 3)
+	testutil.RequireMinNodes(t, 3)
 
 	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
 	// serialization race (java.io.OptionalDataException) during inter-node

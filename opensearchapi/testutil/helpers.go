@@ -75,8 +75,8 @@ var (
 	// SkipIfNotSecure skips a test that runs against an insecure cluster.
 	SkipIfNotSecure = tptestutil.SkipIfNotSecure
 
-	// SkipIfSingleNode skips a test if the cluster has fewer than minNodes nodes.
-	SkipIfSingleNode = tptestutil.SkipIfSingleNode
+	// RequireMinNodes polls until the cluster has at least minNodes nodes, or skips.
+	RequireMinNodes = tptestutil.RequireMinNodes
 
 	// ShouldIgnoreField returns true if a JSON path is known to be dynamic/optional.
 	ShouldIgnoreField = tptestutil.ShouldIgnoreField

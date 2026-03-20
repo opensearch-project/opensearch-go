@@ -38,6 +38,7 @@ test-integ:  ## Run integration tests
 	@printf "\033[2m-> Running integration tests...\033[0m\n"
 	$(eval testintegtags += "integration,core,plugins")
 	$(eval testintegdir ?= integration)
+	$(eval OPENSEARCH_NODE_COUNT ?= 3)
 ifdef multinode
 	$(eval testintegtags += "multinode")
 endif
@@ -50,7 +51,7 @@ endif
 	@rm -rf $(PWD)/tmp/$(testintegdir)
 	@mkdir -p $(PWD)/tmp/$(testintegdir)
 	@echo "go test -v" $(testintegargs); \
-	go test -v $(testintegargs);
+	OPENSEARCH_NODE_COUNT=$(OPENSEARCH_NODE_COUNT) go test -v $(testintegargs);
 ifdef coverage
 	@go tool covdata textfmt -i=$(PWD)/tmp/$(testintegdir) -o $(PWD)/tmp/$(testintegdir).cov
 endif

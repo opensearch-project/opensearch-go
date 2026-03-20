@@ -2,6 +2,9 @@ name: Integration for Compatibility
 
 on: [push, pull_request]
 
+env:
+  OPENSEARCH_NODE_COUNT: 3
+
 jobs:
   integ-test-compat:
     runs-on: ubuntu-latest
