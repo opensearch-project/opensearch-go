@@ -245,7 +245,7 @@ func waitForGreen(t *testing.T, transport *Client, ctx context.Context, index st
 //     c. The selected node actually hosts the target shard (cross-referenced)
 func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	testutil.WaitForCluster(t)
-	testutil.SkipIfSingleNode(t, 2) // 1 replica requires at least 2 nodes for green health
+	testutil.RequireMinNodes(t, 2) // 1 replica requires at least 2 nodes for green health
 
 	// OpenSearch < 2.2.0 with the security plugin returns HTTP 500 on
 	// shard-routed requests due to non-thread-safe User serialization
