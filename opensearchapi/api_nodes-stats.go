@@ -452,37 +452,45 @@ type NodesStatsThreadPool map[string]NodesStatsThreadPoolValues
 
 // NodesStatsFS is a sub type of NodesStats representing filesystem information of the node
 type NodesStatsFS struct {
-	Timestamp int `json:"timestamp"`
+	Timestamp int `json:"timestamp"` // Available since OpenSearch 1.0.0
 	Total     struct {
-		TotalInBytes         int `json:"total_in_bytes"`
-		FreeInBytes          int `json:"free_in_bytes"`
-		AvailableInBytes     int `json:"available_in_bytes"`
-		CacheReservedInBytes int `json:"cache_reserved_in_bytes"`
+		TotalInBytes         int  `json:"total_in_bytes"`                    // Available since OpenSearch 1.0.0
+		FreeInBytes          int  `json:"free_in_bytes"`                     // Available since OpenSearch 1.0.0
+		AvailableInBytes     int  `json:"available_in_bytes"`                // Available since OpenSearch 1.0.0
+		CacheReservedInBytes *int `json:"cache_reserved_in_bytes,omitempty"` // Available in OpenSearch 2.7.0+
 	} `json:"total"`
 	Data []struct {
-		Path                 string `json:"path"`
-		Mount                string `json:"mount"`
-		Type                 string `json:"type"`
-		TotalInBytes         int    `json:"total_in_bytes"`
-		FreeInBytes          int    `json:"free_in_bytes"`
-		AvailableInBytes     int    `json:"available_in_bytes"`
-		CacheReservedInBytes int    `json:"cache_reserved_in_bytes"`
+		Path                 string `json:"path"`                              // Available since OpenSearch 1.0.0
+		Mount                string `json:"mount"`                             // Available since OpenSearch 1.0.0
+		Type                 string `json:"type"`                              // Available since OpenSearch 1.0.0
+		TotalInBytes         int    `json:"total_in_bytes"`                    // Available since OpenSearch 1.0.0
+		FreeInBytes          int    `json:"free_in_bytes"`                     // Available since OpenSearch 1.0.0
+		AvailableInBytes     int    `json:"available_in_bytes"`                // Available since OpenSearch 1.0.0
+		CacheReservedInBytes *int   `json:"cache_reserved_in_bytes,omitempty"` // Available in OpenSearch 2.7.0+
 	} `json:"data"`
 	IoStats struct {
 		Devices []struct {
-			DeviceName      string `json:"device_name"`
-			Operations      int    `json:"operations"`
-			ReadOperations  int    `json:"read_operations"`
-			WriteOperations int    `json:"write_operations"`
-			ReadKilobytes   int    `json:"read_kilobytes"`
-			WriteKilobytes  int    `json:"write_kilobytes"`
+			DeviceName      string `json:"device_name"`                 // Available since OpenSearch 1.0.0
+			Operations      int    `json:"operations"`                  // Available since OpenSearch 1.0.0
+			ReadOperations  int    `json:"read_operations"`             // Available since OpenSearch 1.0.0
+			WriteOperations int    `json:"write_operations"`            // Available since OpenSearch 1.0.0
+			ReadKilobytes   int    `json:"read_kilobytes"`              // Available since OpenSearch 1.0.0
+			WriteKilobytes  int    `json:"write_kilobytes"`             // Available since OpenSearch 1.0.0
+			IoTimeInMillis  *int   `json:"io_time_in_millis,omitempty"` // Available in OpenSearch 2.12.0+
+			QueueSize       *int   `json:"queue_size,omitempty"`        // Available in OpenSearch 2.12.0+
+			ReadTime        *int   `json:"read_time,omitempty"`         // Available in OpenSearch 2.12.0+
+			WriteTime       *int   `json:"write_time,omitempty"`        // Available in OpenSearch 2.12.0+
 		} `json:"devices"`
 		Total struct {
-			Operations      int `json:"operations"`
-			ReadOperations  int `json:"read_operations"`
-			WriteOperations int `json:"write_operations"`
-			ReadKilobytes   int `json:"read_kilobytes"`
-			WriteKilobytes  int `json:"write_kilobytes"`
+			Operations      int  `json:"operations"`                  // Available since OpenSearch 1.0.0
+			ReadOperations  int  `json:"read_operations"`             // Available since OpenSearch 1.0.0
+			WriteOperations int  `json:"write_operations"`            // Available since OpenSearch 1.0.0
+			ReadKilobytes   int  `json:"read_kilobytes"`              // Available since OpenSearch 1.0.0
+			WriteKilobytes  int  `json:"write_kilobytes"`             // Available since OpenSearch 1.0.0
+			IoTimeInMillis  *int `json:"io_time_in_millis,omitempty"` // Available in OpenSearch 2.12.0+
+			QueueSize       *int `json:"queue_size,omitempty"`        // Available in OpenSearch 2.12.0+
+			ReadTime        *int `json:"read_time,omitempty"`         // Available in OpenSearch 2.12.0+
+			WriteTime       *int `json:"write_time,omitempty"`        // Available in OpenSearch 2.12.0+
 		} `json:"total"`
 	} `json:"io_stats"`
 }

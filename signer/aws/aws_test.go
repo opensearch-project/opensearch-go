@@ -18,10 +18,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	osaws "github.com/opensearch-project/opensearch-go/v4/signer/aws"
 )
@@ -36,13 +36,12 @@ func TestV4Signer(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
 		assert.NoError(t, err)
 
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
+			// No region specified to test the error case
 		}
 
-		signer, err := osaws.NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(cfg)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -53,13 +52,11 @@ func TestV4Signer(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
 		assert.NoError(t, err)
 
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
-		signer, err := osaws.NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(cfg)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -73,25 +70,25 @@ func TestV4Signer(t *testing.T) {
 
 	t.Run("sign request success - port override", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		assert.NoError(t, err)
-		assert.Equal(t, "localhost:9200", req.Host)
+		require.NoError(t, err)
+		// Original Host should be localhost:9200
+		require.Equal(t, "localhost:9200", req.Host)
 
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 
-		signer, err := osaws.NewSigner(sessionOptions)
-		assert.NoError(t, err)
+		signer, err := osaws.NewSigner(cfg)
+		require.NoError(t, err)
 
 		signer.OverrideSigningPort(443)
 
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
-		assert.Equal(t, "localhost", req.Host) // should have been stripped off given we used a common port
+		// After port override, Host should be localhost:443
+		require.Equal(t, "localhost:443", req.Host)
 
 		q := req.Header
 
@@ -106,13 +103,11 @@ func TestV4Signer(t *testing.T) {
 			bytes.NewBufferString("some data"))
 		assert.NoError(t, err)
 
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
-		signer, err := osaws.NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(cfg)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -130,13 +125,11 @@ func TestV4Signer(t *testing.T) {
 			bytes.NewBufferString("some data"))
 		assert.NoError(t, err)
 
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
-		signer, err := osaws.NewSignerWithService(sessionOptions, osaws.OpenSearchServerless)
+		signer, err := osaws.NewSignerWithService(cfg, osaws.OpenSearchServerless)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
@@ -149,24 +142,20 @@ func TestV4Signer(t *testing.T) {
 	})
 
 	t.Run("new signer failed due to empty service", func(t *testing.T) {
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
-		_, err := osaws.NewSignerWithService(sessionOptions, "")
+		_, err := osaws.NewSignerWithService(cfg, "")
 		assert.EqualError(t, err, "service cannot be empty")
 	})
 
 	t.Run("new signer failed due to blank service", func(t *testing.T) {
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
-		_, err := osaws.NewSignerWithService(sessionOptions, "	 ")
+		_, err := osaws.NewSignerWithService(cfg, "	 ")
 		assert.EqualError(t, err, "service cannot be empty")
 	})
 
@@ -176,17 +165,15 @@ func TestV4Signer(t *testing.T) {
 
 		req.Body = io.NopCloser(brokenReader("boom"))
 
-		sessionOptions := session.Options{
-			Config: aws.Config{
-				Region:      aws.String("us-west-2"),
-				Credentials: credentials.NewStaticCredentials("AKID", "SECRET_KEY", "TOKEN"),
-			},
+		cfg := aws.Config{
+			Region:      "us-west-2",
+			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
-		signer, err := osaws.NewSigner(sessionOptions)
+		signer, err := osaws.NewSigner(cfg)
 		assert.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.EqualError(t, err, "failed to read request body: boom")
+		assert.EqualError(t, err, "failed to calculate request hash: failed to read request body: boom")
 	})
 }
 

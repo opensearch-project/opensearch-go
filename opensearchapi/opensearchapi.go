@@ -9,6 +9,7 @@ package opensearchapi
 import (
 	"context"
 	"fmt"
+	"net"
 	"strconv"
 	"time"
 
@@ -87,14 +88,20 @@ func NewClient(config Config) (*Client, error) {
 
 // NewDefaultClient returns a opensearchapi client using defaults
 func NewDefaultClient() (*Client, error) {
+	defaultAddress := opensearch.DefaultScheme + "://" + net.JoinHostPort(opensearch.DefaultHost, strconv.Itoa(opensearch.DefaultPort))
 	rootClient, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
+		Addresses: []string{defaultAddress},
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return clientInit(rootClient), nil
+}
+
+// NewFromClient creates an opensearchapi client from an existing opensearch.Client
+func NewFromClient(client *opensearch.Client) *Client {
+	return clientInit(client)
 }
 
 // do calls the opensearch.Client.Do() and checks the response for openseach api errors
@@ -159,14 +166,19 @@ type FailuresCause struct {
 		Type   string `json:"type"`
 		Reason string `json:"reason"`
 		Cause  *struct {
-			Type   string  `json:"type"`
-			Reason *string `json:"reason"`
+			Type   string `json:"type"`
+			Reason string `json:"reason"`
+			Cause  *struct {
+				Type   string  `json:"type"`
+				Reason *string `json:"reason"`
+			} `json:"caused_by,omitempty"`
 		} `json:"caused_by,omitempty"`
 	} `json:"caused_by,omitempty"`
 }
 
 // FailuresShard contains information about shard failures
 type FailuresShard struct {
+	Node   *string       `json:"node,omitempty"` // Node ID where the failure occurred (present since OpenSearch 1.0.0)
 	Shard  int           `json:"shard"`
 	Index  string        `json:"index"`
 	Status string        `json:"status"`

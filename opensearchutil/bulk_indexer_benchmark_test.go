@@ -48,7 +48,7 @@ var mockResponseBody = `{
   "items": [
     {
       "index": {
-        "_index": "test",
+        "_index": "bench-index",
         "_id": "1",
         "_version": 1,
         "result": "created",

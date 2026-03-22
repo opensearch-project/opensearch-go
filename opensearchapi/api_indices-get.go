@@ -35,14 +35,21 @@ func (r IndicesGetReq) GetRequest() (*http.Request, error) {
 }
 
 // IndicesGetResp represents the returned struct of the get indices response
+// Since the JSON has index names as top-level keys, we use a map-based approach
 type IndicesGetResp struct {
-	Indices map[string]struct {
-		DataStream *string             `json:"data_stream,omitempty"`
-		Aliases    map[string]struct{} `json:"aliases"`
-		Mappings   json.RawMessage     `json:"mappings"`
-		Settings   json.RawMessage     `json:"settings"`
-	}
+	*IndicesGetRespData
 	response *opensearch.Response
+}
+
+// IndicesGetRespData holds the actual response data with dynamic index names as keys
+type IndicesGetRespData map[string]IndicesGetRespIndex
+
+// IndicesGetRespIndex represents the structure of each index in the response
+type IndicesGetRespIndex struct {
+	DataStream *string             `json:"data_stream,omitempty"` // Available in OpenSearch 1.0.0+ (data streams introduced)
+	Aliases    map[string]struct{} `json:"aliases"`               // Available since OpenSearch 1.0.0
+	Mappings   json.RawMessage     `json:"mappings"`              // Available since OpenSearch 1.0.0
+	Settings   json.RawMessage     `json:"settings"`              // Available since OpenSearch 1.0.0
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

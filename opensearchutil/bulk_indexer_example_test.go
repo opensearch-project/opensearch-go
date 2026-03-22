@@ -67,10 +67,10 @@ func ExampleNewBulkIndexer() {
 	// Create the indexer
 	//
 	indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
-		Client:     client, // The OpenSearch client
-		Index:      "test", // The default index name
-		NumWorkers: 4,      // The number of worker goroutines (default: number of CPUs)
-		FlushBytes: 5e+6,   // The flush threshold in bytes (default: 5M)
+		Client:     client,     // The OpenSearch client
+		Index:      "my-index", // The default index name
+		NumWorkers: 4,          // The number of worker goroutines (default: number of CPUs)
+		FlushBytes: 5e+6,       // The flush threshold in bytes (default: 5M)
 	})
 	if err != nil {
 		log.Fatalf("Error creating the indexer: %s", err)
@@ -85,7 +85,7 @@ func ExampleNewBulkIndexer() {
 			Action: "index",
 
 			// DocumentID is the optional document ID
-			DocumentID: "1",
+			DocumentID: "doc-1",
 
 			// Body is an `io.Reader` with the payload
 			Body: strings.NewReader(`{"title":"Test"}`),

@@ -39,7 +39,7 @@ type BulkReq struct {
 // GetRequest returns the *http.Request that gets executed by the client
 func (r BulkReq) GetRequest() (*http.Request, error) {
 	var path strings.Builder
-	//nolint:gomnd // 7 is the max number of static chars
+	//nolint:mnd // 7 is the max number of static chars
 	path.Grow(7 + len(r.Index))
 
 	if len(r.Index) > 0 {

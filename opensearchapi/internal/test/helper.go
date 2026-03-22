@@ -24,8 +24,12 @@ type Response interface {
 	Inspect() opensearchapi.Inspect
 }
 
-// CreateFailingClient returns an opensearchapi.Client that always return 400 with an empty object as body
-func CreateFailingClient() (*opensearchapi.Client, error) {
+// CreateFailingClient returns an opensearchapi.Client that always return 400 with an empty object as body.
+// The httptest server is closed via t.Cleanup; background pollers are stopped automatically
+// when t.Context() is cancelled at test end.
+func CreateFailingClient(t *testing.T) (*opensearchapi.Client, error) {
+	t.Helper()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Body != nil {
 			defer r.Body.Close()
@@ -33,8 +37,14 @@ func CreateFailingClient() (*opensearchapi.Client, error) {
 		w.WriteHeader(http.StatusBadRequest)
 		io.Copy(w, strings.NewReader(`{"status": 400, "error": "Test Failing Client Response"}`))
 	}))
+	t.Cleanup(ts.Close)
 
-	return opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
+	return opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{ts.URL},
+			Context:   t.Context(),
+		},
+	})
 }
 
 // VerifyInspect validates the returned opensearchapi.Inspect type

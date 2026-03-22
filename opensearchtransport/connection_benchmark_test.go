@@ -33,25 +33,40 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // Import pprof handlers for benchmark profiling
 	"net/url"
+	"os"
 	"testing"
 	"time"
 )
 
 func init() {
-	go func() {
-		server := &http.Server{
-			Addr:         "localhost:6060",
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-		}
-		log.Fatalln(server.ListenAndServe())
-	}()
+	// Start pprof server for benchmark profiling
+	// Can be customized via environment variables:
+	// PPROF_ADDR=":6061" go test -bench=.
+	// Set PPROF_ADDR="" to disable
+	pprofAddr := os.Getenv("PPROF_ADDR")
+	if pprofAddr == "" {
+		pprofAddr = "localhost:6060"
+	}
+
+	if pprofAddr != "disabled" {
+		go func() {
+			server := &http.Server{
+				Addr:         pprofAddr,
+				ReadTimeout:  5 * time.Second,
+				WriteTimeout: 5 * time.Second,
+			}
+			// pprof handlers are registered by the import above
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Printf("pprof server failed to start on %s: %v", pprofAddr, err)
+			}
+		}()
+	}
 }
 
-func initSingleConnectionPool() *singleConnectionPool {
-	return &singleConnectionPool{
+func initSingleServerPool() *singleServerPool {
+	return &singleServerPool{
 		connection: &Connection{
 			URL: &url.URL{
 				Scheme: "http",
@@ -61,11 +76,11 @@ func initSingleConnectionPool() *singleConnectionPool {
 	}
 }
 
-func BenchmarkSingleConnectionPool(b *testing.B) {
+func BenchmarkSingleServerPool(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("Next()", func(b *testing.B) {
-		pool := initSingleConnectionPool()
+		pool := initSingleServerPool()
 
 		b.Run("Single          ", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -90,7 +105,7 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := initSingleConnectionPool()
+		pool := initSingleServerPool()
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, _ := pool.Next()
@@ -117,20 +132,29 @@ func BenchmarkSingleConnectionPool(b *testing.B) {
 	})
 }
 
-func createStatusConnectionPool(conns []*Connection) *statusConnectionPool {
-	s := &roundRobinSelector{}
-	s.curr.Store(-1)
-
-	pool := &statusConnectionPool{
-		selector:                     s,
+func createMultiServerPool(conns []*Connection) *multiServerPool {
+	pool := &multiServerPool{
 		resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
 		resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 	}
-	pool.mu.live = conns
+	// Copy the slice so pool.mu.ready doesn't alias the caller's backing array.
+	// removeFromReadyWithLock nils and truncates the ready slice, which would
+	// corrupt the caller's slice if they share backing storage.
+	ready := make([]*Connection, len(conns))
+	copy(ready, conns)
+	for _, conn := range ready {
+		conn.state.Store(int64(newConnState(lcActive)))
+		conn.mu.Lock()
+		conn.mu.deadSince = time.Time{} // Reset from prior benchmark sub-runs
+		conn.mu.Unlock()
+	}
+	pool.mu.ready = ready
+	pool.mu.activeCount = len(ready)
+	pool.mu.dead = []*Connection{}
 	return pool
 }
 
-func BenchmarkStatusConnectionPool(b *testing.B) {
+func BenchmarkMultiServerPool(b *testing.B) {
 	b.ReportAllocs()
 
 	conns := make([]*Connection, 1000)
@@ -139,7 +163,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	}
 
 	b.Run("Next()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
@@ -176,7 +200,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnFailure()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, err := pool.Next()
@@ -225,7 +249,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("OnSuccess()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
 			c, err := pool.Next()
@@ -268,7 +292,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 	})
 
 	b.Run("resurrect()", func(b *testing.B) {
-		pool := createStatusConnectionPool(conns)
+		pool := createMultiServerPool(conns)
 
 		b.Run("Single", func(b *testing.B) {
 			c, err := pool.Next()
@@ -282,7 +306,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 			for i := 0; i < b.N; i++ {
 				pool.mu.Lock()
-				pool.resurrectWithLock(c, true)
+				pool.resurrectWithLock(c)
 				pool.mu.Unlock()
 			}
 		})
@@ -301,7 +325,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 				for pb.Next() {
 					pool.mu.Lock()
-					pool.resurrectWithLock(c, true)
+					pool.resurrectWithLock(c)
 					pool.mu.Unlock()
 				}
 			})
@@ -321,7 +345,7 @@ func BenchmarkStatusConnectionPool(b *testing.B) {
 
 				for pb.Next() {
 					pool.mu.Lock()
-					pool.resurrectWithLock(c, true)
+					pool.resurrectWithLock(c)
 					pool.mu.Unlock()
 				}
 			})

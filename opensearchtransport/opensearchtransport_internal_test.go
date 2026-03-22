@@ -32,17 +32,25 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"reflect"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
 
@@ -50,14 +58,6 @@ var _ = fmt.Print
 
 func init() {
 	rand.New(rand.NewSource(time.Now().Unix())).Uint64()
-}
-
-type mockTransp struct {
-	RoundTripFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (t *mockTransp) RoundTrip(req *http.Request) (*http.Response, error) {
-	return t.RoundTripFunc(req)
 }
 
 type mockNetError struct{ error }
@@ -105,9 +105,9 @@ func TestTransport(t *testing.T) {
 		tp, _ := New(
 			Config{
 				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -138,22 +138,27 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected enableRetryOnTimeout: %v", tp.enableRetryOnTimeout)
 		}
 
-		if tp.maxRetries != 3 {
+		if tp.maxRetries != 6 {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
 		if tp.compressRequestBody {
 			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
 		}
+
+		if tp.disableResponseBuffering {
+			t.Errorf("Unexpected disableResponseBuffering: %v", tp.disableResponseBuffering)
+		}
 	})
 
 	t.Run("Custom", func(t *testing.T) {
 		tp, _ := New(Config{
-			RetryOnStatus:        []int{404, 408},
-			DisableRetry:         true,
-			EnableRetryOnTimeout: true,
-			MaxRetries:           5,
-			CompressRequestBody:  true,
+			RetryOnStatus:            []int{404, 408},
+			DisableRetry:             true,
+			EnableRetryOnTimeout:     true,
+			MaxRetries:               5,
+			CompressRequestBody:      true,
+			DisableResponseBuffering: true,
 		})
 
 		if !reflect.DeepEqual(tp.retryOnStatus, []int{404, 408}) {
@@ -175,6 +180,10 @@ func TestTransportConfig(t *testing.T) {
 		if !tp.compressRequestBody {
 			t.Errorf("Unexpected compressRequestBody: %v", tp.compressRequestBody)
 		}
+
+		if !tp.disableResponseBuffering {
+			t.Errorf("Unexpected disableResponseBuffering: %v", tp.disableResponseBuffering)
+		}
 	})
 }
 
@@ -182,11 +191,11 @@ func TestTransportConnectionPool(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
 
-		if _, ok := tp.mu.pool.(*singleConnectionPool); !ok {
-			t.Errorf("Expected connection to be singleConnectionPool, got: %T", tp)
+		if _, ok := tp.mu.connectionPool.(*singleServerPool); !ok {
+			t.Errorf("Expected connection to be singleServerPool, got: %T", tp)
 		}
 
-		conn, err := tp.mu.pool.Next()
+		conn, err := tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -202,16 +211,19 @@ func TestTransportConnectionPool(t *testing.T) {
 			err  error
 		)
 
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "foo1"},
-			{Scheme: "http", Host: "foo2"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "foo1"},
+				{Scheme: "http", Host: "foo2"},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 
-		if _, ok := tp.mu.pool.(*statusConnectionPool); !ok {
-			t.Errorf("Expected connection to be statusConnectionPool, got: %T", tp)
+		if _, ok := tp.mu.connectionPool.(*multiServerPool); !ok {
+			t.Errorf("Expected connection to be multiServerPool, got: %T", tp)
 		}
 
-		conn, err = tp.mu.pool.Next()
+		conn, err = tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -219,7 +231,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected URL, want=foo1, got=%s", conn.URL)
 		}
 
-		conn, err = tp.mu.pool.Next()
+		conn, err = tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -227,7 +239,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected URL, want=http://foo2, got=%s", conn.URL)
 		}
 
-		conn, err = tp.mu.pool.Next()
+		conn, err = tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Errorf("Unexpected error: %s", err)
 		}
@@ -276,22 +288,22 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 			},
 		})
 
-		if _, ok := tp.mu.pool.(*CustomConnectionPool); !ok {
-			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.mu.pool)
+		if _, ok := tp.mu.connectionPool.(*CustomConnectionPool); !ok {
+			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.mu.connectionPool)
 		}
 
-		conn, err := tp.mu.pool.Next()
+		conn, err := tp.mu.connectionPool.Next()
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		if conn.URL == nil {
 			t.Errorf("Empty connection URL: %+v", conn)
 		}
-		if err := tp.mu.pool.OnFailure(conn); err != nil {
+		if err := tp.mu.connectionPool.OnFailure(conn); err != nil {
 			t.Errorf("Error removing the %q connection: %s", conn.URL, err)
 		}
-		if len(tp.mu.pool.URLs()) != 1 {
-			t.Errorf("Unexpected number of connections in pool: %q", tp.mu.pool)
+		if len(tp.mu.connectionPool.URLs()) != 1 {
+			t.Errorf("Unexpected number of connections in pool: %q", tp.mu.connectionPool)
 		}
 	})
 }
@@ -301,10 +313,8 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				URLs:      []*url.URL{u},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -432,10 +442,8 @@ func TestTransportPerform(t *testing.T) {
 	t.Run("Error No URL", func(t *testing.T) {
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil },
-				},
+				URLs:      []*url.URL{},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -443,8 +451,8 @@ func TestTransportPerform(t *testing.T) {
 
 		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Perform(req)
-		if err.Error() != `cannot get connection: no connection available` {
-			t.Fatalf("Expected error `cannot get URL`: but got error %q", err)
+		if err.Error() != `cannot get connection: no connections available` {
+			t.Fatalf("Expected error `cannot get connection: no connections available`: but got error %q", err)
 		}
 	})
 }
@@ -459,19 +467,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": OK\n")
-							return &http.Response{Status: "OK"}, nil
-						}
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": OK\n")
+						return &http.Response{Status: "OK"}, nil
+					}
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 			},
 		)
 
@@ -501,19 +509,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": OK\n")
-							return &http.Response{Status: "OK"}, nil
-						}
-						fmt.Print(": ERR\n")
-						return nil, io.EOF
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": OK\n")
+						return &http.Response{Status: "OK"}, nil
+					}
+					fmt.Print(": ERR\n")
+					return nil, io.EOF
+				}),
 			},
 		)
 
@@ -543,19 +551,19 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						if i == numReqs {
-							fmt.Print(": 200\n")
-							return &http.Response{StatusCode: http.StatusOK}, nil
-						}
-						fmt.Print(": 502\n")
-						return &http.Response{StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					if i == numReqs {
+						fmt.Print(": 200\n")
+						return &http.Response{StatusCode: http.StatusOK}, nil
+					}
+					fmt.Print(": 502\n")
+					return &http.Response{StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -587,15 +595,13 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:       []*url.URL{u, u, u},
 				MaxRetries: numReqs,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": 502\n")
-						body := io.NopCloser(strings.NewReader(`MOCK`))
-						return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": 502\n")
+					body := io.NopCloser(strings.NewReader(`MOCK`))
+					return &http.Response{StatusCode: http.StatusBadGateway, Body: body}, nil
+				}),
 			},
 		)
 
@@ -631,15 +637,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				MaxRetries:            numReqs,         // Explicitly set MaxRetries to match test expectation
+				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
+				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					fmt.Printf("Request #%d", i)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+				}),
 			},
 		)
 
@@ -666,17 +673,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						body, err := io.ReadAll(req.Body)
-						if err != nil {
-							panic(err)
-						}
-						bodies = append(bodies, string(body))
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:       []*url.URL{u},
+				MaxRetries: 3, // Set to 3 retries to get 4 total requests (1 original + 3 retries)
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						panic(err)
+					}
+					bodies = append(bodies, string(body))
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -704,17 +710,16 @@ func TestTransportPerformRetries(t *testing.T) {
 		tp, _ := New(
 			Config{
 				URLs:                []*url.URL{u},
+				MaxRetries:          3, // Set to 3 retries to get 4 total requests
 				CompressRequestBody: true,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						body, err := io.ReadAll(req.Body)
-						if err != nil {
-							panic(err)
-						}
-						bodies = append(bodies, string(body))
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						panic(err)
+					}
+					bodies = append(bodies, string(body))
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -758,13 +763,12 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		tp, _ := New(
 			Config{
-				URLs:   []*url.URL{u},
-				Signer: &signer,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
-					},
-				},
+				URLs:       []*url.URL{u},
+				MaxRetries: 3, // Set to 3 retries to get 4 total requests
+				Signer:     &signer,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
+				}),
 			},
 		)
 
@@ -781,20 +785,19 @@ func TestTransportPerformRetries(t *testing.T) {
 	})
 
 	t.Run("Don't retry request on regular error", func(t *testing.T) {
-		var i int
+		var i atomic.Int32
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, fmt.Errorf("Mock regular error (%d)", i)
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					count := i.Add(1)
+					fmt.Printf("Request #%d", count)
+					fmt.Print(": ERR\n")
+					return nil, fmt.Errorf("Mock regular error (%d)", count)
+				}),
 			},
 		)
 
@@ -810,27 +813,27 @@ func TestTransportPerformRetries(t *testing.T) {
 			t.Errorf("Unexpected response: %+v", res)
 		}
 
-		if i != 1 {
-			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, i)
+		if count := i.Load(); count != 1 {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
 		}
 	})
 
 	t.Run("Don't retry request when retries are disabled", func(t *testing.T) {
-		var i int
+		var i atomic.Int32
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{u, u, u},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						i++
-						fmt.Printf("Request #%d", i)
-						fmt.Print(": ERR\n")
-						return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-					},
-				},
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					count := i.Add(1)
+					fmt.Printf("Request #%d", count)
+					fmt.Print(": ERR\n")
+					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", count)}
+				}),
 				DisableRetry: true,
+				HealthCheck:  NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 			},
 		)
 
@@ -838,8 +841,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		//nolint:bodyclose // Mock response does not have a body to close
 		tp.Perform(req)
 
-		if i != 1 {
-			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, i)
+		if count := i.Load(); count != 1 {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
 		}
 	})
 
@@ -853,20 +856,19 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numReqs,
-			URLs:       []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					if i == numReqs {
-						fmt.Print(": OK\n")
-						return &http.Response{Status: "OK"}, nil
-					}
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-				},
-			},
+			MaxRetries:  numReqs,
+			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				fmt.Printf("Request #%d", i)
+				if i == numReqs {
+					fmt.Print(": OK\n")
+					return &http.Response{Status: "OK"}, nil
+				}
+				fmt.Print(": ERR\n")
+				return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+			}),
 
 			// A simple incremental backoff function
 			//
@@ -900,20 +902,18 @@ func TestTransportPerformRetries(t *testing.T) {
 	})
 
 	t.Run("Delay the retry with retry on timeout and context deadline", func(t *testing.T) {
-		var i int
+		var i atomic.Int32
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
 			EnableRetryOnTimeout: true,
 			MaxRetries:           100,
 			RetryBackoff:         func(i int) time.Duration { return time.Hour },
 			URLs:                 []*url.URL{u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					<-req.Context().Done()
-					return nil, req.Context().Err()
-				},
-			},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i.Add(1)
+				<-req.Context().Done()
+				return nil, req.Context().Err()
+			}),
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
@@ -926,8 +926,8 @@ func TestTransportPerformRetries(t *testing.T) {
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("expected context.DeadlineExceeded, got %s", err)
 		}
-		if i != 1 {
-			t.Fatalf("unexpected number of requests: expected 1, got %d", i)
+		if count := i.Load(); count != 1 {
+			t.Fatalf("unexpected number of requests: expected 1, got %d", count)
 		}
 	})
 
@@ -941,16 +941,15 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries: numRetries,
-			URLs:       []*url.URL{u, u, u},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					i++
-					fmt.Printf("Request #%d", i)
-					fmt.Print(": ERR\n")
-					return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
-				},
-			},
+			MaxRetries:  numRetries,
+			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				i++
+				fmt.Printf("Request #%d", i)
+				fmt.Print(": ERR\n")
+				return nil, &mockNetError{error: fmt.Errorf("Mock network error (%d)", i)}
+			}),
 
 			// A simple incremental backoff function
 			//
@@ -982,16 +981,20 @@ func TestTransportPerformRetries(t *testing.T) {
 
 func TestURLs(t *testing.T) {
 	t.Run("Returns URLs", func(t *testing.T) {
-		tp, _ := New(Config{URLs: []*url.URL{
-			{Scheme: "http", Host: "localhost:9200"},
-			{Scheme: "http", Host: "localhost:9201"},
-		}})
+		tp, _ := New(Config{
+			URLs: []*url.URL{
+				{Scheme: mockhttp.DefaultOpenSearchSchemeInsecure, Host: net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort))},
+				{Scheme: mockhttp.DefaultOpenSearchSchemeInsecure, Host: net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort+1))},
+			},
+			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+		})
 		urls := tp.URLs()
 		if len(urls) != 2 {
 			t.Errorf("Expected get 2 urls, but got: %d", len(urls))
 		}
-		if urls[0].Host != "localhost:9200" {
-			t.Errorf("Unexpected URL, want=localhost:9200, got=%s", urls[0].Host)
+		expectedHost := net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort))
+		if urls[0].Host != expectedHost {
+			t.Errorf("Unexpected URL, want=%s, got=%s", expectedHost, urls[0].Host)
 		}
 	})
 }
@@ -1012,7 +1015,7 @@ func TestMaxRetries(t *testing.T) {
 		{
 			name:              "MaxRetries Active set to default",
 			disableRetry:      false,
-			expectedCallCount: 4,
+			expectedCallCount: 7, // 1 original + 6 retries (new default)
 		},
 		{
 			name:              "MaxRetries Active set to 1",
@@ -1030,7 +1033,7 @@ func TestMaxRetries(t *testing.T) {
 			name:              "Max Retries Active set to 3",
 			maxRetries:        3,
 			disableRetry:      false,
-			expectedCallCount: 4,
+			expectedCallCount: 4, // 1 original + 3 retries
 		},
 		{
 			name:              "MaxRetries Inactive set to 0",
@@ -1050,15 +1053,13 @@ func TestMaxRetries(t *testing.T) {
 			var callCount int
 			c, _ := New(Config{
 				URLs: []*url.URL{{}},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						callCount++
-						return &http.Response{
-							StatusCode: http.StatusBadGateway,
-							Status:     "MOCK",
-						}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					callCount++
+					return &http.Response{
+						StatusCode: http.StatusBadGateway,
+						Status:     "MOCK",
+					}, nil
+				}),
 				MaxRetries:   test.maxRetries,
 				DisableRetry: test.disableRetry,
 			})
@@ -1096,36 +1097,34 @@ func TestRequestCompression(t *testing.T) {
 			tp, _ := New(Config{
 				URLs:                []*url.URL{{}},
 				CompressRequestBody: test.compressionFlag,
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						if req.Body == nil || req.Body == http.NoBody {
-							return nil, fmt.Errorf("unexpected body: %v", req.Body)
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					if req.Body == nil || req.Body == http.NoBody {
+						return nil, fmt.Errorf("unexpected body: %v", req.Body)
+					}
+
+					var buf bytes.Buffer
+					buf.ReadFrom(req.Body)
+
+					if req.ContentLength != int64(buf.Len()) {
+						return nil, fmt.Errorf("mismatched Content-Length: %d vs actual %d", req.ContentLength, buf.Len())
+					}
+
+					if test.compressionFlag {
+						var unBuf bytes.Buffer
+						zr, err := gzip.NewReader(&buf)
+						if err != nil {
+							return nil, fmt.Errorf("decompression error: %w", err)
 						}
+						unBuf.ReadFrom(zr)
+						buf = unBuf
+					}
 
-						var buf bytes.Buffer
-						buf.ReadFrom(req.Body)
+					if buf.String() != test.inputBody {
+						return nil, fmt.Errorf("unexpected body: %s", buf.String())
+					}
 
-						if req.ContentLength != int64(buf.Len()) {
-							return nil, fmt.Errorf("mismatched Content-Length: %d vs actual %d", req.ContentLength, buf.Len())
-						}
-
-						if test.compressionFlag {
-							var unBuf bytes.Buffer
-							zr, err := gzip.NewReader(&buf)
-							if err != nil {
-								return nil, fmt.Errorf("decompression error: %w", err)
-							}
-							unBuf.ReadFrom(zr)
-							buf = unBuf
-						}
-
-						if buf.String() != test.inputBody {
-							return nil, fmt.Errorf("unexpected body: %s", buf.String())
-						}
-
-						return &http.Response{Status: "MOCK"}, nil
-					},
-				},
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			})
 
 			req, _ := http.NewRequest(http.MethodPost, "/abc", bytes.NewBufferString(test.inputBody))
@@ -1143,6 +1142,152 @@ func TestRequestCompression(t *testing.T) {
 	}
 }
 
+func TestResponseBuffering(t *testing.T) {
+	const largeBody = "ABCDEFGHIJ" // representative payload
+
+	t.Run("Default buffers response body", func(t *testing.T) {
+		// With default config (DisableResponseBuffering=false), Perform() reads the
+		// entire body into memory and replaces it with a bytes.Reader. The original
+		// body (a trackingReadCloser) must be fully read and closed.
+		bodyRead := false
+		bodyClosed := false
+
+		u, _ := url.Parse("http://localhost:9200")
+		tp, _ := New(Config{
+			URLs: []*url.URL{u},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: &trackingReadCloser{
+						Reader:  strings.NewReader(largeBody),
+						onRead:  func() { bodyRead = true },
+						onClose: func() { bodyClosed = true },
+					},
+				}, nil
+			}),
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		defer res.Body.Close()
+
+		if !bodyRead {
+			t.Error("Expected original body to be read (buffered)")
+		}
+		if !bodyClosed {
+			t.Error("Expected original body to be closed after buffering")
+		}
+
+		// Verify the buffered body is still readable by the caller
+		got, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Failed to read buffered body: %s", err)
+		}
+		if string(got) != largeBody {
+			t.Errorf("Body content mismatch, want=%q, got=%q", largeBody, string(got))
+		}
+	})
+
+	t.Run("Disabled skips response body buffering", func(t *testing.T) {
+		// With DisableResponseBuffering=true, Perform() returns the raw body
+		// from RoundTrip without reading or closing it.
+		bodyRead := false
+		bodyClosed := false
+
+		u, _ := url.Parse("http://localhost:9200")
+		tp, _ := New(Config{
+			URLs:                     []*url.URL{u},
+			DisableResponseBuffering: true,
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: &trackingReadCloser{
+						Reader:  strings.NewReader(largeBody),
+						onRead:  func() { bodyRead = true },
+						onClose: func() { bodyClosed = true },
+					},
+				}, nil
+			}),
+		})
+
+		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+
+		// Body should NOT have been read or closed by Perform()
+		if bodyRead {
+			t.Error("Expected original body NOT to be read when buffering is disabled")
+		}
+		if bodyClosed {
+			t.Error("Expected original body NOT to be closed when buffering is disabled")
+		}
+
+		// Caller reads and closes the body themselves
+		got, err := io.ReadAll(res.Body)
+		if err != nil {
+			t.Fatalf("Failed to read raw body: %s", err)
+		}
+		res.Body.Close()
+
+		if string(got) != largeBody {
+			t.Errorf("Body content mismatch, want=%q, got=%q", largeBody, string(got))
+		}
+		if !bodyRead {
+			t.Error("Expected body to be read by caller")
+		}
+		if !bodyClosed {
+			t.Error("Expected body to be closed by caller")
+		}
+	})
+
+	t.Run("Disabled with nil body does not panic", func(t *testing.T) {
+		u, _ := url.Parse("http://localhost:9200")
+		tp, _ := New(Config{
+			URLs:                     []*url.URL{u},
+			DisableResponseBuffering: true,
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{StatusCode: http.StatusNoContent}, nil
+			}),
+		})
+
+		req, _ := http.NewRequest(http.MethodHead, "/test", nil)
+		//nolint:bodyclose // Response has no body
+		res, err := tp.Perform(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		if res.StatusCode != http.StatusNoContent {
+			t.Errorf("Unexpected status code: %d", res.StatusCode)
+		}
+	})
+}
+
+// trackingReadCloser wraps a Reader and records whether Read and Close were called.
+type trackingReadCloser struct {
+	io.Reader
+	onRead  func()
+	onClose func()
+}
+
+func (t *trackingReadCloser) Read(p []byte) (int, error) {
+	if t.onRead != nil {
+		t.onRead()
+	}
+	return t.Reader.Read(p)
+}
+
+func (t *trackingReadCloser) Close() error {
+	if t.onClose != nil {
+		t.onClose()
+	}
+	return nil
+}
+
 func TestRequestSigning(t *testing.T) {
 	t.Run("Sign request fails", func(t *testing.T) {
 		u, _ := url.Parse("https://foo:bar@example.com")
@@ -1152,11 +1297,9 @@ func TestRequestSigning(t *testing.T) {
 				Signer: &mockSigner{
 					ReturnError: true,
 				},
-				Transport: &mockTransp{
-					RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-						return &http.Response{Status: "MOCK"}, nil
-					},
-				},
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -1168,5 +1311,625 @@ func TestRequestSigning(t *testing.T) {
 		if err.Error() != `failed to sign request: invalid data` {
 			t.Fatalf("Expected error `failed to sign request: invalid data`: but got error %q", err)
 		}
+	})
+}
+
+func TestConnectionPoolPromotion(t *testing.T) {
+	t.Run("promoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
+		// Create a client with metrics enabled and single connection
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify we start with a singleServerPool
+		singlePool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Expected singleServerPool")
+		require.NotNil(t, singlePool.metrics, "Expected metrics to be assigned")
+
+		// Create mock connections for promotion
+		liveConn := &Connection{URL: &url.URL{Host: "live:9200"}, Name: "live-node"}
+		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
+
+		// Lock and promote
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock([]*Connection{liveConn}, []*Connection{deadConn})
+		client.mu.connectionPool = statusPool
+		client.mu.Unlock()
+
+		// Verify metrics were preserved
+		require.NotNil(t, statusPool.metrics, "Metrics should be preserved during promotion")
+		require.Equal(t, singlePool.metrics, statusPool.metrics, "Should preserve the same metrics instance")
+
+		// Verify connections were properly set
+		require.Len(t, statusPool.mu.ready, 1, "Should have 1 ready connection")
+		require.Len(t, statusPool.mu.dead, 1, "Should have 1 dead connection")
+		require.Equal(t, "live-node", statusPool.mu.ready[0].Name)
+		require.Equal(t, "dead-node", statusPool.mu.dead[0].Name)
+	})
+
+	t.Run("demoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
+		// Create a multiServerPool with metrics
+		liveConn := &Connection{URL: &url.URL{Host: "live:9200"}, Name: "live-node"}
+		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
+
+		statusPool := &multiServerPool{
+			resurrectTimeoutInitial:      defaultResurrectTimeoutInitial,
+			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
+		}
+		statusPool.mu.ready = []*Connection{liveConn}
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{deadConn}
+
+		// Assign metrics
+		testMetrics := &metrics{}
+		statusPool.metrics = testMetrics
+
+		// Create client with multiServerPool
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+
+		// Demote to single connection pool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.connectionPool = singlePool
+		client.mu.Unlock()
+
+		// Verify metrics were preserved
+		require.NotNil(t, singlePool.metrics, "Metrics should be preserved during demotion")
+		require.Equal(t, testMetrics, singlePool.metrics, "Should preserve the same metrics instance")
+
+		// Verify connection selection (should prefer ready over dead)
+		require.NotNil(t, singlePool.connection, "Should have selected a connection")
+		require.Equal(t, "live-node", singlePool.connection.Name, "Should prefer ready connection")
+	})
+
+	t.Run("demoteConnectionPoolWithLock prefers ready connections", func(t *testing.T) {
+		liveConn1 := &Connection{URL: &url.URL{Host: "live1:9200"}, Name: "live-node-1"}
+		liveConn2 := &Connection{URL: &url.URL{Host: "live2:9200"}, Name: "live-node-2"}
+		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
+
+		statusPool := &multiServerPool{}
+		statusPool.mu.ready = []*Connection{liveConn1, liveConn2}
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{deadConn}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		require.Equal(t, "live-node-1", singlePool.connection.Name, "Should select first ready connection")
+	})
+
+	t.Run("demoteConnectionPoolWithLock falls back to dead connections", func(t *testing.T) {
+		deadConn1 := &Connection{URL: &url.URL{Host: "dead1:9200"}, Name: "dead-node-1"}
+		deadConn2 := &Connection{URL: &url.URL{Host: "dead2:9200"}, Name: "dead-node-2"}
+
+		statusPool := &multiServerPool{}
+		statusPool.mu.ready = []*Connection{} // No ready connections
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{deadConn1, deadConn2}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		require.Equal(t, "dead-node-1", singlePool.connection.Name, "Should select first dead connection when no ready connections")
+	})
+
+	t.Run("demoteConnectionPoolWithLock handles empty pools", func(t *testing.T) {
+		statusPool := &multiServerPool{}
+		statusPool.mu.ready = []*Connection{} // No connections
+		statusPool.mu.activeCount = len(statusPool.mu.ready)
+		statusPool.mu.dead = []*Connection{} // No connections
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = statusPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		require.Nil(t, singlePool.connection, "Should handle empty pool gracefully")
+	})
+
+	t.Run("promoteConnectionPoolWithLock preserves resurrection timeout settings", func(t *testing.T) {
+		// Create initial multiServerPool with custom settings
+		customInitial := 120 * time.Second
+		customCutoff := 10
+
+		existingPool := &multiServerPool{
+			resurrectTimeoutInitial:      customInitial,
+			resurrectTimeoutFactorCutoff: customCutoff,
+		}
+		existingPool.mu.ready = []*Connection{{URL: &url.URL{Host: "existing:9200"}}}
+		existingPool.mu.activeCount = len(existingPool.mu.ready)
+		existingPool.mu.dead = []*Connection{}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = existingPool
+
+		// Promote (which should preserve existing settings)
+		newConn := &Connection{URL: &url.URL{Host: "new:9200"}, Name: "new-node"}
+		newPool := client.promoteConnectionPoolWithLock([]*Connection{newConn}, []*Connection{})
+
+		client.mu.Unlock()
+
+		// Verify custom settings were preserved
+		require.Equal(t, customInitial, newPool.resurrectTimeoutInitial, "Should preserve custom resurrection timeout")
+		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
+	})
+
+	t.Run("promoteConnectionPoolWithLock filters dedicated cluster managers", func(t *testing.T) {
+		// Create connections with different roles
+		dataConn := &Connection{
+			URL:   &url.URL{Host: "data:9200"},
+			Name:  "data-node",
+			Roles: newRoleSet([]string{"data"}),
+		}
+		clusterManagerConn := &Connection{
+			URL:   &url.URL{Host: "cm:9200"},
+			Name:  "cm-node",
+			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		}
+		mixedConn := &Connection{
+			URL:   &url.URL{Host: "mixed:9200"},
+			Name:  "mixed-node",
+			Roles: newRoleSet([]string{"cluster_manager", "data"}), // Not dedicated
+		}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                            []*url.URL{u},
+			IncludeDedicatedClusterManagers: false, // Default: exclude dedicated CMs
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock(
+			[]*Connection{dataConn, clusterManagerConn, mixedConn},
+			[]*Connection{},
+		)
+		client.mu.Unlock()
+
+		// Should exclude dedicated cluster manager but include mixed role node
+		require.Len(t, statusPool.mu.ready, 2, "Should exclude dedicated cluster manager")
+
+		names := make([]string, len(statusPool.mu.ready))
+		for i, conn := range statusPool.mu.ready {
+			names[i] = conn.Name
+		}
+		require.Contains(t, names, "data-node", "Should include data node")
+		require.Contains(t, names, "mixed-node", "Should include mixed role node")
+		require.NotContains(t, names, "cm-node", "Should exclude dedicated cluster manager")
+	})
+
+	t.Run("promoteConnectionPoolWithLock includes dedicated cluster managers when configured", func(t *testing.T) {
+		// Create connections with different roles
+		dataConn := &Connection{
+			URL:   &url.URL{Host: "data:9200"},
+			Name:  "data-node",
+			Roles: newRoleSet([]string{"data"}),
+		}
+		clusterManagerConn := &Connection{
+			URL:   &url.URL{Host: "cm:9200"},
+			Name:  "cm-node",
+			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                            []*url.URL{u},
+			IncludeDedicatedClusterManagers: true, // Include dedicated CMs
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock(
+			[]*Connection{dataConn, clusterManagerConn},
+			[]*Connection{},
+		)
+		client.mu.Unlock()
+
+		// Should include all connections including dedicated cluster manager
+		require.Len(t, statusPool.mu.ready, 2, "Should include all connections")
+
+		names := make([]string, len(statusPool.mu.ready))
+		for i, conn := range statusPool.mu.ready {
+			names[i] = conn.Name
+		}
+		require.Contains(t, names, "data-node", "Should include data node")
+		require.Contains(t, names, "cm-node", "Should include dedicated cluster manager")
+	})
+}
+
+func TestConnectionPoolPromotionIntegration(t *testing.T) {
+	t.Run("discovery promotes single to multi-node pool", func(t *testing.T) {
+		// Create mock server for nodes discovery
+		mux := http.NewServeMux()
+
+		// Health check endpoint
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]any{
+				"name":         "test-node",
+				"cluster_name": "test-cluster",
+				"version":      map[string]any{"number": "2.0.0"},
+			})
+		})
+
+		// Nodes info endpoint - return multiple nodes
+		mux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
+			response := map[string]any{
+				"_nodes": map[string]any{
+					"total":      2,
+					"successful": 2,
+					"failed":     0,
+				},
+				"cluster_name": "test-cluster",
+				"nodes": map[string]any{
+					"node1": map[string]any{
+						"name":  "data-node-1",
+						"roles": []string{"data", "ingest"},
+						"http":  map[string]any{"publish_address": "127.0.0.1:9200"},
+					},
+					"node2": map[string]any{
+						"name":  "data-node-2",
+						"roles": []string{"data", "ingest"},
+						"http":  map[string]any{"publish_address": "127.0.0.1:9201"},
+					},
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response)
+		})
+
+		// Start test server
+		server := httptest.NewServer(mux)
+		defer server.Close()
+
+		// Parse server URL
+		serverURL, err := url.Parse(server.URL)
+		require.NoError(t, err)
+
+		// Create client starting with single node (should create singleServerPool)
+		client, err := New(Config{
+			URLs:          []*url.URL{serverURL},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify we start with singleServerPool
+		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Should start with singleServerPool")
+		require.NotNil(t, originalPool.metrics, "Should have metrics assigned")
+
+		// Perform discovery
+		err = client.DiscoverNodes(t.Context())
+		require.NoError(t, err, "Discovery should succeed")
+
+		// Verify promotion to multiServerPool
+		client.mu.RLock()
+		newPool, ok := client.mu.connectionPool.(*multiServerPool)
+		client.mu.RUnlock()
+		require.True(t, ok, "Should promote to multiServerPool after discovery")
+
+		// Verify metrics were preserved
+		require.NotNil(t, newPool.metrics, "Metrics should be preserved after promotion")
+		require.Equal(t, originalPool.metrics, newPool.metrics, "Should preserve same metrics instance")
+
+		// Verify we have multiple connections
+		newPool.mu.RLock()
+		totalConnections := len(newPool.mu.ready) + len(newPool.mu.dead)
+		newPool.mu.RUnlock()
+		require.Equal(t, 2, totalConnections, "Should have discovered 2 nodes")
+	})
+
+	t.Run("NewMuxRouter works with single and multi-node pools", func(t *testing.T) {
+		// Create test connections with different roles
+		dataConn1 := &Connection{
+			URL:   &url.URL{Host: "data1:9200"},
+			Name:  "data-node-1",
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+		dataConn2 := &Connection{
+			URL:   &url.URL{Host: "data2:9200"},
+			Name:  "data-node-2",
+			Roles: newRoleSet([]string{"data", "ingest"}),
+		}
+
+		// Test with single node + router
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+			Router:        NewMuxRouter(),
+		})
+		require.NoError(t, err)
+
+		// Verify we start with singleServerPool and router is set
+		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Should start with singleServerPool")
+		require.NotNil(t, originalPool.metrics, "Should have metrics")
+		require.NotNil(t, client.router, "Should have router configured")
+
+		// Simulate promotion to multi-node
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock([]*Connection{dataConn1, dataConn2}, []*Connection{})
+		client.mu.connectionPool = statusPool
+
+		// Verify router can work with the promoted pool
+		require.NotNil(t, client.router, "Router should still be available after promotion")
+
+		// Update router with new connections (simulating what discovery would do)
+		router := client.router
+		client.mu.Unlock()
+
+		// Test that router can handle connection routing
+		// This is a basic test - in real usage, router.Route() would be called during requests
+		if router != nil {
+			// The router should be able to handle the new connections
+			// In a real scenario, the router's internal policies would be updated during discovery
+			req, _ := http.NewRequest(http.MethodGet, "/", nil)
+			_, routeErr := router.Route(t.Context(), req)
+			// Note: This might return an error because policies aren't initialized,
+			// but it shouldn't panic or cause memory issues
+			_ = routeErr // Ignore the error for this test
+		}
+	})
+
+	t.Run("metrics continue working after pool transitions", func(t *testing.T) {
+		// Create client with metrics
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Record initial metrics state
+		originalMetrics := client.metrics
+		require.NotNil(t, originalMetrics, "Should have metrics")
+
+		// Get baseline metrics
+		baselineRequests := client.metrics.requests.Load()
+
+		// Simulate some requests to increment metrics
+		client.metrics.requests.Add(5)
+		require.Equal(t, baselineRequests+5, client.metrics.requests.Load(), "Metrics should increment")
+
+		// Create connections for promotion
+		dataConn1 := &Connection{URL: &url.URL{Host: "data1:9200"}, Name: "data-node-1"}
+		dataConn2 := &Connection{URL: &url.URL{Host: "data2:9200"}, Name: "data-node-2"}
+
+		// Promote to multi-node pool
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock([]*Connection{dataConn1, dataConn2}, []*Connection{})
+		client.mu.connectionPool = statusPool
+		client.mu.Unlock()
+
+		// Verify metrics reference is preserved and still works
+		require.Equal(t, originalMetrics, client.metrics, "Client metrics reference should be unchanged")
+		require.Equal(t, originalMetrics, statusPool.metrics, "Pool should reference the same metrics")
+		require.Equal(t, baselineRequests+5, client.metrics.requests.Load(), "Metrics value should be preserved")
+
+		// Test metrics still work after promotion
+		client.metrics.requests.Add(3)
+		require.Equal(t, baselineRequests+8, client.metrics.requests.Load(), "Metrics should continue working after promotion")
+		require.Equal(t, baselineRequests+8, statusPool.metrics.requests.Load(), "Pool metrics should reflect same changes")
+
+		// Now demote back to single node
+		client.mu.Lock()
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.connectionPool = singlePool
+		client.mu.Unlock()
+
+		// Verify metrics are still preserved after demotion
+		require.Equal(t, originalMetrics, client.metrics, "Client metrics reference should still be unchanged")
+		require.Equal(t, originalMetrics, singlePool.metrics, "Demoted pool should reference the same metrics")
+		require.Equal(t, baselineRequests+8, client.metrics.requests.Load(), "Metrics value should be preserved after demotion")
+
+		// Test metrics still work after demotion
+		client.metrics.requests.Add(2)
+		require.Equal(t, baselineRequests+10, client.metrics.requests.Load(), "Metrics should continue working after demotion")
+	})
+
+	t.Run("updateConnectionPool handles demotion from multi to single node", func(t *testing.T) {
+		// Create a client starting with multiple nodes
+		u1, _ := url.Parse("http://node1:9200")
+		u2, _ := url.Parse("http://node2:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u1, u2},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify we start with multiServerPool
+		originalPool, ok := client.mu.connectionPool.(*multiServerPool)
+		require.True(t, ok, "Should start with multiServerPool for multiple URLs")
+		require.NotNil(t, originalPool.metrics, "Should have metrics")
+
+		// Simulate discovery that finds only one node (should trigger demotion)
+		conn1 := &Connection{
+			URL:   &url.URL{Host: "node1:9200"},
+			Name:  "node-1",
+			Roles: newRoleSet([]string{"data"}),
+		}
+
+		// Test demotion path in updateConnectionPool
+		client.mu.Lock()
+
+		// Create a new single connection pool using the demotion path
+		// (simulating what updateConnectionPool would do for totalNodes == 1)
+		if _, isStatusPool := client.mu.connectionPool.(*multiServerPool); isStatusPool {
+			demotedPool := client.demoteConnectionPoolWithLock()
+			// Update the connection to match our single node
+			demotedPool.connection = conn1
+			client.mu.connectionPool = demotedPool
+		}
+
+		client.mu.Unlock()
+
+		// Verify demotion worked
+		client.mu.RLock()
+		newPool, ok := client.mu.connectionPool.(*singleServerPool)
+		client.mu.RUnlock()
+		require.True(t, ok, "Should demote to singleServerPool")
+
+		// Verify metrics were preserved
+		require.Equal(t, originalPool.metrics, newPool.metrics, "Metrics should be preserved during demotion")
+
+		// Verify the connection is correct
+		require.Equal(t, "node-1", newPool.connection.Name, "Should have the correct connection")
+	})
+
+	t.Run("updateConnectionPool preserves existing single connection pool", func(t *testing.T) {
+		// Test the case where we stay with a single connection pool
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Get original pool
+		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "Should start with singleServerPool")
+		originalMetrics := originalPool.metrics
+
+		// Simulate updateConnectionPool logic for single node with existing single pool
+		conn := &Connection{URL: &url.URL{Host: "localhost:9200"}, Name: "test-node"}
+
+		client.mu.Lock()
+		// This simulates the non-demotion path in updateConnectionPool for single nodes
+		if _, isSinglePool := client.mu.connectionPool.(*singleServerPool); isSinglePool {
+			// Preserve metrics from existing single connection pool
+			var metrics *metrics
+			if existingPool, ok := client.mu.connectionPool.(*singleServerPool); ok {
+				metrics = existingPool.metrics
+			}
+
+			newSinglePool := &singleServerPool{
+				connection: conn,
+				metrics:    metrics,
+			}
+			client.mu.connectionPool = newSinglePool
+		}
+		client.mu.Unlock()
+
+		// Verify metrics were preserved
+		newPool := client.mu.connectionPool.(*singleServerPool)
+		require.Equal(t, originalMetrics, newPool.metrics, "Should preserve metrics in single->single transition")
+	})
+
+	t.Run("promoteConnectionPoolWithLock with debug logging", func(t *testing.T) {
+		// Test with debug logging enabled (requires OPENSEARCH_GO_DEBUG=true environment variable)
+		// This test validates that debug log paths don't panic, even if logging is disabled
+
+		// Create connections with different roles including dedicated cluster manager
+		dataConn := &Connection{
+			URL:   &url.URL{Host: "data:9200"},
+			Name:  "data-node",
+			Roles: newRoleSet([]string{"data"}),
+		}
+		clusterManagerConn := &Connection{
+			URL:   &url.URL{Host: "cm:9200"},
+			Name:  "cm-node",
+			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		}
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                            []*url.URL{u},
+			IncludeDedicatedClusterManagers: false, // This will trigger debug logging
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		statusPool := client.promoteConnectionPoolWithLock(
+			[]*Connection{dataConn, clusterManagerConn},
+			[]*Connection{},
+		)
+		client.mu.Unlock()
+
+		// Should exclude dedicated cluster manager and debug log it
+		require.Len(t, statusPool.mu.ready, 1, "Should exclude dedicated cluster manager")
+		require.Equal(t, "data-node", statusPool.mu.ready[0].Name, "Should include data node")
+	})
+
+	t.Run("promoteConnectionPoolWithLock preserves multiServerPool settings", func(t *testing.T) {
+		// Test promoting when we already have a multiServerPool (not single)
+		customInitial := 180 * time.Second
+		customCutoff := 15
+
+		// Start with multiServerPool
+		existingPool := &multiServerPool{
+			resurrectTimeoutInitial:      customInitial,
+			resurrectTimeoutFactorCutoff: customCutoff,
+		}
+		existingPool.mu.ready = []*Connection{{URL: &url.URL{Host: "existing:9200"}}}
+		existingPool.mu.activeCount = len(existingPool.mu.ready)
+		existingPool.mu.dead = []*Connection{}
+
+		testMetrics := &metrics{}
+		existingPool.metrics = testMetrics
+
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		client.mu.connectionPool = existingPool
+
+		// Promote (this should preserve existing multiServerPool settings)
+		newConn := &Connection{URL: &url.URL{Host: "new:9200"}, Name: "new-node"}
+		newPool := client.promoteConnectionPoolWithLock([]*Connection{newConn}, []*Connection{})
+
+		client.mu.Unlock()
+
+		// Verify custom settings were preserved from existing multiServerPool
+		require.Equal(t, customInitial, newPool.resurrectTimeoutInitial, "Should preserve custom resurrection timeout")
+		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
+		require.Equal(t, testMetrics, newPool.metrics, "Should preserve existing metrics")
+	})
+
+	t.Run("demoteConnectionPoolWithLock handles non-multiServerPool gracefully", func(t *testing.T) {
+		// Test demoting when current pool is not a multiServerPool
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		// Start with a singleServerPool (not multiServerPool)
+		client.mu.Lock()
+		// Try to demote - this should handle the case where it's not a multiServerPool
+		singlePool := client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		// Should return the same singleServerPool with the original connection
+		require.NotNil(t, singlePool.connection, "Should preserve the original connection from the single URL")
+		require.Equal(t, "localhost:9200", singlePool.connection.URL.Host, "Should preserve the correct connection")
+		require.Nil(t, singlePool.metrics, "Should have nil metrics for new client without metrics enabled")
 	})
 }

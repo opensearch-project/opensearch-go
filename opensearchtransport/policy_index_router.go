@@ -1,0 +1,618 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package opensearchtransport
+
+import (
+	"context"
+	"math"
+	"net/http"
+	"slices"
+	"strings"
+	"sync"
+	"sync/atomic"
+)
+
+const (
+	// counterFloor is the minimum value used for the decay counter
+	// in score calculations. Prevents division-by-zero-like effects when a
+	// node has received no recent traffic.
+	counterFloor = 1.0
+
+	// Shard cost multipliers used in the [shardCostMultiplier] tables and
+	// [warmupPenaltyMax]. Lower value = preferred node.
+	costPreferred    = 1.0  // best-case: node hosts the ideal shard type
+	costAlternate    = 2.0  // acceptable: node can serve but may proxy
+	costRelocating   = 8.0  // shard moving, may require proxy hop
+	costInitializing = 16.0 // shard not yet ready to serve
+	costUnknown      = 32.0 // no shard data, heavily penalized
+)
+
+// shardCostIndex identifies a shard state position in a [shardCostMultiplier].
+type shardCostIndex int
+
+const (
+	// shardCostUnknown is the zero value: no shard data available.
+	// A zero-initialized [shardCostMultiplier] produces 0.0 for unknown,
+	// so tables must be explicitly constructed.
+	shardCostUnknown shardCostIndex = iota
+
+	// shardCostReplica: node hosts only replica shards for this index.
+	shardCostReplica
+
+	// shardCostPrimary: node hosts only primary shards for this index.
+	shardCostPrimary
+
+	// shardCostInitializing: node has initializing shards (reserved for
+	// future use; discovery currently filters to STARTED shards only).
+	shardCostInitializing
+
+	// shardCostRelocating: node has relocating shards (reserved for
+	// future use; discovery currently filters to STARTED shards only).
+	shardCostRelocating
+)
+
+// shardCostMultiplier holds per-shard-state score multipliers used in
+// [calcConnScore]. The appropriate table is selected at policy construction
+// time based on whether the route handles reads or writes.
+//
+// Lower multiplier = preferred node. Index via [shardCostIndex] constants.
+type shardCostMultiplier [5]float64
+
+// shardCostForReads prefers replica-hosting nodes. Replicas serve reads
+// from a lock-free Lucene snapshot that doesn't contend with writes.
+//
+//nolint:gochecknoglobals // Package-level constant table used by calcConnScore.
+var shardCostForReads = shardCostMultiplier{
+	shardCostUnknown:      costUnknown,      // no data, heavily penalized
+	shardCostReplica:      costPreferred,    // preferred for reads
+	shardCostPrimary:      costAlternate,    // primaries contend with writes
+	shardCostInitializing: costInitializing, // shard not yet ready
+	shardCostRelocating:   costRelocating,   // shard moving, may proxy
+}
+
+// shardCostForWrites prefers primary-hosting nodes. Writes always go to
+// the primary shard first; routing to a replica-only node forces a
+// coordinator proxy hop.
+//
+//nolint:gochecknoglobals // Package-level constant table used by calcConnScore.
+var shardCostForWrites = shardCostMultiplier{
+	shardCostUnknown:      costUnknown,      // no data, heavily penalized
+	shardCostReplica:      costAlternate,    // replica must proxy to primary
+	shardCostPrimary:      costPreferred,    // preferred -- write lands directly
+	shardCostInitializing: costInitializing, // shard not yet ready
+	shardCostRelocating:   costRelocating,   // shard moving, may proxy
+}
+
+// forNode returns the shard cost multiplier for a node based on its shard
+// composition for the target index.
+//
+// The lookup is categorical: if the node hosts the preferred shard type
+// (as encoded by the table), it gets the preferred cost. Mixed nodes that
+// host both primaries and replicas get the best (lowest) cost since they
+// can serve both reads and writes locally. Load-based differentiation
+// between nodes is handled by the utilization ratio (inFlight+1)/cwnd, not by this
+// multiplier.
+func (m *shardCostMultiplier) forNode(node *shardNodeInfo) float64 {
+	if node == nil {
+		return m[shardCostUnknown]
+	}
+	total := node.Primaries + node.Replicas
+	if total == 0 {
+		return m[shardCostUnknown]
+	}
+	if node.Primaries == 0 {
+		return m[shardCostReplica]
+	}
+	if node.Replicas == 0 {
+		return m[shardCostPrimary]
+	}
+	// Mixed node: hosts both primaries and replicas. It can serve reads
+	// from replicas and writes to primaries locally. Use the better cost;
+	// the CPU counter differentiates actual load between mixed nodes.
+	return min(m[shardCostReplica], m[shardCostPrimary])
+}
+
+// forShard returns the shard cost multiplier for a connection based on its
+// role for a specific shard. Unlike [forNode] (which uses aggregate per-node
+// counts across all shards of an index), this uses the per-shard placement
+// data from [shardNodes] to determine the exact role --primary or replica
+// --for the target shard resolved via murmur3 hashing.
+//
+// Used by the shard lookup path when the target shard number is known.
+func (m *shardCostMultiplier) forShard(shard *shardNodes, connName string) float64 {
+	if shard == nil {
+		return m[shardCostUnknown]
+	}
+	if shard.Primary == connName {
+		return m[shardCostPrimary]
+	}
+	if slices.Contains(shard.Replicas, connName) {
+		return m[shardCostReplica]
+	}
+	return m[shardCostUnknown]
+}
+
+// Compile-time interface compliance checks.
+var (
+	_ Policy             = (*IndexRouter)(nil)
+	_ policyConfigurable = (*IndexRouter)(nil)
+	_ policyTyped        = (*IndexRouter)(nil)
+	_ policyOverrider    = (*IndexRouter)(nil)
+)
+
+// IndexRouter routes requests to a consistent subset of nodes based
+// on the target index name. It uses rendezvous hashing for stable node
+// selection and RTT-based scoring for AZ-aware load distribution.
+//
+// When a request targets an index (e.g., GET /my-index/_search), the policy:
+//  1. Extracts the index name from the URL path
+//  2. Looks up (or creates) a routing slot in the index cache
+//  3. Selects top-K nodes via rendezvous hash (K = fan-out for that index)
+//  4. Picks the best candidate by connection score (RTT * (inFlight+1)/cwnd * shardCost)
+//  5. Returns a NextHop with the selected node
+//
+// For system endpoints (no index in path), the policy returns (nil, nil)
+// to let the next policy in the chain handle the request.
+type IndexRouter struct {
+	cache      *indexSlotCache
+	shardCosts *shardCostMultiplier // shard cost table (nil = shardCostForReads)
+	jitter     atomic.Int64         // counter-based rotation within K-slot set
+	decay      float64              // exponential decay factor for request counters
+	observer   atomic.Pointer[ConnectionObserver]
+
+	mu struct {
+		sync.RWMutex
+		activeConns []*Connection // RTT-sorted active connections
+	}
+
+	policyState atomic.Int32 // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
+	config      policyConfig
+}
+
+func (p *IndexRouter) policyTypeName() string      { return "index_router" }
+func (p *IndexRouter) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
+
+// NewIndexRouter creates an IndexRouter with the given cache configuration.
+func NewIndexRouter(cacheCfg indexSlotCacheConfig) *IndexRouter {
+	if cacheCfg.decayFactor <= 0 || cacheCfg.decayFactor >= 1 {
+		cacheCfg.decayFactor = defaultDecayFactor
+	}
+	return &IndexRouter{
+		cache:      newIndexSlotCache(cacheCfg),
+		shardCosts: &shardCostForReads,
+		decay:      cacheCfg.decayFactor,
+	}
+}
+
+// configurePolicySettings stores the observer and pool readiness flag.
+func (p *IndexRouter) configurePolicySettings(config policyConfig) error {
+	p.config = config
+	if config.observer != nil {
+		p.observer.Store(config.observer)
+	}
+	return nil
+}
+
+// IsEnabled returns true if the policy has active connections.
+func (p *IndexRouter) IsEnabled() bool {
+	return psIsEnabled(p.policyState.Load())
+}
+
+// Eval extracts the index name from the request path and routes to
+// a consistent node subset. Returns (NextHop{}, nil) for non-index requests.
+func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) {
+	if p.policyState.Load()&psEnvDisabled != 0 {
+		return NextHop{}, nil
+	}
+
+	indexName := extractIndexFromPath(req.URL.Path)
+	if indexName == "" {
+		// Cluster lookup: no index in path, no shard data.
+		// Score all active connections by RTT + congestion only.
+		p.mu.RLock()
+		conns := p.mu.activeConns
+		p.mu.RUnlock()
+
+		if len(conns) == 0 {
+			return NextHop{}, nil
+		}
+
+		var scoresBuf [8]float64
+		scores := scoresBuf[:len(conns)]
+		if len(conns) > len(scoresBuf) {
+			scores = make([]float64, len(conns))
+		}
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		if best == nil {
+			return NextHop{}, nil
+		}
+
+		return NextHop{Conn: best}, nil
+	}
+
+	p.mu.RLock()
+	conns := p.mu.activeConns
+	p.mu.RUnlock()
+
+	if len(conns) == 0 {
+		return NextHop{}, nil
+	}
+
+	slot := p.cache.getOrCreate(indexName)
+
+	// Attempt shard-exact routing when ?routing=X is present.
+	routingValue := extractRouting(req)
+	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, routingValue, conns)
+	if len(shardCandidates) > 0 {
+		// Shard-exact path: score the shard-hosting candidates directly.
+		var scoresBuf [8]float64
+		scores := scoresBuf[:len(shardCandidates)]
+		if len(shardCandidates) > len(scoresBuf) {
+			scores = make([]float64, len(shardCandidates))
+		}
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+
+		if obs := observerFromAtomic(&p.observer); obs != nil {
+			obs.OnRoute(buildRouteEvent(
+				indexName, indexName, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, "",
+				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
+			))
+		}
+
+		return NextHop{Conn: best}, nil
+	}
+
+	// Rendezvous hash fallback: select top-K via fan-out.
+	fanOut := p.cache.effectiveFanOut(slot, indexName, len(conns))
+	shardNodes := slot.shardNodeNameSet()
+
+	// Select top-K via rendezvous hash with jitter rotation.
+	bp := getConnSlice(fanOut)
+	candidates := rendezvousTopK(indexName, "", conns, fanOut, &p.jitter, shardNodes, bp)
+	if len(candidates) == 0 {
+		putConnSlice(bp)
+		return NextHop{}, nil
+	}
+
+	// Update tier-span equalization: find the max RTT bucket across the
+	// candidate set and feed it to the slot's MIAD tracker. This drives
+	// cost inflation in recordCPUTime so traffic distributes evenly
+	// across all RTT tiers in the fan-out set.
+	var maxBucket rttBucket
+	for _, c := range candidates {
+		if b := c.rttRing.medianBucket(); b > maxBucket {
+			maxBucket = b
+		}
+	}
+	slot.updateSmoothedMaxBucket(float64(maxBucket))
+
+	// Select best candidate with warmup-aware skip/accept.
+	var scoresBuf [8]float64
+	scores := scoresBuf[:len(candidates)]
+	if len(candidates) > len(scoresBuf) {
+		scores = make([]float64, len(candidates))
+	}
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+
+	if obs := observerFromAtomic(&p.observer); obs != nil {
+		obs.OnRoute(buildRouteEvent(
+			indexName, indexName, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, "",
+			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
+		))
+	}
+
+	putConnSlice(bp)
+
+	return NextHop{Conn: best}, nil
+}
+
+// CheckDead is a no-op; lifecycle management is handled by the
+// underlying pool that owns the connections.
+func (p *IndexRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error {
+	return nil
+}
+
+// RotateStandby is a no-op. Lifecycle is managed by the underlying pool.
+func (p *IndexRouter) RotateStandby(_ context.Context, _ int) (int, error) {
+	return 0, nil
+}
+
+// routerSnapshot implements routerSnapshotProvider.
+func (p *IndexRouter) routerSnapshot() RouterSnapshot {
+	return p.cache.snapshot()
+}
+
+// routerCache implements [routerCacheProvider].
+func (p *IndexRouter) routerCache() *indexSlotCache {
+	return p.cache
+}
+
+// routerDiscoveryUpdate is the shared DiscoveryUpdate implementation for
+// router policies (IndexRouter, DocRouter). It deduplicates connections, applies additions/removals,
+// sorts by RTT, and updates the caller's connection list under the provided lock.
+func routerDiscoveryUpdate(
+	mu *sync.RWMutex,
+	activeConns *[]*Connection,
+	policyState *atomic.Int32,
+	added, removed []*Connection,
+) error {
+	if policyState.Load()&psEnvDisabled != 0 {
+		return nil
+	}
+
+	if added == nil && removed == nil {
+		return nil
+	}
+
+	// Rebuild the full active connection list.
+	// Collect all connections from the three lists, dedup by URL.
+	seen := make(map[string]struct{})
+	var all []*Connection
+
+	mu.RLock()
+	for _, c := range *activeConns {
+		key := c.URLString
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			all = append(all, c)
+		}
+	}
+	mu.RUnlock()
+
+	// Add new connections.
+	for _, c := range added {
+		key := c.URLString
+		if _, ok := seen[key]; !ok {
+			seen[key] = struct{}{}
+			all = append(all, c)
+		}
+	}
+
+	// Remove old connections.
+	if removed != nil {
+		removedSet := make(map[string]struct{}, len(removed))
+		for _, c := range removed {
+			removedSet[c.URLString] = struct{}{}
+		}
+		filtered := all[:0]
+		for _, c := range all {
+			if _, found := removedSet[c.URLString]; !found {
+				filtered = append(filtered, c)
+			}
+		}
+		all = filtered
+	}
+
+	// Sort by RTT bucket ascending (nearest first). This is the invariant
+	// that rendezvousTopK depends on for tier-based slot filling.
+	sortConnectionsByRTT(all)
+
+	mu.Lock()
+	*activeConns = all
+	mu.Unlock()
+
+	psSetEnabled(policyState, len(all) > 0)
+
+	return nil
+}
+
+// DiscoveryUpdate rebuilds the active connection list from topology changes.
+func (p *IndexRouter) DiscoveryUpdate(added, removed, _ []*Connection) error {
+	return routerDiscoveryUpdate(&p.mu.RWMutex, &p.mu.activeConns, &p.policyState, added, removed)
+}
+
+// loadPoolInfoReady returns true if the pointer is non-nil and set.
+// Nil-safe: returns false (pre-quorum fallback) when no Client is wired up,
+// e.g. in unit tests that construct policies directly.
+func loadPoolInfoReady(p *atomic.Bool) bool {
+	return p != nil && p.Load()
+}
+
+// calcConnScore computes the node selection score for a connection.
+// Lower score = preferred node.
+//
+// The score is: rttBucket * (inFlight + 1) / cwnd * shardCost
+//
+// The shardCost parameter is pre-computed by the caller via [forShard] (shard
+// lookup) or [forNode] (index/cluster lookup). poolInfoReady indicates whether
+// thread pool quorum has been reached; when false, cwnd falls back to a
+// synthetic ceiling based on allocatedProcessors.
+//
+// When the named thread pool is overloaded (rejected requests or HTTP 429),
+// the score is math.MaxFloat64 to skip the node for that pool.
+//
+// Warmup state is NOT included in the score. Instead, warming connections
+// are handled by [connScoreSelect] which tries candidates in score order
+// and uses [tryWarmupSkip] to gate actual traffic via the S-curve ramp.
+// This avoids a circular dependency where warmup penalty prevents selection,
+// which prevents warmup advancement.
+func calcConnScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
+	if poolName != "" && conn.isPoolOverloaded(poolName) {
+		return math.MaxFloat64
+	}
+
+	rtt := float64(conn.rttRing.medianBucket())
+
+	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
+	inFlight := float64(conn.loadInFlight(poolName))
+	utilization := (inFlight + 1.0) / cwnd
+
+	return rtt * utilization * shardCost
+}
+
+const (
+	// warmupPenaltyMax is the worst-case multiplier applied at the start of
+	// warmup (remaining == total). Matches costUnknown so a freshly-promoted
+	// connection scores equivalently to a node with no shard data, then
+	// linearly approaches 1.0 as warmup progresses.
+	warmupPenaltyMax = costUnknown
+)
+
+// warmupPenalty returns a multiplier in [1.0, warmupPenaltyMax] based on
+// how far through warmup the connection is. Fully warmed = 1.0 (no penalty).
+// Used by the observer event for reporting; not included in the selection score.
+func warmupPenalty(cs connState) float64 {
+	lcMgr := cs.lifecycleManager()
+	total := lcMgr.rounds()
+	if total <= 0 {
+		return 1.0
+	}
+	remaining := cs.roundManager().rounds()
+	fraction := float64(remaining) / float64(total)
+	return 1.0 + (warmupPenaltyMax-1.0)*fraction
+}
+
+// connScoreSelect picks the best connection from scored candidates with
+// warmup-aware skip/accept. Candidates are tried in ascending score order:
+//
+//   - Not warming -> selected immediately.
+//   - Warming -> [tryWarmupSkip]:
+//   - warmupAccepted or warmupInactive -> selected (S-curve ramp-up).
+//   - warmupSkipped -> try next candidate.
+//   - All candidates skip -> starvation prevention: pick the one closest
+//     to its next accept point (lowest remaining skip count).
+//
+// This avoids the circular dependency where a warmup penalty in the score
+// prevents selection, which prevents warmup advancement. Warmup rounds
+// advance naturally at a rate proportional to how often the connection
+// would win scoring --good candidates warm up fast, poor ones warm up
+// slowly via background health checks.
+//
+// The scores buffer must have len >= len(candidates). It is populated by
+// this function and can be used by the caller for observer reporting.
+//
+// When shard is non-nil (shard lookup path), scoring uses [forShard] for
+// per-shard primary/replica cost. When nil (index lookup or cluster lookup),
+// scoring uses [forNode] with per-node aggregate data from the index slot.
+func connScoreSelect(
+	candidates []*Connection,
+	slot *indexSlot,
+	shard *shardNodes,
+	costs *shardCostMultiplier,
+	poolName string,
+	poolInfoReady bool,
+	scores []float64,
+) *Connection {
+	n := len(candidates)
+	if n == 0 {
+		return nil
+	}
+
+	// Compute scores once upfront.
+	for i, c := range candidates {
+		switch {
+		case shard != nil:
+			// Shard lookup: per-shard role from shardNodes.
+			scores[i] = calcConnScore(c, costs.forShard(shard, c.Name), poolName, poolInfoReady)
+		case slot != nil:
+			// Index lookup: per-node aggregate from indexSlot.
+			scores[i] = calcConnScore(c, costs.forNode(slot.shardNodeInfoFor(c.Name)), poolName, poolInfoReady)
+		default:
+			// Cluster lookup: no shard data. All nodes get costUnknown;
+			// equal cost cancels out, so selection is by RTT + congestion.
+			scores[i] = calcConnScore(c, costUnknown, poolName, poolInfoReady)
+		}
+	}
+
+	// Try candidates in ascending score order (lowest = best).
+	// For small fan-out sets (typically 1-3), repeated linear scans
+	// are faster than sorting. Tried candidates are marked by setting
+	// their score to +Inf, avoiding a bitmask that overflows at >64 candidates.
+	var bestWarming *Connection
+	bestWarmingSkip := int(^uint(0) >> 1) // max int sentinel
+
+	for range n {
+		// Find untried candidate with lowest score.
+		bestIdx := -1
+		bestScore := math.MaxFloat64
+		for i := range n {
+			if scores[i] < bestScore {
+				bestScore = scores[i]
+				bestIdx = i
+			}
+		}
+		if bestIdx < 0 {
+			break
+		}
+		scores[bestIdx] = math.Inf(1) // mark as tried
+		c := candidates[bestIdx]
+
+		if !c.loadConnState().isWarmingUp() {
+			return c
+		}
+
+		switch c.tryWarmupSkip() {
+		case warmupAccepted, warmupInactive:
+			return c
+		case warmupSkipped:
+			remSkip := c.loadConnState().roundManager().skipCount()
+			if remSkip <= bestWarmingSkip {
+				bestWarmingSkip = remSkip
+				bestWarming = c
+			}
+		}
+	}
+
+	// Starvation prevention: all candidates are warming and skipped.
+	// Return the one closest to its next accept point.
+	if bestWarming != nil {
+		return bestWarming
+	}
+	return candidates[0] // Defensive; shouldn't reach here.
+}
+
+// sortConnectionsByRTT sorts connections by [rttBucket] ascending.
+// Ties are broken by URL string for deterministic ordering.
+func sortConnectionsByRTT(conns []*Connection) {
+	// Use a simple insertion sort -- connection lists are typically small (3-50).
+	for i := 1; i < len(conns); i++ {
+		key := conns[i]
+		keyBucket := key.rttRing.medianBucket()
+		keyURL := key.URLString
+		j := i - 1
+		for j >= 0 {
+			jBucket := conns[j].rttRing.medianBucket()
+			if jBucket < keyBucket || (jBucket == keyBucket && conns[j].URLString <= keyURL) {
+				break
+			}
+			conns[j+1] = conns[j]
+			j--
+		}
+		conns[j+1] = key
+	}
+}
+
+// extractIndexFromPath returns the index name from a request URL path.
+// Returns "" for system endpoints (paths starting with /_) and root path.
+//
+// Examples:
+//
+//	"/my-index/_search"       -> "my-index"
+//	"/my-index/_doc/123"      -> "my-index"
+//	"/_cluster/health"        -> ""  (system endpoint)
+//	"/"                       -> ""
+//	"/my-index"               -> "my-index"
+func extractIndexFromPath(path string) string {
+	// Strip leading slash.
+	if len(path) > 0 && path[0] == '/' {
+		path = path[1:]
+	}
+	if path == "" {
+		return ""
+	}
+
+	// System endpoints start with underscore after the leading slash.
+	if path[0] == '_' {
+		return ""
+	}
+
+	// Take the first path segment as the index name.
+	if before, _, ok := strings.Cut(path, "/"); ok {
+		return before
+	}
+	return path
+}

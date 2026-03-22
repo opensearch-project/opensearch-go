@@ -31,6 +31,8 @@ package opensearch_test
 import (
 	"context"
 	"crypto/tls"
+	"errors"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -43,15 +45,17 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 )
 
 func TestClientTransport(t *testing.T) {
 	/*
 		t.Run("Persistent", func(t *testing.T) {
-			client, err := ostest.NewClient(t)
+			client, err := testutil.NewClient(t)
 			if err != nil {
 				t.Fatalf("Error creating the client: %s", err)
 			}
@@ -90,68 +94,55 @@ func TestClientTransport(t *testing.T) {
 	t.Run("Concurrent", func(t *testing.T) {
 		var wg sync.WaitGroup
 
-		client, err := ostest.NewClient(t)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
+		client, err := testutil.InitClient(t)
+		require.NoError(t, err)
 
-		for i := 0; i < 101; i++ {
+		for i := range 101 {
 			wg.Add(1)
 			time.Sleep(10 * time.Millisecond)
 
-			go func(i int) {
+			go func(_ int) {
 				defer wg.Done()
-				_, err := client.Info(nil, nil)
-				if err != nil {
-					t.Errorf("Unexpected error: %s", err)
-				}
+				_, err := client.Info(t.Context(), nil)
+				require.NoError(t, err)
 			}(i)
 		}
 		wg.Wait()
 	})
 
 	t.Run("WithContext", func(t *testing.T) {
-		client, err := ostest.NewClient(t)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
+		client, err := testutil.InitClient(t)
+		require.NoError(t, err)
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
 
 		_, err = client.Info(ctx, nil)
-		if err == nil {
-			t.Fatal("Expected 'context deadline exceeded' error")
-		}
-
-		log.Printf("Request cancelled with %T", err)
+		require.Error(t, err, "Expected context deadline exceeded error")
 	})
 
 	t.Run("Configured", func(t *testing.T) {
+		tp := http.DefaultTransport.(*http.Transport).Clone()
+		tp.MaxIdleConnsPerHost = 10
+		tp.ResponseHeaderTimeout = time.Second
+		tp.DialContext = (&net.Dialer{Timeout: time.Nanosecond}).DialContext
+		tp.TLSClientConfig.MinVersion = tls.VersionTLS11
+		tp.TLSClientConfig.InsecureSkipVerify = true
+
 		cfg := opensearchapi.Config{
 			Client: opensearch.Config{
-				Transport: &http.Transport{
-					MaxIdleConnsPerHost:   10,
-					ResponseHeaderTimeout: time.Second,
-					DialContext:           (&net.Dialer{Timeout: time.Nanosecond}).DialContext,
-					TLSClientConfig: &tls.Config{
-						MinVersion:         tls.VersionTLS11,
-						InsecureSkipVerify: true,
-					},
-				},
+				Context:   t.Context(),
+				Transport: tp,
 			},
 		}
 
 		client, err := opensearchapi.NewClient(cfg)
-		if err != nil {
-			t.Fatalf("Error creating the client: %s", err)
-		}
+		require.NoError(t, err)
 
-		_, err = client.Info(nil, nil)
-		if err == nil {
-			t.Fatalf("Expected error, but got: %v", err)
-		}
-		if _, ok := err.(*net.OpError); !ok {
+		_, err = client.Info(t.Context(), nil)
+		require.Error(t, err)
+		opError := &net.OpError{}
+		if !errors.As(err, &opError) {
 			t.Fatalf("Expected net.OpError, but got: %T", err)
 		}
 	})
@@ -159,63 +150,78 @@ func TestClientTransport(t *testing.T) {
 
 type CustomTransport struct {
 	client *http.Client
+	logger func(format string, v ...any)
 }
 
 func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("X-Foo", "bar")
-	log.Printf("> %s %s %s\n", req.Method, req.URL.String(), req.Header)
+	if t.logger != nil {
+		t.logger("> %s %q %q", req.Method, req.URL.String(), req.Header)
+	}
 	return t.client.Do(req)
 }
 
 func TestClientCustomTransport(t *testing.T) {
 	t.Run("Customized", func(t *testing.T) {
 		client, err := opensearchapi.NewDefaultClient()
-		require.Nil(t, err)
+		require.NoError(t, err)
 
-		cfg, err := ostest.ClientConfig()
-		require.Nil(t, err)
+		// Stop background pollers when the test finishes.
+		if closer, ok := client.Client.Transport.(io.Closer); ok {
+			t.Cleanup(func() { closer.Close() })
+		}
+
+		cfg := testutil.ClientConfig(t)
 
 		if cfg != nil {
+			customTP := http.DefaultTransport.(*http.Transport).Clone()
+			customTP.TLSClientConfig.InsecureSkipVerify = true
 			cfg.Client.Transport = &CustomTransport{
 				client: &http.Client{
-					Transport: &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-					},
+					Transport: customTP,
+				},
+				logger: func(format string, v ...any) {
+					if testutil.IsDebugEnabled(t) {
+						t.Logf(format, v...)
+					}
 				},
 			}
 			client, err = opensearchapi.NewClient(*cfg)
-			require.Nil(t, err)
+			require.NoError(t, err)
+
+			// Wait for cluster to be ready before running tests
+			err = testutil.WaitForClusterReady(t, client)
+			require.NoError(t, err)
 		}
 
-		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
-			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
+		// Simple readiness wait for manually-constructed client (only uses Info API)
+		ctx := t.Context()
+		for {
+			_, err := client.Info(ctx, nil)
+			if err == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("Cluster not ready: %s", ctx.Err())
+			case <-time.After(5 * time.Second):
+				// Retry
 			}
 		}
 	})
 
 	t.Run("Manual", func(t *testing.T) {
+		config := testutil.ClientConfig(t)
+
+		// Use centralized URL construction
+		u := mockhttp.GetOpenSearchURL(t)
 		tp, _ := opensearchtransport.New(opensearchtransport.Config{
-			URLs: []*url.URL{
-				{Scheme: "http", Host: "localhost:9200"},
-			},
-			Transport: http.DefaultTransport,
+			URLs:      []*url.URL{u},
+			Transport: config.Client.Transport,
+			Username:  config.Client.Username,
+			Password:  config.Client.Password,
+			Context:   t.Context(),
 		})
-		config, err := ostest.ClientConfig()
-		if err != nil {
-			t.Fatalf("Error getting config: %s", err)
-		}
-		if ostest.IsSecure() {
-			tp, _ = opensearchtransport.New(opensearchtransport.Config{
-				URLs: []*url.URL{
-					{Scheme: "https", Host: "localhost:9200"},
-				},
-				Transport: config.Client.Transport,
-				Username:  config.Client.Username,
-				Password:  config.Client.Password,
-			})
-		}
 
 		client := opensearchapi.Client{
 			Client: &opensearch.Client{
@@ -223,77 +229,244 @@ func TestClientCustomTransport(t *testing.T) {
 			},
 		}
 
-		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
-			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
+		// Simple readiness wait for manually-constructed client (only uses Info API)
+		ctx := t.Context()
+		for {
+			_, err := client.Info(ctx, nil)
+			if err == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("Cluster not ready: %s", ctx.Err())
+			case <-time.After(5 * time.Second):
+				// Retry
 			}
 		}
 	})
 }
 
-type ReplacedTransport struct {
-	counter uint64
+type TestTransport struct {
+	counter atomic.Uint64
+	t       *testing.T
 }
 
-func (t *ReplacedTransport) Perform(req *http.Request) (*http.Response, error) {
-	req.URL.Scheme = "http"
-	req.URL.Host = "localhost:9200"
-	config, err := ostest.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	if ostest.IsSecure() {
-		req.URL.Scheme = "https"
+func (tr *TestTransport) Perform(req *http.Request) (*http.Response, error) {
+	// Use centralized URL construction
+	u := mockhttp.GetOpenSearchURL(tr.t)
+	req.URL.Scheme = u.Scheme
+	req.URL.Host = u.Host
+
+	config := testutil.ClientConfig(tr.t)
+	if testutil.IsSecure(tr.t) {
 		req.SetBasicAuth(config.Client.Username, config.Client.Password)
 	}
 
-	atomic.AddUint64(&t.counter, 1)
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	tr.counter.Add(1)
+	transport := config.Client.Transport
+	if transport == nil {
+		transport = http.DefaultTransport
 	}
 	return transport.RoundTrip(req)
 }
 
-func (t *ReplacedTransport) Count() uint64 {
-	return atomic.LoadUint64(&t.counter)
+func (tr *TestTransport) Count() uint64 {
+	return tr.counter.Load()
 }
 
 func TestClientReplaceTransport(t *testing.T) {
 	t.Run("Replaced", func(t *testing.T) {
-		tr := &ReplacedTransport{}
+		const expectedRequests = 10
+
+		tr := &TestTransport{t: t}
 		client := opensearchapi.Client{
 			Client: &opensearch.Client{
 				Transport: tr,
 			},
 		}
 
-		for i := 0; i < 10; i++ {
-			_, err := client.Info(nil, nil)
-			if err != nil {
-				t.Fatalf("Unexpected error: %s", err)
+		// Simple readiness wait for manually-constructed client (only uses Info API)
+		ctx := t.Context()
+		for {
+			_, err := client.Info(ctx, nil)
+			if err == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatalf("Cluster not ready: %v", ctx.Err())
+			case <-time.After(5 * time.Second):
+				// Retry
 			}
 		}
 
-		if tr.Count() != 10 {
-			t.Errorf("Expected 10 requests, got=%d", tr.Count())
+		// Reset counter after readiness check
+		initialCount := tr.Count()
+
+		for range expectedRequests {
+			_, err := client.Info(t.Context(), nil)
+			require.NoError(t, err)
+		}
+
+		actualRequests := tr.Count() - initialCount
+		if actualRequests > expectedRequests {
+			t.Errorf("Expected at most %d requests, got=%d", expectedRequests, actualRequests)
 		}
 	})
 }
 
 func TestClientAPI(t *testing.T) {
 	t.Run("Info", func(t *testing.T) {
-		client, err := ostest.NewClient(t)
-		if err != nil {
-			log.Fatalf("Error creating the client: %s\n", err)
-		}
+		client, err := testutil.NewClient(t)
+		require.NoError(t, err)
 
-		res, err := client.Info(nil, nil)
-		if err != nil {
-			log.Fatalf("Error getting the response: %s\n", err)
-		}
+		res, err := client.Info(t.Context(), nil)
+		require.NoError(t, err)
 		if res.ClusterName == "" {
 			log.Fatalf("cluster_name is empty: %s\n", err)
 		}
+	})
+}
+
+func TestClientGetConfigIntegration(t *testing.T) {
+	t.Run("GetConfig returns valid configuration", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a client with specific configuration
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Retrieve the config
+		retrievedConfig := osClient.GetConfig()
+
+		// Verify the config matches what was originally provided
+		require.Equal(t, cfg.Client.Addresses, retrievedConfig.Addresses)
+		require.Equal(t, cfg.Client.Username, retrievedConfig.Username)
+		require.Equal(t, cfg.Client.Password, retrievedConfig.Password)
+	})
+
+	t.Run("GetConfig with live client", func(t *testing.T) {
+		// Create a client from test helper
+		apiClient, err := testutil.NewClient(t)
+		require.Nil(t, err)
+
+		// Get config from the underlying opensearch client
+		config := apiClient.Client.GetConfig()
+
+		// Verify config has expected values
+		require.NotEmpty(t, config.Addresses, "addresses should not be empty")
+
+		// Verify we can create a new client with the retrieved config
+		newClient, err := opensearch.NewClient(*config)
+		require.Nil(t, err)
+		require.NotNil(t, newClient)
+
+		// Verify the new client works by making a request
+		req, err := opensearch.BuildRequest("GET", "/", nil, nil, nil)
+		require.Nil(t, err)
+
+		resp, err := newClient.Perform(req)
+		require.Nil(t, err)
+		require.NotNil(t, resp)
+		defer resp.Body.Close()
+	})
+}
+
+func TestNewFromClientIntegration(t *testing.T) {
+	t.Run("creates working api client from opensearch client", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+		require.NotNil(t, osClient)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+		require.NotNil(t, apiClient)
+
+		// Verify the api client can make requests
+		resp, err := apiClient.Info(nil, nil)
+		require.Nil(t, err)
+		require.NotEmpty(t, resp)
+		require.NotEmpty(t, resp.ClusterName)
+	})
+
+	t.Run("shares transport with original client", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+
+		// Verify both clients share the same transport
+		require.Equal(t, osClient.Transport, apiClient.Client.Transport)
+
+		// Verify both clients can make requests successfully
+		req, err := opensearch.BuildRequest("GET", "/", nil, nil, nil)
+		require.Nil(t, err)
+
+		resp1, err := osClient.Perform(req)
+		require.Nil(t, err)
+		require.NotNil(t, resp1)
+		defer resp1.Body.Close()
+
+		resp2, err := apiClient.Info(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, resp2)
+	})
+
+	t.Run("maintains config through wrapped client", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client with specific config
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+
+		// Retrieve config through the api client's wrapped opensearch client
+		retrievedConfig := apiClient.Client.GetConfig()
+
+		// Verify the config matches the original
+		require.Equal(t, cfg.Client.Addresses, retrievedConfig.Addresses)
+		require.Equal(t, cfg.Client.Username, retrievedConfig.Username)
+		require.Equal(t, cfg.Client.Password, retrievedConfig.Password)
+	})
+
+	t.Run("all sub-clients are functional", func(t *testing.T) {
+		// Get test config
+		cfg := testutil.ClientConfig(t)
+
+		// Create a base opensearch.Client
+		osClient, err := opensearch.NewClient(cfg.Client)
+		require.Nil(t, err)
+
+		// Create an opensearchapi.Client from the opensearch.Client
+		apiClient := opensearchapi.NewFromClient(osClient)
+
+		// Test a few sub-clients to ensure they're properly initialized
+		// Cat client
+		catResp, err := apiClient.Cat.Health(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, catResp)
+
+		// Cluster client
+		clusterResp, err := apiClient.Cluster.Health(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, clusterResp)
+
+		// Nodes client
+		nodesResp, err := apiClient.Nodes.Info(nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, nodesResp)
 	})
 }

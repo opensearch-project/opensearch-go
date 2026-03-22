@@ -29,13 +29,14 @@
 package opensearchtransport
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMetrics(t *testing.T) {
@@ -59,6 +60,11 @@ func TestMetrics(t *testing.T) {
 		tp.metrics.mu.responses[404] = 2
 		tp.metrics.mu.Unlock()
 
+		// Set some lifecycle counters
+		tp.metrics.connectionsPromoted.Store(2)
+		tp.metrics.connectionsDemoted.Store(1)
+		tp.metrics.zombieConnections.Store(5)
+
 		req, _ := http.NewRequest(http.MethodHead, "/", nil)
 		resp, err := tp.Perform(req)
 		if err == nil {
@@ -69,8 +75,6 @@ func TestMetrics(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
-
-		fmt.Println(m)
 
 		if m.Requests != 4 {
 			t.Errorf("Unexpected output, want=4, got=%d", m.Requests)
@@ -84,6 +88,40 @@ func TestMetrics(t *testing.T) {
 		if len(m.Connections) != 3 {
 			t.Errorf("Unexpected output: %+v", m.Connections)
 		}
+
+		// Verify new metrics fields
+		// Note: One connection is dead after Perform() fails, so we have 2 ready, 1 dead
+		if m.LiveConnections != 2 {
+			t.Errorf("Expected 2 ready connections, got %d", m.LiveConnections)
+		}
+		if m.DeadConnections != 1 {
+			t.Errorf("Expected 1 dead connection, got %d", m.DeadConnections)
+		}
+		if m.ConnectionsPromoted != 2 {
+			t.Errorf("Expected 2 promoted connections, got %d", m.ConnectionsPromoted)
+		}
+		// ConnectionsDemoted includes both the test value (1) and the actual demotion from Perform() (1)
+		if m.ConnectionsDemoted != 2 {
+			t.Errorf("Expected 2 demoted connections, got %d", m.ConnectionsDemoted)
+		}
+		if m.ZombieConnections != 5 {
+			t.Errorf("Expected 5 zombie connections, got %d", m.ZombieConnections)
+		}
+		if m.HealthChecks != 0 {
+			t.Errorf("Expected 0 health checks, got %d", m.HealthChecks)
+		}
+		if m.ClusterHealthChecks != 0 {
+			t.Errorf("Expected 0 cluster health checks, got %d", m.ClusterHealthChecks)
+		}
+		if m.HealthChecksSuccess != 0 {
+			t.Errorf("Expected 0 successful health checks, got %d", m.HealthChecksSuccess)
+		}
+		if m.HealthChecksFailed != 0 {
+			t.Errorf("Expected 0 failed health checks, got %d", m.HealthChecksFailed)
+		}
+		if m.OverloadedServers != 0 {
+			t.Errorf("Expected 0 overloaded servers, got %d", m.OverloadedServers)
+		}
 	})
 
 	t.Run("Metrics() when not enabled", func(t *testing.T) {
@@ -96,33 +134,30 @@ func TestMetrics(t *testing.T) {
 	})
 
 	t.Run("String()", func(t *testing.T) {
-		var m ConnectionMetric
-
-		m = ConnectionMetric{URL: "http://foo1"}
-
-		if m.String() != "{http://foo1}" {
-			t.Errorf("Unexpected output: %s", m)
+		// Active connection: lcReady|lcActive -- healthy, serving requests
+		activeState := ConnState{packed: int64(newConnState(lcReady | lcActive))}
+		m := ConnectionMetric{
+			URL:   "http://foo1",
+			State: activeState,
 		}
+		require.Equal(t, "{http://foo1 state=ready+active (000000000101)}", m.String())
 
+		// Dead connection: lcUnknown|lcNeedsWarmup -- awaiting resurrection
 		tt, _ := time.Parse(time.RFC3339, "2010-11-11T11:00:00Z")
 		m = ConnectionMetric{
 			URL:       "http://foo2",
 			IsDead:    true,
 			Failures:  123,
 			DeadSince: &tt,
+			State:     ConnState{packed: int64(newConnState(lcDead | lcNeedsWarmup))},
 		}
 
 		match, err := regexp.MatchString(
-			`{http://foo2 dead=true failures=123 dead_since=Nov 11 \d+:00:00}`,
+			`\{http://foo2 state=unknown\+needsWarmup \(\d+\) failures=123 dead_since=Nov 11 \d+:00:00\}`,
 			m.String(),
 		)
-		if err != nil {
-			t.Fatalf("Unexpected error: %s", err)
-		}
-
-		if !match {
-			t.Errorf("Unexpected output: %s", m)
-		}
+		require.NoError(t, err)
+		require.True(t, match, "Unexpected output: %s", m)
 	})
 
 	t.Run("incrementResponse method", func(t *testing.T) {

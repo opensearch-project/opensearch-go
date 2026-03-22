@@ -62,21 +62,22 @@ func ExampleNewDefaultClient() {
 }
 
 func ExampleNewClient() {
+	// Clone DefaultTransport to preserve connection pooling, HTTP/2, and timeout defaults,
+	// then customize as needed.
+	tp := http.DefaultTransport.(*http.Transport).Clone()
+	tp.MaxIdleConnsPerHost = 10
+	tp.ResponseHeaderTimeout = time.Second
+	tp.DialContext = (&net.Dialer{Timeout: time.Second}).DialContext
+	tp.TLSClientConfig.MinVersion = tls.VersionTLS12
+
 	cfg := opensearchapi.Config{
 		Client: opensearch.Config{
 			Addresses: []string{
 				"http://localhost:9200",
 			},
-			Username: "foo",
-			Password: "bar",
-			Transport: &http.Transport{
-				MaxIdleConnsPerHost:   10,
-				ResponseHeaderTimeout: time.Second,
-				DialContext:           (&net.Dialer{Timeout: time.Second}).DialContext,
-				TLSClientConfig: &tls.Config{
-					MinVersion: tls.VersionTLS12,
-				},
-			},
+			Username:  "foo",
+			Password:  "bar",
+			Transport: tp,
 		},
 	}
 

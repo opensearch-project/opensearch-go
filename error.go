@@ -7,6 +7,7 @@
 package opensearch
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -149,6 +150,8 @@ func ParseError(resp *Response) error {
 		return fmt.Errorf("%w: %w", ErrReadBody, err)
 	}
 
+	resp.Body = io.NopCloser(bytes.NewReader(body))
+
 	var testResp struct {
 		Status  any `json:"status"`
 		Error   any `json:"error"`
@@ -156,7 +159,7 @@ func ParseError(resp *Response) error {
 		Reason  any `json:"reason"`
 	}
 	if err = json.Unmarshal(body, &testResp); err != nil {
-		return fmt.Errorf("%w: %w", ErrJSONUnmarshalBody, err)
+		return fmt.Errorf("%w, status: %d, body: %q", ErrJSONUnmarshalBody, resp.StatusCode, string(body))
 	}
 
 	// Check for errors where status is a number
