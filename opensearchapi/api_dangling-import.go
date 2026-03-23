@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type DanglingImportReq struct {
 func (r DanglingImportReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_dangling/%s", r.IndexUUID),
+		opensearch.BuildPath("_dangling", r.IndexUUID),
 		nil,
 		r.Params.get(),
 		r.Header,

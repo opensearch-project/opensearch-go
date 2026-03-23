@@ -76,7 +76,7 @@ type AliasDeleteReq struct {
 func (r AliasDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		buildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -107,7 +107,7 @@ type AliasGetReq struct {
 func (r AliasGetReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"GET",
-		buildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -157,7 +157,7 @@ type AliasPutReq struct {
 func (r AliasPutReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		buildPath(strings.Join(r.Indices, ","), "_alias", r.Alias),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_alias", r.Alias),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -188,7 +188,7 @@ type AliasExistsReq struct {
 func (r AliasExistsReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"HEAD",
-		buildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_alias", strings.Join(r.Alias, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,

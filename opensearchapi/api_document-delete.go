@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -24,15 +23,9 @@ type DocumentDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentDeleteReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(7 + len(r.Index) + len(r.DocumentID))
-	path.WriteString("/")
-	path.WriteString(r.Index)
-	path.WriteString("/_doc/")
-	path.WriteString(r.DocumentID)
 	return opensearch.BuildRequest(
 		"DELETE",
-		path.String(),
+		opensearch.BuildPath(r.Index, "_doc", r.DocumentID),
 		nil,
 		r.Params.get(),
 		r.Header,

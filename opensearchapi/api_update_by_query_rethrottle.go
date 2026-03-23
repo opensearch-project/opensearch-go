@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -40,7 +39,7 @@ type UpdateByQueryRethrottleReq struct {
 func (r UpdateByQueryRethrottleReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_update_by_query/%s/_rethrottle", r.TaskID),
+		opensearch.BuildPath("_update_by_query", r.TaskID, "_rethrottle"),
 		nil,
 		r.Params.get(),
 		r.Header,

@@ -7,7 +7,6 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type InternalUsersDeleteReq struct {
 func (r InternalUsersDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/internalusers/%s", r.User),
+		opensearch.BuildPath("_plugins", "_security", "api", "internalusers", r.User),
 		nil,
 		make(map[string]string),
 		r.Header,

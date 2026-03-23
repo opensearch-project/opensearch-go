@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -27,7 +26,7 @@ type SnapshotDeleteReq struct {
 func (r SnapshotDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_snapshot/%s/%s", r.Repo, strings.Join(r.Snapshots, ",")),
+		opensearch.BuildPath("_snapshot", r.Repo, strings.Join(r.Snapshots, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,

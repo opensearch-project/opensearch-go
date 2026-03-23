@@ -7,7 +7,6 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type RolesMappingDeleteReq struct {
 func (r RolesMappingDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/rolesmapping/%s", r.Role),
+		opensearch.BuildPath("_plugins", "_security", "api", "rolesmapping", r.Role),
 		nil,
 		make(map[string]string),
 		r.Header,

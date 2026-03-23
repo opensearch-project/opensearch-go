@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -27,7 +26,7 @@ type IndicesGetReq struct {
 func (r IndicesGetReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"GET",
-		fmt.Sprintf("/%s", strings.Join(r.Indices, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,

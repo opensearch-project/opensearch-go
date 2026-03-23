@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -30,7 +29,7 @@ type SnapshotCreateReq struct {
 func (r SnapshotCreateReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		fmt.Sprintf("/_snapshot/%s/%s", r.Repo, r.Snapshot),
+		opensearch.BuildPath("_snapshot", r.Repo, r.Snapshot),
 		r.Body,
 		r.Params.get(),
 		r.Header,

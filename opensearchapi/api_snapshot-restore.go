@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -29,7 +28,7 @@ type SnapshotRestoreReq struct {
 func (r SnapshotRestoreReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_snapshot/%s/%s/_restore", r.Repo, r.Snapshot),
+		opensearch.BuildPath("_snapshot", r.Repo, r.Snapshot, "_restore"),
 		r.Body,
 		r.Params.get(),
 		r.Header,

@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -24,16 +23,9 @@ type ClusterPutDecommissionReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ClusterPutDecommissionReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(34 + len(r.AwarenessAttrName) + len(r.AwarenessAttrValue))
-	path.WriteString("/_cluster/decommission/awareness/")
-	path.WriteString(r.AwarenessAttrName)
-	path.WriteString("/")
-	path.WriteString(r.AwarenessAttrValue)
-
 	return opensearch.BuildRequest(
 		"PUT",
-		path.String(),
+		opensearch.BuildPath("_cluster", "decommission", "awareness", r.AwarenessAttrName, r.AwarenessAttrValue),
 		nil,
 		r.Params.get(),
 		r.Header,
@@ -89,15 +81,9 @@ type ClusterGetDecommissionReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ClusterGetDecommissionReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(41 + len(r.AwarenessAttrName))
-	path.WriteString("/_cluster/decommission/awareness/")
-	path.WriteString(r.AwarenessAttrName)
-	path.WriteString("/_status")
-
 	return opensearch.BuildRequest(
 		"GET",
-		path.String(),
+		opensearch.BuildPath("_cluster", "decommission", "awareness", r.AwarenessAttrName, "_status"),
 		nil,
 		r.Params.get(),
 		r.Header,

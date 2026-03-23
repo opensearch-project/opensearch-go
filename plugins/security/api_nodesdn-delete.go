@@ -7,7 +7,6 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type NodesDNDeleteReq struct {
 func (r NodesDNDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/nodesdn/%s", r.Cluster),
+		opensearch.BuildPath("_plugins", "_security", "api", "nodesdn", r.Cluster),
 		nil,
 		make(map[string]string),
 		r.Header,

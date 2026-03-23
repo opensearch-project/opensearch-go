@@ -9,7 +9,6 @@ package ism
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -33,7 +32,7 @@ func (r PoliciesPutReq) GetRequest() (*http.Request, error) {
 
 	return opensearch.BuildRequest(
 		http.MethodPut,
-		fmt.Sprintf("/_plugins/_ism/policies/%s", r.Policy),
+		opensearch.BuildPath("_plugins", "_ism", "policies", r.Policy),
 		bytes.NewReader(body),
 		r.Params.get(),
 		r.Header,

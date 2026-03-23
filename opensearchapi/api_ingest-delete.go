@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type IngestDeleteReq struct {
 func (r IngestDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_ingest/pipeline/%s", r.PipelineID),
+		opensearch.BuildPath("_ingest", "pipeline", r.PipelineID),
 		nil,
 		r.Params.get(),
 		r.Header,

@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -27,7 +26,7 @@ type IngestGetReq struct {
 func (r IngestGetReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"GET",
-		fmt.Sprintf("/_ingest/pipeline/%s", strings.Join(r.PipelineIDs, ",")),
+		opensearch.BuildPath("_ingest", "pipeline", strings.Join(r.PipelineIDs, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,

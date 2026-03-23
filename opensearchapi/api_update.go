@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -43,7 +42,7 @@ type UpdateReq struct {
 func (r UpdateReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_update/%s", r.Index, r.DocumentID),
+		opensearch.BuildPath(r.Index, "_update", r.DocumentID),
 		r.Body,
 		r.Params.get(),
 		r.Header,

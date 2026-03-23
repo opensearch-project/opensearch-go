@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -27,7 +26,7 @@ type DocumentGetReq struct {
 func (r DocumentGetReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"GET",
-		fmt.Sprintf("/%s/_doc/%s", r.Index, r.DocumentID),
+		opensearch.BuildPath(r.Index, "_doc", r.DocumentID),
 		nil,
 		r.Params.get(),
 		r.Header,

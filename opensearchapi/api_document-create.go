@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -27,15 +26,9 @@ type DocumentCreateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentCreateReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(10 + len(r.Index) + len(r.DocumentID))
-	path.WriteString("/")
-	path.WriteString(r.Index)
-	path.WriteString("/_create/")
-	path.WriteString(r.DocumentID)
 	return opensearch.BuildRequest(
 		"PUT",
-		path.String(),
+		opensearch.BuildPath(r.Index, "_create", r.DocumentID),
 		r.Body,
 		r.Params.get(),
 		r.Header,

@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type ScriptGetReq struct {
 func (r ScriptGetReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"GET",
-		fmt.Sprintf("/_scripts/%s", r.ScriptID),
+		opensearch.BuildPath("_scripts", r.ScriptID),
 		nil,
 		r.Params.get(),
 		r.Header,

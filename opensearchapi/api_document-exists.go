@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -26,7 +25,7 @@ type DocumentExistsReq struct {
 func (r DocumentExistsReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"HEAD",
-		fmt.Sprintf("/%s/_doc/%s", r.Index, r.DocumentID),
+		opensearch.BuildPath(r.Index, "_doc", r.DocumentID),
 		nil,
 		r.Params.get(),
 		r.Header,

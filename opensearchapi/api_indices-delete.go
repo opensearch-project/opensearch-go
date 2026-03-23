@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,7 +24,7 @@ type IndicesDeleteReq struct {
 func (r IndicesDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("%s%s", "/", strings.Join(r.Indices, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,

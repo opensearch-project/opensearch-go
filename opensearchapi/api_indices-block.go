@@ -26,7 +26,7 @@ type IndicesBlockReq struct {
 func (r IndicesBlockReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		buildPath(strings.Join(r.Indices, ","), "_block", r.Block),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_block", r.Block),
 		nil,
 		r.Params.get(),
 		r.Header,

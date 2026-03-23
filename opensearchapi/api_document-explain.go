@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -29,7 +28,7 @@ type DocumentExplainReq struct {
 func (r DocumentExplainReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_explain/%s", r.Index, r.DocumentID),
+		opensearch.BuildPath(r.Index, "_explain", r.DocumentID),
 		r.Body,
 		r.Params.get(),
 		r.Header,

@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type CatSnapshotsReq struct {
 func (r CatSnapshotsReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"GET",
-		fmt.Sprintf("%s%s", "/_cat/snapshots/", r.Repository),
+		opensearch.BuildPath("_cat", "snapshots", r.Repository),
 		nil,
 		r.Params.get(),
 		r.Header,

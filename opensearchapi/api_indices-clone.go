@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -29,7 +28,7 @@ type IndicesCloneReq struct {
 func (r IndicesCloneReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_clone/%s", r.Index, r.Target),
+		opensearch.BuildPath(r.Index, "_clone", r.Target),
 		r.Body,
 		r.Params.get(),
 		r.Header,

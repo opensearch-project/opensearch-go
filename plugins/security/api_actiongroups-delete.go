@@ -7,7 +7,6 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type ActionGroupsDeleteReq struct {
 func (r ActionGroupsDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/actiongroups/%s", r.ActionGroup),
+		opensearch.BuildPath("_plugins", "_security", "api", "actiongroups", r.ActionGroup),
 		nil,
 		make(map[string]string),
 		r.Header,
