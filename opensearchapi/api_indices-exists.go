@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -25,7 +24,7 @@ type IndicesExistsReq struct {
 func (r IndicesExistsReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"HEAD",
-		fmt.Sprintf("%s%s", "/", strings.Join(r.Indices, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ",")),
 		nil,
 		r.Params.get(),
 		r.Header,

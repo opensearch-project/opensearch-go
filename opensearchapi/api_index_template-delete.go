@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type IndexTemplateDeleteReq struct {
 func (r IndexTemplateDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_index_template/%s", r.IndexTemplate),
+		opensearch.BuildPath("_index_template", r.IndexTemplate),
 		nil,
 		r.Params.get(),
 		r.Header,

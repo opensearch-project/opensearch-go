@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -28,7 +27,7 @@ type TemplateCreateReq struct {
 func (r TemplateCreateReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		fmt.Sprintf("/_template/%s", r.Template),
+		opensearch.BuildPath("_template", r.Template),
 		r.Body,
 		r.Params.get(),
 		r.Header,

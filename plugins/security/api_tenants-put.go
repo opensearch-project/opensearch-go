@@ -9,7 +9,6 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -32,7 +31,7 @@ func (r TenantsPutReq) GetRequest() (*http.Request, error) {
 
 	return opensearch.BuildRequest(
 		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/tenants/%s", r.Tenant),
+		opensearch.BuildPath("_plugins", "_security", "api", "tenants", r.Tenant),
 		bytes.NewReader(body),
 		make(map[string]string),
 		r.Header,

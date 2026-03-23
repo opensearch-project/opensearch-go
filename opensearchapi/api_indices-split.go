@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -29,7 +28,7 @@ type IndicesSplitReq struct {
 func (r IndicesSplitReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_split/%s", r.Index, r.Target),
+		opensearch.BuildPath(r.Index, "_split", r.Target),
 		r.Body,
 		r.Params.get(),
 		r.Header,

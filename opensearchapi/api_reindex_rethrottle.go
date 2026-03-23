@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -40,7 +39,7 @@ type ReindexRethrottleReq struct {
 func (r ReindexRethrottleReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_reindex/%s/_rethrottle", r.TaskID),
+		opensearch.BuildPath("_reindex", r.TaskID, "_rethrottle"),
 		nil,
 		r.Params.get(),
 		r.Header,

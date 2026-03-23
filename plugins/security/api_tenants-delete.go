@@ -7,7 +7,6 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type TenantsDeleteReq struct {
 func (r TenantsDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/tenants/%s", r.Tenant),
+		opensearch.BuildPath("_plugins", "_security", "api", "tenants", r.Tenant),
 		nil,
 		make(map[string]string),
 		r.Header,

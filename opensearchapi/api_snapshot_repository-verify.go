@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type SnapshotRepositoryVerifyReq struct {
 func (r SnapshotRepositoryVerifyReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_snapshot/%s/_verify", r.Repo),
+		opensearch.BuildPath("_snapshot", r.Repo, "_verify"),
 		nil,
 		r.Params.get(),
 		r.Header,

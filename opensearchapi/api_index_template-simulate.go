@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -29,7 +28,7 @@ type IndexTemplateSimulateReq struct {
 func (r IndexTemplateSimulateReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_index_template/_simulate/%s", r.IndexTemplate),
+		opensearch.BuildPath("_index_template", "_simulate", r.IndexTemplate),
 		r.Body,
 		r.Params.get(),
 		r.Header,

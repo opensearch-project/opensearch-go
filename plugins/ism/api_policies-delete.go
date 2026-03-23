@@ -7,7 +7,6 @@
 package ism
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,7 +23,7 @@ type PoliciesDeleteReq struct {
 func (r PoliciesDeleteReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("/_plugins/_ism/policies/%s", r.Policy),
+		opensearch.BuildPath("_plugins", "_ism", "policies", r.Policy),
 		nil,
 		make(map[string]string),
 		r.Header,

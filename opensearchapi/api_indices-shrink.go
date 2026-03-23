@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -29,7 +28,7 @@ type IndicesShrinkReq struct {
 func (r IndicesShrinkReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_shrink/%s", r.Index, r.Target),
+		opensearch.BuildPath(r.Index, "_shrink", r.Target),
 		r.Body,
 		r.Params.get(),
 		r.Header,
