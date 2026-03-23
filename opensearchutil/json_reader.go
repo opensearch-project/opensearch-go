@@ -33,7 +33,7 @@ import (
 )
 
 // NewJSONReader encodes v into JSON and returns it as an io.Reader.
-func NewJSONReader(v interface{}) io.Reader {
+func NewJSONReader(v any) io.Reader {
 	return &JSONReader{val: v, buf: nil}
 }
 
@@ -45,7 +45,7 @@ type JSONEncoder interface {
 // JSONReader represents a reader which takes an interface value,
 // encodes it into JSON, and wraps it in an io.Reader.
 type JSONReader struct {
-	val interface{}
+	val any
 	buf interface {
 		io.ReadWriter
 		io.WriterTo

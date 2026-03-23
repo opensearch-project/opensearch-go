@@ -107,12 +107,13 @@ type NotificationDestinationCustomWebhook struct {
 	URL          string            `json:"url,omitempty"`
 	HeaderParams map[string]string `json:"header_params,omitempty"`
 	Host         string            `json:"host,omitempty"`
-	Password     string            `json:"password,omitempty"`
-	Path         string            `json:"path,omitempty"`
-	Port         int               `json:"port,omitempty"`
-	QueryParams  map[string]string `json:"query_params,omitempty"`
-	Scheme       string            `json:"scheme,omitempty"`
-	Username     string            `json:"username,omitempty"`
+	// Password for the custom webhook destination.
+	Password    string            `json:"password,omitempty"` // #nosec G117
+	Path        string            `json:"path,omitempty"`
+	Port        int               `json:"port,omitempty"`
+	QueryParams map[string]string `json:"query_params,omitempty"`
+	Scheme      string            `json:"scheme,omitempty"`
+	Username    string            `json:"username,omitempty"`
 }
 
 // NotificationMessageTemplate is a sub type of PolicyErrorNotification containing a pattern or string for the error message
@@ -124,7 +125,7 @@ type NotificationMessageTemplate struct {
 // PolicyState uis a sub type of PolicyBody containing information about the policy state
 type PolicyState struct {
 	Name        string                   `json:"name"`
-	Actions     []PolicyStateAction      `json:"actions,omitempty"`
+	Actions     []PolicyStateAction      `json:"actions,omitzero"` // Core field since OpenSearch 1.0; preserves empty arrays, omits nil
 	Transitions *[]PolicyStateTransition `json:"transitions,omitempty"`
 }
 

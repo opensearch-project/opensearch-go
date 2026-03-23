@@ -47,6 +47,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
@@ -111,7 +112,7 @@ func TestBulkIndexer(t *testing.T) {
 			FlushInterval: time.Hour, // Disable auto-flushing, because response doesn't match number of items
 			Client:        client,
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -187,8 +188,9 @@ func TestBulkIndexer(t *testing.T) {
 		defer cancel()
 		time.Sleep(100 * time.Millisecond)
 
-		var errs []error
-		for i := 0; i < 10; i++ {
+		const numErrors = 10
+		errs := make([]error, 0, numErrors)
+		for range numErrors {
 			errs = append(errs, bi.Add(ctx, BulkIndexerItem{Action: "delete", DocumentID: "timeout"}))
 		}
 		if err := bi.Close(context.Background()); err != nil {
@@ -214,7 +216,7 @@ func TestBulkIndexer(t *testing.T) {
 			Client:     client,
 		})
 
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			bi.Add(context.Background(), BulkIndexerItem{Action: "foo"})
 		}
 
@@ -239,7 +241,7 @@ func TestBulkIndexer(t *testing.T) {
 				},
 			},
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			config.Client.Logger = &opensearchtransport.ColorLogger{
 				Output:             os.Stdout,
 				EnableRequestBody:  true,
@@ -262,7 +264,7 @@ func TestBulkIndexer(t *testing.T) {
 				indexerError = err
 			},
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			biCfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -327,7 +329,7 @@ func TestBulkIndexer(t *testing.T) {
 		)
 
 		cfg := BulkIndexerConfig{NumWorkers: 1, Client: client}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -473,11 +475,12 @@ func TestBulkIndexer(t *testing.T) {
 	t.Run("OnFlush callbacks", func(t *testing.T) {
 		type contextKey string
 		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+		flushIndex := testutil.MustUniqueString(t, "test-flush")
 		bi, _ := NewBulkIndexer(BulkIndexerConfig{
 			Client: client,
-			Index:  "foo",
+			Index:  flushIndex,
 			OnFlushStart: func(ctx context.Context) context.Context {
-				fmt.Println(">>> Flush started")
+				t.Logf(">>> Flush started")
 				return context.WithValue(ctx, contextKey("start"), time.Now().UTC())
 			},
 			OnFlushEnd: func(ctx context.Context) {
@@ -485,7 +488,7 @@ func TestBulkIndexer(t *testing.T) {
 				if v := ctx.Value("start"); v != nil {
 					duration = time.Since(v.(time.Time))
 				}
-				fmt.Printf(">>> Flush finished (duration: %s)\n", duration)
+				t.Logf(">>> Flush finished (duration: %s)", duration)
 			},
 		})
 
@@ -534,7 +537,7 @@ func TestBulkIndexer(t *testing.T) {
 			Client:        client,
 			FlushInterval: 50 * time.Millisecond, // Decrease the flush timeout
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -612,20 +615,20 @@ func TestBulkIndexer(t *testing.T) {
 				MaxRetries:    5,
 				RetryOnStatus: []int{502, 503, 504, 429},
 				RetryBackoff: func(i int) time.Duration {
-					if os.Getenv("DEBUG") != "" {
-						fmt.Printf("*** Retry #%d\n", i)
+					if testutil.IsDebugEnabled(t) {
+						t.Logf("*** Retry #%d", i)
 					}
 					return time.Duration(i) * 100 * time.Millisecond
 				},
 			},
 		}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			cfg.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 		}
 		client, _ := opensearchapi.NewClient(cfg)
 
 		biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
-		if os.Getenv("DEBUG") != "" {
+		if testutil.IsDebugEnabled(t) {
 			biCfg.DebugLogger = log.New(os.Stdout, "", 0)
 		}
 
@@ -672,6 +675,8 @@ func TestBulkIndexer(t *testing.T) {
 	})
 
 	t.Run("Worker.writeMeta()", func(t *testing.T) {
+		testIndex := testutil.MustUniqueString(t, "test-index")
+
 		type args struct {
 			item BulkIndexerItem
 		}
@@ -697,100 +702,98 @@ func TestBulkIndexer(t *testing.T) {
 				"with _index",
 				args{BulkIndexerItem{
 					Action: "index",
-					Index:  "test",
+					Index:  testIndex,
 				}},
-				`{"index":{"_index":"test"}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
 			},
 			{
 				"with _index and _id",
 				args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "42",
-					Index:      "test",
+					Index:      testIndex,
 				}},
-				`{"index":{"_index":"test","_id":"42"}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42"}}`, testIndex) + "\n",
 			},
 			{
 				"with if_seq_no and if_primary_term",
 				args{BulkIndexerItem{
 					Action:        "index",
 					DocumentID:    "42",
-					Index:         "test",
+					Index:         testIndex,
 					IfSeqNum:      int64Pointer(5),
 					IfPrimaryTerm: int64Pointer(1),
 				}},
-				`{"index":{"_index":"test","_id":"42","if_seq_no":5,"if_primary_term":1}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","if_seq_no":5,"if_primary_term":1}}`, testIndex) + "\n",
 			},
 			{
 				"with version and no document, if_seq_no, and if_primary_term",
 				args{BulkIndexerItem{
 					Action:  "index",
-					Index:   "test",
+					Index:   testIndex,
 					Version: int64Pointer(23),
 				}},
-				`{"index":{"_index":"test"}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
 			},
 			{
 				"with version",
 				args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "42",
-					Index:      "test",
+					Index:      testIndex,
 					Version:    int64Pointer(24),
 				}},
-				`{"index":{"_index":"test","_id":"42","version":24}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":24}}`, testIndex) + "\n",
 			},
 			{
 				"with version and version_type",
 				args{BulkIndexerItem{
 					Action:      "index",
 					DocumentID:  "42",
-					Index:       "test",
+					Index:       testIndex,
 					Version:     int64Pointer(25),
 					VersionType: strPointer("external"),
 				}},
-				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external"}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
 			},
 			{
 				"wait_for_active_shards",
 				args{BulkIndexerItem{
 					Action:              "index",
 					DocumentID:          "42",
-					Index:               "test",
+					Index:               testIndex,
 					Version:             int64Pointer(25),
 					VersionType:         strPointer("external"),
 					WaitForActiveShards: 1,
 				}},
-				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","wait_for_active_shards":1}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":1}}`, testIndex) + "\n",
 			},
 			{
 				"wait_for_active_shards, all",
 				args{BulkIndexerItem{
 					Action:              "index",
 					DocumentID:          "42",
-					Index:               "test",
+					Index:               testIndex,
 					Version:             int64Pointer(25),
 					VersionType:         strPointer("external"),
 					WaitForActiveShards: "all",
 				}},
-				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}`, testIndex) + "\n",
 			},
 			{
 				"with retry_on_conflict",
 				args{BulkIndexerItem{
 					Action:          "index",
 					DocumentID:      "42",
-					Index:           "test",
+					Index:           testIndex,
 					Version:         int64Pointer(25),
 					VersionType:     strPointer("external"),
 					RetryOnConflict: intPointer(5),
 				}},
-				`{"index":{"_index":"test","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}` + "\n",
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}`, testIndex) + "\n",
 			},
 		}
 		for _, tt := range tests {
-			tt := tt
-
 			t.Run(tt.name, func(t *testing.T) {
 				w := &worker{
 					buf: bytes.NewBuffer(make([]byte, 0, 5e+6)),

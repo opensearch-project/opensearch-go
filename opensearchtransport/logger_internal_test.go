@@ -41,6 +41,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 )
 
 var (
@@ -50,17 +52,15 @@ var (
 
 func TestTransportLogger(t *testing.T) {
 	newRoundTripper := func() http.RoundTripper {
-		return &mockTransp{
-			RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-				return &http.Response{
-					Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-					StatusCode:    http.StatusOK,
-					ContentLength: 13,
-					Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-					Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
-				}, nil
-			},
-		}
+		return mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+				StatusCode:    http.StatusOK,
+				ContentLength: 13,
+				Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
+				Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
+			}, nil
+		})
 	}
 
 	t.Run("Defaults", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestTransportLogger(t *testing.T) {
 			// Logger: io.Discard,
 		})
 
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -107,11 +107,9 @@ func TestTransportLogger(t *testing.T) {
 	t.Run("No HTTP response", func(t *testing.T) {
 		tp, _ := New(Config{
 			URLs: []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: &mockTransp{
-				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
-					return nil, errors.New("Mock error")
-				},
-			},
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return nil, errors.New("Mock error")
+			}),
 			Logger: &TextLogger{Output: io.Discard},
 		})
 
@@ -229,7 +227,7 @@ func TestTransportLogger(t *testing.T) {
 
 		var output string
 		stripANSI := regexp.MustCompile("(?sm)\x1b\\[.+?m([^\x1b]+?)|\x1b\\[0m")
-		for _, v := range strings.Split(dst.String(), "\n") {
+		for v := range strings.SplitSeq(dst.String(), "\n") {
 			if v != "" {
 				output += stripANSI.ReplaceAllString(v, "$1")
 				if !strings.HasSuffix(output, "\n") {
@@ -250,11 +248,11 @@ func TestTransportLogger(t *testing.T) {
 			t.Errorf("Unexpected output: %s", lines[0])
 		}
 
-		if !strings.Contains(lines[1], `» {"query":"42"}`) {
+		if !strings.Contains(lines[1], `>> {"query":"42"}`) {
 			t.Errorf("Unexpected output: %s", lines[1])
 		}
 
-		if !strings.Contains(lines[2], `« {"foo":"bar"}`) {
+		if !strings.Contains(lines[2], `<< {"foo":"bar"}`) {
 			t.Errorf("Unexpected output: %s", lines[2])
 		}
 	})
@@ -323,12 +321,12 @@ func TestTransportLogger(t *testing.T) {
 			t.Fatalf("Expected 1 line, got %d", len(lines))
 		}
 
-		var j map[string]interface{}
+		var j map[string]any
 		if err := json.Unmarshal([]byte(output), &j); err != nil {
 			t.Errorf("Error decoding JSON: %s", err)
 		}
 
-		domain := j["url"].(map[string]interface{})["domain"]
+		domain := j["url"].(map[string]any)["domain"]
 		if domain != "foo" {
 			t.Errorf("Unexpected JSON output: %s", domain)
 		}
@@ -367,12 +365,12 @@ func TestTransportLogger(t *testing.T) {
 			t.Fatalf("Expected 1 line, got %d", len(lines))
 		}
 
-		var j map[string]interface{}
+		var j map[string]any
 		if err := json.Unmarshal([]byte(output), &j); err != nil {
 			t.Errorf("Error decoding JSON: %s", err)
 		}
 
-		body := j["http"].(map[string]interface{})["request"].(map[string]interface{})["body"].(string)
+		body := j["http"].(map[string]any)["request"].(map[string]any)["body"].(string)
 		if !strings.Contains(body, "query") {
 			t.Errorf("Unexpected JSON output: %s", body)
 		}

@@ -70,6 +70,10 @@ type BulkIndexerConfig struct {
 	Client      *opensearchapi.Client  // The OpenSearch client.
 	DebugLogger BulkIndexerDebugLogger // An optional logger for debugging.
 
+	// Context for worker lifecycle. If nil, context.Background() will be used.
+	//nolint:containedctx // Config struct is short-lived, context extracted during New()
+	Context context.Context
+
 	OnError      func(context.Context, error)          // Called for indexer errors.
 	OnFlushStart func(context.Context) context.Context // Called when the flush starts.
 	OnFlushEnd   func(context.Context)                 // Called when the flush ends.
@@ -113,7 +117,7 @@ type BulkIndexerItem struct {
 	VersionType         *string
 	IfSeqNum            *int64
 	IfPrimaryTerm       *int64
-	WaitForActiveShards interface{}
+	WaitForActiveShards any
 	Refresh             *string
 	RequireAlias        *bool
 	Body                io.ReadSeeker
@@ -124,22 +128,22 @@ type BulkIndexerItem struct {
 }
 
 type bulkActionMetadata struct {
-	Index               string      `json:"_index,omitempty"`
-	DocumentID          string      `json:"_id,omitempty"`
-	Routing             *string     `json:"routing,omitempty"`
-	Version             *int64      `json:"version,omitempty"`
-	VersionType         *string     `json:"version_type,omitempty"`
-	IfSeqNum            *int64      `json:"if_seq_no,omitempty"`
-	IfPrimaryTerm       *int64      `json:"if_primary_term,omitempty"`
-	WaitForActiveShards interface{} `json:"wait_for_active_shards,omitempty"`
-	Refresh             *string     `json:"refresh,omitempty"`
-	RequireAlias        *bool       `json:"require_alias,omitempty"`
-	RetryOnConflict     *int        `json:"retry_on_conflict,omitempty"`
+	Index               string  `json:"_index,omitempty"`
+	DocumentID          string  `json:"_id,omitempty"`
+	Routing             *string `json:"routing,omitempty"`
+	Version             *int64  `json:"version,omitempty"`
+	VersionType         *string `json:"version_type,omitempty"`
+	IfSeqNum            *int64  `json:"if_seq_no,omitempty"`
+	IfPrimaryTerm       *int64  `json:"if_primary_term,omitempty"`
+	WaitForActiveShards any     `json:"wait_for_active_shards,omitempty"`
+	Refresh             *string `json:"refresh,omitempty"`
+	RequireAlias        *bool   `json:"require_alias,omitempty"`
+	RetryOnConflict     *int    `json:"retry_on_conflict,omitempty"`
 }
 
 // BulkIndexerDebugLogger defines the interface for a debugging logger.
 type BulkIndexerDebugLogger interface {
-	Printf(string, ...interface{})
+	Printf(string, ...any)
 }
 
 type bulkIndexer struct {
@@ -175,6 +179,11 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		}
 	}
 
+	// Initialize context if not provided
+	if cfg.Context == nil {
+		cfg.Context = context.Background()
+	}
+
 	if cfg.NumWorkers == 0 {
 		cfg.NumWorkers = runtime.NumCPU()
 	}
@@ -193,7 +202,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		stats:  &bulkIndexerStats{},
 	}
 
-	bi.init()
+	bi.init(cfg.Context)
 
 	return &bi, nil
 }
@@ -266,7 +275,7 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 }
 
 // init initializes the bulk indexer.
-func (bi *bulkIndexer) init() {
+func (bi *bulkIndexer) init(ctx context.Context) {
 	bi.queue = make(chan BulkIndexerItem, bi.config.NumWorkers)
 
 	for i := 1; i <= bi.config.NumWorkers; i++ {
@@ -275,10 +284,10 @@ func (bi *bulkIndexer) init() {
 			ch:  bi.queue,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
-			//nolint:gomnd // Predefine the slice capacity
+			//nolint:mnd // Predefine the slice capacity
 			aux: make([]byte, 0, 512),
 		}
-		w.run()
+		w.run(ctx)
 		bi.workers = append(bi.workers, &w)
 	}
 	bi.wg.Add(bi.config.NumWorkers)
@@ -286,11 +295,12 @@ func (bi *bulkIndexer) init() {
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)
 
 	go func() {
-		ctx := context.Background()
-
 		for {
 			select {
 			case <-bi.done:
+				return
+			case <-ctx.Done():
+				// Context cancelled, stop flusher
 				return
 			case <-bi.ticker.C:
 				if bi.config.DebugLogger != nil {
@@ -328,57 +338,71 @@ type worker struct {
 }
 
 // run launches the worker in a goroutine.
-func (w *worker) run() {
+func (w *worker) run(ctx context.Context) {
 	go func() {
-		ctx := context.Background()
-
 		if w.bi.config.DebugLogger != nil {
 			w.bi.config.DebugLogger.Printf("[worker-%03d] Started\n", w.id)
 		}
 		defer w.bi.wg.Done()
 
-		for item := range w.ch {
-			w.mu.Lock()
-
-			if w.bi.config.DebugLogger != nil {
-				w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
-					item.DocumentID)
-			}
-
-			if err := w.writeMeta(item); err != nil {
-				if item.OnFailure != nil {
-					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+		for {
+			select {
+			case <-ctx.Done():
+				// Context cancelled, exit worker
+				if w.bi.config.DebugLogger != nil {
+					w.bi.config.DebugLogger.Printf("[worker-%03d] Context cancelled, stopping\n", w.id)
+				}
+				return
+			case item, ok := <-w.ch:
+				if !ok {
+					// Channel closed, exit worker
+					return
 				}
 
-				w.bi.stats.numFailed.Add(1)
-				w.mu.Unlock()
+				w.mu.Lock()
 
-				continue
-			}
-
-			if err := w.writeBody(&item); err != nil {
-				if item.OnFailure != nil {
-					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+				if w.bi.config.DebugLogger != nil {
+					w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
+						item.DocumentID)
 				}
 				w.bi.stats.numFailed.Add(1)
 				w.mu.Unlock()
 
-				continue
-			}
-
-			w.items = append(w.items, item)
-			if w.buf.Len() >= w.bi.config.FlushBytes {
-				if err := w.flush(ctx); err != nil {
-					w.mu.Unlock()
-
-					if w.bi.config.OnError != nil {
-						w.bi.config.OnError(ctx, err)
+				if err := w.writeMeta(item); err != nil {
+					if item.OnFailure != nil {
+						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 					}
+
+					atomic.AddUint64(&w.bi.stats.numFailed, 1)
+					w.mu.Unlock()
 
 					continue
 				}
+
+				if err := w.writeBody(ctx, &item); err != nil {
+					if item.OnFailure != nil {
+						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+					}
+					atomic.AddUint64(&w.bi.stats.numFailed, 1)
+					w.mu.Unlock()
+
+					continue
+				}
+
+				w.items = append(w.items, item)
+				if w.buf.Len() >= w.bi.config.FlushBytes {
+					if err := w.flush(ctx); err != nil {
+						w.mu.Unlock()
+
+						if w.bi.config.OnError != nil {
+							w.bi.config.OnError(ctx, err)
+						}
+
+						continue
+					}
+				}
+				w.mu.Unlock()
 			}
-			w.mu.Unlock()
 		}
 	}()
 }
@@ -430,21 +454,21 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 }
 
 // writeBody writes the item body to the buffer; it must be called under a lock.
-func (w *worker) writeBody(item *BulkIndexerItem) error {
+func (w *worker) writeBody(ctx context.Context, item *BulkIndexerItem) error {
 	if item.Body == nil {
 		return nil
 	}
 
 	if _, err := w.buf.ReadFrom(item.Body); err != nil {
 		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(context.Background(), err)
+			w.bi.config.OnError(ctx, err)
 		}
 		return err
 	}
 
 	if _, err := item.Body.Seek(0, io.SeekStart); err != nil {
 		if w.bi.config.OnError != nil {
-			w.bi.config.OnError(context.Background(), err)
+			w.bi.config.OnError(ctx, err)
 		}
 		return err
 	}

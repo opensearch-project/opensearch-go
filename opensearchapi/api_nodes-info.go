@@ -187,9 +187,10 @@ type NodesInfoAgg struct {
 
 // NodesInfoSearchPipelines is a sub type of NodesInfo containing information about search pipelines
 type NodesInfoSearchPipelines struct {
-	RequestProcessors  []NodesInfoType `json:"request_processors"`
-	ResponseProcessors []NodesInfoType `json:"response_processors"`
-	Processors         []NodesInfoType `json:"processors,omitempty"` // Deprecated field only available in 2.7.0
+	RequestProcessors      []NodesInfoType `json:"request_processors"`
+	ResponseProcessors     []NodesInfoType `json:"response_processors"`
+	PhaseResultsProcessors []NodesInfoType `json:"phase_results_processors,omitempty"` // Available in OpenSearch 3.1.0+
+	Processors             []NodesInfoType `json:"processors,omitempty"`               // Deprecated field only available in 2.7.0
 }
 
 // NodesInfoType is a sub type of NodesInfoIngest, NodesInfoSearchPipelines containing information about a type

@@ -10,32 +10,44 @@ package security_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
-func TestFlushCache(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	client, err := ossectest.NewClient()
-	require.Nil(t, err)
+func TestSecurityFlushCache(t *testing.T) {
+	testutil.SkipIfNotSecure(t)
+	client, err := ossectest.NewClient(t)
+	require.NoError(t, err)
 
-	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	failingClient, err := ossectest.CreateFailingClient(t)
+	require.NoError(t, err)
 
 	t.Run("without request", func(t *testing.T) {
-		resp, err := client.FlushCache(nil, nil)
-		require.Nil(t, err)
+		// FlushCache can transiently fail with "Cannot flush cache due to Failed node"
+		// when the cluster is under concurrent test load. Retry to handle this.
+		var resp security.FlushCacheResp
+		for attempt := range 3 {
+			resp, err = client.FlushCache(t.Context(), nil)
+			if err == nil {
+				break
+			}
+			t.Logf("FlushCache attempt %d failed: %v", attempt+1, err)
+			time.Sleep(2 * time.Second)
+		}
+		require.NoError(t, err)
 		assert.NotNil(t, resp)
-		ostest.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
-		res, err := failingClient.FlushCache(nil, nil)
-		assert.NotNil(t, err)
+		res, err := failingClient.FlushCache(t.Context(), nil)
+		require.Error(t, err)
 		assert.NotNil(t, res)
 		ossectest.VerifyInspect(t, res.Inspect())
 	})

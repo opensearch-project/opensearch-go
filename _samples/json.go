@@ -6,7 +6,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,12 +30,10 @@ func example() error {
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // For testing only. Use certificate for validation.
-				},
-				Addresses: []string{"https://localhost:9200"},
-				Username:  "admin", // For testing only. Don't store credentials in code.
-				Password:  "myStrongPassword123!",
+				InsecureSkipVerify: true, // For testing only. Use certificate for validation.
+				Addresses:          []string{"https://localhost:9200"},
+				Username:           "admin", // For testing only. Don't store credentials in code.
+				Password:           "myStrongPassword123!",
 			},
 		},
 	)

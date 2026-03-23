@@ -42,10 +42,12 @@ func (r ClusterPendingTasksResp) Inspect() Inspect {
 
 // ClusterPendingTasksItem is a sub type if ClusterPendingTasksResp containing information about a task
 type ClusterPendingTasksItem struct {
-	InsertOrder       int    `json:"insert_order"`
-	Priority          string `json:"priority"`
-	Source            string `json:"source"`
-	TimeInQueueMillis int    `json:"time_in_queue_millis"`
-	TimeInQueue       string `json:"time_in_queue"`
-	Executing         bool   `json:"executing"`
+	InsertOrder           int    `json:"insert_order"`
+	Priority              string `json:"priority"`
+	Source                string `json:"source"`
+	TimeInQueueMillis     int    `json:"time_in_queue_millis"`
+	TimeInQueue           string `json:"time_in_queue"`
+	TimeInExecutionMillis int    `json:"time_in_execution_millis"` // Available in OpenSearch 3.1.0+
+	TimeInExecution       string `json:"time_in_execution"`        // Available in OpenSearch 3.1.0+
+	Executing             bool   `json:"executing"`
 }

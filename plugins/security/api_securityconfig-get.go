@@ -92,6 +92,7 @@ type ConfigDynamicAuthc struct {
 			Challenge bool   `json:"challenge"`
 			Type      string `json:"type"`
 			Config    struct {
+				JwksURI                      string `json:"jwks_uri,omitempty"`
 				SigningKey                   string `json:"signing_key"`
 				JwtHeader                    string `json:"jwt_header"`
 				JwtClockSkewToleranceSeconds int    `json:"jwt_clock_skew_tolerance_seconds"`

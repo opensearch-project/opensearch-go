@@ -38,7 +38,7 @@ func TestCompress(t *testing.T) {
 
 	t.Run("gzip multiple times", func(t *testing.T) {
 		gzipCompressor := newGzipCompressor()
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			body := generateRandomString()
 			rc := io.NopCloser(strings.NewReader(body))
 
@@ -115,7 +115,7 @@ func generateRandomString() string {
 	randomBytes := make([]byte, length)
 
 	// Generate a random character from the charset for each byte in the slice
-	for i := 0; i < length; i++ {
+	for i := range length {
 		randomBytes[i] = charset[rand.Intn(len(charset))]
 	}
 

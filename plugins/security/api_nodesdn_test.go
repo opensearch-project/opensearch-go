@@ -9,38 +9,42 @@
 package security_test
 
 import (
+	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	ostest "github.com/opensearch-project/opensearch-go/v4/internal/test"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
 	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
 )
 
-func TestNodesDNClient(t *testing.T) {
-	ostest.SkipIfNotSecure(t)
-	config, err := ossectest.ClientConfig()
-	require.Nil(t, err)
+func TestSecurityNodesDNClient(t *testing.T) {
+	testutil.SkipIfNotSecure(t)
+	config := ossectest.ClientConfig(t)
 
 	clientTLSCert, err := tls.LoadX509KeyPair("../../admin.pem", "../../admin.key")
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	config.Client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-			Certificates:       []tls.Certificate{clientTLSCert},
-		},
-	}
+	config.Client.InsecureSkipVerify = true
+	tp := http.DefaultTransport.(*http.Transport).Clone()
+	tp.TLSClientConfig.Certificates = []tls.Certificate{clientTLSCert}
+	config.Client.Transport = tp
 
 	client, err := security.NewClient(*config)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	failingClient, err := ossectest.CreateFailingClient()
-	require.Nil(t, err)
+	failingClient, err := ossectest.CreateFailingClient(t)
+	require.NoError(t, err)
+
+	testCluster := testutil.MustUniqueString(t, "test-cluster")
+	t.Cleanup(func() {
+		client.NodesDN.Delete(context.Background(), security.NodesDNDeleteReq{Cluster: testCluster})
+	})
 
 	type nodesdnTests struct {
 		Name    string
@@ -58,9 +62,9 @@ func TestNodesDNClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.NodesDN.Put(
-							nil,
+							t.Context(),
 							security.NodesDNPutReq{
-								Cluster: "test",
+								Cluster: testCluster,
 								Body: security.NodesDNPutBody{
 									NodesDN: []string{"CN=test.example.com"},
 								},
@@ -71,7 +75,7 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Put(nil, security.NodesDNPutReq{})
+						return failingClient.NodesDN.Put(t.Context(), security.NodesDNPutReq{})
 					},
 				},
 			},
@@ -82,19 +86,19 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.NodesDN.Get(nil, nil)
+						return client.NodesDN.Get(t.Context(), nil)
 					},
 				},
 				{
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
-						return client.NodesDN.Get(nil, &security.NodesDNGetReq{Cluster: "test"})
+						return client.NodesDN.Get(t.Context(), &security.NodesDNGetReq{Cluster: testCluster})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Get(nil, nil)
+						return failingClient.NodesDN.Get(t.Context(), nil)
 					},
 				},
 			},
@@ -105,13 +109,13 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "without request",
 					Results: func() (ossectest.Response, error) {
-						return client.NodesDN.Delete(nil, security.NodesDNDeleteReq{Cluster: "test"})
+						return client.NodesDN.Delete(t.Context(), security.NodesDNDeleteReq{Cluster: testCluster})
 					},
 				},
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Delete(nil, security.NodesDNDeleteReq{Cluster: "test"})
+						return failingClient.NodesDN.Delete(t.Context(), security.NodesDNDeleteReq{Cluster: testCluster})
 					},
 				},
 			},
@@ -123,19 +127,19 @@ func TestNodesDNClient(t *testing.T) {
 					Name: "with request",
 					Results: func() (ossectest.Response, error) {
 						return client.NodesDN.Patch(
-							nil,
+							t.Context(),
 							security.NodesDNPatchReq{
 								Body: security.NodesDNPatchBody{
 									security.NodesDNPatchBodyItem{
 										OP:   "add",
-										Path: "/test",
+										Path: fmt.Sprintf("/%s", testCluster),
 										Value: security.NodesDNPutBody{
 											NodesDN: []string{"CN=test.example.com"},
 										},
 									},
 									security.NodesDNPatchBodyItem{
 										OP:   "remove",
-										Path: "/test",
+										Path: fmt.Sprintf("/%s", testCluster),
 									},
 								},
 							},
@@ -145,7 +149,7 @@ func TestNodesDNClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Patch(nil, security.NodesDNPatchReq{})
+						return failingClient.NodesDN.Patch(t.Context(), security.NodesDNPatchReq{})
 					},
 				},
 			},
@@ -157,15 +161,15 @@ func TestNodesDNClient(t *testing.T) {
 				t.Run(testCase.Name, func(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
-						assert.NotNil(t, err)
+						require.Error(t, err)
 						assert.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
-						require.Nil(t, err)
+						require.NoError(t, err)
 						require.NotNil(t, res)
 						assert.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
-							ostest.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
+							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
 					}
 				})
@@ -174,10 +178,10 @@ func TestNodesDNClient(t *testing.T) {
 	}
 	t.Run("ValidateResponse", func(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
-			resp, err := client.NodesDN.Get(nil, nil)
-			assert.Nil(t, err)
+			resp, err := client.NodesDN.Get(t.Context(), nil)
+			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			ostest.CompareRawJSONwithParsedJSON(t, resp.DistinguishedNames, resp.Inspect().Response)
+			testutil.CompareRawJSONwithParsedJSON(t, resp.DistinguishedNames, resp.Inspect().Response)
 		})
 	})
 }

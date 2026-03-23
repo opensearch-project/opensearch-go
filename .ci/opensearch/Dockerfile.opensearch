@@ -1,4 +1,4 @@
-ARG OPENSEARCH_VERSION
+ARG OPENSEARCH_VERSION=latest
 FROM opensearchproject/opensearch:${OPENSEARCH_VERSION}
 
 ARG opensearch_path=/usr/share/opensearch
@@ -6,22 +6,66 @@ ARG SECURE_INTEGRATION
 ENV SECURE_INTEGRATION=$SECURE_INTEGRATION
 ARG OPENSEARCH_INITIAL_ADMIN_PASSWORD
 
-# Some opensearch secuirty settings are only present since 2.8.0 and causes older versions to brake if the setting is present
-# https://apple.stackexchange.com/a/123408/11374
+# Handle plugin dependencies when removing opensearch-security
+# OpenSearch 3.x introduced plugin dependencies that prevent direct removal of opensearch-security.
+# Plugin dependency evolution:
+#   3.0.0: No dependencies - remove opensearch-security directly
+#   3.1.0-3.2.0: opensearch-anomaly-detection extends opensearch-security
+#   3.3.2: opensearch-skills extends opensearch-ml, which extends opensearch-security
+#   3.4.0+: opensearch-flow-framework also extends opensearch-security
+# We must remove plugins in dependency order (dependents first, then their dependencies).
+ARG OPENSEARCH_VERSION
 RUN if [ "$SECURE_INTEGRATION" != "true" ] ; then \
-      $opensearch_path/bin/opensearch-plugin remove opensearch-security; \
+        function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }; \
+        if [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "3.4.0") ] || [ "$OPENSEARCH_VERSION" = "latest" ]; then \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-flow-framework; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-skills; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-ml; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-anomaly-detection; \
+        elif [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "3.3.2") ]; then \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-skills; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-ml; \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-anomaly-detection; \
+        elif [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "3.1.0") ]; then \
+          $opensearch_path/bin/opensearch-plugin remove opensearch-anomaly-detection; \
+        fi; \
+        $opensearch_path/bin/opensearch-plugin remove opensearch-security; \
       else \
         $opensearch_path/opensearch-onetime-setup.sh; \
         echo "plugins.security.nodes_dn_dynamic_config_enabled: true"  | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         echo "plugins.security.unsupported.restapi.allow_securityconfig_modification: true"  | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         echo "plugins.security.ssl_cert_reload_enabled: true" | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }; \
-        if [ $(version $OPENSEARCH_VERSION) -ge $(version "2.8.0") ] || [ "$OPENSEARCH_VERSION" == "latest" ]; then \
+        # Disable audit event capture to avoid write amplification during tests. \
+        # The default (internal_opensearch) writes every API call to a security-auditlog index, \
+        # which competes with test data writes and accumulates across test runs. \
+        # Keep the audit type as-is but disable both REST and transport capture so no events are generated. \
+        # The Audit API tests (Get/Put/Patch) still work — they test the config API, not the log sink. \
+        # These opensearch.yml settings (plugins.security.audit.config.enable_{rest,transport}) \
+        # were added in the security plugin included with OpenSearch 2.4.0; older versions \
+        # (1.3.x, 2.0.x–2.3.x) do not recognize them and will fail to start. \
+        if [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "2.4.0") ] || [ "$OPENSEARCH_VERSION" = "latest" ]; then \
+          echo "plugins.security.audit.config.enable_rest: false" | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
+          echo "plugins.security.audit.config.enable_transport: false" | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
+        fi; \
+        if [ $(version ${OPENSEARCH_VERSION:-0.0.0}) -ge $(version "2.8.0") ] || [ "$OPENSEARCH_VERSION" = "latest" ]; then \
           echo "plugins.security.restapi.admin.enabled: true" | tee -a $opensearch_path/config/opensearch.yml > /dev/null; \
         fi \
       fi
 
-HEALTHCHECK --start-period=20s --interval=30s \
-  CMD curl -sf --retry 5 --max-time 5 --retry-delay 5 --retry-max-time 30 --retry-all-errors \
-  $(if $SECURE_INTEGRATION; then echo "--cert config/kirk.pem --key config/kirk-key.pem -k https://"; fi)"localhost:9200" \
-  || bash -c 'kill -s 15 -1 && (sleep 10; kill -s 9 -1)'
+# Ensure the repository mount point has correct permissions for snapshots
+RUN mkdir -p /usr/share/opensearch/mnt && chown opensearch:opensearch /usr/share/opensearch/mnt
+
+# Install iproute-tc for tc (traffic control) support.
+# Allows Makefile targets to inject network latency via tc qdisc netem.
+USER root
+RUN if command -v yum >/dev/null 2>&1; then \
+      yum install -y iproute-tc 2>/dev/null || yum install -y iproute 2>/dev/null || true; \
+    elif command -v apt-get >/dev/null 2>&1; then \
+      apt-get update -qq && apt-get install -y -qq iproute2 && rm -rf /var/lib/apt/lists/*; \
+    fi
+USER opensearch
+
+HEALTHCHECK --start-period=60s --interval=30s --timeout=10s --retries=3 \
+  CMD curl -sf --max-time 5 \
+  $(if [ "$SECURE_INTEGRATION" = "true" ]; then echo "--cert config/kirk.pem --key config/kirk-key.pem -k https://"; else echo "http://"; fi)localhost:9200/_cluster/health
