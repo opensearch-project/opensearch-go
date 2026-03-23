@@ -154,15 +154,15 @@ type bulkIndexer struct {
 }
 
 type bulkIndexerStats struct {
-	numAdded       uint64
-	numFailedToAdd uint64
-	numFlushed     uint64
-	numFailed      uint64
-	numIndexed     uint64
-	numCreated     uint64
-	numUpdated     uint64
-	numDeleted     uint64
-	numRequests    uint64
+	numAdded       atomic.Uint64
+	numFailedToAdd atomic.Uint64
+	numFlushed     atomic.Uint64
+	numFailed      atomic.Uint64
+	numIndexed     atomic.Uint64
+	numCreated     atomic.Uint64
+	numUpdated     atomic.Uint64
+	numDeleted     atomic.Uint64
+	numRequests    atomic.Uint64
 }
 
 // NewBulkIndexer creates a new bulk indexer.
@@ -204,13 +204,13 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 	select {
 	case <-ctx.Done():
-		atomic.AddUint64(&bi.stats.numFailedToAdd, 1)
+		bi.stats.numFailedToAdd.Add(1)
 		if bi.config.OnError != nil {
 			bi.config.OnError(ctx, ctx.Err())
 		}
 		return ctx.Err()
 	case bi.queue <- item:
-		atomic.AddUint64(&bi.stats.numAdded, 1)
+		bi.stats.numAdded.Add(1)
 	}
 
 	return nil
@@ -253,15 +253,15 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 // Stats returns indexer statistics.
 func (bi *bulkIndexer) Stats() BulkIndexerStats {
 	return BulkIndexerStats{
-		NumAdded:       atomic.LoadUint64(&bi.stats.numAdded),
-		NumFailedToAdd: atomic.LoadUint64(&bi.stats.numFailedToAdd),
-		NumFlushed:     atomic.LoadUint64(&bi.stats.numFlushed),
-		NumFailed:      atomic.LoadUint64(&bi.stats.numFailed),
-		NumIndexed:     atomic.LoadUint64(&bi.stats.numIndexed),
-		NumCreated:     atomic.LoadUint64(&bi.stats.numCreated),
-		NumUpdated:     atomic.LoadUint64(&bi.stats.numUpdated),
-		NumDeleted:     atomic.LoadUint64(&bi.stats.numDeleted),
-		NumRequests:    atomic.LoadUint64(&bi.stats.numRequests),
+		NumAdded:       bi.stats.numAdded.Load(),
+		NumFailedToAdd: bi.stats.numFailedToAdd.Load(),
+		NumFlushed:     bi.stats.numFlushed.Load(),
+		NumFailed:      bi.stats.numFailed.Load(),
+		NumIndexed:     bi.stats.numIndexed.Load(),
+		NumCreated:     bi.stats.numCreated.Load(),
+		NumUpdated:     bi.stats.numUpdated.Load(),
+		NumDeleted:     bi.stats.numDeleted.Load(),
+		NumRequests:    bi.stats.numRequests.Load(),
 	}
 }
 
@@ -350,7 +350,7 @@ func (w *worker) run() {
 					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 				}
 
-				atomic.AddUint64(&w.bi.stats.numFailed, 1)
+				w.bi.stats.numFailed.Add(1)
 				w.mu.Unlock()
 
 				continue
@@ -360,7 +360,7 @@ func (w *worker) run() {
 				if item.OnFailure != nil {
 					item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 				}
-				atomic.AddUint64(&w.bi.stats.numFailed, 1)
+				w.bi.stats.numFailed.Add(1)
 				w.mu.Unlock()
 
 				continue
@@ -484,7 +484,7 @@ func (w *worker) flush(ctx context.Context) error {
 		w.bi.config.DebugLogger.Printf("[worker-%03d] Flush: %s\n", w.id, w.buf.String())
 	}
 
-	atomic.AddUint64(&w.bi.stats.numRequests, 1)
+	w.bi.stats.numRequests.Add(1)
 	req := opensearchapi.BulkReq{
 		Index: w.bi.config.Index,
 		Body:  w.buf,
@@ -526,22 +526,22 @@ func (w *worker) flush(ctx context.Context) error {
 			info = v
 		}
 		if info.Error != nil || info.Status > 201 {
-			atomic.AddUint64(&w.bi.stats.numFailed, 1)
+			w.bi.stats.numFailed.Add(1)
 			if item.OnFailure != nil {
 				item.OnFailure(ctx, item, info, nil)
 			}
 		} else {
-			atomic.AddUint64(&w.bi.stats.numFlushed, 1)
+			w.bi.stats.numFlushed.Add(1)
 
 			switch op {
 			case "index":
-				atomic.AddUint64(&w.bi.stats.numIndexed, 1)
+				w.bi.stats.numIndexed.Add(1)
 			case "create":
-				atomic.AddUint64(&w.bi.stats.numCreated, 1)
+				w.bi.stats.numCreated.Add(1)
 			case "delete":
-				atomic.AddUint64(&w.bi.stats.numDeleted, 1)
+				w.bi.stats.numDeleted.Add(1)
 			case "update":
-				atomic.AddUint64(&w.bi.stats.numUpdated, 1)
+				w.bi.stats.numUpdated.Add(1)
 			}
 
 			if item.OnSuccess != nil {
@@ -554,7 +554,7 @@ func (w *worker) flush(ctx context.Context) error {
 }
 
 func (w *worker) handleBulkError(ctx context.Context, err error) error {
-	atomic.AddUint64(&w.bi.stats.numFailed, uint64(len(w.items)))
+	w.bi.stats.numFailed.Add(uint64(len(w.items)))
 
 	// info (the response item) will be empty since the bulk request failed
 	var info opensearchapi.BulkRespItem
