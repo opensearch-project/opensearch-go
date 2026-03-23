@@ -12,6 +12,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add address resolver handler to rewrite discovered node addresses before they enter the connection pool ([#822](https://github.com/opensearch-project/opensearch-go/pull/822))
 - Add client-side metrics guide covering Metrics API, ConnectionMetric, PolicySnapshot, and RouterSnapshot
+- Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling
 - Add `InsecureSkipVerify` config option to disable TLS certificate verification without constructing a custom `http.Transport`, preserving `DefaultTransport` connection pooling, HTTP/2, and timeout defaults ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add `DisableResponseBuffering` config option to skip eager `io.ReadAll` buffering of response bodies in `Perform()`, reducing per-request allocations and TTFB for proxy and streaming use cases ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add per-attempt `RequestTimeout` to bound individual HTTP round-trips, preventing indefinite hangs on stalled connections ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
@@ -158,6 +159,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Users who need access to the existing `signer/awsv2` API can still use it, however they are encouraged to migrate to `signer/aws`
 
 ### Deprecated
+
+- Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
 
 ### Removed
 

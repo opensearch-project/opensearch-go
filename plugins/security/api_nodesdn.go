@@ -24,7 +24,7 @@ func (c nodesdnClient) Get(ctx context.Context, req *NodesDNGetReq) (NodesDNGetR
 		data NodesDNGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.DistinguishedNames); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.DistinguishedNames); err != nil {
 		return data, err
 	}
 
@@ -37,7 +37,7 @@ func (c nodesdnClient) Put(ctx context.Context, req NodesDNPutReq) (NodesDNPutRe
 		data NodesDNPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -50,7 +50,7 @@ func (c nodesdnClient) Delete(ctx context.Context, req NodesDNDeleteReq) (NodesD
 		data NodesDNDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -63,7 +63,7 @@ func (c nodesdnClient) Patch(ctx context.Context, req NodesDNPatchReq) (NodesDNP
 		data NodesDNPatchResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

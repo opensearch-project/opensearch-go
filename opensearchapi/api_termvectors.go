@@ -22,7 +22,7 @@ func (c Client) Termvectors(ctx context.Context, req TermvectorsReq) (*Termvecto
 		data TermvectorsResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

@@ -415,7 +415,12 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	return c.Transport.Perform(req)
 }
 
-// Do gets and performs the request. It also tries to parse the response into the dataPointer
+// Do gets and performs the request. It also tries to parse the response into the dataPointer.
+//
+// Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
+// Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
+// unmarshaling. The method remains fully functional and will not be removed; this annotation
+// exists to steer callers toward the safer generic alternative.
 func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Response, error) {
 	httpReq, err := req.GetRequest()
 	if err != nil {
@@ -452,6 +457,12 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Respons
 	}
 
 	return response, nil
+}
+
+// Do is a generic version of [Client.Do] that enforces dataPointer as a pointer at compile time.
+// It delegates to [Client.Do] after the type system has guaranteed *T.
+func Do[T any](ctx context.Context, c *Client, req Request, dataPointer *T) (*Response, error) {
+	return c.Do(ctx, req, dataPointer)
 }
 
 // Metrics returns the client metrics.

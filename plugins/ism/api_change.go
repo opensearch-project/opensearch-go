@@ -22,7 +22,7 @@ func (c Client) Change(ctx context.Context, req ChangeReq) (ChangeResp, error) {
 		data ChangeResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 

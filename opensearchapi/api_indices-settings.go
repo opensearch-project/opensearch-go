@@ -29,7 +29,7 @@ func (c settingsClient) Get(ctx context.Context, req *SettingsGetReq) (*Settings
 		data SettingsGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -42,7 +42,7 @@ func (c settingsClient) Put(ctx context.Context, req SettingsPutReq) (*SettingsP
 		data SettingsPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
