@@ -139,7 +139,7 @@ type MappingPutReq struct {
 func (r MappingPutReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		buildPath(strings.Join(r.Indices, ","), "_mapping"),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_mapping"),
 		r.Body,
 		r.Params.get(),
 		r.Header,

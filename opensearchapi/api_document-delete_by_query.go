@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -29,7 +28,7 @@ type DocumentDeleteByQueryReq struct {
 func (r DocumentDeleteByQueryReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_delete_by_query", strings.Join(r.Indices, ",")),
+		opensearch.BuildPath(strings.Join(r.Indices, ","), "_delete_by_query"),
 		r.Body,
 		r.Params.get(),
 		r.Header,

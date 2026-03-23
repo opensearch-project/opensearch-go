@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type IndicesOpenReq struct {
 func (r IndicesOpenReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/%s/_open", r.Index),
+		opensearch.BuildPath(r.Index, "_open"),
 		nil,
 		r.Params.get(),
 		r.Header,

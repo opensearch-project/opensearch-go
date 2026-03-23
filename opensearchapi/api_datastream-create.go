@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type DataStreamCreateReq struct {
 func (r DataStreamCreateReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		fmt.Sprintf("/_data_stream/%s", r.DataStream),
+		opensearch.BuildPath("_data_stream", r.DataStream),
 		nil,
 		r.Params.get(),
 		r.Header,

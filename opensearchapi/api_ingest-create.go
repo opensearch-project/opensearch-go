@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -28,7 +27,7 @@ type IngestCreateReq struct {
 func (r IngestCreateReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"PUT",
-		fmt.Sprintf("/_ingest/pipeline/%s", r.PipelineID),
+		opensearch.BuildPath("_ingest", "pipeline", r.PipelineID),
 		r.Body,
 		r.Params.get(),
 		r.Header,

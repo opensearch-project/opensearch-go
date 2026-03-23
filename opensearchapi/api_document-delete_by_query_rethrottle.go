@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -26,7 +25,7 @@ type DocumentDeleteByQueryRethrottleReq struct {
 func (r DocumentDeleteByQueryRethrottleReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"POST",
-		fmt.Sprintf("/_delete_by_query/%s/_rethrottle", r.TaskID),
+		opensearch.BuildPath("_delete_by_query", r.TaskID, "_rethrottle"),
 		nil,
 		r.Params.get(),
 		r.Header,

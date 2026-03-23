@@ -9,7 +9,6 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -32,7 +31,7 @@ func (r ActionGroupsPutReq) GetRequest() (*http.Request, error) {
 
 	return opensearch.BuildRequest(
 		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/actiongroups/%s", r.ActionGroup),
+		opensearch.BuildPath("_plugins", "_security", "api", "actiongroups", r.ActionGroup),
 		bytes.NewReader(body),
 		make(map[string]string),
 		r.Header,

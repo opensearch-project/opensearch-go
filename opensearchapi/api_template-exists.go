@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -25,7 +24,7 @@ type TemplateExistsReq struct {
 func (r TemplateExistsReq) GetRequest() (*http.Request, error) {
 	return opensearch.BuildRequest(
 		"HEAD",
-		fmt.Sprintf("/_template/%s", r.Template),
+		opensearch.BuildPath("_template", r.Template),
 		nil,
 		r.Params.get(),
 		r.Header,
