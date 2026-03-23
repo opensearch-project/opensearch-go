@@ -373,7 +373,7 @@ func (w *worker) run(ctx context.Context) {
 						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 					}
 
-					atomic.AddUint64(&w.bi.stats.numFailed, 1)
+					w.bi.stats.numFailed.Add(1)
 					w.mu.Unlock()
 
 					continue
@@ -383,7 +383,7 @@ func (w *worker) run(ctx context.Context) {
 					if item.OnFailure != nil {
 						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
 					}
-					atomic.AddUint64(&w.bi.stats.numFailed, 1)
+					w.bi.stats.numFailed.Add(1)
 					w.mu.Unlock()
 
 					continue
