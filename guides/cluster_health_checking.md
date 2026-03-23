@@ -80,10 +80,10 @@ The capacity model values (`clientsPerServer`, `healthCheckRate`) are auto-deriv
 
 ### Configuration
 
-| Config Field                 | Default | Description                                                                                                                   |
-| ---------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `MaxRetryClusterHealth`      | `4h`    | Retry interval for re-probing unavailable nodes. `0` = use default, `<0` = disable probing entirely.                          |
-| `HealthCheckRequestModifier` | `nil`   | Callback applied to every health check request (both `GET /` and `/_cluster/health`). Use this to inject custom auth headers. |
+| Config Field | Default | Description |
+| --- | --- | --- |
+| `MaxRetryClusterHealth` | `4h` | Retry interval for re-probing unavailable nodes. `0` = use default, `<0` = disable probing entirely. |
+| `HealthCheckRequestModifier` | `nil` | Callback applied to every health check request (both `GET /` and `/_cluster/health`). Use this to inject custom auth headers. |
 
 ```go
 client, err := opensearchapi.NewClient(opensearchapi.Config{
@@ -130,11 +130,11 @@ The response is a JSON object:
 
 The `status` field reports overall cluster health:
 
-| Status   | Meaning                                                                                                        |
-| -------- | -------------------------------------------------------------------------------------------------------------- |
-| `green`  | All primary and replica shards are assigned.                                                                   |
+| Status | Meaning |
+| --- | --- |
+| `green` | All primary and replica shards are assigned. |
 | `yellow` | All primary shards are assigned, but some replicas are not. The cluster is functional but not fully redundant. |
-| `red`    | Some primary shards are unassigned. Data loss or unavailability may be occurring.                              |
+| `red` | Some primary shards are unassigned. Data loss or unavailability may be occurring. |
 
 A single-node development cluster will always report `yellow` because there is no second node to host replica shards. This is expected and does not indicate a problem.
 
@@ -150,16 +150,16 @@ The client uses poll-and-parse instead: issue the request, read the `status` fie
 
 ## HTTP Response Status Codes
 
-| HTTP Status | Meaning                                                                             |
-| ----------- | ----------------------------------------------------------------------------------- |
-| **200**     | Success. Parse the `status` and `timed_out` fields from the response body.          |
-| **400**     | Malformed request (invalid query parameters).                                       |
-| **401**     | Authentication failure: credentials are missing or invalid.                         |
-| **403**     | Authorization failure: the user is authenticated but lacks the required permission. |
-| **408**     | The request timed out. Only occurs when `wait_for_*` parameters are used.           |
-| **429**     | The node's thread pool rejected the request (server-side backpressure).             |
-| **500**     | Unexpected server error.                                                            |
-| **503**     | The node is not ready to accept requests (e.g., still starting up).                 |
+| HTTP Status | Meaning |
+| --- | --- |
+| **200** | Success. Parse the `status` and `timed_out` fields from the response body. |
+| **400** | Malformed request (invalid query parameters). |
+| **401** | Authentication failure: credentials are missing or invalid. |
+| **403** | Authorization failure: the user is authenticated but lacks the required permission. |
+| **408** | The request timed out. Only occurs when `wait_for_*` parameters are used. |
+| **429** | The node's thread pool rejected the request (server-side backpressure). |
+| **500** | Unexpected server error. |
+| **503** | The node is not ready to accept requests (e.g., still starting up). |
 
 ### Distinguishing Auth Errors from Cluster Failures
 
@@ -265,10 +265,10 @@ PUT /_plugins/_security/api/rolesmapping/health_check
 
 Before creating a custom role, check whether an existing role already provides sufficient access:
 
-| Role                           | Permissions                                         | Notes                                                                                               |
-| ------------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `cluster_monitor`              | `cluster:monitor/*`                                 | Covers health, stats, and all monitoring endpoints. Broader than necessary for health checks alone. |
-| `opensearch_dashboards_server` | Includes cluster monitoring among other privileges. | Intended for the Dashboards service account.                                                        |
+| Role | Permissions | Notes |
+| --- | --- | --- |
+| `cluster_monitor` | `cluster:monitor/*` | Covers health, stats, and all monitoring endpoints. Broader than necessary for health checks alone. |
+| `opensearch_dashboards_server` | Includes cluster monitoring among other privileges. | Intended for the Dashboards service account. |
 
 The minimal custom `health_check` role with only `cluster:monitor/health` follows the principle of least privilege.
 
@@ -276,10 +276,10 @@ The minimal custom `health_check` role with only `cluster:monitor/health` follow
 
 When a cluster transitions from no security (Security plugin disabled) to security enabled, the behavior changes:
 
-| Before security                           | After security                                                                                 |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| All requests succeed with no credentials. | Requests without valid credentials return **401**.                                             |
-| No permission checks.                     | Requests with valid credentials but missing `cluster:monitor/health` privilege return **403**. |
+| Before security | After security |
+| --- | --- |
+| All requests succeed with no credentials. | Requests without valid credentials return **401**. |
+| No permission checks. | Requests with valid credentials but missing `cluster:monitor/health` privilege return **403**. |
 
 If the client is performing health checks and the cluster enables security, health probes will begin returning 401. This is expected. The client should surface this condition clearly rather than reporting the cluster as unhealthy: the cluster is reachable, but credentials need to be configured.
 
