@@ -167,7 +167,7 @@ func TestTasksClient(t *testing.T) {
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{})
+					return failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{TaskID: "test"})
 				},
 			},
 		}

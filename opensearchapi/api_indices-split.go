@@ -26,13 +26,11 @@ type IndicesSplitReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesSplitReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath(r.Index, "_split", r.Target),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexTargetPath{Index: opensearch.Index(r.Index), Action: "_split", Target: opensearch.Index(r.Target)}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesSplitResp represents the returned struct of the index split response

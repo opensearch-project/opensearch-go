@@ -78,7 +78,10 @@ func TestSearch(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body:    strings.NewReader(""),
+		})
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -151,7 +154,9 @@ func TestSearch(t *testing.T) {
 	})
 	t.Run("request to retrieve response with routing key", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body: strings.NewReader(`{
 		  "query": {
 			"match": {
 			  "foo": "bar"
@@ -161,7 +166,8 @@ func TestSearch(t *testing.T) {
 			"foo"
 		  ],
 		  "_source": false
-		}`)})
+		}`),
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
@@ -211,7 +217,9 @@ func TestSearch(t *testing.T) {
 
 	t.Run("request with suggest", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body: strings.NewReader(`{
 			"suggest": {
 			  "text": "bar",
 			  "my-suggest": {
@@ -220,14 +228,17 @@ func TestSearch(t *testing.T) {
 				}
 			  }
 			}
-		  }`)})
+		  }`),
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 	})
 
 	t.Run("request with completion suggest", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body: strings.NewReader(`{
 			"suggest": {
 			  "my-suggest": {
 			  	"text": "bar",
@@ -237,7 +248,8 @@ func TestSearch(t *testing.T) {
 				}
 			  }
 			}
-		  }`)})
+		  }`),
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 		assert.NotEmpty(t, resp.Suggest["my-suggest"])

@@ -24,16 +24,15 @@ package opensearch
 import (
 	"io"
 	"net/http"
-	"strings"
 )
 
 const (
 	headerContentType = "Content-Type"
 )
 
-// BuildRequest is a helper function to build a http.Request
+// BuildRequest is a helper function to build an [http.Request].
 func BuildRequest(method string, path string, body io.Reader, params map[string]string, headers http.Header) (*http.Request, error) {
-	//nolint:noctx // ctx gets appended when the requests gets executet
+	//nolint:noctx // ctx gets appended when the request gets executed
 	httpReq, err := http.NewRequest(method, path, body)
 	if err != nil {
 		return nil, err
@@ -64,31 +63,4 @@ func BuildRequest(method string, path string, body io.Reader, params map[string]
 		}
 	}
 	return httpReq, nil
-}
-
-const pathSep = "/"
-
-// BuildPath constructs a URL path from segments, prefixing each non-empty
-// segment with "/". Empty segments are skipped so that callers never produce
-// the double-slash "//" that http.NewRequest misparses as an authority.
-//
-//	BuildPath("idx", "_alias", "a1")  → "/idx/_alias/a1"
-//	BuildPath("", "_alias", "a1")     → "/_alias/a1"
-//	BuildPath("", "_settings")        → "/_settings"
-func BuildPath(segments ...string) string {
-	var size int
-	for _, s := range segments {
-		if s != "" {
-			size += len(pathSep) + len(s)
-		}
-	}
-	var b strings.Builder
-	b.Grow(size)
-	for _, s := range segments {
-		if s != "" {
-			b.WriteString(pathSep)
-			b.WriteString(s)
-		}
-	}
-	return b.String()
 }

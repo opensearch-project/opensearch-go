@@ -26,21 +26,11 @@ type ScrollDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ScrollDeleteReq) GetRequest() (*http.Request, error) {
-	scrolls := strings.Join(r.ScrollIDs, ",")
-	var path strings.Builder
-	path.Grow(len("/_search/scroll/") + len(scrolls))
-	path.WriteString("/_search/scroll")
-	if len(r.ScrollIDs) > 0 {
-		path.WriteString("/")
-		path.WriteString(scrolls)
+	path, err := opensearch.ActionSuffixPath{Action: "_search/scroll", Suffix: opensearch.Suffix(strings.Join(r.ScrollIDs, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"DELETE",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodDelete, path, r.Body, r.Params.get(), r.Header)
 }
 
 // ScrollDeleteResp represents the returned struct of the index create response

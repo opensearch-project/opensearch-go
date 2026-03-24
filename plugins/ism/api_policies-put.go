@@ -30,13 +30,12 @@ func (r PoliciesPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodPut,
-		opensearch.BuildPath("_plugins", "_ism", "policies", r.Policy),
-		bytes.NewReader(body),
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.PluginPolicyPath{Plugin: "_ism", Policy: opensearch.Policy(r.Policy)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), r.Params.get(), r.Header)
 }
 
 // PoliciesPutResp represents the returned struct of the policies get response

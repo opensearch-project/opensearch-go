@@ -23,23 +23,11 @@ type SnapshotRepositoryGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SnapshotRepositoryGetReq) GetRequest() (*http.Request, error) {
-	repos := strings.Join(r.Repos, ",")
-
-	var path strings.Builder
-	path.Grow(len("/_snapshot/") + len(repos))
-	path.WriteString("/_snapshot")
-	if len(r.Repos) > 0 {
-		path.WriteString("/")
-		path.WriteString(repos)
+	path, err := opensearch.ActionSuffixPath{Action: "_snapshot", Suffix: opensearch.Suffix(strings.Join(r.Repos, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotRepositoryGetResp represents the returned struct of the index create response

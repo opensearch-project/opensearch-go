@@ -21,13 +21,12 @@ type RolesDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RolesDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath("_plugins", "_security", "api", "roles", r.Role),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "roles", Name: opensearch.Name(r.Role)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
 }
 
 // RolesDeleteResp represents the returned struct of the roles delete response

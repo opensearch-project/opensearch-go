@@ -22,21 +22,11 @@ type CatRecoveryReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r CatRecoveryReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("/_cat/recovery/") + len(indices))
-	path.WriteString("/_cat/recovery")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.ActionSuffixPath{Action: "_cat/recovery", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // CatRecoveryResp represents the returned struct of the /_cat/recovery response

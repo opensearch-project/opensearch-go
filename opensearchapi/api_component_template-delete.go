@@ -22,13 +22,12 @@ type ComponentTemplateDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ComponentTemplateDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath("_component_template", r.ComponentTemplate),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_component_template", Name: opensearch.Name(r.ComponentTemplate)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
 }
 
 // ComponentTemplateDeleteResp represents the returned struct of the _component_template delete response

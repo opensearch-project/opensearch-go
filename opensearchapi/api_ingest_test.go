@@ -62,7 +62,7 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Create(t.Context(), opensearchapi.IngestCreateReq{})
+						return failingClient.Ingest.Create(t.Context(), opensearchapi.IngestCreateReq{PipelineID: "test"})
 					},
 				},
 			},

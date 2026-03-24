@@ -40,13 +40,16 @@ type UpdateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r UpdateReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath(r.Index, "_update", r.DocumentID),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.DocumentPath{
+		Index:      opensearch.Index(r.Index),
+		Action:     "_update",
+		DocumentID: opensearch.DocumentID(r.DocumentID),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // UpdateResp represents the returned struct of the /_update response

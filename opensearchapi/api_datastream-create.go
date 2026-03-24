@@ -22,13 +22,12 @@ type DataStreamCreateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DataStreamCreateReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath("_data_stream", r.DataStream),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_data_stream", Name: opensearch.Name(r.DataStream)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, nil, r.Params.get(), r.Header)
 }
 
 // DataStreamCreateResp represents the returned struct of the _data_stream create response

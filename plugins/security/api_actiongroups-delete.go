@@ -21,13 +21,12 @@ type ActionGroupsDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ActionGroupsDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath("_plugins", "_security", "api", "actiongroups", r.ActionGroup),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "actiongroups", Name: opensearch.Name(r.ActionGroup)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
 }
 
 // ActionGroupsDeleteResp represents the returned struct of the actiongroups delete response
