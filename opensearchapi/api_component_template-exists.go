@@ -22,11 +22,10 @@ type ComponentTemplateExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ComponentTemplateExistsReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"HEAD",
-		opensearch.BuildPath("_component_template", r.ComponentTemplate),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_component_template", Name: opensearch.Name(r.ComponentTemplate)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
 }

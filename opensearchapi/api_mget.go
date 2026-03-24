@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -41,20 +40,11 @@ type MGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("//_mget") + len(r.Index))
-	if len(r.Index) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Index)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(r.Index), Action: "_mget"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_mget")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MGetResp represents the returned struct of the /_mget response

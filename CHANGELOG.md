@@ -20,6 +20,11 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
 - Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
 - opensearchapi/testutil package with test suite, client helpers, and JSON comparison utilities
+- Add typed path segment types and struct-per-shape path builders for compile-time URL construction safety ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+  - Domain types: `Index`, `Indices`, `Action`, `DocumentID`, `Alias`, `Repo`, `Snapshot`, `NodeID`, `Plugin`, `Policy`, `Block`, `Prefix`, `Suffix`, `Name`, `Resource`, `Attr`, `Value`, `Metric`, `IndexMetric`, `Metrics`, `NodeFilter`
+  - 25 path builder structs: `IndexPath`, `DocumentPath`, `IndicesActionPath`, `AliasPath`, `SnapshotPath`, `NodesPath`, `PluginResourcePath`, `PrefixActionPath`, `ActionSuffixPath`, etc.
+  - `ToIndices([]string)` and `MustBuild()` helpers
+  - Published API types in `opensearchapi/` and `plugins/` remain `string`/`[]string`; casts to domain types happen internally in `GetRequest()` methods
 - opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
 - Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))
@@ -169,6 +174,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix pool replacement orphaning resurrection goroutines during node discovery, causing connections to become permanently dead with no active health checker ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
+- Fix URL path construction across 74 `GetRequest` methods where empty path segments produced a double-slash `//` that `http.NewRequest` misparsed as an RFC 3986 authority separator; replace manual `strings.Builder` paths with typed path builder structs that reject empty required segments ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix alias, mapping, settings, and block API URL path construction when Indices is empty, which caused `http.NewRequest` to misparse the double-slash as an authority separator ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix URL path construction across 74 `GetRequest` methods where empty path segments produced a double-slash `//` that `http.NewRequest` misparsed as an RFC 3986 authority separator; extract `opensearch.BuildPath` helper to prevent the class of bug ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))

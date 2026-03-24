@@ -10,7 +10,6 @@ package opensearchapi_test
 
 import (
 	"context"
-	"net/http"
 	"strings"
 	"testing"
 
@@ -35,12 +34,8 @@ func TestIndexClient(t *testing.T) {
 	t.Run("Request Empty", func(t *testing.T) {
 		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{})
 		require.Error(t, err)
-		var osError *opensearch.StringError
-		require.ErrorAs(t, err, &osError)
-		assert.Equal(t, http.StatusMethodNotAllowed, osError.Status)
-		assert.Contains(t, osError.Err, "Incorrect HTTP method for uri")
+		require.ErrorIs(t, err, opensearch.ErrPathRequired)
 		assert.NotNil(t, resp)
-		assert.NotNil(t, resp.Inspect())
 	})
 
 	t.Run("Request Index only", func(t *testing.T) {

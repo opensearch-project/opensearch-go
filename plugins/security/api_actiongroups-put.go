@@ -29,13 +29,12 @@ func (r ActionGroupsPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath("_plugins", "_security", "api", "actiongroups", r.ActionGroup),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "actiongroups", Name: opensearch.Name(r.ActionGroup)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // ActionGroupsPutResp represents the returned struct of the actiongroups put response

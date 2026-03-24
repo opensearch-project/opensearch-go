@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -30,17 +29,14 @@ func (r RolesMappingPatchReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/rolesmapping/") + len(r.Role))
-	path.WriteString("/_plugins/_security/api/rolesmapping")
-	if len(r.Role) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Role)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/rolesmapping", Suffix: opensearch.Suffix(r.Role)}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"PATCH",
-		path.String(),
+		http.MethodPatch,
+		path,
 		bytes.NewReader(body),
 		make(map[string]string),
 		r.Header,

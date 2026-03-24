@@ -42,22 +42,12 @@ type ExplainReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ExplainReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("/_plugins/_ism/explain/") + len(indices))
-	path.WriteString("/_plugins/_ism/explain")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_ism/explain", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodGet,
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // ExplainResp represents the returned struct of the explain policy response

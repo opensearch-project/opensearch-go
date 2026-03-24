@@ -26,13 +26,16 @@ type IndexTemplateSimulateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndexTemplateSimulateReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath("_index_template", "_simulate", r.IndexTemplate),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.PrefixActionSuffixPath{
+		Prefix: "_index_template",
+		Action: "_simulate",
+		Suffix: opensearch.Suffix(r.IndexTemplate),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndexTemplateSimulateResp represents the returned struct of the index create response

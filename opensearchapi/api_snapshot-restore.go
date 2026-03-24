@@ -26,13 +26,16 @@ type SnapshotRestoreReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SnapshotRestoreReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath("_snapshot", r.Repo, r.Snapshot, "_restore"),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.SnapshotActionPath{
+		Repo:     opensearch.Repo(r.Repo),
+		Snapshot: opensearch.Snapshot(r.Snapshot),
+		Action:   "_restore",
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // SnapshotRestoreResp represents the returned struct of the index create response

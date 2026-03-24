@@ -22,13 +22,12 @@ type IndicesDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath(strings.Join(r.Indices, ",")),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexPath{Index: opensearch.Index(strings.Join(r.Indices, ","))}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesDeleteResp represents the returned struct of the delete indices response

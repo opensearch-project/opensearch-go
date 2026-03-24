@@ -22,11 +22,10 @@ type IndexTemplateExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndexTemplateExistsReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"HEAD",
-		opensearch.BuildPath("_index_template", r.IndexTemplate),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_index_template", Name: opensearch.Name(r.IndexTemplate)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
 }

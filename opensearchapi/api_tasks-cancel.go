@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -24,21 +23,11 @@ type TasksCancelReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r TasksCancelReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_tasks//_cancel") + len(r.TaskID))
-	path.WriteString("/_tasks")
-	if r.TaskID != "" {
-		path.WriteString("/")
-		path.WriteString(r.TaskID)
+	path, err := opensearch.PrefixSuffixActionPath{Prefix: "_tasks", Suffix: opensearch.Suffix(r.TaskID), Action: "_cancel"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_cancel")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // TasksCancelResp represents the returned struct of the index create response
