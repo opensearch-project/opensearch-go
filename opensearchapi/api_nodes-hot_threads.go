@@ -23,22 +23,12 @@ type NodesHotThreadsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r NodesHotThreadsReq) GetRequest() (*http.Request, error) {
-	nodes := strings.Join(r.NodeID, ",")
-
-	var path strings.Builder
-	path.Grow(len("/_nodes//hot_threads") + len(nodes))
-	path.WriteString("/_nodes/")
-	if len(r.NodeID) > 0 {
-		path.WriteString(nodes)
-		path.WriteString("/")
+	path, err := opensearch.NodesPath{
+		NodeID: opensearch.NodeID(strings.Join(r.NodeID, ",")),
+		Action: "hot_threads",
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("hot_threads")
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }

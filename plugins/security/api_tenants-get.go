@@ -8,7 +8,6 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -22,17 +21,14 @@ type TenantsGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r TenantsGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/tenants/") + len(r.Tenant))
-	path.WriteString("/_plugins/_security/api/tenants")
-	if len(r.Tenant) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Tenant)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/tenants", Suffix: opensearch.Suffix(r.Tenant)}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+		http.MethodGet,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

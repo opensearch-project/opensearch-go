@@ -21,13 +21,12 @@ type NodesDNDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r NodesDNDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath("_plugins", "_security", "api", "nodesdn", r.Cluster),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "nodesdn", Name: opensearch.Name(r.Cluster)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
 }
 
 // NodesDNDeleteResp represents the returned struct of the nodesdn delete response

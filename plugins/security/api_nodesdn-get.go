@@ -8,7 +8,6 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -21,17 +20,14 @@ type NodesDNGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r NodesDNGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/nodesdn/") + len(r.Cluster))
-	path.WriteString("/_plugins/_security/api/nodesdn")
-	if len(r.Cluster) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Cluster)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/nodesdn", Suffix: opensearch.Suffix(r.Cluster)}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+		http.MethodGet,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

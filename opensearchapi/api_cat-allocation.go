@@ -22,21 +22,11 @@ type CatAllocationReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r CatAllocationReq) GetRequest() (*http.Request, error) {
-	nodes := strings.Join(r.NodeIDs, ",")
-	var path strings.Builder
-	path.Grow(len("/_cat/allocation/") + len(nodes))
-	path.WriteString("/_cat/allocation")
-	if len(r.NodeIDs) > 0 {
-		path.WriteString("/")
-		path.WriteString(nodes)
+	path, err := opensearch.ActionSuffixPath{Action: "_cat/allocation", Suffix: opensearch.Suffix(strings.Join(r.NodeIDs, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // CatAllocationsResp represents the returned struct of the /_cat/allocation response

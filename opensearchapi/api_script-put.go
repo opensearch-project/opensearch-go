@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -27,22 +26,15 @@ type ScriptPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ScriptPutReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_scripts//") + len(r.ScriptID) + len(r.ScriptContext))
-	path.WriteString("/_scripts/")
-	path.WriteString(r.ScriptID)
-	if r.ScriptContext != "" {
-		path.WriteString("/")
-		path.WriteString(r.ScriptContext)
+	path, err := opensearch.PrefixActionSuffixPath{
+		Prefix: "_scripts",
+		Action: opensearch.Action(r.ScriptID),
+		Suffix: opensearch.Suffix(r.ScriptContext),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"PUT",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // ScriptPutResp represents the returned struct of the put script response

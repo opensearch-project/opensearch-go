@@ -94,7 +94,10 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Document.Exists(t.Context(), opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
+						resp.Response, err = client.Document.Exists(
+							t.Context(),
+							opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID},
+						)
 						return resp, err
 					},
 				},
@@ -105,7 +108,10 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Document.Exists(t.Context(), opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
+						resp.Response, err = failingClient.Document.Exists(
+							t.Context(),
+							opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID},
+						)
 						return resp, err
 					},
 				},

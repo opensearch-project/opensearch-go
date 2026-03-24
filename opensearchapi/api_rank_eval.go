@@ -41,21 +41,11 @@ type RankEvalReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RankEvalReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("//_rank_eval") + len(indices))
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_rank_eval"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_rank_eval")
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, r.Body, r.Params.get(), r.Header)
 }
 
 // RankEvalResp represents the returned struct of the /_rank_eval response

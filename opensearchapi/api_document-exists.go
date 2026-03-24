@@ -23,11 +23,14 @@ type DocumentExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentExistsReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"HEAD",
-		opensearch.BuildPath(r.Index, "_doc", r.DocumentID),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.DocumentPath{
+		Index:      opensearch.Index(r.Index),
+		Action:     "_doc",
+		DocumentID: opensearch.DocumentID(r.DocumentID),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
 }

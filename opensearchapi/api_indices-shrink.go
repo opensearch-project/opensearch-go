@@ -26,13 +26,11 @@ type IndicesShrinkReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesShrinkReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath(r.Index, "_shrink", r.Target),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexTargetPath{Index: opensearch.Index(r.Index), Action: "_shrink", Target: opensearch.Index(r.Target)}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesShrinkResp represents the returned struct of the index shrink response

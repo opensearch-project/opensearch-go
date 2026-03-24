@@ -22,13 +22,12 @@ type ScriptDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ScriptDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath("_scripts", r.ScriptID),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_scripts", Name: opensearch.Name(r.ScriptID)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
 }
 
 // ScriptDeleteResp represents the returned struct of the delete script response

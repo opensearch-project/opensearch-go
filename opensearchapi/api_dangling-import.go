@@ -22,13 +22,12 @@ type DanglingImportReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DanglingImportReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath("_dangling", r.IndexUUID),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_dangling", Name: opensearch.Name(r.IndexUUID)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // DanglingImportResp represents the returned struct of thedangling import response

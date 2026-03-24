@@ -25,27 +25,15 @@ type IndicesStatsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesStatsReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	metrics := strings.Join(r.Metrics, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(metrics))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionSuffixPath{
+		Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")),
+		Action: "_stats",
+		Suffix: opensearch.Suffix(strings.Join(r.Metrics, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_stats")
-	if len(metrics) > 0 {
-		path.WriteString("/")
-		path.WriteString(metrics)
-	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesStatsResp represents the returned struct of the index shrink response

@@ -33,7 +33,9 @@ func TestClusterClient(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-cluster-indices")
 	indexWithUnassigned := testutil.MustUniqueString(t, "test-cluster-unassigned")
 	t.Cleanup(func() {
-		client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: []string{index, indexWithUnassigned}})
+		client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{
+			Indices: []string{index, indexWithUnassigned},
+		})
 	})
 
 	// Create a regular index

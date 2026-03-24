@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -30,21 +29,11 @@ func (r ActionGroupsPatchReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/actiongroups/") + len(r.ActionGroup))
-	path.WriteString("/_plugins/_security/api/actiongroups")
-	if len(r.ActionGroup) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.ActionGroup)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/actiongroups", Suffix: opensearch.Suffix(r.ActionGroup)}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"PATCH",
-		path.String(),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPatch, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // ActionGroupsPatchResp represents the returned struct of the actiongroups patch response

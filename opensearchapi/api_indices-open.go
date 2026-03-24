@@ -22,13 +22,11 @@ type IndicesOpenReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesOpenReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath(r.Index, "_open"),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexActionPath{Index: opensearch.Index(r.Index), Action: "_open"}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesOpenResp represents the returned struct of the index open response

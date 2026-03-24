@@ -68,7 +68,7 @@ func TestSecurityRolesClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Roles.Put(t.Context(), security.RolesPutReq{})
+						return failingClient.Roles.Put(t.Context(), security.RolesPutReq{Role: "test"})
 					},
 				},
 			},

@@ -22,11 +22,10 @@ type IndicesExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesExistsReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"HEAD",
-		opensearch.BuildPath(strings.Join(r.Indices, ",")),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexPath{Index: opensearch.Index(strings.Join(r.Indices, ","))}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
 }

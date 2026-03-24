@@ -60,27 +60,15 @@ type SettingsGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SettingsGetReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	settings := strings.Join(r.Settings, ",")
-
-	var path strings.Builder
-	path.Grow(11 + len(indices) + len(settings))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionSuffixPath{
+		Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")),
+		Action: "_settings",
+		Suffix: opensearch.Suffix(strings.Join(r.Settings, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_settings")
-	if len(settings) > 0 {
-		path.WriteString("/")
-		path.WriteString(settings)
-	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // SettingsGetResp represents the returned struct of the settings get response
@@ -125,13 +113,12 @@ type SettingsPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SettingsPutReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath(strings.Join(r.Indices, ","), "_settings"),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndicesActionPath{Indices: opensearch.ToIndices(r.Indices), Action: "_settings"}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // SettingsPutResp represents the returned struct of the settings put response

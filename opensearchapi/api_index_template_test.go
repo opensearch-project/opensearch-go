@@ -151,7 +151,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.SimulateIndex(t.Context(), opensearchapi.IndexTemplateSimulateIndexReq{})
+						return failingClient.IndexTemplate.SimulateIndex(t.Context(), opensearchapi.IndexTemplateSimulateIndexReq{Index: "test"})
 					},
 				},
 			},

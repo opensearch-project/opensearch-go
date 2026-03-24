@@ -11,7 +11,6 @@ package opensearchapi_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -45,8 +44,8 @@ func TestAliasPutReq_GetRequest_URLPath(t *testing.T) {
 			httpReq, err := tt.req.GetRequest()
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
-			assert.Equal(t, tt.wantPath, httpReq.URL.Path)
-			assert.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
+			require.Equal(t, tt.wantPath, httpReq.URL.Path)
+			require.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
 		})
 	}
 }
@@ -79,8 +78,8 @@ func TestAliasGetReq_GetRequest_URLPath(t *testing.T) {
 			httpReq, err := tt.req.GetRequest()
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
-			assert.Equal(t, tt.wantPath, httpReq.URL.Path)
-			assert.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
+			require.Equal(t, tt.wantPath, httpReq.URL.Path)
+			require.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
 		})
 	}
 }
@@ -108,8 +107,8 @@ func TestAliasDeleteReq_GetRequest_URLPath(t *testing.T) {
 			httpReq, err := tt.req.GetRequest()
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
-			assert.Equal(t, tt.wantPath, httpReq.URL.Path)
-			assert.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
+			require.Equal(t, tt.wantPath, httpReq.URL.Path)
+			require.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
 		})
 	}
 }
@@ -137,8 +136,8 @@ func TestAliasExistsReq_GetRequest_URLPath(t *testing.T) {
 			httpReq, err := tt.req.GetRequest()
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
-			assert.Equal(t, tt.wantPath, httpReq.URL.Path)
-			assert.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
+			require.Equal(t, tt.wantPath, httpReq.URL.Path)
+			require.Empty(t, httpReq.URL.Host, "host should not be set from path parsing")
 		})
 	}
 }

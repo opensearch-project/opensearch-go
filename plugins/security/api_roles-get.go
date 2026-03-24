@@ -8,7 +8,6 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -22,17 +21,14 @@ type RolesGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RolesGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/roles/") + len(r.Role))
-	path.WriteString("/_plugins/_security/api/roles")
-	if len(r.Role) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Role)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/roles", Suffix: opensearch.Suffix(r.Role)}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+		http.MethodGet,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

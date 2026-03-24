@@ -29,13 +29,12 @@ func (r InternalUsersPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath("_plugins", "_security", "api", "internalusers", r.User),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "internalusers", Name: opensearch.Name(r.User)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // InternalUsersPutBody represents the request body for InternalUsersPutReq

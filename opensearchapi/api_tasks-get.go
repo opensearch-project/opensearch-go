@@ -23,13 +23,12 @@ type TasksGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r TasksGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
-		opensearch.BuildPath("_tasks", r.TaskID),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_tasks", Name: opensearch.Name(r.TaskID)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // TasksGetResp represents the returned struct of the index create response

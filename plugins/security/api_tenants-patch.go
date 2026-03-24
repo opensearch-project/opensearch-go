@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -30,17 +29,14 @@ func (r TenantsPatchReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/tenants/") + len(r.Tenant))
-	path.WriteString("/_plugins/_security/api/tenants")
-	if len(r.Tenant) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Tenant)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/tenants", Suffix: opensearch.Suffix(r.Tenant)}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"PATCH",
-		path.String(),
+		http.MethodPatch,
+		path,
 		bytes.NewReader(body),
 		make(map[string]string),
 		r.Header,

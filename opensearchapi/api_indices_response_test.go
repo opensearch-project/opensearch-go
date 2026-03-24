@@ -556,8 +556,8 @@ func TestMappingFieldReq_GetRequest(t *testing.T) {
 		}
 		httpReq, err := req.GetRequest()
 		require.NoError(t, err)
-		assert.Equal(t, "GET", httpReq.Method)
-		assert.Equal(t, "/test-index/_mapping/field/test_field", httpReq.URL.Path)
+		require.Equal(t, "GET", httpReq.Method)
+		require.Equal(t, "/test-index/_mapping/field/test_field", httpReq.URL.Path)
 	})
 
 	t.Run("with wildcard field", func(t *testing.T) {
@@ -567,30 +567,30 @@ func TestMappingFieldReq_GetRequest(t *testing.T) {
 		}
 		httpReq, err := req.GetRequest()
 		require.NoError(t, err)
-		assert.Equal(t, "GET", httpReq.Method)
-		assert.Equal(t, "/test-index/_mapping/field/*", httpReq.URL.Path)
+		require.Equal(t, "GET", httpReq.Method)
+		require.Equal(t, "/test-index/_mapping/field/*", httpReq.URL.Path)
 	})
 
-	t.Run("with empty fields creates invalid path", func(t *testing.T) {
+	t.Run("with empty fields omits suffix", func(t *testing.T) {
 		req := opensearchapi.MappingFieldReq{
 			Indices: []string{"test-index"},
 			Fields:  []string{},
 		}
 		httpReq, err := req.GetRequest()
 		require.NoError(t, err)
-		// Empty fields results in path ending with slash - invalid OpenSearch API call
-		assert.Equal(t, "/test-index/_mapping/field/", httpReq.URL.Path)
+		// Empty fields are omitted rather than producing a trailing slash
+		require.Equal(t, "/test-index/_mapping/field", httpReq.URL.Path)
 	})
 
-	t.Run("with nil fields creates invalid path", func(t *testing.T) {
+	t.Run("with nil fields omits suffix", func(t *testing.T) {
 		req := opensearchapi.MappingFieldReq{
 			Indices: []string{"test-index"},
 			Fields:  nil,
 		}
 		httpReq, err := req.GetRequest()
 		require.NoError(t, err)
-		// Nil fields results in path ending with slash - invalid OpenSearch API call
-		assert.Equal(t, "/test-index/_mapping/field/", httpReq.URL.Path)
+		// Nil fields are omitted rather than producing a trailing slash
+		require.Equal(t, "/test-index/_mapping/field", httpReq.URL.Path)
 	})
 
 	t.Run("without indices", func(t *testing.T) {
@@ -599,8 +599,8 @@ func TestMappingFieldReq_GetRequest(t *testing.T) {
 		}
 		httpReq, err := req.GetRequest()
 		require.NoError(t, err)
-		assert.Equal(t, "GET", httpReq.Method)
+		require.Equal(t, "GET", httpReq.Method)
 		// Without indices, queries all indices
-		assert.Equal(t, "/_mapping/field/test_field", httpReq.URL.Path)
+		require.Equal(t, "/_mapping/field/test_field", httpReq.URL.Path)
 	})
 }

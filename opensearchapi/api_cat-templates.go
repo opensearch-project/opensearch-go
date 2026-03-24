@@ -22,21 +22,11 @@ type CatTemplatesReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r CatTemplatesReq) GetRequest() (*http.Request, error) {
-	templates := strings.Join(r.Templates, ",")
-	var path strings.Builder
-	path.Grow(len("/_cat/templates/") + len(templates))
-	path.WriteString("/_cat/templates")
-	if len(r.Templates) > 0 {
-		path.WriteString("/")
-		path.WriteString(templates)
+	path, err := opensearch.ActionSuffixPath{Action: "_cat/templates", Suffix: opensearch.Suffix(strings.Join(r.Templates, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // CatTemplatesResp represents the returned struct of the /_cat/templates response

@@ -21,13 +21,12 @@ type PoliciesDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r PoliciesDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		http.MethodDelete,
-		opensearch.BuildPath("_plugins", "_ism", "policies", r.Policy),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginPolicyPath{Plugin: "_ism", Policy: opensearch.Policy(r.Policy)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
 }
 
 // PoliciesDeleteResp represents the returned struct of the policies get response

@@ -26,22 +26,11 @@ type IndicesValidateQueryReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesValidateQueryReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(17 + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_validate/query"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_validate/query")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesValidateQueryResp represents the returned struct of the index shrink response

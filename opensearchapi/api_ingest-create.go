@@ -25,13 +25,12 @@ type IngestCreateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IngestCreateReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath("_ingest", "pipeline", r.PipelineID),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourceActionPath{Prefix: "_ingest", Name: "pipeline", Action: opensearch.Action(r.PipelineID)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IngestCreateResp represents the returned struct of the index create response

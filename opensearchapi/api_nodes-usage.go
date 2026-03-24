@@ -25,31 +25,15 @@ type NodesUsageReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r NodesUsageReq) GetRequest() (*http.Request, error) {
-	nodes := strings.Join(r.NodeID, ",")
-	metrics := strings.Join(r.Metrics, ",")
-
-	var path strings.Builder
-
-	path.Grow(len("/_nodes//usage/") + len(nodes) + len(metrics))
-
-	path.WriteString("/_nodes")
-	if len(r.NodeID) > 0 {
-		path.WriteString("/")
-		path.WriteString(nodes)
+	path, err := opensearch.NodesPath{
+		NodeID: opensearch.NodeID(strings.Join(r.NodeID, ",")),
+		Action: "usage",
+		Metric: opensearch.Metric(strings.Join(r.Metrics, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/usage")
-	if len(r.Metrics) > 0 {
-		path.WriteString("/")
-		path.WriteString(metrics)
-	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // NodesUsageResp represents the returned struct of the /_nodes response

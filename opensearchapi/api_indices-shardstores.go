@@ -24,22 +24,11 @@ type IndicesShardStoresReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesShardStoresReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(15 + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_shard_stores"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_shard_stores")
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesShardStoresResp represents the returned struct of the index shrink response

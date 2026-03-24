@@ -24,13 +24,16 @@ type DocumentGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
-		opensearch.BuildPath(r.Index, "_doc", r.DocumentID),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.DocumentPath{
+		Index:      opensearch.Index(r.Index),
+		Action:     "_doc",
+		DocumentID: opensearch.DocumentID(r.DocumentID),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // DocumentGetResp represents the returned struct of the /<Index>/_doc/<DocumentID> get response

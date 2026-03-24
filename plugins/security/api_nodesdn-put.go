@@ -29,13 +29,12 @@ func (r NodesDNPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath("_plugins", "_security", "api", "nodesdn", r.Cluster),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "nodesdn", Name: opensearch.Name(r.Cluster)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // NodesDNPutBody reperensts the request body for NodesDNPutReq

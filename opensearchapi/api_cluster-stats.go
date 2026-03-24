@@ -24,23 +24,11 @@ type ClusterStatsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ClusterStatsReq) GetRequest() (*http.Request, error) {
-	filters := strings.Join(r.NodeFilters, ",")
-
-	var path strings.Builder
-	path.Grow(22 + len(filters))
-	path.WriteString("/_cluster/stats")
-	if len(filters) > 0 {
-		path.WriteString("/nodes/")
-		path.WriteString(filters)
+	path, err := opensearch.ClusterStatsPath{NodeFilter: opensearch.NodeFilter(strings.Join(r.NodeFilters, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // ClusterStatsResp represents the returned struct of the ClusterStatsReq response

@@ -79,7 +79,7 @@ func TestSecurityRolesMappingClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.RolesMapping.Put(t.Context(), security.RolesMappingPutReq{})
+						return failingClient.RolesMapping.Put(t.Context(), security.RolesMappingPutReq{Role: "test"})
 					},
 				},
 			},

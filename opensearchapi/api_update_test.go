@@ -66,7 +66,7 @@ func TestUpdate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Update(t.Context(), opensearchapi.UpdateReq{})
+		res, err := failingClient.Update(t.Context(), opensearchapi.UpdateReq{Index: "test", DocumentID: "test"})
 		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

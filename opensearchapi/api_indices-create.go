@@ -23,13 +23,11 @@ type IndicesCreateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesCreateReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath(r.Index),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexPath{Index: opensearch.Index(r.Index)}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesCreateResp represents the returned struct of the index create response

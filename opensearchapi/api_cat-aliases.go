@@ -22,21 +22,11 @@ type CatAliasesReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r CatAliasesReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Aliases, ",")
-	var path strings.Builder
-	path.Grow(len("/_cat/aliases/") + len(aliases))
-	path.WriteString("/_cat/aliases")
-	if len(r.Aliases) > 0 {
-		path.WriteString("/")
-		path.WriteString(aliases)
+	path, err := opensearch.ActionSuffixPath{Action: "_cat/aliases", Suffix: opensearch.Suffix(strings.Join(r.Aliases, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // CatAliasesResp represents the returned struct of the /_cat/aliases response

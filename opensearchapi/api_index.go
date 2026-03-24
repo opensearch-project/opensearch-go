@@ -38,21 +38,31 @@ type IndexReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndexReq) GetRequest() (*http.Request, error) {
-	var method string
+	var (
+		method string
+		path   string
+		err    error
+	)
 
 	if r.DocumentID != "" {
-		method = "PUT"
+		method = http.MethodPut
+		path, err = opensearch.DocumentPath{
+			Index:      opensearch.Index(r.Index),
+			Action:     "_doc",
+			DocumentID: opensearch.DocumentID(r.DocumentID),
+		}.Build()
 	} else {
-		method = "POST"
+		method = http.MethodPost
+		path, err = opensearch.IndexActionPath{
+			Index:  opensearch.Index(r.Index),
+			Action: "_doc",
+		}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		method,
-		opensearch.BuildPath(r.Index, "_doc", r.DocumentID),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndexResp represents the returned struct of the /_doc response

@@ -29,13 +29,12 @@ func (r RolesMappingPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		opensearch.BuildPath("_plugins", "_security", "api", "rolesmapping", r.Role),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "rolesmapping", Name: opensearch.Name(r.Role)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // RolesMappingPutBody represents the request body for RolesMappingPutReq

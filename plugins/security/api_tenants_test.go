@@ -63,7 +63,7 @@ func TestSecurityTenantsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.Tenants.Put(t.Context(), security.TenantsPutReq{})
+						return failingClient.Tenants.Put(t.Context(), security.TenantsPutReq{Tenant: "test"})
 					},
 				},
 			},

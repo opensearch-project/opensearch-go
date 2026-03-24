@@ -26,22 +26,11 @@ type IndicesFieldCapsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesFieldCapsReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(10 + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_field_caps"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_field_caps")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesFieldCapsResp represents the returned struct of the index shrink response

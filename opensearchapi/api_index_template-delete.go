@@ -22,13 +22,12 @@ type IndexTemplateDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndexTemplateDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		opensearch.BuildPath("_index_template", r.IndexTemplate),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_index_template", Name: opensearch.Name(r.IndexTemplate)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
 }
 
 // IndexTemplateDeleteResp represents the returned struct of the index create response

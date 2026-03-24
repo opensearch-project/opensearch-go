@@ -22,13 +22,12 @@ type SnapshotRepositoryVerifyReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SnapshotRepositoryVerifyReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		opensearch.BuildPath("_snapshot", r.Repo, "_verify"),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourceActionPath{Prefix: "_snapshot", Name: opensearch.Name(r.Repo), Action: "_verify"}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotRepositoryVerifyResp represents the returned struct of the index create response
