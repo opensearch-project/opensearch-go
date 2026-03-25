@@ -22,6 +22,13 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
+// discoveryPause is the delay between DiscoverNodes calls in retry loops.
+// Each DiscoverNodes creates a new pool generation and cancels the previous
+// generation's context. Resurrection goroutines from the old generation need
+// time to exit before the next cycle; this pause ensures they process the
+// context cancellation and clean up checkStartedAt state.
+const discoveryPause = 500 * time.Millisecond
+
 // rotationObserver records standby promotion and demotion events using the
 // ConnectionObserver interface. This gives deterministic visibility into
 // rotation behavior without relying on which node happens to serve a request
@@ -183,6 +190,14 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 		if err != nil {
 			lastErr = err
 			t.Logf("Discovery attempt %d failed: %v", attempt, err)
+			// Brief pause before retry — gives resurrection goroutines
+			// time to complete health checks before the next DiscoverNodes
+			// replaces the pool and cancels the old generation's context.
+			select {
+			case <-ctx.Done():
+				return m
+			case <-time.After(discoveryPause):
+			}
 			continue
 		}
 		lastErr = nil
@@ -199,6 +214,14 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 
 		if m.StandbyConnections >= 2 {
 			return m
+		}
+
+		// Pause between cycles — gives resurrection goroutines time to
+		// process context cancellation before the next DiscoverNodes.
+		select {
+		case <-ctx.Done():
+			return m
+		case <-time.After(discoveryPause):
 		}
 	}
 
@@ -333,6 +356,7 @@ func TestStandbyRotation(t *testing.T) {
 			err := transport.DiscoverNodes(t.Context())
 			if err != nil {
 				t.Logf("Rotation attempt %d: discovery failed: %v", attempt+1, err)
+				time.Sleep(discoveryPause)
 				continue
 			}
 			drainWarmup(transport)
@@ -345,6 +369,7 @@ func TestStandbyRotation(t *testing.T) {
 			if promotions > basePromotions && demotions > baseDemotions {
 				break
 			}
+			time.Sleep(discoveryPause)
 		}
 
 		// Rotation should have occurred: observer recorded new promotion + demotion events.
@@ -408,7 +433,20 @@ func TestStandbyRotation(t *testing.T) {
 		//  2. Call DiscoverNodes which triggers rotateStandbyConnections at the end.
 		//  3. Drain warmup so deferredCapEnforcement can fire.
 		//  4. Check if the observer recorded a new promotion.
+		//
+		// Guard against exceeding the test timeout. Each cycle includes
+		// discoverWithStandby (30s max) plus inner retries with discoveryPause.
+		// On slow CI runners this can exceed the default 5m test timeout.
+		deadline, hasDeadline := t.Deadline()
+		if !hasDeadline {
+			deadline = time.Now().Add(4 * time.Minute)
+		}
 		for cycle := range 12 {
+			if time.Until(deadline) < 30*time.Second {
+				t.Logf("Deadline approaching after %d cycles, stopping early", cycle)
+				break
+			}
+
 			prevPromotions := obs.promotionCount()
 
 			// Ensure standby partition is populated before attempting rotation.
@@ -421,6 +459,7 @@ func TestStandbyRotation(t *testing.T) {
 				err := transport.DiscoverNodes(t.Context())
 				if err != nil {
 					t.Logf("Cycle %d attempt %d: discovery failed: %v", cycle+1, attempt+1, err)
+					time.Sleep(discoveryPause)
 					continue
 				}
 				drainWarmup(transport)
@@ -432,6 +471,7 @@ func TestStandbyRotation(t *testing.T) {
 				if promotions > prevPromotions {
 					break
 				}
+				time.Sleep(discoveryPause)
 			}
 		}
 

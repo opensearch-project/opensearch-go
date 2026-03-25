@@ -2220,6 +2220,39 @@ func initUserAgent() string {
 	return b.String()
 }
 
+// newMultiServerPoolFromClientWithLock creates a multiServerPool initialized
+// with the client's current settings (timeouts, health check, cap, etc.). The
+// pool's mu-protected fields (ready, dead, members, activeCount) are left at
+// zero values — the caller is responsible for populating them.
+//
+// This is the single source of truth for client → pool settings propagation.
+// Used by promoteConnectionPoolWithLock (single→multi promotion) and
+// createOrUpdateMultiNodePoolWithLock (first multi-node discovery).
+//
+// Caller must hold c.mu.Lock().
+func (c *Client) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
+	pool := &multiServerPool{
+		name:                         name,
+		ctx:                          c.ctx,
+		resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
+		resurrectTimeoutMax:          c.resurrectTimeoutMax,
+		resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
+		minimumResurrectTimeout:      c.minimumResurrectTimeout,
+		jitterScale:                  c.jitterScale,
+		serverMaxNewConnsPerSec:      c.serverMaxNewConnsPerSec,
+		clientsPerServer:             c.clientsPerServer,
+		healthCheck:                  c.healthCheck,
+		metrics:                      m,
+		activeListCap:                c.activeListCap,
+		activeListCapConfig:          c.activeListCapConfig,
+		standbyPromotionChecks:       c.standbyPromotionChecks,
+	}
+	if obs := c.observer.Load(); obs != nil {
+		pool.observer.Store(obs)
+	}
+	return pool
+}
+
 // promoteConnectionPoolWithLock converts a singleServerPool to multiServerPool while preserving
 // metrics, timeout settings, and client configuration. MUST be called while holding client write lock.
 // Returns existing pool unchanged if already a multiServerPool.
@@ -2227,8 +2260,6 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *singleServerPool:
 		// Promote from single to multi-node pool using client-configured timeouts
-		metrics := currentPool.metrics
-
 		filteredReady := make([]*Connection, 0, len(readyConnections))
 		filteredDead := make([]*Connection, 0, len(deadConnections))
 		c.applyConnectionFiltering(readyConnections, deadConnections, &filteredReady, &filteredDead)
@@ -2240,25 +2271,7 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 			})
 		}
 
-		// Use client-configured timeouts (from Config or defaults)
-		pool := &multiServerPool{
-			ctx:                          c.ctx,
-			resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
-			resurrectTimeoutMax:          c.resurrectTimeoutMax,
-			resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
-			minimumResurrectTimeout:      c.minimumResurrectTimeout,
-			jitterScale:                  c.jitterScale,
-			serverMaxNewConnsPerSec:      c.serverMaxNewConnsPerSec,
-			clientsPerServer:             c.clientsPerServer,
-			healthCheck:                  c.healthCheck,
-			metrics:                      metrics,
-			activeListCap:                c.activeListCap,
-			activeListCapConfig:          c.activeListCapConfig,
-			standbyPromotionChecks:       c.standbyPromotionChecks,
-		}
-		if obs := c.observer.Load(); obs != nil {
-			pool.observer.Store(obs)
-		}
+		pool := c.newMultiServerPoolFromClientWithLock("allConns", currentPool.metrics)
 		pool.mu.ready = filteredReady
 		pool.mu.dead = filteredDead
 		pool.mu.members = make(map[*Connection]struct{}, max(len(filteredReady)+len(filteredDead), defaultMembersCapacity))

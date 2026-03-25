@@ -1564,6 +1564,93 @@ func TestConnectionPoolPromotion(t *testing.T) {
 	})
 }
 
+func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
+	t.Run("copies all client settings to pool", func(t *testing.T) {
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:                         []*url.URL{u},
+			EnableMetrics:                true,
+			ResurrectTimeoutInitial:      42 * time.Second,
+			ResurrectTimeoutMax:          300 * time.Second,
+			ResurrectTimeoutFactorCutoff: 7,
+			MinimumResurrectTimeout:      100 * time.Millisecond,
+			ActiveListCap:                3,
+			StandbyPromotionChecks:       5,
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		pool := client.newMultiServerPoolFromClientWithLock("test-pool", client.metrics)
+		client.mu.Unlock()
+
+		require.Equal(t, "test-pool", pool.name)
+		require.Equal(t, 42*time.Second, pool.resurrectTimeoutInitial)
+		require.Equal(t, 300*time.Second, pool.resurrectTimeoutMax)
+		require.Equal(t, 7, pool.resurrectTimeoutFactorCutoff)
+		require.Equal(t, 100*time.Millisecond, pool.minimumResurrectTimeout)
+		require.Equal(t, 3, pool.activeListCap)
+		require.Equal(t, int64(5), pool.standbyPromotionChecks)
+		require.NotNil(t, pool.ctx, "pool should inherit client context")
+		require.NotNil(t, pool.healthCheck, "pool should inherit client health check")
+		require.Equal(t, client.metrics, pool.metrics, "pool should use provided metrics")
+	})
+
+	t.Run("nil metrics does not panic", func(t *testing.T) {
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		pool := client.newMultiServerPoolFromClientWithLock("nil-metrics", nil)
+		client.mu.Unlock()
+
+		require.Nil(t, pool.metrics)
+		require.NotNil(t, pool.ctx)
+	})
+
+	t.Run("observer is propagated", func(t *testing.T) {
+		u, _ := url.Parse("http://localhost:9200")
+		obs := &BaseConnectionObserver{}
+		client, err := New(Config{
+			URLs:     []*url.URL{u},
+			Observer: obs,
+		})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		pool := client.newMultiServerPoolFromClientWithLock("obs-pool", nil)
+		client.mu.Unlock()
+
+		stored := pool.observer.Load()
+		require.NotNil(t, stored, "observer should be propagated to pool")
+	})
+
+	t.Run("promote from singleServerPool preserves metrics via helper", func(t *testing.T) {
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{
+			URLs:          []*url.URL{u},
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		// Verify singleServerPool has metrics
+		singlePool, ok := client.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok)
+		require.NotNil(t, singlePool.metrics)
+		originalMetrics := singlePool.metrics
+
+		client.mu.Lock()
+		newConn := &Connection{URL: &url.URL{Host: "new:9200"}, Name: "new-node"}
+		multiPool := client.promoteConnectionPoolWithLock([]*Connection{newConn}, []*Connection{})
+		client.mu.Unlock()
+
+		require.Equal(t, originalMetrics, multiPool.metrics,
+			"promotion should carry singleServerPool metrics into multiServerPool")
+		require.Equal(t, client.resurrectTimeoutInitial, multiPool.resurrectTimeoutInitial,
+			"promotion should use client settings via helper")
+	})
+}
+
 func TestConnectionPoolPromotionIntegration(t *testing.T) {
 	t.Run("discovery promotes single to multi-node pool", func(t *testing.T) {
 		// Create mock server for nodes discovery
