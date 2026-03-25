@@ -205,14 +205,14 @@ The cluster supports any published OpenSearch Docker image version. Always clean
 
 ```
 make cluster.stop
-OPENSEARCH_VERSION=2.19.1 make cluster.clean cluster.build cluster.start
+OPENSEARCH_VERSION=3.6.0 make cluster.clean cluster.build cluster.start
 make test-integ
 ```
 
 Set `SECURE_INTEGRATION=false` to disable TLS and basic auth:
 
 ```
-SECURE_INTEGRATION=false OPENSEARCH_VERSION=2.19.1 make cluster.clean cluster.build cluster.start
+SECURE_INTEGRATION=false OPENSEARCH_VERSION=3.6.0 make cluster.clean cluster.build cluster.start
 ```
 
 ### Cluster Status and Troubleshooting
@@ -334,8 +334,8 @@ Example output:
 
 ```
 Run 22722089811 — failed jobs:
-  ✗ integ-test-compat (true, 2.14.0)
-  ✗ integ-test-compat (false, 3.1.0)
+  ✗ integ-test-compat (true, 2.19.5)
+  ✗ integ-test-compat (false, 3.6.0)
 
 Failed tests:
   --- FAIL: TestShardExactRouting_FullPipeline_Integration (2.56s)

@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   GITHUB_ACTIONS: true
-  OPENSEARCH_VERSION: 2.19.4
+  OPENSEARCH_VERSION: 3.6.0
   OPENSEARCH_NODE_COUNT: 3
 
 jobs:
