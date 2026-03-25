@@ -852,8 +852,8 @@ func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections 
 
 	// Preserve metrics from existing single connection pool
 	var metrics *metrics
-	if existingPool, ok := c.mu.connectionPool.(*singleServerPool); ok {
-		metrics = existingPool.metrics
+	if existingSinglePool, ok := c.mu.connectionPool.(*singleServerPool); ok {
+		metrics = existingSinglePool.metrics
 	}
 
 	return &singleServerPool{
@@ -893,37 +893,6 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 		allDeadConns = append(allDeadConns, conn)
 	}
 
-	// Preserve settings and metrics from existing multiServerPool,
-	// or use client-configured settings for new pools
-	resurrectTimeoutInitial := c.resurrectTimeoutInitial
-	resurrectTimeoutMax := c.resurrectTimeoutMax
-	resurrectTimeoutFactorCutoff := c.resurrectTimeoutFactorCutoff
-	minimumResurrectTimeout := c.minimumResurrectTimeout
-	jitterScale := c.jitterScale
-	serverMaxNewConnsPerSec := c.serverMaxNewConnsPerSec
-	clientsPerServer := c.clientsPerServer
-	healthCheck := c.healthCheck
-	activeListCap := c.activeListCap
-	activeListCapConfig := c.activeListCapConfig
-	standbyPromotionChecks := c.standbyPromotionChecks
-	var metrics *metrics
-
-	if existingPool, ok := c.mu.connectionPool.(*multiServerPool); ok {
-		// Preserve settings from existing pool (should match client settings)
-		resurrectTimeoutInitial = existingPool.resurrectTimeoutInitial
-		resurrectTimeoutMax = existingPool.resurrectTimeoutMax
-		resurrectTimeoutFactorCutoff = existingPool.resurrectTimeoutFactorCutoff
-		minimumResurrectTimeout = existingPool.minimumResurrectTimeout
-		jitterScale = existingPool.jitterScale
-		serverMaxNewConnsPerSec = existingPool.serverMaxNewConnsPerSec
-		clientsPerServer = existingPool.clientsPerServer
-		healthCheck = existingPool.healthCheck
-		activeListCap = existingPool.activeListCap
-		activeListCapConfig = existingPool.activeListCapConfig
-		standbyPromotionChecks = existingPool.standbyPromotionChecks
-		metrics = existingPool.metrics
-	}
-
 	// Shuffle connections for load distribution unless disabled
 	if !c.skipConnectionShuffle && len(allReadyConns) > 1 {
 		rand.Shuffle(len(allReadyConns), func(i, j int) {
@@ -931,30 +900,39 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 		})
 	}
 
-	allConnsPool := &multiServerPool{
-		name:                         "allConns",
-		ctx:                          c.ctx,
-		resurrectTimeoutInitial:      resurrectTimeoutInitial,
-		resurrectTimeoutMax:          resurrectTimeoutMax,
-		resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
-		minimumResurrectTimeout:      minimumResurrectTimeout,
-		jitterScale:                  jitterScale,
-		serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
-		clientsPerServer:             clientsPerServer,
-		healthCheck:                  healthCheck,
-		metrics:                      metrics,
-		activeListCap:                activeListCap,
-		activeListCapConfig:          activeListCapConfig,
-		standbyPromotionChecks:       standbyPromotionChecks,
-	}
-	allConnsPool.mu.ready = allReadyConns
-	allConnsPool.mu.members = make(map[*Connection]struct{}, max(len(allReadyConns)+len(allDeadConns), defaultMembersCapacity))
-	for _, conn := range allReadyConns {
-		allConnsPool.mu.members[conn] = struct{}{}
-	}
-	for _, conn := range allDeadConns {
-		allConnsPool.mu.members[conn] = struct{}{}
-		allConnsPool.appendToDeadWithLock(conn)
+	// Reuse the existing multiServerPool when possible. Updating in-place
+	// preserves the pool pointer that resurrection goroutines captured via
+	// scheduleResurrect's `cp` parameter. If we created a new pool, those
+	// goroutines would find their connection absent from the old pool's
+	// dead list (stillInPool check) and exit, orphaning the connection
+	// with no health check goroutine.
+	var allConnsPool *multiServerPool
+	if existingMultiPool, ok := c.mu.connectionPool.(*multiServerPool); ok {
+		allConnsPool = existingMultiPool
+
+		allConnsPool.mu.Lock()
+		allConnsPool.mu.ready = allReadyConns
+		allConnsPool.mu.dead = nil
+		allConnsPool.mu.members = make(map[*Connection]struct{}, max(len(allReadyConns)+len(allDeadConns), defaultMembersCapacity))
+		for _, conn := range allReadyConns {
+			allConnsPool.mu.members[conn] = struct{}{}
+		}
+		for _, conn := range allDeadConns {
+			allConnsPool.mu.members[conn] = struct{}{}
+			allConnsPool.appendToDeadWithLock(conn)
+		}
+		allConnsPool.mu.Unlock()
+	} else {
+		allConnsPool = c.newMultiServerPoolFromClientWithLock("allConns", nil)
+		allConnsPool.mu.ready = allReadyConns
+		allConnsPool.mu.members = make(map[*Connection]struct{}, max(len(allReadyConns)+len(allDeadConns), defaultMembersCapacity))
+		for _, conn := range allReadyConns {
+			allConnsPool.mu.members[conn] = struct{}{}
+		}
+		for _, conn := range allDeadConns {
+			allConnsPool.mu.members[conn] = struct{}{}
+			allConnsPool.appendToDeadWithLock(conn)
+		}
 	}
 
 	// Recalculate activeListCap and warmup parameters for the allConns pool before

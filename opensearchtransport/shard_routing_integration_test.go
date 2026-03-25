@@ -51,14 +51,29 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 			"number_of_replicas": 0
 		}
 	}`, numShards)
-	createReq, err := http.NewRequestWithContext(ctx, http.MethodPut,
-		fmt.Sprintf("/%s", index),
-		bytes.NewReader([]byte(createBody)))
-	require.NoError(t, err)
-	createReq.Header.Set("Content-Type", "application/json")
 
-	createResp, err := transport.Perform(createReq)
-	require.NoError(t, err)
+	// Retry index creation — transient HTTP 500 can occur while the cluster
+	// is still settling after heavy discovery/warmup activity.
+	var createResp *http.Response
+	require.Eventually(t, func() bool {
+		createReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPut,
+			fmt.Sprintf("/%s", index),
+			bytes.NewReader([]byte(createBody)))
+		if reqErr != nil {
+			return false
+		}
+		createReq.Header.Set("Content-Type", "application/json")
+		resp, perfErr := transport.Perform(createReq)
+		if perfErr != nil {
+			return false
+		}
+		if resp.StatusCode >= 500 {
+			resp.Body.Close()
+			return false
+		}
+		createResp = resp
+		return true
+	}, 30*time.Second, 500*time.Millisecond, "failed to create index %s", index)
 	require.Equal(t, http.StatusOK, createResp.StatusCode,
 		"failed to create index %s", index)
 	createResp.Body.Close()
@@ -232,13 +247,6 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	testutil.WaitForCluster(t)
 	testutil.SkipIfSingleNode(t, 2) // 1 replica requires at least 2 nodes for green health
 
-	// OpenSearch 2.1.0 with the security plugin returns HTTP 500 on search
-	// requests routed to specific shard-hosting nodes. The insecure 2.1.0
-	// compat job passes; this is a server-side security plugin bug.
-	if testutil.IsSecure(t) {
-		testutil.SkipIfVersion(t, "=", "2.1.0", "shard-exact pipeline (security plugin HTTP 500)")
-	}
-
 	u := testutil.GetTestURL(t)
 
 	// --- Observer that captures RouteEvent per request ---
@@ -291,14 +299,29 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 			"number_of_replicas": 1
 		}
 	}`, numShards)
-	createReq, err := http.NewRequestWithContext(ctx, http.MethodPut,
-		fmt.Sprintf("/%s", index),
-		bytes.NewReader([]byte(createBody)))
-	require.NoError(t, err)
-	createReq.Header.Set("Content-Type", "application/json")
 
-	createResp, err := transport.Perform(createReq)
-	require.NoError(t, err)
+	// Retry index creation — transient HTTP 500 can occur while the cluster
+	// is still settling after heavy discovery/warmup activity.
+	var createResp *http.Response
+	require.Eventually(t, func() bool {
+		createReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPut,
+			fmt.Sprintf("/%s", index),
+			bytes.NewReader([]byte(createBody)))
+		if reqErr != nil {
+			return false
+		}
+		createReq.Header.Set("Content-Type", "application/json")
+		resp, perfErr := transport.Perform(createReq)
+		if perfErr != nil {
+			return false
+		}
+		if resp.StatusCode >= 500 {
+			resp.Body.Close()
+			return false
+		}
+		createResp = resp
+		return true
+	}, 30*time.Second, 500*time.Millisecond, "failed to create index %s", index)
 	require.Equal(t, http.StatusOK, createResp.StatusCode,
 		"failed to create index %s", index)
 	createResp.Body.Close()
