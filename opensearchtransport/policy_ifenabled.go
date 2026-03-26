@@ -158,11 +158,3 @@ func (p *IfEnabledPolicy) RotateStandby(ctx context.Context, count int) (int, er
 func (p *IfEnabledPolicy) childPolicies() []Policy {
 	return []Policy{p.truePolicy, p.falsePolicy}
 }
-
-// policySnapshots collects policy snapshots from both sub-policies.
-func (p *IfEnabledPolicy) policySnapshots() []PolicySnapshot {
-	result := make([]PolicySnapshot, 0, 2)
-	result = append(result, collectPolicySnapshots(p.truePolicy)...)
-	result = append(result, collectPolicySnapshots(p.falsePolicy)...)
-	return result
-}

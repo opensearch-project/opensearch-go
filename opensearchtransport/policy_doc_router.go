@@ -232,11 +232,6 @@ func (p *DocRouter) RotateStandby(_ context.Context, _ int) (int, error) {
 	return 0, nil
 }
 
-// routerSnapshot implements routerSnapshotProvider.
-func (p *DocRouter) routerSnapshot() RouterSnapshot {
-	return p.cache.snapshot()
-}
-
 // routerCache implements [routerCacheProvider].
 func (p *DocRouter) routerCache() *indexSlotCache {
 	return p.cache
