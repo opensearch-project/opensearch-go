@@ -984,6 +984,7 @@ func New(cfg Config) (*Client, error) {
 			clusterSearchCwnd:            &client.clusterSearch.cwnd,
 			activeListCap:                client.activeListCapConfig,
 			standbyPromotionChecks:       client.standbyPromotionChecks,
+			metrics:                      client.metrics,
 		}
 		// Use type assertion to check if the router (which is a Policy) implements policyConfigurable
 		if configurablePolicy, ok := client.router.(policyConfigurable); ok {

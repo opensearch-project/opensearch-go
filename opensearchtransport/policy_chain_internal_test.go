@@ -303,7 +303,7 @@ func TestPolicyChain(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("poolSnapshots collects from all sub-policies", func(t *testing.T) {
+	t.Run("policySnapshots collects from all sub-policies", func(t *testing.T) {
 		first := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		first.configurePolicySettings(createTestConfig())
 
@@ -316,7 +316,7 @@ func TestPolicyChain(t *testing.T) {
 		err := chain.DiscoveryUpdate([]*Connection{conn}, nil, nil)
 		require.NoError(t, err)
 
-		snaps := chain.poolSnapshots()
+		snaps := chain.policySnapshots()
 		require.Len(t, snaps, 2)
 	})
 }

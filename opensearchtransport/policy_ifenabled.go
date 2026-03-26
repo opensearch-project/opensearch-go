@@ -159,10 +159,10 @@ func (p *IfEnabledPolicy) childPolicies() []Policy {
 	return []Policy{p.truePolicy, p.falsePolicy}
 }
 
-// poolSnapshots collects pool snapshots from both sub-policies.
-func (p *IfEnabledPolicy) poolSnapshots() []PoolSnapshot {
-	result := make([]PoolSnapshot, 0, 2)
-	result = append(result, collectPoolSnapshots(p.truePolicy)...)
-	result = append(result, collectPoolSnapshots(p.falsePolicy)...)
+// policySnapshots collects policy snapshots from both sub-policies.
+func (p *IfEnabledPolicy) policySnapshots() []PolicySnapshot {
+	result := make([]PolicySnapshot, 0, 2)
+	result = append(result, collectPolicySnapshots(p.truePolicy)...)
+	result = append(result, collectPolicySnapshots(p.falsePolicy)...)
 	return result
 }

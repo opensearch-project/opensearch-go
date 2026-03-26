@@ -271,11 +271,11 @@ func (r *PolicyChain) childPolicies() []Policy {
 	return r.policies
 }
 
-// poolSnapshots collects pool snapshots from all sub-policies.
-func (r *PolicyChain) poolSnapshots() []PoolSnapshot {
-	result := make([]PoolSnapshot, 0, len(r.policies))
+// policySnapshots collects policy snapshots from all sub-policies.
+func (r *PolicyChain) policySnapshots() []PolicySnapshot {
+	result := make([]PolicySnapshot, 0, len(r.policies))
 	for _, policy := range r.policies {
-		result = append(result, collectPoolSnapshots(policy)...)
+		result = append(result, collectPolicySnapshots(policy)...)
 	}
 	return result
 }

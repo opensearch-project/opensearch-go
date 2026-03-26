@@ -74,8 +74,8 @@ type Metrics struct {
 
 	Connections []fmt.Stringer `json:"connections"`
 
-	// Per-pool breakdown (only populated when router with policies is active)
-	Pools []PoolSnapshot `json:"pools,omitempty"`
+	// Per-policy breakdown (only populated when router with policies is active)
+	Policies []PolicySnapshot `json:"policies,omitempty"`
 
 	// Router cache state (only populated when scored routing is active)
 	Router *RouterSnapshot `json:"router,omitempty"`
@@ -163,8 +163,8 @@ type ConnectionMetric struct {
 	} `json:"meta"`
 }
 
-// PoolSnapshot is a point-in-time snapshot of one connection pool's partitions.
-type PoolSnapshot struct {
+// PolicySnapshot is a point-in-time snapshot of one policy's pool partitions.
+type PolicySnapshot struct {
 	Name                string `json:"name"`
 	Enabled             bool   `json:"enabled"`
 	ActiveCount         int    `json:"active_count"`
@@ -182,8 +182,8 @@ type PoolSnapshot struct {
 	WarmupAccepts int64 `json:"warmup_accepts"` // Requests accepted during warmup
 }
 
-// String returns the pool snapshot as a compact string.
-func (ps PoolSnapshot) String() string {
+// String returns the policy snapshot as a compact string.
+func (ps PolicySnapshot) String() string {
 	enabledStr := "on"
 	if !ps.Enabled {
 		enabledStr = "off"
@@ -192,6 +192,13 @@ func (ps PoolSnapshot) String() string {
 		ps.Name, enabledStr, ps.ActiveListCap, ps.ActiveCount, ps.StandbyCount, ps.DeadCount, ps.WarmingCount, ps.HealthCheckingCount,
 		ps.Requests, ps.Successes, ps.Failures, ps.WarmupSkips, ps.WarmupAccepts)
 }
+
+// ConnectionMetricCallback injects policy-specific metrics into a
+// [ConnectionMetric] at snapshot time. Policies register callbacks during
+// [policyConfigurable.configurePolicySettings]; the [Client.Metrics] method
+// invokes them for every connection in the snapshot. Callbacks must be safe
+// for concurrent use and should be cheap (atomic loads, no allocations).
+type ConnectionMetricCallback func(conn *Connection, cm *ConnectionMetric) error
 
 // metrics represents the inner state of metrics.
 type metrics struct {
@@ -212,6 +219,10 @@ type metrics struct {
 	// Standby pool lifecycle counters
 	standbyPromotions atomic.Int64 // Standby -> Active
 	standbyDemotions  atomic.Int64 // Active -> Standby
+
+	// Connection metric callbacks registered by policies at init time.
+	// Immutable after client construction; no synchronization needed.
+	connMetricCallbacks []ConnectionMetricCallback
 
 	mu struct {
 		sync.RWMutex
@@ -278,12 +289,17 @@ func (c *Client) Metrics() (Metrics, error) {
 	// determines isDead/isStandby/isOverloaded -- no positional tricks needed.
 	overloadedCount := 0
 	standbyCount := 0
+	callbacks := c.metrics.connMetricCallbacks
+	var callbackErrs []error
 
 	for _, conn := range singleConns {
-		m.Connections = append(m.Connections, buildConnectionMetric(conn))
+		cm := buildConnectionMetric(conn)
+		callbackErrs = append(callbackErrs, runMetricCallbacks(conn, &cm, callbacks)...)
+		m.Connections = append(m.Connections, cm)
 	}
 	for _, conn := range ready {
 		cm := buildConnectionMetric(conn)
+		callbackErrs = append(callbackErrs, runMetricCallbacks(conn, &cm, callbacks)...)
 		if cm.IsOverloaded {
 			overloadedCount++
 		}
@@ -294,6 +310,7 @@ func (c *Client) Metrics() (Metrics, error) {
 	}
 	for _, conn := range dead {
 		cm := buildConnectionMetric(conn)
+		callbackErrs = append(callbackErrs, runMetricCallbacks(conn, &cm, callbacks)...)
 		if cm.IsOverloaded {
 			overloadedCount++
 		}
@@ -302,10 +319,10 @@ func (c *Client) Metrics() (Metrics, error) {
 	m.OverloadedServers = overloadedCount
 	m.StandbyConnections = standbyCount
 
-	// Collect per-pool snapshots from the router's policy tree.
+	// Collect per-policy snapshots from the router's policy tree.
 	// Also include the flat pool snapshot if available.
 	if c.router != nil {
-		m.Pools = collectPoolSnapshots(c.router)
+		m.Policies = collectPolicySnapshots(c.router)
 		m.Router = collectRouterSnapshot(c.router)
 	}
 	c.mu.RLock()
@@ -313,12 +330,12 @@ func (c *Client) Metrics() (Metrics, error) {
 		if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
 			snap := pool.snapshot()
 			snap.Enabled = true // flat/client pool is always enabled
-			m.Pools = append(m.Pools, snap)
+			m.Policies = append(m.Policies, snap)
 		}
 	}
 	c.mu.RUnlock()
 
-	return m, nil
+	return m, errors.Join(callbackErrs...)
 }
 
 // buildConnectionMetric creates a ConnectionMetric from a Connection.
@@ -381,6 +398,22 @@ func buildConnectionMetric(c *Connection) ConnectionMetric {
 	return cm
 }
 
+// runMetricCallbacks invokes each registered [ConnectionMetricCallback] for a
+// connection. Returns any errors encountered so the caller can log or surface
+// them without blocking the snapshot.
+func runMetricCallbacks(conn *Connection, cm *ConnectionMetric, callbacks []ConnectionMetricCallback) []error {
+	var errs []error
+	for _, cb := range callbacks {
+		if err := cb(conn, cm); err != nil {
+			if errs == nil {
+				errs = make([]error, 0, len(callbacks))
+			}
+			errs = append(errs, err)
+		}
+	}
+	return errs
+}
+
 // String returns the metrics as a string.
 func (m Metrics) String() string {
 	var (
@@ -432,11 +465,11 @@ func (m Metrics) String() string {
 	}
 	b.WriteString("]")
 
-	if len(m.Pools) > 0 {
-		b.WriteString(" Pools: [")
-		for i, p := range m.Pools {
+	if len(m.Policies) > 0 {
+		b.WriteString(" Policies: [")
+		for i, p := range m.Policies {
 			b.WriteString(p.String())
-			if i+1 < len(m.Pools) {
+			if i+1 < len(m.Policies) {
 				b.WriteString(", ")
 			}
 		}
