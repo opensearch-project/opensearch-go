@@ -64,6 +64,12 @@ func (p *RoundRobinPolicy) configurePolicySettings(config policyConfig) error {
 		config.name = "roundrobin"
 		p.pool = createPoolFromConfig(config)
 	}
+	if config.metrics != nil {
+		config.metrics.policyCallbacks = append(config.metrics.policyCallbacks,
+			func() (PolicySnapshot, error) {
+				return p.PolicySnapshot(), nil
+			})
+	}
 	return nil
 }
 
