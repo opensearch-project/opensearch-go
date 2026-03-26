@@ -387,6 +387,22 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 	p.poolInfoReady = config.poolInfoReady
 	p.clusterSearchCwnd = config.clusterSearchCwnd
 
+	// Register the MCSR metric callback for the search pool so that
+	// ConnectionMetric snapshots include the current per-node value.
+	if p.poolName == "search" && config.metrics != nil && p.cache.features.adaptiveConcurrencyEnabled() {
+		cache := p.cache
+		poolInfoReady := p.poolInfoReady
+		config.metrics.connMetricCallbacks = append(config.metrics.connMetricCallbacks,
+			func(conns []*Connection, cms []ConnectionMetric) error {
+				for i, conn := range conns {
+					cwnd := conn.loadCwnd("search", loadPoolInfoReady(poolInfoReady))
+					mcsr := computeAdaptiveConcurrency(cwnd, cache.adaptiveConcurrency, cache.features)
+					cms[i].MCSR = &mcsr
+				}
+				return nil
+			})
+	}
+
 	// Register the router cache snapshot callback.
 	if config.metrics != nil {
 		cache := p.cache
