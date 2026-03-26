@@ -194,6 +194,17 @@ func (p *IndexRouter) configurePolicySettings(config policyConfig) error {
 	if config.observer != nil {
 		p.observer.Store(config.observer)
 	}
+	if config.metrics != nil {
+		cache := p.cache
+		config.metrics.snapshotCallbacks = append(config.metrics.snapshotCallbacks,
+			func(m *Metrics) error {
+				if m.Router == nil {
+					snap := cache.snapshot()
+					m.Router = &snap
+				}
+				return nil
+			})
+	}
 	return nil
 }
 

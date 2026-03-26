@@ -64,6 +64,12 @@ func (p *CoordinatorPolicy) configurePolicySettings(config policyConfig) error {
 		config.name = "coordinator"
 		p.pool = createPoolFromConfig(config)
 	}
+	if config.metrics != nil {
+		config.metrics.policyCallbacks = append(config.metrics.policyCallbacks,
+			func() (PolicySnapshot, error) {
+				return p.PolicySnapshot(), nil
+			})
+	}
 	return nil
 }
 
