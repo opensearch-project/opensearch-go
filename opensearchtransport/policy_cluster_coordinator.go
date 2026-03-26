@@ -36,7 +36,7 @@ import (
 var (
 	_ Policy             = (*CoordinatorPolicy)(nil)
 	_ policyConfigurable = (*CoordinatorPolicy)(nil)
-	_ PoolReporter       = (*CoordinatorPolicy)(nil)
+	_ PolicyReporter     = (*CoordinatorPolicy)(nil)
 	_ policyTyped        = (*CoordinatorPolicy)(nil)
 	_ policyOverrider    = (*CoordinatorPolicy)(nil)
 )
@@ -241,10 +241,10 @@ func (p *CoordinatorPolicy) Eval(ctx context.Context, req *http.Request) (NextHo
 	return NextHop{Conn: conn}, nil
 }
 
-// PoolSnapshot returns a point-in-time snapshot of this policy's pool.
-func (p *CoordinatorPolicy) PoolSnapshot() PoolSnapshot {
+// PolicySnapshot returns a point-in-time snapshot of this policy's pool.
+func (p *CoordinatorPolicy) PolicySnapshot() PolicySnapshot {
 	if p.pool == nil {
-		return PoolSnapshot{Name: "coordinator"}
+		return PolicySnapshot{Name: "coordinator"}
 	}
 	snap := p.pool.snapshot()
 	snap.Enabled = psIsEnabled(p.policyState.Load())

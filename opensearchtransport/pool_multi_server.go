@@ -161,13 +161,13 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 	}
 }
 
-// snapshot returns a point-in-time PoolSnapshot of this pool's partitions and counters.
-func (cp *multiServerPool) snapshot() PoolSnapshot {
+// snapshot returns a point-in-time PolicySnapshot of this pool's partitions and counters.
+func (cp *multiServerPool) snapshot() PolicySnapshot {
 	cp.mu.RLock()
 	counts := cp.countByLifecycleWithLock()
 	cp.mu.RUnlock()
 
-	return PoolSnapshot{
+	return PolicySnapshot{
 		Name:                cp.name,
 		ActiveCount:         counts.active,
 		StandbyCount:        counts.standby,

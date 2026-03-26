@@ -335,7 +335,7 @@ func configureTestPolicySettings(t *testing.T, policy Policy) error {
 	return nil
 }
 
-func TestPoolSnapshot_HealthCheckingCount(t *testing.T) {
+func TestPolicySnapshot_HealthCheckingCount(t *testing.T) {
 	t.Parallel()
 
 	conns := make([]*Connection, 4)

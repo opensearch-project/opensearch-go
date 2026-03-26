@@ -52,15 +52,15 @@ func TestMetrics_String(t *testing.T) {
 		require.Contains(t, s, "http://localhost:9200")
 	})
 
-	t.Run("with pools", func(t *testing.T) {
+	t.Run("with policies", func(t *testing.T) {
 		t.Parallel()
 		m := Metrics{
-			Pools: []PoolSnapshot{
+			Policies: []PolicySnapshot{
 				{Name: "search", Enabled: true, ActiveCount: 3},
 			},
 		}
 		s := m.String()
-		require.Contains(t, s, "Pools:")
+		require.Contains(t, s, "Policies:")
 		require.Contains(t, s, "search")
 	})
 }
@@ -114,12 +114,12 @@ func TestConnectionMetric_String(t *testing.T) {
 	})
 }
 
-func TestPoolSnapshot_String(t *testing.T) {
+func TestPolicySnapshot_String(t *testing.T) {
 	t.Parallel()
 
 	t.Run("enabled pool", func(t *testing.T) {
 		t.Parallel()
-		ps := PoolSnapshot{
+		ps := PolicySnapshot{
 			Name:          "search",
 			Enabled:       true,
 			ActiveListCap: 5,
@@ -139,7 +139,7 @@ func TestPoolSnapshot_String(t *testing.T) {
 
 	t.Run("disabled pool", func(t *testing.T) {
 		t.Parallel()
-		ps := PoolSnapshot{Name: "write", Enabled: false}
+		ps := PolicySnapshot{Name: "write", Enabled: false}
 		s := ps.String()
 		require.Contains(t, s, "(off")
 	})
