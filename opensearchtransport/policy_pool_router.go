@@ -411,16 +411,6 @@ func (p *poolRouter) childPolicies() []Policy {
 	return []Policy{p.inner}
 }
 
-// policySnapshots collects snapshots from the inner policy.
-func (p *poolRouter) policySnapshots() []PolicySnapshot {
-	return collectPolicySnapshots(p.inner)
-}
-
-// routerSnapshot implements routerSnapshotProvider.
-func (p *poolRouter) routerSnapshot() RouterSnapshot {
-	return p.cache.snapshot()
-}
-
 // routerCache implements [routerCacheProvider].
 func (p *poolRouter) routerCache() *indexSlotCache {
 	return p.cache
@@ -442,8 +432,7 @@ type shardPlacementUpdater interface {
 }
 
 // updateShardPlacementTree walks a policy tree and calls updateShardPlacement
-// on any node that implements shardPlacementUpdater. Uses the same walk pattern
-// as collectPolicySnapshots.
+// on any node that implements shardPlacementUpdater.
 func updateShardPlacementTree(v any, shardPlacement map[string]*indexShardPlacement, activeNodeCount int) {
 	if updater, ok := v.(shardPlacementUpdater); ok {
 		updater.updateShardPlacement(shardPlacement, activeNodeCount)

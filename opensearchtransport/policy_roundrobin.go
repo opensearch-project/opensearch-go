@@ -36,7 +36,6 @@ import (
 var (
 	_ Policy             = (*RoundRobinPolicy)(nil)
 	_ policyConfigurable = (*RoundRobinPolicy)(nil)
-	_ PolicyReporter     = (*RoundRobinPolicy)(nil)
 	_ policyTyped        = (*RoundRobinPolicy)(nil)
 	_ policyOverrider    = (*RoundRobinPolicy)(nil)
 )
