@@ -36,7 +36,6 @@ import (
 var (
 	_ Policy             = (*CoordinatorPolicy)(nil)
 	_ policyConfigurable = (*CoordinatorPolicy)(nil)
-	_ PolicyReporter     = (*CoordinatorPolicy)(nil)
 	_ policyTyped        = (*CoordinatorPolicy)(nil)
 	_ policyOverrider    = (*CoordinatorPolicy)(nil)
 )

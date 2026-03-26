@@ -39,7 +39,6 @@ import (
 var (
 	_ Policy             = (*RolePolicy)(nil)
 	_ policyConfigurable = (*RolePolicy)(nil)
-	_ PolicyReporter     = (*RolePolicy)(nil)
 	_ policyTyped        = (*RolePolicy)(nil)
 	_ policyOverrider    = (*RolePolicy)(nil)
 )

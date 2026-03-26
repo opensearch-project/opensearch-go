@@ -271,15 +271,6 @@ func (r *PolicyChain) childPolicies() []Policy {
 	return r.policies
 }
 
-// policySnapshots collects policy snapshots from all sub-policies.
-func (r *PolicyChain) policySnapshots() []PolicySnapshot {
-	result := make([]PolicySnapshot, 0, len(r.policies))
-	for _, policy := range r.policies {
-		result = append(result, collectPolicySnapshots(policy)...)
-	}
-	return result
-}
-
 // smoothedMaxBucketForIndex walks the policy tree to find the index slot cache,
 // looks up the slot, and returns the current smoothed max RTT bucket. Returns 0
 // if no scoring data exists for the index.

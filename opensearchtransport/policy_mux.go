@@ -355,12 +355,3 @@ func (p *MuxPolicy) childPolicies() []Policy {
 	})
 	return policies
 }
-
-// policySnapshots collects policy snapshots from all unique sub-policies.
-func (p *MuxPolicy) policySnapshots() []PolicySnapshot {
-	result := make([]PolicySnapshot, 0, len(p.uniquePolicies))
-	for policy := range p.uniquePolicies {
-		result = append(result, collectPolicySnapshots(policy)...)
-	}
-	return result
-}

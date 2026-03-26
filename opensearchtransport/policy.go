@@ -121,32 +121,6 @@ type policyConfigurable interface {
 	configurePolicySettings(config policyConfig) error
 }
 
-// PolicyReporter is implemented by leaf policies that own a multiServerPool.
-// It returns a point-in-time snapshot of the pool's partitions and request counters.
-type PolicyReporter interface {
-	PolicySnapshot() PolicySnapshot
-}
-
-// policySnapshotCollector is an internal interface for policies that recursively
-// collect policy snapshots from their children. Wrapper policies (PolicyChain,
-// MuxPolicy, IfEnabledPolicy) implement this to walk the tree.
-type policySnapshotCollector interface {
-	policySnapshots() []PolicySnapshot
-}
-
-// collectPolicySnapshots walks a policy (or any value) and collects policy snapshots.
-// Leaf policies implement PolicyReporter; wrapper policies implement policySnapshotCollector.
-func collectPolicySnapshots(v any) []PolicySnapshot {
-	var result []PolicySnapshot
-	if reporter, ok := v.(PolicyReporter); ok {
-		result = append(result, reporter.PolicySnapshot())
-	}
-	if collector, ok := v.(policySnapshotCollector); ok {
-		result = append(result, collector.policySnapshots()...)
-	}
-	return result
-}
-
 // createPoolFromConfig creates a new multiServerPool with the given configuration.
 // This is a helper function for leaf policies that manage their own connection pools.
 func createPoolFromConfig(config policyConfig) *multiServerPool {

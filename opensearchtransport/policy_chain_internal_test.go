@@ -303,22 +303,6 @@ func TestPolicyChain(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("policySnapshots collects from all sub-policies", func(t *testing.T) {
-		first := NewRoundRobinPolicy().(*RoundRobinPolicy)
-		first.configurePolicySettings(createTestConfig())
-
-		second := NewRoundRobinPolicy().(*RoundRobinPolicy)
-		second.configurePolicySettings(createTestConfig())
-
-		chain := NewPolicy(first, second).(*PolicyChain)
-
-		conn := createTestConnection("http://localhost:9200")
-		err := chain.DiscoveryUpdate([]*Connection{conn}, nil, nil)
-		require.NoError(t, err)
-
-		snaps := chain.policySnapshots()
-		require.Len(t, snaps, 2)
-	})
 }
 
 // testPolicyWithError is a mock policy that returns errors for testing
