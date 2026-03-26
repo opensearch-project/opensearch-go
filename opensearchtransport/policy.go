@@ -58,6 +58,10 @@ type policyConfig struct {
 	// Standby pool configuration
 	activeListCap          *int  // nil = auto-scale; non-nil = user-specified cap value
 	standbyPromotionChecks int64 // consecutive health checks before standby->ready
+
+	// Metrics (nil when EnableMetrics is false). Policies may register
+	// metric callbacks during configurePolicySettings.
+	metrics *metrics
 }
 
 // Policy is a routing strategy that selects a connection for a request.
@@ -117,28 +121,28 @@ type policyConfigurable interface {
 	configurePolicySettings(config policyConfig) error
 }
 
-// PoolReporter is implemented by leaf policies that own a multiServerPool.
+// PolicyReporter is implemented by leaf policies that own a multiServerPool.
 // It returns a point-in-time snapshot of the pool's partitions and request counters.
-type PoolReporter interface {
-	PoolSnapshot() PoolSnapshot
+type PolicyReporter interface {
+	PolicySnapshot() PolicySnapshot
 }
 
-// poolSnapshotCollector is an internal interface for policies that recursively
-// collect pool snapshots from their children. Wrapper policies (PolicyChain,
+// policySnapshotCollector is an internal interface for policies that recursively
+// collect policy snapshots from their children. Wrapper policies (PolicyChain,
 // MuxPolicy, IfEnabledPolicy) implement this to walk the tree.
-type poolSnapshotCollector interface {
-	poolSnapshots() []PoolSnapshot
+type policySnapshotCollector interface {
+	policySnapshots() []PolicySnapshot
 }
 
-// collectPoolSnapshots walks a policy (or any value) and collects pool snapshots.
-// Leaf policies implement PoolReporter; wrapper policies implement poolSnapshotCollector.
-func collectPoolSnapshots(v any) []PoolSnapshot {
-	var result []PoolSnapshot
-	if reporter, ok := v.(PoolReporter); ok {
-		result = append(result, reporter.PoolSnapshot())
+// collectPolicySnapshots walks a policy (or any value) and collects policy snapshots.
+// Leaf policies implement PolicyReporter; wrapper policies implement policySnapshotCollector.
+func collectPolicySnapshots(v any) []PolicySnapshot {
+	var result []PolicySnapshot
+	if reporter, ok := v.(PolicyReporter); ok {
+		result = append(result, reporter.PolicySnapshot())
 	}
-	if collector, ok := v.(poolSnapshotCollector); ok {
-		result = append(result, collector.poolSnapshots()...)
+	if collector, ok := v.(policySnapshotCollector); ok {
+		result = append(result, collector.policySnapshots()...)
 	}
 	return result
 }

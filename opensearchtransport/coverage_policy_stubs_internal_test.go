@@ -17,7 +17,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Policy stub methods: CheckDead, RotateStandby, poolSnapshots, etc.
+// Policy stub methods: CheckDead, RotateStandby, policySnapshots, etc.
 // ---------------------------------------------------------------------------
 
 func TestDocRouterStubs(t *testing.T) {
@@ -101,9 +101,9 @@ func TestPoolRouterStubs(t *testing.T) {
 		require.Zero(t, n)
 	})
 
-	t.Run("poolSnapshots", func(t *testing.T) {
+	t.Run("policySnapshots", func(t *testing.T) {
 		t.Parallel()
-		snaps := p.poolSnapshots()
+		snaps := p.policySnapshots()
 		// Inner RoundRobinPolicy returns a named snapshot even with nil pool
 		require.Len(t, snaps, 1)
 		require.Equal(t, "roundrobin", snaps[0].Name)
@@ -132,9 +132,9 @@ func TestMuxPolicyStubs(t *testing.T) {
 		require.Zero(t, n)
 	})
 
-	t.Run("poolSnapshots", func(t *testing.T) {
+	t.Run("policySnapshots", func(t *testing.T) {
 		t.Parallel()
-		snaps := p.poolSnapshots()
+		snaps := p.policySnapshots()
 		// Route has a RoundRobinPolicy which returns its snapshot
 		require.NotNil(t, snaps)
 	})
@@ -153,9 +153,9 @@ func TestIfEnabledPolicyStubs(t *testing.T) {
 		require.Zero(t, n)
 	})
 
-	t.Run("poolSnapshots", func(t *testing.T) {
+	t.Run("policySnapshots", func(t *testing.T) {
 		t.Parallel()
-		snaps := p.poolSnapshots()
+		snaps := p.policySnapshots()
 		// RoundRobinPolicy truePolicy has its own pool
 		require.NotNil(t, snaps)
 	})
@@ -179,9 +179,9 @@ func TestRolePolicyStubs(t *testing.T) {
 	require.NoError(t, err)
 	p := policy.(*RolePolicy)
 
-	t.Run("PoolSnapshot nil pool", func(t *testing.T) {
+	t.Run("PolicySnapshot nil pool", func(t *testing.T) {
 		t.Parallel()
-		snap := p.PoolSnapshot()
+		snap := p.PolicySnapshot()
 		require.Equal(t, "role:data", snap.Name)
 		require.Zero(t, snap.ActiveCount)
 	})

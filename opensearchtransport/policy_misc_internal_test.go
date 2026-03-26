@@ -50,11 +50,11 @@ func TestRoundRobinPolicy_RotateStandby_NilPool(t *testing.T) {
 	require.Equal(t, 0, n)
 }
 
-func TestCoordinatorPolicy_PoolSnapshot_NilPool(t *testing.T) {
+func TestCoordinatorPolicy_PolicySnapshot_NilPool(t *testing.T) {
 	t.Parallel()
 
 	p := &CoordinatorPolicy{}
-	snap := p.PoolSnapshot()
+	snap := p.PolicySnapshot()
 	require.Equal(t, "coordinator", snap.Name)
 }
 
