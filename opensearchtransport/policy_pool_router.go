@@ -394,6 +394,20 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 	}
 	p.poolInfoReady = config.poolInfoReady
 	p.clusterSearchCwnd = config.clusterSearchCwnd
+
+	// Register the router cache snapshot callback.
+	if config.metrics != nil {
+		cache := p.cache
+		config.metrics.snapshotCallbacks = append(config.metrics.snapshotCallbacks,
+			func(m *Metrics) error {
+				if m.Router == nil {
+					snap := cache.snapshot()
+					m.Router = &snap
+				}
+				return nil
+			})
+	}
+
 	if configurable, ok := p.inner.(policyConfigurable); ok {
 		return configurable.configurePolicySettings(config)
 	}
