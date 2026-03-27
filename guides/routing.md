@@ -446,7 +446,7 @@ Different operations use different cost tables. Lower cost = preferred node.
 | Initializing | 16.0 | Shard not yet ready to serve                 |
 | Unknown      | 32.0 | No shard data from discovery yet             |
 
-The 32x penalty for unknown/non-shard nodes is the key to affinity. A non-shard node at idle still scores 16x worse than a busy shard node:
+These defaults can be overridden at runtime via the `OPENSEARCH_GO_SHARD_COST` environment variable or the `WithShardCosts()` router option (env var takes precedence). See [Shard Cost Configuration](#shard-cost-configuration) for format details. A non-shard node at idle still scores 16x worse than a busy shard node:
 
 ```
 Shard node, busy:      11 × (13+1)/13 × 2.0  =  23.7
@@ -1739,6 +1739,7 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 | `NodeStatsInterval`       | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                 |
 | `OverloadedHeapThreshold` | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                     |
 | `OverloadedBreakerRatio`  | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                |
+| `ShardCostConfig`         | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)            |
 
 ### Router Options
 
@@ -1758,15 +1759,18 @@ router := opensearchtransport.NewDefaultRouter(
 )
 ```
 
-| Option                     | Default | Description                                                              |
-| -------------------------- | ------- | ------------------------------------------------------------------------ |
-| `WithMinFanOut(n)`         | 1       | Minimum nodes in an index slot. Floor for fan-out.                       |
-| `WithMaxFanOut(n)`         | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.     |
-| `WithDecayFactor(d)`       | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory. |
-| `WithFanOutPerRequest(f)`  | 500     | Decay counter value that maps to +1 fan-out node.                        |
-| `WithIdleEvictionTTL(d)`   | 90 min  | How long an idle index slot persists before eviction.                    |
-| `WithIndexFanOut(m)`       | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.               |
-| `WithShardExactRouting(b)` | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.           |
+| Option                                    | Default | Description                                                                                      |
+| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `WithMinFanOut(min)`                      | 1       | Minimum nodes in an index slot. Floor for fan-out.                                               |
+| `WithMaxFanOut(max)`                      | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.                             |
+| `WithDecayFactor(decay)`                  | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory.                         |
+| `WithFanOutPerRequest(count)`             | 500     | Decay counter value that maps to +1 fan-out node.                                                |
+| `WithIdleEvictionTTL(ttl)`                | 90 min  | How long an idle index slot persists before eviction.                                            |
+| `WithIndexFanOut(overrides)`              | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.                                       |
+| `WithShardExactRouting(bool)`             | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.                                   |
+| `WithShardCosts(spec)`                    | --      | Override shard cost multipliers. Env var overrides. See format below.                            |
+| `WithAdaptiveConcurrency(bool)`           | true    | Enable/disable adaptive `max_concurrent_shard_requests` on search requests.                      |
+| `WithAdaptiveConcurrencyLimits(min, max)` | 5, 256  | Set min/max for adaptive shard concurrency. `(0,0)` = enable with defaults, `(-1,-1)` = disable. |
 
 ### Feature Environment Variables
 
@@ -1780,11 +1784,13 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 #### Routing and Discovery
 
-| Variable                         | Format                          | Default       | Description                                                                                  |
-| -------------------------------- | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled) | Toggle shard-exact routing (`-shard_exact`)                                                  |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled) | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`        | Seed URL fallback when all pools exhausted. `false` = disable                                |
+| Variable                         | Format                          | Default        | Description                                                                                  |
+| -------------------------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`)             |
+| `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`   |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled)  | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
+| `OPENSEARCH_GO_SHARD_COST`       | See format below                | (defaults)     | Override shard cost multipliers used in connection scoring                                   |
+| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`         | Seed URL fallback when all pools exhausted. `false` = disable                                |
 
 `OPENSEARCH_GO_ROUTING_CONFIG` flags:
 
@@ -1812,6 +1818,56 @@ OPENSEARCH_GO_DISCOVERY_CONFIG=-routing_num_shards,-node_stats
 
 # Minimal discovery: only node membership, no enrichment
 OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-node_stats
+```
+
+#### Shard Cost Configuration
+
+`OPENSEARCH_GO_SHARD_COST` overrides the shard cost multipliers used in the `shardCost` scoring factor. Values are resolved once at client initialization. The env var takes precedence over the programmatic `WithShardCosts()` option, which takes precedence over compile-time defaults. Any value <= 0 is replaced by the compile-time default for that slot.
+
+**Format:**
+
+1. **Bare numeric** -- sets `preferred` and `alternate` costs to the same value in both read and write tables. Other costs (`relocating`, `initializing`, `unknown`) keep their defaults.
+
+   ```bash
+   OPENSEARCH_GO_SHARD_COST=1.5  # preferred=alternate=1.5 in both tables
+   ```
+
+2. **Key=value, comma-separated** -- abstract key names that map to the correct shard type per table:
+
+   | Key            | Read table index | Write table index |
+   | -------------- | ---------------- | ----------------- |
+   | `preferred`    | replica          | primary           |
+   | `alternate`    | primary          | replica           |
+   | `relocating`   | relocating       | relocating        |
+   | `initializing` | initializing     | initializing      |
+   | `unknown`      | unknown          | unknown           |
+
+   ```bash
+   # Disable role preference (treat primary and replica equally)
+   OPENSEARCH_GO_SHARD_COST=preferred=1.0,alternate=1.0
+   ```
+
+3. **Prefixed key=value** -- `r:` (read table only) or `w:` (write table only) with concrete shard type names: `primary`, `replica`, `relocating`, `initializing`, `unknown`.
+
+   ```bash
+   # Mix concrete and abstract: tune read replicas and write primaries explicitly
+   OPENSEARCH_GO_SHARD_COST=r:replica=1.0,w:primary=0.5,alternate=1
+   ```
+
+**Programmatic equivalent:**
+
+```go
+router := opensearchtransport.NewDefaultRouter(
+    opensearchtransport.WithShardCosts("preferred=1.0,alternate=1.0"),
+)
+```
+
+Or via the top-level client config (passthrough):
+
+```go
+client, _ := opensearch.NewClient(opensearch.Config{
+    ShardCostConfig: "preferred=1.0,alternate=1.0",
+})
 ```
 
 #### Load Shedding and Stats Polling
