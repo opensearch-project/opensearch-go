@@ -371,7 +371,8 @@ func BenchmarkRouter(b *testing.B) {
 			createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 200.0, RoleData),
 			createBenchConnection("http://bench-data-3:9200", "bench-data-3", 2*time.Millisecond, 100.0, RoleData),
 		}
-		router := NewDefaultRouter()
+		router, err := NewDefaultRouter()
+		require.NoError(b, err)
 		configureBenchRouter(router, scoredConns)
 
 		indexReq := &http.Request{
@@ -452,7 +453,8 @@ func BenchmarkRouterOperations(b *testing.B) {
 		})
 
 		b.Run("DefaultRouter/Matched/"+op.name, func(b *testing.B) {
-			router := NewDefaultRouter()
+			router, err := NewDefaultRouter()
+			require.NoError(b, err)
 			configureBenchRouter(router, scoredConns)
 
 			req := &http.Request{
@@ -490,7 +492,8 @@ func BenchmarkRouterOperations(b *testing.B) {
 		})
 
 		b.Run("DefaultRouter/Unmatched/"+op.name, func(b *testing.B) {
-			router := NewDefaultRouter()
+			router, err := NewDefaultRouter()
+			require.NoError(b, err)
 			configureBenchRouter(router, scoredConns)
 
 			req := &http.Request{

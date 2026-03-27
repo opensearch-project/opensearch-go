@@ -310,28 +310,32 @@ func TestDefaultRouterConfig(t *testing.T) {
 	t.Run("NewDefaultPolicy returns non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		p := NewDefaultPolicy()
+		p, err := NewDefaultPolicy()
+		require.NoError(t, err)
 		require.NotNil(t, p)
 	})
 
 	t.Run("NewDefaultRouter returns non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		r := NewDefaultRouter()
+		r, err := NewDefaultRouter()
+		require.NoError(t, err)
 		require.NotNil(t, r)
 	})
 
 	t.Run("NewDefaultPolicy returns non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		p := NewDefaultPolicy()
+		p, err := NewDefaultPolicy()
+		require.NoError(t, err)
 		require.NotNil(t, p)
 	})
 
 	t.Run("NewDefaultRouter returns non-nil", func(t *testing.T) {
 		t.Parallel()
 
-		r := NewDefaultRouter()
+		r, err := NewDefaultRouter()
+		require.NoError(t, err)
 		require.NotNil(t, r)
 	})
 

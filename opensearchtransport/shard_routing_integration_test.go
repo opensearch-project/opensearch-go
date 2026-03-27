@@ -269,7 +269,9 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 
 	// --- Build client with DefaultRouter + observer ---
 	cfg := getTestConfig(t, []*url.URL{u})
-	cfg.Router = NewDefaultRouter()
+	router, err := NewDefaultRouter()
+	require.NoError(t, err)
+	cfg.Router = router
 	cfg.Observer = obs
 
 	transport, err := New(cfg)

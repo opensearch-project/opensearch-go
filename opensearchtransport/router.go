@@ -125,6 +125,22 @@ func NewDefaultRoutes() []Route {
 	return buildRoleRoutes(defaultRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled, dataIfEnabled))
 }
 
+// OpenSearch server-side thread pool names. Used as the pool identifier in
+// [wrapWithRouter] so that per-pool congestion windows track the correct
+// server-side resource. Names match the output of GET /_cat/thread_pool.
+//
+// Authoritative source: ThreadPool.Names in the OpenSearch server:
+// server/src/main/java/org/opensearch/threadpool/ThreadPool.java
+const (
+	poolWrite      = "write"
+	poolSearch     = "search"
+	poolGet        = "get"
+	poolManagement = "management"
+	poolRefresh    = "refresh"
+	poolFlush      = "flush"
+	poolForceMerge = "force_merge"
+)
+
 // roleRoutes groups per-role policy references used by [buildRoleRoutes].
 // Each field maps a combination of node role and server-side thread pool
 // to a policy. For scored routes, the policy wrapper carries the pool name
@@ -493,6 +509,10 @@ type routerConfig struct {
 	decay           float64
 	fanOutPerReq    float64
 
+	// Shard cost override spec. Parsed at NewDefaultPolicy time.
+	// See [envShardCost] for format documentation.
+	shardCostConfig string
+
 	// Feature configuration from environment variables.
 	// Applied after programmatic options; env overrides options.
 	routingFeatures   routingFeatures
@@ -625,6 +645,29 @@ func WithAdaptiveConcurrencyLimits(minVal, maxVal int) RouterOption {
 	}
 }
 
+// WithShardCosts overrides shard cost multipliers used for connection scoring.
+// The spec string uses the same format as the [OPENSEARCH_GO_SHARD_COST]
+// environment variable:
+//
+//   - Bare numeric (e.g., "1.5"): sets preferred and alternate to the given
+//     value for both read and write cost tables. Other costs (relocating,
+//     initializing, unknown) keep their compile-time defaults.
+//   - Unprefixed key=value (e.g., "preferred=1.0,alternate=2.0"): keys are
+//     preferred, alternate, relocating, initializing, unknown. Applied to
+//     both tables with role-aware mapping (preferred = replica for reads,
+//     primary for writes).
+//   - Prefixed key=value (e.g., "r:replica=1.0,w:primary=0.5"): keys are
+//     primary, replica, relocating, initializing, unknown. Prefix "r:"
+//     applies to reads only, "w:" to writes only, indexing the table
+//     directly by shard type.
+//   - Any value ≤ 0 is replaced by the compile-time default for that slot.
+//
+// The environment variable takes precedence over this option.
+func WithShardCosts(spec string) RouterOption {
+	return func(c *routerConfig) { c.shardCostConfig = spec }
+
+}
+
 // NewDefaultPolicy creates a request-aware policy with connection-scoring routing.
 // This is the recommended policy for production clusters. It extends
 // role-based mux routing with per-index connection scoring:
@@ -638,7 +681,7 @@ func WithAdaptiveConcurrencyLimits(minVal, maxVal int) RouterOption {
 //  3. RoundRobinPolicy fallback for unmatched requests
 //
 // See [guides/connection_scoring.md] for the full algorithm description.
-func NewDefaultPolicy(opts ...RouterOption) Policy {
+func NewDefaultPolicy(opts ...RouterOption) (Policy, error) {
 	cfg := defaultRouterConfig()
 	for _, opt := range opts {
 		opt(&cfg)
@@ -671,6 +714,18 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 		}
 	}
 
+	// Resolve shard cost tables.
+	// Priority: env var > WithShardCosts() RouterOption > compile-time defaults.
+	shardCostSpec := cfg.shardCostConfig
+	if envVal, ok := os.LookupEnv(envShardCost); ok && envVal != "" {
+		shardCostSpec = envVal
+	}
+
+	readCosts, writeCosts, costErr := parseShardCostConfig(shardCostSpec)
+	if costErr != nil {
+		return nil, fmt.Errorf("shard cost config %q: %w", shardCostSpec, costErr)
+	}
+
 	cacheCfg := indexSlotCacheConfig{
 		minFanOut:           cfg.minFanOut,
 		maxFanOut:           cfg.maxFanOut,
@@ -689,14 +744,14 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 	// Wrap coordinating-only nodes with RTT + congestion scoring.
 	// Coordinating nodes don't host shards, so all receive costUnknown
 	// and selection is purely by latency and congestion window.
-	coordinatingScored := wrapWithRouter(coordinatingPolicy, cache, cfg.decay, &shardCostForReads, "")
+	coordinatingScored := wrapWithRouter(coordinatingPolicy, cache, cfg.decay, &readCosts, "")
 
 	// The mux policy delegates each matched request to a router-wrapped
 	// role policy. Within data/search/ingest/warm nodes, the router wrapper
 	// applies RTT-based scoring and rendezvous hashing to select the
 	// best connection for the target index, achieving cache locality and AZ-aware
 	// load distribution within each role pool.
-	muxPolicy := NewMuxPolicy(newScoredRoutes(cache, cfg.decay))
+	muxPolicy := NewMuxPolicy(newScoredRoutes(cache, cfg.decay, &readCosts, &writeCosts))
 
 	roundRobinPolicy := NewRoundRobinPolicy()
 
@@ -707,7 +762,7 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 			muxPolicy,
 			roundRobinPolicy,
 		),
-	)
+	), nil
 }
 
 // NewDefaultRouter creates a router with connection-scoring request routing.
@@ -717,15 +772,19 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 //
 // See [NewDefaultPolicy] for the full routing chain and [guides/connection_scoring.md]
 // for the algorithm description.
-func NewDefaultRouter(opts ...RouterOption) Router {
-	return NewRouter(NewDefaultPolicy(opts...))
+func NewDefaultRouter(opts ...RouterOption) (Router, error) {
+	p, err := NewDefaultPolicy(opts...)
+	if err != nil {
+		return nil, err
+	}
+	return NewRouter(p), nil
 }
 
 // newScoredRoutes mirrors [NewDefaultRoutes] but wraps each role-based
 // sub-policy with a [poolRouter]. Each wrapper carries the
 // server-side thread pool name and shard cost table, so the pool name flows
 // through [NextHop.PoolName] without redundancy on the route.
-func newScoredRoutes(cache *indexSlotCache, decay float64) []Route {
+func newScoredRoutes(cache *indexSlotCache, decay float64, readCosts, writeCosts *shardCostMultiplier) []Route {
 	wrap := func(p Policy, costs *shardCostMultiplier, pool string) Policy {
 		return wrapWithRouter(p, cache, decay, costs, pool)
 	}
@@ -774,16 +833,16 @@ func newScoredRoutes(cache *indexSlotCache, decay float64) []Route {
 	// baked into the wrapper at construction time and flows through
 	// NextHop.PoolName --no redundant .Pool() calls on routes needed.
 	return buildRoleRoutes(roleRoutes{
-		ingestWrite:    wrap(ingestIfEnabled, &shardCostForWrites, "write"),
-		ingestMgmt:     wrap(ingestIfEnabled, &shardCostForReads, "management"),
-		searchRead:     wrap(searchIfEnabled, &shardCostForReads, "search"),
-		getRead:        wrap(searchIfEnabled, &shardCostForReads, "get"),
-		dataWrite:      wrap(dataIfEnabled, &shardCostForWrites, "write"),
-		dataRefresh:    wrap(dataIfEnabled, &shardCostForWrites, "refresh"),
-		dataFlush:      wrap(dataIfEnabled, &shardCostForWrites, "flush"),
-		dataForceMerge: wrap(dataIfEnabled, &shardCostForWrites, "force_merge"),
-		dataMgmt:       wrap(dataIfEnabled, &shardCostForReads, "management"),
-		searchMgmt:     wrap(searchIfEnabled, &shardCostForReads, "management"),
-		warmMgmt:       wrap(warmIfEnabled, &shardCostForReads, "management"),
+		ingestWrite:    wrap(ingestIfEnabled, writeCosts, poolWrite),
+		ingestMgmt:     wrap(ingestIfEnabled, readCosts, poolManagement),
+		searchRead:     wrap(searchIfEnabled, readCosts, poolSearch),
+		getRead:        wrap(searchIfEnabled, readCosts, poolGet),
+		dataWrite:      wrap(dataIfEnabled, writeCosts, poolWrite),
+		dataRefresh:    wrap(dataIfEnabled, writeCosts, poolRefresh),
+		dataFlush:      wrap(dataIfEnabled, writeCosts, poolFlush),
+		dataForceMerge: wrap(dataIfEnabled, writeCosts, poolForceMerge),
+		dataMgmt:       wrap(dataIfEnabled, readCosts, poolManagement),
+		searchMgmt:     wrap(searchIfEnabled, readCosts, poolManagement),
+		warmMgmt:       wrap(warmIfEnabled, readCosts, poolManagement),
 	})
 }

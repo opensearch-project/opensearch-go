@@ -92,7 +92,10 @@ To enable intelligent request routing that routes operations to appropriate node
 provide a Router implementation in the configuration:
 
 	// Enable routing (recommended for production clusters)
-	router := opensearchtransport.NewDefaultRouter()
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		log.Fatal(err)
+	}
 	transport, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs:   []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
 		Router: router,
@@ -155,10 +158,11 @@ instead of using role-based routing.
 
 Enable automatic cluster discovery to maintain current node information:
 
+	router, _ := opensearchtransport.NewDefaultRouter()
 	transport, err := opensearchtransport.New(opensearchtransport.Config{
 		URLs: []*url.URL{{Scheme: "http", Host: "localhost:9200"}},
 		DiscoverNodesInterval: 5 * time.Minute,
-		Router: opensearchtransport.NewDefaultRouter(),
+		Router: router,
 	})
 
 The discovery process respects node roles and can exclude dedicated cluster manager nodes

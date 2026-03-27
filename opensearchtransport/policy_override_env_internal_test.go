@@ -102,7 +102,8 @@ func TestParsePolicyOverrides_FallbackRegex(t *testing.T) {
 // --- buildPolicyPaths ---
 
 func TestBuildPolicyPaths_DefaultPolicy(t *testing.T) {
-	root := NewDefaultPolicy()
+	root, err := NewDefaultPolicy()
+	require.NoError(t, err)
 
 	paths := buildPolicyPaths(root)
 	require.NotEmpty(t, paths)
@@ -132,7 +133,8 @@ func TestBuildPolicyPaths_RoundRobinDefault(t *testing.T) {
 
 func TestBuildPolicyPaths_Deterministic(t *testing.T) {
 	// Building paths twice should produce identical results.
-	root := NewDefaultPolicy()
+	root, err := NewDefaultPolicy()
+	require.NoError(t, err)
 
 	paths1 := buildPolicyPaths(root)
 	paths2 := buildPolicyPaths(root)
@@ -149,7 +151,8 @@ func TestBuildPolicyPaths_Deterministic(t *testing.T) {
 // --- applyPolicyOverrides ---
 
 func TestApplyPolicyOverrides_DisableAllRole(t *testing.T) {
-	root := NewDefaultPolicy()
+	root, err := NewDefaultPolicy()
+	require.NoError(t, err)
 
 	b := false
 	overrides := []policyOverride{{
@@ -171,7 +174,8 @@ func TestApplyPolicyOverrides_DisableAllRole(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_EnableNoOp(t *testing.T) {
-	root := NewDefaultPolicy()
+	root, err := NewDefaultPolicy()
+	require.NoError(t, err)
 
 	b := true
 	overrides := []policyOverride{{
@@ -197,7 +201,8 @@ func TestApplyPolicyOverrides_EnableNoOp(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_PathMatch(t *testing.T) {
-	root := NewDefaultPolicy()
+	root, err := NewDefaultPolicy()
+	require.NoError(t, err)
 
 	paths := buildPolicyPaths(root)
 
@@ -239,7 +244,8 @@ func TestApplyPolicyOverrides_PathMatch(t *testing.T) {
 }
 
 func TestApplyPolicyOverrides_RegexMatch(t *testing.T) {
-	root := NewDefaultPolicy()
+	root, err := NewDefaultPolicy()
+	require.NoError(t, err)
 
 	overrides := parsePolicyOverridesForTest(t, "OPENSEARCH_GO_POLICY_ROUNDROBIN", ".*roundrobin.*=false")
 

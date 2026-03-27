@@ -200,6 +200,10 @@ type Config struct {
 	Router    opensearchtransport.Router             // Optional router for request-aware routing.
 	Observer  opensearchtransport.ConnectionObserver // Optional observer for connection lifecycle events.
 
+	// ShardCostConfig overrides shard cost multipliers for connection scoring.
+	// See [opensearchtransport.Config.ShardCostConfig] for format details.
+	ShardCostConfig string
+
 	// Context for background operations (node discovery, health checks, stats polling).
 	// If nil, context.Background() is used. The transport derives a child context from
 	// this, so canceling the parent automatically stops all background goroutines.
@@ -310,6 +314,7 @@ func NewClient(cfg Config) (*Client, error) {
 		Selector:           cfg.Selector,
 		Router:             cfg.Router,
 		Observer:           cfg.Observer,
+		ShardCostConfig:    cfg.ShardCostConfig,
 		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
 		Context:            cfg.Context,
 	})

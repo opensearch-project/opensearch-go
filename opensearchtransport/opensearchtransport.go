@@ -334,6 +334,16 @@ type Config struct {
 	Router    Router             // Optional router for cluster-aware request routing
 	Observer  ConnectionObserver // Optional observer for connection lifecycle events
 
+	// ShardCostConfig overrides shard cost multipliers used for connection scoring.
+	// Passed through to the router via [WithShardCosts] when constructing the
+	// default router. Format: bare numeric (sets preferred+alternate for both
+	// read/write tables) or comma-separated key=value items. Without prefix,
+	// keys use abstract names: preferred, alternate, relocating, initializing,
+	// unknown. With "r:" or "w:" prefix, keys use concrete shard types: primary,
+	// replica, relocating, initializing, unknown.
+	// Can also be set via OPENSEARCH_GO_SHARD_COST (env var takes precedence).
+	ShardCostConfig string
+
 	// Context for background operations (node discovery, health checks, stats polling).
 	// If nil, context.Background() is used. The transport derives a child context from
 	// this, so canceling the parent automatically stops all background goroutines.
@@ -747,6 +757,16 @@ func New(cfg Config) (*Client, error) {
 	}
 	ctx, cancel := context.WithCancel(parent)
 
+	router := cfg.Router
+	if router == nil && cfg.ShardCostConfig != "" {
+		var err error
+		router, err = NewDefaultRouter(WithShardCosts(cfg.ShardCostConfig))
+		if err != nil {
+			cancel()
+			return nil, fmt.Errorf("shard cost config: %w", err)
+		}
+	}
+
 	client := Client{
 		urls:     cfg.URLs,
 		username: cfg.Username,
@@ -803,7 +823,7 @@ func New(cfg Config) (*Client, error) {
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
-		router:     cfg.Router,
+		router:     router,
 		selector:   cfg.Selector,
 		poolFunc:   cfg.ConnectionPoolFunc,
 		ctx:        ctx,

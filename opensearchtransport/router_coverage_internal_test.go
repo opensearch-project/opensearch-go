@@ -19,52 +19,59 @@ import (
 
 // --- NewDefaultPolicy env var override coverage ---
 
-func TestNewDefaultPolicy_RoutingConfigEnv(t *testing.T) {
-	t.Setenv(envRoutingConfig, "-shard_exact")
+func TestNewDefaultPolicy_EnvOverrides(t *testing.T) {
+	tests := []struct {
+		name        string
+		envVars     map[string]string
+		opts        []RouterOption
+		enableDebug bool
+	}{
+		{
+			name:    "routing config disables shard_exact",
+			envVars: map[string]string{envRoutingConfig: "-shard_exact"},
+		},
+		{
+			name:    "discovery config disables cat_shards",
+			envVars: map[string]string{envDiscoveryConfig: "-cat_shards"},
+		},
+		{
+			name:    "shard requests min:max",
+			envVars: map[string]string{envShardRequests: "10:256"},
+		},
+		{
+			name:        "shard requests invalid min>max logs error",
+			envVars:     map[string]string{envShardRequests: "500:10"},
+			enableDebug: true,
+		},
+		{
+			name: "all env overrides combined",
+			envVars: map[string]string{
+				envRoutingConfig:   "-shard_exact",
+				envDiscoveryConfig: "-cat_shards",
+				envShardRequests:   "5:128",
+			},
+		},
+		{
+			name:        "invalid option logs via debug",
+			opts:        []RouterOption{WithAdaptiveConcurrencyLimits(500, 10)},
+			enableDebug: true,
+		},
+	}
 
-	policy := NewDefaultPolicy()
-	require.NotNil(t, policy)
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for k, v := range tt.envVars {
+				t.Setenv(k, v)
+			}
+			if tt.enableDebug {
+				enableTestDebugLogger(t)
+			}
 
-func TestNewDefaultPolicy_DiscoveryConfigEnv(t *testing.T) {
-	t.Setenv(envDiscoveryConfig, "-cat_shards")
-
-	policy := NewDefaultPolicy()
-	require.NotNil(t, policy)
-}
-
-func TestNewDefaultPolicy_ShardRequestsEnv(t *testing.T) {
-	t.Setenv(envShardRequests, "10:256")
-
-	policy := NewDefaultPolicy()
-	require.NotNil(t, policy)
-}
-
-func TestNewDefaultPolicy_ShardRequestsEnv_InvalidMinMax(t *testing.T) {
-	// min > max should record an error (logged via debugLogger)
-	t.Setenv(envShardRequests, "500:10")
-
-	enableTestDebugLogger(t)
-
-	policy := NewDefaultPolicy()
-	require.NotNil(t, policy)
-}
-
-func TestNewDefaultPolicy_AllEnvOverrides(t *testing.T) {
-	t.Setenv(envRoutingConfig, "-shard_exact")
-	t.Setenv(envDiscoveryConfig, "-cat_shards")
-	t.Setenv(envShardRequests, "5:128")
-
-	policy := NewDefaultPolicy()
-	require.NotNil(t, policy)
-}
-
-func TestNewDefaultPolicy_DebugLogging(t *testing.T) {
-	enableTestDebugLogger(t)
-
-	// Pass an invalid option to generate a config error that will be logged.
-	policy := NewDefaultPolicy(WithAdaptiveConcurrencyLimits(500, 10))
-	require.NotNil(t, policy)
+			policy, err := NewDefaultPolicy(tt.opts...)
+			require.NoError(t, err)
+			require.NotNil(t, policy)
+		})
+	}
 }
 
 // --- IsEnabled closure coverage via Router.Route ---
@@ -137,11 +144,12 @@ func TestNewRoundRobinRouter_ExercisesIsEnabledClosure(t *testing.T) {
 func TestNewDefaultRouter_ExercisesIsEnabledClosures(t *testing.T) {
 	t.Parallel()
 
-	router := NewDefaultRouter()
+	router, err := NewDefaultRouter()
+	require.NoError(t, err)
 	require.NotNil(t, router)
 
 	chain := router.(*PolicyChain)
-	err := chain.configurePolicySettings(createTestConfig())
+	err = chain.configurePolicySettings(createTestConfig())
 	require.NoError(t, err)
 
 	conns := makeRoleConnections(t)
