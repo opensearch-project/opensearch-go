@@ -1,4 +1,5 @@
 - [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
+  - [Partial failure errors (ReturnQueryErrors)](#partial-failure-errors-returnqueryerrors)
   - [Response.Body becomes a method](#responsebody-becomes-a-method)
   - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
 - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
@@ -27,6 +28,75 @@
 # Upgrading OpenSearch Go Client
 
 ## Upgrading to >= 5.0.0
+
+### Partial Failure Errors (ReturnQueryErrors)
+
+Version 5.0.0 changes `Config.ReturnQueryErrors` to default to `true`. When enabled, API methods return typed errors for partial failures (HTTP 200 responses with embedded errors), so callers only need the standard `if err != nil` pattern. Both the response and the error are non-nil on partial failure -- the response is fully populated.
+
+**Why**: OpenSearch returns HTTP 200 for operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). Before this change, callers had to remember a second error check after every operation, which is easy to forget and non-idiomatic Go.
+
+**What changes in v5**: If you relied on `err == nil` meaning "no failures of any kind", your code is already correct -- you were ignoring partial failures. With `ReturnQueryErrors: true` (now the default), those partial failures surface as errors. Your `if err != nil` blocks will now catch them.
+
+**If you need the old behavior**, set `ReturnQueryErrors: false`:
+
+```go
+client, err := opensearchapi.NewClient(opensearchapi.Config{
+    Client:            opensearch.Config{Addresses: addrs},
+    ReturnQueryErrors: false, // v4 behavior: partial failures don't return errors
+})
+```
+
+**Handling partial failure errors**:
+
+All partial failure errors implement the `PartialFailureError` interface and work with `errors.As`:
+
+```go
+resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+if err != nil {
+    var bulkErr *opensearchapi.PartialBulkError
+    switch {
+    case errors.As(err, &bulkErr):
+        // resp is fully populated -- inspect individual items
+        log.Printf("%d/%d items failed",
+            len(bulkErr.FailedItems),
+            bulkErr.SucceededCount+len(bulkErr.FailedItems))
+    default:
+        return err // transport or HTTP error
+    }
+}
+```
+
+**Error types**:
+
+| Error Type | Returned By | Key Fields |
+|---|---|---|
+| `*PartialBulkError` | `Bulk` | `FailedItems []BulkRespItem`, `SucceededCount int` |
+| `*PartialSearchError` | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
+| `*ShardFailureError` | `Index`, `Document.Create`, `Document.Delete`, `Update` | `Operation string`, `FailedShards int`, `TotalShards int` |
+
+**Helper functions** for common patterns:
+
+```go
+// Suppress all partial failures (best-effort operations)
+err = opensearchapi.ToleratePartialFailures(err)
+
+// Fail only if success rate drops below threshold
+err = opensearchapi.RequireSuccessRate(err, 0.99)
+
+// Test whether an error is a partial failure
+if opensearchapi.IsPartialFailure(err) { ... }
+```
+
+**Operation constants** for `ShardFailureError.Operation`:
+
+```go
+opensearchapi.OperationIndex   // "index"
+opensearchapi.OperationCreate  // "create"
+opensearchapi.OperationUpdate  // "update"
+opensearchapi.OperationDelete  // "delete"
+```
+
+See [Error Handling and Partial Failures](guides/error_handling.md) for the full guide.
 
 ### StringError for Unknown JSON Responses
 

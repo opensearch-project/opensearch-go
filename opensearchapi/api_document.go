@@ -26,6 +26,14 @@ func (c documentClient) Create(ctx context.Context, req DocumentCreateReq) (*Doc
 		return &data, err
 	}
 
+	if c.apiClient.returnQueryErrors && data.Shards.Failed > 0 {
+		return &data, &ShardFailureError{
+			Operation:    OperationCreate,
+			FailedShards: data.Shards.Failed,
+			TotalShards:  data.Shards.Total,
+		}
+	}
+
 	return &data, nil
 }
 
@@ -37,6 +45,14 @@ func (c documentClient) Delete(ctx context.Context, req DocumentDeleteReq) (*Doc
 	)
 	if data.response, err = do(ctx, c.apiClient, http.MethodDelete, req, &data); err != nil {
 		return &data, err
+	}
+
+	if c.apiClient.returnQueryErrors && data.Shards.Failed > 0 {
+		return &data, &ShardFailureError{
+			Operation:    OperationDelete,
+			FailedShards: data.Shards.Failed,
+			TotalShards:  data.Shards.Total,
+		}
 	}
 
 	return &data, nil

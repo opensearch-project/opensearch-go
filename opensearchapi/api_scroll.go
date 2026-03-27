@@ -38,5 +38,13 @@ func (c scrollClient) Get(ctx context.Context, req ScrollGetReq) (*ScrollGetResp
 		return &data, err
 	}
 
+	if c.apiClient.returnQueryErrors && data.Shards.Failed > 0 {
+		return &data, &PartialSearchError{
+			FailedShards: data.Shards.Failed,
+			TotalShards:  data.Shards.Total,
+			Failures:     data.Shards.Failures,
+		}
+	}
+
 	return &data, nil
 }

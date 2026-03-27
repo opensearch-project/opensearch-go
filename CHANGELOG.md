@@ -89,6 +89,16 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Document environment variables in `guides/routing.md`
   - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
 - Add adaptive `max_concurrent_shard_requests` derived from cluster-wide AIMD congestion window ([#800](https://github.com/opensearch-project/opensearch-go/issues/800))
+- Add partial failure error types (`PartialBulkError`, `PartialSearchError`, `ShardFailureError`) that surface HTTP 200 partial failures as Go errors when `Config.ReturnQueryErrors` is enabled ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
+  - `PartialBulkError` returned from `Bulk` when `resp.Errors` is true, carries `FailedItems` and `SucceededCount`
+  - `PartialSearchError` returned from `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` when `_shards.failed > 0`
+  - `ShardFailureError` returned from `Index`, `Document.Create`, `Document.Delete`, `Update` when replica shards fail
+  - `PartialFailureError` marker interface with `IsPartial() bool` for type-switching across all partial failure types
+  - Helper functions: `IsPartialFailure`, `ToleratePartialFailures`, `RequireSuccessRate` for threshold-based error tolerance
+  - Operation constants: `OperationIndex`, `OperationCreate`, `OperationUpdate`, `OperationDelete`
+  - `Config.ReturnQueryErrors` defaults to `false` in v4 (opt-in), will flip to `true` in v5
+  - `OPENSEARCH_GO_PARTIAL_QUERY_ERRORS` environment variable overrides `Config.ReturnQueryErrors` at runtime
+  - Both `(resp, error)` are non-nil on partial failure -- response is fully populated
   - Transport automatically sets `max_concurrent_shard_requests` query parameter on search requests routed through a coordinator node
   - Value derived from a cluster-wide aggregate of all polled nodes' search pool wait-time and completion deltas, clamped to `[floor, cap]` (default: 5–256)
   - Cluster-wide signal correctly models data-node fan-out capacity: single hot nodes are diluted by healthy peers, and MCSR only drops when aggregate cluster pressure rises

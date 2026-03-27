@@ -26,6 +26,14 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 		return &data, err
 	}
 
+	if c.returnQueryErrors && data.Shards.Failed > 0 {
+		return &data, &ShardFailureError{
+			Operation:    OperationUpdate,
+			FailedShards: data.Shards.Failed,
+			TotalShards:  data.Shards.Total,
+		}
+	}
+
 	return &data, nil
 }
 

@@ -26,6 +26,24 @@ func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
 		return &data, err
 	}
 
+	if c.returnQueryErrors && data.Errors {
+		var failed []BulkRespItem
+		succeeded := 0
+		for _, item := range data.Items {
+			for _, v := range item {
+				if v.Error != nil {
+					failed = append(failed, v)
+				} else {
+					succeeded++
+				}
+			}
+		}
+		return &data, &PartialBulkError{
+			FailedItems:    failed,
+			SucceededCount: succeeded,
+		}
+	}
+
 	return &data, nil
 }
 

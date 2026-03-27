@@ -31,6 +31,14 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 		return &data, err
 	}
 
+	if c.returnQueryErrors && data.Shards.Failed > 0 {
+		return &data, &PartialSearchError{
+			FailedShards: data.Shards.Failed,
+			TotalShards:  data.Shards.Total,
+			Failures:     data.Shards.Failures,
+		}
+	}
+
 	return &data, nil
 }
 

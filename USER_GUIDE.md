@@ -61,6 +61,10 @@ func example() error {
 				// Optional: Enable intelligent request routing
 				Router: router,
 			},
+
+			// Optional: Surface partial failures (bulk item errors, shard failures)
+			// as Go errors. See guides/error_handling.md for details.
+			ReturnQueryErrors: true,
 		},
 	)
 	if err != nil {
@@ -516,6 +520,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 | `OPENSEARCH_GO_ACTIVE_LIST_CAP`     | auto          | Max active connections per pool                     |
 | `OPENSEARCH_GO_STANDBY_*`           | (see guide)   | Standby rotation and promotion tuning (3 variables) |
 | `OPENSEARCH_GO_OVERLOADED_*`        | (see guide)   | JVM heap and breaker thresholds (2 variables)       |
+| `OPENSEARCH_GO_PARTIAL_QUERY_ERRORS`| `false`       | Surface partial failures as Go errors (overrides `Config.ReturnQueryErrors`) |
 
 ## Guides by Topic
 

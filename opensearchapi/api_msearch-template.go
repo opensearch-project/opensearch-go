@@ -26,6 +26,23 @@ func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*M
 		return &data, err
 	}
 
+	if c.returnQueryErrors {
+		var totalShards, failedShards int
+		var failures []ResponseShardsFailure
+		for _, resp := range data.Responses {
+			totalShards += resp.Shards.Total
+			failedShards += resp.Shards.Failed
+			failures = append(failures, resp.Shards.Failures...)
+		}
+		if failedShards > 0 {
+			return &data, &PartialSearchError{
+				FailedShards: failedShards,
+				TotalShards:  totalShards,
+				Failures:     failures,
+			}
+		}
+	}
+
 	return &data, nil
 }
 

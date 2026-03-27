@@ -10,20 +10,43 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
 
+const envReturnQueryErrors = "OPENSEARCH_GO_PARTIAL_QUERY_ERRORS"
+
+// resolveReturnQueryErrors returns the effective ReturnQueryErrors setting.
+// The environment variable takes highest priority, followed by the config
+// field value, followed by the compile-time default (false).
+func resolveReturnQueryErrors(cfgValue bool) bool {
+	if v, ok := os.LookupEnv(envReturnQueryErrors); ok && v != "" {
+		if b, err := strconv.ParseBool(v); err == nil {
+			return b
+		}
+	}
+	return cfgValue
+}
+
 // Config represents the client configuration
 type Config struct {
 	Client opensearch.Config
+	// ReturnQueryErrors causes API methods to return partial failure errors
+	// (PartialBulkError, PartialSearchError, ShardFailureError) when the
+	// server responds with HTTP 200 but the response body indicates failures.
+	// The response is still fully populated; both (resp, err) are non-nil.
+	//
+	// NOTE: Default false in v4 (opt-in), but will change to true in v5.
+	ReturnQueryErrors bool
 }
 
 // Client represents the opensearchapi Client summarizing all API calls
 type Client struct {
 	Client            *opensearch.Client
+	returnQueryErrors bool
 	Cat               catClient
 	Cluster           clusterClient
 	Dangling          danglingClient
@@ -44,9 +67,10 @@ type Client struct {
 }
 
 // clientInit inits the Client with all sub clients
-func clientInit(rootClient *opensearch.Client) *Client {
+func clientInit(rootClient *opensearch.Client, returnQueryErrors bool) *Client {
 	client := &Client{
-		Client: rootClient,
+		Client:            rootClient,
+		returnQueryErrors: returnQueryErrors,
 	}
 	client.Cat = catClient{apiClient: client}
 	client.Indices = indicesClient{
@@ -83,7 +107,7 @@ func NewClient(config Config) (*Client, error) {
 		return nil, err
 	}
 
-	return clientInit(rootClient), nil
+	return clientInit(rootClient, resolveReturnQueryErrors(config.ReturnQueryErrors)), nil
 }
 
 // NewDefaultClient returns a opensearchapi client using defaults
@@ -96,12 +120,19 @@ func NewDefaultClient() (*Client, error) {
 		return nil, err
 	}
 
-	return clientInit(rootClient), nil
+	return clientInit(rootClient, resolveReturnQueryErrors(false)), nil
 }
 
-// NewFromClient creates an opensearchapi client from an existing opensearch.Client
+// NewFromClient creates an opensearchapi client from an existing opensearch.Client.
+// ReturnQueryErrors defaults to false; use NewClient with Config to enable it.
 func NewFromClient(client *opensearch.Client) *Client {
-	return clientInit(client)
+	return clientInit(client, resolveReturnQueryErrors(false))
+}
+
+// NewFromClientWithErrors creates an opensearchapi client from an existing
+// opensearch.Client with ReturnQueryErrors enabled.
+func NewFromClientWithErrors(client *opensearch.Client) *Client {
+	return clientInit(client, resolveReturnQueryErrors(true))
 }
 
 // do calls [opensearch.Do] and checks the response for OpenSearch API errors.

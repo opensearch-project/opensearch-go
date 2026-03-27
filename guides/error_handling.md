@@ -32,7 +32,122 @@ This design maximizes availability but requires careful error checking in client
 | **Refresh**             | 200         | `_shards.failed > 0`      | Incomplete refresh                        |
 | **Cluster operations**  | 200         | `_shards.failed > 0`      | Incomplete stats/operations               |
 
-## Checking for Partial Failures
+## Automatic Partial Failure Errors (Recommended)
+
+When `ReturnQueryErrors` is enabled, API methods return typed errors for partial failures alongside the fully populated response. This eliminates the need for manual double-checking and follows Go's `(result, error)` convention where both can be non-nil.
+
+```go
+client, err := opensearchapi.NewClient(opensearchapi.Config{
+    Client:            opensearch.Config{Addresses: []string{"https://localhost:9200"}},
+    ReturnQueryErrors: true,
+})
+```
+
+> **Migration note**: `ReturnQueryErrors` defaults to `false` in v4 for backward compatibility. It will default to `true` in v5.
+>
+> You can also enable this via the `OPENSEARCH_GO_PARTIAL_QUERY_ERRORS=true` environment variable, which takes priority over the `Config` field. This is useful for toggling the behavior at deploy time without code changes.
+
+### Bulk Operations
+
+When `ReturnQueryErrors` is enabled, bulk operations return a `*PartialBulkError` when any items fail. The response is still fully populated -- callers can inspect both the error and the response.
+
+```go
+resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+if err != nil {
+    var bulkErr *opensearchapi.PartialBulkError
+    if errors.As(err, &bulkErr) {
+        // resp is fully populated -- inspect individual items
+        log.Printf("%d/%d items failed",
+            len(bulkErr.FailedItems),
+            bulkErr.SucceededCount+len(bulkErr.FailedItems))
+        for _, item := range bulkErr.FailedItems {
+            log.Printf("  %s %s/%s: %s",
+                item.Error.Type, item.Index, item.ID, item.Error.Reason)
+        }
+    } else {
+        return err // transport or HTTP error
+    }
+}
+```
+
+### Search Operations
+
+Search operations return a `*PartialSearchError` when shards fail. The response contains whatever hits came back from the successful shards.
+
+```go
+resp, err := client.Search(ctx, &opensearchapi.SearchReq{
+    Indices: []string{"events"},
+    Body:    body,
+})
+if err != nil {
+    var shardErr *opensearchapi.PartialSearchError
+    if errors.As(err, &shardErr) {
+        log.Printf("%d/%d shards failed, got %d hits",
+            shardErr.FailedShards, shardErr.TotalShards,
+            len(resp.Hits.Hits))
+    } else {
+        return err
+    }
+}
+```
+
+Multi-search (`MSearch`, `MSearchTemplate`) and scroll (`Scroll.Get`) operations also return `PartialSearchError` when any sub-response has shard failures. The error aggregates failures across all sub-responses.
+
+### Write Operations
+
+Index, Create, Update, and Delete operations return a `*ShardFailureError` when the primary shard succeeds but replica shards fail. The `Operation` field identifies which write operation was performed.
+
+```go
+resp, err := client.Index(ctx, opensearchapi.IndexReq{
+    Index: "test",
+    Body:  strings.NewReader(`{"field": "value"}`),
+})
+if err != nil {
+    var shardErr *opensearchapi.ShardFailureError
+    if errors.As(err, &shardErr) {
+        log.Printf("%s: %d/%d shards failed (primary succeeded)",
+            shardErr.Operation, shardErr.FailedShards, shardErr.TotalShards)
+    } else {
+        return err
+    }
+}
+```
+
+### Helper Functions
+
+Three helper functions simplify common patterns:
+
+```go
+// Test whether an error is a partial failure (any type)
+if opensearchapi.IsPartialFailure(err) {
+    log.Println("partial failure detected")
+}
+
+// Suppress all partial failures -- useful for best-effort operations
+err = opensearchapi.ToleratePartialFailures(err)
+
+// Threshold-based tolerance -- fail only if success rate drops below 99%
+err = opensearchapi.RequireSuccessRate(err, 0.99)
+if err != nil {
+    log.Fatal(err) // only reached if <99% succeeded or non-partial error
+}
+```
+
+### Error Type Reference
+
+| Error Type            | Returned By                                                            | Fields                                                                    |
+| --------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `*PartialBulkError`   | `Bulk`                                                                 | `FailedItems []BulkRespItem`, `SucceededCount int`                        |
+| `*PartialSearchError` | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
+| `*ShardFailureError`  | `Index`, `Document.Create`, `Document.Delete`, `Update`                | `Operation string`, `FailedShards int`, `TotalShards int`                 |
+
+All three implement the `PartialFailureError` interface and work with `errors.As`.
+
+---
+
+## Manual Partial Failure Checking
+
+When `ReturnQueryErrors` is `false` (the v4 default), callers must inspect response fields directly. The sections below document this pattern.
 
 ### 1. Bulk Operations
 
@@ -188,9 +303,26 @@ func safeIndexOperation(client *opensearchapi.Client, ctx context.Context) error
 
 ## Best Practices
 
-### 1. Always Check Partial Failure Indicators
+### 1. Enable ReturnQueryErrors
 
-**Never assume HTTP 2xx means complete success:**
+The simplest way to catch partial failures is to enable `ReturnQueryErrors` in the client config. This surfaces partial failures through the standard `error` return, so the idiomatic `if err != nil` catches everything:
+
+```go
+client, err := opensearchapi.NewClient(opensearchapi.Config{
+    Client:            opensearch.Config{Addresses: addrs},
+    ReturnQueryErrors: true,
+})
+
+resp, err := client.Bulk(ctx, req)
+if err != nil {
+    // Catches transport errors, HTTP errors, AND partial failures.
+    return err
+}
+```
+
+### 2. Always Check Partial Failure Indicators
+
+**When `ReturnQueryErrors` is disabled**, never assume HTTP 2xx means complete success:
 
 ```go
 // WRONG - Missing partial failure checks
@@ -210,7 +342,7 @@ if resp.Errors {
 }
 ```
 
-### 2. Define Your Error Tolerance
+### 3. Define Your Error Tolerance
 
 Different applications have different requirements:
 
@@ -232,7 +364,13 @@ if resp.Errors {
 }
 ```
 
-### 3. Implement Retry Logic for Failed Items
+With `ReturnQueryErrors` enabled, use `RequireSuccessRate` for the same effect:
+
+```go
+err = opensearchapi.RequireSuccessRate(err, 0.50) // nil unless >50% failed
+```
+
+### 4. Implement Retry Logic for Failed Items
 
 ```go
 func bulkWithRetry(client *opensearchapi.Client, ctx context.Context, items []string) error {
@@ -298,7 +436,7 @@ When implementing retry logic for bulk operations:
 - **Retry only the failed items**, not the entire batch. Items that succeeded in the original request do not need to be resubmitted (resubmitting may cause version conflicts or duplicate documents depending on whether document IDs are set).
 - **Set client-assigned `_id` values on bulk items.** After a timeout or ambiguous failure, the client can query for expected document IDs to determine which items were persisted, turning a blind retry into a targeted one. See [Bulk: Use client-assigned document IDs for recoverability](bulk.md#use-client-assigned-document-ids-for-recoverability).
 
-### 4. Monitor Partial Failure Rates
+### 5. Monitor Partial Failure Rates
 
 ```go
 type OperationMetrics struct {
@@ -485,12 +623,13 @@ func isRetryableError(errType string) bool {
 
 ## Summary
 
-1. **HTTP 2xx does not guarantee complete success.** Always check partial failure indicators.
-2. **Bulk operations**: Check the `resp.Errors` field and examine each item.
-3. **Search operations**: Check `resp.Shards.Failed` for incomplete results.
-4. **Write operations**: Check `resp.Shards.Failed` for replica failures.
-5. **Define error tolerance**: Determine what constitutes acceptable failure for the application.
-6. **Implement retry logic**: Retry transient failures with backoff.
-7. **Monitor failure rates**: Track and alert on partial failures.
+1. **Enable `ReturnQueryErrors: true`** for idiomatic `if err != nil` handling of partial failures.
+2. **HTTP 2xx does not guarantee complete success.** Without `ReturnQueryErrors`, always check partial failure indicators manually.
+3. **Bulk operations**: `PartialBulkError` (or manual `resp.Errors` check) for item-level failures.
+4. **Search operations**: `PartialSearchError` (or manual `resp.Shards.Failed` check) for incomplete results.
+5. **Write operations**: `ShardFailureError` (or manual `resp.Shards.Failed` check) for replica failures.
+6. **Define error tolerance**: Use `RequireSuccessRate` or custom logic to decide what constitutes acceptable failure.
+7. **Implement retry logic**: Retry transient failures with backoff.
+8. **Monitor failure rates**: Track and alert on partial failures.
 
 Following these practices produces reliable applications that correctly handle OpenSearch's distributed partial-failure model.
