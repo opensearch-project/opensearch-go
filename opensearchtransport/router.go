@@ -204,226 +204,226 @@ func buildRoleRoutes(r roleRoutes) []Route {
 	return []Route{
 		// -- Cluster info -- any node, "management" pool
 		// From RestMainAction.java
-		NewRoute("GET /", r.searchMgmt).MustBuild(),
-		NewRoute("HEAD /", r.searchMgmt).MustBuild(),
+		NewRoute("GET /", r.searchMgmt).Op(OpClusterInfo).MustBuild(),
+		NewRoute("HEAD /", r.searchMgmt).Op(OpClusterInfo).MustBuild(),
 
 		// -- Bulk operations -- ingest nodes, "write" pool
 		// From RestBulkAction.java
-		NewRoute("POST /_bulk", r.ingestWrite).MustBuild(),
-		NewRoute("PUT /_bulk", r.ingestWrite).MustBuild(),
-		NewRoute("POST /{index}/_bulk", r.ingestWrite).MustBuild(),
-		NewRoute("PUT /{index}/_bulk", r.ingestWrite).MustBuild(),
+		NewRoute("POST /_bulk", r.ingestWrite).Op(OpBulk).MustBuild(),
+		NewRoute("PUT /_bulk", r.ingestWrite).Op(OpBulk).MustBuild(),
+		NewRoute("POST /{index}/_bulk", r.ingestWrite).Op(OpBulk).MustBuild(),
+		NewRoute("PUT /{index}/_bulk", r.ingestWrite).Op(OpBulk).MustBuild(),
 
 		// Streaming bulk operations (from RestBulkStreamingAction.java)
 		// NOTE: Requires OpenSearch 3.0.0+; older versions will return HTTP 404
-		NewRoute("POST /_bulk/stream", r.ingestWrite).MustBuild(),
-		NewRoute("PUT /_bulk/stream", r.ingestWrite).MustBuild(),
-		NewRoute("POST /{index}/_bulk/stream", r.ingestWrite).MustBuild(),
-		NewRoute("PUT /{index}/_bulk/stream", r.ingestWrite).MustBuild(),
+		NewRoute("POST /_bulk/stream", r.ingestWrite).Op(OpBulkStream).MustBuild(),
+		NewRoute("PUT /_bulk/stream", r.ingestWrite).Op(OpBulkStream).MustBuild(),
+		NewRoute("POST /{index}/_bulk/stream", r.ingestWrite).Op(OpBulkStream).MustBuild(),
+		NewRoute("PUT /{index}/_bulk/stream", r.ingestWrite).Op(OpBulkStream).MustBuild(),
 
 		// Reindex operations (from RestReindexAction.java, module: reindex)
-		NewRoute("POST /_reindex", r.ingestWrite).MustBuild(),
+		NewRoute("POST /_reindex", r.ingestWrite).Op(OpReindex).MustBuild(),
 
 		// -- Ingest pipeline management -- ingest nodes, "management" pool
-		NewRoute("PUT /_ingest/pipeline/{id}", r.ingestMgmt).MustBuild(),
-		NewRoute("POST /_ingest/pipeline/{id}", r.ingestMgmt).MustBuild(),
-		NewRoute("GET /_ingest/pipeline/{id}", r.ingestMgmt).MustBuild(),
-		NewRoute("DELETE /_ingest/pipeline/{id}", r.ingestMgmt).MustBuild(),
-		NewRoute("GET /_ingest/pipeline/", r.ingestMgmt).MustBuild(),
-		NewRoute("GET /_ingest/pipeline", r.ingestMgmt).MustBuild(),
-		NewRoute("GET /_ingest/pipeline/{id}/_simulate", r.ingestMgmt).MustBuild(),
-		NewRoute("POST /_ingest/pipeline/{id}/_simulate", r.ingestMgmt).MustBuild(),
-		NewRoute("GET /_ingest/pipeline/_simulate", r.ingestMgmt).MustBuild(),
-		NewRoute("POST /_ingest/pipeline/_simulate", r.ingestMgmt).MustBuild(),
+		NewRoute("PUT /_ingest/pipeline/{id}", r.ingestMgmt).Op(OpIngestCreate).MustBuild(),
+		NewRoute("POST /_ingest/pipeline/{id}", r.ingestMgmt).Op(OpIngestCreate).MustBuild(),
+		NewRoute("GET /_ingest/pipeline/{id}", r.ingestMgmt).Op(OpIngestGet).MustBuild(),
+		NewRoute("DELETE /_ingest/pipeline/{id}", r.ingestMgmt).Op(OpIngestDelete).MustBuild(),
+		NewRoute("GET /_ingest/pipeline/", r.ingestMgmt).Op(OpIngestGet).MustBuild(),
+		NewRoute("GET /_ingest/pipeline", r.ingestMgmt).Op(OpIngestGet).MustBuild(),
+		NewRoute("GET /_ingest/pipeline/{id}/_simulate", r.ingestMgmt).Op(OpIngestSimulate).MustBuild(),
+		NewRoute("POST /_ingest/pipeline/{id}/_simulate", r.ingestMgmt).Op(OpIngestSimulate).MustBuild(),
+		NewRoute("GET /_ingest/pipeline/_simulate", r.ingestMgmt).Op(OpIngestSimulate).MustBuild(),
+		NewRoute("POST /_ingest/pipeline/_simulate", r.ingestMgmt).Op(OpIngestSimulate).MustBuild(),
 
 		// -- Searchable snapshot operations -- warm nodes, "management" pool
 		// From RestRepositoryMountAction.java and RestRepositoryUnmountAction.java (OpenSearch 2.4+)
-		NewRoute("POST /_snapshot/{repository}/_mount", r.warmMgmt).MustBuild(),
-		NewRoute("POST /_snapshot/{repository}/{snapshot}/_mount", r.warmMgmt).MustBuild(),
-		NewRoute("DELETE /_snapshot/{repository}/{snapshot}/_mount/{index}", r.warmMgmt).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}/_mount", r.warmMgmt).Op(OpOther).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}/{snapshot}/_mount", r.warmMgmt).Op(OpOther).MustBuild(),
+		NewRoute("DELETE /_snapshot/{repository}/{snapshot}/_mount/{index}", r.warmMgmt).Op(OpOther).MustBuild(),
 
 		// -- Search operations -- search/data nodes, "search" pool
 		// From RestSearchAction.java
-		NewRoute("GET /_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
-		NewRoute("POST /_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
-		NewRoute("GET /{index}/_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
-		NewRoute("POST /{index}/_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /_search", r.searchRead).Op(OpSearch).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /_search", r.searchRead).Op(OpSearch).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /{index}/_search", r.searchRead).Op(OpSearch).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /{index}/_search", r.searchRead).Op(OpSearch).InjectAdaptiveMCSR().MustBuild(),
 
 		// Multi-search operations (from RestMultiSearchAction.java)
-		NewRoute("GET /_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
-		NewRoute("POST /_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
-		NewRoute("GET /{index}/_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
-		NewRoute("POST /{index}/_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /_msearch", r.searchRead).Op(OpMSearch).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /_msearch", r.searchRead).Op(OpMSearch).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /{index}/_msearch", r.searchRead).Op(OpMSearch).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /{index}/_msearch", r.searchRead).Op(OpMSearch).InjectAdaptiveMCSR().MustBuild(),
 
 		// Count queries (from RestCountAction.java)
-		NewRoute("GET /_count", r.searchRead).MustBuild(),
-		NewRoute("POST /_count", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_count", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_count", r.searchRead).MustBuild(),
+		NewRoute("GET /_count", r.searchRead).Op(OpCount).MustBuild(),
+		NewRoute("POST /_count", r.searchRead).Op(OpCount).MustBuild(),
+		NewRoute("GET /{index}/_count", r.searchRead).Op(OpCount).MustBuild(),
+		NewRoute("POST /{index}/_count", r.searchRead).Op(OpCount).MustBuild(),
 
 		// Query operations (from RestDeleteByQueryAction.java, RestUpdateByQueryAction.java)
-		NewRoute("POST /{index}/_delete_by_query", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_update_by_query", r.searchRead).MustBuild(),
+		NewRoute("POST /{index}/_delete_by_query", r.searchRead).Op(OpDeleteByQuery).MustBuild(),
+		NewRoute("POST /{index}/_update_by_query", r.searchRead).Op(OpUpdateByQuery).MustBuild(),
 
 		// Explain queries (from RestExplainAction.java)
-		NewRoute("GET /{index}/_explain/{id}", r.getRead).MustBuild(),
-		NewRoute("POST /{index}/_explain/{id}", r.getRead).MustBuild(),
+		NewRoute("GET /{index}/_explain/{id}", r.getRead).Op(OpExplain).MustBuild(),
+		NewRoute("POST /{index}/_explain/{id}", r.getRead).Op(OpExplain).MustBuild(),
 
 		// Document retrieval operations (from RestGetAction.java)
-		NewRoute("GET /{index}/_doc/{id}", r.getRead).MustBuild(),
-		NewRoute("HEAD /{index}/_doc/{id}", r.getRead).MustBuild(),
+		NewRoute("GET /{index}/_doc/{id}", r.getRead).Op(OpDocGet).MustBuild(),
+		NewRoute("HEAD /{index}/_doc/{id}", r.getRead).Op(OpDocExists).MustBuild(),
 
 		// -- Single-document write operations -- data nodes, "write" pool
 		// From RestIndexAction.java
-		NewRoute("PUT /{index}/_doc/{id}", r.dataWrite).MustBuild(),
-		NewRoute("POST /{index}/_doc/{id}", r.dataWrite).MustBuild(),
-		NewRoute("POST /{index}/_doc", r.dataWrite).MustBuild(),
+		NewRoute("PUT /{index}/_doc/{id}", r.dataWrite).Op(OpDocIndex).MustBuild(),
+		NewRoute("POST /{index}/_doc/{id}", r.dataWrite).Op(OpDocIndex).MustBuild(),
+		NewRoute("POST /{index}/_doc", r.dataWrite).Op(OpDocIndex).MustBuild(),
 
 		// Single-document create operations (from RestIndexAction.java)
-		NewRoute("PUT /{index}/_create/{id}", r.dataWrite).MustBuild(),
-		NewRoute("POST /{index}/_create/{id}", r.dataWrite).MustBuild(),
+		NewRoute("PUT /{index}/_create/{id}", r.dataWrite).Op(OpDocCreate).MustBuild(),
+		NewRoute("POST /{index}/_create/{id}", r.dataWrite).Op(OpDocCreate).MustBuild(),
 
 		// Single-document update operations (from RestUpdateAction.java)
-		NewRoute("POST /{index}/_update/{id}", r.dataWrite).MustBuild(),
+		NewRoute("POST /{index}/_update/{id}", r.dataWrite).Op(OpDocUpdate).MustBuild(),
 
 		// Single-document delete operations (from RestDeleteAction.java)
-		NewRoute("DELETE /{index}/_doc/{id}", r.dataWrite).MustBuild(),
+		NewRoute("DELETE /{index}/_doc/{id}", r.dataWrite).Op(OpDocDelete).MustBuild(),
 
 		// -- Get / source / multi-get / term vectors -- search/data nodes, "get" pool
 		// From RestGetSourceAction.java
-		NewRoute("GET /{index}/_source/{id}", r.getRead).MustBuild(),
-		NewRoute("HEAD /{index}/_source/{id}", r.getRead).MustBuild(),
+		NewRoute("GET /{index}/_source/{id}", r.getRead).Op(OpDocSourceGet).MustBuild(),
+		NewRoute("HEAD /{index}/_source/{id}", r.getRead).Op(OpDocSourceExist).MustBuild(),
 
 		// Multi-get operations (from RestMultiGetAction.java)
-		NewRoute("GET /_mget", r.getRead).MustBuild(),
-		NewRoute("POST /_mget", r.getRead).MustBuild(),
-		NewRoute("GET /{index}/_mget", r.getRead).MustBuild(),
-		NewRoute("POST /{index}/_mget", r.getRead).MustBuild(),
+		NewRoute("GET /_mget", r.getRead).Op(OpMGet).MustBuild(),
+		NewRoute("POST /_mget", r.getRead).Op(OpMGet).MustBuild(),
+		NewRoute("GET /{index}/_mget", r.getRead).Op(OpMGet).MustBuild(),
+		NewRoute("POST /{index}/_mget", r.getRead).Op(OpMGet).MustBuild(),
 
 		// Term vectors operations (from RestTermVectorsAction.java)
-		NewRoute("GET /{index}/_termvectors", r.getRead).MustBuild(),
-		NewRoute("POST /{index}/_termvectors", r.getRead).MustBuild(),
-		NewRoute("GET /{index}/_termvectors/{id}", r.getRead).MustBuild(),
-		NewRoute("POST /{index}/_termvectors/{id}", r.getRead).MustBuild(),
+		NewRoute("GET /{index}/_termvectors", r.getRead).Op(OpTermVectors).MustBuild(),
+		NewRoute("POST /{index}/_termvectors", r.getRead).Op(OpTermVectors).MustBuild(),
+		NewRoute("GET /{index}/_termvectors/{id}", r.getRead).Op(OpTermVectors).MustBuild(),
+		NewRoute("POST /{index}/_termvectors/{id}", r.getRead).Op(OpTermVectors).MustBuild(),
 
 		// Multi-term vectors operations (from RestMultiTermVectorsAction.java)
-		NewRoute("GET /_mtermvectors", r.getRead).MustBuild(),
-		NewRoute("POST /_mtermvectors", r.getRead).MustBuild(),
-		NewRoute("GET /{index}/_mtermvectors", r.getRead).MustBuild(),
-		NewRoute("POST /{index}/_mtermvectors", r.getRead).MustBuild(),
+		NewRoute("GET /_mtermvectors", r.getRead).Op(OpMTermVectors).MustBuild(),
+		NewRoute("POST /_mtermvectors", r.getRead).Op(OpMTermVectors).MustBuild(),
+		NewRoute("GET /{index}/_mtermvectors", r.getRead).Op(OpMTermVectors).MustBuild(),
+		NewRoute("POST /{index}/_mtermvectors", r.getRead).Op(OpMTermVectors).MustBuild(),
 
 		// -- Search template / msearch template -- search/data nodes, "search" pool
 		// From RestSearchTemplateAction.java
-		NewRoute("GET /{index}/_search/template", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_search/template", r.searchRead).MustBuild(),
-		NewRoute("GET /_search/template", r.searchRead).MustBuild(),
-		NewRoute("POST /_search/template", r.searchRead).MustBuild(),
+		NewRoute("GET /{index}/_search/template", r.searchRead).Op(OpSearchTemplate).MustBuild(),
+		NewRoute("POST /{index}/_search/template", r.searchRead).Op(OpSearchTemplate).MustBuild(),
+		NewRoute("GET /_search/template", r.searchRead).Op(OpSearchTemplate).MustBuild(),
+		NewRoute("POST /_search/template", r.searchRead).Op(OpSearchTemplate).MustBuild(),
 
 		// Multi-search template operations (from RestMultiSearchTemplateAction.java, module: lang-mustache)
-		NewRoute("GET /_msearch/template", r.searchRead).MustBuild(),
-		NewRoute("POST /_msearch/template", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_msearch/template", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_msearch/template", r.searchRead).MustBuild(),
+		NewRoute("GET /_msearch/template", r.searchRead).Op(OpMSearchTmpl).MustBuild(),
+		NewRoute("POST /_msearch/template", r.searchRead).Op(OpMSearchTmpl).MustBuild(),
+		NewRoute("GET /{index}/_msearch/template", r.searchRead).Op(OpMSearchTmpl).MustBuild(),
+		NewRoute("POST /{index}/_msearch/template", r.searchRead).Op(OpMSearchTmpl).MustBuild(),
 
 		// -- Search shards -- search/data nodes, "search" pool
 		// From RestClusterSearchShardsAction.java
-		NewRoute("GET /_search_shards", r.searchRead).MustBuild(),
-		NewRoute("POST /_search_shards", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_search_shards", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_search_shards", r.searchRead).MustBuild(),
+		NewRoute("GET /_search_shards", r.searchRead).Op(OpSearchShards).MustBuild(),
+		NewRoute("POST /_search_shards", r.searchRead).Op(OpSearchShards).MustBuild(),
+		NewRoute("GET /{index}/_search_shards", r.searchRead).Op(OpSearchShards).MustBuild(),
+		NewRoute("POST /{index}/_search_shards", r.searchRead).Op(OpSearchShards).MustBuild(),
 
 		// -- Scroll operations -- search/data nodes, "search" pool
 		// From RestSearchScrollAction.java, RestClearScrollAction.java
-		NewRoute("GET /_search/scroll", r.searchRead).MustBuild(),
-		NewRoute("POST /_search/scroll", r.searchRead).MustBuild(),
-		NewRoute("GET /_search/scroll/{scroll_id}", r.searchRead).MustBuild(),
-		NewRoute("POST /_search/scroll/{scroll_id}", r.searchRead).MustBuild(),
-		NewRoute("DELETE /_search/scroll", r.searchRead).MustBuild(),
-		NewRoute("DELETE /_search/scroll/{scroll_id}", r.searchRead).MustBuild(),
+		NewRoute("GET /_search/scroll", r.searchRead).Op(OpScrollGet).MustBuild(),
+		NewRoute("POST /_search/scroll", r.searchRead).Op(OpScrollGet).MustBuild(),
+		NewRoute("GET /_search/scroll/{scroll_id}", r.searchRead).Op(OpScrollGet).MustBuild(),
+		NewRoute("POST /_search/scroll/{scroll_id}", r.searchRead).Op(OpScrollGet).MustBuild(),
+		NewRoute("DELETE /_search/scroll", r.searchRead).Op(OpScrollDelete).MustBuild(),
+		NewRoute("DELETE /_search/scroll/{scroll_id}", r.searchRead).Op(OpScrollDelete).MustBuild(),
 
 		// -- Point-in-time operations -- search/data nodes, "search" pool (OpenSearch 2.0+)
 		// From RestCreatePitAction.java, RestDeletePitAction.java, RestGetAllPitsAction.java
-		NewRoute("POST /{index}/_search/point_in_time", r.searchRead).MustBuild(),
-		NewRoute("DELETE /_search/point_in_time", r.searchRead).MustBuild(),
-		NewRoute("DELETE /_search/point_in_time/_all", r.searchRead).MustBuild(),
-		NewRoute("GET /_search/point_in_time/_all", r.searchRead).MustBuild(),
+		NewRoute("POST /{index}/_search/point_in_time", r.searchRead).Op(OpPITCreate).MustBuild(),
+		NewRoute("DELETE /_search/point_in_time", r.searchRead).Op(OpPITDelete).MustBuild(),
+		NewRoute("DELETE /_search/point_in_time/_all", r.searchRead).Op(OpPITDelete).MustBuild(),
+		NewRoute("GET /_search/point_in_time/_all", r.searchRead).Op(OpPITList).MustBuild(),
 
 		// -- Field capabilities -- search/data nodes, "management" pool
 		// From RestFieldCapabilitiesAction.java
-		NewRoute("GET /_field_caps", r.searchMgmt).MustBuild(),
-		NewRoute("POST /_field_caps", r.searchMgmt).MustBuild(),
-		NewRoute("GET /{index}/_field_caps", r.searchMgmt).MustBuild(),
-		NewRoute("POST /{index}/_field_caps", r.searchMgmt).MustBuild(),
+		NewRoute("GET /_field_caps", r.searchMgmt).Op(OpFieldCaps).MustBuild(),
+		NewRoute("POST /_field_caps", r.searchMgmt).Op(OpFieldCaps).MustBuild(),
+		NewRoute("GET /{index}/_field_caps", r.searchMgmt).Op(OpFieldCaps).MustBuild(),
+		NewRoute("POST /{index}/_field_caps", r.searchMgmt).Op(OpFieldCaps).MustBuild(),
 
 		// -- Validate query -- search/data nodes, "search" pool
 		// From RestValidateQueryAction.java
-		NewRoute("GET /_validate/query", r.searchRead).MustBuild(),
-		NewRoute("POST /_validate/query", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_validate/query", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_validate/query", r.searchRead).MustBuild(),
+		NewRoute("GET /_validate/query", r.searchRead).Op(OpValidate).MustBuild(),
+		NewRoute("POST /_validate/query", r.searchRead).Op(OpValidate).MustBuild(),
+		NewRoute("GET /{index}/_validate/query", r.searchRead).Op(OpValidate).MustBuild(),
+		NewRoute("POST /{index}/_validate/query", r.searchRead).Op(OpValidate).MustBuild(),
 
 		// -- Rank evaluation -- search/data nodes, "search" pool
 		// From RestRankEvalAction.java, module: rank-eval
-		NewRoute("GET /_rank_eval", r.searchRead).MustBuild(),
-		NewRoute("POST /_rank_eval", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_rank_eval", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_rank_eval", r.searchRead).MustBuild(),
+		NewRoute("GET /_rank_eval", r.searchRead).Op(OpRankEval).MustBuild(),
+		NewRoute("POST /_rank_eval", r.searchRead).Op(OpRankEval).MustBuild(),
+		NewRoute("GET /{index}/_rank_eval", r.searchRead).Op(OpRankEval).MustBuild(),
+		NewRoute("POST /{index}/_rank_eval", r.searchRead).Op(OpRankEval).MustBuild(),
 
 		// -- Data tier operations -- warm/data nodes, "management" pool
-		NewRoute("POST /{index}/_settings", r.warmMgmt).MustBuild(),
-		NewRoute("PUT /{index}/_settings", r.warmMgmt).MustBuild(),
+		NewRoute("POST /{index}/_settings", r.warmMgmt).Op(OpOther).MustBuild(),
+		NewRoute("PUT /{index}/_settings", r.warmMgmt).Op(OpOther).MustBuild(),
 
 		// -- Refresh -- data nodes, "refresh" pool
 		// From RestRefreshAction.java
-		NewRoute("GET /_refresh", r.dataRefresh).MustBuild(),
-		NewRoute("POST /_refresh", r.dataRefresh).MustBuild(),
-		NewRoute("GET /{index}/_refresh", r.dataRefresh).MustBuild(),
-		NewRoute("POST /{index}/_refresh", r.dataRefresh).MustBuild(),
+		NewRoute("GET /_refresh", r.dataRefresh).Op(OpRefresh).MustBuild(),
+		NewRoute("POST /_refresh", r.dataRefresh).Op(OpRefresh).MustBuild(),
+		NewRoute("GET /{index}/_refresh", r.dataRefresh).Op(OpRefresh).MustBuild(),
+		NewRoute("POST /{index}/_refresh", r.dataRefresh).Op(OpRefresh).MustBuild(),
 
 		// -- Flush -- data nodes, "flush" pool
 		// From RestFlushAction.java
-		NewRoute("GET /_flush", r.dataFlush).MustBuild(),
-		NewRoute("POST /_flush", r.dataFlush).MustBuild(),
-		NewRoute("GET /{index}/_flush", r.dataFlush).MustBuild(),
-		NewRoute("POST /{index}/_flush", r.dataFlush).MustBuild(),
+		NewRoute("GET /_flush", r.dataFlush).Op(OpFlush).MustBuild(),
+		NewRoute("POST /_flush", r.dataFlush).Op(OpFlush).MustBuild(),
+		NewRoute("GET /{index}/_flush", r.dataFlush).Op(OpFlush).MustBuild(),
+		NewRoute("POST /{index}/_flush", r.dataFlush).Op(OpFlush).MustBuild(),
 
 		// From RestSyncedFlushAction.java (deprecated in OpenSearch 2.0+, returns deprecation warning)
-		NewRoute("GET /_flush/synced", r.dataFlush).MustBuild(),
-		NewRoute("POST /_flush/synced", r.dataFlush).MustBuild(),
-		NewRoute("GET /{index}/_flush/synced", r.dataFlush).MustBuild(),
-		NewRoute("POST /{index}/_flush/synced", r.dataFlush).MustBuild(),
+		NewRoute("GET /_flush/synced", r.dataFlush).Op(OpFlush).MustBuild(),
+		NewRoute("POST /_flush/synced", r.dataFlush).Op(OpFlush).MustBuild(),
+		NewRoute("GET /{index}/_flush/synced", r.dataFlush).Op(OpFlush).MustBuild(),
+		NewRoute("POST /{index}/_flush/synced", r.dataFlush).Op(OpFlush).MustBuild(),
 
 		// -- Force merge -- data nodes, "force_merge" pool
 		// From RestForceMergeAction.java
-		NewRoute("POST /_forcemerge", r.dataForceMerge).MustBuild(),
-		NewRoute("POST /{index}/_forcemerge", r.dataForceMerge).MustBuild(),
+		NewRoute("POST /_forcemerge", r.dataForceMerge).Op(OpForceMerge).MustBuild(),
+		NewRoute("POST /{index}/_forcemerge", r.dataForceMerge).Op(OpForceMerge).MustBuild(),
 
 		// -- Data management -- data nodes, "management" pool
 		// From RestIndicesSegmentsAction.java
-		NewRoute("GET /_segments", r.dataMgmt).MustBuild(),
-		NewRoute("GET /{index}/_segments", r.dataMgmt).MustBuild(),
+		NewRoute("GET /_segments", r.dataMgmt).Op(OpSegments).MustBuild(),
+		NewRoute("GET /{index}/_segments", r.dataMgmt).Op(OpSegments).MustBuild(),
 
 		// From RestClearIndicesCacheAction.java
-		NewRoute("POST /_cache/clear", r.dataMgmt).MustBuild(),
-		NewRoute("POST /{index}/_cache/clear", r.dataMgmt).MustBuild(),
+		NewRoute("POST /_cache/clear", r.dataMgmt).Op(OpCacheClear).MustBuild(),
+		NewRoute("POST /{index}/_cache/clear", r.dataMgmt).Op(OpCacheClear).MustBuild(),
 
 		// From RestRecoveryAction.java
-		NewRoute("GET /{index}/_recovery", r.dataMgmt).MustBuild(),
+		NewRoute("GET /{index}/_recovery", r.dataMgmt).Op(OpRecovery).MustBuild(),
 
 		// From RestIndicesShardStoresAction.java
-		NewRoute("GET /{index}/_shard_stores", r.dataMgmt).MustBuild(),
+		NewRoute("GET /{index}/_shard_stores", r.dataMgmt).Op(OpShardStores).MustBuild(),
 
 		// From RestIndicesStatsAction.java
-		NewRoute("GET /_stats", r.dataMgmt).MustBuild(),
-		NewRoute("GET /_stats/{metric}", r.dataMgmt).MustBuild(),
-		NewRoute("GET /{index}/_stats", r.dataMgmt).MustBuild(),
-		NewRoute("GET /{index}/_stats/{metric}", r.dataMgmt).MustBuild(),
+		NewRoute("GET /_stats", r.dataMgmt).Op(OpStats).MustBuild(),
+		NewRoute("GET /_stats/{metric}", r.dataMgmt).Op(OpStats).MustBuild(),
+		NewRoute("GET /{index}/_stats", r.dataMgmt).Op(OpStats).MustBuild(),
+		NewRoute("GET /{index}/_stats/{metric}", r.dataMgmt).Op(OpStats).MustBuild(),
 
 		// -- Rethrottle -- data nodes, "management" pool
 		// From RestRethrottleAction.java, module: reindex
-		NewRoute("POST /_reindex/{taskId}/_rethrottle", r.dataMgmt).MustBuild(),
-		NewRoute("POST /_update_by_query/{taskId}/_rethrottle", r.dataMgmt).MustBuild(),
-		NewRoute("POST /_delete_by_query/{taskId}/_rethrottle", r.dataMgmt).MustBuild(),
+		NewRoute("POST /_reindex/{taskId}/_rethrottle", r.dataMgmt).Op(OpReindexRethrottle).MustBuild(),
+		NewRoute("POST /_update_by_query/{taskId}/_rethrottle", r.dataMgmt).Op(OpUBQRethrottle).MustBuild(),
+		NewRoute("POST /_delete_by_query/{taskId}/_rethrottle", r.dataMgmt).Op(OpDBQRethrottle).MustBuild(),
 	}
 }
 

@@ -18,7 +18,7 @@ func TestRouteTrieMatch(t *testing.T) {
 	t.Run("exact literal match", func(t *testing.T) {
 		var trie routeTrie
 		p := NewNullPolicy()
-		trie.add([]string{http.MethodPost}, "/_bulk", p, 0, "write")
+		trie.add([]string{http.MethodPost}, "/_bulk", p, 0, "write", 0)
 
 		m, ok := trie.match(http.MethodPost, "/_bulk")
 		require.True(t, ok)
@@ -30,7 +30,7 @@ func TestRouteTrieMatch(t *testing.T) {
 	t.Run("wildcard index match", func(t *testing.T) {
 		var trie routeTrie
 		p := NewNullPolicy()
-		trie.add([]string{http.MethodGet, http.MethodPost}, "/{index}/_search", p, 0, "search")
+		trie.add([]string{http.MethodGet, http.MethodPost}, "/{index}/_search", p, 0, "search", 0)
 
 		m, ok := trie.match(http.MethodPost, "/my-index/_search")
 		require.True(t, ok)
@@ -44,7 +44,7 @@ func TestRouteTrieMatch(t *testing.T) {
 	t.Run("wildcard index and id match", func(t *testing.T) {
 		var trie routeTrie
 		p := NewNullPolicy()
-		trie.add([]string{http.MethodGet}, "/{index}/_doc/{id}", p, 0, "get")
+		trie.add([]string{http.MethodGet}, "/{index}/_doc/{id}", p, 0, "get", 0)
 
 		m, ok := trie.match(http.MethodGet, "/my-index/_doc/abc123")
 		require.True(t, ok)
@@ -56,7 +56,7 @@ func TestRouteTrieMatch(t *testing.T) {
 
 	t.Run("method mismatch returns no match", func(t *testing.T) {
 		var trie routeTrie
-		trie.add([]string{http.MethodPost}, "/_bulk", NewNullPolicy(), 0, "")
+		trie.add([]string{http.MethodPost}, "/_bulk", NewNullPolicy(), 0, "", 0)
 
 		_, ok := trie.match(http.MethodGet, "/_bulk")
 		require.False(t, ok)
@@ -64,7 +64,7 @@ func TestRouteTrieMatch(t *testing.T) {
 
 	t.Run("path mismatch returns no match", func(t *testing.T) {
 		var trie routeTrie
-		trie.add([]string{http.MethodPost}, "/_bulk", NewNullPolicy(), 0, "")
+		trie.add([]string{http.MethodPost}, "/_bulk", NewNullPolicy(), 0, "", 0)
 
 		_, ok := trie.match(http.MethodPost, "/_search")
 		require.False(t, ok)
@@ -72,7 +72,7 @@ func TestRouteTrieMatch(t *testing.T) {
 
 	t.Run("too short path returns no match", func(t *testing.T) {
 		var trie routeTrie
-		trie.add([]string{http.MethodGet}, "/{index}/_search", NewNullPolicy(), 0, "")
+		trie.add([]string{http.MethodGet}, "/{index}/_search", NewNullPolicy(), 0, "", 0)
 
 		_, ok := trie.match(http.MethodGet, "/my-index")
 		require.False(t, ok)
@@ -80,7 +80,7 @@ func TestRouteTrieMatch(t *testing.T) {
 
 	t.Run("too long path returns no match", func(t *testing.T) {
 		var trie routeTrie
-		trie.add([]string{http.MethodPost}, "/_bulk", NewNullPolicy(), 0, "")
+		trie.add([]string{http.MethodPost}, "/_bulk", NewNullPolicy(), 0, "", 0)
 
 		_, ok := trie.match(http.MethodPost, "/_bulk/extra")
 		require.False(t, ok)
@@ -91,8 +91,8 @@ func TestRouteTrieMatch(t *testing.T) {
 		systemPolicy := NewNullPolicy()
 		indexPolicy := NewNullPolicy()
 
-		trie.add([]string{http.MethodPost}, "/_search", systemPolicy, 0, "system-search")
-		trie.add([]string{http.MethodPost}, "/{index}/_search", indexPolicy, 0, "index-search")
+		trie.add([]string{http.MethodPost}, "/_search", systemPolicy, 0, "system-search", 0)
+		trie.add([]string{http.MethodPost}, "/{index}/_search", indexPolicy, 0, "index-search", 0)
 
 		// /_search should match the literal system route
 		m, ok := trie.match(http.MethodPost, "/_search")
@@ -113,8 +113,8 @@ func TestRouteTrieMatch(t *testing.T) {
 		explainPolicy := NewNullPolicy()
 
 		// Literal segments match before wildcards, resolving this ambiguity
-		trie.add([]string{http.MethodPost}, "/_snapshot/{repository}/_mount", snapshotPolicy, 0, "")
-		trie.add([]string{http.MethodPost}, "/{index}/_explain/{id}", explainPolicy, 0, "")
+		trie.add([]string{http.MethodPost}, "/_snapshot/{repository}/_mount", snapshotPolicy, 0, "", 0)
+		trie.add([]string{http.MethodPost}, "/{index}/_explain/{id}", explainPolicy, 0, "", 0)
 
 		// /_snapshot/my-repo/_mount should match snapshot route
 		m, ok := trie.match(http.MethodPost, "/_snapshot/my-repo/_mount")
@@ -130,7 +130,7 @@ func TestRouteTrieMatch(t *testing.T) {
 	t.Run("multiple methods on same path", func(t *testing.T) {
 		var trie routeTrie
 		p := NewNullPolicy()
-		trie.add([]string{http.MethodGet, http.MethodPost}, "/_search", p, 0, "")
+		trie.add([]string{http.MethodGet, http.MethodPost}, "/_search", p, 0, "", 0)
 
 		_, ok := trie.match(http.MethodGet, "/_search")
 		require.True(t, ok)
@@ -145,8 +145,8 @@ func TestRouteTrieMatch(t *testing.T) {
 	t.Run("isSystem flag set for system paths", func(t *testing.T) {
 		var trie routeTrie
 		p := NewNullPolicy()
-		trie.add([]string{http.MethodGet}, "/_search", p, 0, "")
-		trie.add([]string{http.MethodGet}, "/{index}/_search", p, 0, "")
+		trie.add([]string{http.MethodGet}, "/_search", p, 0, "", 0)
+		trie.add([]string{http.MethodGet}, "/{index}/_search", p, 0, "", 0)
 
 		m, ok := trie.match(http.MethodGet, "/_search")
 		require.True(t, ok)
@@ -165,7 +165,7 @@ func TestRouteTrieMatch(t *testing.T) {
 
 	t.Run("root path returns no match", func(t *testing.T) {
 		var trie routeTrie
-		trie.add([]string{http.MethodGet}, "/{index}/_search", NewNullPolicy(), 0, "")
+		trie.add([]string{http.MethodGet}, "/{index}/_search", NewNullPolicy(), 0, "", 0)
 
 		_, ok := trie.match(http.MethodGet, "/")
 		require.False(t, ok)

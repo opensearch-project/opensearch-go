@@ -33,9 +33,10 @@ import (
 
 // trieLeaf stores the routing decision for a matched route.
 type trieLeaf struct {
-	policy   Policy
-	attrs    routeAttr
-	poolName string
+	policy      Policy
+	operationID OperationID
+	attrs       routeAttr
+	poolName    string
 }
 
 // trieNode represents a node in the route matching trie.
@@ -55,9 +56,10 @@ type trieNode struct {
 // trieMatch is the result of a trie route lookup. All fields are populated
 // from the trie walk without allocation --just integer bookkeeping.
 type trieMatch struct {
-	policy   Policy
-	attrs    routeAttr
-	poolName string
+	policy      Policy
+	operationID OperationID
+	attrs       routeAttr
+	poolName    string
 
 	// Path segment byte offsets into the original path string.
 	// Zero start and end means the segment was not present.
@@ -75,7 +77,7 @@ type routeTrie struct {
 // add registers a route in the trie for each given HTTP method.
 // The path must start with "/" and may contain {param} wildcard segments.
 // Only called during construction; match() is the hot path.
-func (t *routeTrie) add(methods []string, path string, policy Policy, attrs routeAttr, poolName string) {
+func (t *routeTrie) add(methods []string, path string, policy Policy, attrs routeAttr, poolName string, opID OperationID) {
 	// Walk/create trie nodes for each path segment.
 	node := &t.root
 	for path != "" {
@@ -120,7 +122,7 @@ func (t *routeTrie) add(methods []string, path string, policy Policy, attrs rout
 	if node.methods == nil {
 		node.methods = make(map[string]trieLeaf, len(methods))
 	}
-	leaf := trieLeaf{policy: policy, attrs: attrs, poolName: poolName}
+	leaf := trieLeaf{policy: policy, operationID: opID, attrs: attrs, poolName: poolName}
 	for _, m := range methods {
 		node.methods[m] = leaf
 	}
@@ -190,6 +192,7 @@ func (t *routeTrie) match(method, path string) (trieMatch, bool) {
 
 	if leaf, ok := node.methods[method]; ok {
 		result.policy = leaf.policy
+		result.operationID = leaf.operationID
 		result.attrs = leaf.attrs
 		result.poolName = leaf.poolName
 		return result, true

@@ -457,6 +457,47 @@ Key settings to verify on any custom transport:
 
 `Clone()` copies all of these. If you must build from scratch (e.g. for a non-`*http.Transport` round tripper), set at minimum `ForceAttemptHTTP2: true` and `MaxIdleConnsPerHost` >= your expected concurrency.
 
+## Operation Classifier
+
+The `opensearchtransport.OperationClassifier` maps HTTP method+path pairs to structured `OperationID` values. This enables transparent metrics, tracing, or access-control middleware at the `http.RoundTripper` layer without per-operation wrapper code.
+
+```go
+import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+
+// Build once, reuse across requests. Safe for concurrent use.
+classifier := opensearchtransport.NewOperationClassifier()
+
+// In an http.RoundTripper:
+func (t *MetricsTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+    op := t.classifier.Classify(req.Method, req.URL.Path)
+
+    start := time.Now()
+    resp, err := t.next.RoundTrip(req)
+    duration := time.Since(start)
+
+    status := 0
+    if resp != nil {
+        status = resp.StatusCode
+    }
+    t.histogram.WithLabelValues(op.String(), strconv.Itoa(status)).Observe(
+        float64(duration.Milliseconds()),
+    )
+    return resp, err
+}
+```
+
+`OperationID` is a bit-packed `int64` with masking helpers:
+
+```go
+op := classifier.Classify("POST", "/my-index/_search")
+op.String()     // "search"
+op.IsWrite()    // false
+op.IsRead()     // true
+op.Category()   // CatSearch
+```
+
+Returns `OpOther` for unrecognized patterns.
+
 ## Debugging
 
 Set the `OPENSEARCH_GO_DEBUG` environment variable to enable debug logging for connection management, node discovery, and request routing. Debug output is written to stderr.
