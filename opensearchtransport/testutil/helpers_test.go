@@ -134,31 +134,104 @@ func TestPollUntil_ContextCancellation(t *testing.T) {
 	}
 }
 
+func TestBackoffDelay(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		baseDelay time.Duration
+		attempt   int
+		jitter    float64
+		wantExact time.Duration // -1 means check bounds instead
+		wantMin   time.Duration // only used when wantExact == -1
+		wantMax   time.Duration // only used when wantExact == -1
+	}{
+		{
+			name:      "attempt 0 no jitter",
+			baseDelay: 10 * time.Millisecond, attempt: 0, jitter: 0.0,
+			wantExact: 10 * time.Millisecond,
+		},
+		{
+			name:      "attempt 1 no jitter",
+			baseDelay: 10 * time.Millisecond, attempt: 1, jitter: 0.0,
+			wantExact: 20 * time.Millisecond,
+		},
+		{
+			name:      "attempt 2 no jitter",
+			baseDelay: 10 * time.Millisecond, attempt: 2, jitter: 0.0,
+			wantExact: 40 * time.Millisecond,
+		},
+		{
+			name:      "attempt 5 no jitter",
+			baseDelay: 10 * time.Millisecond, attempt: 5, jitter: 0.0,
+			wantExact: 320 * time.Millisecond,
+		},
+		{
+			name:      "attempt capped at 30",
+			baseDelay: 1 * time.Nanosecond, attempt: 31, jitter: 0.0,
+			wantExact: time.Duration(1 << 30), // same as attempt 30
+		},
+		{
+			name:      "jitter 0.5 in bounds",
+			baseDelay: 100 * time.Millisecond, attempt: 0, jitter: 0.5,
+			wantExact: -1,
+			wantMin:   50 * time.Millisecond,
+			wantMax:   150 * time.Millisecond,
+		},
+		{
+			name:      "jitter 1.0 in bounds",
+			baseDelay: 100 * time.Millisecond, attempt: 0, jitter: 1.0,
+			wantExact: -1,
+			wantMin:   0,
+			wantMax:   200 * time.Millisecond,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if tt.wantExact >= 0 {
+				got := testutil.BackoffDelay(tt.baseDelay, tt.attempt, tt.jitter)
+				require.Equal(t, tt.wantExact, got, "exact delay mismatch")
+				return
+			}
+
+			// For jittered cases, run multiple times and check bounds
+			const iterations = 100
+			for i := range iterations {
+				got := testutil.BackoffDelay(tt.baseDelay, tt.attempt, tt.jitter)
+				require.GreaterOrEqual(t, got, tt.wantMin, "iteration %d: delay below minimum", i)
+				require.LessOrEqual(t, got, tt.wantMax, "iteration %d: delay above maximum", i)
+			}
+		})
+	}
+}
+
+func TestBackoffDelay_JitterProducesVariance(t *testing.T) {
+	t.Parallel()
+
+	// Verify that jitter actually produces different values across calls.
+	const iterations = 20
+	seen := make(map[time.Duration]struct{}, iterations)
+	for range iterations {
+		d := testutil.BackoffDelay(100*time.Millisecond, 0, 0.5)
+		seen[d] = struct{}{}
+	}
+	// With 50% jitter on 100ms, the chance of 20 identical values is vanishingly small.
+	require.Greater(t, len(seen), 1, "jitter should produce different delay values")
+}
+
 func TestPollUntil_WithJitter(t *testing.T) {
+	// Verify PollUntil works correctly with jitter enabled (no timing assertion).
 	ctx := context.Background()
 	attempts := 0
-
-	start := time.Now()
-	err := testutil.PollUntil(t, ctx, 10*time.Millisecond, 3, 0.5, func() (bool, error) {
+	err := testutil.PollUntil(t, ctx, 1*time.Millisecond, 3, 0.5, func() (bool, error) {
 		attempts++
-		if attempts == 3 {
-			return true, nil
-		}
-		return false, nil
+		return attempts == 3, nil
 	})
-	elapsed := time.Since(start)
-
-	if err != nil {
-		t.Fatalf("Expected success, got error: %v", err)
-	}
-	if attempts != 3 {
-		t.Fatalf("Expected 3 attempts, got %d", attempts)
-	}
-	// With exponential backoff and jitter, timing should be reasonable
-	// Attempt 0: ~10ms +/- 5ms, Attempt 1: ~20ms +/- 10ms = ~15-45ms baseline + overhead
-	if elapsed > 100*time.Millisecond {
-		t.Fatalf("Expected completion within 100ms with backoff and jitter, took %v", elapsed)
-	}
+	require.NoError(t, err)
+	require.Equal(t, 3, attempts)
 }
 
 // ---------------------------------------------------------------------------

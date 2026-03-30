@@ -83,6 +83,9 @@ var (
 
 	// PollUntil repeatedly calls checkFn until it returns true or the context times out.
 	PollUntil = tptestutil.PollUntil
+
+	// BackoffDelay returns the delay for a given attempt using exponential backoff with optional jitter.
+	BackoffDelay = tptestutil.BackoffDelay
 )
 
 // ClientConfig returns an opensearchapi.Config for both secure and insecure opensearch
