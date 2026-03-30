@@ -211,9 +211,9 @@ type metrics struct {
 
 	// Metric callbacks registered by policies at init time.
 	// Immutable after client construction; no synchronization needed.
-	connMetricCallbacks   []ConnectionMetricCallback // batch per-connection
-	policyCallbacks       []PolicyMetricCallback     // per-policy snapshot
-	snapshotCallbacks     []MetricsCallback          // per-snapshot augmentation
+	connMetricCallbacks []ConnectionMetricCallback // batch per-connection
+	policyCallbacks     []PolicyMetricCallback     // per-policy snapshot
+	snapshotCallbacks   []MetricsCallback          // per-snapshot augmentation
 
 	mu struct {
 		sync.RWMutex

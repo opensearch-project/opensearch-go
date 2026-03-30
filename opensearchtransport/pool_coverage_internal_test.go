@@ -29,8 +29,8 @@ func TestGetNextActiveConnWithLock_Legacy(t *testing.T) {
 		pool.mu.activeCount = 2
 
 		pool.mu.RLock()
-		first := pool.getNextActiveConnWithLock()
-		second := pool.getNextActiveConnWithLock()
+		first, _ := pool.getNextActiveConnWithLock()
+		second, _ := pool.getNextActiveConnWithLock()
 		pool.mu.RUnlock()
 
 		// With round-robin, two calls should return different connections

@@ -302,7 +302,6 @@ func TestPolicyChain(t *testing.T) {
 		err := chain.OnFailure(conn)
 		require.NoError(t, err)
 	})
-
 }
 
 // testPolicyWithError is a mock policy that returns errors for testing
