@@ -49,9 +49,15 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 	if cp.mu.activeCount > 0 { //nolint:nestif // warmup skip/accept/starvation requires nested branching
 		var bestWarmingConn *Connection
 		bestWarmingRemSkip := int(^uint(0) >> 1) // max int
+		var needsCapEnforce bool
 
 		for attempt := range cp.mu.activeCount {
-			conn := cp.getNextActiveConnWithLock()
+			conn, selectorCapEnforce := cp.getNextActiveConnWithLock()
+			needsCapEnforce = needsCapEnforce || selectorCapEnforce
+
+			if conn == nil {
+				continue // selector error
+			}
 			state := conn.loadConnState()
 
 			if state.lifecycle()&(lcActive|lcStandby) == 0 {
@@ -67,6 +73,9 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 			if !state.isWarmingUp() {
 				cp.mu.RUnlock()
 				cp.poolRequests.Add(1)
+				if needsCapEnforce {
+					cp.triggerCapEnforcement()
+				}
 				return conn, nil
 			}
 
@@ -77,11 +86,11 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 				// Check if warmup finished and cap enforcement is needed.
 				warmupDone := !conn.loadConnState().isWarmingUp()
 				if warmupDone && cp.activeListCap > 0 && cp.mu.activeCount > cp.activeListCap {
+					needsCapEnforce = true
 					if debugLogger != nil {
 						debugLogger.Logf("[%s] Next: warmup complete for %s, triggering cap enforcement (active=%d, cap=%d)\n",
 							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
 					}
-					go cp.deferredCapEnforcement()
 				} else if warmupDone && debugLogger != nil {
 					debugLogger.Logf("[%s] Next: warmup complete for %s, no cap enforcement (active=%d, cap=%d)\n",
 						cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
@@ -95,12 +104,18 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 
 				cp.mu.RUnlock()
 				cp.poolRequests.Add(1)
+				if needsCapEnforce {
+					cp.triggerCapEnforcement()
+				}
 				return conn, nil
 
 			case warmupInactive:
 				// Warmup completed between our isWarmingUp() check and tryWarmupSkip() call.
 				cp.mu.RUnlock()
 				cp.poolRequests.Add(1)
+				if needsCapEnforce {
+					cp.triggerCapEnforcement()
+				}
 				return conn, nil
 
 			case warmupSkipped:
@@ -126,6 +141,9 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 			}
 			cp.mu.RUnlock()
 			cp.poolRequests.Add(1)
+			if needsCapEnforce {
+				cp.triggerCapEnforcement()
+			}
 			return bestWarmingConn, nil
 		}
 	}
@@ -139,15 +157,6 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 	// No active connections -- upgrade to write lock for standby or zombie fallback.
 	cp.mu.RUnlock()
 	return cp.nextFallback()
-}
-
-// deferredCapEnforcement acquires the pool write lock and trims the active
-// partition if it exceeds activeListCap. Called as a goroutine when warmup
-// completes and the active partition is temporarily over capacity.
-func (cp *multiServerPool) deferredCapEnforcement() {
-	cp.mu.Lock()
-	defer cp.mu.Unlock()
-	cp.enforceActiveCapWithLock()
 }
 
 // nextWithEviction acquires a write lock and iterates active connections,
@@ -168,10 +177,16 @@ func (cp *multiServerPool) nextWithEviction() (*Connection, error) {
 			break
 		}
 
-		conn := cp.getNextActiveConnWithLock()
+		conn, needsCapEnforce := cp.getNextActiveConnWithLock()
+		if conn == nil {
+			continue
+		}
 		state := conn.loadConnState()
 
 		if state.lifecycle()&(lcActive|lcStandby) != 0 {
+			if needsCapEnforce {
+				cp.enforceActiveCapWithLock()
+			}
 			cp.poolRequests.Add(1)
 			return conn, nil
 		}
@@ -189,31 +204,33 @@ func (cp *multiServerPool) nextFallback() (*Connection, error) {
 	cp.mu.Lock()
 	defer cp.mu.Unlock()
 
-	// Double-check active after acquiring write lock
-	if cp.mu.activeCount > 0 {
-		// Re-check state on the selected connection under write lock
-		conn := cp.getNextActiveConnWithLock()
+	if cp.mu.activeCount <= 0 {
+		return cp.nextFallbackWithLock()
+	}
+
+	// Double-check active connections after acquiring write lock.
+	// Bounded by activeCount at entry to prevent infinite iteration.
+	maxSkips := cp.mu.activeCount + 1 // +1: first attempt was already consumed under RLock
+	for range maxSkips {
+		if cp.mu.activeCount <= 0 {
+			break
+		}
+
+		conn, needsCapEnforce := cp.getNextActiveConnWithLock()
+		if conn == nil {
+			continue
+		}
 		state := conn.loadConnState()
+
 		if state.lifecycle()&(lcActive|lcStandby) != 0 {
+			if needsCapEnforce {
+				cp.enforceActiveCapWithLock()
+			}
 			cp.poolRequests.Add(1)
 			return conn, nil
 		}
-		// Externally killed (no position bits) -- evict and continue
+
 		cp.evictExternallyDemotedWithLock(conn, state)
-		// Try remaining active connections
-		maxSkips := cp.mu.activeCount
-		for range maxSkips {
-			if cp.mu.activeCount <= 0 {
-				break
-			}
-			conn = cp.getNextActiveConnWithLock()
-			state = conn.loadConnState()
-			if state.lifecycle()&(lcActive|lcStandby) != 0 {
-				cp.poolRequests.Add(1)
-				return conn, nil
-			}
-			cp.evictExternallyDemotedWithLock(conn, state)
-		}
 	}
 
 	return cp.nextFallbackWithLock()

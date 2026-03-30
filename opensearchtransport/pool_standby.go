@@ -152,7 +152,7 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 // always allowed in the active partition alongside the capped warmed ones.
 // This ensures proven active connections aren't evicted to make room for a
 // warming connection that hasn't yet integrated into the traffic mix.
-// When a warming connection finishes warmup (detected in Next()), deferredCapEnforcement
+// When a warming connection finishes warmup (detected in Next()), triggerCapEnforcement
 // fires and this function evicts the excess fully-warmed connection.
 //
 // No-op when activeListCap <= 0 (disabled) or when the fully-warmed active count
