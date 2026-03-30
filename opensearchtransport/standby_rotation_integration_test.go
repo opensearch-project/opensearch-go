@@ -176,6 +176,7 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 
 	var m opensearchtransport.Metrics
 	var lastErr error
+	var lastActive, lastStandby, lastDead int
 
 	// On slower clusters (e.g. v2.0.1 with security plugin), health checks
 	// during discovery can take several seconds per cycle. Allow up to 30s
@@ -209,8 +210,13 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 		m, err = transport.Metrics()
 		require.NoError(t, err)
 
-		t.Logf("Discovery attempt %d: active=%d, standby=%d, dead=%d",
-			attempt, m.LiveConnections-m.StandbyConnections, m.StandbyConnections, m.DeadConnections)
+		active := m.LiveConnections - m.StandbyConnections
+		// Only log when state changes to reduce CI noise.
+		if active != lastActive || m.StandbyConnections != lastStandby || m.DeadConnections != lastDead {
+			t.Logf("Discovery attempt %d: active=%d, standby=%d, dead=%d",
+				attempt, active, m.StandbyConnections, m.DeadConnections)
+			lastActive, lastStandby, lastDead = active, m.StandbyConnections, m.DeadConnections
+		}
 
 		if m.StandbyConnections >= 2 {
 			return m
@@ -228,7 +234,10 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 	if lastErr != nil {
 		require.NoError(t, lastErr, "all discovery attempts failed")
 	}
-	return m
+	require.FailNowf(t, "discoverWithStandby timed out",
+		"pool did not reach 2 standby after %d attempts (active=%d, standby=%d, dead=%d)",
+		attempt, lastActive, lastStandby, lastDead)
+	return m // unreachable
 }
 
 // TestStandbyRotation verifies that standby rotation works end-to-end against
@@ -339,12 +348,12 @@ func TestStandbyRotation(t *testing.T) {
 		// Each DiscoverNodes call triggers rotateStandby at its end. When the
 		// pool was just rebuilt from new Connection objects (all lcActive+warming),
 		// rotation finds no standbys and is a no-op. drainWarmup then completes
-		// warmup and fires deferredCapEnforcement, re-establishing the standby
+		// warmup and fires triggerCapEnforcement, re-establishing the standby
 		// partition. On the *next* DiscoverNodes, connections are reused with
 		// their lcStandby state intact, so rotation finds standbys and promotes one.
 		//
 		// We wait for both promotion AND demotion before breaking because
-		// deferredCapEnforcement runs asynchronously (goroutine spawned by
+		// triggerCapEnforcement runs asynchronously (goroutine spawned by
 		// Next() when warmup completes). By requiring the demotion count to
 		// advance, we ensure cap enforcement has finished before we assert
 		// pool state. If the goroutine hasn't run yet, the next iteration's
@@ -431,7 +440,7 @@ func TestStandbyRotation(t *testing.T) {
 		//     clusters like 2.1.0 can move standbys to dead, so we need to
 		//     wait for resurrection + cap enforcement before the next rotation).
 		//  2. Call DiscoverNodes which triggers rotateStandbyConnections at the end.
-		//  3. Drain warmup so deferredCapEnforcement can fire.
+		//  3. Drain warmup so triggerCapEnforcement can fire.
 		//  4. Check if the observer recorded a new promotion.
 		//
 		// Guard against exceeding the test timeout. Each cycle includes
