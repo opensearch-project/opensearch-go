@@ -141,12 +141,9 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
 	if len(shardCandidates) > 0 {
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(shardCandidates)]
-		if len(shardCandidates) > len(scoresBuf) {
-			scores = make([]float64, len(shardCandidates))
-		}
-		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
+		scoreBuf := acquireScoreSlice(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf, nil)
+		releaseScoreSlice(scoreBuf)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
@@ -168,6 +165,9 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 			}))
 		}
 
+		if best == nil {
+			return NextHop{}, nil
+		}
 		return NextHop{Conn: best}, nil
 	}
 
@@ -192,12 +192,9 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	var scoresBuf [8]float64
-	scores := scoresBuf[:len(candidates)]
-	if len(candidates) > len(scoresBuf) {
-		scores = make([]float64, len(candidates))
-	}
-	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
+	scoreBuf := acquireScoreSlice(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf, nil)
+	releaseScoreSlice(scoreBuf)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := indexName + "/" + docID
@@ -219,6 +216,9 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 	putConnSlice(bp)
 
+	if best == nil {
+		return NextHop{}, nil
+	}
 	return NextHop{Conn: best}, nil
 }
 

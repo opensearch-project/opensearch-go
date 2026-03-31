@@ -7,6 +7,7 @@
 package opensearchtransport
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -216,4 +217,126 @@ func TestCalcConnScore_InFlightChangesScores(t *testing.T) {
 	require.InDelta(t, bucket*2.0*shardCostForReads[shardCostReplica], busyScore, 0.01)
 
 	require.Less(t, idleScore, busyScore, "idle should score lower (better) than busy")
+}
+
+// --- Score slice pool tests ---
+
+func TestAcquireReleaseScoreSlice(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		n    int
+	}{
+		{name: "under initial cap", n: 2},
+		{name: "at initial cap", n: scoreSliceInitialCap},
+		{name: "over initial cap", n: scoreSliceInitialCap + 4},
+		{name: "large pool", n: 64},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			bp := acquireScoreSlice(tt.n)
+			require.NotNil(t, bp)
+			require.Len(t, *bp, tt.n)
+			require.GreaterOrEqual(t, cap(*bp), tt.n)
+			releaseScoreSlice(bp)
+		})
+	}
+}
+
+func TestScoreSlicePoolRatchetsUp(t *testing.T) {
+	t.Parallel()
+
+	before := scoreSlicePool.capacity.Load()
+
+	n := int(before) + 10
+	bp := acquireScoreSlice(n)
+	require.Len(t, *bp, n)
+
+	after := scoreSlicePool.capacity.Load()
+	require.GreaterOrEqual(t, int(after), n,
+		"capacity should ratchet up to at least %d", n)
+	releaseScoreSlice(bp)
+}
+
+func TestScoreSlicePoolDiscardsUndersized(t *testing.T) {
+	t.Parallel()
+
+	// Acquire a small buffer, then ratchet the pool larger.
+	small := acquireScoreSlice(2)
+	require.Len(t, *small, 2)
+
+	// Force a ratchet by acquiring something larger.
+	large := acquireScoreSlice(100)
+	releaseScoreSlice(large)
+
+	// Release the small buffer — should be discarded (not panic).
+	releaseScoreSlice(small)
+}
+
+func TestConnScoreSelectLargePool(t *testing.T) {
+	t.Parallel()
+
+	// Regression: the old fixed [8]float64 buffer panicked when
+	// len(candidates) exceeded 8. Exercise various sizes above that.
+	tests := []struct {
+		name string
+		n    int
+	}{
+		{name: "9 candidates", n: 9},
+		{name: "16 candidates", n: 16},
+		{name: "32 candidates", n: 32},
+		{name: "64 candidates", n: 64},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conns := make([]*Connection, tt.n)
+			for i := range tt.n {
+				conns[i] = scoreTestConn(t, fmt.Sprintf("node-%d", i), 200*time.Microsecond, 0)
+				conns[i].state.Store(int64(newConnState(lcActive)))
+			}
+
+			scoreBuf := acquireScoreSlice(len(conns))
+			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, *scoreBuf)
+			releaseScoreSlice(scoreBuf)
+
+			require.NotNil(t, best)
+			require.Contains(t, conns, best)
+		})
+	}
+}
+
+// --- Score slice pool benchmarks ---
+
+func BenchmarkAcquireReleaseScoreSlice(b *testing.B) {
+	tests := []struct {
+		name string
+		n    int
+	}{
+		{name: "4_conns", n: 4},
+		{name: "8_conns", n: 8},
+		{name: "16_conns", n: 16},
+		{name: "64_conns", n: 64},
+	}
+
+	for _, tt := range tests {
+		b.Run(tt.name, func(b *testing.B) {
+			// Warm-up: ratchet the pool to the target size so
+			// steady-state iterations hit the sync.Pool fast path.
+			warmup := acquireScoreSlice(tt.n)
+			releaseScoreSlice(warmup)
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				bp := acquireScoreSlice(tt.n)
+				releaseScoreSlice(bp)
+			}
+		})
+	}
 }
