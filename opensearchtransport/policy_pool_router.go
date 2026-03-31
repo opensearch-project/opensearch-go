@@ -112,15 +112,12 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			return hop, nil
 		}
 
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(conns)]
-		if len(conns) > len(scoresBuf) {
-			scores = make([]float64, len(conns))
-		}
+		scoreBuf := acquireScoreSlice(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores)
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, *scoreBuf)
+		releaseScoreSlice(scoreBuf)
 
-		if best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
+		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 			return hop, nil
 		}
 
@@ -161,13 +158,10 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		effectiveRoutingKey = keyB // OpenSearch default: _id is the routing value
 	}
 	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
-	if len(shardCandidates) > 0 { //nolint:nestif // shard-exact path has scoring and observer notification
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(shardCandidates)]
-		if len(shardCandidates) > len(scoresBuf) {
-			scores = make([]float64, len(shardCandidates))
-		}
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), scores)
+	if len(shardCandidates) > 0 {
+		scoreBuf := acquireScoreSlice(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf)
+		releaseScoreSlice(scoreBuf)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := keyA
@@ -194,7 +188,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		}
 
 		// Verify the selected connection is still active.
-		if best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
+		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 			return hop, nil
 		}
 
@@ -223,12 +217,9 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	var scoresBuf [8]float64
-	scores := scoresBuf[:len(candidates)]
-	if len(candidates) > len(scoresBuf) {
-		scores = make([]float64, len(candidates))
-	}
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), scores)
+	scoreBuf := acquireScoreSlice(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf)
+	releaseScoreSlice(scoreBuf)
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
 	// routed through a coordinator (non-shard-exact).
@@ -273,7 +264,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// Verify the selected connection is still active (dirty read).
 	// If it was demoted since the last DiscoveryUpdate, fall through
 	// to the inner policy's result.
-	if best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
+	if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 		return hop, nil
 	}
 
