@@ -38,6 +38,7 @@ jobs:
           - { opensearch_version: 3.3.2 }
           - { opensearch_version: 3.4.0 }
           - { opensearch_version: 3.5.0 }
+          - { opensearch_version: 3.6.0 }
           - { opensearch_version: latest }
     steps:
       - uses: actions/checkout@v6

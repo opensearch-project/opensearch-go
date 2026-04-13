@@ -180,6 +180,32 @@ type ClusterStateMetaDataIndex struct {
 	} `json:"rollover_info"`
 	System          bool            `json:"system"`
 	IngestionStatus json.RawMessage `json:"ingestion_status"` // Available in OpenSearch 3.3.0+
+
+	// Added in OpenSearch 3.6.0 (opensearch-project/OpenSearch@ed2e1006,
+	// server/src/main/java/org/opensearch/cluster/metadata/IndexMetadata.java:1057-1059).
+	PrimaryTermsMap     map[string]int               `json:"primary_terms_map,omitempty"`
+	SplitShardsMetadata *ClusterStateSplitShardsMeta `json:"split_shards_metadata,omitempty"`
+}
+
+// ClusterStateSplitShardsMeta contains shard-split metadata for an index.
+// Added in OpenSearch 3.6.0 (opensearch-project/OpenSearch@ed2e1006,
+// server/src/main/java/org/opensearch/cluster/metadata/SplitShardsMetadata.java).
+type ClusterStateSplitShardsMeta struct {
+	NumOfRootShards         int                                 `json:"num_of_root_shards"`
+	MaxShardID              int                                 `json:"max_shard_id"`
+	InProgressSplitShardID  []int                               `json:"in_progress_split_shard_id,omitempty"`
+	ActiveShardIDs          []int                               `json:"active_shard_ids"`
+	RootShardsToAllChildren map[string][]ClusterStateShardRange `json:"root_shards_to_all_children"`
+	ParentToChildShards     map[string][]ClusterStateShardRange `json:"parent_to_child_shards"`
+}
+
+// ClusterStateShardRange describes the hash-range owned by a single shard.
+// Added in OpenSearch 3.6.0 (opensearch-project/OpenSearch@ed2e1006,
+// server/src/main/java/org/opensearch/cluster/metadata/ShardRange.java).
+type ClusterStateShardRange struct {
+	ShardID int `json:"shard_id"`
+	Start   int `json:"start"`
+	End     int `json:"end"`
 }
 
 // ClusterStateMetaDataStream is a sub type of ClusterStateMetaData containing information about a data stream
