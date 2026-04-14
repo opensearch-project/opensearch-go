@@ -134,7 +134,7 @@ func newDocRouterTestPolicy(t *testing.T, nodeCount int) (*DocRouter, []*Connect
 	t.Helper()
 
 	cache := newIndexSlotCache(indexSlotCacheConfig{})
-	p := NewDocRouter(cache, defaultDecayFactor)
+	p := newDocRouter(cache, defaultDecayFactor)
 
 	conns := make([]*Connection, nodeCount)
 	for i := range conns {
@@ -188,7 +188,7 @@ func TestDocRouterEval(t *testing.T) {
 	t.Run("no connections returns nil", func(t *testing.T) {
 		t.Parallel()
 		cache := newIndexSlotCache(indexSlotCacheConfig{})
-		p := NewDocRouter(cache, defaultDecayFactor)
+		p := newDocRouter(cache, defaultDecayFactor)
 		// Do not call DiscoveryUpdate -- no connections.
 
 		req, err := http.NewRequest(http.MethodGet, "/my-index/_doc/123", nil)
@@ -229,7 +229,7 @@ func TestDocRouterDiscoveryUpdate(t *testing.T) {
 	t.Run("add connections makes IsEnabled true", func(t *testing.T) {
 		t.Parallel()
 		cache := newIndexSlotCache(indexSlotCacheConfig{})
-		p := NewDocRouter(cache, defaultDecayFactor)
+		p := newDocRouter(cache, defaultDecayFactor)
 
 		require.False(t, p.IsEnabled(), "should not be enabled before any connections")
 
@@ -357,7 +357,7 @@ func TestNewDocRouter_InvalidDecay(t *testing.T) {
 	t.Run("zero decay uses default", func(t *testing.T) {
 		t.Parallel()
 		cache := newIndexSlotCache(indexSlotCacheConfig{})
-		p := NewDocRouter(cache, 0)
+		p := newDocRouter(cache, 0)
 		require.NotNil(t, p)
 		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
 	})
@@ -365,7 +365,7 @@ func TestNewDocRouter_InvalidDecay(t *testing.T) {
 	t.Run("negative decay uses default", func(t *testing.T) {
 		t.Parallel()
 		cache := newIndexSlotCache(indexSlotCacheConfig{})
-		p := NewDocRouter(cache, -0.5)
+		p := newDocRouter(cache, -0.5)
 		require.NotNil(t, p)
 		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
 	})
@@ -373,7 +373,7 @@ func TestNewDocRouter_InvalidDecay(t *testing.T) {
 	t.Run("decay >= 1 uses default", func(t *testing.T) {
 		t.Parallel()
 		cache := newIndexSlotCache(indexSlotCacheConfig{})
-		p := NewDocRouter(cache, 1.0)
+		p := newDocRouter(cache, 1.0)
 		require.NotNil(t, p)
 		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
 	})
@@ -381,7 +381,7 @@ func TestNewDocRouter_InvalidDecay(t *testing.T) {
 	t.Run("decay > 1 uses default", func(t *testing.T) {
 		t.Parallel()
 		cache := newIndexSlotCache(indexSlotCacheConfig{})
-		p := NewDocRouter(cache, 1.5)
+		p := newDocRouter(cache, 1.5)
 		require.NotNil(t, p)
 		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
 	})
@@ -411,7 +411,7 @@ func TestDocRouterEval_ShardExactPath(t *testing.T) {
 		minFanOut: 1,
 		maxFanOut: 32,
 	})
-	p := NewDocRouter(cache, defaultDecayFactor)
+	p := newDocRouter(cache, defaultDecayFactor)
 
 	// Create connections with Names matching shard placement data.
 	conns := make([]*Connection, 3)
@@ -489,7 +489,7 @@ func TestDocRouterEval_ShardExactWithObserver(t *testing.T) {
 		minFanOut: 1,
 		maxFanOut: 32,
 	})
-	p := NewDocRouter(cache, defaultDecayFactor)
+	p := newDocRouter(cache, defaultDecayFactor)
 
 	// Create connections with Names matching shard placement data.
 	conns := make([]*Connection, 3)

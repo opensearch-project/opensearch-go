@@ -39,9 +39,9 @@ type poolRouter struct {
 	inner             Policy
 	cache             *indexSlotCache
 	shardCosts        *shardCostMultiplier
-	poolName          string // Thread pool name for congestion tracking (e.g., "search", "write")
+	scoreFunc         connScoreFunc // non-nil for read routes (search, get); nil for write routes
+	poolName          string        // Thread pool name for congestion tracking (e.g., "search", "write")
 	jitter            atomic.Int64
-	decay             float64
 	observer          atomic.Pointer[ConnectionObserver]
 	poolInfoReady     *atomic.Bool  // nil-safe; true once thread pool quorum is reached
 	clusterSearchCwnd *atomic.Int32 // nil-safe; cluster-wide search cwnd for MCSR
@@ -67,12 +67,15 @@ func (p *poolRouter) setEnvOverride(enabled bool) {
 // The poolName identifies the server-side thread pool for congestion
 // tracking (e.g., "search", "write", "get"); empty string uses the
 // default pool.
-func wrapWithRouter(inner Policy, cache *indexSlotCache, decay float64, costs *shardCostMultiplier, poolName string) Policy {
+func wrapWithRouter(
+	inner Policy, cache *indexSlotCache,
+	costs *shardCostMultiplier, poolName string, scoreFunc connScoreFunc,
+) Policy {
 	return &poolRouter{
 		inner:      inner,
 		cache:      cache,
-		decay:      decay,
 		shardCosts: costs,
+		scoreFunc:  scoreFunc,
 		poolName:   poolName,
 	}
 }
@@ -114,7 +117,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 
 		scoreBuf := acquireScoreSlice(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, *scoreBuf)
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, *scoreBuf, p.scoreFunc)
 		releaseScoreSlice(scoreBuf)
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
@@ -131,6 +134,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				poolName:      p.poolName,
 				targetShard:   -1,
 				poolInfoReady: pir,
+				scoreFunc:     p.scoreFunc,
 			}))
 		}
 
@@ -162,7 +166,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		// Shard-exact: fan-out is 1 (single shard replica set), so adaptive
 		// MCSR is not applicable and intentionally skipped.
 		scoreBuf := acquireScoreSlice(len(shardCandidates))
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf)
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf, p.scoreFunc)
 		releaseScoreSlice(scoreBuf)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
@@ -186,6 +190,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				targetShard:         shardNum,
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
+				scoreFunc:           p.scoreFunc,
 			}))
 		}
 
@@ -220,7 +225,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 
 	// Select best candidate with warmup-aware skip/accept.
 	scoreBuf := acquireScoreSlice(len(candidates))
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf)
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf, p.scoreFunc)
 	releaseScoreSlice(scoreBuf)
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
@@ -258,6 +263,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			targetShard:         shardNum,
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
+			scoreFunc:           p.scoreFunc,
 		}))
 	}
 

@@ -27,7 +27,7 @@ func TestNewRouteCandidate(t *testing.T) {
 		nodeInfo := map[string]*shardNodeInfo{"data-node-1": {Replicas: 3}}
 		slot.shardNodeNames.Store(&nodeInfo)
 
-		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true)
+		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true, nil)
 
 		require.Equal(t, conn.URL.String(), c.URL)
 		require.Equal(t, "node-1", c.ID)
@@ -50,7 +50,7 @@ func TestNewRouteCandidate(t *testing.T) {
 		}
 		slot := &indexSlot{}
 
-		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true)
+		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true, nil)
 
 		require.Equal(t, int64(-1), c.RTTBucket)
 		require.InDelta(t, shardCostForReads[shardCostUnknown], c.ShardCostMultiplier, 0)
@@ -63,7 +63,7 @@ func TestNewRouteCandidate(t *testing.T) {
 		nodeInfo := map[string]*shardNodeInfo{conn.Name: {Primaries: 5}}
 		slot.shardNodeNames.Store(&nodeInfo)
 
-		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true)
+		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true, nil)
 
 		require.InDelta(t, shardCostForReads[shardCostPrimary], c.ShardCostMultiplier, 0)
 	})
@@ -112,7 +112,7 @@ func TestIndexRouterEmitsObserverEvent(t *testing.T) {
 
 	obs := newRecordingObserver()
 
-	policy := NewIndexRouter(indexSlotCacheConfig{
+	policy := newIndexRouter(indexSlotCacheConfig{
 		minFanOut:    2,
 		maxFanOut:    8,
 		decayFactor:  0.999,
@@ -156,7 +156,7 @@ func TestDocRouterEmitsObserverEvent(t *testing.T) {
 		fanOutPerReq: 500,
 	})
 
-	policy := NewDocRouter(cache, 0.999)
+	policy := newDocRouter(cache, 0.999)
 
 	var obsIface ConnectionObserver = obs
 	err := policy.configurePolicySettings(policyConfig{observer: &obsIface})

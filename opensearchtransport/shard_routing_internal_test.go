@@ -201,7 +201,7 @@ func newShardRoutingE2EFixture(t *testing.T) *shardRoutingE2EFixture {
 
 	sm := shardMap3()
 	cache := newIndexSlotCache(indexSlotCacheConfig{})
-	policy := NewIndexRouter(indexSlotCacheConfig{})
+	policy := newIndexRouter(indexSlotCacheConfig{})
 	policy.cache = cache
 
 	connA := newTestConnRTT(t, "nodeA", 1*time.Millisecond)
@@ -292,7 +292,7 @@ func TestShardExactRouting_DocIDAsDefaultRouting(t *testing.T) {
 	cache := newIndexSlotCache(indexSlotCacheConfig{})
 
 	// Use DocRouter (not Index) to exercise the doc-level path.
-	docPolicy := NewDocRouter(cache, defaultDecayFactor)
+	docPolicy := newDocRouter(cache, defaultDecayFactor)
 
 	connA := newTestConnRTT(t, "nodeA", 1*time.Millisecond)
 	connB := newTestConnRTT(t, "nodeB", 2*time.Millisecond)
@@ -347,7 +347,7 @@ func TestShardExactRouting_ExplicitRoutingOverridesDocID(t *testing.T) {
 
 	sm := shardMap3()
 	cache := newIndexSlotCache(indexSlotCacheConfig{})
-	docPolicy := NewDocRouter(cache, defaultDecayFactor)
+	docPolicy := newDocRouter(cache, defaultDecayFactor)
 
 	connA := newTestConnRTT(t, "nodeA", 1*time.Millisecond)
 	connB := newTestConnRTT(t, "nodeB", 2*time.Millisecond)
@@ -418,7 +418,7 @@ func TestShardExactRouting_Deterministic(t *testing.T) {
 func TestShardExactRouting_FallbackWhenNoShardMap(t *testing.T) {
 	t.Parallel()
 
-	policy := NewIndexRouter(indexSlotCacheConfig{})
+	policy := newIndexRouter(indexSlotCacheConfig{})
 	connA := newTestConnRTT(t, "nodeA", 1*time.Millisecond)
 	err := policy.DiscoveryUpdate([]*Connection{connA}, nil, nil)
 	require.NoError(t, err)

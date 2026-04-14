@@ -36,10 +36,12 @@ var (
 //
 // For non-document requests, returns a zero-value NextHop to fall through.
 type DocRouter struct {
-	cache    *indexSlotCache // shared with IndexRouter
-	jitter   atomic.Int64
-	decay    float64
-	observer atomic.Pointer[ConnectionObserver]
+	cache     *indexSlotCache // shared with IndexRouter
+	scoreFunc connScoreFunc   // non-nil: dynamic read scoring; nil: static cost only
+	poolName  string          // server-side thread pool name for congestion tracking and NextHop.PoolName
+	jitter    atomic.Int64
+	decay     float64
+	observer  atomic.Pointer[ConnectionObserver]
 
 	mu struct {
 		sync.RWMutex
@@ -55,10 +57,32 @@ func (p *DocRouter) setEnvOverride(enabled bool) {
 	psSetEnvOverride(&p.policyState, enabled)
 }
 
-// NewDocRouter creates a DocRouter that shares the given index slot cache.
-// The cache should be shared with IndexRouter so fan-out and
-// shard placement data is consistent.
-func NewDocRouter(cache *indexSlotCache, decay float64) *DocRouter {
+// NewDocRouter creates a standalone DocRouter configured by RouterOption(s).
+// It routes document-level requests ({index}/_doc/{id} and friends) to a
+// node hosting the target document via murmur3 shard-exact selection,
+// falling back to rendezvous hashing when shard placement is unavailable.
+// The router creates its own index slot cache and parses any shard cost
+// configuration from [WithShardCosts] (or [OPENSEARCH_GO_SHARD_COST],
+// which takes precedence).
+//
+// Returns an error if the shard cost configuration cannot be parsed or any
+// option records a configuration error.
+func NewDocRouter(opts ...RouterOption) (*DocRouter, error) {
+	cfg, costCfg, err := buildStandaloneRouterConfig(opts)
+	if err != nil {
+		return nil, err
+	}
+	cacheCfg := indexSlotCacheConfigFromRouter(cfg)
+	r := newDocRouter(newIndexSlotCache(cacheCfg), cfg.decay)
+	r.scoreFunc = costCfg.scoreFunc
+	return r, nil
+}
+
+// newDocRouter is the internal constructor used by tests and by the
+// public [NewDocRouter]. The shared cache should be the one owned by an
+// [IndexRouter] when fan-out and shard placement need to stay consistent
+// across both routers; pass a fresh cache for standalone use.
+func newDocRouter(cache *indexSlotCache, decay float64) *DocRouter {
 	if decay <= 0 || decay >= 1 {
 		decay = defaultDecayFactor
 	}
@@ -142,7 +166,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
 	if len(shardCandidates) > 0 {
 		scoreBuf := acquireScoreSlice(len(shardCandidates))
-		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName, loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf, p.scoreFunc)
 		releaseScoreSlice(scoreBuf)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
@@ -157,18 +181,20 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 				slot:                slot,
 				shard:               shard,
 				costs:               &shardCostForReads,
+				poolName:            p.poolName,
 				routingValue:        routingValue,
 				effectiveRoutingKey: effectiveRoutingKey,
 				targetShard:         shardNum,
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+				scoreFunc:           p.scoreFunc,
 			}))
 		}
 
 		if best == nil {
 			return NextHop{}, nil
 		}
-		return NextHop{Conn: best}, nil
+		return NextHop{Conn: best, PoolName: p.poolName}, nil
 	}
 
 	// Rendezvous hash fallback.
@@ -193,7 +219,8 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 	// Select best candidate with warmup-aware skip/accept.
 	scoreBuf := acquireScoreSlice(len(candidates))
-	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, p.poolName,
+		loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf, p.scoreFunc)
 	releaseScoreSlice(scoreBuf)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
@@ -207,10 +234,12 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 			best:                best,
 			slot:                slot,
 			costs:               &shardCostForReads,
+			poolName:            p.poolName,
 			routingValue:        routingValue,
 			effectiveRoutingKey: effectiveRoutingKey,
 			targetShard:         shardNum,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+			scoreFunc:           p.scoreFunc,
 		}))
 	}
 
@@ -219,7 +248,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	if best == nil {
 		return NextHop{}, nil
 	}
-	return NextHop{Conn: best}, nil
+	return NextHop{Conn: best, PoolName: p.poolName}, nil
 }
 
 // CheckDead is a no-op. Lifecycle is managed by the underlying pool.

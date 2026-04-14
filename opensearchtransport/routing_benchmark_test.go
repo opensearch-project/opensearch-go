@@ -243,7 +243,7 @@ func BenchmarkPolicy(b *testing.B) {
 			createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 300.0, RoleData),
 			createBenchConnection("http://bench-data-3:9200", "bench-data-3", 2*time.Millisecond, 100.0, RoleData),
 		}
-		policy := NewIndexRouter(indexSlotCacheConfig{})
+		policy := newIndexRouter(indexSlotCacheConfig{})
 		_ = policy.DiscoveryUpdate(scoredConns, nil, nil)
 
 		indexReq := &http.Request{
@@ -268,7 +268,7 @@ func BenchmarkPolicy(b *testing.B) {
 			load := float64(100 + i*50)
 			scoredConns[i] = createBenchConnection("http://"+id+":9200", id, rtt, load, RoleData)
 		}
-		policy := NewIndexRouter(indexSlotCacheConfig{})
+		policy := newIndexRouter(indexSlotCacheConfig{})
 		_ = policy.DiscoveryUpdate(scoredConns, nil, nil)
 
 		indexReq := &http.Request{
@@ -290,7 +290,7 @@ func BenchmarkPolicy(b *testing.B) {
 			createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 100.0, RoleData),
 			createBenchConnection("http://bench-data-2:9200", "bench-data-2", 1*time.Millisecond, 100.0, RoleData),
 		}
-		policy := NewIndexRouter(indexSlotCacheConfig{})
+		policy := newIndexRouter(indexSlotCacheConfig{})
 		_ = policy.DiscoveryUpdate(scoredConns, nil, nil)
 
 		sysReq := &http.Request{
@@ -592,7 +592,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = calcConnScore(conn, shardCostForReads.forNode(info), "", true)
+			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(info), "", true)
 		}
 	})
 
@@ -602,7 +602,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			_ = calcConnScore(conn, shardCostForReads.forNode(nil), "", true)
+			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
 		}
 	})
 

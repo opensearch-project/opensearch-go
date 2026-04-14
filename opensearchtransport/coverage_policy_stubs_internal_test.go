@@ -27,7 +27,7 @@ func TestDocRouterStubs(t *testing.T) {
 		maxFanOut:   4,
 		decayFactor: defaultDecayFactor,
 	})
-	p := NewDocRouter(cache, defaultDecayFactor)
+	p := newDocRouter(cache, defaultDecayFactor)
 
 	t.Run("CheckDead", func(t *testing.T) {
 		t.Parallel()
@@ -49,7 +49,7 @@ func TestDocRouterStubs(t *testing.T) {
 
 func TestIndexRouterStubs(t *testing.T) {
 	t.Parallel()
-	p := NewIndexRouter(indexSlotCacheConfig{
+	p := newIndexRouter(indexSlotCacheConfig{
 		minFanOut:   1,
 		maxFanOut:   4,
 		decayFactor: defaultDecayFactor,
@@ -85,7 +85,6 @@ func TestPoolRouterStubs(t *testing.T) {
 	p := &poolRouter{
 		inner: inner,
 		cache: cache,
-		decay: defaultDecayFactor,
 	}
 
 	t.Run("RotateStandby", func(t *testing.T) {
@@ -174,14 +173,14 @@ func TestSetEnvOverride_AllPolicies(t *testing.T) {
 	}
 
 	policies := map[string]envOverrideable{
-		"DocRouter": NewDocRouter(cache, defaultDecayFactor),
+		"DocRouter": newDocRouter(cache, defaultDecayFactor),
 		"IfEnabledPolicy": NewIfEnabledPolicy(
 			func(_ context.Context, _ *http.Request) bool { return true },
 			NewNullPolicy(), nil,
 		).(*IfEnabledPolicy),
-		"IndexRouter": NewIndexRouter(indexSlotCacheConfig{minFanOut: 1, maxFanOut: 4, decayFactor: defaultDecayFactor}),
+		"IndexRouter": newIndexRouter(indexSlotCacheConfig{minFanOut: 1, maxFanOut: 4, decayFactor: defaultDecayFactor}),
 		"MuxPolicy":   NewMuxPolicy(nil).(*MuxPolicy),
-		"poolRouter":  &poolRouter{inner: NewNullPolicy(), cache: cache, decay: defaultDecayFactor},
+		"poolRouter":  &poolRouter{inner: NewNullPolicy(), cache: cache},
 	}
 
 	for name, policy := range policies {

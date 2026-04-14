@@ -516,7 +516,7 @@ func TestStoreThreadPoolSizes_SkipsZeroSize(t *testing.T) {
 	require.Nil(t, conn.pools.get("generic"))
 }
 
-// --- calcConnScore with pool overload ---
+// --- calcConnDefaultScore with pool overload ---
 
 func TestCalcConnScore_OverloadedReturnsMaxFloat(t *testing.T) {
 	t.Parallel()
@@ -535,7 +535,7 @@ func TestCalcConnScore_OverloadedReturnsMaxFloat(t *testing.T) {
 	pc := conn.pools.getOrCreate("search")
 	pc.overloaded.Store(true)
 
-	score := calcConnScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "search", true)
+	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "search", true)
 	require.InDelta(t, math.MaxFloat64, score, 1, "overloaded pool should return MaxFloat64")
 }
 
@@ -556,7 +556,7 @@ func TestCalcConnScore_EmptyPoolNameNoOverloadCheck(t *testing.T) {
 	// because the condition is `poolName != "" && ...`.
 	conn.pools.defaultPool.overloaded.Store(true)
 
-	score := calcConnScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
+	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
 	require.NotEqual(t, math.MaxFloat64, score,
 		"empty poolName should not trigger overload skip")
 	require.Greater(t, score, 0.0)

@@ -82,15 +82,15 @@ func TestWithShardCosts(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
-		initial string // pre-existing shardCostConfig value
-		spec   string  // argument to WithShardCosts
-		want   string  // expected shardCostConfig after applying
+		name    string
+		initial string // pre-existing shardCostSpec value
+		spec    string // argument to WithShardCosts
+		want    string // expected shardCostSpec after applying
 	}{
 		{
 			name: "stores spec in config",
-			spec: "preferred=1.0,alternate=1.0",
-			want: "preferred=1.0,alternate=1.0",
+			spec: "replica=1.0,write_primary=0.5",
+			want: "replica=1.0,write_primary=0.5",
 		},
 		{
 			name: "bare numeric",
@@ -99,29 +99,29 @@ func TestWithShardCosts(t *testing.T) {
 		},
 		{
 			name: "prefixed keys",
-			spec: "r:replica=1.0,w:primary=0.5",
-			want: "r:replica=1.0,w:primary=0.5",
+			spec: "r:base=0.9,r:amplify=2.5",
+			want: "r:base=0.9,r:amplify=2.5",
 		},
 		{
 			name:    "empty spec clears config",
-			initial: "preferred=2.0",
+			initial: "replica=2.0",
 			spec:    "",
 			want:    "",
 		},
 		{
 			name:    "overwrites previous value",
-			initial: "preferred=2.0",
-			spec:    "alternate=3.0",
-			want:    "alternate=3.0",
+			initial: "replica=2.0",
+			spec:    "write_replica=3.0",
+			want:    "write_replica=3.0",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			cfg := routerConfig{shardCostConfig: tt.initial}
+			cfg := routerConfig{shardCostSpec: tt.initial}
 			WithShardCosts(tt.spec)(&cfg)
-			require.Equal(t, tt.want, cfg.shardCostConfig)
+			require.Equal(t, tt.want, cfg.shardCostSpec)
 		})
 	}
 }
