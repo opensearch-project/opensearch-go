@@ -7,6 +7,7 @@
 package opensearchtransport
 
 import (
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -41,25 +42,38 @@ func (e *ShardCostConfigError) Error() string {
 
 func (e *ShardCostConfigError) Unwrap() error { return e.Err }
 
-// envShardCost controls shard cost multiplier values used for connection scoring.
+// envShardCost controls the dynamic shard cost curve parameters used for
+// connection scoring. When a read operation targets a primary shard, the
+// effective cost increases with the node's write-pool utilization:
 //
-// Format: bare float (sets preferred+alternate for both read and write tables)
-// or comma-separated items in key=value form with optional r:/w: prefix.
+//	effectivePrimaryCost = base + amplify * (writeUtil ^ exponent)
 //
-// Without prefix, keys use abstract role names that map to the correct shard
-// type per table: preferred, alternate, relocating, initializing, unknown.
-// "preferred" means replica for reads, primary for writes.
+// where writeUtil = min(write_inFlight / write_cwnd, 1.0). On idle nodes
+// the primary is slightly preferred (base < 1.0); as write load ramps up,
+// reads shed progressively to replica-hosting nodes.
 //
-// With r: or w: prefix, keys use concrete shard type names for the specified
-// table: primary, replica, relocating, initializing, unknown.
+// Format: bare float (sets r:base) or comma-separated key=value items.
 //
-// Any value <= 0 is replaced by the compile-time default for that slot.
+// Dynamic keys (read cost curve, prefixed with "r:"):
+//
+//	r:base      — primary read cost at write-idle (default 0.95)
+//	r:amplify   — amplification factor (default 2.0)
+//	r:exponent  — curve shape (default 2.0 = quadratic)
+//
+// Static keys (shard state costs):
+//
+//	unknown       — cost when no shard data available (both tables)
+//	relocating    — cost for relocating shards (both tables)
+//	initializing  — cost for initializing shards (both tables)
+//	replica       — read-table replica cost
+//	write_primary — write-table primary cost
+//	write_replica — write-table replica cost
 //
 // Examples:
 //
-//	OPENSEARCH_GO_SHARD_COST=1.5                                    # preferred=alternate=1.5 in both tables
-//	OPENSEARCH_GO_SHARD_COST=preferred=1.0,alternate=1.0            # disable role preference
-//	OPENSEARCH_GO_SHARD_COST=r:replica=1.0,w:primary=0.5,alternate=1  # mix concrete and abstract
+//	OPENSEARCH_GO_SHARD_COST=3.0                                     # r:amplify=3.0 (steeper curve)
+//	OPENSEARCH_GO_SHARD_COST=r:base=0.9,r:amplify=2.5,r:exponent=1.5 # custom read curve
+//	OPENSEARCH_GO_SHARD_COST=r:base=1.0                              # equal at idle
 const envShardCost = "OPENSEARCH_GO_SHARD_COST"
 
 const (
@@ -70,11 +84,27 @@ const (
 
 	// Shard cost multipliers used in the [shardCostMultiplier] tables and
 	// [warmupPenaltyMax]. Lower value = preferred node.
-	costPreferred    = 1.0  // best-case: node hosts the ideal shard type
-	costAlternate    = 2.0  // acceptable: node can serve but may proxy
-	costRelocating   = 8.0  // shard moving, may require proxy hop
-	costInitializing = 16.0 // shard not yet ready to serve
-	costUnknown      = 32.0 // no shard data, heavily penalized
+	//
+	// Read and write tables use different progressions: reads have a dynamic
+	// primary cost (see [newReadScoreFunc]) with a mild static fallback,
+	// while writes penalize non-primary nodes heavily since writes must
+	// always land on the primary shard.
+
+	// Read cost constants.
+	costReadReplica      = 1.0  // preferred -- lock-free Lucene snapshot
+	costReadPrimary      = 2.0  // static fallback; overridden by dynamic scoring
+	costReadRelocating   = 8.0  // shard moving, may require proxy hop
+	costReadInitializing = 16.0 // shard not yet ready to serve
+
+	// Write cost constants. Writes always target the primary shard;
+	// any other node must coordinate to the primary, which is avoidable work.
+	costWritePrimary      = 1.0  // preferred -- write lands directly on primary
+	costWriteReplica      = 8.0  // must coordinate to primary -- unnecessary proxy
+	costWriteRelocating   = 16.0 // shard moving, coordination target uncertain
+	costWriteInitializing = 24.0 // shard not ready, coordination may fail
+
+	// Shared across both tables.
+	costUnknown = 32.0 // no shard data, heavily penalized
 )
 
 // shardCostIndex identifies a shard state position in a [shardCostMultiplier].
@@ -102,35 +132,40 @@ const (
 )
 
 // shardCostMultiplier holds per-shard-state score multipliers used in
-// [calcConnScore]. The appropriate table is selected at policy construction
-// time based on whether the route handles reads or writes.
+// [calcConnDefaultScore] and [connScoreFunc] implementations. The appropriate
+// table is selected at policy construction time based on whether the route
+// handles reads or writes.
 //
 // Lower multiplier = preferred node. Index via [shardCostIndex] constants.
 type shardCostMultiplier [5]float64
 
-// shardCostForReads prefers replica-hosting nodes. Replicas serve reads
-// from a lock-free Lucene snapshot that doesn't contend with writes.
+// shardCostForReads provides static shard costs for read operations.
+// For primary shards, the [connScoreFunc] returned by [newReadScoreFunc]
+// overrides this with a dynamic cost derived from the node's write-pool
+// utilization. The static primary cost serves as a fallback when no
+// scoring function is configured.
 //
-//nolint:gochecknoglobals // Package-level constant table used by calcConnScore.
+//nolint:gochecknoglobals // Package-level constant table.
 var shardCostForReads = shardCostMultiplier{
-	shardCostUnknown:      costUnknown,      // no data, heavily penalized
-	shardCostReplica:      costPreferred,    // preferred for reads
-	shardCostPrimary:      costAlternate,    // primaries contend with writes
-	shardCostInitializing: costInitializing, // shard not yet ready
-	shardCostRelocating:   costRelocating,   // shard moving, may proxy
+	shardCostUnknown:      costUnknown,          // no data, heavily penalized
+	shardCostReplica:      costReadReplica,      // preferred for reads
+	shardCostPrimary:      costReadPrimary,      // static fallback; overridden by dynamic cost
+	shardCostInitializing: costReadInitializing, // shard not yet ready
+	shardCostRelocating:   costReadRelocating,   // shard moving, may proxy
 }
 
 // shardCostForWrites prefers primary-hosting nodes. Writes always go to
-// the primary shard first; routing to a replica-only node forces a
-// coordinator proxy hop.
+// the primary shard; routing to a replica-only node forces unnecessary
+// coordinator proxy work. Non-primary costs are set high to strongly
+// prefer direct-to-primary routing.
 //
-//nolint:gochecknoglobals // Package-level constant table used by calcConnScore.
+//nolint:gochecknoglobals // Package-level constant table.
 var shardCostForWrites = shardCostMultiplier{
-	shardCostUnknown:      costUnknown,      // no data, heavily penalized
-	shardCostReplica:      costAlternate,    // replica must proxy to primary
-	shardCostPrimary:      costPreferred,    // preferred -- write lands directly
-	shardCostInitializing: costInitializing, // shard not yet ready
-	shardCostRelocating:   costRelocating,   // shard moving, may proxy
+	shardCostUnknown:      costUnknown,           // no data, heavily penalized
+	shardCostReplica:      costWriteReplica,      // must coordinate to primary
+	shardCostPrimary:      costWritePrimary,      // preferred -- write lands directly
+	shardCostInitializing: costWriteInitializing, // shard not ready, coordination may fail
+	shardCostRelocating:   costWriteRelocating,   // shard moving, coordination target uncertain
 }
 
 // forNode returns the shard cost multiplier for a node based on its shard
@@ -182,114 +217,170 @@ func (m *shardCostMultiplier) forShard(shard *shardNodes, connName string) float
 	return m[shardCostUnknown]
 }
 
-// shardCostKeyName maps user-facing key names to the read and write table
-// indices they affect. The "preferred"/"alternate" abstraction hides the
-// internal replica/primary distinction: for reads, preferred = replica;
-// for writes, preferred = primary.
-type shardCostKeyName struct {
-	readIdx  shardCostIndex
-	writeIdx shardCostIndex
+// calcShardPrimaryPct returns the primary percentage for a connection's
+// role on a specific shard: 1.0 if it is the primary, 0.0 otherwise.
+func calcShardPrimaryPct(shard *shardNodes, connName string) float64 {
+	if shard != nil && shard.Primary == connName {
+		return 1.0
+	}
+	return 0.0
 }
 
-// shardCostAbstractKeys maps abstract (unprefixed) key names to table indices.
-// Used when no r:/w: prefix is present; the mapping accounts for the role
-// inversion between read and write tables.
+// calcNodePrimaryPct returns the percentage of shards on this node that
+// are in the primary state versus other shard states. A node with
+// 3 primaries and 7 replicas returns 0.3. This drives proportional
+// blending in the dynamic read cost curve: nodes with more primaries
+// see more of the dynamic effect.
+func calcNodePrimaryPct(node *shardNodeInfo) float64 {
+	if node == nil {
+		return 0.0
+	}
+	total := node.Primaries + node.Replicas
+	if total == 0 {
+		return 0.0
+	}
+	return float64(node.Primaries) / float64(total)
+}
+
+// Default read cost curve parameters.
+const (
+	defaultReadCurveBase     = 0.95 // slightly prefer primary at idle (< replica's 1.0)
+	defaultReadCurveAmplify  = 2.0  // amplification factor
+	defaultReadCurveExponent = 2.0  // quadratic curve
+)
+
+// connScoreFunc computes a routing score for a connection given its
+// static shard cost and primary percentage. The primaryPct ranges
+// from 0.0 (pure replica) to 1.0 (pure primary) and drives blending
+// between static and dynamic cost. Implementations may incorporate
+// cross-pool utilization, custom cost curves, or any other signal.
+// Returns the composite score (lower = preferred).
 //
-//nolint:gochecknoglobals // Package-level constant map for config parsing.
-var shardCostAbstractKeys = map[string]shardCostKeyName{
-	"preferred":    {readIdx: shardCostReplica, writeIdx: shardCostPrimary},
-	"alternate":    {readIdx: shardCostPrimary, writeIdx: shardCostReplica},
-	"relocating":   {readIdx: shardCostRelocating, writeIdx: shardCostRelocating},
-	"initializing": {readIdx: shardCostInitializing, writeIdx: shardCostInitializing},
-	"unknown":      {readIdx: shardCostUnknown, writeIdx: shardCostUnknown},
-}
+// When nil in [connScoreSelect], scoring falls back to the static
+// formula: rtt * (inFlight+1)/cwnd * shardCost.
+type connScoreFunc func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64
 
-// shardCostConcreteKeys maps concrete (prefixed) key names to a single table
-// index. Used with r: or w: prefix where the caller has already selected the
-// target table and names the shard type directly (primary, replica).
+// newReadScoreFunc returns a [connScoreFunc] that dynamically adjusts
+// primary shard cost based on write-pool utilization. The effective cost
+// is blended by primaryPct:
 //
-//nolint:gochecknoglobals // Package-level constant map for config parsing.
-var shardCostConcreteKeys = map[string]shardCostIndex{
-	"primary":      shardCostPrimary,
-	"replica":      shardCostReplica,
-	"relocating":   shardCostRelocating,
-	"initializing": shardCostInitializing,
-	"unknown":      shardCostUnknown,
-}
-
-// applyShardCostItem applies a single parsed key=value item to the read
-// and/or write cost tables based on the prefix ("", "r", or "w").
-func applyShardCostItem(
-	prefix, key string, v float64,
-	reads, writes *shardCostMultiplier,
-) error {
-	if prefix == "" {
-		// Abstract key: apply to both tables with role-aware mapping.
-		mapping, ok := shardCostAbstractKeys[key]
-		if !ok {
-			return &ShardCostConfigError{
-				Key:    key,
-				Reason: "unknown key",
-				Detail: "valid unprefixed keys: preferred, alternate, relocating, initializing, unknown",
+//	dynamicCost   = base + amplify * (writeUtil ^ exponent)
+//	effectiveCost = (1 - primaryPct) * shardCost + primaryPct * dynamicCost
+//
+// where writeUtil = min(write_inFlight / write_cwnd, 1.0).
+//
+// For shard-exact routing (primaryPct = 0.0 or 1.0), this is a
+// clean switch. For node-level routing with mixed shards
+// (e.g., primaryPct = 0.6), the cost blends proportionally.
+//
+// At idle (writeUtil=0), a pure primary costs base (0.95 by default),
+// which is less than the replica's static 1.0 -- the primary is preferred.
+// As writes ramp up, the dynamic cost increases and reads progressively
+// shift to replica-hosting nodes.
+func newReadScoreFunc(base, amplify, exponent float64) connScoreFunc {
+	return func(conn *Connection, shardCost float64, primaryPct float64, poolName string, poolInfoReady bool) float64 {
+		rtt, utilization, overloaded := connBaseScore(conn, poolName, poolInfoReady)
+		if overloaded {
+			return math.MaxFloat64
+		}
+		cost := shardCost
+		if primaryPct > 0 {
+			writePC := conn.pools.getForScoring(poolWrite)
+			writeCwnd := float64(writePC.cwnd.Load())
+			if writeCwnd < 1 {
+				writeCwnd = 1
 			}
+			writeUtil := float64(writePC.inFlight.Load()) / writeCwnd
+			writeUtil = min(max(writeUtil, 0), 1.0)
+			dynamicCost := base + amplify*math.Pow(writeUtil, exponent)
+			cost = (1-primaryPct)*shardCost + primaryPct*dynamicCost
 		}
-		reads[mapping.readIdx] = v
-		writes[mapping.writeIdx] = v
-		return nil
+		return rtt * utilization * cost
 	}
-
-	// Concrete key: apply to the named table directly.
-	idx, ok := shardCostConcreteKeys[key]
-	if !ok {
-		return &ShardCostConfigError{
-			Key:    key,
-			Reason: "unknown key",
-			Detail: "valid prefixed keys: primary, replica, relocating, initializing, unknown",
-		}
-	}
-	if prefix == "r" {
-		reads[idx] = v
-	} else {
-		writes[idx] = v
-	}
-	return nil
 }
 
-// parseShardCostConfig parses a shard cost configuration string into read
-// and write [shardCostMultiplier] tables. Returns copies of the compile-time
-// defaults when spec is empty.
+// connBaseScore computes the common components of connection scoring:
+// RTT bucket and utilization ratio. Returns overloaded=true when the
+// target pool has been marked as overloaded (the caller should return
+// [math.MaxFloat64]).
+func connBaseScore(conn *Connection, poolName string, poolInfoReady bool) (float64, float64, bool) {
+	if poolName != "" && conn.isPoolOverloaded(poolName) {
+		return 0, 0, true
+	}
+	rtt := float64(conn.rttRing.medianBucket())
+	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
+	inFlight := float64(conn.loadInFlight(poolName))
+	utilization := (inFlight + 1.0) / cwnd
+	return rtt, utilization, false
+}
+
+// calcConnDefaultScore scores a connection using the static shard cost
+// formula: rtt × utilization × shardCost. This is the default scoring
+// path used for write operations and as the fallback when no
+// [connScoreFunc] is configured (scoreFunc == nil in [connScoreSelect]).
+func calcConnDefaultScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
+	rtt, utilization, overloaded := connBaseScore(conn, poolName, poolInfoReady)
+	if overloaded {
+		return math.MaxFloat64
+	}
+	return rtt * utilization * shardCost
+}
+
+// shardCostConfig holds the result of parsing a shard cost configuration
+// string. It combines modified static cost tables with an optional
+// dynamic scoring function for read operations.
+type shardCostConfig struct {
+	reads     shardCostMultiplier
+	writes    shardCostMultiplier
+	scoreFunc connScoreFunc // non-nil: dynamic read scoring via newReadScoreFunc
+}
+
+// parseShardCostConfig parses a shard cost configuration string into
+// static cost tables and an optional dynamic scoring function.
 //
-// Format:
+// Format: bare float (sets r:base) or comma-separated key=value items.
 //
-//	Bare numeric: "1.5" → sets preferred and alternate to 1.5 for both tables.
-//	Unprefixed:   "key=value,..." where keys are preferred, alternate,
-//	              relocating, initializing, unknown. Applied to both tables
-//	              with role-aware mapping (preferred = replica for reads,
-//	              primary for writes).
-//	Prefixed:     "r:key=value" or "w:key=value" where keys are primary,
-//	              replica, relocating, initializing, unknown. Applied to the
-//	              named table with direct index mapping.
+// Dynamic keys control the read-primary cost curve (prefixed with "r:"):
 //
-// Any parsed value <= 0 is replaced by the compile-time default for that slot.
-func parseShardCostConfig(spec string) (shardCostMultiplier, shardCostMultiplier, error) {
-	reads := shardCostForReads   // value copy
-	writes := shardCostForWrites // value copy
+//	r:base      — primary read cost at write-idle (default 0.95)
+//	r:amplify   — amplification factor (default 2.0)
+//	r:exponent  — curve shape (default 2.0 = quadratic)
+//
+// Static keys override shard state costs in the lookup tables:
+//
+//	unknown       — cost when no shard data available (both tables)
+//	relocating    — cost for relocating shards (both tables)
+//	initializing  — cost for initializing shards (both tables)
+//	replica       — read-table replica cost (baseline for dynamic primary)
+//	write_primary — write-table primary cost
+//	write_replica — write-table replica cost
+//
+// Any static value <= 0 is replaced by the compile-time default for
+// that slot.
+func parseShardCostConfig(spec string) (shardCostConfig, error) {
+	// Track curve parameters locally; build the scoreFunc at the end.
+	curveBase := defaultReadCurveBase
+	curveAmplify := defaultReadCurveAmplify
+	curveExponent := defaultReadCurveExponent
+
+	cfg := shardCostConfig{
+		reads:  shardCostForReads,  // value copy
+		writes: shardCostForWrites, // value copy
+	}
 
 	spec = strings.TrimSpace(spec)
 	if spec == "" {
-		return reads, writes, nil
+		cfg.scoreFunc = newReadScoreFunc(curveBase, curveAmplify, curveExponent)
+		return cfg, nil
 	}
 
-	// Try bare numeric first.
+	// Try bare numeric first: sets r:base (primary read cost at idle).
 	if v, parseErr := strconv.ParseFloat(spec, 64); parseErr == nil {
 		if v > 0 {
-			// Set preferred and alternate in both tables.
-			reads[shardCostAbstractKeys["preferred"].readIdx] = v
-			reads[shardCostAbstractKeys["alternate"].readIdx] = v
-			writes[shardCostAbstractKeys["preferred"].writeIdx] = v
-			writes[shardCostAbstractKeys["alternate"].writeIdx] = v
+			curveBase = v
 		}
-		return reads, writes, nil
+		cfg.scoreFunc = newReadScoreFunc(curveBase, curveAmplify, curveExponent)
+		return cfg, nil
 	}
 
 	// Key=value parsing.
@@ -299,45 +390,65 @@ func parseShardCostConfig(spec string) (shardCostMultiplier, shardCostMultiplier
 			continue
 		}
 
-		// Detect r: or w: prefix.
-		var prefix string
-		switch {
-		case strings.HasPrefix(item, "r:"):
-			prefix = "r"
-			item = item[2:]
-		case strings.HasPrefix(item, "w:"):
-			prefix = "w"
-			item = item[2:]
-		}
-
 		key, valStr, hasEq := strings.Cut(item, "=")
 		if !hasEq {
-			return shardCostForReads, shardCostForWrites,
-				&ShardCostConfigError{Key: key, Reason: "missing value"}
+			return shardCostConfig{}, &ShardCostConfigError{Key: key, Reason: "missing value"}
 		}
 
 		v, parseErr := strconv.ParseFloat(valStr, 64)
 		if parseErr != nil {
-			return shardCostForReads, shardCostForWrites,
-				&ShardCostConfigError{Key: key, Reason: "invalid value", Err: parseErr}
+			return shardCostConfig{}, &ShardCostConfigError{Key: key, Reason: "invalid value", Err: parseErr}
 		}
 
-		if err := applyShardCostItem(prefix, key, v, &reads, &writes); err != nil {
-			return shardCostForReads, shardCostForWrites, err
+		switch key {
+		// Dynamic read curve parameters (r: prefix).
+		case "r:base":
+			curveBase = v
+		case "r:amplify":
+			curveAmplify = v
+		case "r:exponent":
+			curveExponent = v
+
+		// Static costs: shared (both tables).
+		case "unknown":
+			cfg.reads[shardCostUnknown] = v
+			cfg.writes[shardCostUnknown] = v
+		case "relocating":
+			cfg.reads[shardCostRelocating] = v
+			cfg.writes[shardCostRelocating] = v
+		case "initializing":
+			cfg.reads[shardCostInitializing] = v
+			cfg.writes[shardCostInitializing] = v
+
+		// Static costs: table-specific.
+		case "replica":
+			cfg.reads[shardCostReplica] = v
+		case "write_primary":
+			cfg.writes[shardCostPrimary] = v
+		case "write_replica":
+			cfg.writes[shardCostReplica] = v
+
+		default:
+			return shardCostConfig{}, &ShardCostConfigError{
+				Key:    key,
+				Reason: "unknown key",
+				Detail: "valid keys: r:base, r:amplify, r:exponent, unknown, relocating, initializing, replica, write_primary, write_replica",
+			}
 		}
 	}
 
-	// Clamp: replace any value <= 0 with the compile-time default.
-	for i := range reads {
-		if reads[i] <= 0 {
-			reads[i] = shardCostForReads[i]
+	// Clamp: replace any static value <= 0 with the compile-time default.
+	for i := range cfg.reads {
+		if cfg.reads[i] <= 0 {
+			cfg.reads[i] = shardCostForReads[i]
 		}
 	}
-	for i := range writes {
-		if writes[i] <= 0 {
-			writes[i] = shardCostForWrites[i]
+	for i := range cfg.writes {
+		if cfg.writes[i] <= 0 {
+			cfg.writes[i] = shardCostForWrites[i]
 		}
 	}
 
-	return reads, writes, nil
+	cfg.scoreFunc = newReadScoreFunc(curveBase, curveAmplify, curveExponent)
+	return cfg, nil
 }

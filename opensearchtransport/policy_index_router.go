@@ -105,7 +105,7 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 		if len(conns) > len(scoresBuf) {
 			scores = make([]float64, len(conns))
 		}
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 		if best == nil {
 			return NextHop{}, nil
 		}
@@ -133,12 +133,12 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 		if len(shardCandidates) > len(scoresBuf) {
 			scores = make([]float64, len(shardCandidates))
 		}
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			obs.OnRoute(buildRouteEvent(
 				indexName, indexName, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, "",
-				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
+				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), nil,
 			))
 		}
 
@@ -175,12 +175,12 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	if len(candidates) > len(scoresBuf) {
 		scores = make([]float64, len(candidates))
 	}
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		obs.OnRoute(buildRouteEvent(
 			indexName, indexName, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, "",
-			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
+			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), nil,
 		))
 	}
 
@@ -291,38 +291,6 @@ func loadPoolInfoReady(p *atomic.Bool) bool {
 	return p != nil && p.Load()
 }
 
-// calcConnScore computes the node selection score for a connection.
-// Lower score = preferred node.
-//
-// The score is: rttBucket * (inFlight + 1) / cwnd * shardCost
-//
-// The shardCost parameter is pre-computed by the caller via [forShard] (shard
-// lookup) or [forNode] (index/cluster lookup). poolInfoReady indicates whether
-// thread pool quorum has been reached; when false, cwnd falls back to a
-// synthetic ceiling based on allocatedProcessors.
-//
-// When the named thread pool is overloaded (rejected requests or HTTP 429),
-// the score is math.MaxFloat64 to skip the node for that pool.
-//
-// Warmup state is NOT included in the score. Instead, warming connections
-// are handled by [connScoreSelect] which tries candidates in score order
-// and uses [tryWarmupSkip] to gate actual traffic via the S-curve ramp.
-// This avoids a circular dependency where warmup penalty prevents selection,
-// which prevents warmup advancement.
-func calcConnScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
-	if poolName != "" && conn.isPoolOverloaded(poolName) {
-		return math.MaxFloat64
-	}
-
-	rtt := float64(conn.rttRing.medianBucket())
-
-	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
-	inFlight := float64(conn.loadInFlight(poolName))
-	utilization := (inFlight + 1.0) / cwnd
-
-	return rtt * utilization * shardCost
-}
-
 const (
 	// warmupPenaltyMax is the worst-case multiplier applied at the start of
 	// warmup (remaining == total). Matches costUnknown so a freshly-promoted
@@ -367,6 +335,11 @@ func warmupPenalty(cs connState) float64 {
 // When shard is non-nil (shard lookup path), scoring uses [forShard] for
 // per-shard primary/replica cost. When nil (index lookup or cluster lookup),
 // scoring uses [forNode] with per-node aggregate data from the index slot.
+//
+// When scoreFunc is non-nil, it replaces the static scoring formula for
+// all candidates. This allows operation-specific scoring strategies (e.g.,
+// dynamic read cost that adjusts primary shard cost based on write-pool
+// utilization). When nil, the static formula is used via [calcConnDefaultScore].
 func connScoreSelect(
 	candidates []*Connection,
 	slot *indexSlot,
@@ -375,6 +348,7 @@ func connScoreSelect(
 	poolName string,
 	poolInfoReady bool,
 	scores []float64,
+	scoreFunc connScoreFunc,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -383,17 +357,24 @@ func connScoreSelect(
 
 	// Compute scores once upfront.
 	for i, c := range candidates {
+		var sc float64
+		var primaryPct float64
 		switch {
 		case shard != nil:
-			// Shard lookup: per-shard role from shardNodes.
-			scores[i] = calcConnScore(c, costs.forShard(shard, c.Name), poolName, poolInfoReady)
+			sc = costs.forShard(shard, c.Name)
+			primaryPct = calcShardPrimaryPct(shard, c.Name)
 		case slot != nil:
-			// Index lookup: per-node aggregate from indexSlot.
-			scores[i] = calcConnScore(c, costs.forNode(slot.shardNodeInfoFor(c.Name)), poolName, poolInfoReady)
+			nodeInfo := slot.shardNodeInfoFor(c.Name)
+			sc = costs.forNode(nodeInfo)
+			primaryPct = calcNodePrimaryPct(nodeInfo)
 		default:
-			// Cluster lookup: no shard data. All nodes get costUnknown;
-			// equal cost cancels out, so selection is by RTT + congestion.
-			scores[i] = calcConnScore(c, costUnknown, poolName, poolInfoReady)
+			sc = costUnknown
+		}
+
+		if scoreFunc != nil {
+			scores[i] = scoreFunc(c, sc, primaryPct, poolName, poolInfoReady)
+		} else {
+			scores[i] = calcConnDefaultScore(c, sc, poolName, poolInfoReady)
 		}
 	}
 

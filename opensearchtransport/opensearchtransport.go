@@ -336,11 +336,12 @@ type Config struct {
 
 	// ShardCostConfig overrides shard cost multipliers used for connection scoring.
 	// Passed through to the router via [WithShardCosts] when constructing the
-	// default router. Format: bare numeric (sets preferred+alternate for both
-	// read/write tables) or comma-separated key=value items. Without prefix,
-	// keys use abstract names: preferred, alternate, relocating, initializing,
-	// unknown. With "r:" or "w:" prefix, keys use concrete shard types: primary,
-	// replica, relocating, initializing, unknown.
+	// default router. Format: bare numeric (sets r:base, the primary read cost
+	// at idle) or comma-separated key=value items. Dynamic keys are prefixed
+	// with "r:" (r:base, r:amplify, r:exponent) and control the read-primary
+	// cost curve. Static keys (unknown, relocating, initializing, replica,
+	// write_primary, write_replica) override shard state costs in the lookup
+	// tables.
 	// Can also be set via OPENSEARCH_GO_SHARD_COST (env var takes precedence).
 	ShardCostConfig string
 
