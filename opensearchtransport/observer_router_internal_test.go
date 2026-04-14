@@ -27,7 +27,7 @@ func TestNewRouteCandidate(t *testing.T) {
 		nodeInfo := map[string]*shardNodeInfo{"data-node-1": {Replicas: 3}}
 		slot.shardNodeNames.Store(&nodeInfo)
 
-		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true)
+		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true, nil)
 
 		require.Equal(t, conn.URL.String(), c.URL)
 		require.Equal(t, "node-1", c.ID)
@@ -50,7 +50,7 @@ func TestNewRouteCandidate(t *testing.T) {
 		}
 		slot := &indexSlot{}
 
-		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true)
+		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true, nil)
 
 		require.Equal(t, int64(-1), c.RTTBucket)
 		require.InDelta(t, shardCostForReads[shardCostUnknown], c.ShardCostMultiplier, 0)
@@ -63,7 +63,7 @@ func TestNewRouteCandidate(t *testing.T) {
 		nodeInfo := map[string]*shardNodeInfo{conn.Name: {Primaries: 5}}
 		slot.shardNodeNames.Store(&nodeInfo)
 
-		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true)
+		c := newRouteCandidate(conn, slot, nil, &shardCostForReads, "", true, nil)
 
 		require.InDelta(t, shardCostForReads[shardCostPrimary], c.ShardCostMultiplier, 0)
 	})
@@ -80,7 +80,10 @@ func TestBuildRouteEvent(t *testing.T) {
 	slot := &indexSlot{}
 	candidates := []*Connection{conn1, conn2}
 
-	event := buildRouteEvent("test-index", "test-index", 3, 5, candidates, conn1, slot, nil, &shardCostForReads, "", "", "", -1, false, true)
+	event := buildRouteEvent(
+		"test-index", "test-index", 3, 5, candidates, conn1,
+		slot, nil, &shardCostForReads, "", "", "", -1, false, true, nil,
+	)
 
 	require.Equal(t, "test-index", event.IndexName)
 	require.Equal(t, "test-index", event.Key)

@@ -10,6 +10,7 @@ import (
 	"errors"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -19,105 +20,146 @@ func TestParseShardCostConfig(t *testing.T) {
 
 	t.Run("empty string returns defaults", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("")
+		cfg, err := parseShardCostConfig("")
 		require.NoError(t, err)
-		require.Equal(t, shardCostForReads, reads)
-		require.Equal(t, shardCostForWrites, writes)
+		require.Equal(t, shardCostForReads, cfg.reads)
+		require.Equal(t, shardCostForWrites, cfg.writes)
+		require.NotNil(t, cfg.scoreFunc)
 	})
 
 	t.Run("whitespace-only returns defaults", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("   ")
+		cfg, err := parseShardCostConfig("   ")
 		require.NoError(t, err)
-		require.Equal(t, shardCostForReads, reads)
-		require.Equal(t, shardCostForWrites, writes)
+		require.Equal(t, shardCostForReads, cfg.reads)
+		require.Equal(t, shardCostForWrites, cfg.writes)
+		require.NotNil(t, cfg.scoreFunc)
 	})
 
-	t.Run("bare numeric sets preferred and alternate in both tables", func(t *testing.T) {
+	t.Run("bare numeric sets r:base", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("1.5")
+		cfg, err := parseShardCostConfig("3.0")
 		require.NoError(t, err)
-
-		// Reads: preferred = replica, alternate = primary.
-		require.InDelta(t, 1.5, reads[shardCostReplica], 0)
-		require.InDelta(t, 1.5, reads[shardCostPrimary], 0)
-		// Others unchanged.
-		require.InDelta(t, costUnknown, reads[shardCostUnknown], 0)
-		require.InDelta(t, costRelocating, reads[shardCostRelocating], 0)
-		require.InDelta(t, costInitializing, reads[shardCostInitializing], 0)
-
-		// Writes: preferred = primary, alternate = replica.
-		require.InDelta(t, 1.5, writes[shardCostPrimary], 0)
-		require.InDelta(t, 1.5, writes[shardCostReplica], 0)
-		// Others unchanged.
-		require.InDelta(t, costUnknown, writes[shardCostUnknown], 0)
-		require.InDelta(t, costRelocating, writes[shardCostRelocating], 0)
-		require.InDelta(t, costInitializing, writes[shardCostInitializing], 0)
+		// Static tables unchanged.
+		require.Equal(t, shardCostForReads, cfg.reads)
+		require.Equal(t, shardCostForWrites, cfg.writes)
+		// scoreFunc is non-nil (base=3.0).
+		require.NotNil(t, cfg.scoreFunc)
 	})
 
 	t.Run("bare zero uses defaults (no change)", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("0")
+		cfg, err := parseShardCostConfig("0")
 		require.NoError(t, err)
-		require.Equal(t, shardCostForReads, reads)
-		require.Equal(t, shardCostForWrites, writes)
+		require.Equal(t, shardCostForReads, cfg.reads)
+		require.Equal(t, shardCostForWrites, cfg.writes)
 	})
 
 	t.Run("bare negative uses defaults (no change)", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("-1")
+		cfg, err := parseShardCostConfig("-1")
 		require.NoError(t, err)
-		require.Equal(t, shardCostForReads, reads)
-		require.Equal(t, shardCostForWrites, writes)
+		require.Equal(t, shardCostForReads, cfg.reads)
+		require.Equal(t, shardCostForWrites, cfg.writes)
 	})
 
-	t.Run("key=value sets both tables", func(t *testing.T) {
+	t.Run("r: curve keys", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("preferred=3.0,alternate=4.0")
+		cfg, err := parseShardCostConfig("r:base=0.8,r:amplify=3.0,r:exponent=1.5")
 		require.NoError(t, err)
-
-		// preferred for reads = replica
-		require.InDelta(t, 3.0, reads[shardCostReplica], 0)
-		// alternate for reads = primary
-		require.InDelta(t, 4.0, reads[shardCostPrimary], 0)
-		// preferred for writes = primary
-		require.InDelta(t, 3.0, writes[shardCostPrimary], 0)
-		// alternate for writes = replica
-		require.InDelta(t, 4.0, writes[shardCostReplica], 0)
+		// Static tables unchanged.
+		require.Equal(t, shardCostForReads, cfg.reads)
+		require.Equal(t, shardCostForWrites, cfg.writes)
+		// scoreFunc is non-nil with custom curve.
+		require.NotNil(t, cfg.scoreFunc)
 	})
 
-	t.Run("r: prefix with concrete key sets reads only", func(t *testing.T) {
+	t.Run("static key: unknown sets both tables", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("r:replica=5.0")
+		cfg, err := parseShardCostConfig("unknown=64.0")
 		require.NoError(t, err)
+		require.InDelta(t, 64.0, cfg.reads[shardCostUnknown], 0)
+		require.InDelta(t, 64.0, cfg.writes[shardCostUnknown], 0)
+	})
 
-		require.InDelta(t, 5.0, reads[shardCostReplica], 0)
+	t.Run("static key: relocating sets both tables", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("relocating=12.0")
+		require.NoError(t, err)
+		require.InDelta(t, 12.0, cfg.reads[shardCostRelocating], 0)
+		require.InDelta(t, 12.0, cfg.writes[shardCostRelocating], 0)
+	})
+
+	t.Run("static key: initializing sets both tables", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("initializing=24.0")
+		require.NoError(t, err)
+		require.InDelta(t, 24.0, cfg.reads[shardCostInitializing], 0)
+		require.InDelta(t, 24.0, cfg.writes[shardCostInitializing], 0)
+	})
+
+	t.Run("static key: replica sets reads only", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("replica=5.0")
+		require.NoError(t, err)
+		require.InDelta(t, 5.0, cfg.reads[shardCostReplica], 0)
 		// Writes replica unchanged.
-		require.InDelta(t, costAlternate, writes[shardCostReplica], 0)
+		require.InDelta(t, costWriteReplica, cfg.writes[shardCostReplica], 0)
 	})
 
-	t.Run("w: prefix with concrete key sets writes only", func(t *testing.T) {
+	t.Run("static key: write_primary sets writes only", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("w:primary=5.0")
+		cfg, err := parseShardCostConfig("write_primary=0.5")
 		require.NoError(t, err)
-
+		require.InDelta(t, 0.5, cfg.writes[shardCostPrimary], 0)
 		// Reads primary unchanged.
-		require.InDelta(t, costAlternate, reads[shardCostPrimary], 0)
-		require.InDelta(t, 5.0, writes[shardCostPrimary], 0)
+		require.InDelta(t, costReadPrimary, cfg.reads[shardCostPrimary], 0)
 	})
 
-	t.Run("mixed concrete and abstract keys", func(t *testing.T) {
+	t.Run("static key: write_replica sets writes only", func(t *testing.T) {
 		t.Parallel()
-		reads, writes, err := parseShardCostConfig("r:replica=1.0,w:primary=0.5,alternate=1")
+		cfg, err := parseShardCostConfig("write_replica=3.0")
 		require.NoError(t, err)
+		require.InDelta(t, 3.0, cfg.writes[shardCostReplica], 0)
+		// Reads replica unchanged.
+		require.InDelta(t, costReadReplica, cfg.reads[shardCostReplica], 0)
+	})
 
-		// r:replica=1.0 → reads[replica] = 1.0
-		require.InDelta(t, 1.0, reads[shardCostReplica], 0)
-		// w:primary=0.5 → writes[primary] = 0.5
-		require.InDelta(t, 0.5, writes[shardCostPrimary], 0)
-		// alternate=1 → reads[primary] = 1.0, writes[replica] = 1.0
-		require.InDelta(t, 1.0, reads[shardCostPrimary], 0)
-		require.InDelta(t, 1.0, writes[shardCostReplica], 0)
+	t.Run("mixed static and curve keys", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("r:base=0.9,unknown=50.0,write_primary=0.8")
+		require.NoError(t, err)
+		require.InDelta(t, 50.0, cfg.reads[shardCostUnknown], 0)
+		require.InDelta(t, 50.0, cfg.writes[shardCostUnknown], 0)
+		require.InDelta(t, 0.8, cfg.writes[shardCostPrimary], 0)
+		require.NotNil(t, cfg.scoreFunc)
+	})
+
+	t.Run("zero value in key=value falls back to default", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("unknown=0,relocating=5.0")
+		require.NoError(t, err)
+		// unknown=0 → clamped to default.
+		require.InDelta(t, costUnknown, cfg.reads[shardCostUnknown], 0)
+		require.InDelta(t, costUnknown, cfg.writes[shardCostUnknown], 0)
+		// relocating=5.0 → set.
+		require.InDelta(t, 5.0, cfg.reads[shardCostRelocating], 0)
+		require.InDelta(t, 5.0, cfg.writes[shardCostRelocating], 0)
+	})
+
+	t.Run("negative value in key=value falls back to default", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("unknown=-1.0")
+		require.NoError(t, err)
+		require.InDelta(t, costUnknown, cfg.reads[shardCostUnknown], 0)
+		require.InDelta(t, costUnknown, cfg.writes[shardCostUnknown], 0)
+	})
+
+	t.Run("trailing comma is ignored", func(t *testing.T) {
+		t.Parallel()
+		cfg, err := parseShardCostConfig("replica=3.0,")
+		require.NoError(t, err)
+		require.InDelta(t, 3.0, cfg.reads[shardCostReplica], 0)
 	})
 
 	t.Run("invalid specs", func(t *testing.T) {
@@ -131,64 +173,46 @@ func TestParseShardCostConfig(t *testing.T) {
 			hasErr bool // true if Err (wrapped error) should be non-nil
 		}{
 			{
-				name:   "abstract key rejected with prefix",
-				spec:   "r:preferred=1.0",
-				key:    "preferred",
-				reason: "unknown key",
-			},
-			{
-				name:   "concrete key rejected without prefix",
-				spec:   "primary=1.0",
-				key:    "primary",
-				reason: "unknown key",
-			},
-			{
-				name:   "unknown unprefixed key",
+				name:   "unknown key",
 				spec:   "bogus=1.0",
 				key:    "bogus",
 				reason: "unknown key",
 			},
 			{
-				name:   "unknown r: prefixed key",
-				spec:   "r:bogus=1.0",
-				key:    "bogus",
+				name:   "old abstract key rejected",
+				spec:   "preferred=1.0",
+				key:    "preferred",
 				reason: "unknown key",
 			},
 			{
-				name:   "unknown w: prefixed key",
-				spec:   "w:nope=1.0",
-				key:    "nope",
+				name:   "old w: prefix rejected",
+				spec:   "w:primary=1.0",
+				key:    "w:primary",
 				reason: "unknown key",
 			},
 			{
 				name:   "unparseable float",
-				spec:   "preferred=abc",
-				key:    "preferred",
+				spec:   "r:base=abc",
+				key:    "r:base",
 				reason: "invalid value",
 				hasErr: true,
 			},
 			{
 				name:   "missing value (no equals sign)",
-				spec:   "preferred",
-				key:    "preferred",
-				reason: "missing value",
-			},
-			{
-				name:   "missing value with prefix",
-				spec:   "r:replica",
-				key:    "replica",
+				spec:   "r:base",
+				key:    "r:base",
 				reason: "missing value",
 			},
 			{
 				name:   "empty value after equals",
-				spec:   "preferred=",
-				key:    "preferred",
+				spec:   "r:amplify=",
+				key:    "r:amplify",
 				reason: "invalid value",
 				hasErr: true,
 			},
 			{
 				name:   "valid key followed by invalid key",
-				spec:   "preferred=1.0,bogus=2.0",
+				spec:   "r:base=0.9,bogus=2.0",
 				key:    "bogus",
 				reason: "unknown key",
 			},
@@ -197,7 +221,7 @@ func TestParseShardCostConfig(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
-				_, _, err := parseShardCostConfig(tt.spec)
+				_, err := parseShardCostConfig(tt.spec)
 				var scErr *ShardCostConfigError
 				require.ErrorAs(t, err, &scErr)
 				require.Equal(t, tt.key, scErr.Key)
@@ -209,53 +233,6 @@ func TestParseShardCostConfig(t *testing.T) {
 				}
 			})
 		}
-	})
-
-	t.Run("all keys", func(t *testing.T) {
-		t.Parallel()
-		reads, writes, err := parseShardCostConfig("preferred=1.0,alternate=2.0,relocating=4.0,initializing=8.0,unknown=16.0")
-		require.NoError(t, err)
-
-		require.InDelta(t, 1.0, reads[shardCostReplica], 0)
-		require.InDelta(t, 2.0, reads[shardCostPrimary], 0)
-		require.InDelta(t, 4.0, reads[shardCostRelocating], 0)
-		require.InDelta(t, 8.0, reads[shardCostInitializing], 0)
-		require.InDelta(t, 16.0, reads[shardCostUnknown], 0)
-
-		require.InDelta(t, 1.0, writes[shardCostPrimary], 0)
-		require.InDelta(t, 2.0, writes[shardCostReplica], 0)
-		require.InDelta(t, 4.0, writes[shardCostRelocating], 0)
-		require.InDelta(t, 8.0, writes[shardCostInitializing], 0)
-		require.InDelta(t, 16.0, writes[shardCostUnknown], 0)
-	})
-
-	t.Run("zero value in key=value falls back to default", func(t *testing.T) {
-		t.Parallel()
-		reads, writes, err := parseShardCostConfig("preferred=0,alternate=5.0")
-		require.NoError(t, err)
-
-		// preferred=0 → clamped to default
-		require.InDelta(t, costPreferred, reads[shardCostReplica], 0)
-		require.InDelta(t, costPreferred, writes[shardCostPrimary], 0)
-		// alternate=5.0 → set
-		require.InDelta(t, 5.0, reads[shardCostPrimary], 0)
-		require.InDelta(t, 5.0, writes[shardCostReplica], 0)
-	})
-
-	t.Run("negative value in key=value falls back to default", func(t *testing.T) {
-		t.Parallel()
-		reads, writes, err := parseShardCostConfig("unknown=-1.0")
-		require.NoError(t, err)
-
-		require.InDelta(t, costUnknown, reads[shardCostUnknown], 0)
-		require.InDelta(t, costUnknown, writes[shardCostUnknown], 0)
-	})
-
-	t.Run("trailing comma is ignored", func(t *testing.T) {
-		t.Parallel()
-		reads, _, err := parseShardCostConfig("preferred=3.0,")
-		require.NoError(t, err)
-		require.InDelta(t, 3.0, reads[shardCostReplica], 0)
 	})
 }
 
@@ -285,8 +262,8 @@ func TestShardCostConfigError(t *testing.T) {
 			},
 			{
 				name: "reason and key",
-				err:  ShardCostConfigError{Key: "preferred", Reason: "unknown key"},
-				want: `shard cost config: unknown key for key "preferred"`,
+				err:  ShardCostConfigError{Key: "r:base", Reason: "unknown key"},
+				want: `shard cost config: unknown key for key "r:base"`,
 			},
 			{
 				name: "reason and detail",
@@ -333,11 +310,120 @@ func TestShardCostConfigError(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				t.Parallel()
 				if tt.wantNil {
-					require.Nil(t, errors.Unwrap(&tt.err))
+					require.NoError(t, errors.Unwrap(&tt.err))
 				} else {
 					require.ErrorIs(t, &tt.err, tt.target)
 				}
 			})
 		}
+	})
+}
+
+func TestNewReadScoreFunc(t *testing.T) {
+	t.Parallel()
+
+	// Create a minimal connection for testing. With 0 load and no
+	// in-flight requests, utilization = (0+1)/1 = 1.0, so
+	// score = rtt * 1.0 * effectiveCost.
+	conn := scoreTestConn(t, "node-1", 200*time.Microsecond, 0)
+	rtt := float64(conn.rttRing.medianBucket())
+
+	tests := []struct {
+		name       string
+		base       float64
+		amplify    float64
+		exponent   float64
+		shardCost  float64
+		primaryPct float64
+		wantCost   float64 // effective cost multiplier (score = rtt * util * wantCost)
+	}{
+		{
+			name:       "pure replica uses static cost",
+			base:       0.95,
+			amplify:    2.0,
+			exponent:   2.0,
+			shardCost:  1.0,
+			primaryPct: 0.0,
+			wantCost:   1.0, // no primary blend, straight shardCost
+		},
+		{
+			name:       "pure primary at idle uses base cost",
+			base:       0.95,
+			amplify:    2.0,
+			exponent:   2.0,
+			shardCost:  1.0,
+			primaryPct: 1.0,
+			wantCost:   0.95, // 100% primary, idle write pool -> base
+		},
+		{
+			name:       "mixed 30% primary blends proportionally",
+			base:       0.95,
+			amplify:    2.0,
+			exponent:   2.0,
+			shardCost:  1.0,
+			primaryPct: 0.3,
+			wantCost:   0.7*1.0 + 0.3*0.95, // 0.985
+		},
+		{
+			name:       "mixed 50% primary blends to midpoint",
+			base:       0.95,
+			amplify:    2.0,
+			exponent:   2.0,
+			shardCost:  1.0,
+			primaryPct: 0.5,
+			wantCost:   0.5*1.0 + 0.5*0.95, // 0.975
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			fn := newReadScoreFunc(tt.base, tt.amplify, tt.exponent)
+			score := fn(conn, tt.shardCost, tt.primaryPct, "", true)
+			require.InDelta(t, rtt*1.0*tt.wantCost, score, 0.001)
+		})
+	}
+
+	// Verify non-primary matches the static scoring path exactly.
+	t.Run("non-primary matches calcConnDefaultScore", func(t *testing.T) {
+		t.Parallel()
+		fn := newReadScoreFunc(0.95, 2.0, 2.0)
+		staticScore := calcConnDefaultScore(conn, 1.0, "", true)
+		dynScore := fn(conn, 1.0, 0.0, "", true)
+		require.InDelta(t, staticScore, dynScore, 0.001)
+	})
+}
+
+func TestCalcNodePrimaryPct(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil returns 0", func(t *testing.T) {
+		t.Parallel()
+		require.InDelta(t, 0.0, calcNodePrimaryPct(nil), 0)
+	})
+
+	t.Run("zero shards returns 0", func(t *testing.T) {
+		t.Parallel()
+		require.InDelta(t, 0.0, calcNodePrimaryPct(&shardNodeInfo{}), 0)
+	})
+
+	t.Run("pure replica returns 0", func(t *testing.T) {
+		t.Parallel()
+		require.InDelta(t, 0.0, calcNodePrimaryPct(&shardNodeInfo{Replicas: 5}), 0)
+	})
+
+	t.Run("pure primary returns 1", func(t *testing.T) {
+		t.Parallel()
+		require.InDelta(t, 1.0, calcNodePrimaryPct(&shardNodeInfo{Primaries: 3}), 0)
+	})
+
+	t.Run("mixed 3P/7R returns 0.3", func(t *testing.T) {
+		t.Parallel()
+		require.InDelta(t, 0.3, calcNodePrimaryPct(&shardNodeInfo{Primaries: 3, Replicas: 7}), 0.001)
+	})
+
+	t.Run("mixed 1P/1R returns 0.5", func(t *testing.T) {
+		t.Parallel()
+		require.InDelta(t, 0.5, calcNodePrimaryPct(&shardNodeInfo{Primaries: 1, Replicas: 1}), 0)
 	})
 }

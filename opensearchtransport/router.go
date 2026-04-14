@@ -585,18 +585,13 @@ func WithShardExactRouting(enabled bool) RouterOption {
 // The spec string uses the same format as the [OPENSEARCH_GO_SHARD_COST]
 // environment variable:
 //
-//   - Bare numeric (e.g., "1.5"): sets preferred and alternate to the given
-//     value for both read and write cost tables. Other costs (relocating,
-//     initializing, unknown) keep their compile-time defaults.
-//   - Unprefixed key=value (e.g., "preferred=1.0,alternate=2.0"): keys are
-//     preferred, alternate, relocating, initializing, unknown. Applied to
-//     both tables with role-aware mapping (preferred = replica for reads,
-//     primary for writes).
-//   - Prefixed key=value (e.g., "r:replica=1.0,w:primary=0.5"): keys are
-//     primary, replica, relocating, initializing, unknown. Prefix "r:"
-//     applies to reads only, "w:" to writes only, indexing the table
-//     directly by shard type.
-//   - Any value ≤ 0 is replaced by the compile-time default for that slot.
+//   - Bare numeric (e.g., "1.0"): sets r:base (primary read cost at idle)
+//     to the given value. Other parameters keep their defaults.
+//   - Key=value (e.g., "r:base=0.9,r:amplify=2.5,r:exponent=1.5"):
+//     dynamic read curve keys are prefixed with "r:". Static keys
+//     (unknown, relocating, initializing, replica, write_primary,
+//     write_replica) override shard state costs in the lookup tables.
+//   - Any static value ≤ 0 is replaced by the compile-time default.
 //
 // The environment variable takes precedence over this option.
 func WithShardCosts(spec string) RouterOption {
@@ -632,21 +627,18 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 		cfg.discoveryFeatures = parseDiscoveryConfig(val)
 	}
 
-	// Resolve shard cost tables.
+	// Resolve shard cost tables and scoring function.
 	// Priority: env var > WithShardCosts() RouterOption > compile-time defaults.
 	shardCostSpec := cfg.shardCostConfig
 	if envVal, ok := os.LookupEnv(envShardCost); ok && envVal != "" {
 		shardCostSpec = envVal
 	}
 
-	readCosts := shardCostForReads   // value copy of defaults
-	writeCosts := shardCostForWrites // value copy of defaults
-	if shardCostSpec != "" {
-		if rc, wc, err := parseShardCostConfig(shardCostSpec); err == nil {
-			readCosts = rc
-			writeCosts = wc
+	costCfg, costErr := parseShardCostConfig(shardCostSpec)
+	if costErr != nil {
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("OPENSEARCH_GO_SHARD_COST: invalid config %q, using defaults: %v\n", shardCostSpec, costErr)
 		}
-		// Invalid config: silently use defaults (matches existing env var pattern).
 	}
 
 	cacheCfg := indexSlotCacheConfig{
@@ -666,14 +658,14 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 	// Wrap coordinating-only nodes with RTT + congestion scoring.
 	// Coordinating nodes don't host shards, so all receive costUnknown
 	// and selection is purely by latency and congestion window.
-	coordinatingScored := wrapWithRouter(coordinatingPolicy, cache, cfg.decay, &readCosts, "")
+	coordinatingScored := wrapWithRouter(coordinatingPolicy, cache, cfg.decay, &costCfg.reads, "", nil)
 
 	// The mux policy delegates each matched request to a router-wrapped
 	// role policy. Within data/search/ingest/warm nodes, the router wrapper
 	// applies RTT-based scoring and rendezvous hashing to select the
 	// best connection for the target index, achieving cache locality and AZ-aware
 	// load distribution within each role pool.
-	muxPolicy := NewMuxPolicy(newScoredRoutes(cache, cfg.decay, &readCosts, &writeCosts))
+	muxPolicy := NewMuxPolicy(newScoredRoutes(cache, cfg.decay, &costCfg))
 
 	roundRobinPolicy := NewRoundRobinPolicy()
 
@@ -700,11 +692,12 @@ func NewDefaultRouter(opts ...RouterOption) Router {
 
 // newScoredRoutes mirrors [NewDefaultRoutes] but wraps each role-based
 // sub-policy with a [poolRouter]. Each wrapper carries the
-// server-side thread pool name and shard cost table, so the pool name flows
-// through [NextHop.PoolName] without redundancy on the route.
-func newScoredRoutes(cache *indexSlotCache, decay float64, readCosts, writeCosts *shardCostMultiplier) []Route {
-	wrap := func(p Policy, costs *shardCostMultiplier, pool string) Policy {
-		return wrapWithRouter(p, cache, decay, costs, pool)
+// server-side thread pool name, shard cost table, and optional scoring
+// function, so the pool name flows through [NextHop.PoolName] without
+// redundancy on the route.
+func newScoredRoutes(cache *indexSlotCache, decay float64, costCfg *shardCostConfig) []Route {
+	wrap := func(p Policy, costs *shardCostMultiplier, pool string, scoreFunc connScoreFunc) Policy {
+		return wrapWithRouter(p, cache, decay, costs, pool, scoreFunc)
 	}
 
 	// Create role-based policies (same as NewDefaultRoutes)
@@ -751,16 +744,16 @@ func newScoredRoutes(cache *indexSlotCache, decay float64, readCosts, writeCosts
 	// baked into the wrapper at construction time and flows through
 	// NextHop.PoolName --no redundant .Pool() calls on routes needed.
 	return buildRoleRoutes(roleRoutes{
-		ingestWrite:    wrap(ingestIfEnabled, writeCosts, poolWrite),
-		ingestMgmt:     wrap(ingestIfEnabled, readCosts, poolManagement),
-		searchRead:     wrap(searchIfEnabled, readCosts, poolSearch),
-		getRead:        wrap(searchIfEnabled, readCosts, poolGet),
-		dataWrite:      wrap(dataIfEnabled, writeCosts, poolWrite),
-		dataRefresh:    wrap(dataIfEnabled, writeCosts, poolRefresh),
-		dataFlush:      wrap(dataIfEnabled, writeCosts, poolFlush),
-		dataForceMerge: wrap(dataIfEnabled, writeCosts, poolForceMerge),
-		dataMgmt:       wrap(dataIfEnabled, readCosts, poolManagement),
-		searchMgmt:     wrap(searchIfEnabled, readCosts, poolManagement),
-		warmMgmt:       wrap(warmIfEnabled, readCosts, poolManagement),
+		ingestWrite:    wrap(ingestIfEnabled, &costCfg.writes, poolWrite, nil),
+		ingestMgmt:     wrap(ingestIfEnabled, &costCfg.reads, poolManagement, nil),
+		searchRead:     wrap(searchIfEnabled, &costCfg.reads, poolSearch, costCfg.scoreFunc),
+		getRead:        wrap(searchIfEnabled, &costCfg.reads, poolGet, costCfg.scoreFunc),
+		dataWrite:      wrap(dataIfEnabled, &costCfg.writes, poolWrite, nil),
+		dataRefresh:    wrap(dataIfEnabled, &costCfg.writes, poolRefresh, nil),
+		dataFlush:      wrap(dataIfEnabled, &costCfg.writes, poolFlush, nil),
+		dataForceMerge: wrap(dataIfEnabled, &costCfg.writes, poolForceMerge, nil),
+		dataMgmt:       wrap(dataIfEnabled, &costCfg.reads, poolManagement, nil),
+		searchMgmt:     wrap(searchIfEnabled, &costCfg.reads, poolManagement, nil),
+		warmMgmt:       wrap(warmIfEnabled, &costCfg.reads, poolManagement, nil),
 	})
 }

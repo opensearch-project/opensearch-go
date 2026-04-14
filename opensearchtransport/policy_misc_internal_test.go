@@ -82,10 +82,10 @@ func TestWithShardCosts(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name   string
+		name    string
 		initial string // pre-existing shardCostConfig value
-		spec   string  // argument to WithShardCosts
-		want   string  // expected shardCostConfig after applying
+		spec    string // argument to WithShardCosts
+		want    string // expected shardCostConfig after applying
 	}{
 		{
 			name: "stores spec in config",

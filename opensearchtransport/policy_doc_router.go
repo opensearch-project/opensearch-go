@@ -135,13 +135,13 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 		if len(shardCandidates) > len(scoresBuf) {
 			scores = make([]float64, len(shardCandidates))
 		}
-		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
 			obs.OnRoute(buildRouteEvent(
 				indexName, key, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, &shardCostForReads, "",
-				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
+				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), nil,
 			))
 		}
 
@@ -174,13 +174,13 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	if len(candidates) > len(scoresBuf) {
 		scores = make([]float64, len(candidates))
 	}
-	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := indexName + "/" + docID
 		obs.OnRoute(buildRouteEvent(
 			indexName, key, fanOut, len(conns), candidates, best, slot, nil, &shardCostForReads, "",
-			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
+			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), nil,
 		))
 	}
 

@@ -44,7 +44,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 		node := &shardNodeInfo{Replicas: 3}
 
-		score := calcConnScore(conn, shardCostForReads.forNode(node), "", true)
+		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
 		// With cwnd scoring: utilization = (0+1)/1 = 1.0, so score = rttBucket * 1.0 * shardCost.
 		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostReplica]
 		require.InDelta(t, expected, score, 0.01)
@@ -55,7 +55,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 		node := &shardNodeInfo{Primaries: 3}
 
-		score := calcConnScore(conn, shardCostForReads.forNode(node), "", true)
+		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
 		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostPrimary]
 		require.InDelta(t, expected, score, 0.01)
 	})
@@ -64,7 +64,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		t.Parallel()
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 
-		score := calcConnScore(conn, shardCostForReads.forNode(nil), "", true)
+		score := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
 		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostUnknown]
 		require.InDelta(t, expected, score, 0.01)
 	})
@@ -74,7 +74,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 		node := &shardNodeInfo{Primaries: 1, Replicas: 9}
 
-		score := calcConnScore(conn, shardCostForReads.forNode(node), "", true)
+		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
 		// Mixed = min(replica, primary) = min(1.0, 2.0) = 1.0 for reads.
 		expected := float64(conn.rttRing.medianBucket()) * shardCostForReads[shardCostReplica]
 		require.InDelta(t, expected, score, 0.01)
@@ -90,10 +90,10 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		primaryConn := scoreTestConn(t, "p", rtt, load)
 		unknownConn := scoreTestConn(t, "u", rtt, load)
 
-		replicaScore := calcConnScore(replicaConn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 5}), "", true)
-		mixedScore := calcConnScore(mixedConn, shardCostForReads.forNode(&shardNodeInfo{Primaries: 2, Replicas: 3}), "", true)
-		primaryScore := calcConnScore(primaryConn, shardCostForReads.forNode(&shardNodeInfo{Primaries: 5}), "", true)
-		unknownScore := calcConnScore(unknownConn, shardCostForReads.forNode(nil), "", true)
+		replicaScore := calcConnDefaultScore(replicaConn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 5}), "", true)
+		mixedScore := calcConnDefaultScore(mixedConn, shardCostForReads.forNode(&shardNodeInfo{Primaries: 2, Replicas: 3}), "", true)
+		primaryScore := calcConnDefaultScore(primaryConn, shardCostForReads.forNode(&shardNodeInfo{Primaries: 5}), "", true)
+		unknownScore := calcConnDefaultScore(unknownConn, shardCostForReads.forNode(nil), "", true)
 
 		require.InDelta(t, replicaScore, mixedScore, 0.01, "replica and mixed should score equal for reads")
 		require.Less(t, mixedScore, primaryScore, "mixed should score lower than primary-only")
@@ -105,7 +105,7 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 0)
 		node := &shardNodeInfo{Replicas: 1}
 
-		score := calcConnScore(conn, shardCostForReads.forNode(node), "", true)
+		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
 		require.Greater(t, score, 0.0, "score should be positive even with zero load")
 	})
 
@@ -115,8 +115,8 @@ func TestCalcConnScoreShardCost(t *testing.T) {
 		// Info exists but has no shards -- edge case.
 		node := &shardNodeInfo{}
 
-		score := calcConnScore(conn, shardCostForReads.forNode(node), "", true)
-		unknownScore := calcConnScore(conn, shardCostForReads.forNode(nil), "", true)
+		score := calcConnDefaultScore(conn, shardCostForReads.forNode(node), "", true)
+		unknownScore := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
 		require.InDelta(t, unknownScore, score, 0.01, "zero-total info should match unknown penalty")
 	})
 }
@@ -129,7 +129,7 @@ func TestCalcConnScoreShardCostWrites(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 		node := &shardNodeInfo{Primaries: 3}
 
-		score := calcConnScore(conn, shardCostForWrites.forNode(node), "", true)
+		score := calcConnDefaultScore(conn, shardCostForWrites.forNode(node), "", true)
 		expected := float64(conn.rttRing.medianBucket()) * shardCostForWrites[shardCostPrimary]
 		require.InDelta(t, expected, score, 0.01)
 	})
@@ -139,7 +139,7 @@ func TestCalcConnScoreShardCostWrites(t *testing.T) {
 		conn := scoreTestConn(t, "node1", 200*time.Microsecond, 10.0)
 		node := &shardNodeInfo{Replicas: 3}
 
-		score := calcConnScore(conn, shardCostForWrites.forNode(node), "", true)
+		score := calcConnDefaultScore(conn, shardCostForWrites.forNode(node), "", true)
 		expected := float64(conn.rttRing.medianBucket()) * shardCostForWrites[shardCostReplica]
 		require.InDelta(t, expected, score, 0.01)
 	})
@@ -154,10 +154,10 @@ func TestCalcConnScoreShardCostWrites(t *testing.T) {
 		replicaConn := scoreTestConn(t, "r", rtt, load)
 		unknownConn := scoreTestConn(t, "u", rtt, load)
 
-		primaryScore := calcConnScore(primaryConn, shardCostForWrites.forNode(&shardNodeInfo{Primaries: 5}), "", true)
-		mixedScore := calcConnScore(mixedConn, shardCostForWrites.forNode(&shardNodeInfo{Primaries: 2, Replicas: 3}), "", true)
-		replicaScore := calcConnScore(replicaConn, shardCostForWrites.forNode(&shardNodeInfo{Replicas: 5}), "", true)
-		unknownScore := calcConnScore(unknownConn, shardCostForWrites.forNode(nil), "", true)
+		primaryScore := calcConnDefaultScore(primaryConn, shardCostForWrites.forNode(&shardNodeInfo{Primaries: 5}), "", true)
+		mixedScore := calcConnDefaultScore(mixedConn, shardCostForWrites.forNode(&shardNodeInfo{Primaries: 2, Replicas: 3}), "", true)
+		replicaScore := calcConnDefaultScore(replicaConn, shardCostForWrites.forNode(&shardNodeInfo{Replicas: 5}), "", true)
+		unknownScore := calcConnDefaultScore(unknownConn, shardCostForWrites.forNode(nil), "", true)
 
 		require.InDelta(t, primaryScore, mixedScore, 0.01, "primary and mixed should score equal for writes")
 		require.Less(t, mixedScore, replicaScore, "mixed should score lower than replica-only")
@@ -205,8 +205,8 @@ func TestCalcConnScore_InFlightChangesScores(t *testing.T) {
 	connBusy := scoreTestConn(t, "busy", rtt, 0)
 	connBusy.addInFlight("") // inFlight = 1
 
-	idleScore := calcConnScore(connIdle, shardCostForReads.forNode(node), "", true)
-	busyScore := calcConnScore(connBusy, shardCostForReads.forNode(node), "", true)
+	idleScore := calcConnDefaultScore(connIdle, shardCostForReads.forNode(node), "", true)
+	busyScore := calcConnDefaultScore(connBusy, shardCostForReads.forNode(node), "", true)
 
 	bucket := float64(connIdle.rttRing.medianBucket())
 
