@@ -447,7 +447,7 @@ func (c *Client) snapshotClusterHealthConnections() []*Connection {
 	p.mu.RLock()
 	snapshot := make([]*Connection, 0, len(p.mu.ready))
 	for _, conn := range p.mu.ready {
-		if conn.loadClusterHealthState().HasClusterHealth() {
+		if conn.hasClusterHealth() {
 			snapshot = append(snapshot, conn)
 		}
 	}
@@ -461,44 +461,9 @@ func (c *Client) snapshotClusterHealthConnections() []*Connection {
 //
 // Error handling:
 //   - 200: Parse response, store ClusterHealthLocal on connection, update timestamp.
-//   - 401/403: Permission revoked at runtime. Reset clusterHealthState to pending,
+//   - 401/403: Permission revoked at runtime. Reset cluster health lifecycle bits to pending,
 //     zero out clusterHealth. The connection will fall back to baseline GET / health checks.
 //   - Transient errors (network, 5xx): Log and skip. The next poll cycle will retry.
-// ---------------------------------------------------------------------------
-// Cluster health types -- moved from connection.go for cohesion
-// ---------------------------------------------------------------------------
-
-// clusterHealthProbeState represents the capability state of a connection's cluster health check support.
-// It is stored as an atomic.Int64 bitfield on Connection and loaded once per decision point
-// to avoid redundant atomic loads within the same code path.
-type clusterHealthProbeState int64
-
-const (
-	// clusterHealthProbed indicates the node has been probed for cluster health capability.
-	// Bit 0 (value 1).
-	clusterHealthProbed clusterHealthProbeState = 1 << iota
-
-	// clusterHealthAvailable indicates the probe succeeded and /_cluster/health?local=true is usable.
-	// Bit 1 (value 2). Only meaningful when clusterHealthProbed is also set.
-	clusterHealthAvailable
-)
-
-// HasClusterHealth returns true if the connection has been probed and supports /_cluster/health?local=true.
-func (e clusterHealthProbeState) HasClusterHealth() bool {
-	return e&clusterHealthProbed != 0 && e&clusterHealthAvailable != 0
-}
-
-// Pending returns true if cluster health has never been probed on this connection.
-func (e clusterHealthProbeState) Pending() bool {
-	return e == 0
-}
-
-// Unavailable returns true if cluster health was probed and found unavailable.
-// This occurs when the node returned 401 (authentication failure) or 403 (authorization failure,
-// i.e., the authenticated user lacks the cluster:monitor/health privilege).
-func (e clusterHealthProbeState) Unavailable() bool {
-	return e&clusterHealthProbed != 0 && e&clusterHealthAvailable == 0
-}
 
 // ClusterHealthLocal represents the response from GET /_cluster/health?local=true.
 // The local=true parameter causes the request to be served from the connected node's
@@ -545,13 +510,6 @@ type healthCheckInfo struct {
 	} `json:"version"`
 }
 
-// loadClusterHealthState atomically loads the cluster health state bitfield once.
-// Use the returned clusterHealthProbeState value for all subsequent checks within a single code path
-// to avoid redundant atomic loads.
-func (c *Connection) loadClusterHealthState() clusterHealthProbeState {
-	return clusterHealthProbeState(c.clusterHealthState.Load())
-}
-
 // ClusterHealth returns the most recent cluster health snapshot for this connection, or nil
 // if cluster health has not been probed or is unavailable.
 func (c *Connection) ClusterHealth() *ClusterHealthLocal {
@@ -573,7 +531,10 @@ func (c *Client) refreshClusterHealth(conn *Connection) {
 
 	switch {
 	case statusCode == http.StatusOK && health != nil:
+		conn.mu.Lock()
 		storeClusterHealth(conn, health)
+		conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable) //nolint:errcheck // noop is fine
+		conn.mu.Unlock()
 
 	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
 		resetClusterHealth(conn)

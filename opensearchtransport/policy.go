@@ -36,7 +36,7 @@ import (
 
 // HealthCheckFunc defines the signature for health check functions.
 // The conn parameter provides the Connection being health-checked, allowing the function
-// to read connection state (e.g., clusterHealthState) to choose the appropriate endpoint.
+// to read connection state (e.g., cluster health lifecycle bits) to choose the appropriate endpoint.
 type HealthCheckFunc func(ctx context.Context, conn *Connection, url *url.URL) (*http.Response, error)
 
 // policyConfig holds shared configuration for policy-owned connection pools.

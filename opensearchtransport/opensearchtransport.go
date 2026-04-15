@@ -1688,11 +1688,8 @@ func (c *Client) DefaultHealthCheck(ctx context.Context, conn *Connection, u *ur
 		return c.hardwareInfoHealthCheck(ctx, conn, u, applyModifier)
 	}
 
-	// Load the cluster health state once for all checks in this code path
-	info := conn.loadClusterHealthState()
-
 	// Fast path: if cluster health is available, use the richer endpoint
-	if info.HasClusterHealth() {
+	if conn.hasClusterHealth() {
 		return c.clusterHealthCheck(ctx, conn, u, applyModifier)
 	}
 
@@ -1709,11 +1706,11 @@ func (c *Client) DefaultHealthCheck(ctx context.Context, conn *Connection, u *ur
 	}
 
 	switch {
-	case info.Pending():
+	case conn.clusterHealthPending():
 		// Never probed -- launch async probe
 		go c.probeClusterHealthLocal(ctx, conn, u, applyModifier)
 
-	case info.Unavailable() && c.maxRetryClusterHealth > 0:
+	case conn.clusterHealthUnavailable() && c.maxRetryClusterHealth > 0:
 		// Previously unavailable (401/403 from cluster:monitor/health permission check) --
 		// check if jittered retry interval has elapsed before re-probing.
 		conn.mu.RLock()
@@ -2004,22 +2001,22 @@ func (c *Client) fetchClusterHealth(ctx context.Context, u *url.URL, applyModifi
 }
 
 // storeClusterHealth updates the connection's cluster health data under lock.
+// storeClusterHealth stores the health data and timestamp on the connection.
+// CALLER RESPONSIBILITIES: Caller must hold conn.mu.Lock().
 func storeClusterHealth(conn *Connection, health *ClusterHealthLocal) {
-	conn.mu.Lock()
 	conn.mu.clusterHealth = health
 	conn.mu.clusterHealthCheckedAt = time.Now()
-	conn.mu.Unlock()
 }
 
 // resetClusterHealth resets a connection's cluster health state to pending and
 // zeros out stale cluster health data. Called when the /_cluster/health endpoint
 // returns 401/403 (permission revoked at runtime).
 func resetClusterHealth(conn *Connection) {
-	conn.clusterHealthState.Store(0)
-
 	conn.mu.Lock()
 	conn.mu.clusterHealth = nil
 	conn.mu.clusterHealthCheckedAt = time.Time{}
+	conn.clearLifecycleBit(lcClusterHealthProbed)    //nolint:errcheck // noop is fine
+	conn.clearLifecycleBit(lcClusterHealthAvailable) //nolint:errcheck // noop is fine
 	conn.mu.Unlock()
 }
 
@@ -2041,7 +2038,10 @@ func (c *Client) clusterHealthCheck(
 
 	switch {
 	case statusCode == http.StatusOK && health != nil:
+		conn.mu.Lock()
 		storeClusterHealth(conn, health)
+		conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable) //nolint:errcheck // noop is fine
+		conn.mu.Unlock()
 
 		// Readiness gate: reject nodes that are still recovering (initializing shards).
 		// This prevents slamming a node with traffic while it is still absorbing shard data.
@@ -2083,13 +2083,13 @@ func (c *Client) clusterHealthCheck(
 // required by the OpenSearch Security plugin. The result determines which endpoint subsequent
 // health checks use:
 //
-//   - 200: Probe succeeded. Sets clusterHealthProbed|clusterHealthAvailable, populates
+//   - 200: Probe succeeded. Sets lcClusterHealthProbed|lcClusterHealthAvailable, populates
 //     [Connection.mu.clusterHealth], and records the probe timestamp. Subsequent health
 //     checks will use /_cluster/health?local=true for richer data.
-//   - 401/403: The cluster:monitor/health privilege is not available. Sets clusterHealthProbed
+//   - 401/403: The cluster:monitor/health privilege is not available. Sets lcClusterHealthProbed
 //     only (marking unavailable) and records the timestamp. The client continues using GET /
 //     and will retry the probe after MaxRetryClusterHealth elapses (default 4h).
-//   - Transient errors (5xx, network, timeout): Leaves state at 0 (pending) and does NOT
+//   - Transient errors (5xx, network, timeout): Leaves state at pending and does NOT
 //     record a timestamp, so the probe is retried on the very next health check cycle.
 func (c *Client) probeClusterHealthLocal(ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request)) {
 	health, statusCode, err := c.fetchClusterHealth(ctx, u, applyModifier)
@@ -2100,17 +2100,19 @@ func (c *Client) probeClusterHealthLocal(ctx context.Context, conn *Connection, 
 
 	switch {
 	case statusCode == http.StatusOK && health != nil:
-		// Probe succeeded -- store data and flip the atomic flag
+		// Probe succeeded -- store data and mark available (under conn.mu)
+		conn.mu.Lock()
 		storeClusterHealth(conn, health)
-		conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+		conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable) //nolint:errcheck // noop is fine
+		conn.mu.Unlock()
 
 	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
 		// Definitively unavailable -- record timestamp for retry timing
 		conn.mu.Lock()
 		conn.mu.clusterHealthCheckedAt = time.Now()
+		conn.setLifecycleBit(lcClusterHealthProbed)      //nolint:errcheck // noop is fine
+		conn.clearLifecycleBit(lcClusterHealthAvailable) //nolint:errcheck // noop is fine
 		conn.mu.Unlock()
-
-		conn.clusterHealthState.Store(int64(clusterHealthProbed))
 
 	default:
 		// Transient error (5xx, etc.) -- leave at pending (0), do NOT set timestamp
