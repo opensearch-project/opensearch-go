@@ -42,6 +42,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -2257,5 +2258,379 @@ func TestGetNodesInfoNodesMeta(t *testing.T) {
 				require.Len(t, nodes, tt.wantNodes)
 			}
 		})
+	}
+}
+
+// gatedNodesHandler returns a /_nodes/http handler that signals entered when
+// the request arrives, then blocks until gate is closed before responding with
+// a single data node. The handler also selects on t.Context().Done() so that
+// test cleanup can unblock it.
+func gatedNodesHandler(t *testing.T, entered chan<- struct{}, gate <-chan struct{}) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, _ *http.Request) {
+		select {
+		case entered <- struct{}{}:
+		default:
+		}
+		select {
+		case <-gate:
+		case <-t.Context().Done():
+			http.Error(w, "test context cancelled", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, `{
+			"_nodes":{"total":1,"successful":1,"failed":0},
+			"cluster_name":"test",
+			"nodes":{
+				"n1":{
+					"name":"n1",
+					"roles":["data","ingest"],
+					"http":{"publish_address":"127.0.0.1:9200"}
+				}
+			}
+		}`)
+	}
+}
+
+// gatedErrorNodesHandler returns a /_nodes/http handler that signals entered
+// when the request arrives, then blocks until gate is closed before responding
+// with an HTTP 503 to trigger a discovery error. The handler also selects on
+// t.Context().Done() so that test cleanup can unblock it.
+func gatedErrorNodesHandler(t *testing.T, entered chan<- struct{}, gate <-chan struct{}) http.HandlerFunc {
+	t.Helper()
+	return func(w http.ResponseWriter, _ *http.Request) {
+		select {
+		case entered <- struct{}{}:
+		default:
+		}
+		select {
+		case <-gate:
+		case <-t.Context().Done():
+		}
+		http.Error(w, "unavailable", http.StatusServiceUnavailable)
+	}
+}
+
+// newGatedDiscoverClient creates a transport Client wired to the given
+// handler routes, with discoverMu.cond properly initialised.
+func newGatedDiscoverClient(t *testing.T, routes mockhttp.HandlerMap) *Client {
+	t.Helper()
+	transport := mockhttp.NewTransportFromRoutes(t, routes)
+	u, _ := url.Parse("http://127.0.0.1:9200")
+	tp, err := New(Config{URLs: []*url.URL{u}, Transport: transport})
+	require.NoError(t, err)
+	tp.discoverMu.cond = sync.NewCond(&tp.discoverMu)
+	return tp
+}
+
+func TestDiscoverNodesBlocking(t *testing.T) {
+	entered := make(chan struct{}, 1)
+	gate := make(chan struct{})
+
+	routes := mockhttp.GetDefaultHandlers(t)
+	routes["/_nodes/http"] = gatedNodesHandler(t, entered, gate)
+	tp := newGatedDiscoverClient(t, routes)
+
+	// Goroutine A: start discovery (blocks in handler on gate).
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		tp.DiscoverNodes(t.Context())
+	}()
+
+	// Wait for handler to be entered — discovery is now in-flight.
+	<-entered
+
+	// Goroutine B: should block in DiscoverNodes until A finishes.
+	bDone := make(chan error, 1)
+	go func() {
+		bDone <- tp.DiscoverNodes(t.Context())
+	}()
+
+	// B should not have returned yet (gate still closed, A still blocked).
+	select {
+	case <-bDone:
+		t.Fatal("goroutine B returned before discovery finished")
+	default:
+	}
+
+	// Release A — A finishes, B wakes up.
+	close(gate)
+	wg.Wait()
+
+	err := <-bDone
+	require.NoError(t, err, "goroutine B should succeed after waiting")
+}
+
+func TestDiscoverNodesBlockingPropagatesError(t *testing.T) {
+	entered := make(chan struct{}, 1)
+	gate := make(chan struct{})
+
+	routes := mockhttp.GetDefaultHandlers(t)
+	routes["/_nodes/http"] = gatedErrorNodesHandler(t, entered, gate)
+	tp := newGatedDiscoverClient(t, routes)
+
+	// Goroutine A: start discovery that will fail.
+	aDone := make(chan error, 1)
+	go func() {
+		aDone <- tp.DiscoverNodes(t.Context())
+	}()
+
+	<-entered // A is in handler, discovery in-flight.
+
+	// Goroutine B: waits for A, receives the same error via lastErr.
+	bDone := make(chan error, 1)
+	go func() {
+		bDone <- tp.DiscoverNodes(t.Context())
+	}()
+
+	close(gate)
+
+	errA := <-aDone
+	errB := <-bDone
+
+	require.Error(t, errA, "runner should report discovery error")
+	require.Error(t, errB, "waiter should receive the same error")
+	require.Equal(t, errA, errB)
+}
+
+func TestDiscoverNodesBlockingContextCancel(t *testing.T) {
+	entered := make(chan struct{}, 1)
+	gate := make(chan struct{})
+	defer close(gate) // prevent goroutine leak
+
+	routes := mockhttp.GetDefaultHandlers(t)
+	routes["/_nodes/http"] = gatedNodesHandler(t, entered, gate)
+	tp := newGatedDiscoverClient(t, routes)
+
+	// Goroutine A: start slow discovery.
+	go func() {
+		tp.DiscoverNodes(t.Context())
+	}()
+
+	<-entered // A is in handler, discovery in-flight.
+
+	// B: call DiscoverNodes with an already-cancelled context.
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	err := tp.DiscoverNodes(ctx)
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestTryDiscoverNodesNonBlocking(t *testing.T) {
+	entered := make(chan struct{}, 1)
+	gate := make(chan struct{})
+	defer close(gate) // prevent goroutine leak
+
+	routes := mockhttp.GetDefaultHandlers(t)
+	routes["/_nodes/http"] = gatedNodesHandler(t, entered, gate)
+	tp := newGatedDiscoverClient(t, routes)
+
+	// Start discovery in a goroutine.
+	go func() {
+		tp.DiscoverNodes(t.Context())
+	}()
+
+	<-entered // discovery is in-flight.
+
+	// tryDiscoverNodes should return nil immediately without blocking.
+	err := tp.tryDiscoverNodes(t.Context())
+	require.NoError(t, err)
+}
+
+func TestDiscoverNodesSequential(t *testing.T) {
+	routes := mockhttp.GetDefaultHandlersWithNodes(t, map[string][]string{
+		"node1": {"data", "ingest"},
+	})
+	tp := newGatedDiscoverClient(t, routes)
+
+	// First call succeeds.
+	err := tp.DiscoverNodes(t.Context())
+	require.NoError(t, err)
+
+	// Second call also succeeds (starts a fresh discovery).
+	err = tp.DiscoverNodes(t.Context())
+	require.NoError(t, err)
+}
+
+// TestDiscoverNodesWaiterDoesNotInheritRunnerCancellation guards the F6
+// regression: a goroutine that blocks waiting on an in-progress discovery
+// must not inherit the runner's context.Canceled when its own context is
+// healthy. The runner's cancellation is stored in lastErr; before the fix the
+// waiter returned it verbatim, which looked like the waiter's own
+// cancellation and could suppress a legitimate retry. The waiter now gets the
+// errDiscoveryInterrupted sentinel instead.
+func TestDiscoverNodesWaiterDoesNotInheritRunnerCancellation(t *testing.T) {
+	c := &Client{}
+	c.discoverMu.cond = sync.NewCond(&c.discoverMu)
+
+	// Simulate an in-progress discovery whose runner was cancelled.
+	c.discoverMu.Lock()
+	c.discoverMu.inProgress = true
+	c.discoverMu.lastErr = context.Canceled
+	c.discoverMu.Unlock()
+
+	done := make(chan error, 1)
+	go func() {
+		// A healthy context: the waiter's own context is NOT cancelled.
+		done <- c.DiscoverNodes(context.Background())
+	}()
+
+	// Let the waiter observe inProgress=true and park in cond.Wait().
+	time.Sleep(100 * time.Millisecond)
+
+	// Complete the "discovery", leaving the runner's cancellation in lastErr.
+	c.discoverMu.Lock()
+	c.discoverMu.inProgress = false
+	c.discoverMu.Unlock()
+
+	// Wake the waiter (retry to cover a late park) and assert it reports the
+	// sentinel rather than the runner's context.Canceled.
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+	timeout := time.After(2 * time.Second)
+	for {
+		c.discoverMu.Lock()
+		c.discoverMu.cond.Broadcast()
+		c.discoverMu.Unlock()
+		select {
+		case err := <-done:
+			require.ErrorIs(t, err, errDiscoveryInterrupted)
+			require.NotErrorIs(t, err, context.Canceled)
+			return
+		case <-ticker.C:
+		case <-timeout:
+			t.Fatal("waiter did not return")
+		}
+	}
+}
+
+// TestDiscoverNodesEarlyCtxCancellation covers the early-exit branches in
+// DiscoverNodes and tryDiscoverNodes: if ctx is already cancelled, both must
+// return ctx.Err() before touching discoverMu or starting any I/O.
+func TestDiscoverNodesEarlyCtxCancellation(t *testing.T) {
+	routes := mockhttp.GetDefaultHandlersWithNodes(t, map[string][]string{
+		"node1": {"data", "ingest"},
+	})
+	tp := newGatedDiscoverClient(t, routes)
+
+	cases := []struct {
+		name string
+		call func(ctx context.Context) error
+	}{
+		{
+			name: "DiscoverNodes returns ctx.Err()",
+			call: tp.DiscoverNodes,
+		},
+		{
+			name: "tryDiscoverNodes returns ctx.Err()",
+			call: tp.tryDiscoverNodes,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+			err := c.call(ctx)
+			require.ErrorIs(t, err, context.Canceled)
+		})
+	}
+}
+
+// TestTryDiscoverNodesStartsDiscovery covers the path where tryDiscoverNodes
+// finds no discovery in progress and runs one itself via doDiscoverNodes.
+// TestTryDiscoverNodesNonBlocking only exercises the in-progress branch.
+func TestTryDiscoverNodesStartsDiscovery(t *testing.T) {
+	routes := mockhttp.GetDefaultHandlersWithNodes(t, map[string][]string{
+		"node1": {"data", "ingest"},
+	})
+	tp := newGatedDiscoverClient(t, routes)
+
+	require.False(t, tp.discoverMu.inProgress, "precondition: no discovery in flight")
+	err := tp.tryDiscoverNodes(t.Context())
+	require.NoError(t, err)
+	require.False(t, tp.discoverMu.inProgress, "postcondition: discovery completed")
+}
+
+// TestDiscoverNodesWaiterReceivesNonCtxRunnerError covers the branch where the
+// waiter's own context is healthy and the runner failed with an error that is
+// neither context.Canceled nor context.DeadlineExceeded -- the waiter should
+// receive the runner's error verbatim, not the errDiscoveryInterrupted sentinel.
+func TestDiscoverNodesWaiterReceivesNonCtxRunnerError(t *testing.T) {
+	c := &Client{}
+	c.discoverMu.cond = sync.NewCond(&c.discoverMu)
+
+	runnerErr := fmt.Errorf("simulated discovery failure")
+
+	c.discoverMu.Lock()
+	c.discoverMu.inProgress = true
+	c.discoverMu.lastErr = runnerErr
+	c.discoverMu.Unlock()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- c.DiscoverNodes(context.Background())
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+
+	c.discoverMu.Lock()
+	c.discoverMu.inProgress = false
+	c.discoverMu.Unlock()
+
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+	timeout := time.After(2 * time.Second)
+	for {
+		c.discoverMu.Lock()
+		c.discoverMu.cond.Broadcast()
+		c.discoverMu.Unlock()
+		select {
+		case err := <-done:
+			require.ErrorIs(t, err, runnerErr)
+			require.NotErrorIs(t, err, errDiscoveryInterrupted)
+			return
+		case <-ticker.C:
+		case <-timeout:
+			t.Fatal("waiter did not return")
+		}
+	}
+}
+
+// TestDiscoverNodesWaiterCtxCancelDuringWait covers the in-loop ctx.Err()
+// branch in DiscoverNodes: a waiter parked in cond.Wait() whose own context
+// is cancelled mid-wait must be woken by the AfterFunc broadcast and return
+// ctx.Err() rather than waiting on the runner to finish.
+func TestDiscoverNodesWaiterCtxCancelDuringWait(t *testing.T) {
+	entered := make(chan struct{}, 1)
+	gate := make(chan struct{})
+	defer close(gate)
+
+	routes := mockhttp.GetDefaultHandlers(t)
+	routes["/_nodes/http"] = gatedNodesHandler(t, entered, gate)
+	tp := newGatedDiscoverClient(t, routes)
+
+	go func() {
+		tp.DiscoverNodes(t.Context())
+	}()
+	<-entered
+
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan error, 1)
+	go func() {
+		done <- tp.DiscoverNodes(ctx)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(2 * time.Second):
+		t.Fatal("waiter did not return after its own ctx was cancelled")
 	}
 }

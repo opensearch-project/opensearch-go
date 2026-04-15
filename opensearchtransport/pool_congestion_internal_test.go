@@ -891,7 +891,7 @@ type testDebugLogger struct{}
 func (l *testDebugLogger) Log(_ ...any) error            { return nil }
 func (l *testDebugLogger) Logf(_ string, _ ...any) error { return nil }
 
-// enableTestDebugLogger sets debugLogger to a no-op testDebugLogger exactly
+// enableTestDebugLogger sets the debug logger to a no-op testDebugLogger exactly
 // once for the lifetime of the test process. This avoids data races that
 // arise when individual tests save/restore the package-level global while
 // background goroutines from parallel tests are still reading it.
