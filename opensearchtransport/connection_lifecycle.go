@@ -176,6 +176,27 @@ func (c *Connection) needsCatUpdate() bool {
 	return c.loadConnState().lifecycle().has(lcNeedsCatUpdate)
 }
 
+// hasClusterHealth reports whether this connection has been probed and supports
+// /_cluster/health?local=true.
+func (c *Connection) hasClusterHealth() bool {
+	lc := c.loadConnState().lifecycle()
+	return lc.has(lcClusterHealthProbed) && lc.has(lcClusterHealthAvailable)
+}
+
+// clusterHealthPending reports whether cluster health has never been probed on
+// this connection (neither probed nor available bits set).
+func (c *Connection) clusterHealthPending() bool {
+	lc := c.loadConnState().lifecycle()
+	return !lc.has(lcClusterHealthProbed) && !lc.has(lcClusterHealthAvailable)
+}
+
+// clusterHealthUnavailable reports whether cluster health was probed and found
+// unavailable (probed is set, available is not).
+func (c *Connection) clusterHealthUnavailable() bool {
+	lc := c.loadConnState().lifecycle()
+	return lc.has(lcClusterHealthProbed) && !lc.has(lcClusterHealthAvailable)
+}
+
 // ---------------------------------------------------------------------------
 // connLifecycle -- 12-bit packed lifecycle bitfield
 // ---------------------------------------------------------------------------
@@ -209,9 +230,10 @@ func (c *Connection) needsCatUpdate() bool {
 //
 // Extended metadata (bits 8-11) -- independent flags, freely combinable:
 //
-//	lcNeedsHardware  (0x100) -- needs hardware info (/_nodes/_local/http,os)
-//	lcNeedsCatUpdate (0x200) -- shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
-//	bits 10-11: reserved for future use
+//	lcNeedsHardware          (0x100) -- needs hardware info (/_nodes/_local/http,os)
+//	lcNeedsCatUpdate         (0x200) -- shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
+//	lcClusterHealthProbed    (0x400) -- node has been probed for /_cluster/health capability
+//	lcClusterHealthAvailable (0x800) -- probe succeeded; /_cluster/health?local=true is usable
 //
 // Metadata bits are observability signals for metrics and monitoring.
 // They do NOT serve as concurrency guards -- mutexes and actual field
@@ -236,12 +258,14 @@ const (
 
 // Metadata flags (independent -- freely combinable with readiness and position).
 const (
-	lcNeedsWarmup    connLifecycle = 0x10  // needs warmup before full traffic
-	lcOverloaded     connLifecycle = 0x20  // node resource overload; parked in standby
-	lcHealthChecking connLifecycle = 0x40  // health check goroutine running
-	lcDraining       connLifecycle = 0x80  // HTTP/2 GOAWAY; no new requests
-	lcNeedsHardware  connLifecycle = 0x100 // needs hardware info (/_nodes/_local/http,os)
-	lcNeedsCatUpdate connLifecycle = 0x200 // shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
+	lcNeedsWarmup            connLifecycle = 0x10  // needs warmup before full traffic
+	lcOverloaded             connLifecycle = 0x20  // node resource overload; parked in standby
+	lcHealthChecking         connLifecycle = 0x40  // health check goroutine running
+	lcDraining               connLifecycle = 0x80  // HTTP/2 GOAWAY; no new requests
+	lcNeedsHardware          connLifecycle = 0x100 // needs hardware info (/_nodes/_local/http,os)
+	lcNeedsCatUpdate         connLifecycle = 0x200 // shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
+	lcClusterHealthProbed    connLifecycle = 0x400 // node has been probed for /_cluster/health capability
+	lcClusterHealthAvailable connLifecycle = 0x800 // probe succeeded; /_cluster/health?local=true is usable
 )
 
 // Compound aliases for common lifecycle combinations.
@@ -263,7 +287,7 @@ func (lc connLifecycle) hasAny(flags connLifecycle) bool {
 }
 
 // connLifecycleBits maps each bit to its human-readable name.
-var connLifecycleBits = [10]struct { //nolint:gochecknoglobals // lookup table, not mutable state
+var connLifecycleBits = [12]struct { //nolint:gochecknoglobals // lookup table, not mutable state
 	bit  connLifecycle
 	name string
 }{
@@ -277,6 +301,8 @@ var connLifecycleBits = [10]struct { //nolint:gochecknoglobals // lookup table, 
 	{lcDraining, "draining"},
 	{lcNeedsHardware, "needsHardware"},
 	{lcNeedsCatUpdate, "needsCatUpdate"},
+	{lcClusterHealthProbed, "clusterHealthProbed"},
+	{lcClusterHealthAvailable, "clusterHealthAvailable"},
 }
 
 // String returns a human-readable name for the lifecycle.
@@ -390,7 +416,7 @@ func (wm warmupManager) withSkipCount(skipCount int) warmupManager {
 // readiness (bits 0-1):  lcReady=0x01, lcUnknown=0x02 (mutually exclusive)
 // position  (bits 2-3):  lcActive=0x04, lcStandby=0x08 (at most one; 0=dead)
 // metadata  (bits 4-7):  lcNeedsWarmup, lcOverloaded, lcHealthChecking, lcDraining
-// extended  (bits 8-11): lcNeedsHardware=0x100, lcNeedsCatUpdate=0x200, 2 reserved
+// extended  (bits 8-11): lcNeedsHardware=0x100, lcNeedsCatUpdate=0x200, lcClusterHealthProbed=0x400, lcClusterHealthAvailable=0x800
 //
 // Each 26-bit warmupManager field uses the lower 16 bits:
 //

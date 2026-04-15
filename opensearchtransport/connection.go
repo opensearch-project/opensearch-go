@@ -180,9 +180,8 @@ type Connection struct {
 	// ratio: (inFlight + 1) / cwnd.
 	pools poolRegistry
 
-	failures           atomic.Int64
-	clusterHealthState atomic.Int64 // Bitfield: clusterHealthProbed | clusterHealthAvailable
-	state              atomic.Int64 // Packed connState: connLifecycle (12b) + 2*warmupManager (26b each)
+	failures atomic.Int64
+	state    atomic.Int64 // Packed connState: connLifecycle (12b) + 2*warmupManager (26b each)
 
 	// drainingQuiescingRemaining counts the number of successful health checks remaining
 	// before this connection can be resurrected. Set to defaultDrainingQuiescingChecks when
@@ -199,7 +198,7 @@ type Connection struct {
 		sync.RWMutex
 		deadSince              time.Time
 		checkStartedAt         time.Time
-		clusterHealth          *ClusterHealthLocal // Populated when clusterHealthAvailable is set
+		clusterHealth          *ClusterHealthLocal // Populated when lcClusterHealthAvailable is set
 		clusterHealthCheckedAt time.Time           // When cluster health was last probed (for retry timing)
 		overloadedAt           time.Time           // When overloaded state was last set (lcOverloaded metadata bit)
 		lastBreakerTripped     map[string]int64    // Previous tripped counts for delta detection

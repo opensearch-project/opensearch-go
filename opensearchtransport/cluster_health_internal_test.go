@@ -75,47 +75,43 @@ func newTestClient(transport http.RoundTripper) *Client {
 }
 
 func TestClusterHealthStateFlags(t *testing.T) {
-	t.Run("zero value is pending", func(t *testing.T) {
-		var e clusterHealthProbeState
-		require.True(t, e.Pending())
-		require.False(t, e.HasClusterHealth())
-		require.False(t, e.Unavailable())
-	})
+	tests := []struct {
+		name        string
+		bits        connLifecycle
+		pending     bool
+		has         bool
+		unavailable bool
+	}{
+		{"zero value is pending", 0, true, false, false},
+		{"probed only is unavailable", lcClusterHealthProbed, false, false, true},
+		{"probed and available", lcClusterHealthProbed | lcClusterHealthAvailable, false, true, false},
+		{"available without probed is invalid", lcClusterHealthAvailable, false, false, false},
+	}
 
-	t.Run("checked only is unavailable", func(t *testing.T) {
-		e := clusterHealthProbed
-		require.False(t, e.Pending())
-		require.False(t, e.HasClusterHealth())
-		require.True(t, e.Unavailable())
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conn := &Connection{URL: &url.URL{}}
+			if tt.bits != 0 {
+				conn.setLifecycleBit(tt.bits)
+			}
+			require.Equal(t, tt.pending, conn.clusterHealthPending(), "pending")
+			require.Equal(t, tt.has, conn.hasClusterHealth(), "hasClusterHealth")
+			require.Equal(t, tt.unavailable, conn.clusterHealthUnavailable(), "unavailable")
+		})
+	}
 
-	t.Run("checked and available is HasClusterHealth", func(t *testing.T) {
-		e := clusterHealthProbed | clusterHealthAvailable
-		require.False(t, e.Pending())
-		require.True(t, e.HasClusterHealth())
-		require.False(t, e.Unavailable())
-	})
-
-	t.Run("available without checked is not HasClusterHealth", func(t *testing.T) {
-		// This is an invalid state but the methods should handle it safely
-		e := clusterHealthAvailable
-		require.False(t, e.Pending())
-		require.False(t, e.HasClusterHealth())
-		require.False(t, e.Unavailable())
-	})
-
-	t.Run("loadClusterHealthState returns correct value", func(t *testing.T) {
+	t.Run("lifecycle round-trip", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{}}
-		require.True(t, conn.loadClusterHealthState().Pending())
+		require.True(t, conn.clusterHealthPending())
 
-		conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
-		require.True(t, conn.loadClusterHealthState().HasClusterHealth())
+		conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
+		require.True(t, conn.hasClusterHealth())
 
-		conn.clusterHealthState.Store(int64(clusterHealthProbed))
-		require.True(t, conn.loadClusterHealthState().Unavailable())
+		conn.clearLifecycleBit(lcClusterHealthAvailable)
+		require.True(t, conn.clusterHealthUnavailable())
 
-		conn.clusterHealthState.Store(0)
-		require.True(t, conn.loadClusterHealthState().Pending())
+		conn.clearLifecycleBit(lcClusterHealthProbed)
+		require.True(t, conn.clusterHealthPending())
 	})
 }
 
@@ -208,14 +204,13 @@ func TestProbeClusterHealth_Success(t *testing.T) {
 	conn := &Connection{URL: serverURL}
 	client := newTestClient(server.Client().Transport)
 
-	require.True(t, conn.loadClusterHealthState().Pending())
+	require.True(t, conn.clusterHealthPending())
 
 	client.probeClusterHealthLocal(t.Context(), conn, serverURL, nil)
 
-	info := conn.loadClusterHealthState()
-	require.True(t, info.HasClusterHealth(), "should be marked as available after successful probe")
-	require.False(t, info.Pending())
-	require.False(t, info.Unavailable())
+	require.True(t, conn.hasClusterHealth(), "should be marked as available after successful probe")
+	require.False(t, conn.clusterHealthPending())
+	require.False(t, conn.clusterHealthUnavailable())
 
 	conn.mu.RLock()
 	health := conn.mu.clusterHealth
@@ -246,14 +241,13 @@ func TestProbeClusterHealth_Forbidden(t *testing.T) {
 	conn := &Connection{URL: serverURL}
 	client := newTestClient(server.Client().Transport)
 
-	require.True(t, conn.loadClusterHealthState().Pending())
+	require.True(t, conn.clusterHealthPending())
 
 	client.probeClusterHealthLocal(t.Context(), conn, serverURL, nil)
 
-	info := conn.loadClusterHealthState()
-	require.True(t, info.Unavailable(), "should be marked as unavailable after 403")
-	require.False(t, info.Pending())
-	require.False(t, info.HasClusterHealth())
+	require.True(t, conn.clusterHealthUnavailable(), "should be marked as unavailable after 403")
+	require.False(t, conn.clusterHealthPending())
+	require.False(t, conn.hasClusterHealth())
 
 	conn.mu.RLock()
 	health := conn.mu.clusterHealth
@@ -277,8 +271,7 @@ func TestProbeClusterHealth_Unauthorized(t *testing.T) {
 
 	client.probeClusterHealthLocal(t.Context(), conn, serverURL, nil)
 
-	info := conn.loadClusterHealthState()
-	require.True(t, info.Unavailable(), "should be marked as unavailable after 401")
+	require.True(t, conn.clusterHealthUnavailable(), "should be marked as unavailable after 401")
 }
 
 func TestProbeClusterHealth_TransientError(t *testing.T) {
@@ -292,13 +285,12 @@ func TestProbeClusterHealth_TransientError(t *testing.T) {
 	conn := &Connection{URL: serverURL}
 	client := newTestClient(server.Client().Transport)
 
-	require.True(t, conn.loadClusterHealthState().Pending())
+	require.True(t, conn.clusterHealthPending())
 
 	client.probeClusterHealthLocal(t.Context(), conn, serverURL, nil)
 
 	// Transient errors should leave state at pending (0) -- retried on next health check
-	info := conn.loadClusterHealthState()
-	require.True(t, info.Pending(), "should remain pending after transient 500 error")
+	require.True(t, conn.clusterHealthPending(), "should remain pending after transient 500 error")
 
 	conn.mu.RLock()
 	checkedAt := conn.mu.clusterHealthCheckedAt
@@ -347,7 +339,7 @@ func TestDefaultHealthCheck_PromotesToClusterHealth(t *testing.T) {
 
 	// Wait for the async probe to complete
 	require.Eventually(t, func() bool {
-		return conn.loadClusterHealthState().HasClusterHealth()
+		return conn.hasClusterHealth()
 	}, 2*time.Second, 10*time.Millisecond, "probe should mark connection as having cluster health")
 
 	require.Equal(t, int64(1), healthCalls.Load(), "probe should call /_cluster/health once")
@@ -399,7 +391,7 @@ func TestDefaultHealthCheck_FallbackOnPermissionRevoked(t *testing.T) {
 	ctx := context.Background()
 
 	// Set up connection as having cluster health available
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 	conn.mu.Lock()
 	conn.mu.clusterHealth = &ClusterHealthLocal{
 		ClusterName:   "test-cluster",
@@ -416,7 +408,7 @@ func TestDefaultHealthCheck_FallbackOnPermissionRevoked(t *testing.T) {
 	if resp.Body != nil {
 		resp.Body.Close()
 	}
-	require.True(t, conn.loadClusterHealthState().HasClusterHealth())
+	require.True(t, conn.hasClusterHealth())
 
 	// Revoke permission
 	returnForbidden.Store(true)
@@ -430,8 +422,7 @@ func TestDefaultHealthCheck_FallbackOnPermissionRevoked(t *testing.T) {
 	}
 
 	// Verify state was reset
-	info := conn.loadClusterHealthState()
-	require.True(t, info.Pending(), "cluster health should be reset to pending after 403")
+	require.True(t, conn.clusterHealthPending(), "cluster health should be reset to pending after 403")
 
 	conn.mu.RLock()
 	health := conn.mu.clusterHealth
@@ -477,7 +468,7 @@ func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
 	defer cancel()
 
 	// Mark connection as unavailable with a recent timestamp
-	conn.clusterHealthState.Store(int64(clusterHealthProbed))
+	conn.setLifecycleBit(lcClusterHealthProbed)
 	conn.mu.Lock()
 	conn.mu.clusterHealthCheckedAt = time.Now()
 	conn.mu.Unlock()
@@ -524,7 +515,7 @@ func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
 
 	// The probe will get a 403 again, so it should still be unavailable
 	require.Eventually(t, func() bool {
-		return conn.loadClusterHealthState().Unavailable()
+		return conn.clusterHealthUnavailable()
 	}, 2*time.Second, 10*time.Millisecond, "should remain unavailable after 403 on retry")
 }
 
@@ -581,7 +572,7 @@ func TestDefaultHealthCheck_DisabledClusterHealthProbing(t *testing.T) {
 	// Start with connection already unavailable — the Pending() case always
 	// probes once regardless of maxRetryClusterHealth, so skip it and test
 	// the unavailable retry path directly.
-	conn.clusterHealthState.Store(int64(clusterHealthProbed))
+	conn.setLifecycleBit(lcClusterHealthProbed)
 	conn.mu.Lock()
 	conn.mu.clusterHealthCheckedAt = time.Now().Add(-24 * time.Hour) // Long ago
 	conn.mu.Unlock()
@@ -682,7 +673,7 @@ func TestHealthCheckRequestModifier(t *testing.T) {
 
 	// Wait for cluster health info to be loaded
 	require.Eventually(t, func() bool {
-		return conn.loadClusterHealthState().HasClusterHealth()
+		return conn.hasClusterHealth()
 	}, 2*time.Second, 10*time.Millisecond)
 
 	// Reset: fresh context for the subsequent health check request.
@@ -813,7 +804,7 @@ func TestPollClusterHealth_SingleNodeSkip(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	pool := &singleServerPool{connection: conn}
 	client := newTestClientWithPool(server.Client().Transport, pool)
@@ -835,7 +826,7 @@ func TestPollClusterHealth_EffectiveSingleNodeSkip(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{conn}
@@ -853,16 +844,16 @@ func TestPollClusterHealth_EffectiveSingleNodeSkip(t *testing.T) {
 
 func TestSnapshotClusterHealthConnections(t *testing.T) {
 	connWithInfo := &Connection{URL: &url.URL{Host: "node1:9200"}}
-	connWithInfo.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	connWithInfo.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	connPending := &Connection{URL: &url.URL{Host: "node2:9200"}}
-	// clusterHealthState defaults to 0 (pending)
+	// cluster health defaults to pending (no lifecycle bits set)
 
 	connUnavailable := &Connection{URL: &url.URL{Host: "node3:9200"}}
-	connUnavailable.clusterHealthState.Store(int64(clusterHealthProbed))
+	connUnavailable.setLifecycleBit(lcClusterHealthProbed)
 
 	connWithInfo2 := &Connection{URL: &url.URL{Host: "node4:9200"}}
-	connWithInfo2.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	connWithInfo2.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{connWithInfo, connPending, connUnavailable, connWithInfo2}
@@ -918,7 +909,7 @@ func TestRefreshClusterHealth_Success(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	// Pre-populate with old data to verify it gets replaced
 	conn.mu.Lock()
@@ -954,7 +945,7 @@ func TestRefreshClusterHealth_Success(t *testing.T) {
 	require.WithinDuration(t, time.Now(), checkedAt, 2*time.Second)
 
 	// Cluster health state should remain available
-	require.True(t, conn.loadClusterHealthState().HasClusterHealth())
+	require.True(t, conn.hasClusterHealth())
 }
 
 func TestRefreshClusterHealth_PermissionRevoked(t *testing.T) {
@@ -966,7 +957,7 @@ func TestRefreshClusterHealth_PermissionRevoked(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	conn.mu.Lock()
 	conn.mu.clusterHealth = &ClusterHealthLocal{Status: "green", NumberOfNodes: 3}
@@ -984,7 +975,7 @@ func TestRefreshClusterHealth_PermissionRevoked(t *testing.T) {
 	client.refreshClusterHealth(conn)
 
 	// Cluster health should be reset to pending
-	require.True(t, conn.loadClusterHealthState().Pending(),
+	require.True(t, conn.clusterHealthPending(),
 		"should reset to pending after 403")
 
 	// Cluster health should be zeroed out
@@ -1006,7 +997,7 @@ func TestRefreshClusterHealth_TransientError(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	originalHealth := &ClusterHealthLocal{Status: "green", NumberOfNodes: 3}
 	originalCheckedAt := time.Now().Add(-5 * time.Minute)
@@ -1027,7 +1018,7 @@ func TestRefreshClusterHealth_TransientError(t *testing.T) {
 	client.refreshClusterHealth(conn)
 
 	// Cluster health state should remain available (transient errors don't change state)
-	require.True(t, conn.loadClusterHealthState().HasClusterHealth(),
+	require.True(t, conn.hasClusterHealth(),
 		"state should remain available after transient 503")
 
 	// Cluster health should be preserved (not zeroed)
@@ -1068,7 +1059,7 @@ func TestClusterHealthCheck_TransientFallback(t *testing.T) {
 	client := newTestClient(server.Client().Transport)
 
 	// Pre-set as having cluster health
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 	conn.mu.Lock()
 	conn.mu.clusterHealth = &ClusterHealthLocal{Status: "green", NumberOfNodes: 3}
 	conn.mu.Unlock()
@@ -1087,8 +1078,7 @@ func TestClusterHealthCheck_TransientFallback(t *testing.T) {
 	require.Equal(t, int64(1), rootCalls.Load(), "should have fallen back to GET /")
 
 	// Cluster health state should NOT be changed on transient errors
-	info := conn.loadClusterHealthState()
-	require.True(t, info.HasClusterHealth(), "state should remain available after transient error")
+	require.True(t, conn.hasClusterHealth(), "state should remain available after transient error")
 
 	conn.mu.RLock()
 	health := conn.mu.clusterHealth
@@ -1462,13 +1452,12 @@ func TestPollClusterHealthMultiNode(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn1 := &Connection{URL: serverURL}
-		conn1.state.Store(int64(newConnState(lcActive)))
-		conn1.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
 		conn2 := &Connection{URL: serverURL}
-		conn2.state.Store(int64(newConnState(lcActive)))
-		conn2.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
 
+		// newStandbyPool sets lcActive, so set health bits after pool creation.
 		pool := newStandbyPool([]*Connection{conn1, conn2}, nil)
+		conn1.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
+		conn2.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 		client := newTestClientWithPool(server.Client().Transport, pool)
 
 		client.pollClusterHealth()
