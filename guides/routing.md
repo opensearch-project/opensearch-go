@@ -1101,6 +1101,105 @@ The lifecycle state machine governs how connections move between partitions:
 
 When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is set so that hardware info is re-verified on resurrection -- the node may have been replaced with different hardware during the outage.
 
+### Address Resolver
+
+When an `AddressResolverFunc` is configured, the client calls it for every node discovered via `/_nodes/http` before that node enters the connection pool. This allows rewriting the node's URL — for example, to redirect traffic through a sidecar proxy or to adapt hostnames for network topology differences between the cluster's internal publish addresses and the client's reachable addresses.
+
+```go
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:            []string{"https://seed:9200"},
+    DiscoverNodesOnStart: true,
+    AddressResolver: func(ctx context.Context, node opensearchtransport.NodeInfo) (*url.URL, error) {
+        // Probe the sidecar proxy on port 9201; fall back to the published address.
+        probeURL := &url.URL{Scheme: node.URL.Scheme, Host: net.JoinHostPort(node.URL.Hostname(), "9201")}
+        req, _ := http.NewRequestWithContext(ctx, http.MethodGet, probeURL.String(), nil)
+        if resp, err := http.DefaultClient.Do(req); err == nil {
+            resp.Body.Close()
+            return probeURL, nil
+        }
+        return node.URL, nil // fall back to the default URL
+    },
+})
+```
+
+> **Production note:** The sidecar probe above is intentionally simplified for illustration. A production resolver should apply appropriate timeouts to the probe request (via the context or a per-request deadline), handle TLS verification, and consider caching probe results across discovery cycles rather than probing on every refresh.
+
+#### Resolver Protocol
+
+The callback receives a `NodeInfo` snapshot containing the node's ID, name, roles, custom attributes, raw `PublishAddress`, and the default `*url.URL` computed by the client. It returns `(*url.URL, error)` with four cases:
+
+| Return value        | Behavior                                                          |
+| ------------------- | ----------------------------------------------------------------- |
+| `(*url.URL, nil)`   | Use the returned URL (may be the same as `node.URL` or different) |
+| `(*url.URL, error)` | Use the returned URL; the error is logged but the node is kept    |
+| `(nil, nil)`        | Keep the default URL (equivalent to returning `node.URL`)         |
+| `(nil, error)`      | Skip this node; the error is logged but discovery continues       |
+
+Partial failures are tolerated: nodes that return `(nil, error)` are dropped, but all other nodes are kept. Only when _every_ resolver call fails does the client return `ErrAllResolversFailed` (wrapping all individual errors via `errors.Join`).
+
+#### Concurrency
+
+Resolvers may perform network probes, so they run concurrently. The `MaxAddressResolvers` setting controls the degree of parallelism:
+
+| Value | Behavior                                                  |
+| ----- | --------------------------------------------------------- |
+| `0`   | (default) `min(len(nodes), GOMAXPROCS(0))` — auto-derived |
+| `1`   | Serial execution — one resolver call at a time            |
+| `>1`  | Explicit concurrency cap bounded by a weighted semaphore  |
+| `<0`  | Unlimited — all resolver calls launch simultaneously      |
+
+The resolver inherits the discovery call's context, so cancellation and deadlines propagate automatically.
+
+#### Metrics and Observability
+
+Three atomic counters track resolver activity, exposed via `Metrics()`:
+
+| Counter                   | Incremented when                                      |
+| ------------------------- | ----------------------------------------------------- |
+| `AddressResolverCalls`    | The resolver is invoked for a node                    |
+| `AddressResolverRewrites` | The resolver returns a URL different from the default |
+| `AddressResolverErrors`   | The resolver returns a non-nil error                  |
+
+The `ConnectionObserver.OnAddressRewrite(AddressRewriteEvent)` callback fires for each rewrite, providing the node identity, original URL, and rewritten URL. Connections created from rewritten URLs have their `Rewritten` field set to `true`.
+
+#### Custom Resolution Handler
+
+For full control over concurrency, failure policy, retry logic, or batching, set `AddressResolverRunner` instead of (or in addition to) relying on the built-in handler. The runner receives the complete list of discovered nodes and the per-node `AddressResolverFunc`, and returns the resolved set:
+
+```go
+type AddressResolverRunnerFunc func(
+    ctx     context.Context,
+    nodes   []NodeInfo,
+    resolve AddressResolverFunc,
+) ([]ResolvedAddress, error)
+```
+
+When `AddressResolverRunner` is set, it replaces the built-in concurrency/semaphore handler entirely — the `MaxAddressResolvers` setting is ignored. The runner may call `resolve` for each node, call it selectively, or compute URLs directly without calling it at all. If `AddressResolver` is not configured, `resolve` is `nil`.
+
+Metrics (`AddressResolverCalls`, `AddressResolverErrors`) are instrumented automatically: each invocation of `resolve` increments the call counter, and errors increment the error counter, regardless of how the runner orchestrates calls.
+
+```go
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:            []string{"https://seed:9200"},
+    DiscoverNodesOnStart: true,
+    AddressResolver: func(ctx context.Context, node opensearchtransport.NodeInfo) (*url.URL, error) {
+        return &url.URL{Scheme: node.URL.Scheme, Host: net.JoinHostPort(node.URL.Hostname(), "9201")}, nil
+    },
+    AddressResolverRunner: func(ctx context.Context, nodes []opensearchtransport.NodeInfo, resolve opensearchtransport.AddressResolverFunc) ([]opensearchtransport.ResolvedAddress, error) {
+        // Custom runner: resolve all nodes serially, skip failures.
+        var out []opensearchtransport.ResolvedAddress
+        for _, n := range nodes {
+            u, err := resolve(ctx, n)
+            if err != nil {
+                continue // drop this node
+            }
+            out = append(out, opensearchtransport.ResolvedAddress{Node: n, URL: u})
+        }
+        return out, nil
+    },
+})
+```
+
 ### Warmup
 
 Resurrected and newly-promoted connections go through a non-linear warmup ramp using a smoothstep (Hermite) curve:
@@ -1734,7 +1833,7 @@ Overloaded nodes are demoted from the active partition to the standby partition 
 
 ### Observability
 
-The `ConnectionObserver` interface provides 14 callbacks:
+The `ConnectionObserver` interface provides 15 callbacks:
 
 | Category           | Methods                                                       |
 | ------------------ | ------------------------------------------------------------- |
@@ -1744,6 +1843,7 @@ The `ConnectionObserver` interface provides 14 callbacks:
 | Health             | `OnHealthCheckPass`, `OnHealthCheckFail`                      |
 | Standby            | `OnStandbyPromote`, `OnStandbyDemote`                         |
 | Warmup             | `OnWarmupRequest`                                             |
+| Address resolution | `OnAddressRewrite`                                            |
 | Routing            | `OnRoute`                                                     |
 | Shard invalidation | `OnShardMapInvalidation`                                      |
 

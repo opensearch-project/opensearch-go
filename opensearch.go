@@ -213,6 +213,32 @@ type Config struct {
 
 	// Optional constructor function for a custom ConnectionPool. Default: nil.
 	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
+
+	// AddressResolver is called during node discovery for each node discovered
+	// via /_nodes/http. If non-nil, it can rewrite a node's URL before it enters
+	// the connection pool. This is useful for redirecting traffic through sidecar
+	// proxies or rewriting hostnames for network topology.
+	// Default: nil (no address rewriting).
+	AddressResolver opensearchtransport.AddressResolverFunc
+
+	// MaxAddressResolvers sets the maximum number of concurrent AddressResolverFunc
+	// invocations during a single discovery cycle.
+	// 0 = auto-derive: min(len(nodes), runtime.GOMAXPROCS(0)) per cycle.
+	// 1 = serial (no goroutines spawned).
+	// >1 = explicit concurrency cap.
+	// <0 = unlimited (all nodes resolved concurrently).
+	// Default: 0 (auto-derive). Only meaningful when AddressResolver is non-nil.
+	MaxAddressResolvers int
+
+	// AddressResolverRunner replaces the built-in resolution handler when set.
+	// It receives all discovered nodes and the per-node AddressResolverFunc,
+	// and returns resolved addresses. This allows custom orchestration policies:
+	// stricter failure handling, retry logic, batched resolution, etc.
+	//
+	// When set, MaxAddressResolvers is ignored. AddressResolver is still passed
+	// to the runner as the per-node resolve function.
+	// Default: nil (built-in handler).
+	AddressResolverRunner opensearchtransport.AddressResolverRunnerFunc
 }
 
 // Client represents the OpenSearch client.
@@ -309,14 +335,17 @@ func NewClient(cfg Config) (*Client, error) {
 		StandbyRotationCount:    cfg.StandbyRotationCount,
 		StandbyPromotionChecks:  cfg.StandbyPromotionChecks,
 
-		Transport:          cfg.Transport,
-		Logger:             cfg.Logger,
-		Selector:           cfg.Selector,
-		Router:             cfg.Router,
-		Observer:           cfg.Observer,
-		ShardCostConfig:    cfg.ShardCostConfig,
-		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
-		Context:            cfg.Context,
+		Transport:             cfg.Transport,
+		Logger:                cfg.Logger,
+		Selector:              cfg.Selector,
+		Router:                cfg.Router,
+		Observer:              cfg.Observer,
+		ShardCostConfig:       cfg.ShardCostConfig,
+		ConnectionPoolFunc:    cfg.ConnectionPoolFunc,
+		AddressResolver:       cfg.AddressResolver,
+		MaxAddressResolvers:   cfg.MaxAddressResolvers,
+		AddressResolverRunner: cfg.AddressResolverRunner,
+		Context:               cfg.Context,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)

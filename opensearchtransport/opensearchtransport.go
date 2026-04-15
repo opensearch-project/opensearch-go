@@ -352,6 +352,35 @@ type Config struct {
 	Context context.Context
 
 	ConnectionPoolFunc func([]*Connection, Selector) ConnectionPool
+
+	// AddressResolver is called during node discovery for each node discovered
+	// via /_nodes/http. If non-nil, the resolver can rewrite a node's URL before
+	// it enters the connection pool. See AddressResolverFunc for return semantics.
+	// Default: nil (no address rewriting, exact current behavior).
+	AddressResolver AddressResolverFunc
+
+	// MaxAddressResolvers sets the maximum number of concurrent AddressResolverFunc
+	// invocations during a single discovery cycle. Each discovered node's resolver
+	// call may perform network I/O (e.g. probing a sidecar port), so parallelism
+	// reduces total discovery latency.
+	// 0 = auto-derive: min(len(nodes), runtime.GOMAXPROCS(0)) per cycle.
+	// 1 = serial (no goroutines spawned).
+	// >1 = explicit concurrency cap.
+	// <0 = unlimited (all nodes resolved concurrently).
+	// Default: 0 (auto-derive). Only meaningful when AddressResolver is non-nil.
+	MaxAddressResolvers int
+
+	// AddressResolverRunner replaces the built-in resolution handler when set.
+	// It receives all discovered nodes and the per-node AddressResolverFunc,
+	// and returns resolved addresses. This allows custom orchestration policies:
+	// stricter failure handling, retry logic, batched resolution, etc.
+	//
+	// When set, MaxAddressResolvers is ignored (the runner controls its own
+	// concurrency). AddressResolver is still passed to the runner as the
+	// per-node resolve function (instrumented with call/error metrics).
+	//
+	// When nil (default), the built-in handler is used if AddressResolver is set.
+	AddressResolverRunner AddressResolverRunnerFunc
 }
 
 // Client represents the HTTP client.
@@ -432,6 +461,11 @@ type Client struct {
 	router    Router // Optional router for cluster-aware routing
 	observer  atomic.Pointer[ConnectionObserver]
 	poolFunc  func([]*Connection, Selector) ConnectionPool
+
+	// Address resolver
+	addressResolver       AddressResolverFunc
+	maxAddressResolvers   int
+	addressResolverRunner AddressResolverRunnerFunc
 
 	// Seed URL fallback: last-resort pool built from the original seed URLs.
 	// Used when all router policies and connection pools are exhausted.
@@ -812,11 +846,16 @@ func New(cfg Config) (*Client, error) {
 		compressRequestBody:      cfg.CompressRequestBody,
 		disableResponseBuffering: cfg.DisableResponseBuffering,
 
-		transport:  cfg.Transport,
-		logger:     cfg.Logger,
-		router:     cfg.Router,
-		selector:   cfg.Selector,
-		poolFunc:   cfg.ConnectionPoolFunc,
+		transport: cfg.Transport,
+		logger:    cfg.Logger,
+		router:    cfg.Router,
+		selector:  cfg.Selector,
+		poolFunc:  cfg.ConnectionPoolFunc,
+
+		addressResolver:       cfg.AddressResolver,
+		maxAddressResolvers:   cfg.MaxAddressResolvers,
+		addressResolverRunner: cfg.AddressResolverRunner,
+
 		ctx:        ctx,
 		cancelFunc: cancel,
 	}
