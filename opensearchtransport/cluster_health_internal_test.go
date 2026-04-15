@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -442,7 +443,11 @@ func TestDefaultHealthCheck_FallbackOnPermissionRevoked(t *testing.T) {
 }
 
 func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
-	var healthCalls atomic.Int64
+	// probeCtx / probeCancel: canceled by the /_cluster/health handler to
+	// signal that an async probe was received. Tests wait on probeCtx.Done()
+	// instead of wall-clock sleeps or channel reads.
+	probeCtx, probeCancel := context.WithCancel(t.Context())
+	defer probeCancel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -451,10 +456,10 @@ func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(validOpenSearchRootResponse()))
 		case "/_cluster/health":
-			healthCalls.Add(1)
 			// Always return 403 for this test
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte(`{"error":"no permissions"}`))
+			probeCancel() // signal that the probe arrived
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -464,8 +469,12 @@ func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
 	client := newTestClient(server.Client().Transport)
+	// Use a large retry interval so the baseline HTTP round-trip
+	// (which runs before the elapsed check) can't race past it.
+	client.maxRetryClusterHealth = 5 * time.Second
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
 
 	// Mark connection as unavailable with a recent timestamp
 	conn.clusterHealthState.Store(int64(clusterHealthProbed))
@@ -480,13 +489,22 @@ func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
 		resp.Body.Close()
 	}
 
-	// Give async goroutines time to run (if any were launched erroneously)
-	time.Sleep(50 * time.Millisecond)
-	require.Equal(t, int64(0), healthCalls.Load(), "should NOT re-probe when interval hasn't elapsed")
+	// Verify no probe was launched. If a probe goroutine were spawned it would
+	// hit /_cluster/health and cancel probeCtx. A short deadline is sufficient:
+	// we only need to outlast goroutine scheduling, not real I/O.
+	noProbeCtx, noProbeCancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer noProbeCancel()
 
-	// Now set the timestamp far enough in the past
+	select {
+	case <-probeCtx.Done():
+		t.Fatal("should NOT re-probe when retry interval hasn't elapsed")
+	case <-noProbeCtx.Done():
+		// Good — no probe was launched within the window
+	}
+
+	// Now set the timestamp far enough in the past to exceed the retry interval
 	conn.mu.Lock()
-	conn.mu.clusterHealthCheckedAt = time.Now().Add(-100 * time.Millisecond)
+	conn.mu.clusterHealthCheckedAt = time.Now().Add(-10 * time.Second)
 	conn.mu.Unlock()
 
 	// Call DefaultHealthCheck -- retry interval has elapsed, should re-probe
@@ -496,10 +514,13 @@ func TestDefaultHealthCheck_RetryAfterMaxRetry(t *testing.T) {
 		resp.Body.Close()
 	}
 
-	// Wait for async probe to run
-	require.Eventually(t, func() bool {
-		return healthCalls.Load() > 0
-	}, 2*time.Second, 10*time.Millisecond, "should re-probe after interval elapses")
+	// Wait for the async probe to hit /_cluster/health (cancels probeCtx)
+	select {
+	case <-probeCtx.Done():
+		// Good — probe was launched
+	case <-time.After(2 * time.Second):
+		t.Fatal("should re-probe after retry interval elapses")
+	}
 
 	// The probe will get a 403 again, so it should still be unavailable
 	require.Eventually(t, func() bool {
@@ -530,7 +551,8 @@ func TestDefaultHealthCheck_NilConnection(t *testing.T) {
 }
 
 func TestDefaultHealthCheck_DisabledClusterHealthProbing(t *testing.T) {
-	var healthCalls atomic.Int64
+	probeCtx, probeCancel := context.WithCancel(t.Context())
+	defer probeCancel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -539,10 +561,10 @@ func TestDefaultHealthCheck_DisabledClusterHealthProbing(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(validOpenSearchRootResponse()))
 		case "/_cluster/health":
-			healthCalls.Add(1)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(validClusterHealthResponse()))
+			probeCancel()
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -556,67 +578,63 @@ func TestDefaultHealthCheck_DisabledClusterHealthProbing(t *testing.T) {
 	// (disable probing entirely means the resolved value is 0)
 	client.maxRetryClusterHealth = 0
 
-	ctx := context.Background()
-
-	// Even though conn is pending, probing is disabled -- should not launch probe
-	resp, err := client.DefaultHealthCheck(ctx, conn, serverURL)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	if resp.Body != nil {
-		resp.Body.Close()
-	}
-
-	// Give async goroutines time to run (if any were launched erroneously)
-	time.Sleep(100 * time.Millisecond)
-
-	// With maxRetryClusterHealth=0, the Pending() case still launches a probe.
-	// The "disable probing entirely" behavior is controlled by Config value <0 -> resolved to 0,
-	// but the Pending() case always probes once. Verify the unavailable retry case is blocked.
+	// Start with connection already unavailable — the Pending() case always
+	// probes once regardless of maxRetryClusterHealth, so skip it and test
+	// the unavailable retry path directly.
 	conn.clusterHealthState.Store(int64(clusterHealthProbed))
 	conn.mu.Lock()
 	conn.mu.clusterHealthCheckedAt = time.Now().Add(-24 * time.Hour) // Long ago
 	conn.mu.Unlock()
 
-	healthCalls.Store(0) // Reset counter
-
-	resp, err = client.DefaultHealthCheck(ctx, conn, serverURL)
+	resp, err := client.DefaultHealthCheck(context.Background(), conn, serverURL)
 	require.NoError(t, err)
 	if resp != nil && resp.Body != nil {
 		resp.Body.Close()
 	}
 
-	time.Sleep(100 * time.Millisecond)
-	require.Equal(t, int64(0), healthCalls.Load(),
-		"should NOT retry probe when maxRetryClusterHealth is 0 (disabled)")
+	// Verify no retry probe was launched.
+	noProbeCtx, noProbeCancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
+	defer noProbeCancel()
+
+	select {
+	case <-probeCtx.Done():
+		t.Fatal("should NOT retry probe when maxRetryClusterHealth is 0 (disabled)")
+	case <-noProbeCtx.Done():
+		// Good — no retry probe was launched
+	}
 }
 
 func TestHealthCheckRequestModifier(t *testing.T) {
-	// Channels to signal when specific requests arrive
-	rootRequestCh := make(chan http.Header, 1)
-	healthRequestCh := make(chan http.Header, 1)
+	// Contexts canceled by handlers to signal request arrival.
+	rootCtx, rootCancel := context.WithCancel(t.Context())
+	defer rootCancel()
+	healthCtx, healthCancel := context.WithCancel(t.Context())
+	defer healthCancel()
+
+	// Mutex-protected header snapshots captured by the handler.
+	var mu sync.Mutex
+	var rootHeader, healthHeader http.Header
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		header := r.Header.Clone()
 
 		switch r.URL.Path {
 		case "/":
-			select {
-			case rootRequestCh <- header:
-			default:
-				// Already sent one, ignore duplicates
-			}
+			mu.Lock()
+			rootHeader = header
+			mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(validOpenSearchRootResponse()))
+			rootCancel()
 		case "/_cluster/health":
-			select {
-			case healthRequestCh <- header:
-			default:
-				// Already sent one, ignore duplicates
-			}
+			mu.Lock()
+			healthHeader = header
+			mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(validClusterHealthResponse()))
+			healthCancel()
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
@@ -640,20 +658,24 @@ func TestHealthCheckRequestModifier(t *testing.T) {
 		resp.Body.Close()
 	}
 
-	// Verify the root request had the custom header
+	// Wait for the root request
 	select {
-	case header := <-rootRequestCh:
-		require.Equal(t, "bearer-token-123", header.Get("X-Custom-Auth"),
+	case <-rootCtx.Done():
+		mu.Lock()
+		require.Equal(t, "bearer-token-123", rootHeader.Get("X-Custom-Auth"),
 			"modifier should apply custom header to baseline health check")
-	case <-time.After(1 * time.Second):
+		mu.Unlock()
+	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for root request")
 	}
 
 	// Wait for async probe to complete and verify its header
 	select {
-	case header := <-healthRequestCh:
-		require.Equal(t, "bearer-token-123", header.Get("X-Custom-Auth"),
+	case <-healthCtx.Done():
+		mu.Lock()
+		require.Equal(t, "bearer-token-123", healthHeader.Get("X-Custom-Auth"),
 			"modifier should apply to /_cluster/health probe requests")
+		mu.Unlock()
 	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for async probe request")
 	}
@@ -663,15 +685,9 @@ func TestHealthCheckRequestModifier(t *testing.T) {
 		return conn.loadClusterHealthState().HasClusterHealth()
 	}, 2*time.Second, 10*time.Millisecond)
 
-	// Reset channels for next test
-	select {
-	case <-rootRequestCh:
-	default:
-	}
-	select {
-	case <-healthRequestCh:
-	default:
-	}
+	// Reset: fresh context for the subsequent health check request.
+	healthCtx, healthCancel = context.WithCancel(t.Context())
+	defer healthCancel()
 
 	// Now test that subsequent health checks also use the modifier
 	resp, err = client.DefaultHealthCheck(ctx, conn, serverURL)
@@ -683,10 +699,12 @@ func TestHealthCheckRequestModifier(t *testing.T) {
 
 	// Should hit the health endpoint since cluster health is now available
 	select {
-	case header := <-healthRequestCh:
-		require.Equal(t, "bearer-token-123", header.Get("X-Custom-Auth"),
+	case <-healthCtx.Done():
+		mu.Lock()
+		require.Equal(t, "bearer-token-123", healthHeader.Get("X-Custom-Auth"),
 			"modifier should apply to cluster health check requests")
-	case <-time.After(1 * time.Second):
+		mu.Unlock()
+	case <-time.After(2 * time.Second):
 		t.Fatal("timeout waiting for cluster health check request")
 	}
 }
