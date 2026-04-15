@@ -72,6 +72,11 @@ type Metrics struct {
 	StandbyPromotions  int `json:"standby_promotions"`  // Standby -> Active transitions
 	StandbyDemotions   int `json:"standby_demotions"`   // Active -> Standby transitions
 
+	// Address resolver counters
+	AddressResolverCalls    int `json:"address_resolver_calls"`    // Total resolver invocations
+	AddressResolverRewrites int `json:"address_resolver_rewrites"` // URL actually changed
+	AddressResolverErrors   int `json:"address_resolver_errors"`   // Resolver returned an error
+
 	Connections []fmt.Stringer `json:"connections"`
 
 	// Per-policy breakdown (only populated when router with policies is active)
@@ -215,6 +220,11 @@ type metrics struct {
 	policyCallbacks     []PolicyMetricCallback     // per-policy snapshot
 	snapshotCallbacks   []MetricsCallback          // per-snapshot augmentation
 
+	// Address resolver counters
+	addressResolverCalls    atomic.Int64 // Times the resolver was invoked
+	addressResolverRewrites atomic.Int64 // Resolver returned a different URL
+	addressResolverErrors   atomic.Int64 // Resolver returned an error
+
 	mu struct {
 		sync.RWMutex
 		responses map[int]int
@@ -274,6 +284,10 @@ func (c *Client) Metrics() (Metrics, error) {
 
 		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
 		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
+
+		AddressResolverCalls:    int(c.metrics.addressResolverCalls.Load()),
+		AddressResolverRewrites: int(c.metrics.addressResolverRewrites.Load()),
+		AddressResolverErrors:   int(c.metrics.addressResolverErrors.Load()),
 	}
 
 	// Build per-connection metrics. Each connection's connState atomic
