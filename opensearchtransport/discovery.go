@@ -43,6 +43,11 @@ import (
 	"time"
 )
 
+// errDiscoveryEmpty is returned by getNodesInfo when the /_nodes response
+// reports zero successful nodes. Callers should retry; the existing
+// connection pool is left untouched.
+var errDiscoveryEmpty = errors.New("discovery returned zero successful nodes")
+
 // Node role constants matching upstream OpenSearch server definitions.
 const (
 	// RoleData nodes store and retrieve data, perform indexing, searching, and
@@ -217,6 +222,21 @@ type nodeInfo struct {
 
 	// Internal fields (not part of JSON)
 	roleSet roleSet
+}
+
+// _NodesMeta is the "_nodes" metadata envelope returned by all
+// /_nodes/* endpoints. It reports how many nodes were contacted
+// (Total), how many responded successfully (Successful), and how
+// many timed out or errored (Failed).
+//
+// Example:
+//
+//	"_nodes": { "total": 3, "successful": 1, "failed": 2 }
+type _NodesMeta struct {
+	Total      int               `json:"total"`
+	Successful int               `json:"successful"`
+	Failed     int               `json:"failed"`
+	Failures   []json.RawMessage `json:"failures,omitempty"`
 }
 
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
@@ -1046,9 +1066,49 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		return nil, err
 	}
 
+	// Parse the "_nodes" metadata header. Every /_nodes/* response includes
+	// this envelope with total/successful/failed counts from the internal
+	// transport fan-out. When nodes time out or error during the fan-out,
+	// they appear in "failed" and their entries are absent from "nodes".
+	//
+	// The metadata is present in all OpenSearch versions (forked from ES 7.10)
+	// and Elasticsearch >= 2.0. If absent (pre-2.0 ES or a stripping proxy),
+	// skip the check and fall through to the nodes map.
+	var nodesMeta _NodesMeta
+	var hasNodesMeta bool
+	if raw, ok := env["_nodes"]; ok {
+		if err := json.Unmarshal(raw, &nodesMeta); err != nil {
+			return nil, fmt.Errorf("discovery: parse _nodes metadata: %w", err)
+		}
+		hasNodesMeta = true
+	}
+
+	if hasNodesMeta && nodesMeta.Successful == 0 {
+		if debugLogger != nil {
+			debugLogger.Logf("Discovery: _nodes reports total=%d successful=%d failed=%d failures=%s; retaining current pool\n",
+				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.Failures)
+		}
+		return nil, fmt.Errorf("discovery: total=%d successful=%d failed=%d: %w",
+			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, errDiscoveryEmpty)
+	}
+
 	var nodes map[string]nodeInfo
 	if err := json.Unmarshal(env["nodes"], &nodes); err != nil {
 		return nil, err
+	}
+
+	// Fallback for servers that don't return _nodes metadata (ElasticSearch or OpenSearch < 2.0):
+	// use the nodes map length as a last-resort empty-response guard.
+	if !hasNodesMeta && len(nodes) == 0 {
+		if debugLogger != nil {
+			debugLogger.Logf("Discovery: no _nodes metadata and zero nodes returned; retaining current pool\n")
+		}
+		return nil, fmt.Errorf("discovery: %w", errDiscoveryEmpty)
+	}
+
+	if hasNodesMeta && nodesMeta.Failed > 0 && debugLogger != nil {
+		debugLogger.Logf("Discovery: partial failure — _nodes reports total=%d successful=%d failed=%d failures=%s\n",
+			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.Failures)
 	}
 
 	out := make([]nodeInfo, len(nodes))

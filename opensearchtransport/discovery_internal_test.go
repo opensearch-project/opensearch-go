@@ -41,6 +41,7 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -1034,24 +1035,33 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 
 			// Nodes info endpoint
 			mux.HandleFunc("/_nodes/http", func(w http.ResponseWriter, r *http.Request) {
-				nodes := make(map[string]map[string]nodeInfo)
-				nodes["nodes"] = make(map[string]nodeInfo)
+				response := map[string]any{
+					"_nodes": map[string]any{
+						"total":      len(tt.nodes),
+						"successful": len(tt.nodes),
+						"failed":     0,
+					},
+					"cluster_name": "test-cluster",
+					"nodes":        make(map[string]any),
+				}
 
+				nodes := response["nodes"].(map[string]any)
 				port := 9200
 				for name, roles := range tt.nodes {
-					nodes["nodes"][name] = nodeInfo{
-						ID:    name + "-id",
-						Name:  name,
-						Roles: roles,
-						HTTP: nodeInfoHTTP{
-							PublishAddress: net.JoinHostPort("localhost", strconv.Itoa(port)),
+					nodes[name] = map[string]any{
+						"name":  name,
+						"host":  "127.0.0.1",
+						"ip":    "127.0.0.1",
+						"roles": roles,
+						"http": map[string]any{
+							"publish_address": net.JoinHostPort("localhost", strconv.Itoa(port)),
 						},
 					}
 					port++
 				}
 
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(nodes)
+				json.NewEncoder(w).Encode(response)
 			})
 
 			// Catch-all 404 handler
@@ -2108,4 +2118,95 @@ func TestUpdateConnectionPool(t *testing.T) {
 			t.Fatalf("unexpected pool type: %T", pool)
 		}
 	})
+}
+
+// TestGetNodesInfoNodesMeta tests the _nodes metadata guard in getNodesInfo.
+func TestGetNodesInfoNodesMeta(t *testing.T) {
+	tests := []struct {
+		name            string
+		body            string
+		enableDebug     bool
+		wantErrIs       error
+		wantErrContains string
+		wantNodes       int
+	}{
+		{
+			name: "all nodes failed",
+			body: `{
+				"_nodes": {"total": 3, "successful": 0, "failed": 3, "failures": [{"node_id": "n1", "reason": "timeout"}]},
+				"cluster_name": "test",
+				"nodes": {}
+			}`,
+			enableDebug:     true,
+			wantErrIs:       errDiscoveryEmpty,
+			wantErrContains: "successful=0",
+		},
+		{
+			name: "no _nodes metadata and empty nodes",
+			body: `{
+				"cluster_name": "test",
+				"nodes": {}
+			}`,
+			enableDebug: true,
+			wantErrIs:   errDiscoveryEmpty,
+		},
+		{
+			name: "partial failure with successful nodes",
+			body: `{
+				"_nodes": {"total": 3, "successful": 2, "failed": 1, "failures": [{"node_id": "n3", "reason": "timeout"}]},
+				"cluster_name": "test",
+				"nodes": {
+					"n1": {"name": "node1", "host": "127.0.0.1", "ip": "127.0.0.1", "roles": ["data"], "http": {"publish_address": "127.0.0.1:9200"}},
+					"n2": {"name": "node2", "host": "127.0.0.1", "ip": "127.0.0.1", "roles": ["data"], "http": {"publish_address": "127.0.0.1:9201"}}
+				}
+			}`,
+			enableDebug: true,
+			wantNodes:   2,
+		},
+		{
+			name: "malformed _nodes metadata",
+			body: `{
+				"_nodes": "not-an-object",
+				"cluster_name": "test",
+				"nodes": {}
+			}`,
+			wantErrContains: "parse _nodes metadata",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rt := mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     http.Header{"Content-Type": {"application/json"}},
+					Body:       io.NopCloser(strings.NewReader(tt.body)),
+				}, nil
+			})
+
+			u, _ := url.Parse("http://localhost:9200")
+			tp, err := New(Config{
+				URLs:              []*url.URL{u},
+				Transport:         rt,
+				EnableDebugLogger: tt.enableDebug,
+			})
+			require.NoError(t, err)
+
+			nodes, err := tp.getNodesInfo(t.Context())
+
+			if tt.wantErrIs != nil {
+				require.ErrorIs(t, err, tt.wantErrIs)
+				require.Nil(t, nodes)
+			}
+			if tt.wantErrContains != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.wantErrContains)
+				require.Nil(t, nodes)
+			}
+			if tt.wantErrIs == nil && tt.wantErrContains == "" {
+				require.NoError(t, err)
+				require.Len(t, nodes, tt.wantNodes)
+			}
+		})
+	}
 }
