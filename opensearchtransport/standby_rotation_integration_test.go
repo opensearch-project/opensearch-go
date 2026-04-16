@@ -20,6 +20,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 // discoveryPause is the delay between DiscoverNodes calls in retry loops.
@@ -245,6 +246,13 @@ func TestStandbyRotation(t *testing.T) {
 
 	// These tests require a multi-node cluster (3 nodes) for standby rotation.
 	testutil.SkipIfSingleNode(t, 3)
+
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		tptestutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
 
 	t.Run("Discovery with cap creates standby pool", func(t *testing.T) {
 		cfg := standbyTestConfig(t)

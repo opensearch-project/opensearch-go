@@ -38,6 +38,13 @@ import (
 )
 
 func TestHealthCheckIntegration(t *testing.T) {
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		testutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
+
 	u := testutil.GetTestURL(t)
 	cfg := getTestConfig(t, []*url.URL{u})
 

@@ -18,6 +18,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 // TestRouterWithDiscovery verifies the complete flow:
@@ -32,6 +33,13 @@ func TestRouterWithDiscovery(t *testing.T) {
 
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
 	testutil.SkipIfSingleNode(t, 2)
+
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		tptestutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
 
 	t.Run("Complete seed URL to router transition", func(t *testing.T) {
 		// Create mux router (which has IfEnabledPolicy for coordinator nodes)

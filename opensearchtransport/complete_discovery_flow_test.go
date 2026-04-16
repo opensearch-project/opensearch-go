@@ -18,6 +18,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
 // TestCompleteDiscoveryFlow verifies all 6 requirements:
@@ -34,6 +35,13 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
 	testutil.SkipIfSingleNode(t, 2)
+
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		tptestutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
 
 	// Create mux router (includes IfEnabledPolicy for coordinator_only nodes)
 	router := opensearchtransport.NewMuxRouter()
