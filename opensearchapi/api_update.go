@@ -52,16 +52,17 @@ func (r UpdateReq) GetRequest() (*http.Request, error) {
 
 // UpdateResp represents the returned struct of the /_update response
 type UpdateResp struct {
-	Index       string           `json:"_index"`
-	ID          string           `json:"_id"`
-	Version     int              `json:"_version"`
-	Result      string           `json:"result"`
-	Shards      ResponseShards   `json:"_shards"`
-	SeqNo       int              `json:"_seq_no"`
-	PrimaryTerm int              `json:"_primary_term"`
-	Type        string           `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
-	Get         *DocumentGetResp `json:"get,omitempty"`
-	response    *opensearch.Response
+	Index         string           `json:"_index"`
+	ID            string           `json:"_id"`
+	Version       int              `json:"_version"`
+	Result        string           `json:"result"`
+	ForcedRefresh bool             `json:"forced_refresh"`
+	Shards        ResponseShards   `json:"_shards"`
+	SeqNo         int              `json:"_seq_no"`
+	PrimaryTerm   int              `json:"_primary_term"`
+	Type          string           `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
+	Get           *DocumentGetResp `json:"get,omitempty"`
+	response      *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response
