@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -62,11 +61,11 @@ type ReindexResp struct {
 		Bulk   int `json:"bulk"`
 		Search int `json:"search"`
 	} `json:"retries"`
-	ThrottledMillis      int               `json:"throttled_millis"`
-	RequestsPerSecond    float64           `json:"requests_per_second"`
-	ThrottledUntilMillis int               `json:"throttled_until_millis"`
-	Failures             []json.RawMessage `json:"failures"`
-	Task                 string            `json:"task"`
+	ThrottledMillis      int                   `json:"throttled_millis"`
+	RequestsPerSecond    float64               `json:"requests_per_second"`
+	ThrottledUntilMillis int                   `json:"throttled_until_millis"`
+	Failures             []BulkByScrollFailure `json:"failures"`
+	Task                 string                `json:"task"`
 	response             *opensearch.Response
 }
 

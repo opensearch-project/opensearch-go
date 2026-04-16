@@ -99,7 +99,7 @@ type SearchHit struct {
 	InnerHits map[string]struct {
 		Hits SearchHits `json:"hits"`
 	} `json:"inner_hits"`
-	Type           string                  `json:"_type"` // Deprecated field
+	Type           string                  `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	Sort           []any                   `json:"sort"`
 	Explanation    *DocumentExplainDetails `json:"_explanation"`
 	SeqNo          *int                    `json:"_seq_no"`
@@ -120,7 +120,7 @@ type Suggest struct {
 type SuggestOptions struct {
 	Text            string              `json:"text"`
 	Index           string              `json:"_index"`
-	Type            string              `json:"_type"`
+	Type            string              `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	ID              string              `json:"_id"`
 	Score           float64             `json:"score"`  // term suggesters uses "score"
 	ScoreUnderscore float64             `json:"_score"` // completion and context suggesters uses "_score"

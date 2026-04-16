@@ -32,11 +32,7 @@ func (r IndicesRefreshReq) GetRequest() (*http.Request, error) {
 
 // IndicesRefreshResp represents the returned struct of the index shrink response
 type IndicesRefreshResp struct {
-	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
+	Shards   ResponseShards `json:"_shards"`
 	response *opensearch.Response
 }
 

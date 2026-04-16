@@ -56,8 +56,11 @@ type MGetResp struct {
 		SeqNo       int             `json:"_seq_no"`
 		PrimaryTerm int             `json:"_primary_term"`
 		Found       bool            `json:"found"`
-		Type        string          `json:"_type"`
+		Routing     string          `json:"_routing,omitempty"`
+		Type        string          `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 		Source      json.RawMessage `json:"_source"`
+		Fields      json.RawMessage `json:"fields,omitempty"`
+		Error       *DocumentError  `json:"error,omitempty"`
 	} `json:"docs"`
 	response *opensearch.Response
 }

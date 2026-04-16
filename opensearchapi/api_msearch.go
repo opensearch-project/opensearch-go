@@ -65,6 +65,7 @@ type MSearchResp struct {
 		} `json:"hits"`
 		Status       int             `json:"status"`
 		Aggregations json.RawMessage `json:"aggregations"`
+		Error        *DocumentError  `json:"error,omitempty"`
 	} `json:"responses"`
 	response *opensearch.Response
 }
