@@ -302,7 +302,7 @@ func TestConnScoreSelectLargePool(t *testing.T) {
 			}
 
 			scoreBuf := acquireScoreSlice(len(conns))
-			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, *scoreBuf)
+			best := connScoreSelect(conns, nil, nil, &shardCostForReads, "", true, *scoreBuf, nil)
 			releaseScoreSlice(scoreBuf)
 
 			require.NotNil(t, best)

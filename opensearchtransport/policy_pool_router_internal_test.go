@@ -722,7 +722,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
 		cache := testIndexSlotCache()
 
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		// Set poolInfoReady so loadCwnd reads the real cwnd.
@@ -754,7 +754,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		cache := testIndexSlotCache()
 
 		// "write" pool -- not "search", so MCSR should not be computed.
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForWrites, "write")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForWrites, "write", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}
@@ -781,7 +781,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		conn := makeSearchConn(t, "node1", 1) // cwnd=1 -> clamped to min=5
 		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
 		cache := testIndexSlotCache()
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}
@@ -808,7 +808,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		conn := makeSearchConn(t, "node1", 500) // cwnd=500 -> clamped to max=256
 		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
 		cache := testIndexSlotCache()
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}
@@ -843,7 +843,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 			fanOutPerReq: defaultFanOutPerRequest,
 			features:     routingSkipAdaptiveConcurrency,
 		})
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}
@@ -871,7 +871,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		conn.Name = "node1" // Required for shard placement matching.
 		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
 		cache := testIndexSlotCache()
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}
@@ -914,7 +914,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
 		cache := testIndexSlotCache()
 
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}
@@ -947,7 +947,7 @@ func TestPoolRouterAdaptiveMCSR(t *testing.T) {
 		inner := &mockPolicy{hop: NextHop{Conn: conn}, err: nil, enabled: true}
 		cache := testIndexSlotCache()
 
-		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search")
+		wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "search", nil)
 		w := wrapper.(*poolRouter)
 
 		pir := &atomic.Bool{}

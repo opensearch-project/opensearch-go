@@ -1735,7 +1735,7 @@ func TestRefreshClusterHealth_NetworkError(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	originalHealth := &ClusterHealthLocal{Status: "green", NumberOfNodes: 3}
 	conn.mu.Lock()
@@ -1754,7 +1754,7 @@ func TestRefreshClusterHealth_NetworkError(t *testing.T) {
 	client.refreshClusterHealth(conn)
 
 	// Network error: state should remain available, health preserved
-	require.True(t, conn.loadClusterHealthState().HasClusterHealth())
+	require.True(t, conn.hasClusterHealth())
 	conn.mu.RLock()
 	health := conn.mu.clusterHealth
 	conn.mu.RUnlock()
@@ -1778,7 +1778,7 @@ func TestRefreshClusterHealth_DebugLogging(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 
 	pool := &multiServerPool{}
 	pool.mu.ready = []*Connection{conn, {URL: &url.URL{Host: "node2:9200"}}}
@@ -1803,7 +1803,7 @@ func TestRefreshClusterHealth_PermissionRevoked_DebugLogging(t *testing.T) {
 
 	serverURL, _ := url.Parse(server.URL)
 	conn := &Connection{URL: serverURL}
-	conn.clusterHealthState.Store(int64(clusterHealthProbed | clusterHealthAvailable))
+	conn.setLifecycleBit(lcClusterHealthProbed | lcClusterHealthAvailable)
 	conn.mu.Lock()
 	conn.mu.clusterHealth = &ClusterHealthLocal{Status: "green"}
 	conn.mu.Unlock()
@@ -1819,7 +1819,7 @@ func TestRefreshClusterHealth_PermissionRevoked_DebugLogging(t *testing.T) {
 	client.refreshClusterHealth(conn)
 
 	// Should reset to pending (exercises the 401/403 debug log path)
-	require.True(t, conn.loadClusterHealthState().Pending())
+	require.True(t, conn.clusterHealthPending())
 }
 
 // --- fetchAndEvaluateNodeStats debug logging ---
