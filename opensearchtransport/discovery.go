@@ -244,6 +244,19 @@ type _NodesMeta struct {
 	Failures   []json.RawMessage `json:"failures,omitempty"`
 }
 
+// formatFailures returns a compact JSON representation of the _nodes failures
+// array for inclusion in error messages. Returns "[]" when no failures are present.
+func (m *_NodesMeta) formatFailures() string {
+	if len(m.Failures) == 0 {
+		return "[]"
+	}
+	b, err := json.Marshal(m.Failures)
+	if err != nil {
+		return fmt.Sprintf("[<%d failures, marshal error: %v>]", len(m.Failures), err)
+	}
+	return string(b)
+}
+
 // DiscoverNodes reloads the client connections by fetching information from the cluster.
 func (c *Client) DiscoverNodes(ctx context.Context) error {
 	// Bail out early if the context is already cancelled (e.g. client shutting down).
@@ -1068,12 +1081,13 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	}
 
 	if hasNodesMeta && nodesMeta.Successful == 0 {
+		failuresJSON := nodesMeta.formatFailures()
 		if debugLogger != nil {
 			debugLogger.Logf("Discovery: _nodes reports total=%d successful=%d failed=%d failures=%s; retaining current pool\n",
-				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.Failures)
+				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON)
 		}
-		return nil, fmt.Errorf("discovery: total=%d successful=%d failed=%d: %w",
-			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, errDiscoveryEmpty)
+		return nil, fmt.Errorf("discovery: total=%d successful=%d failed=%d failures=%s: %w",
+			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON, errDiscoveryEmpty)
 	}
 
 	var nodes map[string]nodeInfo
@@ -1092,7 +1106,7 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 
 	if hasNodesMeta && nodesMeta.Failed > 0 && debugLogger != nil {
 		debugLogger.Logf("Discovery: partial failure — _nodes reports total=%d successful=%d failed=%d failures=%s\n",
-			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.Failures)
+			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.formatFailures())
 	}
 
 	out := make([]nodeInfo, 0, len(nodes))
