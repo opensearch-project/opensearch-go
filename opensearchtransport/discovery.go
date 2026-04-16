@@ -1095,8 +1095,7 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.Failures)
 	}
 
-	out := make([]nodeInfo, len(nodes))
-	idx := 0
+	out := make([]nodeInfo, 0, len(nodes))
 
 	// Compute default URLs for all nodes (sequential, cheap string parsing).
 	pending := make([]discoveryPendingNode, 0, len(nodes))
