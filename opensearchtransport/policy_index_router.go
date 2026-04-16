@@ -15,13 +15,6 @@ import (
 	"sync/atomic"
 )
 
-const (
-	// counterFloor is the minimum value used for the decay counter
-	// in score calculations. Prevents division-by-zero-like effects when a
-	// node has received no recent traffic.
-	counterFloor = 1.0
-)
-
 // scoreSliceInitialCap is the starting capacity for pooled score buffers.
 // Covers the common case (shard-exact: 1-3 replicas, rendezvous fan-out: 1-3)
 // without ratcheting. The cluster-lookup path (all active connections) will
@@ -392,38 +385,6 @@ func loadClusterSearchCwnd(p *atomic.Int32) int32 {
 		return 0
 	}
 	return p.Load()
-}
-
-// calcConnScore computes the node selection score for a connection.
-// Lower score = preferred node.
-//
-// The score is: rttBucket * (inFlight + 1) / cwnd * shardCost
-//
-// The shardCost parameter is pre-computed by the caller via [forShard] (shard
-// lookup) or [forNode] (index/cluster lookup). poolInfoReady indicates whether
-// thread pool quorum has been reached; when false, cwnd falls back to a
-// synthetic ceiling based on allocatedProcessors.
-//
-// When the named thread pool is overloaded (rejected requests or HTTP 429),
-// the score is math.MaxFloat64 to skip the node for that pool.
-//
-// Warmup state is NOT included in the score. Instead, warming connections
-// are handled by [connScoreSelect] which tries candidates in score order
-// and uses [tryWarmupSkip] to gate actual traffic via the S-curve ramp.
-// This avoids a circular dependency where warmup penalty prevents selection,
-// which prevents warmup advancement.
-func calcConnScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
-	if poolName != "" && conn.isPoolOverloaded(poolName) {
-		return math.MaxFloat64
-	}
-
-	rtt := float64(conn.rttRing.medianBucket())
-
-	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
-	inFlight := float64(conn.loadInFlight(poolName))
-	utilization := (inFlight + 1.0) / cwnd
-
-	return rtt * utilization * shardCost
 }
 
 const (

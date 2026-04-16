@@ -661,7 +661,6 @@ func WithAdaptiveConcurrencyLimits(minVal, maxVal int) RouterOption {
 		}
 	}
 }
-}
 
 // NewDefaultPolicy creates a request-aware policy with connection-scoring routing.
 // This is the recommended policy for production clusters. It extends
