@@ -136,6 +136,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `DocumentError` type for structured per-item error information in multi-document responses
 - Add `BulkByScrollFailure` type for structured failure information in `_delete_by_query`, `_update_by_query`, and `_reindex` responses
 - Add `Routing` and `Fields` to `MGetResp.Docs` to match the full OpenSearch `_mget` response format
+- Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
+- Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
 
 ### Changed
 

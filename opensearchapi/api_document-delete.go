@@ -37,15 +37,16 @@ func (r DocumentDeleteReq) GetRequest() (*http.Request, error) {
 
 // DocumentDeleteResp represents the returned struct of the /<index>/_doc/<DocID> response
 type DocumentDeleteResp struct {
-	Index       string         `json:"_index"`
-	ID          string         `json:"_id"`
-	Version     int            `json:"_version"`
-	Result      string         `json:"result"`
-	Type        string         `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
-	Shards      ResponseShards `json:"_shards"`
-	SeqNo       int            `json:"_seq_no"`
-	PrimaryTerm int            `json:"_primary_term"`
-	response    *opensearch.Response
+	Index         string         `json:"_index"`
+	ID            string         `json:"_id"`
+	Version       int            `json:"_version"`
+	Result        string         `json:"result"`
+	ForcedRefresh bool           `json:"forced_refresh"`
+	Type          string         `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
+	Shards        ResponseShards `json:"_shards"`
+	SeqNo         int            `json:"_seq_no"`
+	PrimaryTerm   int            `json:"_primary_term"`
+	response      *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response
