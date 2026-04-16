@@ -42,7 +42,7 @@ type DocumentGetResp struct {
 	SeqNo       int             `json:"_seq_no"`
 	PrimaryTerm int             `json:"_primary_term"`
 	Found       bool            `json:"found"`
-	Type        string          `json:"_type"` // Deprecated field
+	Type        string          `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	Source      json.RawMessage `json:"_source"`
 	Fields      json.RawMessage `json:"fields"`
 	response    *opensearch.Response

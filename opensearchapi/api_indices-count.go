@@ -46,13 +46,8 @@ func (r IndicesCountReq) GetRequest() (*http.Request, error) {
 
 // IndicesCountResp represents the returned struct of the index shrink response
 type IndicesCountResp struct {
-	Shards struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Skipped    int `json:"skipped"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-	Count    int `json:"count"`
+	Shards   ResponseShards `json:"_shards"`
+	Count    int            `json:"count"`
 	response *opensearch.Response
 }
 

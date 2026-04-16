@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -65,12 +64,12 @@ type UpdateByQueryResp struct {
 		Bulk   int `json:"bulk"`
 		Search int `json:"search"`
 	} `json:"retries"`
-	ThrottledMillis      int               `json:"throttled_millis"`
-	RequestsPerSecond    float32           `json:"requests_per_second"`
-	ThrottledUntilMillis int               `json:"throttled_until_millis"`
-	Failures             []json.RawMessage `json:"failures"`
-	Type                 string            `json:"_type"` // Deprecated field
-	Task                 string            `json:"task"`
+	ThrottledMillis      int                   `json:"throttled_millis"`
+	RequestsPerSecond    float32               `json:"requests_per_second"`
+	ThrottledUntilMillis int                   `json:"throttled_until_millis"`
+	Failures             []BulkByScrollFailure `json:"failures"`
+	Type                 string                `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
+	Task                 string                `json:"task"`
 	response             *opensearch.Response
 }
 

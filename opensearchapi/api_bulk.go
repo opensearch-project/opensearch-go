@@ -71,7 +71,7 @@ type BulkRespItem struct {
 	Index   string `json:"_index"`
 	ID      string `json:"_id"`
 	Version int    `json:"_version"`
-	Type    string `json:"_type"` // Deprecated field
+	Type    string `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	Result  string `json:"result"`
 	Shards  struct {
 		Total      int `json:"total"`

@@ -60,18 +60,14 @@ func (r IndexReq) GetRequest() (*http.Request, error) {
 
 // IndexResp represents the returned struct of the /_doc response
 type IndexResp struct {
-	Index   string `json:"_index"`
-	ID      string `json:"_id"`
-	Version int    `json:"_version"`
-	Result  string `json:"result"`
-	Shards  struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-	SeqNo       int    `json:"_seq_no"`
-	PrimaryTerm int    `json:"_primary_term"`
-	Type        string `json:"_type"` // Deprecated field
+	Index       string         `json:"_index"`
+	ID          string         `json:"_id"`
+	Version     int            `json:"_version"`
+	Result      string         `json:"result"`
+	Shards      ResponseShards `json:"_shards"`
+	SeqNo       int            `json:"_seq_no"`
+	PrimaryTerm int            `json:"_primary_term"`
+	Type        string         `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	response    *opensearch.Response
 }
 

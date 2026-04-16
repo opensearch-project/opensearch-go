@@ -5,6 +5,12 @@
     - [Import path](#import-path)
     - [Error types](#error-types)
     - [AWS signer](#aws-signer)
+    - [Typed failure arrays in by-query and reindex responses](#typed-failure-arrays-in-by-query-and-reindex-responses)
+    - [Inline _shards structs replaced with ResponseShards](#inline-_shards-structs-replaced-with-responseshards)
+    - [_type field tags now include omitempty](#_type-field-tags-now-include-omitempty)
+    - [Import path](#import-path)
+    - [Error types](#error-types)
+    - [AWS signer](#aws-signer)
   - [Upgrading to >= 3.0.0](#upgrading-to->=-3.0.0)
     - [Client creation](#client-creation)
     - [Requests](#requests)
@@ -153,6 +159,41 @@ awsSigner, err := signer.NewSigner(cfg)
 ```
 
 The `signer/awsv2` package (which already used AWS SDK v2) remains available at `github.com/opensearch-project/opensearch-go/v4/signer/awsv2` with the same API.
+
+### Typed Failure Arrays in By-Query and Reindex Responses
+
+The `Failures` field in `DocumentDeleteByQueryResp`, `UpdateByQueryResp`, and `ReindexResp` changed from `[]json.RawMessage` to `[]BulkByScrollFailure`.
+
+**Who is affected:** Only callers that directly access the `.Failures` slice. Code that ignores failures or only checks `len(resp.Failures) > 0` compiles without changes.
+
+Before:
+
+```go
+for _, raw := range resp.Failures {
+    var f MyFailureType
+    if err := json.Unmarshal(raw, &f); err != nil { ... }
+    // use f.Index, f.Status, etc.
+}
+```
+
+After:
+
+```go
+for _, f := range resp.Failures {
+    // Fields are available directly — no unmarshaling needed.
+    fmt.Println(f.Index, f.Status, f.Cause)
+}
+```
+
+### Inline _shards Structs Replaced with ResponseShards
+
+The `Shards` field in `IndexResp`, `DocumentCreateResp`, `DocumentDeleteResp`, `UpdateResp`, `IndicesRefreshResp`, and `IndicesCountResp` changed from an anonymous inline struct to the named `ResponseShards` type.
+
+**Who is affected:** Code accessing `resp.Shards.Total`, `resp.Shards.Successful`, or `resp.Shards.Failed` compiles unchanged. The only theoretical break is code using reflection or type assertions on the `Shards` field itself. The new type additionally exposes `Failures []ResponseShardsFailure` and `Skipped int` which were previously unavailable.
+
+### `_type` Field Tags Now Include `omitempty`
+
+All deprecated `_type` fields across response structs now use `json:"_type,omitempty"`. Mapping types were deprecated in Elasticsearch 6.0 (2017), reduced to the single `_doc` type in Elasticsearch 7.0 (2019), and completely removed from the OpenSearch server in 2.0.0 (May 2022). OpenSearch forked from Elasticsearch 7.10.2, so the deprecation was inherited from day one. This change means the empty string is no longer emitted when marshaling response structs back to JSON. Deserialization behavior is unchanged.
 
 ## Upgrading to >= 3.0.0
 

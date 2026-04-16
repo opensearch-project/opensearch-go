@@ -157,6 +157,29 @@ type ResponseShardsFailure struct {
 	} `json:"reason"`
 }
 
+// DocumentError represents an error for an individual item in a multi-document response.
+// Used by MGet, MTermvectors, MSearch, and similar APIs where each item can fail independently.
+type DocumentError struct {
+	Type      string          `json:"type"`
+	Reason    string          `json:"reason"`
+	Index     string          `json:"index,omitempty"`
+	IndexUUID string          `json:"index_uuid,omitempty"`
+	RootCause []DocumentError `json:"root_cause,omitempty"`
+	CausedBy  *DocumentError  `json:"caused_by,omitempty"`
+}
+
+// BulkByScrollFailure represents a failure item in _delete_by_query, _update_by_query,
+// and _reindex responses. Can represent either a bulk write failure or a search scroll failure.
+type BulkByScrollFailure struct {
+	Index  string         `json:"index"`
+	ID     string         `json:"id,omitempty"`    // Bulk failures only
+	Shard  *int           `json:"shard,omitempty"` // Search failures only
+	Node   string         `json:"node,omitempty"`  // Search failures only
+	Status int            `json:"status"`
+	Cause  *DocumentError `json:"cause,omitempty"`  // Bulk failures: the exception that caused the failure
+	Reason *DocumentError `json:"reason,omitempty"` // Search failures: the exception that caused the failure
+}
+
 // FailuresCause contains information about failure cause
 type FailuresCause struct {
 	Type   string `json:"type"`

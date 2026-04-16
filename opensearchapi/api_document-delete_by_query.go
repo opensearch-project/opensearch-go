@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -50,11 +49,11 @@ type DocumentDeleteByQueryResp struct {
 		Bulk   int `json:"bulk"`
 		Search int `json:"search"`
 	} `json:"retries"`
-	ThrottledMillis      int               `json:"throttled_millis"`
-	RequestsPerSecond    float32           `json:"requests_per_second"`
-	ThrottledUntilMillis int               `json:"throttled_until_millis"`
-	Failures             []json.RawMessage `json:"failures"`       // Unknow struct, open an issue with an example response so we can add it
-	Task                 string            `json:"task,omitempty"` // Needed when wait_for_completion is set to false
+	ThrottledMillis      int                   `json:"throttled_millis"`
+	RequestsPerSecond    float32               `json:"requests_per_second"`
+	ThrottledUntilMillis int                   `json:"throttled_until_millis"`
+	Failures             []BulkByScrollFailure `json:"failures"`
+	Task                 string                `json:"task,omitempty"` // Needed when wait_for_completion is set to false
 	response             *opensearch.Response
 }
 

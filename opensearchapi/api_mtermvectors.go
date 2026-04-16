@@ -65,8 +65,9 @@ type MTermvectorsResp struct {
 		Version     int             `json:"_version"`
 		Found       bool            `json:"found"`
 		Took        int             `json:"took"`
-		Type        string          `json:"_type"` // Deprecated field
+		Type        string          `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 		TermVectors json.RawMessage `json:"term_vectors"`
+		Error       *DocumentError  `json:"error,omitempty"`
 	} `json:"docs"`
 	response *opensearch.Response
 }
