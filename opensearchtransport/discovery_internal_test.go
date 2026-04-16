@@ -2120,6 +2120,54 @@ func TestUpdateConnectionPool(t *testing.T) {
 	})
 }
 
+func TestNodesMeta_formatFailures(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		failures []json.RawMessage
+		want     string
+	}{
+		{
+			name:     "nil failures",
+			failures: nil,
+			want:     "[]",
+		},
+		{
+			name:     "empty failures",
+			failures: []json.RawMessage{},
+			want:     "[]",
+		},
+		{
+			name:     "single failure",
+			failures: []json.RawMessage{json.RawMessage(`{"node_id":"n1","reason":"timeout"}`)},
+			want:     `[{"node_id":"n1","reason":"timeout"}]`,
+		},
+		{
+			name: "multiple failures",
+			failures: []json.RawMessage{
+				json.RawMessage(`{"node_id":"n1","reason":"timeout"}`),
+				json.RawMessage(`{"node_id":"n2","reason":"OptionalDataException"}`),
+			},
+			want: `[{"node_id":"n1","reason":"timeout"},{"node_id":"n2","reason":"OptionalDataException"}]`,
+		},
+		{
+			name:     "malformed raw JSON triggers marshal error",
+			failures: []json.RawMessage{json.RawMessage("\xff")},
+			want:     "[<1 failures, marshal error: json: error calling MarshalJSON for type json.RawMessage: invalid character 'ÿ' looking for beginning of value>]",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			m := &_NodesMeta{Failures: tt.failures}
+			got := m.formatFailures()
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // TestGetNodesInfoNodesMeta tests the _nodes metadata guard in getNodesInfo.
 func TestGetNodesInfoNodesMeta(t *testing.T) {
 	tests := []struct {
@@ -2139,7 +2187,7 @@ func TestGetNodesInfoNodesMeta(t *testing.T) {
 			}`,
 			enableDebug:     true,
 			wantErrIs:       errDiscoveryEmpty,
-			wantErrContains: "successful=0",
+			wantErrContains: `failures=[{"node_id":"n1","reason":"timeout"}]`,
 		},
 		{
 			name: "no _nodes metadata and empty nodes",

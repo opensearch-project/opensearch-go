@@ -111,6 +111,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Include `_nodes.failures` detail in discovery error messages for diagnosing intermittent CI failures on older OpenSearch versions ([#823](https://github.com/opensearch-project/opensearch-go/pull/823))
 - Test against Opensearch 3.6.0 ([#817](https://github.com/opensearch-project/opensearch-go/pull/817))
 - Consolidate test utilities into two canonical packages: opensearchtransport/testutil (env helpers, polling, version comparison) and opensearchapi/testutil (client-dependent helpers, test suite, JSON comparison)
 - Rename `singleConnectionPool` to `singleServerPool` and `statusConnectionPool` to `multiServerPool` for clarity ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
