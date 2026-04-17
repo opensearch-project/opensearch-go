@@ -69,11 +69,11 @@ OpenSearch 3.0 introduced two significant role changes:
 
 These are distinct roles serving different purposes:
 
-| Role     | Purpose                   | Data Source                      | Write Traffic             |
-| -------- | ------------------------- | -------------------------------- | ------------------------- |
-| `search` | Dedicated search replicas | Replicated from primary shards   | None (read-only replicas) |
-| `warm`   | Searchable snapshots      | Snapshot storage (local/remote)  | None (read-only)          |
-| `data`   | General purpose           | Local shards (primary + replica) | Yes (indexing + search)   |
+| Role | Purpose | Data Source | Write Traffic |
+| --- | --- | --- | --- |
+| `search` | Dedicated search replicas | Replicated from primary shards | None (read-only replicas) |
+| `warm` | Searchable snapshots | Snapshot storage (local/remote) | None (read-only) |
+| `data` | General purpose | Local shards (primary + replica) | Yes (indexing + search) |
 
 ## Cluster Manager Filtering
 

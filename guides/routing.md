@@ -127,24 +127,24 @@ transport.Perform(req)
 
 ### Component Map
 
-| Component            | Responsibility                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------------ |
-| **Router**           | Top-level coordinator. Tries policies in sequence, returns the first `NextHop`.            |
-| **Policy Chain**     | Chain-of-responsibility pattern. Policies return a connection or pass through.             |
-| **MuxPolicy**        | Zero-allocation trie matching ~124 URL patterns to 11 route categories.                    |
-| **poolRouter**       | Wraps a role policy with per-index connection scoring (rendezvous hash + scoring formula). |
-| **RolePolicy**       | Maintains a connection pool filtered by node roles (data, ingest, search, etc.).           |
-| **Connection Pool**  | Three-partition structure: active, standby, dead. Weighted round-robin selection.          |
-| **Index Slot Cache** | Per-index routing state: shard placement, fan-out, scoring history.                        |
-| **RTT Ring Buffer**  | Per-connection rolling median of health-check RTTs, quantized to power-of-2 buckets.       |
-| **AIMD Controller**  | Per-connection, per-thread-pool congestion window driven by server stats.                  |
+| Component | Responsibility |
+| --- | --- |
+| **Router** | Top-level coordinator. Tries policies in sequence, returns the first `NextHop`. |
+| **Policy Chain** | Chain-of-responsibility pattern. Policies return a connection or pass through. |
+| **MuxPolicy** | Zero-allocation trie matching ~124 URL patterns to 11 route categories. |
+| **poolRouter** | Wraps a role policy with per-index connection scoring (rendezvous hash + scoring formula). |
+| **RolePolicy** | Maintains a connection pool filtered by node roles (data, ingest, search, etc.). |
+| **Connection Pool** | Three-partition structure: active, standby, dead. Weighted round-robin selection. |
+| **Index Slot Cache** | Per-index routing state: shard placement, fan-out, scoring history. |
+| **RTT Ring Buffer** | Per-connection rolling median of health-check RTTs, quantized to power-of-2 buckets. |
+| **AIMD Controller** | Per-connection, per-thread-pool congestion window driven by server stats. |
 
 ### Three Pre-Built Routers
 
-| Router          | Constructor             | Use Case                                                |
-| --------------- | ----------------------- | ------------------------------------------------------- |
-| **Default**     | `NewDefaultRouter()`    | Role-based + connection scoring.                        |
-| **Mux**         | `NewMuxRouter()`        | Role-based without scoring. Useful for comparison.      |
+| Router | Constructor | Use Case |
+| --- | --- | --- |
+| **Default** | `NewDefaultRouter()` | Role-based + connection scoring. |
+| **Mux** | `NewMuxRouter()` | Role-based without scoring. Useful for comparison. |
 | **Round-Robin** | `NewRoundRobinRouter()` | Coordinating-only preference with round-robin fallback. |
 
 All three share the same three-level policy chain:
@@ -161,19 +161,19 @@ All three share the same three-level policy chain:
 
 The MuxPolicy trie maps URL patterns to 11 route categories. Each category specifies a role chain (with fallback), a thread pool name (for congestion tracking), and a shard cost table (read vs write).
 
-| Category       | Example Endpoints                            | Role Chain           | Pool          | Cost Table |
-| -------------- | -------------------------------------------- | -------------------- | ------------- | ---------- |
-| searchRead     | `_search`, `_msearch`, `_count`, `_validate` | search → data → null | `search`      | reads      |
-| getRead        | `_doc/{id}`, `_source/{id}`, `_mget`         | search → data → null | `get`         | reads      |
-| dataWrite      | `_doc/{id}` (PUT/POST), `_create`, `_update` | data → null          | `write`       | writes     |
-| ingestWrite    | `_bulk`, `_reindex`                          | ingest → null        | `write`       | writes     |
-| dataRefresh    | `_refresh`                                   | data → null          | `refresh`     | writes     |
-| dataFlush      | `_flush`                                     | data → null          | `flush`       | writes     |
-| dataForceMerge | `_forcemerge`                                | data → null          | `force_merge` | writes     |
-| dataMgmt       | `_recovery`, `_shard_stores`, `_stats`       | data → null          | `management`  | reads      |
-| searchMgmt     | `_field_caps`                                | search → data → null | `management`  | reads      |
-| ingestMgmt     | `_ingest/pipeline`                           | ingest → null        | `management`  | reads      |
-| warmMgmt       | `_snapshot/{repo}/_mount`                    | warm → data → null   | `management`  | reads      |
+| Category | Example Endpoints | Role Chain | Pool | Cost Table |
+| --- | --- | --- | --- | --- |
+| searchRead | `_search`, `_msearch`, `_count`, `_validate` | search → data → null | `search` | reads |
+| getRead | `_doc/{id}`, `_source/{id}`, `_mget` | search → data → null | `get` | reads |
+| dataWrite | `_doc/{id}` (PUT/POST), `_create`, `_update` | data → null | `write` | writes |
+| ingestWrite | `_bulk`, `_reindex` | ingest → null | `write` | writes |
+| dataRefresh | `_refresh` | data → null | `refresh` | writes |
+| dataFlush | `_flush` | data → null | `flush` | writes |
+| dataForceMerge | `_forcemerge` | data → null | `force_merge` | writes |
+| dataMgmt | `_recovery`, `_shard_stores`, `_stats` | data → null | `management` | reads |
+| searchMgmt | `_field_caps` | search → data → null | `management` | reads |
+| ingestMgmt | `_ingest/pipeline` | ingest → null | `management` | reads |
+| warmMgmt | `_snapshot/{repo}/_mount` | warm → data → null | `management` | reads |
 
 Role chains use `IfEnabledPolicy` for fallback: if dedicated search nodes exist, use them; otherwise fall to data nodes; if neither matches, pass through to round-robin.
 
@@ -306,16 +306,16 @@ Since `costUnknown` is applied uniformly to all nodes, it cancels out in compari
 
 #### Path Comparison
 
-| Aspect             | Document Path           | Index Path             | Cluster Path           |
-| ------------------ | ----------------------- | ---------------------- | ---------------------- |
-| Trigger            | Index + document ID     | Index, no document ID  | No index in URL        |
-| Candidates         | 1-3 (exact shard hosts) | K (rendezvous fan-out) | All active connections |
-| Shard awareness    | Exact shard via murmur3 | Per-node shard counts  | None                   |
-| Fan-out            | None (exact set)        | Dynamic, per-index     | None (score all)       |
-| Rendezvous hashing | Fallback only           | Primary mechanism      | None                   |
-| Shard cost         | Primary vs replica      | Primary vs replica     | costUnknown (uniform)  |
-| Index slot         | Shared with index path  | Created per-index      | None                   |
-| Page cache benefit | Maximum (exact shard)   | High (shard-host bias) | None                   |
+| Aspect | Document Path | Index Path | Cluster Path |
+| --- | --- | --- | --- |
+| Trigger | Index + document ID | Index, no document ID | No index in URL |
+| Candidates | 1-3 (exact shard hosts) | K (rendezvous fan-out) | All active connections |
+| Shard awareness | Exact shard via murmur3 | Per-node shard counts | None |
+| Fan-out | None (exact set) | Dynamic, per-index | None (score all) |
+| Rendezvous hashing | Fallback only | Primary mechanism | None |
+| Shard cost | Primary vs replica | Primary vs replica | costUnknown (uniform) |
+| Index slot | Shared with index path | Created per-index | None |
+| Page cache benefit | Maximum (exact shard) | High (shard-host bias) | None |
 
 ### Shared Connections Across Policies
 
@@ -368,11 +368,11 @@ score = rttBucket × (inFlight + 1) / cwnd × shardCost
 
 **Lower score wins.** The three multiplicative factors are independent signals:
 
-| Factor                  | Source                          | What It Measures                                                            |
-| ----------------------- | ------------------------------- | --------------------------------------------------------------------------- |
-| `rttBucket`             | `conn.rttRing.medianBucket()`   | Network proximity. Power-of-2 quantized RTT. Same-AZ: 8-9, cross-AZ: 10-11. |
-| `(inFlight + 1) / cwnd` | Per-pool AIMD congestion window | Utilization ratio. Atomic per-pool counter.                                 |
-| `shardCost`             | Shard cost table lookup         | Whether the node hosts relevant shards.                                     |
+| Factor | Source | What It Measures |
+| --- | --- | --- |
+| `rttBucket` | `conn.rttRing.medianBucket()` | Network proximity. Power-of-2 quantized RTT. Same-AZ: 8-9, cross-AZ: 10-11. |
+| `(inFlight + 1) / cwnd` | Per-pool AIMD congestion window | Utilization ratio. Atomic per-pool counter. |
+| `shardCost` | Shard cost table lookup | Whether the node hosts relevant shards. |
 
 When a thread pool is overloaded (rejected requests or HTTP 429), the score is `math.MaxFloat64` -- the node is effectively removed from consideration for that pool.
 
@@ -428,13 +428,13 @@ Different operations use different cost tables. Lower cost = preferred node.
 
 **Read operations** (search, get, scroll, validate, rank_eval):
 
-| Shard State  | Cost | Reason                                                      |
-| ------------ | ---- | ----------------------------------------------------------- |
-| Replica      | 1.0  | Preferred -- lock-free Lucene snapshot, no write contention |
-| Primary      | 2.0  | Acceptable -- contends with concurrent writes               |
-| Relocating   | 8.0  | Shard moving, may require proxy hop                         |
-| Initializing | 16.0 | Shard not yet ready to serve                                |
-| Unknown      | 32.0 | No shard data from discovery yet                            |
+| Shard State | Cost | Reason |
+| --- | --- | --- |
+| Replica | 1.0 | Preferred -- lock-free Lucene snapshot, no write contention |
+| Primary | 2.0 | Acceptable -- contends with concurrent writes |
+| Relocating | 8.0 | Shard moving, may require proxy hop |
+| Initializing | 16.0 | Shard not yet ready to serve |
+| Unknown | 32.0 | No shard data from discovery yet |
 
 **Write operations** (index, bulk, update, delete):
 
@@ -1099,24 +1099,24 @@ Transient errors (5xx, network timeout) keep the state at Pending and retry on t
 
 A background poller calls `/_nodes/_local/stats/jvm,breaker,thread_pool` on each live node:
 
-| Condition                                     | Action                        |
-| --------------------------------------------- | ----------------------------- |
-| JVM `heap_used_percent` >= 85%                | `demoteOverloaded(conn)`      |
-| Any circuit breaker `estimated/limit` >= 0.90 | `demoteOverloaded(conn)`      |
-| Any circuit breaker `tripped` count increased | `demoteOverloaded(conn)`      |
-| Cluster health status `"red"`                 | `demoteOverloaded(conn)`      |
-| All metrics clear                             | `promoteFromOverloaded(conn)` |
+| Condition | Action |
+| --- | --- |
+| JVM `heap_used_percent` >= 85% | `demoteOverloaded(conn)` |
+| Any circuit breaker `estimated/limit` >= 0.90 | `demoteOverloaded(conn)` |
+| Any circuit breaker `tripped` count increased | `demoteOverloaded(conn)` |
+| Cluster health status `"red"` | `demoteOverloaded(conn)` |
+| All metrics clear | `promoteFromOverloaded(conn)` |
 
 Overloaded connections move from active to standby with `lcOverloaded` set. Unlike failures, the connection is healthy -- it's under excessive load. The stats poller clears the flag when metrics improve.
 
 ### Background Goroutines
 
-| Goroutine                      | Interval            | HTTP Calls                     | Purpose                            |
-| ------------------------------ | ------------------- | ------------------------------ | ---------------------------------- |
-| `discoveryLoop`                | 5m (configurable)   | `/_nodes/http`, `/_cat/shards` | Topology + shard placement refresh |
-| `scheduleNodeStats`            | Auto 5-30s          | `/_nodes/_local/stats`         | Load shedding, CWND updates        |
-| `scheduleClusterHealthRefresh` | Auto 5s-5m          | `/_cluster/health?local=true`  | Readiness gate, cluster status     |
-| `scheduleResurrect` (per conn) | Exponential backoff | `GET /`                        | Dead connection recovery           |
+| Goroutine | Interval | HTTP Calls | Purpose |
+| --- | --- | --- | --- |
+| `discoveryLoop` | 5m (configurable) | `/_nodes/http`, `/_cat/shards` | Topology + shard placement refresh |
+| `scheduleNodeStats` | Auto 5-30s | `/_nodes/_local/stats` | Load shedding, CWND updates |
+| `scheduleClusterHealthRefresh` | Auto 5s-5m | `/_cluster/health?local=true` | Readiness gate, cluster status |
+| `scheduleResurrect` (per conn) | Exponential backoff | `GET /` | Dead connection recovery |
 
 All goroutines derive a child context from `client.ctx`, so `Close()` cancels them all.
 
@@ -1130,12 +1130,12 @@ When a node fails, the client schedules resurrection with cluster-aware exponent
 finalTimeout = max(healthTimeout, rateLimitedTimeout, minimumFloor) + jitter
 ```
 
-| Input                | Formula                                                    | Purpose                        |
-| -------------------- | ---------------------------------------------------------- | ------------------------------ |
-| Health-ratio timeout | `initial × 2^(failures-1) × (liveNodes/totalNodes)`        | Healthy clusters wait longer   |
+| Input | Formula | Purpose |
+| --- | --- | --- |
+| Health-ratio timeout | `initial × 2^(failures-1) × (liveNodes/totalNodes)` | Healthy clusters wait longer |
 | Rate-limited timeout | `(liveNodes × clientsPerServer) / serverMaxNewConnsPerSec` | Throttles TLS handshake storms |
-| Minimum floor        | 500ms                                                      | Absolute lower bound           |
-|                      |                                                            |                                |
+| Minimum floor | 500ms | Absolute lower bound |
+|  |  |  |
 
 The capacity model values (`clientsPerServer=8`, `serverMaxNewConnsPerSec=32`) are auto-derived from the server's core count.
 
@@ -1213,12 +1213,12 @@ During the gap, remaining active connections serve traffic. If all are exhausted
 
 HTTP 2xx does **not** guarantee complete success. OpenSearch returns partial results rather than failing entirely:
 
-| Operation           | HTTP Status | Partial Failure Indicator | Impact                                     |
-| ------------------- | ----------- | ------------------------- | ------------------------------------------ |
-| Bulk                | 200         | `errors: true`            | Data loss -- some documents not indexed    |
-| Search              | 200         | `_shards.failed > 0`      | Incomplete results -- missing data         |
-| Index/Update/Delete | 201/200     | `_shards.failed > 0`      | Durability risk -- no replica confirmation |
-| Refresh             | 200         | `_shards.failed > 0`      | Incomplete refresh                         |
+| Operation | HTTP Status | Partial Failure Indicator | Impact |
+| --- | --- | --- | --- |
+| Bulk | 200 | `errors: true` | Data loss -- some documents not indexed |
+| Search | 200 | `_shards.failed > 0` | Incomplete results -- missing data |
+| Index/Update/Delete | 201/200 | `_shards.failed > 0` | Durability risk -- no replica confirmation |
+| Refresh | 200 | `_shards.failed > 0` | Incomplete refresh |
 
 Applications must always check these indicators. The Go client returns typed response structs that expose these fields directly.
 
@@ -1259,13 +1259,13 @@ The single most important metric. The fraction of requests eliminated from the c
 eta = 1 - n_s / N
 ```
 
-| Cluster  | Index (example)   | n_s | P(proxy) Round-Robin | P(proxy) Scored | eta  |
-| -------- | ----------------- | --- | -------------------- | --------------- | ---- |
-| 6-node   | products (1P/1R)  | 2   | 67%                  | ~0%             | 0.67 |
-| 32-node  | users (1P/1R)     | 2   | 94%                  | ~0%             | 0.94 |
-| 32-node  | events (8P/1R)    | 14  | 56%                  | ~0%             | 0.56 |
-| 256-node | reference (1P/1R) | 2   | 99%                  | ~0%             | 0.99 |
-| 256-node | logs (32P/1R)     | 50  | 80%                  | ~0%             | 0.80 |
+| Cluster | Index (example) | n_s | P(proxy) Round-Robin | P(proxy) Scored | eta |
+| --- | --- | --- | --- | --- | --- |
+| 6-node | products (1P/1R) | 2 | 67% | ~0% | 0.67 |
+| 32-node | users (1P/1R) | 2 | 94% | ~0% | 0.94 |
+| 32-node | events (8P/1R) | 14 | 56% | ~0% | 0.56 |
+| 256-node | reference (1P/1R) | 2 | 99% | ~0% | 0.99 |
+| 256-node | logs (32P/1R) | 50 | 80% | ~0% | 0.80 |
 
 **Measured**: On a 3-node cluster with a 0-replica index (n_s=1), scored routing directed 100% of 60,000 requests to the single shard-holding node at 320 req/s. Round-robin would have proxied 67%.
 
@@ -1375,9 +1375,9 @@ The bandwidth reduction is proportional to response size. Bulk write payloads (5
 
 ### Client-Side Memory Cost
 
-| Component               | Size       | Notes                                       |
-| ----------------------- | ---------- | ------------------------------------------- |
-| Per-index slot          | ~200-500 B | Name, fan-out, shard map, hash cache        |
+| Component | Size | Notes |
+| --- | --- | --- |
+| Per-index slot | ~200-500 B | Name, fan-out, shard map, hash cache |
 | Per-connection overhead | ~120-300 B | RTT ring, pool registry, in-flight counters |
 
 | Cluster  | Nodes | Indexes | Total Client RAM |
@@ -1423,11 +1423,11 @@ With no additional configuration, this enables the full scoring pipeline. Withou
 
 ### Pre-Built Routers
 
-| Router      | Constructor             | Use Case                                                                               |
-| ----------- | ----------------------- | -------------------------------------------------------------------------------------- |
-| Default     | `NewDefaultRouter()`    | Role-based + per-index connection scoring with RTT, congestion, and shard cost.        |
-| Mux         | `NewMuxRouter()`        | Role-based routing without connection scoring. Useful for debugging routing decisions. |
-| Round-Robin | `NewRoundRobinRouter()` | Coordinating-only preference with round-robin fallback. Simplest option.               |
+| Router | Constructor | Use Case |
+| --- | --- | --- |
+| Default | `NewDefaultRouter()` | Role-based + per-index connection scoring with RTT, congestion, and shard cost. |
+| Mux | `NewMuxRouter()` | Role-based routing without connection scoring. Useful for debugging routing decisions. |
+| Round-Robin | `NewRoundRobinRouter()` | Coordinating-only preference with round-robin fallback. Simplest option. |
 
 ```go
 // Role-based routing without connection scoring (useful for comparing behavior)
@@ -1650,16 +1650,16 @@ Overloaded nodes are demoted from the active partition to the standby partition 
 
 The `ConnectionObserver` interface provides 14 callbacks:
 
-| Category           | Methods                                                       |
-| ------------------ | ------------------------------------------------------------- |
-| Pool transitions   | `OnPromote`, `OnDemote`                                       |
-| Overload           | `OnOverloadDetected`, `OnOverloadCleared`                     |
-| Discovery          | `OnDiscoveryAdd`, `OnDiscoveryRemove`, `OnDiscoveryUnchanged` |
-| Health             | `OnHealthCheckPass`, `OnHealthCheckFail`                      |
-| Standby            | `OnStandbyPromote`, `OnStandbyDemote`                         |
-| Warmup             | `OnWarmupRequest`                                             |
-| Routing            | `OnRoute`                                                     |
-| Shard invalidation | `OnShardMapInvalidation`                                      |
+| Category | Methods |
+| --- | --- |
+| Pool transitions | `OnPromote`, `OnDemote` |
+| Overload | `OnOverloadDetected`, `OnOverloadCleared` |
+| Discovery | `OnDiscoveryAdd`, `OnDiscoveryRemove`, `OnDiscoveryUnchanged` |
+| Health | `OnHealthCheckPass`, `OnHealthCheckFail` |
+| Standby | `OnStandbyPromote`, `OnStandbyDemote` |
+| Warmup | `OnWarmupRequest` |
+| Routing | `OnRoute` |
+| Shard invalidation | `OnShardMapInvalidation` |
 
 ```go
 type myObserver struct {
@@ -1726,19 +1726,19 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 
 ### Client Configuration
 
-| Setting                   | Default      | Env Override                              | Description                                            |
-| ------------------------- | ------------ | ----------------------------------------- | ------------------------------------------------------ |
-| `RequestTimeout`          | 0 (none)     | `OPENSEARCH_GO_REQUEST_TIMEOUT`           | Per-attempt timeout for each HTTP round-trip           |
-| `DiscoverNodesInterval`   | 5m           | --                                        | Full topology + shard refresh interval                 |
-| `HealthCheckTimeout`      | 5s           | --                                        | Per-request health check timeout                       |
-| `ResurrectTimeoutInitial` | 5s           | --                                        | Starting backoff for dead connections                  |
-| `ResurrectTimeoutMax`     | 30s          | --                                        | Cap before jitter                                      |
-| `MinimumResurrectTimeout` | 500ms        | --                                        | Absolute floor                                         |
-| `JitterScale`             | 0.5          | --                                        | Jitter multiplier for resurrection                     |
-| `MaxRetryClusterHealth`   | 4h           | --                                        | Retry interval for unavailable cluster health endpoint |
-| `NodeStatsInterval`       | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                 |
-| `OverloadedHeapThreshold` | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                     |
-| `OverloadedBreakerRatio`  | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                |
+| Setting | Default | Env Override | Description |
+| --- | --- | --- | --- |
+| `RequestTimeout` | 0 (none) | `OPENSEARCH_GO_REQUEST_TIMEOUT` | Per-attempt timeout for each HTTP round-trip |
+| `DiscoverNodesInterval` | 5m | -- | Full topology + shard refresh interval |
+| `HealthCheckTimeout` | 5s | -- | Per-request health check timeout |
+| `ResurrectTimeoutInitial` | 5s | -- | Starting backoff for dead connections |
+| `ResurrectTimeoutMax` | 30s | -- | Cap before jitter |
+| `MinimumResurrectTimeout` | 500ms | -- | Absolute floor |
+| `JitterScale` | 0.5 | -- | Jitter multiplier for resurrection |
+| `MaxRetryClusterHealth` | 4h | -- | Retry interval for unavailable cluster health endpoint |
+| `NodeStatsInterval` | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL` | Stats polling interval |
+| `OverloadedHeapThreshold` | 85% | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold |
+| `OverloadedBreakerRatio` | 0.90 | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO` | Breaker ratio threshold |
 
 ### Router Options
 
@@ -1758,15 +1758,15 @@ router := opensearchtransport.NewDefaultRouter(
 )
 ```
 
-| Option                     | Default | Description                                                              |
-| -------------------------- | ------- | ------------------------------------------------------------------------ |
-| `WithMinFanOut(n)`         | 1       | Minimum nodes in an index slot. Floor for fan-out.                       |
-| `WithMaxFanOut(n)`         | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.     |
-| `WithDecayFactor(d)`       | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory. |
-| `WithFanOutPerRequest(f)`  | 500     | Decay counter value that maps to +1 fan-out node.                        |
-| `WithIdleEvictionTTL(d)`   | 90 min  | How long an idle index slot persists before eviction.                    |
-| `WithIndexFanOut(m)`       | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.               |
-| `WithShardExactRouting(b)` | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.           |
+| Option | Default | Description |
+| --- | --- | --- |
+| `WithMinFanOut(n)` | 1 | Minimum nodes in an index slot. Floor for fan-out. |
+| `WithMaxFanOut(n)` | 32 | Maximum nodes in an index slot. Caps pathologically sharded indexes. |
+| `WithDecayFactor(d)` | 0.999 | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory. |
+| `WithFanOutPerRequest(f)` | 500 | Decay counter value that maps to +1 fan-out node. |
+| `WithIdleEvictionTTL(d)` | 90 min | How long an idle index slot persists before eviction. |
+| `WithIndexFanOut(m)` | nil | Per-index fan-out overrides. Bypasses dynamic calculation. |
+| `WithShardExactRouting(b)` | true | Enable/disable murmur3 shard-exact routing. Env var overrides. |
 
 ### Feature Environment Variables
 
@@ -1774,17 +1774,17 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 #### Debug and Diagnostics
 
-| Variable              | Format | Default | Description                                                                |
-| --------------------- | ------ | ------- | -------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_DEBUG` | Bool   | `false` | Enable debug logging to stderr for routing, discovery, and pool operations |
+| Variable | Format | Default | Description |
+| --- | --- | --- | --- |
+| `OPENSEARCH_GO_DEBUG` | Bool | `false` | Enable debug logging to stderr for routing, discovery, and pool operations |
 
 #### Routing and Discovery
 
-| Variable                         | Format                          | Default       | Description                                                                                  |
-| -------------------------------- | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled) | Toggle shard-exact routing (`-shard_exact`)                                                  |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled) | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`        | Seed URL fallback when all pools exhausted. `false` = disable                                |
+| Variable | Format | Default | Description |
+| --- | --- | --- | --- |
+| `OPENSEARCH_GO_ROUTING_CONFIG` | Comma-separated flags/key=value | (all enabled) | Toggle shard-exact routing (`-shard_exact`) |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags | (all enabled) | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
+| `OPENSEARCH_GO_FALLBACK` | Bool | `true` | Seed URL fallback when all pools exhausted. `false` = disable |
 
 `OPENSEARCH_GO_ROUTING_CONFIG` flags:
 
@@ -1794,12 +1794,12 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 `OPENSEARCH_GO_DISCOVERY_CONFIG` flags:
 
-| Flag                 | Default | `-` effect                                                                 |
-| -------------------- | ------- | -------------------------------------------------------------------------- |
-| `cat_shards`         | enabled | Skip `GET /_cat/shards`. No shard placement data.                          |
+| Flag | Default | `-` effect |
+| --- | --- | --- |
+| `cat_shards` | enabled | Skip `GET /_cat/shards`. No shard placement data. |
 | `routing_num_shards` | enabled | Skip `GET /_cluster/state/metadata`. Shard-exact falls back to rendezvous. |
-| `cluster_health`     | enabled | Skip `GET /_cluster/health?local=true` probes.                             |
-| `node_stats`         | enabled | Skip `GET /_nodes/_local/stats` polling.                                   |
+| `cluster_health` | enabled | Skip `GET /_cluster/health?local=true` probes. |
+| `node_stats` | enabled | Skip `GET /_nodes/_local/stats` polling. |
 
 Examples:
 
@@ -1816,20 +1816,20 @@ OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-
 
 #### Load Shedding and Stats Polling
 
-| Variable                                  | Format              | Default       | Description                                                      |
-| ----------------------------------------- | ------------------- | ------------- | ---------------------------------------------------------------- |
-| `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto. Negative = disabled |
-| `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100)     | `85`          | JVM heap threshold. `100` = disable heap detection               |
-| `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Float (0.0-1.0)     | `0.90`        | Breaker ratio threshold. `1.0` = disable breaker detection       |
+| Variable | Format | Default | Description |
+| --- | --- | --- | --- |
+| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto. Negative = disabled |
+| `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100) | `85` | JVM heap threshold. `100` = disable heap detection |
+| `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO` | Float (0.0-1.0) | `0.90` | Breaker ratio threshold. `1.0` = disable breaker detection |
 
 #### Connection Pool Tuning
 
-| Variable                                  | Format              | Default | Description                                                             |
-| ----------------------------------------- | ------------------- | ------- | ----------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ACTIVE_LIST_CAP`           | Integer             | auto    | Max active connections per pool. `0` or unset = auto-scale with cluster |
-| `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | Duration or seconds | `30s`   | Interval between standby rotation cycles                                |
-| `OPENSEARCH_GO_STANDBY_ROTATION_COUNT`    | Integer             | `1`     | Standby connections rotated per cycle                                   |
-| `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`  | Integer             | `3`     | Consecutive health checks before standby-to-active promotion            |
+| Variable | Format | Default | Description |
+| --- | --- | --- | --- |
+| `OPENSEARCH_GO_ACTIVE_LIST_CAP` | Integer | auto | Max active connections per pool. `0` or unset = auto-scale with cluster |
+| `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | Duration or seconds | `30s` | Interval between standby rotation cycles |
+| `OPENSEARCH_GO_STANDBY_ROTATION_COUNT` | Integer | `1` | Standby connections rotated per cycle |
+| `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS` | Integer | `3` | Consecutive health checks before standby-to-active promotion |
 
 ### Policy Override Variables
 
@@ -1898,18 +1898,18 @@ The env override is applied once at startup, after policy configuration but befo
 
 ## Appendix A: Summary Formulas
 
-| Metric                             | Formula                                     |
-| ---------------------------------- | ------------------------------------------- |
-| Hop elimination rate               | `eta = 1 - n_s / N`                         |
-| Availability gain                  | `deltaA = p² × eta × (1 - p)`               |
-| Bandwidth saved per request        | `2d × eta`                                  |
-| Coordinator heap saved per request | `d × eta`                                   |
-| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)  |
-| Cross-AZ hops eliminated           | `eta × P(cross_AZ)`                         |
-| Scatter-gather reduction           | `P_before / P_after`                        |
-| Client-side index cache            | ~200-500 B per index                        |
-| Client-side connection overhead    | ~120-300 B per node                         |
-| Scoring formula                    | `rttBucket × (inFlight+1)/cwnd × shardCost` |
+| Metric | Formula |
+| --- | --- |
+| Hop elimination rate | `eta = 1 - n_s / N` |
+| Availability gain | `deltaA = p² × eta × (1 - p)` |
+| Bandwidth saved per request | `2d × eta` |
+| Coordinator heap saved per request | `d × eta` |
+| Blast radius (links at risk) | `n_s` (scored) vs `N(N-1)/2` (round-robin) |
+| Cross-AZ hops eliminated | `eta × P(cross_AZ)` |
+| Scatter-gather reduction | `P_before / P_after` |
+| Client-side index cache | ~200-500 B per index |
+| Client-side connection overhead | ~120-300 B per node |
+| Scoring formula | `rttBucket × (inFlight+1)/cwnd × shardCost` |
 
 ---
 
@@ -1930,11 +1930,11 @@ Latency:    p50=9ms  p95=20ms  p99=24ms  max=43ms
 
 Three indexes running simultaneously, three completely different distributions:
 
-| Index                     | Shards       | Node Distribution | Behavior                    |
-| ------------------------- | ------------ | ----------------- | --------------------------- |
-| demo-replicated (1P/2R)   | All 3 nodes  | 35% / 35% / 30%   | Balanced, cwnd-driven       |
-| demo-partial (1P/1R)      | 2 of 3 nodes | 50% / 50% / 0%    | Non-shard node excluded     |
-| demo-primary-only (1P/0R) | 1 node       | 0% / 0% / 100%    | All traffic to shard holder |
+| Index | Shards | Node Distribution | Behavior |
+| --- | --- | --- | --- |
+| demo-replicated (1P/2R) | All 3 nodes | 35% / 35% / 30% | Balanced, cwnd-driven |
+| demo-partial (1P/1R) | 2 of 3 nodes | 50% / 50% / 0% | Non-shard node excluded |
+| demo-primary-only (1P/0R) | 1 node | 0% / 0% / 100% | All traffic to shard holder |
 
 ### Operation-Aware Routing on demo-replicated
 
