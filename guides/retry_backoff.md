@@ -66,10 +66,10 @@ To limit total wait time when the server is unresponsive, use a context with a d
 
 `RequestTimeout` and context deadlines serve different purposes:
 
-| Mechanism             | Scope       | Applies to                                                  |
-| --------------------- | ----------- | ----------------------------------------------------------- |
-| `RequestTimeout`      | Per-attempt | Each individual HTTP round-trip (including each retry)      |
-| `context.WithTimeout` | Total       | The entire operation across all attempts and backoff delays |
+| Mechanism | Scope | Applies to |
+| --- | --- | --- |
+| `RequestTimeout` | Per-attempt | Each individual HTTP round-trip (including each retry) |
+| `context.WithTimeout` | Total | The entire operation across all attempts and backoff delays |
 
 Use both together for defense in depth: `RequestTimeout` prevents any single attempt from hanging indefinitely, while a context deadline caps the total wall-clock time.
 
