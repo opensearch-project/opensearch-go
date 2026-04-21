@@ -262,7 +262,6 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		testutil.SkipIfVersion(t, "<", "2.2.0", "shard-exact pipeline (security plugin OptionalDataException)")
 	}
 
-
 	u := testutil.GetTestURL(t)
 
 	// --- Observer that captures RouteEvent per request ---

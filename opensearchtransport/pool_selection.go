@@ -77,14 +77,16 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 				// Check if warmup finished and cap enforcement is needed.
 				warmupDone := !conn.loadConnState().isWarmingUp()
 				if warmupDone && cp.activeListCap > 0 && cp.mu.activeCount > cp.activeListCap {
-					if debugLogger != nil {
-						debugLogger.Logf("[%s] Next: warmup complete for %s, triggering cap enforcement (active=%d, cap=%d)\n",
+					if dl := loadDebugLogger(); dl != nil {
+						dl.Logf("[%s] Next: warmup complete for %s, triggering cap enforcement (active=%d, cap=%d)\n",
 							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
 					}
 					go cp.deferredCapEnforcement()
-				} else if warmupDone && debugLogger != nil {
-					debugLogger.Logf("[%s] Next: warmup complete for %s, no cap enforcement (active=%d, cap=%d)\n",
-						cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
+				} else if warmupDone {
+					if dl := loadDebugLogger(); dl != nil {
+						dl.Logf("[%s] Next: warmup complete for %s, no cap enforcement (active=%d, cap=%d)\n",
+							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
+					}
 				}
 
 				// Notify observer: warmup accept (State.IsWarmingUp() tells
@@ -262,8 +264,8 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 		cp.metrics.connectionsDemoted.Add(1)
 	}
 
-	if debugLogger != nil {
-		debugLogger.Logf("[%s] Next: evicted externally-demoted %q (state=%s, active=%d, dead=%d)\n",
+	if dl := loadDebugLogger(); dl != nil {
+		dl.Logf("[%s] Next: evicted externally-demoted %q (state=%s, active=%d, dead=%d)\n",
 			cp.name, c.URL, ConnState{packed: int64(state)}.Hex(), cp.mu.activeCount, len(cp.mu.dead))
 	}
 

@@ -37,14 +37,30 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
-var debugLogger DebuggingLogger
+var debugLoggerPtr atomic.Pointer[DebuggingLogger]
+
+func loadDebugLogger() DebuggingLogger {
+	if p := debugLoggerPtr.Load(); p != nil {
+		return *p
+	}
+	return nil
+}
+
+func storeDebugLogger(dl DebuggingLogger) {
+	if dl == nil {
+		debugLoggerPtr.Store(nil)
+	} else {
+		debugLoggerPtr.Store(&dl)
+	}
+}
 
 func init() { //nolint:gochecknoinits // Only set implicitly once at startup
 	if enabled, _ := strconv.ParseBool(os.Getenv("OPENSEARCH_GO_DEBUG")); enabled {
-		debugLogger = &debuggingLogger{Output: os.Stderr}
+		storeDebugLogger(&debuggingLogger{Output: os.Stderr})
 	}
 }
 

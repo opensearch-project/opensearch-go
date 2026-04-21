@@ -191,8 +191,8 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 				lcReady|lcActive|lcStandby,
 			)
 			conn.mu.Unlock()
-			if debugLogger != nil {
-				debugLogger.Logf("Stats poll failed for %q, clearing overloaded flag (resurrection scheduler will handle): %v\n", conn.URL, err)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("Stats poll failed for %q, clearing overloaded flag (resurrection scheduler will handle): %v\n", conn.URL, err)
 			}
 		}
 		return
@@ -267,8 +267,8 @@ func (c *Client) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	conn.mu.RUnlock()
 
 	if health != nil && health.Status == "red" {
-		if debugLogger != nil {
-			debugLogger.Logf("Node %q overloaded: cluster status is red\n", conn.URL)
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Node %q overloaded: cluster status is red\n", conn.URL)
 		}
 		overloaded = true
 	}
@@ -277,8 +277,8 @@ func (c *Client) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 
 	// JVM heap usage
 	if stats.JVM.Mem.HeapUsedPercent >= c.overloadedHeapThreshold {
-		if debugLogger != nil {
-			debugLogger.Logf("Node %q overloaded: heap_used_percent=%d >= threshold=%d\n",
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Node %q overloaded: heap_used_percent=%d >= threshold=%d\n",
 				conn.URL, stats.JVM.Mem.HeapUsedPercent, c.overloadedHeapThreshold)
 		}
 		overloaded = true
@@ -295,8 +295,8 @@ func (c *Client) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 		if breaker.LimitSizeInBytes > 0 {
 			ratio := float64(breaker.EstimatedSizeInBytes) / float64(breaker.LimitSizeInBytes)
 			if ratio >= c.overloadedBreakerRatio {
-				if debugLogger != nil {
-					debugLogger.Logf("Node %q overloaded: breaker %q size ratio=%.3f >= threshold=%.3f\n",
+				if dl := loadDebugLogger(); dl != nil {
+					dl.Logf("Node %q overloaded: breaker %q size ratio=%.3f >= threshold=%.3f\n",
 						conn.URL, name, ratio, c.overloadedBreakerRatio)
 				}
 				overloaded = true
@@ -308,8 +308,8 @@ func (c *Client) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 		conn.mu.lastBreakerTripped[name] = breaker.Tripped
 
 		if existed && breaker.Tripped > prevTripped {
-			if debugLogger != nil {
-				debugLogger.Logf("Node %q overloaded: breaker %q tripped %d times since last poll (prev=%d, now=%d)\n",
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("Node %q overloaded: breaker %q tripped %d times since last poll (prev=%d, now=%d)\n",
 					conn.URL, name, breaker.Tripped-prevTripped, prevTripped, breaker.Tripped)
 			}
 			overloaded = true
@@ -523,8 +523,8 @@ func (c *Client) refreshClusterHealth(conn *Connection) {
 
 	health, statusCode, err := c.fetchClusterHealth(c.ctx, conn.URL, applyModifier)
 	if err != nil {
-		if debugLogger != nil {
-			debugLogger.Logf("Cluster health refresh failed for %q: %v\n", conn.URL, err)
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Cluster health refresh failed for %q: %v\n", conn.URL, err)
 		}
 		return
 	}
@@ -539,8 +539,8 @@ func (c *Client) refreshClusterHealth(conn *Connection) {
 	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
 		resetClusterHealth(conn)
 
-		if debugLogger != nil {
-			debugLogger.Logf("Cluster health refresh got %d for %q, resetting to pending\n",
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Cluster health refresh got %d for %q, resetting to pending\n",
 				statusCode, conn.URL)
 		}
 

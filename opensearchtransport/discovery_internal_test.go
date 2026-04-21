@@ -2224,6 +2224,7 @@ func TestGetNodesInfoNodesMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
 			rt := mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: http.StatusOK,

@@ -325,12 +325,12 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 				continue
 			}
 			overrider.setEnvOverride(*override.applyAll)
-			if debugLogger != nil {
+			if dl := loadDebugLogger(); dl != nil {
 				action := "enabled"
 				if !*override.applyAll {
 					action = "disabled"
 				}
-				debugLogger.Logf("Policy override: %s %s at path %q (env: %s)\n",
+				dl.Logf("Policy override: %s %s at path %q (env: %s)\n",
 					action, typeName, path, override.envKey)
 			}
 			continue
@@ -355,12 +355,12 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 			}
 
 			overrider.setEnvOverride(m.enable)
-			if debugLogger != nil {
+			if dl := loadDebugLogger(); dl != nil {
 				action := "enabled"
 				if !m.enable {
 					action = "disabled"
 				}
-				debugLogger.Logf("Policy override: %s %s at path %q (env: %s, matcher: %q)\n",
+				dl.Logf("Policy override: %s %s at path %q (env: %s, matcher: %q)\n",
 					action, typeName, path, override.envKey, m.raw)
 			}
 			break // First match wins for this override
