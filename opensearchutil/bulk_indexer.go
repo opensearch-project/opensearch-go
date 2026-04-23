@@ -43,6 +43,9 @@ import (
 
 const defaultFlushInterval = 30 * time.Second
 
+//nolint:mnd // Well-known power-of-two buffer cap.
+const defaultMetaBufferPoolMaxBytes = 32 << 10 // 32 KiB
+
 // BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
 type BulkIndexer interface {
 	// Add adds an item to the indexer. It returns an error when the item cannot be added.
@@ -92,6 +95,11 @@ type BulkIndexerConfig struct {
 	SourceIncludes      []string
 	Timeout             time.Duration
 	WaitForActiveShards string
+
+	// MetaBufferPoolMaxBytes is the upper bound for buffers retained in
+	// the metadata serialization pool. Buffers that grow beyond this
+	// cap are discarded instead of returned. Defaults to 32 KiB.
+	MetaBufferPoolMaxBytes int
 }
 
 // BulkIndexerStats represents the indexer statistics.
@@ -153,6 +161,9 @@ type bulkIndexer struct {
 	done    chan bool
 	stats   *bulkIndexerStats
 
+	metaPool         sync.Pool
+	metaPoolMaxBytes int
+
 	config BulkIndexerConfig
 }
 
@@ -194,10 +205,21 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		cfg.FlushInterval = defaultFlushInterval
 	}
 
+	if cfg.MetaBufferPoolMaxBytes == 0 {
+		cfg.MetaBufferPoolMaxBytes = defaultMetaBufferPoolMaxBytes
+	}
+
 	bi := bulkIndexer{
-		config: cfg,
-		done:   make(chan bool),
-		stats:  &bulkIndexerStats{},
+		config:           cfg,
+		done:             make(chan bool),
+		stats:            &bulkIndexerStats{},
+		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
+		metaPool: sync.Pool{
+			New: func() any {
+				//nolint:mnd // 512B matches the original per-worker aux preallocation.
+				return bytes.NewBuffer(make([]byte, 0, 512))
+			},
+		},
 	}
 
 	bi.init(cfg.Context)
@@ -281,8 +303,6 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 			ch:  bi.queue,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
-			//nolint:mnd // Predefine the slice capacity
-			aux: make([]byte, 0, 512),
 		}
 		w.run(ctx)
 		bi.workers = append(bi.workers, &w)
@@ -330,7 +350,6 @@ type worker struct {
 	mu    sync.Mutex
 	bi    *bulkIndexer
 	buf   *bytes.Buffer
-	aux   []byte
 	items []BulkIndexerItem
 }
 
@@ -426,26 +445,31 @@ func (w *worker) writeMeta(item BulkIndexerItem) error {
 		meta.VersionType = nil
 	}
 
-	w.aux, err = json.Marshal(map[string]bulkActionMetadata{
+	buf := w.bi.metaPool.Get().(*bytes.Buffer)
+	buf.Reset()
+
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
+
+	err = enc.Encode(map[string]bulkActionMetadata{
 		item.Action: meta,
 	})
 	if err != nil {
+		w.bi.putMetaBuffer(buf)
 		return err
 	}
 
-	_, err = w.buf.Write(w.aux)
-	if err != nil {
-		return err
+	_, err = w.buf.Write(buf.Bytes())
+
+	w.bi.putMetaBuffer(buf)
+
+	return err
+}
+
+func (bi *bulkIndexer) putMetaBuffer(buf *bytes.Buffer) {
+	if buf.Cap() <= bi.metaPoolMaxBytes {
+		bi.metaPool.Put(buf)
 	}
-
-	w.aux = w.aux[:0]
-
-	_, err = w.buf.WriteRune('\n')
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // writeBody writes the item body to the buffer; it must be called under a lock.
