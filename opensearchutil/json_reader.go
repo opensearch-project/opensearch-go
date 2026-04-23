@@ -82,7 +82,9 @@ func (r *JSONReader) encode(w io.Writer) error {
 		return nil
 	}
 
-	return json.NewEncoder(w).Encode(r.val)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	return enc.Encode(r.val)
 }
 
 type countingWriter struct {

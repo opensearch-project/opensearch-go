@@ -86,4 +86,44 @@ func TestJSONReader(t *testing.T) {
 			t.Fatalf("Expected error, got: %#v", err)
 		}
 	})
+
+	t.Run("HTML characters are not escaped", func(t *testing.T) {
+		tests := []struct {
+			name string
+			val  any
+			want string
+		}{
+			{
+				"angle brackets",
+				map[string]string{"id": "prefix|<root_account>|suffix"},
+				`{"id":"prefix|<root_account>|suffix"}` + "\n",
+			},
+			{
+				"ampersand",
+				map[string]string{"q": "foo&bar"},
+				`{"q":"foo&bar"}` + "\n",
+			},
+			{
+				"mixed",
+				map[string]string{"v": "a&b<c>d"},
+				`{"v":"a&b<c>d"}` + "\n",
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name+"/Read", func(t *testing.T) {
+				out, _ := io.ReadAll(NewJSONReader(tt.val))
+				if string(out) != tt.want {
+					t.Fatalf("got %s, want %s", out, tt.want)
+				}
+			})
+			t.Run(tt.name+"/WriteTo", func(t *testing.T) {
+				var b bytes.Buffer
+				r := JSONReader{val: tt.val}
+				r.WriteTo(&b)
+				if b.String() != tt.want {
+					t.Fatalf("got %s, want %s", b.String(), tt.want)
+				}
+			})
+		}
+	})
 }

@@ -145,6 +145,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Fix bulk indexer HTML-escaping `_id` and `routing` values containing `<`, `>`, or `&` characters, causing OpenSearch to store escaped values (e.g., `\u003croot_account\u003e` stored instead of `<root_account>`), leading to duplicate documents, unreachable data on read-by-ID paths, and potential shard routing mismatches. Present since the `json.Marshal` migration in 2021 (commit `3da59092`). Replace `json.Marshal` with `json.NewEncoder` + `SetEscapeHTML(false)` in `opensearchutil.worker.writeMeta` and `opensearchutil.JSONReader`; replace per-worker `aux []byte` with `sync.Pool`-backed `*bytes.Buffer` ([#824](https://github.com/opensearch-project/opensearch-go/pull/824))
 - Fix pool replacement orphaning resurrection goroutines during node discovery, causing connections to become permanently dead with no active health checker ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))
