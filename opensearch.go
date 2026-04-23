@@ -200,6 +200,10 @@ type Config struct {
 	Router    opensearchtransport.Router             // Optional router for request-aware routing.
 	Observer  opensearchtransport.ConnectionObserver // Optional observer for connection lifecycle events.
 
+	// ShardCostConfig overrides shard cost multipliers for connection scoring.
+	// See [opensearchtransport.Config.ShardCostConfig] for format details.
+	ShardCostConfig string
+
 	// Context for background operations (node discovery, health checks, stats polling).
 	// If nil, context.Background() is used. The transport derives a child context from
 	// this, so canceling the parent automatically stops all background goroutines.
@@ -209,6 +213,32 @@ type Config struct {
 
 	// Optional constructor function for a custom ConnectionPool. Default: nil.
 	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
+
+	// AddressResolver is called during node discovery for each node discovered
+	// via /_nodes/http. If non-nil, it can rewrite a node's URL before it enters
+	// the connection pool. This is useful for redirecting traffic through sidecar
+	// proxies or rewriting hostnames for network topology.
+	// Default: nil (no address rewriting).
+	AddressResolver opensearchtransport.AddressResolverFunc
+
+	// MaxAddressResolvers sets the maximum number of concurrent AddressResolverFunc
+	// invocations during a single discovery cycle.
+	// 0 = auto-derive: min(len(nodes), runtime.GOMAXPROCS(0)) per cycle.
+	// 1 = serial (no goroutines spawned).
+	// >1 = explicit concurrency cap.
+	// <0 = unlimited (all nodes resolved concurrently).
+	// Default: 0 (auto-derive). Only meaningful when AddressResolver is non-nil.
+	MaxAddressResolvers int
+
+	// AddressResolverRunner replaces the built-in resolution handler when set.
+	// It receives all discovered nodes and the per-node AddressResolverFunc,
+	// and returns resolved addresses. This allows custom orchestration policies:
+	// stricter failure handling, retry logic, batched resolution, etc.
+	//
+	// When set, MaxAddressResolvers is ignored. AddressResolver is still passed
+	// to the runner as the per-node resolve function.
+	// Default: nil (built-in handler).
+	AddressResolverRunner opensearchtransport.AddressResolverRunnerFunc
 }
 
 // Client represents the OpenSearch client.
@@ -305,13 +335,17 @@ func NewClient(cfg Config) (*Client, error) {
 		StandbyRotationCount:    cfg.StandbyRotationCount,
 		StandbyPromotionChecks:  cfg.StandbyPromotionChecks,
 
-		Transport:          cfg.Transport,
-		Logger:             cfg.Logger,
-		Selector:           cfg.Selector,
-		Router:             cfg.Router,
-		Observer:           cfg.Observer,
-		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
-		Context:            cfg.Context,
+		Transport:             cfg.Transport,
+		Logger:                cfg.Logger,
+		Selector:              cfg.Selector,
+		Router:                cfg.Router,
+		Observer:              cfg.Observer,
+		ShardCostConfig:       cfg.ShardCostConfig,
+		ConnectionPoolFunc:    cfg.ConnectionPoolFunc,
+		AddressResolver:       cfg.AddressResolver,
+		MaxAddressResolvers:   cfg.MaxAddressResolvers,
+		AddressResolverRunner: cfg.AddressResolverRunner,
+		Context:               cfg.Context,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)
@@ -381,7 +415,12 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	return c.Transport.Perform(req)
 }
 
-// Do gets and performs the request. It also tries to parse the response into the dataPointer
+// Do gets and performs the request. It also tries to parse the response into the dataPointer.
+//
+// Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
+// Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
+// unmarshaling. The method remains fully functional and will not be removed; this annotation
+// exists to steer callers toward the safer generic alternative.
 func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Response, error) {
 	httpReq, err := req.GetRequest()
 	if err != nil {
@@ -418,6 +457,12 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Respons
 	}
 
 	return response, nil
+}
+
+// Do is a generic version of [Client.Do] that enforces dataPointer as a pointer at compile time.
+// It delegates to [Client.Do] after the type system has guaranteed *T.
+func Do[T any](ctx context.Context, c *Client, req Request, dataPointer *T) (*Response, error) {
+	return c.Do(ctx, req, dataPointer)
 }
 
 // Metrics returns the client metrics.

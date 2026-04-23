@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -23,13 +22,12 @@ type DataStreamDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DataStreamDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		fmt.Sprintf("/_data_stream/%s", r.DataStream),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_data_stream", Name: opensearch.Name(r.DataStream)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
 }
 
 // DataStreamDeleteResp represents the returned struct of the _data_stream delete response

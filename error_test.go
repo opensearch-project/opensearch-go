@@ -318,11 +318,11 @@ func TestError(t *testing.T) {
 
 		// Parse the error
 		err := opensearch.ParseError(resp)
-		require.NotNil(t, err)
+		require.Error(t, err)
 
 		// Verify the body is still readable after ParseError
 		body, readErr := io.ReadAll(resp.Body)
-		require.Nil(t, readErr, "body should be readable after ParseError")
+		require.NoError(t, readErr, "body should be readable after ParseError")
 		require.NotEmpty(t, body, "body should not be empty after ParseError")
 
 		// Verify the body content matches the original

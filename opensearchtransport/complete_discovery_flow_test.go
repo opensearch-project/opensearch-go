@@ -33,7 +33,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
-	testutil.SkipIfSingleNode(t, 2)
+	testutil.RequireMinNodes(t, 2)
 
 	// Create mux router (includes IfEnabledPolicy for coordinator_only nodes)
 	router := opensearchtransport.NewMuxRouter()

@@ -20,7 +20,7 @@ func (c dataStreamClient) Create(ctx context.Context, req DataStreamCreateReq) (
 		data DataStreamCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -33,7 +33,7 @@ func (c dataStreamClient) Delete(ctx context.Context, req DataStreamDeleteReq) (
 		data DataStreamDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -50,7 +50,7 @@ func (c dataStreamClient) Get(ctx context.Context, req *DataStreamGetReq) (*Data
 		data DataStreamGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -67,7 +67,7 @@ func (c dataStreamClient) Stats(ctx context.Context, req *DataStreamStatsReq) (*
 		data DataStreamStatsResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

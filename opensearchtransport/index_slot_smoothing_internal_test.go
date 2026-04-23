@@ -266,7 +266,7 @@ func TestPolicyChain_SmoothedMaxBucketForIndex(t *testing.T) {
 func TestFindRouterCache_WalksTree(t *testing.T) {
 	cache := newIndexSlotCache(indexSlotCacheConfig{})
 	inner := &IndexRouter{cache: cache}
-	wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "")
+	wrapper := wrapWithRouter(inner, cache, defaultDecayFactor, &shardCostForReads, "", nil)
 
 	chain := &PolicyChain{policies: []Policy{wrapper}}
 

@@ -9,7 +9,6 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -30,13 +29,12 @@ func (r TenantsPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/tenants/%s", r.Tenant),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "tenants", Name: opensearch.Name(r.Tenant)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // TenantsPutBody is the request body for the TenantsPutReq

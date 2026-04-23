@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -27,37 +26,30 @@ type DocumentCreateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentCreateReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(10 + len(r.Index) + len(r.DocumentID))
-	path.WriteString("/")
-	path.WriteString(r.Index)
-	path.WriteString("/_create/")
-	path.WriteString(r.DocumentID)
-	return opensearch.BuildRequest(
-		"PUT",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.DocumentPath{
+		Index:      opensearch.Index(r.Index),
+		Action:     "_create",
+		DocumentID: opensearch.DocumentID(r.DocumentID),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // DocumentCreateResp represents the returned struct of the /_doc response
 type DocumentCreateResp struct {
-	Index         string `json:"_index"`
-	ID            string `json:"_id"`
-	Version       int    `json:"_version"`
-	Result        string `json:"result"`
-	Type          string `json:"_type"` // Deprecated field
-	ForcedRefresh bool   `json:"forced_refresh"`
-	Shards        struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-	SeqNo       int `json:"_seq_no"`
-	PrimaryTerm int `json:"_primary_term"`
-	response    *opensearch.Response
+	Index         string         `json:"_index"`
+	ID            string         `json:"_id"`
+	Version       int            `json:"_version"`
+	Result        string         `json:"result"`
+	Type          string         `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
+	ForcedRefresh bool           `json:"forced_refresh"`
+	Shards        ResponseShards `json:"_shards"`
+	SeqNo         int            `json:"_seq_no"`
+	PrimaryTerm   int            `json:"_primary_term"`
+	response      *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

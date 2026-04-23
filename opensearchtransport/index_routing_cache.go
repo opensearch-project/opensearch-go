@@ -66,6 +66,9 @@ type indexSlotCache struct {
 	// Feature configuration from OPENSEARCH_GO_ROUTING_CONFIG.
 	// Evaluated once at client init time and immutable after.
 	features routingFeatures // bitfield: zero = all enabled
+
+	// Adaptive max_concurrent_shard_requests limits.
+	adaptiveConcurrency adaptiveConcurrencyConfig
 }
 
 // indexSlot is the per-index routing state.
@@ -157,13 +160,14 @@ type indexShardMap struct {
 // newIndexSlotCache creates a cache with the given configuration.
 func newIndexSlotCache(cfg indexSlotCacheConfig) *indexSlotCache {
 	c := &indexSlotCache{
-		minFanOut:       cfg.minFanOut,
-		maxFanOut:       cfg.maxFanOut,
-		overrides:       cfg.overrides,
-		idleEvictionTTL: cfg.idleEvictionTTL,
-		decayFactor:     cfg.decayFactor,
-		fanOutPerReq:    cfg.fanOutPerReq,
-		features:        cfg.features,
+		minFanOut:           cfg.minFanOut,
+		maxFanOut:           cfg.maxFanOut,
+		overrides:           cfg.overrides,
+		idleEvictionTTL:     cfg.idleEvictionTTL,
+		decayFactor:         cfg.decayFactor,
+		fanOutPerReq:        cfg.fanOutPerReq,
+		features:            cfg.features,
+		adaptiveConcurrency: cfg.adaptiveConcurrency,
 	}
 	c.entries.Store(new(sync.Map))
 
@@ -197,6 +201,9 @@ type indexSlotCacheConfig struct {
 
 	// Feature configuration from OPENSEARCH_GO_ROUTING_CONFIG.
 	features routingFeatures // bitfield: zero = all enabled
+
+	// Adaptive max_concurrent_shard_requests limits.
+	adaptiveConcurrency adaptiveConcurrencyConfig
 }
 
 // getOrCreate returns the slot for indexName, creating one if needed.
@@ -298,13 +305,19 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 		slot := value.(*indexSlot)
 
 		// Update shard placement if data is available.
-		if shardPlacement != nil { //nolint:nestif // shard placement update requires nested map access
+		if shardPlacement != nil {
 			if placement, ok := shardPlacement[indexName]; ok {
 				nodes := placement.Nodes
 				slot.shardNodeCount.Store(int32(len(nodes))) //nolint:gosec // Node count bounded by cluster size.
 				slot.shardNodeNames.Store(&nodes)
 
 				// Update per-shard-number map for murmur3 routing.
+				// Only store a new map when placement data is complete.
+				// When ShardToNodes is empty (e.g., transient /_cat/shards
+				// response during shard relocation), preserve the existing
+				// map rather than niling it -- a stale shard map still
+				// routes correctly; a nil one disables shard-exact routing
+				// entirely until the next successful discovery cycle.
 				if len(placement.ShardToNodes) > 0 {
 					sm := &indexShardMap{
 						NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
@@ -312,14 +325,17 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 						Shards:                placement.ShardToNodes,
 					}
 					slot.shardMap.Store(sm)
-				} else {
-					slot.shardMap.Store(nil)
 				}
 			} else {
-				// Index not in shard data -- may have been deleted.
+				// Index not in shard data -- may have been deleted or
+				// the /_cat/shards response was truncated/stale. Clear
+				// node counts (safe -- they only affect fan-out floor)
+				// but preserve the shard map so that in-flight requests
+				// can still use shard-exact routing. The idle eviction
+				// below will eventually reclaim the entire slot if the
+				// index is truly gone.
 				slot.shardNodeCount.Store(0)
 				slot.shardNodeNames.Store(nil)
-				slot.shardMap.Store(nil)
 			}
 		}
 

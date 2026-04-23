@@ -23,7 +23,7 @@ func (c Client) Retry(ctx context.Context, req RetryReq) (RetryResp, error) {
 		data RetryResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 
@@ -49,22 +49,12 @@ func (r RetryReq) GetRequest() (*http.Request, error) {
 		reqBody = bytes.NewReader(body)
 	}
 
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("/_plugins/_ism/retry/") + len(indices))
-	path.WriteString("/_plugins/_ism/retry")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_ism/retry", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodPost,
-		path.String(),
-		reqBody,
-		make(map[string]string),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, reqBody, make(map[string]string), r.Header)
 }
 
 // RetryResp represents the returned struct of the retry policy response

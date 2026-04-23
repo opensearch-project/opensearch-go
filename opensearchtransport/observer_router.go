@@ -68,6 +68,12 @@ type RouteEvent struct {
 	// rendezvous hashing (e.g., shard map not yet loaded).
 	ShardExactMatch bool
 
+	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
+	// from the selected connection's search pool cwnd. Zero when adaptive
+	// concurrency does not apply (shard-exact routing, non-search pool,
+	// feature disabled, or pre-existing caller override).
+	MaxConcurrentShardRequests int
+
 	// Timestamp is when the routing decision was made.
 	Timestamp time.Time
 }
@@ -125,6 +131,10 @@ type RouteCandidate struct {
 // newRouteCandidate creates a RouteCandidate snapshot from a connection.
 // When shard is non-nil (shard lookup path), uses [forShard] for per-shard
 // primary/replica cost. When nil, uses [forNode] with per-node aggregate data.
+//
+// When scoreFunc is non-nil, it is used to compute the score (matching
+// the dynamic scoring logic in [connScoreSelect]). When nil, the static
+// formula is used via [calcConnDefaultScore].
 func newRouteCandidate(
 	conn *Connection,
 	slot *indexSlot,
@@ -132,14 +142,19 @@ func newRouteCandidate(
 	costs *shardCostMultiplier,
 	poolName string,
 	poolInfoReady bool,
+	scoreFunc connScoreFunc,
 ) RouteCandidate {
 	bucket := conn.rttRing.medianBucket()
 	var scm float64
+	var primaryPct float64
 	switch {
 	case shard != nil:
 		scm = costs.forShard(shard, conn.Name)
+		primaryPct = calcShardPrimaryPct(shard, conn.Name)
 	case slot != nil:
-		scm = costs.forNode(slot.shardNodeInfoFor(conn.Name))
+		nodeInfo := slot.shardNodeInfoFor(conn.Name)
+		scm = costs.forNode(nodeInfo)
+		primaryPct = calcNodePrimaryPct(nodeInfo)
 	default:
 		scm = costs.forNode(nil) // cluster-level: no index slot
 	}
@@ -147,11 +162,15 @@ func newRouteCandidate(
 	cwnd := conn.loadCwnd(poolName, poolInfoReady)
 	overloaded := conn.isPoolOverloaded(poolName)
 
-	// Compute score using the same formula as calcConnScore.
-	utilization := (float64(inFlight) + 1.0) / float64(cwnd)
-	score := float64(bucket) * utilization * scm
-	if overloaded {
+	// Compute score using the same logic as connScoreSelect.
+	var score float64
+	switch {
+	case overloaded:
 		score = math.MaxFloat64
+	case scoreFunc != nil:
+		score = scoreFunc(conn, scm, primaryPct, poolName, poolInfoReady)
+	default:
+		score = calcConnDefaultScore(conn, scm, poolName, poolInfoReady)
 	}
 
 	// Compute warmup penalty for observability.
@@ -183,46 +202,55 @@ func newRouteCandidate(
 	}
 }
 
+// routeEventParams collects the inputs for [buildRouteEvent].
+// Using a struct avoids a 16-parameter positional function signature.
+type routeEventParams struct {
+	indexName           string
+	key                 string
+	fanOut              int
+	totalNodes          int
+	candidates          []*Connection
+	best                *Connection
+	slot                *indexSlot
+	shard               *shardNodes
+	costs               *shardCostMultiplier
+	poolName            string
+	routingValue        string
+	effectiveRoutingKey string
+	targetShard         int
+	shardExactMatch     bool
+	poolInfoReady       bool
+	adaptiveMCSR        int
+	scoreFunc           connScoreFunc
+}
+
 // buildRouteEvent constructs a RouteEvent from a completed
 // routing decision. Called after the best candidate is selected.
-func buildRouteEvent(
-	indexName, key string,
-	fanOut, totalNodes int,
-	candidates []*Connection,
-	best *Connection,
-	slot *indexSlot,
-	shard *shardNodes,
-	costs *shardCostMultiplier,
-	poolName string,
-	routingValue string,
-	effectiveRoutingKey string,
-	targetShard int,
-	shardExactMatch bool,
-	poolInfoReady bool,
-) RouteEvent {
-	cs := make([]RouteCandidate, len(candidates))
+func buildRouteEvent(p routeEventParams) RouteEvent {
+	cs := make([]RouteCandidate, len(p.candidates))
 	var selected RouteCandidate
-	for i, c := range candidates {
-		cs[i] = newRouteCandidate(c, slot, shard, costs, poolName, poolInfoReady)
-		if c == best {
+	for i, c := range p.candidates {
+		cs[i] = newRouteCandidate(c, p.slot, p.shard, p.costs, p.poolName, p.poolInfoReady, p.scoreFunc)
+		if c == p.best {
 			selected = cs[i]
 		}
 	}
 
 	return RouteEvent{
-		IndexName:           indexName,
-		Key:                 key,
-		FanOut:              fanOut,
-		TotalNodes:          totalNodes,
-		CandidateCount:      len(candidates),
-		Selected:            selected,
-		Candidates:          cs,
-		ShardMapLoaded:      slot != nil && slot.shardNodeNames.Load() != nil,
-		RoutingValue:        routingValue,
-		EffectiveRoutingKey: effectiveRoutingKey,
-		TargetShard:         targetShard,
-		ShardExactMatch:     shardExactMatch,
-		Timestamp:           time.Now().UTC(),
+		IndexName:                  p.indexName,
+		Key:                        p.key,
+		FanOut:                     p.fanOut,
+		TotalNodes:                 p.totalNodes,
+		CandidateCount:             len(p.candidates),
+		Selected:                   selected,
+		Candidates:                 cs,
+		ShardMapLoaded:             p.slot != nil && p.slot.shardNodeNames.Load() != nil,
+		RoutingValue:               p.routingValue,
+		EffectiveRoutingKey:        p.effectiveRoutingKey,
+		TargetShard:                p.targetShard,
+		ShardExactMatch:            p.shardExactMatch,
+		MaxConcurrentShardRequests: p.adaptiveMCSR,
+		Timestamp:                  time.Now().UTC(),
 	}
 }
 

@@ -28,6 +28,7 @@ package opensearchtransport
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"sync/atomic"
@@ -123,6 +124,22 @@ func NewDefaultRoutes() []Route {
 	// Using the exact same patterns as OpenSearch server
 	return buildRoleRoutes(defaultRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled, dataIfEnabled))
 }
+
+// OpenSearch server-side thread pool names. Used as the pool identifier in
+// [wrapWithRouter] so that per-pool congestion windows track the correct
+// server-side resource. Names match the output of GET /_cat/thread_pool.
+//
+// Authoritative source: ThreadPool.Names in the OpenSearch server:
+// server/src/main/java/org/opensearch/threadpool/ThreadPool.java
+const (
+	poolWrite      = "write"
+	poolSearch     = "search"
+	poolGet        = "get"
+	poolManagement = "management"
+	poolRefresh    = "refresh"
+	poolFlush      = "flush"
+	poolForceMerge = "force_merge"
+)
 
 // roleRoutes groups per-role policy references used by [buildRoleRoutes].
 // Each field maps a combination of node role and server-side thread pool
@@ -226,16 +243,16 @@ func buildRoleRoutes(r roleRoutes) []Route {
 
 		// -- Search operations -- search/data nodes, "search" pool
 		// From RestSearchAction.java
-		NewRoute("GET /_search", r.searchRead).MustBuild(),
-		NewRoute("POST /_search", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_search", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_search", r.searchRead).MustBuild(),
+		NewRoute("GET /_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /{index}/_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /{index}/_search", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
 
 		// Multi-search operations (from RestMultiSearchAction.java)
-		NewRoute("GET /_msearch", r.searchRead).MustBuild(),
-		NewRoute("POST /_msearch", r.searchRead).MustBuild(),
-		NewRoute("GET /{index}/_msearch", r.searchRead).MustBuild(),
-		NewRoute("POST /{index}/_msearch", r.searchRead).MustBuild(),
+		NewRoute("GET /_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("GET /{index}/_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
+		NewRoute("POST /{index}/_msearch", r.searchRead).InjectAdaptiveMCSR().MustBuild(),
 
 		// Count queries (from RestCountAction.java)
 		NewRoute("GET /_count", r.searchRead).MustBuild(),
@@ -492,10 +509,22 @@ type routerConfig struct {
 	decay           float64
 	fanOutPerReq    float64
 
+	// Shard cost override spec. Parsed at NewDefaultPolicy time.
+	// See [envShardCost] for format documentation.
+	shardCostConfig string
+
 	// Feature configuration from environment variables.
 	// Applied after programmatic options; env overrides options.
 	routingFeatures   routingFeatures
 	discoveryFeatures discoveryFeatures
+
+	// Adaptive max_concurrent_shard_requests configuration.
+	// Set via WithAdaptiveConcurrencyLimits or OPENSEARCH_GO_SHARD_REQUESTS.
+	adaptiveConcurrency adaptiveConcurrencyConfig
+
+	// errs collects configuration errors from RouterOption functions.
+	// Logged at router creation time via debugLogger.
+	errs []error
 }
 
 func defaultRouterConfig() routerConfig {
@@ -561,6 +590,78 @@ func WithShardExactRouting(enabled bool) RouterOption {
 	}
 }
 
+// WithShardCosts overrides shard cost multipliers used for connection scoring.
+// The spec string uses the same format as the [OPENSEARCH_GO_SHARD_COST]
+// environment variable:
+//
+//   - Bare numeric (e.g., "1.0"): sets r:base (primary read cost at idle)
+//     to the given value. Other parameters keep their defaults.
+//   - Key=value (e.g., "r:base=0.9,r:amplify=2.5,r:exponent=1.5"):
+//     dynamic read curve keys are prefixed with "r:". Static keys
+//     (unknown, relocating, initializing, replica, write_primary,
+//     write_replica) override shard state costs in the lookup tables.
+//   - Any static value ≤ 0 is replaced by the compile-time default.
+//
+// The environment variable takes precedence over this option.
+func WithShardCosts(spec string) RouterOption {
+	return func(c *routerConfig) { c.shardCostConfig = spec }
+}
+
+// WithAdaptiveConcurrency enables or disables adaptive
+// max_concurrent_shard_requests injection on search requests.
+// When enabled, the transport derives the shard fan-out limit from the
+// selected connection's search pool congestion window. Default: true.
+//
+// Can also be controlled via OPENSEARCH_GO_SHARD_REQUESTS=false.
+// The environment variable takes precedence over this option.
+func WithAdaptiveConcurrency(enabled bool) RouterOption {
+	return func(c *routerConfig) {
+		if enabled {
+			c.routingFeatures &^= routingSkipAdaptiveConcurrency
+		} else {
+			c.routingFeatures |= routingSkipAdaptiveConcurrency
+		}
+	}
+}
+
+// WithAdaptiveConcurrencyLimits sets the min and max for adaptive
+// max_concurrent_shard_requests. Zero values retain the defaults
+// (minVal=5, maxVal=256). Negative values for both min and max disable
+// adaptive concurrency entirely -- equivalent to
+// WithAdaptiveConcurrency(false).
+//
+// If min > max after applying both values, a configuration error is
+// recorded and logged at router creation time. The invalid bounds are
+// preserved as-is (no swap) so the caller observes the bug.
+//
+// The max can be set above the compile-time default of 256 when the
+// cluster has large search thread pools -- e.g.,
+// WithAdaptiveConcurrencyLimits(10, 512).
+//
+// Can also be controlled via OPENSEARCH_GO_SHARD_REQUESTS=10:512.
+// The environment variable takes precedence over this option.
+func WithAdaptiveConcurrencyLimits(minVal, maxVal int) RouterOption {
+	return func(c *routerConfig) {
+		if minVal < 0 && maxVal < 0 {
+			c.routingFeatures |= routingSkipAdaptiveConcurrency
+			return
+		}
+		c.routingFeatures &^= routingSkipAdaptiveConcurrency
+		if minVal > 0 {
+			c.adaptiveConcurrency.minVal = minVal
+		}
+		if maxVal > 0 {
+			c.adaptiveConcurrency.maxVal = maxVal
+		}
+		if c.adaptiveConcurrency.minVal > 0 && c.adaptiveConcurrency.maxVal > 0 &&
+			c.adaptiveConcurrency.minVal > c.adaptiveConcurrency.maxVal {
+			c.errs = append(c.errs, fmt.Errorf(
+				"WithAdaptiveConcurrencyLimits(%d, %d): min exceeds max",
+				minVal, maxVal))
+		}
+	}
+}
+
 // NewDefaultPolicy creates a request-aware policy with connection-scoring routing.
 // This is the recommended policy for production clusters. It extends
 // role-based mux routing with per-index connection scoring:
@@ -589,15 +690,45 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 	if val, ok := os.LookupEnv(envDiscoveryConfig); ok && val != "" {
 		cfg.discoveryFeatures = parseDiscoveryConfig(val)
 	}
+	if val, ok := os.LookupEnv(envShardRequests); ok && val != "" {
+		cfg.adaptiveConcurrency, cfg.routingFeatures = parseShardRequests(val, cfg.routingFeatures)
+		// Validate after env override (env may have set min > max).
+		if cfg.adaptiveConcurrency.minVal > 0 && cfg.adaptiveConcurrency.maxVal > 0 &&
+			cfg.adaptiveConcurrency.minVal > cfg.adaptiveConcurrency.maxVal {
+			cfg.errs = append(cfg.errs, fmt.Errorf(
+				"%s=%q: min (%d) exceeds max (%d)",
+				envShardRequests, val, cfg.adaptiveConcurrency.minVal, cfg.adaptiveConcurrency.maxVal))
+		}
+	}
+
+	// Log configuration errors. These are caller bugs that should be fixed.
+	if debugLogger != nil {
+		for _, err := range cfg.errs {
+			debugLogger.Logf("routerConfig error: %v\n", err)
+		}
+	}
+
+	// Resolve shard cost tables and scoring function.
+	// Priority: env var > WithShardCosts() RouterOption > compile-time defaults.
+	shardCostSpec := cfg.shardCostConfig
+	if envVal, ok := os.LookupEnv(envShardCost); ok && envVal != "" {
+		shardCostSpec = envVal
+	}
+
+	costCfg, costErr := parseShardCostConfig(shardCostSpec)
+	if costErr != nil && debugLogger != nil {
+		debugLogger.Logf("OPENSEARCH_GO_SHARD_COST: invalid config %q, using defaults: %v\n", shardCostSpec, costErr)
+	}
 
 	cacheCfg := indexSlotCacheConfig{
-		minFanOut:       cfg.minFanOut,
-		maxFanOut:       cfg.maxFanOut,
-		overrides:       cfg.overrides,
-		idleEvictionTTL: cfg.idleEvictionTTL,
-		decayFactor:     cfg.decay,
-		fanOutPerReq:    cfg.fanOutPerReq,
-		features:        cfg.routingFeatures,
+		minFanOut:           cfg.minFanOut,
+		maxFanOut:           cfg.maxFanOut,
+		overrides:           cfg.overrides,
+		idleEvictionTTL:     cfg.idleEvictionTTL,
+		decayFactor:         cfg.decay,
+		fanOutPerReq:        cfg.fanOutPerReq,
+		features:            cfg.routingFeatures,
+		adaptiveConcurrency: cfg.adaptiveConcurrency,
 	}
 
 	cache := newIndexSlotCache(cacheCfg)
@@ -607,14 +738,14 @@ func NewDefaultPolicy(opts ...RouterOption) Policy {
 	// Wrap coordinating-only nodes with RTT + congestion scoring.
 	// Coordinating nodes don't host shards, so all receive costUnknown
 	// and selection is purely by latency and congestion window.
-	coordinatingScored := wrapWithRouter(coordinatingPolicy, cache, cfg.decay, &shardCostForReads, "")
+	coordinatingScored := wrapWithRouter(coordinatingPolicy, cache, cfg.decay, &costCfg.reads, "", nil)
 
 	// The mux policy delegates each matched request to a router-wrapped
 	// role policy. Within data/search/ingest/warm nodes, the router wrapper
 	// applies RTT-based scoring and rendezvous hashing to select the
 	// best connection for the target index, achieving cache locality and AZ-aware
 	// load distribution within each role pool.
-	muxPolicy := NewMuxPolicy(newScoredRoutes(cache, cfg.decay))
+	muxPolicy := NewMuxPolicy(newScoredRoutes(cache, cfg.decay, &costCfg))
 
 	roundRobinPolicy := NewRoundRobinPolicy()
 
@@ -641,11 +772,12 @@ func NewDefaultRouter(opts ...RouterOption) Router {
 
 // newScoredRoutes mirrors [NewDefaultRoutes] but wraps each role-based
 // sub-policy with a [poolRouter]. Each wrapper carries the
-// server-side thread pool name and shard cost table, so the pool name flows
-// through [NextHop.PoolName] without redundancy on the route.
-func newScoredRoutes(cache *indexSlotCache, decay float64) []Route {
-	wrap := func(p Policy, costs *shardCostMultiplier, pool string) Policy {
-		return wrapWithRouter(p, cache, decay, costs, pool)
+// server-side thread pool name, shard cost table, and optional scoring
+// function, so the pool name flows through [NextHop.PoolName] without
+// redundancy on the route.
+func newScoredRoutes(cache *indexSlotCache, decay float64, costCfg *shardCostConfig) []Route {
+	wrap := func(p Policy, costs *shardCostMultiplier, pool string, scoreFunc connScoreFunc) Policy {
+		return wrapWithRouter(p, cache, decay, costs, pool, scoreFunc)
 	}
 
 	// Create role-based policies (same as NewDefaultRoutes)
@@ -692,16 +824,16 @@ func newScoredRoutes(cache *indexSlotCache, decay float64) []Route {
 	// baked into the wrapper at construction time and flows through
 	// NextHop.PoolName --no redundant .Pool() calls on routes needed.
 	return buildRoleRoutes(roleRoutes{
-		ingestWrite:    wrap(ingestIfEnabled, &shardCostForWrites, "write"),
-		ingestMgmt:     wrap(ingestIfEnabled, &shardCostForReads, "management"),
-		searchRead:     wrap(searchIfEnabled, &shardCostForReads, "search"),
-		getRead:        wrap(searchIfEnabled, &shardCostForReads, "get"),
-		dataWrite:      wrap(dataIfEnabled, &shardCostForWrites, "write"),
-		dataRefresh:    wrap(dataIfEnabled, &shardCostForWrites, "refresh"),
-		dataFlush:      wrap(dataIfEnabled, &shardCostForWrites, "flush"),
-		dataForceMerge: wrap(dataIfEnabled, &shardCostForWrites, "force_merge"),
-		dataMgmt:       wrap(dataIfEnabled, &shardCostForReads, "management"),
-		searchMgmt:     wrap(searchIfEnabled, &shardCostForReads, "management"),
-		warmMgmt:       wrap(warmIfEnabled, &shardCostForReads, "management"),
+		ingestWrite:    wrap(ingestIfEnabled, &costCfg.writes, poolWrite, nil),
+		ingestMgmt:     wrap(ingestIfEnabled, &costCfg.reads, poolManagement, nil),
+		searchRead:     wrap(searchIfEnabled, &costCfg.reads, poolSearch, costCfg.scoreFunc),
+		getRead:        wrap(searchIfEnabled, &costCfg.reads, poolGet, costCfg.scoreFunc),
+		dataWrite:      wrap(dataIfEnabled, &costCfg.writes, poolWrite, nil),
+		dataRefresh:    wrap(dataIfEnabled, &costCfg.writes, poolRefresh, nil),
+		dataFlush:      wrap(dataIfEnabled, &costCfg.writes, poolFlush, nil),
+		dataForceMerge: wrap(dataIfEnabled, &costCfg.writes, poolForceMerge, nil),
+		dataMgmt:       wrap(dataIfEnabled, &costCfg.reads, poolManagement, nil),
+		searchMgmt:     wrap(searchIfEnabled, &costCfg.reads, poolManagement, nil),
+		warmMgmt:       wrap(warmIfEnabled, &costCfg.reads, poolManagement, nil),
 	})
 }

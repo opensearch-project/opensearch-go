@@ -25,7 +25,7 @@ func (c policiesClient) Get(ctx context.Context, req *PoliciesGetReq) (PoliciesG
 		data PoliciesGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -38,7 +38,7 @@ func (c policiesClient) Put(ctx context.Context, req PoliciesPutReq) (PoliciesPu
 		data PoliciesPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -51,7 +51,7 @@ func (c policiesClient) Delete(ctx context.Context, req PoliciesDeleteReq) (Poli
 		data PoliciesDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

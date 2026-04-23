@@ -39,7 +39,6 @@ import (
 var (
 	_ Policy             = (*RolePolicy)(nil)
 	_ policyConfigurable = (*RolePolicy)(nil)
-	_ PoolReporter       = (*RolePolicy)(nil)
 	_ policyTyped        = (*RolePolicy)(nil)
 	_ policyOverrider    = (*RolePolicy)(nil)
 )
@@ -145,6 +144,12 @@ func (p *RolePolicy) configurePolicySettings(config policyConfig) error {
 	if p.pool == nil {
 		config.name = "role:" + p.requiredRoleKey
 		p.pool = createPoolFromConfig(config)
+	}
+	if config.metrics != nil {
+		config.metrics.policyCallbacks = append(config.metrics.policyCallbacks,
+			func() (PolicySnapshot, error) {
+				return p.PolicySnapshot(), nil
+			})
 	}
 	return nil
 }
@@ -395,10 +400,10 @@ func (p *RolePolicy) RotateStandby(ctx context.Context, count int) (int, error) 
 	return p.pool.rotateStandby(ctx, count)
 }
 
-// PoolSnapshot returns a point-in-time snapshot of this policy's pool.
-func (p *RolePolicy) PoolSnapshot() PoolSnapshot {
+// PolicySnapshot returns a point-in-time snapshot of this policy's pool.
+func (p *RolePolicy) PolicySnapshot() PolicySnapshot {
 	if p.pool == nil {
-		return PoolSnapshot{Name: "role:" + p.requiredRoleKey}
+		return PolicySnapshot{Name: "role:" + p.requiredRoleKey}
 	}
 	snap := p.pool.snapshot()
 	snap.Enabled = psIsEnabled(p.policyState.Load())

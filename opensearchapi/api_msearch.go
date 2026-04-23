@@ -22,7 +22,7 @@ func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, erro
 		data MSearchResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -41,21 +41,11 @@ type MSearchReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MSearchReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("//_msearch") + len(indices))
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_msearch"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_msearch")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MSearchResp represents the returned struct of the /_msearch response
@@ -75,6 +65,7 @@ type MSearchResp struct {
 		} `json:"hits"`
 		Status       int             `json:"status"`
 		Aggregations json.RawMessage `json:"aggregations"`
+		Error        *DocumentError  `json:"error,omitempty"`
 	} `json:"responses"`
 	response *opensearch.Response
 }

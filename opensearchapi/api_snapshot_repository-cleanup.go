@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -23,13 +22,12 @@ type SnapshotRepositoryCleanupReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SnapshotRepositoryCleanupReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/_snapshot/%s/_cleanup", r.Repo),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourceActionPath{Prefix: "_snapshot", Name: opensearch.Name(r.Repo), Action: "_cleanup"}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotRepositoryCleanupResp represents the returned struct of the index create response

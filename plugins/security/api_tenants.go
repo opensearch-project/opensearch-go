@@ -24,7 +24,7 @@ func (c tenantsClient) Get(ctx context.Context, req *TenantsGetReq) (TenantsGetR
 		data TenantsGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Tenants); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.Tenants); err != nil {
 		return data, err
 	}
 
@@ -37,7 +37,7 @@ func (c tenantsClient) Put(ctx context.Context, req TenantsPutReq) (TenantsPutRe
 		data TenantsPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -50,7 +50,7 @@ func (c tenantsClient) Delete(ctx context.Context, req TenantsDeleteReq) (Tenant
 		data TenantsDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -63,7 +63,7 @@ func (c tenantsClient) Patch(ctx context.Context, req TenantsPatchReq) (TenantsP
 		data TenantsPatchResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

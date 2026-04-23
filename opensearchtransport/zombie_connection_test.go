@@ -27,7 +27,7 @@ func TestSeedURLsWithDiscovery(t *testing.T) {
 	require.NoError(t, err)
 
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
-	testutil.SkipIfSingleNode(t, 2)
+	testutil.RequireMinNodes(t, 2)
 
 	t.Run("Seed URLs with role-based router and discovery", func(t *testing.T) {
 		// Create router with data policy (since our test cluster nodes have data role)

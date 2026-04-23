@@ -21,7 +21,7 @@ func (c Client) SearchTemplate(ctx context.Context, req SearchTemplateReq) (*Sea
 		data SearchTemplateResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -40,21 +40,11 @@ type SearchTemplateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SearchTemplateReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("//_search/template") + len(indices))
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_search/template"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_search/template")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // SearchTemplateResp represents the returned struct of the /_search response

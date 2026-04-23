@@ -167,7 +167,7 @@ func TestTasksClient(t *testing.T) {
 			{
 				Name: "inspect",
 				Results: func() (osapitest.Response, error) {
-					return failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{})
+					return failingClient.Tasks.Get(t.Context(), opensearchapi.TasksGetReq{TaskID: "test"})
 				},
 			},
 		}
@@ -183,6 +183,17 @@ func TestTasksClient(t *testing.T) {
 					require.NoError(t, err)
 					require.NotNil(t, res)
 					assert.NotNil(t, res.Inspect().Response)
+
+					// Verify Status field is populated for reindex tasks
+					// and can be unmarshaled into BulkByScrollTaskStatus.
+					taskResp, ok := res.(*opensearchapi.TasksGetResp)
+					require.True(t, ok)
+					require.NotNil(t, taskResp.Task.Status, "reindex task should have a status")
+
+					status, err := opensearchapi.ParseBulkByScrollTaskStatus(taskResp.Task.Status)
+					require.NoError(t, err, "status should parse as BulkByScrollTaskStatus")
+					assert.GreaterOrEqual(t, status.Total, int64(0), "total should be non-negative")
+					assert.GreaterOrEqual(t, status.Batches, int32(0), "batches should be non-negative")
 				}
 			})
 		}

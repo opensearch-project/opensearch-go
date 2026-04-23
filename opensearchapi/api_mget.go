@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -22,7 +21,7 @@ func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
 		data MGetResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -41,20 +40,11 @@ type MGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("//_mget") + len(r.Index))
-	if len(r.Index) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Index)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(r.Index), Action: "_mget"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_mget")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MGetResp represents the returned struct of the /_mget response
@@ -66,8 +56,11 @@ type MGetResp struct {
 		SeqNo       int             `json:"_seq_no"`
 		PrimaryTerm int             `json:"_primary_term"`
 		Found       bool            `json:"found"`
-		Type        string          `json:"_type"`
+		Routing     string          `json:"_routing,omitempty"`
+		Type        string          `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 		Source      json.RawMessage `json:"_source"`
+		Fields      json.RawMessage `json:"fields,omitempty"`
+		Error       *DocumentError  `json:"error,omitempty"`
 	} `json:"docs"`
 	response *opensearch.Response
 }

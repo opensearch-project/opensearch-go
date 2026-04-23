@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -22,7 +21,7 @@ func (c Client) MTermvectors(ctx context.Context, req MTermvectorsReq) (*MTermve
 		data MTermvectorsResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -41,20 +40,11 @@ type MTermvectorsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MTermvectorsReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("//_mtermvectors") + len(r.Index))
-	if len(r.Index) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Index)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(r.Index), Action: "_mtermvectors"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_mtermvectors")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MTermvectorsResp represents the returned struct of the /_mtermvectors response
@@ -65,8 +55,9 @@ type MTermvectorsResp struct {
 		Version     int             `json:"_version"`
 		Found       bool            `json:"found"`
 		Took        int             `json:"took"`
-		Type        string          `json:"_type"` // Deprecated field
+		Type        string          `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 		TermVectors json.RawMessage `json:"term_vectors"`
+		Error       *DocumentError  `json:"error,omitempty"`
 	} `json:"docs"`
 	response *opensearch.Response
 }

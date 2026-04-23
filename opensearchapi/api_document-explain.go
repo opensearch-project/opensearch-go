@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -27,20 +26,23 @@ type DocumentExplainReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentExplainReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/%s/_explain/%s", r.Index, r.DocumentID),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.DocumentPath{
+		Index:      opensearch.Index(r.Index),
+		Action:     "_explain",
+		DocumentID: opensearch.DocumentID(r.DocumentID),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // DocumentExplainResp represents the returned struct of the /<Index>/_explain/<DocumentID> response
 type DocumentExplainResp struct {
 	Index       string                 `json:"_index"`
 	ID          string                 `json:"_id"`
-	Type        string                 `json:"_type"` // Deprecated field
+	Type        string                 `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	Matched     bool                   `json:"matched"`
 	Explanation DocumentExplainDetails `json:"explanation"`
 	response    *opensearch.Response

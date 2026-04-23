@@ -23,22 +23,11 @@ type IndicesFlushReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesFlushReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(len("//_flush") + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_flush"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_flush")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesFlushResp represents the returned struct of the flush indices response

@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -24,21 +23,11 @@ type ComponentTemplateGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ComponentTemplateGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_component_template/") + len(r.ComponentTemplate))
-	path.WriteString("/_component_template")
-	if len(r.ComponentTemplate) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.ComponentTemplate)
+	path, err := opensearch.ActionSuffixPath{Action: "_component_template", Suffix: opensearch.Suffix(r.ComponentTemplate)}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // ComponentTemplateGetResp represents the returned struct of the index create response

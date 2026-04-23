@@ -6,14 +6,26 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add dynamic read cost scoring: primary shard cost scales with write-pool utilization via `connScoreFunc`, preferring primaries at idle and shedding reads to replicas under write load
+- Add `OPENSEARCH_GO_SHARD_COST` environment variable and `WithShardCosts()` router option with `r:base`/`r:amplify`/`r:exponent` curve keys and static cost overrides
+- Add `ShardCostConfig` field to `Config` struct for programmatic shard cost override passthrough
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
+- Add address resolver handler to rewrite discovered node addresses before they enter the connection pool ([#822](https://github.com/opensearch-project/opensearch-go/pull/822))
+- Add client-side metrics guide covering Metrics API, ConnectionMetric, PolicySnapshot, and RouterSnapshot
+- Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling
 - Add `InsecureSkipVerify` config option to disable TLS certificate verification without constructing a custom `http.Transport`, preserving `DefaultTransport` connection pooling, HTTP/2, and timeout defaults ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add `DisableResponseBuffering` config option to skip eager `io.ReadAll` buffering of response bodies in `Perform()`, reducing per-request allocations and TTFB for proxy and streaming use cases ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add per-attempt `RequestTimeout` to bound individual HTTP round-trips, preventing indefinite hangs on stalled connections ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add `opensearchutil/shardhash` package with exported `Hash` and `ForRouting` functions for computing OpenSearch shard routing
 - Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+- Add `Status` field (`json.RawMessage`) to `TasksGetResp`, `TasksListTask`, and `TaskCancelInfo` for polymorphic task status data; add typed status structs matching the OpenSearch API specification: `BulkByScrollTaskStatus`, `ReplicationTaskStatus`, `ResyncTaskStatus`, `PersistentTaskStatus`; add `Parse*` helpers and `BulkByScrollTaskStatusOrException` for sliced task status ([#788](https://github.com/opensearch-project/opensearch-go/issues/788))
 - Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
 - opensearchapi/testutil package with test suite, client helpers, and JSON comparison utilities
+- Add typed path segment types and struct-per-shape path builders for compile-time URL construction safety ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+  - Domain types: `Index`, `Indices`, `Action`, `DocumentID`, `Alias`, `Repo`, `Snapshot`, `NodeID`, `Plugin`, `Policy`, `Block`, `Prefix`, `Suffix`, `Name`, `Resource`, `Attr`, `Value`, `Metric`, `IndexMetric`, `Metrics`, `NodeFilter`
+  - 25 path builder structs: `IndexPath`, `DocumentPath`, `IndicesActionPath`, `AliasPath`, `SnapshotPath`, `NodesPath`, `PluginResourcePath`, `PrefixActionPath`, `ActionSuffixPath`, etc.
+  - `ToIndices([]string)` and `MustBuild()` helpers
+  - Published API types in `opensearchapi/` and `plugins/` remain `string`/`[]string`; casts to domain types happen internally in `GetRequest()` methods
 - opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
 - Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))
@@ -78,6 +90,18 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Evaluated once at client init time; immutable after
   - Document environment variables in `guides/routing.md`
   - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
+- Add adaptive `max_concurrent_shard_requests` derived from cluster-wide AIMD congestion window ([#800](https://github.com/opensearch-project/opensearch-go/issues/800))
+  - Transport automatically sets `max_concurrent_shard_requests` query parameter on search requests routed through a coordinator node
+  - Value derived from a cluster-wide aggregate of all polled nodes' search pool wait-time and completion deltas, clamped to `[floor, cap]` (default: 5–256)
+  - Cluster-wide signal correctly models data-node fan-out capacity: single hot nodes are diluted by healthy peers, and MCSR only drops when aggregate cluster pressure rises
+  - Per-node AIMD for connection scoring remains unchanged (hot-node avoidance is handled by connection selection, not fan-out throttling)
+  - Falls back to per-node cwnd before the first poll cycle completes
+  - Respects explicit caller overrides: pre-existing `max_concurrent_shard_requests` query parameter is never clobbered
+  - Not applied to shard-exact routed requests (coordinator fan-out is irrelevant)
+  - `WithAdaptiveConcurrency(bool)` and `WithAdaptiveConcurrencyLimits(floor, cap)` `RouterOption` for programmatic control
+  - `OPENSEARCH_GO_SHARD_REQUESTS` environment variable: `true`/`false` to enable/disable, or `min:max` to set floor and cap (e.g., `10:512`)
+  - `OPENSEARCH_GO_ROUTING_CONFIG=-adaptive_mcsr` to disable via routing config bitfield
+  - `MaxConcurrentShardRequests` field in `RouteEvent` for observability
 - Add seed URL fallback as last-resort connection source when all router pools are exhausted ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Builds a dedicated `multiServerPool` from fresh copies of the original seed URLs at client init
   - Fires after the entire retry loop when all router policies and connection pools return `ErrNoConnections`
@@ -108,9 +132,18 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `cluster.homogeneous` removes all overrides to reset to default configuration
   - `cluster.status` now shows per-node roles and allocated processors via `_nodes/http,os`
 - Add request routing guide (`guides/routing.md`) consolidating routing architecture, connection scoring, pool lifecycle, cost model, and configuration reference ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add per-item `Error` field to `MGetResp`, `MTermvectorsResp`, and `MSearchResp` for detecting partial failures in multi-document operations ([#797](https://github.com/opensearch-project/opensearch-go/issues/797))
+- Add `DocumentError` type for structured per-item error information in multi-document responses
+- Add `BulkByScrollFailure` type for structured failure information in `_delete_by_query`, `_update_by_query`, and `_reindex` responses
+- Add `Routing` and `Fields` to `MGetResp.Docs` to match the full OpenSearch `_mget` response format
+- Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
+- Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
 
 ### Changed
 
+- Include `_nodes.failures` detail in discovery error messages for diagnosing intermittent CI failures on older OpenSearch versions ([#823](https://github.com/opensearch-project/opensearch-go/pull/823))
+- Replace per-worker `aux []byte` buffer in bulk indexer with `sync.Pool`-backed `*bytes.Buffer` for metadata serialization, with configurable max retention size (`MetaBufferPoolMaxBytes`, default 32 KiB)
+- Bump CI and developer guide OpenSearch versions: compatibility matrix to 2.19.5, default integration test version to 3.6.0 ([#782](https://github.com/opensearch-project/opensearch-go/pull/782))
 - Test against Opensearch 3.6.0 ([#817](https://github.com/opensearch-project/opensearch-go/pull/817))
 - Consolidate test utilities into two canonical packages: opensearchtransport/testutil (env helpers, polling, version comparison) and opensearchapi/testutil (client-dependent helpers, test suite, JSON comparison)
 - Rename `singleConnectionPool` to `singleServerPool` and `statusConnectionPool` to `multiServerPool` for clarity ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
@@ -138,17 +171,29 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Constructor now takes `aws.Config` instead of `session.Options`
   - See USER_GUIDE.md for details required to migrate
   - Users who need access to the existing `signer/awsv2` API can still use it, however they are encouraged to migrate to `signer/aws`
+- **BREAKING**: Replace `[]json.RawMessage` with typed `[]BulkByScrollFailure` for `Failures` field in `DocumentDeleteByQueryResp`, `UpdateByQueryResp`, and `ReindexResp` ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). This is a compile-time change only — callers that were not accessing `.Failures` are unaffected, and callers that were manually unmarshaling `json.RawMessage` can now access typed fields directly.
+- Replace inline `_shards` struct with `ResponseShards` in `IndexResp`, `DocumentCreateResp`, `DocumentDeleteResp`, `UpdateResp`, `IndicesRefreshResp`, and `IndicesCountResp` to expose shard `Failures` and `Skipped` fields ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). Code accessing `resp.Shards.Total`, `resp.Shards.Successful`, or `resp.Shards.Failed` compiles unchanged.
+- Add `omitempty` to all deprecated `_type` JSON tags so empty values are omitted during marshaling
 
 ### Deprecated
+
+- Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
 
 ### Removed
 
 ### Fixed
 
+- Fix bulk indexer HTML-escaping `_id` and `routing` values containing `<`, `>`, or `&` characters, causing OpenSearch to store escaped values (e.g., `<root_account>` instead of `<root_account>`), leading to duplicate documents, unreachable data on read-by-ID paths, and potential shard routing mismatches. Present since the `json.Marshal` migration in 2021 (commit `3da59092`). Replace `json.Marshal` with `json.NewEncoder` + `SetEscapeHTML(false)` in `opensearchutil.worker.writeMeta`
+- Fix `opensearchutil.JSONReader` HTML-escaping `<`, `>`, and `&` in document bodies by adding `SetEscapeHTML(false)` to the default encoder path
 - Fix pool replacement orphaning resurrection goroutines during node discovery, causing connections to become permanently dead with no active health checker ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
+- Fix URL path construction across 74 `GetRequest` methods where empty path segments produced a double-slash `//` that `http.NewRequest` misparsed as an RFC 3986 authority separator; replace manual `strings.Builder` paths with typed path builder structs that reject empty required segments ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+- Fix alias, mapping, settings, and block API URL path construction when Indices is empty, which caused `http.NewRequest` to misparse the double-slash as an authority separator ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+- Fix URL path construction across 74 `GetRequest` methods where empty path segments produced a double-slash `//` that `http.NewRequest` misparsed as an RFC 3986 authority separator; extract `opensearch.BuildPath` helper to prevent the class of bug ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))
 - Fix flaky `TestDefaultHealthCheck_RetryAfterMaxRetry`: replace wall-clock `time.Sleep` + `atomic.Int64` synchronization with context cancellation (`ctx.Done()`), and widen `maxRetryClusterHealth` to 5s so the baseline HTTP round-trip cannot race past the retry interval ([#787](https://github.com/opensearch-project/opensearch-go/pull/787))
+- Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix connection lifecycle bug in multiServerPool.OnFailure where connections were scheduled for resurrection before being moved from ready to dead list, causing potential race conditions
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
 - Fix cluster readiness checks in integration tests to handle HTTPS cold start delays (increase timeout to 15s)

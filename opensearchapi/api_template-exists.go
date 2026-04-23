@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -23,11 +22,10 @@ type TemplateExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r TemplateExistsReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"HEAD",
-		fmt.Sprintf("/_template/%s", r.Template),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_template", Name: opensearch.Name(r.Template)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
 }

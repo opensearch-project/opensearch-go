@@ -75,7 +75,7 @@ func TestSecurityNodesDNClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.NodesDN.Put(t.Context(), security.NodesDNPutReq{})
+						return failingClient.NodesDN.Put(t.Context(), security.NodesDNPutReq{Cluster: "test"})
 					},
 				},
 			},

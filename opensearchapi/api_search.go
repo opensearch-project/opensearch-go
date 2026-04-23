@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -27,7 +26,7 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 		data SearchResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -45,15 +44,13 @@ type SearchReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SearchReq) GetRequest() (*http.Request, error) {
-	var path string
-	if len(r.Indices) > 0 {
-		path = fmt.Sprintf("/%s/_search", strings.Join(r.Indices, ","))
-	} else {
-		path = "/_search"
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_search"}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"POST",
+		http.MethodPost,
 		path,
 		r.Body,
 		r.Params.get(),
@@ -102,7 +99,7 @@ type SearchHit struct {
 	InnerHits map[string]struct {
 		Hits SearchHits `json:"hits"`
 	} `json:"inner_hits"`
-	Type           string                  `json:"_type"` // Deprecated field
+	Type           string                  `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	Sort           []any                   `json:"sort"`
 	Explanation    *DocumentExplainDetails `json:"_explanation"`
 	SeqNo          *int                    `json:"_seq_no"`
@@ -123,7 +120,7 @@ type Suggest struct {
 type SuggestOptions struct {
 	Text            string              `json:"text"`
 	Index           string              `json:"_index"`
-	Type            string              `json:"_type"`
+	Type            string              `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	ID              string              `json:"_id"`
 	Score           float64             `json:"score"`  // term suggesters uses "score"
 	ScoreUnderscore float64             `json:"_score"` // completion and context suggesters uses "_score"

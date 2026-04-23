@@ -24,7 +24,7 @@ func (c templateClient) Create(ctx context.Context, req TemplateCreateReq) (*Tem
 		data TemplateCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -39,7 +39,7 @@ func (c templateClient) Delete(ctx context.Context, req TemplateDeleteReq) (*Tem
 		data TemplateDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -58,7 +58,7 @@ func (c templateClient) Get(ctx context.Context, req *TemplateGetReq) (*Template
 		data TemplateGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Templates); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.Templates); err != nil {
 		return &data, err
 	}
 
@@ -69,5 +69,5 @@ func (c templateClient) Get(ctx context.Context, req *TemplateGetReq) (*Template
 //
 // Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndexTemplate.Exists instread
 func (c templateClient) Exists(ctx context.Context, req TemplateExistsReq) (*opensearch.Response, error) {
-	return c.apiClient.do(ctx, req, nil)
+	return doRequest(ctx, c.apiClient, req)
 }

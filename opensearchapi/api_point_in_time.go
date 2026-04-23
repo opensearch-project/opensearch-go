@@ -20,7 +20,7 @@ func (c pointInTimeClient) Create(ctx context.Context, req PointInTimeCreateReq)
 		data PointInTimeCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -33,7 +33,7 @@ func (c pointInTimeClient) Delete(ctx context.Context, req PointInTimeDeleteReq)
 		data PointInTimeDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -50,7 +50,7 @@ func (c pointInTimeClient) Get(ctx context.Context, req *PointInTimeGetReq) (*Po
 		data PointInTimeGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

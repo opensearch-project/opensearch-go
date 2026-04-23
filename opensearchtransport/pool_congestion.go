@@ -262,3 +262,158 @@ func updatePoolCongestion(conn *Connection, threadPools map[string]ThreadPoolSta
 		return true
 	})
 }
+
+// ---------------------------------------------------------------------------
+// Cluster-wide search pool aggregate for MCSR
+// ---------------------------------------------------------------------------
+
+// nodeSearchSample holds the search thread pool stats and maxCwnd collected
+// from a single node during one poll cycle. Used by [clusterSearchAIMD] to
+// aggregate across all polled nodes.
+type nodeSearchSample struct {
+	conn    *Connection
+	stats   ThreadPoolStats
+	maxCwnd int32 // node's search pool maxCwnd (0 = unknown)
+}
+
+// clusterSearchAIMD tracks a single AIMD congestion window derived from
+// aggregated search thread pool stats across all polled cluster nodes.
+//
+// The cwnd is read atomically by [poolRouter.Eval] for MCSR computation.
+// The stats poller ([pollNodeStats]) is the sole writer, under mu.
+type clusterSearchAIMD struct {
+	// Lock-free read by Eval hot path.
+	cwnd atomic.Int32
+
+	mu struct {
+		sync.Mutex
+		maxCwnd  int32 // sum of all nodes' search pool sizes
+		ssthresh int32
+
+		// Per-node previous cumulative counters for delta computation.
+		// Keyed by *Connection pointer (stable identity across polls).
+		nodes map[*Connection]clusterNodeSearchEpoch
+	}
+}
+
+// clusterNodeSearchEpoch stores the previous poll's cumulative counters
+// for a single node's search thread pool.
+type clusterNodeSearchEpoch struct {
+	prevCompleted    int64
+	prevWaitTimeNano int64
+	hasWaitTime      bool
+}
+
+// update runs the cluster-wide AIMD based on aggregated search pool stats
+// from all nodes polled in this cycle. Called by [pollNodeStats] after all
+// per-node polls complete.
+func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.mu.nodes == nil {
+		c.mu.nodes = make(map[*Connection]clusterNodeSearchEpoch, len(polled))
+	}
+
+	// Build the set of connections polled this cycle for stale eviction.
+	polledSet := make(map[*Connection]struct{}, len(polled))
+
+	var (
+		totalDeltaCompleted int64
+		totalDeltaWait      int64
+		clusterMaxCwnd      int32
+		hasWaitTime         bool
+	)
+
+	for _, s := range polled {
+		polledSet[s.conn] = struct{}{}
+		// MCSR is a coordinator-side global semaphore on concurrent shard
+		// operations. All permits could land on a single data node, so the
+		// ceiling is the largest single node's search pool size (not the sum).
+		if nodeMax := maxCwndOrDefault(s.maxCwnd); nodeMax > clusterMaxCwnd {
+			clusterMaxCwnd = nodeMax
+		}
+
+		epoch, known := c.mu.nodes[s.conn]
+
+		// Update epoch with current cumulative values.
+		newEpoch := clusterNodeSearchEpoch{
+			prevCompleted: s.stats.Completed,
+			hasWaitTime:   epoch.hasWaitTime,
+		}
+		if s.stats.TotalWaitTimeInNanos != nil {
+			newEpoch.prevWaitTimeNano = *s.stats.TotalWaitTimeInNanos
+			newEpoch.hasWaitTime = true
+		}
+		c.mu.nodes[s.conn] = newEpoch
+
+		// First time seeing this node: store baseline, skip delta.
+		if !known {
+			continue
+		}
+
+		deltaCompleted := s.stats.Completed - epoch.prevCompleted
+		if deltaCompleted <= 0 {
+			continue
+		}
+		totalDeltaCompleted += deltaCompleted
+
+		if epoch.hasWaitTime && s.stats.TotalWaitTimeInNanos != nil {
+			hasWaitTime = true
+			totalDeltaWait += *s.stats.TotalWaitTimeInNanos - epoch.prevWaitTimeNano
+		}
+	}
+
+	// Evict nodes not polled this cycle.
+	for conn := range c.mu.nodes {
+		if _, ok := polledSet[conn]; !ok {
+			delete(c.mu.nodes, conn)
+		}
+	}
+
+	// Store the cluster ceiling.
+	c.mu.maxCwnd = clusterMaxCwnd
+
+	// Need completions to drive AIMD.
+	if totalDeltaCompleted <= 0 {
+		return
+	}
+
+	cwnd := max(c.cwnd.Load(), 1)
+	ssthresh := c.mu.ssthresh
+	if ssthresh < 1 {
+		ssthresh = clusterMaxCwnd
+	}
+
+	// Congestion signal: cluster-wide wait_per_completed.
+	congested := false
+	if hasWaitTime && totalDeltaCompleted > 0 {
+		waitPerCompleted := float64(totalDeltaWait) / float64(totalDeltaCompleted)
+		congested = waitPerCompleted >= waitThresholdNanos
+	}
+
+	switch {
+	case congested:
+		newCwnd := max(cwnd/2, 1)
+		c.cwnd.Store(newCwnd)
+		c.mu.ssthresh = newCwnd
+		if debugLogger != nil {
+			debugLogger.Logf("clusterAIMD: congested cwnd=%d->%d maxCwnd=%d nodes=%d\n",
+				cwnd, newCwnd, clusterMaxCwnd, len(polled))
+		}
+	case cwnd < ssthresh:
+		newCwnd := min(cwnd*2, clusterMaxCwnd)
+		c.cwnd.Store(newCwnd)
+		if debugLogger != nil && newCwnd != cwnd {
+			debugLogger.Logf("clusterAIMD: slow-start cwnd=%d->%d maxCwnd=%d nodes=%d\n",
+				cwnd, newCwnd, clusterMaxCwnd, len(polled))
+		}
+	default:
+		newCwnd := min(cwnd+1, clusterMaxCwnd)
+		c.cwnd.Store(newCwnd)
+		if debugLogger != nil && newCwnd != cwnd {
+			debugLogger.Logf("clusterAIMD: avoidance cwnd=%d->%d maxCwnd=%d nodes=%d\n",
+				cwnd, newCwnd, clusterMaxCwnd, len(polled))
+		}
+	}
+}

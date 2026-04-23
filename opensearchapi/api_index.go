@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -21,7 +20,7 @@ func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 		data IndexResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -39,40 +38,45 @@ type IndexReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndexReq) GetRequest() (*http.Request, error) {
-	var method, path string
+	var (
+		method string
+		path   string
+		err    error
+	)
 
 	if r.DocumentID != "" {
-		method = "PUT"
-		path = fmt.Sprintf("/%s/_doc/%s", r.Index, r.DocumentID)
+		method = http.MethodPut
+		path, err = opensearch.DocumentPath{
+			Index:      opensearch.Index(r.Index),
+			Action:     "_doc",
+			DocumentID: opensearch.DocumentID(r.DocumentID),
+		}.Build()
 	} else {
-		method = "POST"
-		path = fmt.Sprintf("/%s/_doc", r.Index)
+		method = http.MethodPost
+		path, err = opensearch.IndexActionPath{
+			Index:  opensearch.Index(r.Index),
+			Action: "_doc",
+		}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		method,
-		path,
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndexResp represents the returned struct of the /_doc response
 type IndexResp struct {
-	Index   string `json:"_index"`
-	ID      string `json:"_id"`
-	Version int    `json:"_version"`
-	Result  string `json:"result"`
-	Shards  struct {
-		Total      int `json:"total"`
-		Successful int `json:"successful"`
-		Failed     int `json:"failed"`
-	} `json:"_shards"`
-	SeqNo       int    `json:"_seq_no"`
-	PrimaryTerm int    `json:"_primary_term"`
-	Type        string `json:"_type"` // Deprecated field
-	response    *opensearch.Response
+	Index         string         `json:"_index"`
+	ID            string         `json:"_id"`
+	Version       int            `json:"_version"`
+	Result        string         `json:"result"`
+	ForcedRefresh bool           `json:"forced_refresh"`
+	Shards        ResponseShards `json:"_shards"`
+	SeqNo         int            `json:"_seq_no"`
+	PrimaryTerm   int            `json:"_primary_term"`
+	Type          string         `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
+	response      *opensearch.Response
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response

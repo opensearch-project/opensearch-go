@@ -22,7 +22,7 @@ func (c Client) Change(ctx context.Context, req ChangeReq) (ChangeResp, error) {
 		data ChangeResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 
@@ -44,22 +44,15 @@ func (r ChangeReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("/_plugins/_ism/change_policy/") + len(indices))
-	path.WriteString("/_plugins/_ism/change_policy")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.ActionSuffixPath{
+		Action: "_plugins/_ism/change_policy",
+		Suffix: opensearch.Suffix(strings.Join(r.Indices, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodPost,
-		path.String(),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // ChangeResp represents the returned struct of the change policy response

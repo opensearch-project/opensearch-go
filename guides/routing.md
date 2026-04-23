@@ -23,7 +23,7 @@ With no additional configuration, this enables:
 
 - Consistent per-index node assignment via rendezvous hashing
 - RTT-based availability-zone preference (local nodes preferred, with overflow to remote)
-- Operation-aware shard cost (replica-hosting nodes preferred for reads, primary-hosting for writes)
+- Dynamic shard cost scoring: primary preferred at idle, reads shed to replicas as write load increases
 - Per-pool AIMD congestion control: capacity-aware connection scoring via `(inFlight + 1) / cwnd`
 - Shard-aware node partitioning derived from `/_cat/shards` data
 - Murmur3 shard-exact routing for `?routing=` requests and document ID operations
@@ -428,29 +428,53 @@ Different operations use different cost tables. Lower cost = preferred node.
 
 **Read operations** (search, get, scroll, validate, rank_eval):
 
-| Shard State  | Cost | Reason                                                      |
-| ------------ | ---- | ----------------------------------------------------------- |
-| Replica      | 1.0  | Preferred -- lock-free Lucene snapshot, no write contention |
-| Primary      | 2.0  | Acceptable -- contends with concurrent writes               |
-| Relocating   | 8.0  | Shard moving, may require proxy hop                         |
-| Initializing | 16.0 | Shard not yet ready to serve                                |
-| Unknown      | 32.0 | No shard data from discovery yet                            |
+For read operations, primary shard cost is **dynamic** -- it scales with the node's write-pool utilization. The effective cost is blended by the node's primary percentage (`primaryPct`):
+
+```
+dynamicCost   = base + amplify × (writeUtil ^ exponent)
+effectiveCost = (1 - primaryPct) × replicaCost + primaryPct × dynamicCost
+```
+
+Where `writeUtil = min(write_inFlight / write_cwnd, 1.0)`. Defaults: `base=0.95, amplify=2.0, exponent=2.0`.
+
+For shard-exact routing (murmur3 path), `primaryPct` is 1.0 or 0.0 -- a clean switch. For node-level routing where nodes host a mix of primaries and replicas, `primaryPct` is the fraction of primaries on that node (e.g., 3 primaries + 7 replicas = 0.3), and the cost blends proportionally.
+
+| Write Utilization | Pure Primary (1.0) | Mixed (0.5) | Pure Replica (0.0) |
+| ----------------- | ------------------ | ----------- | ------------------ |
+| 0% (idle)         | 0.95               | 0.975       | 1.0                |
+| 25%               | ~1.08              | ~1.04       | 1.0                |
+| 50%               | ~1.45              | ~1.23       | 1.0                |
+| 75%               | ~2.08              | ~1.54       | 1.0                |
+| 100%              | 2.95               | ~1.98       | 1.0                |
+
+Static costs for non-primary shard states:
+
+| Shard State  | Cost | Reason                                                     |
+| ------------ | ---- | ---------------------------------------------------------- |
+| Replica      | 1.0  | Baseline -- lock-free Lucene snapshot, no write contention |
+| Relocating   | 8.0  | Shard moving, may require proxy hop                        |
+| Initializing | 16.0 | Shard not yet ready to serve                               |
+| Unknown      | 32.0 | No shard data from discovery yet                           |
+
+This design keeps the primary available for reads on idle clusters (authoritative, freshest data) while progressively shedding reads to replicas as write load increases. On real clusters where every node hosts a mix of primaries and replicas, the blending ensures the dynamic curve has proportional effect rather than being all-or-nothing. Replica read volume becomes a natural autoscaling signal -- when replicas saturate, add capacity.
 
 **Write operations** (index, bulk, update, delete):
 
-| Shard State  | Cost | Reason                                       |
-| ------------ | ---- | -------------------------------------------- |
-| Primary      | 1.0  | Preferred -- write lands directly on primary |
-| Replica      | 2.0  | Must proxy through primary -- adds a hop     |
-| Relocating   | 8.0  | Shard moving, may require proxy hop          |
-| Initializing | 16.0 | Shard not yet ready to serve                 |
-| Unknown      | 32.0 | No shard data from discovery yet             |
+Writes always land on the primary shard. Routing a write request to a replica-hosting node forces that node to coordinate the request to the primary -- strictly unnecessary work. The write cost table penalizes non-primary nodes heavily to avoid this:
 
-The 32x penalty for unknown/non-shard nodes is the key to affinity. A non-shard node at idle still scores 16x worse than a busy shard node:
+| Shard State  | Cost | Reason                                                                                                                                        |
+| ------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary      | 1.0  | Preferred -- write lands directly on the primary shard                                                                                        |
+| Replica      | 8.0  | Must coordinate to primary -- unnecessary proxy hop. Scored lower than relocating/initializing because a replica may be promoting to primary. |
+| Relocating   | 16.0 | Shard moving, coordination target uncertain                                                                                                   |
+| Initializing | 24.0 | Shard not yet ready, coordination may fail                                                                                                    |
+| Unknown      | 32.0 | No shard data from discovery yet                                                                                                              |
+
+These defaults can be overridden at runtime via the `OPENSEARCH_GO_SHARD_COST` environment variable or the `WithShardCosts()` router option (env var takes precedence). See [Shard Cost Configuration](#shard-cost-configuration) for format details. A non-shard node at idle still scores far worse than a busy shard node:
 
 ```
-Shard node, busy:      11 × (13+1)/13 × 2.0  =  23.7
-Non-shard node, idle:  11 ×  (0+1)/13 × 32.0 =  27.1  ← still loses
+Shard node, busy:      11 × (13+1)/13 × 1.0  =  11.8   (replica read)
+Non-shard node, idle:  11 ×  (0+1)/13 × 32.0 =  27.1   ← still loses
 ```
 
 ### Score Components Visualization
@@ -458,14 +482,16 @@ Non-shard node, idle:  11 ×  (0+1)/13 × 32.0 =  27.1  ← still loses
 The three multiplicative components interact to create a composite score that ranks every candidate connection:
 
 ```
-    score = rttBucket * (inFlight + 1) / cwnd * shardCostMultiplier
-            ────┬───   ──────────┬──────────   ──────────┬─────────
-                │                │                       │
-                │                │                       +-- Shard cost (operation-aware)
-                │                │                           reads: replica=1.0  primary=2.0
-                │                │                           writes: primary=1.0  replica=2.0
-                │                │                           relocating=8.0  initializing=16.0
-                │                │                           unknown=32.0 (both)
+    score = rttBucket * (inFlight + 1) / cwnd * shardCost
+            ────┬───   ──────────┬──────────   ─────┬────
+                │                │                   │
+                │                │                   +-- Shard cost (operation-aware)
+                │                │                       reads: dynamic for primary (see below)
+                │                │                              replica=1.0  relocating=8.0
+                │                │                              initializing=16.0  unknown=32.0
+                │                │                       writes: primary=1.0  replica=8.0
+                │                │                              relocating=16.0  initializing=24.0
+                │                │                              unknown=32.0
                 │                │
                 │                +-- Utilization ratio (per-pool AIMD)
                 │                    idle=1/cwnd  busy=cwnd/cwnd=1.0
@@ -474,42 +500,57 @@ The three multiplicative components interact to create a composite score that ra
                 +-- Network proximity (stable, power-of-two buckets)
                     same-AZ=8  cross-AZ=9-11  cross-region=14-16
 
+    Read scoring for primary shards uses a dynamic cost function,
+    blended by the node's primary percentage (primaryPct):
+
+        dynamicCost   = base + amplify * (writeUtil ^ exponent)
+        effectiveCost = (1 - primaryPct) * replicaCost + primaryPct * dynamicCost
+
+    where writeUtil = min(write_inFlight / write_cwnd, 1.0).
+    Defaults: base=0.95, amplify=2.0, exponent=2.0.
+    For shard-exact routing, primaryPct is 1.0 (primary) or 0.0 (replica).
+    For node-level routing, primaryPct is the fraction of primaries on the node.
+
 
     Example: 6-node cluster, index "orders" with fan-out K=4 (read path)
-    (search pool: cwnd=13 on all nodes; RTT measured from client AZ us-e1)
+    (search pool: cwnd=13 on all nodes; write pool idle; RTT from client AZ us-e1)
 
-    Node       AZ     RTT Bucket  InFlight  Cwnd  Util   Shard Cost      Score   Fan-out?  Rank
-    ---------  -----  ----------  --------  ----  -----  --------------  ------  --------  ----
-    node-1     us-e1  8           5         13    6/13   1.0 (replica)   3.69    K=4       3
-    node-2     us-e1  8           2         13    3/13   2.0 (primary)   3.69    K=4       4
-    node-3     us-e2  11          0         13    1/13   1.0 (replica)   0.85    K=4       1 <- winner
-    node-4     us-e2  11          0         13    1/13   2.0 (primary)   1.69    K=4       2
-    node-5     us-e3  14          0         13    1/13   1.0 (replica)   --      --        --
-    node-6     us-e3  14          0         13    1/13   32.0 (unknown)  --      --        --
+    Node       AZ     RTT Bucket  InFlight  Cwnd  Util   Shard Cost        Score   Fan-out?  Rank
+    ---------  -----  ----------  --------  ----  -----  ----------------  ------  --------  ----
+    node-1     us-e1  8           5         13    6/13   1.0 (replica)     3.69    K=4       4
+    node-2     us-e1  8           2         13    3/13   0.95 (primary*)   1.75    K=4       3
+    node-3     us-e2  11          0         13    1/13   1.0 (replica)     0.85    K=4       2
+    node-4     us-e2  11          0         13    1/13   0.95 (primary*)   0.80    K=4       1 <- winner
+    node-5     us-e3  14          0         13    1/13   1.0 (replica)     --      --        --
+    node-6     us-e3  14          0         13    1/13   32.0 (unknown)    --      --        --
+
+    * primary cost is dynamic: 0.95 at idle (write pool util = 0%)
 
     Fan-out K=4 selected [node-1, node-2, node-3, node-4] via slot filling.
     node-5 and node-6 are not in the fan-out set and are not scored.
-    node-3 wins this request (lowest score: idle remote replica node).
-    After winning, node-3.inFlight becomes 1 and subsequent requests may
-    pick node-4 or rotate back to local nodes as local requests complete.
+    node-4 wins this request (lowest score: idle primary on remote node).
+    With write pool idle, primaries are slightly preferred (0.95 < 1.0).
+    As write load increases, primary cost rises and replicas take over.
 ```
 
 ### Concrete Scoring Example
 
-Three-node cluster, search request for `my-index`:
+Three-node cluster, search request for `my-index` (write pool idle on all nodes):
 
 ```
 Node A: bucket=8,  inFlight=2, cwnd=13, replica  (read cost 1.0)
   score = 8 × (2+1)/13 × 1.0 = 1.85
 
-Node B: bucket=8,  inFlight=0, cwnd=13, primary  (read cost 2.0)
-  score = 8 × (0+1)/13 × 2.0 = 1.23
+Node B: bucket=8,  inFlight=0, cwnd=13, primary  (dynamic read cost 0.95 at idle)
+  score = 8 × (0+1)/13 × 0.95 = 0.58
 
 Node C: bucket=11, inFlight=0, cwnd=13, replica   (read cost 1.0)
   score = 11 × (0+1)/13 × 1.0 = 0.85
 ```
 
-Winner: **Node C** (score 0.85). Despite being cross-AZ (higher RTT bucket), its zero in-flight and preferred shard role make it the best choice. As Node C accumulates in-flight requests, its score rises and traffic shifts to A and B.
+Winner: **Node B** (score 0.58). With the write pool idle, the primary's dynamic cost (0.95) is below the replica cost (1.0), so the idle primary wins. This is intentional -- the primary has the freshest data and no write contention. As write load increases, Node B's dynamic cost rises and traffic shifts to the replicas.
+
+If Node B had 50% write utilization: cost = 0.95 + 2.0 × 0.5² = 1.45, score = 0.89. Node C would win instead.
 
 ### AZ-Aware Crossover
 
@@ -558,8 +599,9 @@ At sustained load across multiple RTT tiers, the congestion-window scoring produ
         (bucket=8)         (bucket=11)    (bucket=14)
 
     Within each AZ, nodes split evenly (same bucket, so only utilization
-    and shard cost differentiate). Primary-hosting nodes receive slightly
-    less traffic on read routes due to the shard cost multiplier.
+    and shard cost differentiate). On read routes, primary-hosting nodes
+    receive slightly more traffic at idle (dynamic cost 0.95 < replica's
+    1.0) and progressively less as write load increases.
 ```
 
 ---
@@ -899,6 +941,50 @@ Each connection holds a `poolRegistry` -- a `sync.Map` of pool name to congestio
 
 OpenSearch maintains separate thread pools for search, write, get, management, and other operation types. A node can be overloaded for writes (full bulk queue) while having ample search capacity. Per-pool tracking lets the scoring formula reflect this: a node with a saturated write pool scores `MaxFloat64` for writes but remains eligible for searches at its normal score.
 
+### Adaptive `max_concurrent_shard_requests`
+
+When the client routes a search through a coordinator node (non-shard-exact path), OpenSearch fans out to data nodes using `max_concurrent_shard_requests` as the per-node concurrency limit. The client automatically tunes this parameter based on cluster-wide search thread pool pressure.
+
+**Why cluster-wide, not per-node.** Per-node AIMD drives _connection scoring_ — which coordinator to pick. But `max_concurrent_shard_requests` controls _data-node fan-out_ from the coordinator. A single coordinator's search pool pressure doesn't reflect the capacity of the data nodes it fans out to. The cluster-wide aggregate does.
+
+```
+    pollNodeStats()
+      for each conn:
+        updatePoolCongestion(conn)     ◄── per-node AIMD (connection scoring)
+        collect search pool sample     ◄── {completed, wait_time, maxCwnd}
+      clusterSearch.update(samples)    ◄── cluster-wide AIMD (MCSR)
+
+    poolRouter.Eval()                  ◄── hot path
+      cwnd = clusterSearch.cwnd        ◄── one atomic.Int32 load
+      if cwnd <= 0:
+        cwnd = best.loadCwnd("search") ◄── fallback to per-node
+      mcsr = clamp(cwnd, floor, cap)   ◄── default [5, 256]
+```
+
+**Signal.** After each stats poll cycle, `clusterSearchAIMD` computes:
+
+1. Per-node deltas: `delta(completed)` and `delta(total_wait_time_in_nanos)` for the search pool
+2. Cluster aggregate: sum all node deltas
+3. Congestion signal: `waitPerCompleted = totalDeltaWait / totalDeltaCompleted >= 1ms`
+4. AIMD: same state machine as per-node (slow start / congestion avoidance / multiplicative decrease)
+
+**Ceiling.** `clusterMaxCwnd` is the max of per-node search pool sizes (not the sum). Although `max_concurrent_shard_requests` is a coordinator-side global semaphore — it limits the total number of concurrent shard operations across all data nodes for a single search request — all those operations could land on a single node if it hosts enough shards. Using the max single-node pool size as the ceiling prevents a coordinator from dispatching more concurrent shard requests than the busiest data node can absorb in its search thread pool.
+
+**Hot-shard resilience.** A single overloaded node is diluted by healthy peers in the aggregate. MCSR only drops when cluster-wide search pressure rises. Hot shards are a data distribution problem handled by the server's shard allocator, not a client fan-out knob.
+
+**Node churn.** New nodes skip the first poll cycle (no baseline for deltas). Disappeared nodes are evicted from the epoch map. Failed polls exclude the node from that cycle's samples.
+
+**Fallback.** Before the first successful poll cycle, `clusterSearch.cwnd` is 0. The client falls back to the selected coordinator's per-node search pool cwnd.
+
+**Configuration:**
+
+| Option                                        | Default        | Description                           |
+| --------------------------------------------- | -------------- | ------------------------------------- |
+| `WithAdaptiveConcurrency(bool)`               | `true`         | Enable/disable adaptive MCSR          |
+| `WithAdaptiveConcurrencyLimits(min, max)`     | `5, 256`       | Clamp range for the adaptive value    |
+| `OPENSEARCH_GO_SHARD_REQUESTS`                | `true` (5:256) | Env var: `true`/`false`, or `min:max` |
+| `OPENSEARCH_GO_ROUTING_CONFIG=-adaptive_mcsr` | enabled        | Disable via feature flag              |
+
 ---
 
 ## 8. Connection Pool Lifecycle
@@ -1014,6 +1100,105 @@ The lifecycle state machine governs how connections move between partitions:
 ```
 
 When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is set so that hardware info is re-verified on resurrection -- the node may have been replaced with different hardware during the outage.
+
+### Address Resolver
+
+When an `AddressResolverFunc` is configured, the client calls it for every node discovered via `/_nodes/http` before that node enters the connection pool. This allows rewriting the node's URL — for example, to redirect traffic through a sidecar proxy or to adapt hostnames for network topology differences between the cluster's internal publish addresses and the client's reachable addresses.
+
+```go
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:            []string{"https://seed:9200"},
+    DiscoverNodesOnStart: true,
+    AddressResolver: func(ctx context.Context, node opensearchtransport.NodeInfo) (*url.URL, error) {
+        // Probe the sidecar proxy on port 9201; fall back to the published address.
+        probeURL := &url.URL{Scheme: node.URL.Scheme, Host: net.JoinHostPort(node.URL.Hostname(), "9201")}
+        req, _ := http.NewRequestWithContext(ctx, http.MethodGet, probeURL.String(), nil)
+        if resp, err := http.DefaultClient.Do(req); err == nil {
+            resp.Body.Close()
+            return probeURL, nil
+        }
+        return node.URL, nil // fall back to the default URL
+    },
+})
+```
+
+> **Production note:** The sidecar probe above is intentionally simplified for illustration. A production resolver should apply appropriate timeouts to the probe request (via the context or a per-request deadline), handle TLS verification, and consider caching probe results across discovery cycles rather than probing on every refresh.
+
+#### Resolver Protocol
+
+The callback receives a `NodeInfo` snapshot containing the node's ID, name, roles, custom attributes, raw `PublishAddress`, and the default `*url.URL` computed by the client. It returns `(*url.URL, error)` with four cases:
+
+| Return value        | Behavior                                                          |
+| ------------------- | ----------------------------------------------------------------- |
+| `(*url.URL, nil)`   | Use the returned URL (may be the same as `node.URL` or different) |
+| `(*url.URL, error)` | Use the returned URL; the error is logged but the node is kept    |
+| `(nil, nil)`        | Keep the default URL (equivalent to returning `node.URL`)         |
+| `(nil, error)`      | Skip this node; the error is logged but discovery continues       |
+
+Partial failures are tolerated: nodes that return `(nil, error)` are dropped, but all other nodes are kept. Only when _every_ resolver call fails does the client return `ErrAllResolversFailed` (wrapping all individual errors via `errors.Join`).
+
+#### Concurrency
+
+Resolvers may perform network probes, so they run concurrently. The `MaxAddressResolvers` setting controls the degree of parallelism:
+
+| Value | Behavior                                                  |
+| ----- | --------------------------------------------------------- |
+| `0`   | (default) `min(len(nodes), GOMAXPROCS(0))` — auto-derived |
+| `1`   | Serial execution — one resolver call at a time            |
+| `>1`  | Explicit concurrency cap bounded by a weighted semaphore  |
+| `<0`  | Unlimited — all resolver calls launch simultaneously      |
+
+The resolver inherits the discovery call's context, so cancellation and deadlines propagate automatically.
+
+#### Metrics and Observability
+
+Three atomic counters track resolver activity, exposed via `Metrics()`:
+
+| Counter                   | Incremented when                                      |
+| ------------------------- | ----------------------------------------------------- |
+| `AddressResolverCalls`    | The resolver is invoked for a node                    |
+| `AddressResolverRewrites` | The resolver returns a URL different from the default |
+| `AddressResolverErrors`   | The resolver returns a non-nil error                  |
+
+The `ConnectionObserver.OnAddressRewrite(AddressRewriteEvent)` callback fires for each rewrite, providing the node identity, original URL, and rewritten URL. Connections created from rewritten URLs have their `Rewritten` field set to `true`.
+
+#### Custom Resolution Handler
+
+For full control over concurrency, failure policy, retry logic, or batching, set `AddressResolverRunner` instead of (or in addition to) relying on the built-in handler. The runner receives the complete list of discovered nodes and the per-node `AddressResolverFunc`, and returns the resolved set:
+
+```go
+type AddressResolverRunnerFunc func(
+    ctx     context.Context,
+    nodes   []NodeInfo,
+    resolve AddressResolverFunc,
+) ([]ResolvedAddress, error)
+```
+
+When `AddressResolverRunner` is set, it replaces the built-in concurrency/semaphore handler entirely — the `MaxAddressResolvers` setting is ignored. The runner may call `resolve` for each node, call it selectively, or compute URLs directly without calling it at all. If `AddressResolver` is not configured, `resolve` is `nil`.
+
+Metrics (`AddressResolverCalls`, `AddressResolverErrors`) are instrumented automatically: each invocation of `resolve` increments the call counter, and errors increment the error counter, regardless of how the runner orchestrates calls.
+
+```go
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:            []string{"https://seed:9200"},
+    DiscoverNodesOnStart: true,
+    AddressResolver: func(ctx context.Context, node opensearchtransport.NodeInfo) (*url.URL, error) {
+        return &url.URL{Scheme: node.URL.Scheme, Host: net.JoinHostPort(node.URL.Hostname(), "9201")}, nil
+    },
+    AddressResolverRunner: func(ctx context.Context, nodes []opensearchtransport.NodeInfo, resolve opensearchtransport.AddressResolverFunc) ([]opensearchtransport.ResolvedAddress, error) {
+        // Custom runner: resolve all nodes serially, skip failures.
+        var out []opensearchtransport.ResolvedAddress
+        for _, n := range nodes {
+            u, err := resolve(ctx, n)
+            if err != nil {
+                continue // drop this node
+            }
+            out = append(out, opensearchtransport.ResolvedAddress{Node: n, URL: u})
+        }
+        return out, nil
+    },
+})
+```
 
 ### Warmup
 
@@ -1648,7 +1833,7 @@ Overloaded nodes are demoted from the active partition to the standby partition 
 
 ### Observability
 
-The `ConnectionObserver` interface provides 14 callbacks:
+The `ConnectionObserver` interface provides 15 callbacks:
 
 | Category           | Methods                                                       |
 | ------------------ | ------------------------------------------------------------- |
@@ -1658,6 +1843,7 @@ The `ConnectionObserver` interface provides 14 callbacks:
 | Health             | `OnHealthCheckPass`, `OnHealthCheckFail`                      |
 | Standby            | `OnStandbyPromote`, `OnStandbyDemote`                         |
 | Warmup             | `OnWarmupRequest`                                             |
+| Address resolution | `OnAddressRewrite`                                            |
 | Routing            | `OnRoute`                                                     |
 | Shard invalidation | `OnShardMapInvalidation`                                      |
 
@@ -1739,6 +1925,7 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 | `NodeStatsInterval`       | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                 |
 | `OverloadedHeapThreshold` | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                     |
 | `OverloadedBreakerRatio`  | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                |
+| `ShardCostConfig`         | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)            |
 
 ### Router Options
 
@@ -1758,15 +1945,18 @@ router := opensearchtransport.NewDefaultRouter(
 )
 ```
 
-| Option                     | Default | Description                                                              |
-| -------------------------- | ------- | ------------------------------------------------------------------------ |
-| `WithMinFanOut(n)`         | 1       | Minimum nodes in an index slot. Floor for fan-out.                       |
-| `WithMaxFanOut(n)`         | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.     |
-| `WithDecayFactor(d)`       | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory. |
-| `WithFanOutPerRequest(f)`  | 500     | Decay counter value that maps to +1 fan-out node.                        |
-| `WithIdleEvictionTTL(d)`   | 90 min  | How long an idle index slot persists before eviction.                    |
-| `WithIndexFanOut(m)`       | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.               |
-| `WithShardExactRouting(b)` | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.           |
+| Option                                    | Default | Description                                                                                      |
+| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `WithMinFanOut(min)`                      | 1       | Minimum nodes in an index slot. Floor for fan-out.                                               |
+| `WithMaxFanOut(max)`                      | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.                             |
+| `WithDecayFactor(decay)`                  | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory.                         |
+| `WithFanOutPerRequest(count)`             | 500     | Decay counter value that maps to +1 fan-out node.                                                |
+| `WithIdleEvictionTTL(ttl)`                | 90 min  | How long an idle index slot persists before eviction.                                            |
+| `WithIndexFanOut(overrides)`              | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.                                       |
+| `WithShardExactRouting(bool)`             | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.                                   |
+| `WithShardCosts(spec)`                    | --      | Override shard cost multipliers. Env var overrides. See format below.                            |
+| `WithAdaptiveConcurrency(bool)`           | true    | Enable/disable adaptive `max_concurrent_shard_requests` on search requests.                      |
+| `WithAdaptiveConcurrencyLimits(min, max)` | 5, 256  | Set min/max for adaptive shard concurrency. `(0,0)` = enable with defaults, `(-1,-1)` = disable. |
 
 ### Feature Environment Variables
 
@@ -1780,17 +1970,20 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 #### Routing and Discovery
 
-| Variable                         | Format                          | Default       | Description                                                                                  |
-| -------------------------------- | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled) | Toggle shard-exact routing (`-shard_exact`)                                                  |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled) | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`        | Seed URL fallback when all pools exhausted. `false` = disable                                |
+| Variable                         | Format                          | Default        | Description                                                                                  |
+| -------------------------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`)             |
+| `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`   |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled)  | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
+| `OPENSEARCH_GO_SHARD_COST`       | See format below                | (defaults)     | Override shard cost multipliers used in connection scoring                                   |
+| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`         | Seed URL fallback when all pools exhausted. `false` = disable                                |
 
 `OPENSEARCH_GO_ROUTING_CONFIG` flags:
 
-| Flag          | Default | `-` effect                                     |
-| ------------- | ------- | ---------------------------------------------- |
-| `shard_exact` | enabled | Disable murmur3 shard-exact connection routing |
+| Flag            | Default | `-` effect                                                          |
+| --------------- | ------- | ------------------------------------------------------------------- |
+| `shard_exact`   | enabled | Disable murmur3 shard-exact connection routing                      |
+| `adaptive_mcsr` | enabled | Disable adaptive `max_concurrent_shard_requests` on search requests |
 
 `OPENSEARCH_GO_DISCOVERY_CONFIG` flags:
 
@@ -1807,11 +2000,88 @@ Examples:
 # Disable shard-exact routing
 OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact
 
+# Disable adaptive max_concurrent_shard_requests
+OPENSEARCH_GO_ROUTING_CONFIG=-adaptive_mcsr
+
+# Disable both shard-exact and adaptive MCSR
+OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact,-adaptive_mcsr
+
+# Adaptive shard concurrency with custom floor=10, cap=512
+OPENSEARCH_GO_SHARD_REQUESTS=10:512
+
+# Adaptive shard concurrency with custom floor only (cap uses default 256)
+OPENSEARCH_GO_SHARD_REQUESTS=10:
+
+# Disable adaptive shard concurrency via env var
+OPENSEARCH_GO_SHARD_REQUESTS=false
+
 # Skip metadata fetch and node stats (reduces server calls)
 OPENSEARCH_GO_DISCOVERY_CONFIG=-routing_num_shards,-node_stats
 
 # Minimal discovery: only node membership, no enrichment
 OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-node_stats
+```
+
+#### Shard Cost Configuration
+
+`OPENSEARCH_GO_SHARD_COST` configures the shard cost scoring parameters used by the connection scorer. Values are resolved once at client initialization. The env var takes precedence over the programmatic `WithShardCosts()` option, which takes precedence over compile-time defaults. Any static cost value <= 0 is replaced by the compile-time default for that slot.
+
+**Format:**
+
+1. **Bare numeric** -- shorthand for setting `r:base` (the primary read cost at idle). All other parameters keep their defaults.
+
+   ```bash
+   OPENSEARCH_GO_SHARD_COST=1.0  # r:base=1.0, neutral with replicas at idle
+   ```
+
+2. **Key=value, comma-separated** -- two categories of keys:
+
+   **Dynamic read curve keys** (control the primary read cost function):
+
+   | Key          | Default | Description                                                       |
+   | ------------ | ------- | ----------------------------------------------------------------- |
+   | `r:base`     | `0.95`  | Primary read cost when the write pool is idle (< replica's 1.0)   |
+   | `r:amplify`  | `2.0`   | Amplification factor -- controls how fast cost rises under writes |
+   | `r:exponent` | `2.0`   | Curve shape (2.0 = quadratic). Higher = sharper onset             |
+
+   The dynamic primary read cost is: `r:base + r:amplify × (writeUtil ^ r:exponent)`
+
+   **Static cost keys** (override shard state costs in the lookup tables):
+
+   | Key             | Table(s)    | Default | Description                                      |
+   | --------------- | ----------- | ------- | ------------------------------------------------ |
+   | `unknown`       | read, write | `32.0`  | Cost when no shard data available from discovery |
+   | `relocating`    | read, write | varies  | Cost for shards in the RELOCATING state          |
+   | `initializing`  | read, write | varies  | Cost for shards in the INITIALIZING state        |
+   | `replica`       | read only   | `1.0`   | Read-table replica cost (the baseline)           |
+   | `write_primary` | write only  | `1.0`   | Write-table primary cost                         |
+   | `write_replica` | write only  | `8.0`   | Write-table replica cost                         |
+
+   ```bash
+   # Aggressive read shedding: higher amplify, steeper exponent
+   OPENSEARCH_GO_SHARD_COST=r:amplify=4.0,r:exponent=3.0
+
+   # Tune the crossover point: primary preferred up to ~40% write utilization
+   OPENSEARCH_GO_SHARD_COST=r:base=0.90,r:amplify=2.5
+
+   # Override a static cost: reduce unknown penalty
+   OPENSEARCH_GO_SHARD_COST=unknown=16.0,r:amplify=2.0
+   ```
+
+**Programmatic equivalent:**
+
+```go
+router := opensearchtransport.NewDefaultRouter(
+    opensearchtransport.WithShardCosts("r:base=0.90,r:amplify=2.5"),
+)
+```
+
+Or via the top-level client config (passthrough):
+
+```go
+client, _ := opensearch.NewClient(opensearch.Config{
+    ShardCostConfig: "r:base=0.90,r:amplify=2.5",
+})
 ```
 
 #### Load Shedding and Stats Polling
@@ -1898,18 +2168,19 @@ The env override is applied once at startup, after policy configuration but befo
 
 ## Appendix A: Summary Formulas
 
-| Metric                             | Formula                                     |
-| ---------------------------------- | ------------------------------------------- |
-| Hop elimination rate               | `eta = 1 - n_s / N`                         |
-| Availability gain                  | `deltaA = p² × eta × (1 - p)`               |
-| Bandwidth saved per request        | `2d × eta`                                  |
-| Coordinator heap saved per request | `d × eta`                                   |
-| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)  |
-| Cross-AZ hops eliminated           | `eta × P(cross_AZ)`                         |
-| Scatter-gather reduction           | `P_before / P_after`                        |
-| Client-side index cache            | ~200-500 B per index                        |
-| Client-side connection overhead    | ~120-300 B per node                         |
-| Scoring formula                    | `rttBucket × (inFlight+1)/cwnd × shardCost` |
+| Metric                             | Formula                                                                                   |
+| ---------------------------------- | ----------------------------------------------------------------------------------------- |
+| Hop elimination rate               | `eta = 1 - n_s / N`                                                                       |
+| Availability gain                  | `deltaA = p² × eta × (1 - p)`                                                             |
+| Bandwidth saved per request        | `2d × eta`                                                                                |
+| Coordinator heap saved per request | `d × eta`                                                                                 |
+| Blast radius (links at risk)       | `n_s` (scored) vs `N(N-1)/2` (round-robin)                                                |
+| Cross-AZ hops eliminated           | `eta × P(cross_AZ)`                                                                       |
+| Scatter-gather reduction           | `P_before / P_after`                                                                      |
+| Client-side index cache            | ~200-500 B per index                                                                      |
+| Client-side connection overhead    | ~120-300 B per node                                                                       |
+| Scoring formula (static)           | `rttBucket × (inFlight+1)/cwnd × shardCost`                                               |
+| Scoring formula (dynamic read)     | `rttBucket × (inFlight+1)/cwnd × ((1-pPct) × replica + pPct × (base + amplify × wU^exp))` |
 
 ---
 

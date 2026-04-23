@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -24,13 +23,12 @@ type TasksGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r TasksGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
-		fmt.Sprintf("/_tasks/%s", r.TaskID),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_tasks", Name: opensearch.Name(r.TaskID)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // TasksGetResp represents the returned struct of the index create response
@@ -69,6 +67,10 @@ type TasksGetResp struct {
 				ActiveThreads    int `json:"active_threads"`
 			} `json:"thread_info"`
 		} `json:"resource_stats"`
+		// Status is polymorphic; its shape depends on the task action.
+		// Use ParseBulkByScrollTaskStatus for reindex, delete_by_query,
+		// and update_by_query tasks.
+		Status json.RawMessage `json:"status,omitempty"`
 	} `json:"task"`
 	response *opensearch.Response
 }

@@ -146,6 +146,10 @@ type Connection struct {
 	Name       string
 	Roles      roleSet
 	Attributes map[string]any
+
+	// Rewritten is true when an AddressResolverFunc replaced the URL derived
+	// from the server's http.publish_address during node discovery.
+	Rewritten bool
 	// version stores the server version discovered during health check.
 	// Atomic: written by performHealthCheck, read by newConnectionEvent.
 	version atomic.Value // string

@@ -24,7 +24,7 @@ func (c rolesClient) Get(ctx context.Context, req *RolesGetReq) (RolesGetResp, e
 		data RolesGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Roles); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.Roles); err != nil {
 		return data, err
 	}
 
@@ -37,7 +37,7 @@ func (c rolesClient) Put(ctx context.Context, req RolesPutReq) (RolesPutResp, er
 		data RolesPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -50,7 +50,7 @@ func (c rolesClient) Delete(ctx context.Context, req RolesDeleteReq) (RolesDelet
 		data RolesDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -63,7 +63,7 @@ func (c rolesClient) Patch(ctx context.Context, req RolesPatchReq) (RolesPatchRe
 		data RolesPatchResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

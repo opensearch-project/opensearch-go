@@ -30,7 +30,7 @@ func (c mappingClient) Get(ctx context.Context, req *MappingGetReq) (*MappingGet
 		data MappingGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -43,7 +43,7 @@ func (c mappingClient) Put(ctx context.Context, req MappingPutReq) (*MappingPutR
 		data MappingPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -60,7 +60,7 @@ func (c mappingClient) Field(ctx context.Context, req *MappingFieldReq) (*Mappin
 		data MappingFieldResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -77,22 +77,11 @@ type MappingGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MappingGetReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(10 + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_mapping"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_mapping")
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // MappingGetResp represents the returned struct of the mapping get response
@@ -137,20 +126,12 @@ type MappingPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MappingPutReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
+	path, err := opensearch.IndicesActionPath{Indices: opensearch.ToIndices(r.Indices), Action: "_mapping"}.Build()
+	if err != nil {
+		return nil, err
+	}
 
-	var path strings.Builder
-	path.Grow(10 + len(indices))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_mapping")
-	return opensearch.BuildRequest(
-		"PUT",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MappingPutResp represents the returned struct of the mapping put response
@@ -175,24 +156,15 @@ type MappingFieldReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r MappingFieldReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	fields := strings.Join(r.Fields, ",")
-
-	var path strings.Builder
-	path.Grow(17 + len(indices) + len(fields))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionSuffixPath{
+		Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")),
+		Action: "_mapping/field",
+		Suffix: opensearch.Suffix(strings.Join(r.Fields, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_mapping/field/")
-	path.WriteString(fields)
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // MappingFieldResp represents the returned struct of the mapping field response

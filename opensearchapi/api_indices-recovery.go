@@ -24,22 +24,11 @@ type IndicesRecoveryReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesRecoveryReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(11 + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_recovery"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_recovery")
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesRecoveryResp represents the returned struct of the index recovery response

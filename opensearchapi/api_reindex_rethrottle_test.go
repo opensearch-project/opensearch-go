@@ -101,7 +101,7 @@ func TestReindexRethrottle(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{})
+		res, err := failingClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{TaskID: "test"})
 		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

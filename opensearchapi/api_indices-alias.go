@@ -25,7 +25,7 @@ func (c aliasClient) Delete(ctx context.Context, req AliasDeleteReq) (*AliasDele
 		data AliasDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -38,7 +38,7 @@ func (c aliasClient) Get(ctx context.Context, req AliasGetReq) (*AliasGetResp, e
 		data AliasGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -51,7 +51,7 @@ func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, e
 		data AliasPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -60,7 +60,7 @@ func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, e
 
 // Exists executes an exists alias request with the required AliasExistsReq
 func (c aliasClient) Exists(ctx context.Context, req AliasExistsReq) (*opensearch.Response, error) {
-	return c.apiClient.do(ctx, req, nil)
+	return doRequest(ctx, c.apiClient, req)
 }
 
 // AliasDeleteReq represents possible options for the alias delete request
@@ -74,22 +74,14 @@ type AliasDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasDeleteReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Alias, ",")
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(aliases))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(aliases)
-	return opensearch.BuildRequest(
-		"DELETE",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.AliasPath{
+		Indices: opensearch.ToIndices(r.Indices),
+		Alias:   opensearch.Alias(strings.Join(r.Alias, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
 }
 
 // AliasDeleteResp represents the returned struct of the alias delete response
@@ -114,22 +106,14 @@ type AliasGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasGetReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Alias, ",")
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(aliases))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(aliases)
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.AliasPath{
+		Indices: opensearch.ToIndices(r.Indices),
+		Alias:   opensearch.Alias(strings.Join(r.Alias, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // AliasGetResp represents the returned struct of the alias get response
@@ -173,21 +157,14 @@ type AliasPutReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasPutReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Alias))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(r.Alias)
-	return opensearch.BuildRequest(
-		"PUT",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.AliasPath{
+		Indices: opensearch.ToIndices(r.Indices),
+		Alias:   opensearch.Alias(r.Alias),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodPut, path, nil, r.Params.get(), r.Header)
 }
 
 // AliasPutResp represents the returned struct of the alias put response
@@ -212,20 +189,12 @@ type AliasExistsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r AliasExistsReq) GetRequest() (*http.Request, error) {
-	aliases := strings.Join(r.Alias, ",")
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Alias))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_alias/")
-	path.WriteString(aliases)
-	return opensearch.BuildRequest(
-		"HEAD",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.AliasPath{
+		Indices: opensearch.ToIndices(r.Indices),
+		Alias:   opensearch.Alias(strings.Join(r.Alias, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
 }

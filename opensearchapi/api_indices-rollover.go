@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -27,22 +26,11 @@ type IndicesRolloverReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesRolloverReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(12 + len(r.Alias) + len(r.Index))
-	path.WriteString("/")
-	path.WriteString(r.Alias)
-	path.WriteString("/_rollover")
-	if len(r.Index) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Index)
+	path, err := opensearch.RolloverPath{Alias: opensearch.Alias(r.Alias), Index: opensearch.Index(r.Index)}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesRolloverResp represents the returned struct of the index shrink response

@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -22,7 +21,7 @@ func (c Client) RenderSearchTemplate(ctx context.Context, req RenderSearchTempla
 		data RenderSearchTemplateResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -41,20 +40,11 @@ type RenderSearchTemplateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RenderSearchTemplateReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("//_render/template") + len(r.TemplateID))
-	path.WriteString("/_render/template")
-	if len(r.TemplateID) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.TemplateID)
+	path, err := opensearch.ActionSuffixPath{Action: "_render/template", Suffix: opensearch.Suffix(r.TemplateID)}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // RenderSearchTemplateResp represents the returned struct of the /_render/template response

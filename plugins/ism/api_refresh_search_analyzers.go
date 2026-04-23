@@ -20,7 +20,7 @@ func (c Client) RefreshSearchAnalyzers(ctx context.Context, req RefreshSearchAna
 		data RefreshSearchAnalyzersResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 
@@ -37,23 +37,15 @@ type RefreshSearchAnalyzersReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RefreshSearchAnalyzersReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(len("/_plugins/_refresh_search_analyzers/") + len(indices))
-	path.WriteString("/_plugins/_refresh_search_analyzers")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.ActionSuffixPath{
+		Action: "_plugins/_refresh_search_analyzers",
+		Suffix: opensearch.Suffix(strings.Join(r.Indices, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodPost,
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // RefreshSearchAnalyzersResp represents the returned struct of the refreshed search analyzers response

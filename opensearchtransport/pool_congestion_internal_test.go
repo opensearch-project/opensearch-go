@@ -516,7 +516,7 @@ func TestStoreThreadPoolSizes_SkipsZeroSize(t *testing.T) {
 	require.Nil(t, conn.pools.get("generic"))
 }
 
-// --- calcConnScore with pool overload ---
+// --- calcConnDefaultScore with pool overload ---
 
 func TestCalcConnScore_OverloadedReturnsMaxFloat(t *testing.T) {
 	t.Parallel()
@@ -535,7 +535,7 @@ func TestCalcConnScore_OverloadedReturnsMaxFloat(t *testing.T) {
 	pc := conn.pools.getOrCreate("search")
 	pc.overloaded.Store(true)
 
-	score := calcConnScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "search", true)
+	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "search", true)
 	require.InDelta(t, math.MaxFloat64, score, 1, "overloaded pool should return MaxFloat64")
 }
 
@@ -556,7 +556,7 @@ func TestCalcConnScore_EmptyPoolNameNoOverloadCheck(t *testing.T) {
 	// because the condition is `poolName != "" && ...`.
 	conn.pools.defaultPool.overloaded.Store(true)
 
-	score := calcConnScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
+	score := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
 	require.NotEqual(t, math.MaxFloat64, score,
 		"empty poolName should not trigger overload skip")
 	require.Greater(t, score, 0.0)
@@ -583,4 +583,324 @@ func TestMaxCwndOrDefault(t *testing.T) {
 		expected := int32(defaultSyntheticCwndMultiplier * defaultServerCoreCount)
 		require.Equal(t, expected, maxCwndOrDefault(-1))
 	})
+}
+
+// --- clusterSearchAIMD tests ---
+
+// makeTestSample creates a nodeSearchSample with the given cumulative stats.
+func makeTestSample(conn *Connection, completed int64, waitNanos int64, maxCwnd int32) nodeSearchSample {
+	wn := waitNanos
+	return nodeSearchSample{
+		conn: conn,
+		stats: ThreadPoolStats{
+			Completed:            completed,
+			TotalWaitTimeInNanos: &wn,
+		},
+		maxCwnd: maxCwnd,
+	}
+}
+
+func TestClusterSearchAIMD(t *testing.T) {
+	t.Parallel()
+
+	newConn := func(name string) *Connection {
+		u, _ := url.Parse("http://" + name + ":9200")
+		return &Connection{URL: u, ID: name}
+	}
+
+	t.Run("first poll stores baseline, cwnd stays zero", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+
+		ca.update([]nodeSearchSample{makeTestSample(c1, 100, 50000, 13)})
+		require.Equal(t, int32(0), ca.cwnd.Load(),
+			"first poll has no baseline for deltas, cwnd should stay 0")
+	})
+
+	t.Run("slow start doubles cwnd", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+
+		// Poll 1: establish baseline.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 100, 50000, 13)})
+
+		// Poll 2: completions increased, low wait time -> slow start.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 200, 60000, 13)})
+		cwnd := ca.cwnd.Load()
+		require.Positive(t, cwnd, "cwnd should have grown from slow start")
+
+		// Poll 3: more completions -> continues slow start.
+		prevCwnd := cwnd
+		ca.update([]nodeSearchSample{makeTestSample(c1, 300, 70000, 13)})
+		cwnd = ca.cwnd.Load()
+		require.GreaterOrEqual(t, cwnd, prevCwnd, "cwnd should keep growing in slow start")
+	})
+
+	t.Run("congestion halves cwnd", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+
+		// Poll 1: baseline.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 1000, 0, 13)})
+
+		// Poll 2: low wait -> grow.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 2000, 100000, 13)})
+		grownCwnd := ca.cwnd.Load()
+		require.Positive(t, grownCwnd)
+
+		// Poll 3: high wait time (2ms per completion = congested).
+		// 1000 completions * 2_000_000 ns = 2_000_000_000 ns total wait.
+		prevWait := int64(100000)
+		highWait := prevWait + 1000*2_000_000
+		ca.update([]nodeSearchSample{makeTestSample(c1, 3000, highWait, 13)})
+		require.Less(t, ca.cwnd.Load(), grownCwnd,
+			"congestion should halve cwnd")
+	})
+
+	t.Run("multi-node aggregation", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+		c2 := newConn("n2")
+		c3 := newConn("n3")
+
+		// Poll 1: baselines for all 3 nodes.
+		ca.update([]nodeSearchSample{
+			makeTestSample(c1, 1000, 50000, 13),
+			makeTestSample(c2, 1000, 50000, 13),
+			makeTestSample(c3, 1000, 50000, 13),
+		})
+
+		// Poll 2: all nodes healthy, low wait -> slow start.
+		ca.update([]nodeSearchSample{
+			makeTestSample(c1, 2000, 60000, 13),
+			makeTestSample(c2, 2000, 60000, 13),
+			makeTestSample(c3, 2000, 60000, 13),
+		})
+		cwnd := ca.cwnd.Load()
+		require.Positive(t, cwnd)
+
+		// maxCwnd should be the largest single node's pool size (not the sum).
+		ca.mu.Lock()
+		maxCwnd := ca.mu.maxCwnd
+		ca.mu.Unlock()
+		require.Equal(t, int32(13), maxCwnd, "cluster maxCwnd = max of per-node maxCwnds")
+	})
+
+	t.Run("node churn: new node skips first delta", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+		c2 := newConn("n2")
+
+		// Poll 1: baseline for c1 only.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 1000, 50000, 13)})
+
+		// Poll 2: c1 has completions, c2 is new (no baseline).
+		// Only c1's delta should count.
+		ca.update([]nodeSearchSample{
+			makeTestSample(c1, 2000, 60000, 13),
+			makeTestSample(c2, 5000, 90000, 13),
+		})
+		cwnd := ca.cwnd.Load()
+		require.Positive(t, cwnd, "c1 delta should drive AIMD")
+
+		// Verify c2 is now tracked.
+		ca.mu.Lock()
+		_, hasC2 := ca.mu.nodes[c2]
+		ca.mu.Unlock()
+		require.True(t, hasC2, "c2 should be in the epoch map after first appearance")
+	})
+
+	t.Run("node churn: disappeared node is evicted", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+		c2 := newConn("n2")
+
+		// Poll 1: baselines for both.
+		ca.update([]nodeSearchSample{
+			makeTestSample(c1, 1000, 50000, 13),
+			makeTestSample(c2, 1000, 50000, 13),
+		})
+
+		// Poll 2: only c1 polled (c2 disappeared).
+		ca.update([]nodeSearchSample{makeTestSample(c1, 2000, 60000, 13)})
+
+		ca.mu.Lock()
+		_, hasC2 := ca.mu.nodes[c2]
+		nodeCount := len(ca.mu.nodes)
+		ca.mu.Unlock()
+		require.False(t, hasC2, "disappeared node should be evicted")
+		require.Equal(t, 1, nodeCount)
+	})
+
+	t.Run("single node is same as per-node", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+
+		// Baseline.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 100, 50000, 13)})
+
+		// Low wait -> grow.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 200, 60000, 13)})
+		require.Positive(t, ca.cwnd.Load())
+
+		// maxCwnd = single node's maxCwnd.
+		ca.mu.Lock()
+		maxCwnd := ca.mu.maxCwnd
+		ca.mu.Unlock()
+		require.Equal(t, int32(13), maxCwnd)
+	})
+
+	t.Run("cwnd capped at cluster maxCwnd", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+
+		// Baseline.
+		ca.update([]nodeSearchSample{makeTestSample(c1, 100, 0, 5)})
+
+		// Drive cwnd up with many low-wait polls.
+		for i := int64(1); i <= 20; i++ {
+			ca.update([]nodeSearchSample{makeTestSample(c1, 100+i*1000, i*1000, 5)})
+		}
+
+		// maxCwnd for 1 node with maxCwnd=5 -> cluster maxCwnd=5.
+		cwnd := ca.cwnd.Load()
+		require.LessOrEqual(t, cwnd, int32(5),
+			"cluster cwnd should not exceed cluster maxCwnd (max of per-node maxCwnds)")
+	})
+
+	t.Run("node with zero delta completed is skipped", func(t *testing.T) {
+		t.Parallel()
+		var ca clusterSearchAIMD
+		c1 := newConn("n1")
+		c2 := newConn("n2")
+
+		// Poll 1: baselines for both.
+		ca.update([]nodeSearchSample{
+			makeTestSample(c1, 1000, 50000, 13),
+			makeTestSample(c2, 1000, 50000, 13),
+		})
+
+		// Poll 2: c1 has new completions, c2 has same completed count (deltaCompleted <= 0).
+		ca.update([]nodeSearchSample{
+			makeTestSample(c1, 2000, 60000, 13),
+			makeTestSample(c2, 1000, 50000, 13), // no change
+		})
+
+		// Should still grow from c1's contribution alone.
+		require.Positive(t, ca.cwnd.Load(), "c1 delta should drive AIMD even when c2 has zero delta")
+	})
+}
+
+// --- poolRegistry.get tests ---
+
+func TestPoolRegistryGet(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty name returns default pool", func(t *testing.T) {
+		t.Parallel()
+		var reg poolRegistry
+		pc := reg.get("")
+		require.Equal(t, &reg.defaultPool, pc, "get('') should return default pool")
+	})
+
+	t.Run("unknown named pool returns nil", func(t *testing.T) {
+		t.Parallel()
+		var reg poolRegistry
+		require.Nil(t, reg.get("nonexistent"))
+	})
+
+	t.Run("known named pool returns it", func(t *testing.T) {
+		t.Parallel()
+		var reg poolRegistry
+		created := reg.getOrCreate("search")
+		require.Equal(t, created, reg.get("search"))
+	})
+}
+
+// --- debugLogger coverage for pool congestion ---
+
+func TestSetMaxCwnd_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	var reg poolRegistry
+	reg.setMaxCwnd("search", 13)
+
+	// The logging path is now exercised. Verify the pool was still set correctly.
+	pc := reg.get("search")
+	require.NotNil(t, pc)
+	pc.mu.Lock()
+	require.Equal(t, int32(13), pc.mu.maxCwnd)
+	pc.mu.Unlock()
+}
+
+func TestUpdatePoolCongestion_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	conn := &Connection{Name: "test-conn"}
+
+	// First poll: establish baselines.
+	updatePoolCongestion(conn, map[string]ThreadPoolStats{
+		"search": {Completed: 100},
+	})
+
+	// Second poll: completions increased, cwnd will change (triggers debug log).
+	updatePoolCongestion(conn, map[string]ThreadPoolStats{
+		"search": {Completed: 200},
+	})
+
+	pc := conn.pools.get("search")
+	require.NotNil(t, pc)
+}
+
+func TestClusterSearchAIMD_DebugLogging(t *testing.T) {
+	enableTestDebugLogger(t)
+
+	u, _ := url.Parse("http://n1:9200")
+	c1 := &Connection{URL: u, ID: "n1"}
+
+	var ca clusterSearchAIMD
+
+	// Poll 1: baseline.
+	ca.update([]nodeSearchSample{makeTestSample(c1, 100, 0, 13)})
+
+	// Poll 2: slow start (debug log for cwnd change).
+	ca.update([]nodeSearchSample{makeTestSample(c1, 200, 1000, 13)})
+	require.Positive(t, ca.cwnd.Load())
+
+	// Drive cwnd up to ssthresh so we hit congestion avoidance.
+	for i := int64(3); i <= 20; i++ {
+		ca.update([]nodeSearchSample{makeTestSample(c1, i*100, i*1000, 13)})
+	}
+
+	// Now trigger congestion (high wait time).
+	prevWait := int64(20 * 1000)
+	highWait := prevWait + 1000*2_000_000
+	ca.update([]nodeSearchSample{makeTestSample(c1, 2100, highWait, 13)})
+}
+
+// testDebugLogger implements the DebuggingLogger interface for test coverage.
+type testDebugLogger struct{}
+
+func (l *testDebugLogger) Log(_ ...any) error            { return nil }
+func (l *testDebugLogger) Logf(_ string, _ ...any) error { return nil }
+
+// enableTestDebugLogger sets debugLogger to a no-op testDebugLogger exactly
+// once for the lifetime of the test process. This avoids data races that
+// arise when individual tests save/restore the package-level global while
+// background goroutines from parallel tests are still reading it.
+var initTestDebugLogger = sync.OnceFunc(func() {
+	debugLogger = &testDebugLogger{}
+})
+
+func enableTestDebugLogger(t *testing.T) {
+	t.Helper()
+	initTestDebugLogger()
 }

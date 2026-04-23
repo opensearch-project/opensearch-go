@@ -36,7 +36,6 @@ import (
 var (
 	_ Policy             = (*RoundRobinPolicy)(nil)
 	_ policyConfigurable = (*RoundRobinPolicy)(nil)
-	_ PoolReporter       = (*RoundRobinPolicy)(nil)
 	_ policyTyped        = (*RoundRobinPolicy)(nil)
 	_ policyOverrider    = (*RoundRobinPolicy)(nil)
 )
@@ -63,6 +62,12 @@ func (p *RoundRobinPolicy) configurePolicySettings(config policyConfig) error {
 	if p.pool == nil {
 		config.name = "roundrobin"
 		p.pool = createPoolFromConfig(config)
+	}
+	if config.metrics != nil {
+		config.metrics.policyCallbacks = append(config.metrics.policyCallbacks,
+			func() (PolicySnapshot, error) {
+				return p.PolicySnapshot(), nil
+			})
 	}
 	return nil
 }
@@ -218,10 +223,10 @@ func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (NextHop
 	return NextHop{Conn: conn}, nil
 }
 
-// PoolSnapshot returns a point-in-time snapshot of this policy's pool.
-func (p *RoundRobinPolicy) PoolSnapshot() PoolSnapshot {
+// PolicySnapshot returns a point-in-time snapshot of this policy's pool.
+func (p *RoundRobinPolicy) PolicySnapshot() PolicySnapshot {
 	if p.pool == nil {
-		return PoolSnapshot{Name: "roundrobin"}
+		return PolicySnapshot{Name: "roundrobin"}
 	}
 	snap := p.pool.snapshot()
 	snap.Enabled = psIsEnabled(p.policyState.Load())

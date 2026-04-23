@@ -8,7 +8,6 @@ package security
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -61,19 +60,16 @@ func NewClient(config Config) (*Client, error) {
 	return clientInit(rootClient), nil
 }
 
-// do calls the opensearch.Client.Do() and checks the response for errors
-func (c *Client) do(ctx context.Context, req opensearch.Request, dataPointer any) (*opensearch.Response, error) {
-	resp, err := c.Client.Do(ctx, req, dataPointer)
+// do calls [opensearch.Do] and checks the response for errors.
+// The generic *T parameter enforces that dataPointer is a pointer at compile time.
+func do[T any](ctx context.Context, c *Client, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Do(ctx, c.Client, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.IsError() {
-		if dataPointer != nil {
-			return resp, opensearch.ParseError(resp)
-		} else {
-			return resp, fmt.Errorf("status: %s", resp.Status())
-		}
+		return resp, opensearch.ParseError(resp)
 	}
 
 	return resp, nil

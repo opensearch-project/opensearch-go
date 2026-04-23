@@ -104,19 +104,30 @@ func NewFromClient(client *opensearch.Client) *Client {
 	return clientInit(client)
 }
 
-// do calls the opensearch.Client.Do() and checks the response for openseach api errors
-func (c *Client) do(ctx context.Context, req opensearch.Request, dataPointer any) (*opensearch.Response, error) {
-	resp, err := c.Client.Do(ctx, req, dataPointer)
+// do calls [opensearch.Do] and checks the response for OpenSearch API errors.
+// The generic *T parameter enforces that dataPointer is a pointer at compile time.
+func do[T any](ctx context.Context, c *Client, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Do(ctx, c.Client, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.IsError() {
-		if dataPointer != nil {
-			return resp, opensearch.ParseError(resp)
-		} else {
-			return resp, fmt.Errorf("status: %s", resp.Status())
-		}
+		return resp, opensearch.ParseError(resp)
+	}
+
+	return resp, nil
+}
+
+// doRequest calls [opensearch.Client.Do] for requests that expect no response body.
+func doRequest(ctx context.Context, c *Client, req opensearch.Request) (*opensearch.Response, error) {
+	resp, err := c.Client.Do(ctx, req, nil) //nolint:staticcheck // intentional use of deprecated method for nil dataPointer
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.IsError() {
+		return resp, fmt.Errorf("status: %s", resp.Status())
 	}
 
 	return resp, nil
@@ -148,13 +159,38 @@ type ResponseShards struct {
 
 // ResponseShardsFailure is a sub type of ResponseShards containing information about a failed shard
 type ResponseShardsFailure struct {
-	Shard  int    `json:"shard"`
-	Index  any    `json:"index"`
-	Node   string `json:"node"`
-	Reason struct {
+	Shard   int    `json:"shard"`
+	Index   any    `json:"index"`
+	Node    string `json:"node"`
+	Status  string `json:"status"`
+	Primary bool   `json:"primary"`
+	Reason  struct {
 		Type   string `json:"type"`
 		Reason string `json:"reason"`
 	} `json:"reason"`
+}
+
+// DocumentError represents an error for an individual item in a multi-document response.
+// Used by MGet, MTermvectors, MSearch, and similar APIs where each item can fail independently.
+type DocumentError struct {
+	Type      string          `json:"type"`
+	Reason    string          `json:"reason"`
+	Index     string          `json:"index,omitempty"`
+	IndexUUID string          `json:"index_uuid,omitempty"`
+	RootCause []DocumentError `json:"root_cause,omitempty"`
+	CausedBy  *DocumentError  `json:"caused_by,omitempty"`
+}
+
+// BulkByScrollFailure represents a failure item in _delete_by_query, _update_by_query,
+// and _reindex responses. Can represent either a bulk write failure or a search scroll failure.
+type BulkByScrollFailure struct {
+	Index  string         `json:"index"`
+	ID     string         `json:"id,omitempty"`    // Bulk failures only
+	Shard  *int           `json:"shard,omitempty"` // Search failures only
+	Node   string         `json:"node,omitempty"`  // Search failures only
+	Status int            `json:"status"`
+	Cause  *DocumentError `json:"cause,omitempty"`  // Bulk failures: the exception that caused the failure
+	Reason *DocumentError `json:"reason,omitempty"` // Search failures: the exception that caused the failure
 }
 
 // FailuresCause contains information about failure cause
