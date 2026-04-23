@@ -792,12 +792,36 @@ func TestBulkIndexer(t *testing.T) {
 				}},
 				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}`, testIndex) + "\n",
 			},
+			{
+				"_id with angle brackets is not HTML-escaped",
+				args{BulkIndexerItem{
+					Action:     "index",
+					DocumentID: "prefix|<root_account>|suffix",
+					Index:      testIndex,
+				}},
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"prefix|<root_account>|suffix"}}`, testIndex) + "\n",
+			},
+			{
+				"_id with ampersand is not HTML-escaped",
+				args{BulkIndexerItem{
+					Action:     "index",
+					DocumentID: "foo&bar",
+					Index:      testIndex,
+				}},
+				fmt.Sprintf(`{"index":{"_index":"%s","_id":"foo&bar"}}`, testIndex) + "\n",
+			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
+				bi := &bulkIndexer{
+					metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
+					metaPool: sync.Pool{
+						New: func() any { return new(bytes.Buffer) },
+					},
+				}
 				w := &worker{
+					bi:  bi,
 					buf: bytes.NewBuffer(make([]byte, 0, 5e+6)),
-					aux: make([]byte, 0, 512),
 				}
 				if err := w.writeMeta(tt.args.item); err != nil {
 					t.Errorf("Unexpected error: %v", err)
