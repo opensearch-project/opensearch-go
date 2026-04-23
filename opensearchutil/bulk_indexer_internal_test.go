@@ -32,9 +32,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"reflect"
@@ -49,6 +51,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/stretchr/testify/require"
 )
 
 var infoBody = `{
@@ -681,84 +684,85 @@ func TestBulkIndexer(t *testing.T) {
 			item BulkIndexerItem
 		}
 		tests := []struct {
-			name string
-			args args
-			want string
+			name    string
+			args    args
+			want    string
+			wantErr error
 		}{
 			{
-				"without _index and _id",
-				args{BulkIndexerItem{Action: "index"}},
-				`{"index":{}}` + "\n",
+				name: "without _index and _id",
+				args: args{BulkIndexerItem{Action: "index"}},
+				want: `{"index":{}}` + "\n",
 			},
 			{
-				"with _id",
-				args{BulkIndexerItem{
+				name: "with _id",
+				args: args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "42",
 				}},
-				`{"index":{"_id":"42"}}` + "\n",
+				want: `{"index":{"_id":"42"}}` + "\n",
 			},
 			{
-				"with _index",
-				args{BulkIndexerItem{
+				name: "with _index",
+				args: args{BulkIndexerItem{
 					Action: "index",
 					Index:  testIndex,
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
 			},
 			{
-				"with _index and _id",
-				args{BulkIndexerItem{
+				name: "with _index and _id",
+				args: args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "42",
 					Index:      testIndex,
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42"}}`, testIndex) + "\n",
 			},
 			{
-				"with if_seq_no and if_primary_term",
-				args{BulkIndexerItem{
+				name: "with if_seq_no and if_primary_term",
+				args: args{BulkIndexerItem{
 					Action:        "index",
 					DocumentID:    "42",
 					Index:         testIndex,
 					IfSeqNum:      int64Pointer(5),
 					IfPrimaryTerm: int64Pointer(1),
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","if_seq_no":5,"if_primary_term":1}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","if_seq_no":5,"if_primary_term":1}}`, testIndex) + "\n",
 			},
 			{
-				"with version and no document, if_seq_no, and if_primary_term",
-				args{BulkIndexerItem{
+				name: "with version and no document, if_seq_no, and if_primary_term",
+				args: args{BulkIndexerItem{
 					Action:  "index",
 					Index:   testIndex,
 					Version: int64Pointer(23),
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
 			},
 			{
-				"with version",
-				args{BulkIndexerItem{
+				name: "with version",
+				args: args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "42",
 					Index:      testIndex,
 					Version:    int64Pointer(24),
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":24}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":24}}`, testIndex) + "\n",
 			},
 			{
-				"with version and version_type",
-				args{BulkIndexerItem{
+				name: "with version and version_type",
+				args: args{BulkIndexerItem{
 					Action:      "index",
 					DocumentID:  "42",
 					Index:       testIndex,
 					Version:     int64Pointer(25),
 					VersionType: strPointer("external"),
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
 			},
 			{
-				"wait_for_active_shards",
-				args{BulkIndexerItem{
+				name: "wait_for_active_shards",
+				args: args{BulkIndexerItem{
 					Action:              "index",
 					DocumentID:          "42",
 					Index:               testIndex,
@@ -766,11 +770,11 @@ func TestBulkIndexer(t *testing.T) {
 					VersionType:         strPointer("external"),
 					WaitForActiveShards: 1,
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":1}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":1}}`, testIndex) + "\n",
 			},
 			{
-				"wait_for_active_shards, all",
-				args{BulkIndexerItem{
+				name: "wait_for_active_shards, all",
+				args: args{BulkIndexerItem{
 					Action:              "index",
 					DocumentID:          "42",
 					Index:               testIndex,
@@ -778,11 +782,11 @@ func TestBulkIndexer(t *testing.T) {
 					VersionType:         strPointer("external"),
 					WaitForActiveShards: "all",
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}`, testIndex) + "\n",
 			},
 			{
-				"with retry_on_conflict",
-				args{BulkIndexerItem{
+				name: "with retry_on_conflict",
+				args: args{BulkIndexerItem{
 					Action:          "index",
 					DocumentID:      "42",
 					Index:           testIndex,
@@ -790,25 +794,34 @@ func TestBulkIndexer(t *testing.T) {
 					VersionType:     strPointer("external"),
 					RetryOnConflict: intPointer(5),
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}`, testIndex) + "\n",
 			},
 			{
-				"_id with angle brackets is not HTML-escaped",
-				args{BulkIndexerItem{
+				name: "_id with angle brackets is not HTML-escaped",
+				args: args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "prefix|<root_account>|suffix",
 					Index:      testIndex,
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"prefix|<root_account>|suffix"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"prefix|<root_account>|suffix"}}`, testIndex) + "\n",
 			},
 			{
-				"_id with ampersand is not HTML-escaped",
-				args{BulkIndexerItem{
+				name: "_id with ampersand is not HTML-escaped",
+				args: args{BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "foo&bar",
 					Index:      testIndex,
 				}},
-				fmt.Sprintf(`{"index":{"_index":"%s","_id":"foo&bar"}}`, testIndex) + "\n",
+				want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"foo&bar"}}`, testIndex) + "\n",
+			},
+			{
+				name: "encode error from unsupported value",
+				args: args{BulkIndexerItem{
+					Action:              "index",
+					DocumentID:          "1",
+					WaitForActiveShards: math.NaN(),
+				}},
+				wantErr: &json.UnsupportedValueError{},
 			},
 		}
 		for _, tt := range tests {
@@ -823,13 +836,13 @@ func TestBulkIndexer(t *testing.T) {
 					bi:  bi,
 					buf: bytes.NewBuffer(make([]byte, 0, 5e+6)),
 				}
-				if err := w.writeMeta(tt.args.item); err != nil {
-					t.Errorf("Unexpected error: %v", err)
+				err := w.writeMeta(tt.args.item)
+				if tt.wantErr != nil {
+					require.ErrorAs(t, err, &tt.wantErr)
+					return
 				}
-
-				if w.buf.String() != tt.want {
-					t.Errorf("worker.writeMeta() %s = got [%s], want [%s]", tt.name, w.buf.String(), tt.want)
-				}
+				require.NoError(t, err)
+				require.Equal(t, tt.want, w.buf.String())
 			})
 		}
 	})
