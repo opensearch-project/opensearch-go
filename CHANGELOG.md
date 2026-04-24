@@ -180,6 +180,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bump `github.com/stretchr/testify` from 1.10.0 to 1.11.1 ([#728](https://github.com/opensearch-project/opensearch-go/pull/728))
 - Bump `github.com/aws/aws-sdk-go` from 1.55.7 to 1.55.8 ([#716](https://github.com/opensearch-project/opensearch-go/pull/716))
 
+### Dependencies
+
+- Bump go version from 1.24.0 to 1.25.9 in order to resolve certain CVEs. Details in the Pull Request ([#825](https://github.com/opensearch-project/opensearch-go/pull/825))
+
 ### Added
 
 - Adds new fields for Opensearch 3.0 ([#702](https://github.com/opensearch-project/opensearch-go/pull/702))
