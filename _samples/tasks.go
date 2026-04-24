@@ -10,7 +10,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -19,7 +21,7 @@ import (
 
 func main() {
 	if err := example(); err != nil {
-		fmt.Println(fmt.Sprintf("Error: %s", err))
+		fmt.Printf("Error: %s\n", err)
 		os.Exit(1)
 	}
 }
@@ -40,7 +42,10 @@ func example() error {
 		return err
 	}
 
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
 
 	sourceIndex := "task-source"
 	destIndex := "task-dest"
@@ -82,6 +87,9 @@ func example() error {
 	fmt.Printf("Task submitted: %s\n", taskID)
 
 	// Poll for completion.
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
 	var taskResp *opensearchapi.TasksGetResp
 	for {
 		taskResp, err = client.Tasks.Get(ctx, opensearchapi.TasksGetReq{TaskID: taskID})
@@ -91,7 +99,11 @@ func example() error {
 		if taskResp.Completed {
 			break
 		}
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
 	}
 	fmt.Printf("Task completed: action=%s\n", taskResp.Task.Action)
 

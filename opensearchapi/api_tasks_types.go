@@ -8,8 +8,13 @@ package opensearchapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
+
+// ErrNilTaskStatus is returned when a nil json.RawMessage is passed to a
+// Parse*TaskStatus function.
+var ErrNilTaskStatus = errors.New("task status is nil")
 
 // BulkByScrollTaskStatus represents the status of reindex, delete_by_query,
 // and update_by_query tasks as defined by the OpenSearch API specification.
@@ -200,16 +205,7 @@ type PersistentTaskStatus struct {
 //
 // Returns an error if status is nil or cannot be unmarshaled.
 func ParseBulkByScrollTaskStatus(status json.RawMessage) (*BulkByScrollTaskStatus, error) {
-	if status == nil {
-		return nil, fmt.Errorf("status is nil")
-	}
-
-	var s BulkByScrollTaskStatus
-	if err := json.Unmarshal(status, &s); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal BulkByScrollTaskStatus: %w", err)
-	}
-
-	return &s, nil
+	return parseTaskStatus[BulkByScrollTaskStatus](status)
 }
 
 // ParseReplicationTaskStatus unmarshals a task's raw Status field into a
@@ -217,16 +213,7 @@ func ParseBulkByScrollTaskStatus(status json.RawMessage) (*BulkByScrollTaskStatu
 //
 // Returns an error if status is nil or cannot be unmarshaled.
 func ParseReplicationTaskStatus(status json.RawMessage) (*ReplicationTaskStatus, error) {
-	if status == nil {
-		return nil, fmt.Errorf("status is nil")
-	}
-
-	var s ReplicationTaskStatus
-	if err := json.Unmarshal(status, &s); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal ReplicationTaskStatus: %w", err)
-	}
-
-	return &s, nil
+	return parseTaskStatus[ReplicationTaskStatus](status)
 }
 
 // ParseResyncTaskStatus unmarshals a task's raw Status field into a
@@ -234,16 +221,7 @@ func ParseReplicationTaskStatus(status json.RawMessage) (*ReplicationTaskStatus,
 //
 // Returns an error if status is nil or cannot be unmarshaled.
 func ParseResyncTaskStatus(status json.RawMessage) (*ResyncTaskStatus, error) {
-	if status == nil {
-		return nil, fmt.Errorf("status is nil")
-	}
-
-	var s ResyncTaskStatus
-	if err := json.Unmarshal(status, &s); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal ResyncTaskStatus: %w", err)
-	}
-
-	return &s, nil
+	return parseTaskStatus[ResyncTaskStatus](status)
 }
 
 // ParsePersistentTaskStatus unmarshals a task's raw Status field into a
@@ -251,14 +229,16 @@ func ParseResyncTaskStatus(status json.RawMessage) (*ResyncTaskStatus, error) {
 //
 // Returns an error if status is nil or cannot be unmarshaled.
 func ParsePersistentTaskStatus(status json.RawMessage) (*PersistentTaskStatus, error) {
-	if status == nil {
-		return nil, fmt.Errorf("status is nil")
-	}
+	return parseTaskStatus[PersistentTaskStatus](status)
+}
 
-	var s PersistentTaskStatus
-	if err := json.Unmarshal(status, &s); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal PersistentTaskStatus: %w", err)
+func parseTaskStatus[T any](raw json.RawMessage) (*T, error) {
+	if raw == nil {
+		return nil, ErrNilTaskStatus
 	}
-
+	var s T
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return nil, fmt.Errorf("unmarshaling %T: %w", s, err)
+	}
 	return &s, nil
 }
