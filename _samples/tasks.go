@@ -108,7 +108,7 @@ func example() error {
 	fmt.Printf("Task completed: action=%s\n", taskResp.Task.Action)
 
 	// Parse the BulkByScroll status.
-	status, err := opensearchapi.ParseBulkByScrollTaskStatus(taskResp.Task.Status)
+	status, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](taskResp.Task.Status)
 	if err != nil {
 		return err
 	}

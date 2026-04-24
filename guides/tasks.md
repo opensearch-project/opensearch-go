@@ -104,10 +104,10 @@ The `Status` field on a task is a `json.RawMessage` because its shape depends on
 
 ### BulkByScroll Tasks (reindex, delete_by_query, update_by_query)
 
-For reindex, delete_by_query, and update_by_query tasks, use `ParseBulkByScrollTaskStatus` to unmarshal the status into a typed struct:
+For reindex, delete_by_query, and update_by_query tasks, use `ParseTaskStatus` to unmarshal the status into a typed struct:
 
 ```go
-	status, err := opensearchapi.ParseBulkByScrollTaskStatus(taskResp.Task.Status)
+	status, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](taskResp.Task.Status)
 	if err != nil {
 		return err
 	}
@@ -138,10 +138,10 @@ For sliced requests, the `Slices` field contains per-slice status. Each element 
 
 ### Replication Tasks
 
-For replication tasks (e.g. index, delete, bulk shard operations), use `ParseReplicationTaskStatus`:
+For replication tasks (e.g. index, delete, bulk shard operations), use `ParseTaskStatus`:
 
 ```go
-	replStatus, err := opensearchapi.ParseReplicationTaskStatus(taskResp.Task.Status)
+	replStatus, err := opensearchapi.ParseTaskStatus[opensearchapi.ReplicationTaskStatus](taskResp.Task.Status)
 	if err != nil {
 		return err
 	}
@@ -150,10 +150,10 @@ For replication tasks (e.g. index, delete, bulk shard operations), use `ParseRep
 
 ### Primary-Replica Resync Tasks
 
-For primary-replica resync tasks, use `ParseResyncTaskStatus`:
+For primary-replica resync tasks, use `ParseTaskStatus`:
 
 ```go
-	resyncStatus, err := opensearchapi.ParseResyncTaskStatus(taskResp.Task.Status)
+	resyncStatus, err := opensearchapi.ParseTaskStatus[opensearchapi.ResyncTaskStatus](taskResp.Task.Status)
 	if err != nil {
 		return err
 	}
@@ -165,10 +165,10 @@ For primary-replica resync tasks, use `ParseResyncTaskStatus`:
 
 ### Persistent Tasks
 
-For persistent task executors, use `ParsePersistentTaskStatus`:
+For persistent task executors, use `ParseTaskStatus`:
 
 ```go
-	persistStatus, err := opensearchapi.ParsePersistentTaskStatus(taskResp.Task.Status)
+	persistStatus, err := opensearchapi.ParseTaskStatus[opensearchapi.PersistentTaskStatus](taskResp.Task.Status)
 	if err != nil {
 		return err
 	}
@@ -223,14 +223,24 @@ Long-running tasks can be cancelled by task ID:
 
 The OpenSearch server returns different status structures depending on the task type. All status types have been present since OpenSearch 1.0.0.
 
-| Task Type                                 | Parse Helper                  | Status Struct            | Key Fields                                                                |
-| ----------------------------------------- | ----------------------------- | ------------------------ | ------------------------------------------------------------------------- |
-| reindex, delete_by_query, update_by_query | `ParseBulkByScrollTaskStatus` | `BulkByScrollTaskStatus` | total, created, updated, deleted, batches, retries, throttle info, slices |
-| replication (index, delete, bulk shard)   | `ParseReplicationTaskStatus`  | `ReplicationTaskStatus`  | phase                                                                     |
-| primary-replica resync                    | `ParseResyncTaskStatus`       | `ResyncTaskStatus`       | phase, totalOperations, resyncedOperations, skippedOperations             |
-| persistent task executor                  | `ParsePersistentTaskStatus`   | `PersistentTaskStatus`   | state                                                                     |
+| Task Type                                 | Call                                      | Status Struct            | Key Fields                                                                |
+| ----------------------------------------- | ----------------------------------------- | ------------------------ | ------------------------------------------------------------------------- |
+| reindex, delete_by_query, update_by_query | `ParseTaskStatus[BulkByScrollTaskStatus]` | `BulkByScrollTaskStatus` | total, created, updated, deleted, batches, retries, throttle info, slices |
+| replication (index, delete, bulk shard)   | `ParseTaskStatus[ReplicationTaskStatus]`  | `ReplicationTaskStatus`  | phase                                                                     |
+| primary-replica resync                    | `ParseTaskStatus[ResyncTaskStatus]`       | `ResyncTaskStatus`       | phase, totalOperations, resyncedOperations, skippedOperations             |
+| persistent task executor                  | `ParseTaskStatus[PersistentTaskStatus]`   | `PersistentTaskStatus`   | state                                                                     |
 
 For any unrecognized task type, the `Status` field remains available as `json.RawMessage` for direct unmarshaling.
+
+### Shorthand Helpers
+
+If you parse the same status type frequently, you can define a short alias in your own code:
+
+```go
+func parseBulkByScrollStatus(raw json.RawMessage) (*opensearchapi.BulkByScrollTaskStatus, error) {
+	return opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](raw)
+}
+```
 
 ## Cleanup
 

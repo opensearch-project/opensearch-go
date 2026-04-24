@@ -199,40 +199,15 @@ type PersistentTaskStatus struct {
 	State string `json:"state"`
 }
 
-// ParseBulkByScrollTaskStatus unmarshals a task's raw Status field into a
-// BulkByScrollTaskStatus. Use this for reindex, delete_by_query, and
-// update_by_query tasks.
+// ParseTaskStatus unmarshals a task's raw Status field into a concrete type.
+// The Status field is polymorphic; its shape depends on the task action.
 //
-// Returns an error if status is nil or cannot be unmarshaled.
-func ParseBulkByScrollTaskStatus(status json.RawMessage) (*BulkByScrollTaskStatus, error) {
-	return parseTaskStatus[BulkByScrollTaskStatus](status)
-}
-
-// ParseReplicationTaskStatus unmarshals a task's raw Status field into a
-// ReplicationTaskStatus.
+// Supported types: BulkByScrollTaskStatus (reindex, delete_by_query,
+// update_by_query), ReplicationTaskStatus, ResyncTaskStatus,
+// PersistentTaskStatus, or any struct that can be unmarshaled from JSON.
 //
-// Returns an error if status is nil or cannot be unmarshaled.
-func ParseReplicationTaskStatus(status json.RawMessage) (*ReplicationTaskStatus, error) {
-	return parseTaskStatus[ReplicationTaskStatus](status)
-}
-
-// ParseResyncTaskStatus unmarshals a task's raw Status field into a
-// ResyncTaskStatus. Use this for primary-replica resync tasks.
-//
-// Returns an error if status is nil or cannot be unmarshaled.
-func ParseResyncTaskStatus(status json.RawMessage) (*ResyncTaskStatus, error) {
-	return parseTaskStatus[ResyncTaskStatus](status)
-}
-
-// ParsePersistentTaskStatus unmarshals a task's raw Status field into a
-// PersistentTaskStatus.
-//
-// Returns an error if status is nil or cannot be unmarshaled.
-func ParsePersistentTaskStatus(status json.RawMessage) (*PersistentTaskStatus, error) {
-	return parseTaskStatus[PersistentTaskStatus](status)
-}
-
-func parseTaskStatus[T any](raw json.RawMessage) (*T, error) {
+// Returns ErrNilTaskStatus if raw is nil.
+func ParseTaskStatus[T any](raw json.RawMessage) (*T, error) {
 	if raw == nil {
 		return nil, ErrNilTaskStatus
 	}

@@ -70,8 +70,7 @@ type TasksGetResp struct {
 			} `json:"thread_info"`
 		} `json:"resource_stats"`
 		// Status is polymorphic; its shape depends on the task action.
-		// Use ParseBulkByScrollTaskStatus for reindex, delete_by_query,
-		// and update_by_query tasks.
+		// Use ParseTaskStatus[T] to unmarshal into a concrete type.
 		Status json.RawMessage `json:"status,omitempty"`
 	} `json:"task"`
 	response *opensearch.Response

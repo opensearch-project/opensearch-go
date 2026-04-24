@@ -15,7 +15,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
-func TestParseBulkByScrollTaskStatus(t *testing.T) {
+func TestParseTaskStatus_BulkByScroll(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -163,13 +163,13 @@ func TestParseBulkByScrollTaskStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := opensearchapi.ParseBulkByScrollTaskStatus(tt.input)
+			got, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](tt.input)
 			tt.check(t, got, err)
 		})
 	}
 }
 
-func TestParseReplicationTaskStatus(t *testing.T) {
+func TestParseTaskStatus_Replication(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -209,13 +209,13 @@ func TestParseReplicationTaskStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := opensearchapi.ParseReplicationTaskStatus(tt.input)
+			got, err := opensearchapi.ParseTaskStatus[opensearchapi.ReplicationTaskStatus](tt.input)
 			tt.check(t, got, err)
 		})
 	}
 }
 
-func TestParseResyncTaskStatus(t *testing.T) {
+func TestParseTaskStatus_Resync(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -263,13 +263,13 @@ func TestParseResyncTaskStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := opensearchapi.ParseResyncTaskStatus(tt.input)
+			got, err := opensearchapi.ParseTaskStatus[opensearchapi.ResyncTaskStatus](tt.input)
 			tt.check(t, got, err)
 		})
 	}
 }
 
-func TestParsePersistentTaskStatus(t *testing.T) {
+func TestParseTaskStatus_Persistent(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -309,7 +309,7 @@ func TestParsePersistentTaskStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := opensearchapi.ParsePersistentTaskStatus(tt.input)
+			got, err := opensearchapi.ParseTaskStatus[opensearchapi.PersistentTaskStatus](tt.input)
 			tt.check(t, got, err)
 		})
 	}

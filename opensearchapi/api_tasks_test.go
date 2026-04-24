@@ -190,7 +190,7 @@ func TestTasksClient(t *testing.T) {
 					require.True(t, ok)
 					require.NotNil(t, taskResp.Task.Status, "reindex task should have a status")
 
-					status, err := opensearchapi.ParseBulkByScrollTaskStatus(taskResp.Task.Status)
+					status, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](taskResp.Task.Status)
 					require.NoError(t, err, "status should parse as BulkByScrollTaskStatus")
 					assert.GreaterOrEqual(t, status.Total, int64(0), "total should be non-negative")
 					assert.GreaterOrEqual(t, status.Batches, int32(0), "batches should be non-negative")
