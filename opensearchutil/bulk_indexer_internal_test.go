@@ -708,16 +708,16 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				}}})
 				flushIndex := testutil.MustUniqueString(t, "test-flush")
 
-				var flushDuration time.Duration
+				var flushEndCalled bool
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					Client: client,
 					Index:  flushIndex,
 					OnFlushStart: func(ctx context.Context) context.Context {
-						return context.WithValue(ctx, contextKey("start"), time.Now().UTC())
+						return context.WithValue(ctx, contextKey("flushing"), true)
 					},
 					OnFlushEnd: func(ctx context.Context) {
-						if v := ctx.Value(contextKey("start")); v != nil {
-							flushDuration = time.Since(v.(time.Time))
+						if v, ok := ctx.Value(contextKey("flushing")).(bool); ok && v {
+							flushEndCalled = true
 						}
 					},
 				})
@@ -729,7 +729,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.NoError(t, bi.Close(context.Background()))
 
 				require.Equal(t, uint64(1), bi.Stats().NumAdded, "NumAdded")
-				require.NotZero(t, flushDuration, "OnFlushEnd should have observed the start time set by OnFlushStart")
+				require.True(t, flushEndCalled, "OnFlushEnd should have been called with the context from OnFlushStart")
 			},
 		},
 		{
