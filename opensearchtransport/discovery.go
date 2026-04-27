@@ -276,8 +276,8 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 
 	discovered, err := c.getNodesInfo(ctx)
 	if err != nil {
-		if debugLogger != nil {
-			debugLogger.Logf("Error getting nodes info: %s\n", err)
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Error getting nodes info: %s\n", err)
 		}
 		return fmt.Errorf("discovery: get nodes: %w", err)
 	}
@@ -312,8 +312,8 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 	// own health checks (slow path: parallel HTTP probes).
 	if c.router != nil {
 		if err := c.router.CheckDead(ctx, c.DefaultHealthCheck); err != nil {
-			if debugLogger != nil {
-				debugLogger.Logf("DiscoverNodes: router.CheckDead: %v\n", err)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("DiscoverNodes: router.CheckDead: %v\n", err)
 			}
 		}
 	}
@@ -336,8 +336,8 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 func (c *Client) rotateStandbyConnections(ctx context.Context) {
 	if c.router != nil {
 		if n, err := c.router.RotateStandby(ctx, c.standbyRotationCount); err != nil {
-			if debugLogger != nil {
-				debugLogger.Logf("DiscoverNodes: router.RotateStandby rotated %d/%d: %v\n", n, c.standbyRotationCount, err)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("DiscoverNodes: router.RotateStandby rotated %d/%d: %v\n", n, c.standbyRotationCount, err)
 			}
 		}
 		return
@@ -349,8 +349,8 @@ func (c *Client) rotateStandbyConnections(ctx context.Context) {
 
 	if ok && pool != nil {
 		if n, err := pool.rotateStandby(ctx, c.standbyRotationCount); err != nil {
-			if debugLogger != nil {
-				debugLogger.Logf("DiscoverNodes: pool.rotateStandby rotated %d/%d: %v\n", n, c.standbyRotationCount, err)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("DiscoverNodes: pool.rotateStandby rotated %d/%d: %v\n", n, c.standbyRotationCount, err)
 			}
 		}
 	}
@@ -591,8 +591,8 @@ func (c *Client) updateConnectionPool(
 	for url, oldConn := range currentConnectionsByURL {
 		if _, exists := newConnectionsByURL[url]; !exists {
 			removed = append(removed, oldConn)
-			if debugLogger != nil {
-				debugLogger.Logf("Discovery: Connection %q removed from cluster (roles: %v)\n", url, oldConn.Roles.toSlice())
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("Discovery: Connection %q removed from cluster (roles: %v)\n", url, oldConn.Roles.toSlice())
 			}
 		}
 	}
@@ -671,7 +671,9 @@ func (c *Client) updateConnectionPool(
 
 	// Set up health check function and observer for pools that support it
 	if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
+		pool.mu.Lock()
 		pool.healthCheck = c.DefaultHealthCheck
+		pool.mu.Unlock()
 		if obs := c.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
 		}
@@ -891,8 +893,8 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 
 	for _, conn := range readyConnections {
 		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			if debugLogger != nil {
-				debugLogger.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
 			}
 			continue
 		}
@@ -1032,8 +1034,8 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		pool := c.mu.connectionPool
 		c.mu.RUnlock()
 		if pool != nil {
-			if poolErr := pool.OnFailure(conn); poolErr != nil && debugLogger != nil {
-				debugLogger.Logf("Failed to mark connection as failed: %v\n", poolErr)
+			if poolErr := pool.OnFailure(conn); poolErr != nil && loadDebugLogger() != nil {
+				loadDebugLogger().Logf("Failed to mark connection as failed: %v\n", poolErr) //nolint:errcheck // debug log
 			}
 		}
 		return nil, err
@@ -1076,8 +1078,8 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 
 	if hasNodesMeta && nodesMeta.Successful == 0 {
 		failuresJSON := nodesMeta.formatFailures()
-		if debugLogger != nil {
-			debugLogger.Logf("Discovery: _nodes reports total=%d successful=%d failed=%d failures=%s; retaining current pool\n",
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Discovery: _nodes reports total=%d successful=%d failed=%d failures=%s; retaining current pool\n",
 				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON)
 		}
 		return nil, fmt.Errorf("discovery: total=%d successful=%d failed=%d failures=%s: %w",
@@ -1092,15 +1094,18 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	// Fallback for servers that don't return _nodes metadata (ElasticSearch or OpenSearch < 2.0):
 	// use the nodes map length as a last-resort empty-response guard.
 	if !hasNodesMeta && len(nodes) == 0 {
-		if debugLogger != nil {
-			debugLogger.Logf("Discovery: no _nodes metadata and zero nodes returned; retaining current pool\n")
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Discovery: no _nodes metadata and zero nodes returned; retaining current pool\n")
 		}
 		return nil, fmt.Errorf("discovery: %w", errDiscoveryEmpty)
 	}
 
-	if hasNodesMeta && nodesMeta.Failed > 0 && debugLogger != nil {
-		debugLogger.Logf("Discovery: partial failure — _nodes reports total=%d successful=%d failed=%d failures=%s\n",
-			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, nodesMeta.formatFailures())
+	if hasNodesMeta && nodesMeta.Failed > 0 {
+		failuresJSON := nodesMeta.formatFailures()
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Discovery: partial failure — _nodes reports total=%d successful=%d failed=%d failures=%s\n",
+				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON)
+		}
 	}
 
 	out := make([]nodeInfo, len(nodes))
@@ -1320,8 +1325,8 @@ func (c *Client) fetchAndUpdateShardPlacement(ctx context.Context) {
 
 	shardPlacement, err := c.getShardPlacement(ctx)
 	if err != nil {
-		if debugLogger != nil {
-			debugLogger.Logf("Discovery: shard placement fetch failed (continuing with minFanOut): %v\n", err)
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Discovery: shard placement fetch failed (continuing with minFanOut): %v\n", err)
 		}
 		return
 	}
@@ -1625,8 +1630,8 @@ func (c *Client) fetchRoutingNumShards(ctx context.Context, shardPlacement map[s
 
 	rns, err := c.getRoutingMeta(ctx, needFetch)
 	if err != nil {
-		if debugLogger != nil {
-			debugLogger.Logf(
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf(
 				"Discovery: routing metadata fetch failed for %d indexes (shard-exact routing unavailable): %v\n",
 				len(needFetch), err)
 		}

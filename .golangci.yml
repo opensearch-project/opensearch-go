@@ -145,7 +145,7 @@ linters:
         path: -params\.go
       - linters:
           - errcheck
-        text: Error return value of `debugLogger.Logf` is not checked
+        text: Error return value of `dl.Logf` is not checked
       - linters:
           - errcheck
           - gochecknoglobals

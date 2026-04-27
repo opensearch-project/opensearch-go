@@ -129,8 +129,8 @@ func (c *Connection) casLifecycle(
 		}
 		target := connState(raw).withLifecycle(next)
 		if c.state.CompareAndSwap(raw, int64(target)) {
-			if debugLogger != nil {
-				debugLogger.Logf("casLifecycle: %s -> %s on %s\n", lc, next, c.URL)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("casLifecycle: %s -> %s on %s\n", lc, next, c.URL)
 			}
 			return nil
 		}

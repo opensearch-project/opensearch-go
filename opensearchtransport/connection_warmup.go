@@ -38,27 +38,27 @@ func (c *Connection) startWarmup(maxRounds, maxSkipCount int) {
 		current := c.state.Load()
 		cs := connState(current)
 		if !cs.lifecycle().has(lcNeedsWarmup) {
-			if debugLogger != nil {
-				debugLogger.Logf("startWarmup: NO-OP %s (no lcNeedsWarmup, lc=%s)\n", c.URL, cs.lifecycle())
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("startWarmup: NO-OP %s (no lcNeedsWarmup, lc=%s)\n", c.URL, cs.lifecycle())
 			}
 			return // No warmup needed -- connection was proven (e.g. cap demotion)
 		}
 		if cs.isWarmingUp() {
-			if debugLogger != nil {
-				debugLogger.Logf("startWarmup: NO-OP %s (already warming, lcMgr=%v rdMgr=%v)\n",
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("startWarmup: NO-OP %s (already warming, lcMgr=%v rdMgr=%v)\n",
 					c.URL, cs.lifecycleManager(), cs.roundManager())
 			}
 			return // Already warming -- don't reset
 		}
 		target := packConnState(cs.lifecycle(), lcMgr, rdMgr)
 		if c.state.CompareAndSwap(current, int64(target)) {
-			if debugLogger != nil {
-				debugLogger.Logf("startWarmup: SET %s (rounds=%d, skip=%d)\n", c.URL, maxRounds, maxSkipCount)
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("startWarmup: SET %s (rounds=%d, skip=%d)\n", c.URL, maxRounds, maxSkipCount)
 			}
 			return
 		}
-		if debugLogger != nil {
-			debugLogger.Logf("startWarmup: CAS race on %p (state=%s during attempt)\n",
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("startWarmup: CAS race on %p (state=%s during attempt)\n",
 				c, ConnState{packed: current}.Hex())
 		}
 	}
@@ -159,8 +159,8 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 			newRdMgr := rdMgr.withSkipCount(remSkip - 1)
 			newState := current.withManagers(lcMgr, newRdMgr)
 			if c.state.CompareAndSwap(raw, int64(newState)) {
-				if debugLogger != nil {
-					debugLogger.Logf("tryWarmupSkip: SKIP %s (rd: rounds=%d skip=%d->%d)\n",
+				if dl := loadDebugLogger(); dl != nil {
+					dl.Logf("tryWarmupSkip: SKIP %s (rd: rounds=%d skip=%d->%d)\n",
 						c.URL, rdMgr.rounds(), remSkip, remSkip-1)
 				}
 				return warmupSkipped
@@ -176,8 +176,8 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 			// Warmup complete -- clear managers and lcNeedsWarmup.
 			lc := current.lifecycle() &^ lcNeedsWarmup
 			if c.state.CompareAndSwap(raw, int64(newConnState(lc))) {
-				if debugLogger != nil {
-					debugLogger.Logf("tryWarmupSkip: COMPLETE %s (warmup done)\n", c.URL)
+				if dl := loadDebugLogger(); dl != nil {
+					dl.Logf("tryWarmupSkip: COMPLETE %s (warmup done)\n", c.URL)
 				}
 				return warmupAccepted
 			}
@@ -193,8 +193,8 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 		newRdMgr := packWarmupManager(newRounds, newSkip)
 		newState := current.withManagers(lcMgr, newRdMgr)
 		if c.state.CompareAndSwap(raw, int64(newState)) {
-			if debugLogger != nil {
-				debugLogger.Logf("tryWarmupSkip: ACCEPT %s (round %d->%d, next skip=%d)\n",
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("tryWarmupSkip: ACCEPT %s (round %d->%d, next skip=%d)\n",
 					c.URL, rdMgr.rounds(), newRounds, newSkip)
 			}
 			return warmupAccepted

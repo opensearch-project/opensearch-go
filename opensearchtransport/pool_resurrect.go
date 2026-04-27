@@ -231,11 +231,17 @@ func (cp *multiServerPool) checkDeadOne(ctx context.Context, conn *Connection, h
 // Note: This method does not reschedule on failure; the caller is responsible
 // for retry logic and resetting checkStartedAt.
 func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection, recordRTT bool) bool {
+	// Snapshot the health check function under the pool lock so we don't race
+	// with updateConnectionPool writing cp.healthCheck on pool reuse.
+	cp.mu.RLock()
+	hc := cp.healthCheck
+	cp.mu.RUnlock()
+
 	start := time.Now()
-	resp, err := cp.healthCheck(ctx, c, c.URL)
+	resp, err := hc(ctx, c, c.URL)
 	if err != nil {
-		if debugLogger != nil {
-			debugLogger.Logf("[%s] Health check failed for %q: %s\n", cp.name, c.URL, err)
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("[%s] Health check failed for %q: %s\n", cp.name, c.URL, err)
 		}
 		if obs := observerFromAtomic(&cp.observer); obs != nil {
 			event := newConnectionEvent(cp.name, c, lifecycleCounts{})
@@ -290,10 +296,10 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	}
 
 	// Log version changes during rolling upgrades (not on initial startup)
-	if debugLogger != nil {
+	if dl := loadDebugLogger(); dl != nil {
 		prev := c.loadVersion()
 		if prev != "" && prev != info.Version.Number {
-			debugLogger.Logf("[%s] Version changed for %q: %s -> %s\n", cp.name, c.URL, prev, info.Version.Number)
+			dl.Logf("[%s] Version changed for %q: %s -> %s\n", cp.name, c.URL, prev, info.Version.Number)
 		}
 	}
 	// Update the connection version
@@ -408,8 +414,8 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 			// Wait for either timeout or context cancellation
 			select {
 			case <-ctx.Done():
-				if debugLogger != nil {
-					debugLogger.Logf("[%s] Health check cancelled for %q: %v\n", cp.name, c.URL, ctx.Err())
+				if dl := loadDebugLogger(); dl != nil {
+					dl.Logf("[%s] Health check cancelled for %q: %v\n", cp.name, c.URL, ctx.Err())
 				}
 				return
 			case <-time.After(timeout):
@@ -434,8 +440,8 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				// Check if connection is still in the pool (ready or dead lists)
 				stillInPool := slices.Contains(cp.mu.ready, c) || slices.Contains(cp.mu.dead, c)
 				if !stillInPool {
-					if debugLogger != nil {
-						debugLogger.Logf("[%s] Connection %q removed from pool by DiscoveryUpdate, stopping health checks\n", cp.name, c.URL)
+					if dl := loadDebugLogger(); dl != nil {
+						dl.Logf("[%s] Connection %q removed from pool by DiscoveryUpdate, stopping health checks\n", cp.name, c.URL)
 					}
 					return true
 				}
@@ -444,8 +450,8 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				// Stop the resurrection scheduler -- the stats poller will promote it back to ready
 				// when metrics improve, or clear lcOverloaded if it can't reach the node.
 				if c.loadConnState().lifecycle().has(lcOverloaded) {
-					if debugLogger != nil {
-						debugLogger.Logf("[%s] Connection %q is overload-demoted, stopping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
+					if dl := loadDebugLogger(); dl != nil {
+						dl.Logf("[%s] Connection %q is overload-demoted, stopping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
 					}
 					return true
 				}

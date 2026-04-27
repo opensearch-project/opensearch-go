@@ -139,8 +139,8 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 		// Poll until the goroutine completes resurrection (reacquires locks,
 		// calls resurrectWithLock, and releases locks).
 		require.Eventually(t, func() bool {
-			pool.mu.Lock()
-			defer pool.mu.Unlock()
+			pool.mu.RLock()
+			defer pool.mu.RUnlock()
 			return len(pool.mu.ready) == 1 && len(pool.mu.dead) == 0
 		}, 5*time.Second, 10*time.Millisecond, "connection should be resurrected after health check")
 	})

@@ -155,8 +155,8 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 		cp.metrics.standbyPromotions.Add(1)
 	}
 
-	if debugLogger != nil {
-		debugLogger.Logf("[%s] deferredStandbyPromotion: promoted %q to active (active=%d, standby=%d, cap=%d)\n",
+	if dl := loadDebugLogger(); dl != nil {
+		dl.Logf("[%s] deferredStandbyPromotion: promoted %q to active (active=%d, standby=%d, cap=%d)\n",
 			cp.name, c.URL, cp.mu.activeCount, len(cp.mu.ready)-cp.mu.activeCount, cp.activeListCap)
 	}
 }
@@ -348,8 +348,8 @@ func (cp *multiServerPool) OnSuccess(c *Connection) {
 		return
 	}
 
-	if debugLogger != nil {
-		debugLogger.Logf("[%s] OnSuccess: %s transitioning from dead to ready\n", cp.name, c.URL)
+	if dl := loadDebugLogger(); dl != nil {
+		dl.Logf("[%s] OnSuccess: %s transitioning from dead to ready\n", cp.name, c.URL)
 	}
 	c.markAsHealthyWithLock()
 	cp.resurrectWithLock(c)
@@ -363,8 +363,8 @@ func (cp *multiServerPool) OnSuccess(c *Connection) {
 // shouldSkipDraining returns true if connection is draining and should not be resurrected.
 func (cp *multiServerPool) shouldSkipDraining(c *Connection) bool {
 	if c.drainingQuiescingRemaining.Load() > 0 {
-		if debugLogger != nil {
-			debugLogger.Logf("[%s] OnSuccess: %s is draining (quiescing remaining=%d), skipping resurrection\n",
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("[%s] OnSuccess: %s is draining (quiescing remaining=%d), skipping resurrection\n",
 				cp.name, c.URL, c.drainingQuiescingRemaining.Load())
 		}
 		return true
@@ -375,8 +375,8 @@ func (cp *multiServerPool) shouldSkipDraining(c *Connection) bool {
 // shouldSkipOverloaded returns true if connection is overload-demoted and should not be resurrected.
 func (cp *multiServerPool) shouldSkipOverloaded(c *Connection) bool {
 	if c.loadConnState().lifecycle().has(lcOverloaded) {
-		if debugLogger != nil {
-			debugLogger.Logf("[%s] OnSuccess: %s is overload-demoted, skipping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("[%s] OnSuccess: %s is overload-demoted, skipping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
 		}
 		return true
 	}
@@ -522,8 +522,8 @@ func (cp *multiServerPool) Unlock() { cp.mu.Unlock() }
 //   - Caller must hold both pool lock and connection lock
 //   - Connection should exist in the dead list
 func (cp *multiServerPool) resurrectWithLock(c *Connection) {
-	if debugLogger != nil {
-		debugLogger.Logf("[%s] Resurrecting %q\n", cp.name, c.URL)
+	if dl := loadDebugLogger(); dl != nil {
+		dl.Logf("[%s] Resurrecting %q\n", cp.name, c.URL)
 	}
 
 	// Clear overloaded state -- node just came back from dead, stats poller will re-evaluate.
@@ -550,8 +550,8 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 		// Transition state: dead -> standby (warmup deferred to promotion, lcNeedsWarmup preserved)
 		c.casLifecycle(c.loadConnState(), 0, lcStandby, lcUnknown|lcActive) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		cp.appendToReadyStandbyWithLock(c)
-		if debugLogger != nil {
-			debugLogger.Logf("[%s] Resurrected %q to standby (active at cap=%d, standby=%d)\n",
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("[%s] Resurrected %q to standby (active at cap=%d, standby=%d)\n",
 				cp.name, c.URL, cp.activeListCap, len(cp.mu.ready)-cp.mu.activeCount)
 		}
 	}

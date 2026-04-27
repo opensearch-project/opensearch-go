@@ -129,8 +129,8 @@ func (r *poolRegistry) setMaxCwnd(name string, size int32) {
 	// Reset ssthresh to the real ceiling so slow start targets the correct value.
 	pc.mu.ssthresh = size
 	pc.mu.Unlock()
-	if debugLogger != nil {
-		debugLogger.Logf("setMaxCwnd: pool=%q size=%d oldMaxCwnd=%d oldCwnd=%d clamped=%v\n",
+	if dl := loadDebugLogger(); dl != nil {
+		dl.Logf("setMaxCwnd: pool=%q size=%d oldMaxCwnd=%d oldCwnd=%d clamped=%v\n",
 			name, size, oldMaxCwnd, oldCwnd, oldCwnd > size)
 	}
 }
@@ -245,11 +245,13 @@ func updatePoolCongestion(conn *Connection, threadPools map[string]ThreadPoolSta
 		oldCwnd := pc.cwnd.Load()
 		applyPoolAIMD(pc, tps)
 		newCwnd := pc.cwnd.Load()
-		if debugLogger != nil && oldCwnd != newCwnd {
-			pc.mu.Lock()
-			debugLogger.Logf("AIMD: conn=%s pool=%q cwnd=%d->%d maxCwnd=%d ssthresh=%d\n",
-				conn.Name, name, oldCwnd, newCwnd, pc.mu.maxCwnd, pc.mu.ssthresh)
-			pc.mu.Unlock()
+		if oldCwnd != newCwnd {
+			if dl := loadDebugLogger(); dl != nil {
+				pc.mu.Lock()
+				dl.Logf("AIMD: conn=%s pool=%q cwnd=%d->%d maxCwnd=%d ssthresh=%d\n",
+					conn.Name, name, oldCwnd, newCwnd, pc.mu.maxCwnd, pc.mu.ssthresh)
+				pc.mu.Unlock()
+			}
 		}
 	}
 
