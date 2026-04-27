@@ -33,6 +33,13 @@ import (
 func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	testutil.WaitForCluster(t)
 
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		testutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
+
 	u := testutil.GetTestURL(t)
 	cfg := getTestConfig(t, []*url.URL{u})
 	transport, err := New(cfg)
@@ -246,6 +253,15 @@ func waitForGreen(t *testing.T, transport *Client, ctx context.Context, index st
 func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	testutil.WaitForCluster(t)
 	testutil.SkipIfSingleNode(t, 2) // 1 replica requires at least 2 nodes for green health
+
+	// OpenSearch < 2.2.0 with the security plugin returns HTTP 500 on
+	// shard-routed requests due to non-thread-safe User serialization
+	// (java.io.OptionalDataException). Fixed in 2.2.0 by
+	// opensearch-project/security#1970 (50a94b47).
+	if testutil.IsSecure(t) {
+		testutil.SkipIfVersion(t, "<", "2.2.0", "shard-exact pipeline (security plugin OptionalDataException)")
+	}
+
 
 	u := testutil.GetTestURL(t)
 

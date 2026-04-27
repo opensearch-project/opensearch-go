@@ -43,6 +43,13 @@ func TestDiscoveryIntegration(t *testing.T) {
 	// Verify cluster is reachable with the configured scheme
 	testutil.WaitForCluster(t)
 
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		testutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
+
 	// Use standardized URL construction and config
 	u := testutil.GetTestURL(t)
 

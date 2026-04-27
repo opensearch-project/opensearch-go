@@ -40,6 +40,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
@@ -105,6 +106,13 @@ func TestTransportHeaders(t *testing.T) {
 		t.Fatalf("Failed to create client for cluster readiness check: %s", err)
 	}
 
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		tptestutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
+
 	hdr := http.Header{}
 	hdr.Set("Accept", "application/yaml")
 
@@ -144,6 +152,13 @@ func TestTransportBodyClose(t *testing.T) {
 		t.Fatalf("Failed to create client for cluster readiness check: %s", err)
 	}
 
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		tptestutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
+	}
+
 	// Use standardized URL construction and client config
 	u := mockhttp.GetOpenSearchURL(t)
 	config := testutil.ClientConfig(t)
@@ -180,6 +195,13 @@ func TestTransportCompression(t *testing.T) {
 	_, err := testutil.InitClient(t)
 	if err != nil {
 		t.Fatalf("Failed to create client for cluster readiness check: %s", err)
+	}
+
+	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
+	// serialization race (java.io.OptionalDataException) during inter-node
+	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
+	if testutil.IsSecure(t) {
+		tptestutil.SkipIfVersion(t, "<", "2.2.0", "security plugin OptionalDataException")
 	}
 
 	var req *http.Request

@@ -151,6 +151,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))
 - Fix flaky `TestDefaultHealthCheck_RetryAfterMaxRetry`: replace wall-clock `time.Sleep` + `atomic.Int64` synchronization with context cancellation (`ctx.Done()`), and widen `maxRetryClusterHealth` to 5s so the baseline HTTP round-trip cannot race past the retry interval ([#787](https://github.com/opensearch-project/opensearch-go/pull/787))
+- Skip opensearchtransport integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix connection lifecycle bug in multiServerPool.OnFailure where connections were scheduled for resurrection before being moved from ready to dead list, causing potential race conditions
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
 - Fix cluster readiness checks in integration tests to handle HTTPS cold start delays (increase timeout to 15s)
