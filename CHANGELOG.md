@@ -78,6 +78,18 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Evaluated once at client init time; immutable after
   - Document environment variables in `guides/routing.md`
   - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
+- Add adaptive `max_concurrent_shard_requests` derived from cluster-wide AIMD congestion window ([#800](https://github.com/opensearch-project/opensearch-go/issues/800))
+  - Transport automatically sets `max_concurrent_shard_requests` query parameter on search requests routed through a coordinator node
+  - Value derived from a cluster-wide aggregate of all polled nodes' search pool wait-time and completion deltas, clamped to `[floor, cap]` (default: 5–256)
+  - Cluster-wide signal correctly models data-node fan-out capacity: single hot nodes are diluted by healthy peers, and MCSR only drops when aggregate cluster pressure rises
+  - Per-node AIMD for connection scoring remains unchanged (hot-node avoidance is handled by connection selection, not fan-out throttling)
+  - Falls back to per-node cwnd before the first poll cycle completes
+  - Respects explicit caller overrides: pre-existing `max_concurrent_shard_requests` query parameter is never clobbered
+  - Not applied to shard-exact routed requests (coordinator fan-out is irrelevant)
+  - `WithAdaptiveConcurrency(bool)` and `WithAdaptiveConcurrencyLimits(floor, cap)` `RouterOption` for programmatic control
+  - `OPENSEARCH_GO_SHARD_REQUESTS` environment variable: `true`/`false` to enable/disable, or `min:max` to set floor and cap (e.g., `10:512`)
+  - `OPENSEARCH_GO_ROUTING_CONFIG=-adaptive_mcsr` to disable via routing config bitfield
+  - `MaxConcurrentShardRequests` field in `RouteEvent` for observability
 - Add seed URL fallback as last-resort connection source when all router pools are exhausted ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Builds a dedicated `multiServerPool` from fresh copies of the original seed URLs at client init
   - Fires after the entire retry loop when all router policies and connection pools return `ErrNoConnections`
@@ -150,6 +162,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix pool replacement orphaning resurrection goroutines during node discovery, causing connections to become permanently dead with no active health checker ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))
+- Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix flaky `TestDefaultHealthCheck_RetryAfterMaxRetry`: replace wall-clock `time.Sleep` + `atomic.Int64` synchronization with context cancellation (`ctx.Done()`), and widen `maxRetryClusterHealth` to 5s so the baseline HTTP round-trip cannot race past the retry interval ([#787](https://github.com/opensearch-project/opensearch-go/pull/787))
 - Fix connection lifecycle bug in multiServerPool.OnFailure where connections were scheduled for resurrection before being moved from ready to dead list, causing potential race conditions
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling

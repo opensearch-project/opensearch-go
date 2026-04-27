@@ -169,13 +169,12 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 func TestPollNodeStats(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no-op for singleServerPool", func(t *testing.T) {
+	t.Run("singleServerPool with nil connection is skipped", func(t *testing.T) {
 		t.Parallel()
-		conn := createTestConnection("http://localhost:9200")
 		c := &Client{}
-		c.mu.connectionPool = &singleServerPool{connection: conn}
+		c.mu.connectionPool = &singleServerPool{connection: nil}
 
-		// Should not panic
+		// Should not panic -- nil connection means nothing to poll.
 		c.pollNodeStats()
 	})
 
@@ -212,7 +211,7 @@ func TestPolicyChainRotateStandby(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// RolePolicy.RotateStandby and PoolSnapshot with pool
+// RolePolicy.RotateStandby and PolicySnapshot with pool
 // ---------------------------------------------------------------------------
 
 func TestRolePolicyRotateStandby(t *testing.T) {
@@ -231,7 +230,7 @@ func TestRolePolicyRotateStandby(t *testing.T) {
 	require.Zero(t, n)
 }
 
-func TestRolePolicyPoolSnapshot_WithPool(t *testing.T) {
+func TestRolePolicyPolicySnapshot_WithPool(t *testing.T) {
 	t.Parallel()
 
 	policy, err := NewRolePolicy(RoleData)
@@ -248,16 +247,16 @@ func TestRolePolicyPoolSnapshot_WithPool(t *testing.T) {
 	rp.pool.mu.activeCount = 2
 	rp.pool.mu.members = map[*Connection]struct{}{c1: {}, c2: {}}
 
-	snap := rp.PoolSnapshot()
+	snap := rp.PolicySnapshot()
 	require.Equal(t, "role:data", snap.Name)
 	require.Equal(t, 2, snap.ActiveCount)
 }
 
 // ---------------------------------------------------------------------------
-// CoordinatorPolicy.PoolSnapshot with pool
+// CoordinatorPolicy.PolicySnapshot with pool
 // ---------------------------------------------------------------------------
 
-func TestCoordinatorPolicyPoolSnapshot_WithPool(t *testing.T) {
+func TestCoordinatorPolicyPolicySnapshot_WithPool(t *testing.T) {
 	t.Parallel()
 
 	cp := NewCoordinatorPolicy().(*CoordinatorPolicy)
@@ -271,7 +270,7 @@ func TestCoordinatorPolicyPoolSnapshot_WithPool(t *testing.T) {
 	cp.pool.mu.activeCount = 1
 	cp.pool.mu.members = map[*Connection]struct{}{c1: {}}
 
-	snap := cp.PoolSnapshot()
+	snap := cp.PolicySnapshot()
 	require.Equal(t, "coordinator", snap.Name)
 	require.Equal(t, 1, snap.ActiveCount)
 }

@@ -74,6 +74,17 @@ func (p *DocRouter) configurePolicySettings(config policyConfig) error {
 	if config.observer != nil {
 		p.observer.Store(config.observer)
 	}
+	if config.metrics != nil {
+		cache := p.cache
+		config.metrics.snapshotCallbacks = append(config.metrics.snapshotCallbacks,
+			func(m *Metrics) error {
+				if m.Router == nil {
+					snap := cache.snapshot()
+					m.Router = &snap
+				}
+				return nil
+			})
+	}
 	return nil
 }
 
@@ -130,21 +141,33 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
 	if len(shardCandidates) > 0 {
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(shardCandidates)]
-		if len(shardCandidates) > len(scoresBuf) {
-			scores = make([]float64, len(shardCandidates))
-		}
-		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		scoreBuf := acquireScoreSlice(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+		releaseScoreSlice(scoreBuf)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
-			obs.OnRoute(buildRouteEvent(
-				indexName, key, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, &shardCostForReads, "",
-				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
-			))
+			obs.OnRoute(buildRouteEvent(routeEventParams{
+				indexName:           indexName,
+				key:                 key,
+				fanOut:              len(shardCandidates),
+				totalNodes:          len(conns),
+				candidates:          shardCandidates,
+				best:                best,
+				slot:                slot,
+				shard:               shard,
+				costs:               &shardCostForReads,
+				routingValue:        routingValue,
+				effectiveRoutingKey: effectiveRoutingKey,
+				targetShard:         shardNum,
+				shardExactMatch:     true,
+				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+			}))
 		}
 
+		if best == nil {
+			return NextHop{}, nil
+		}
 		return NextHop{Conn: best}, nil
 	}
 
@@ -169,23 +192,33 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	var scoresBuf [8]float64
-	scores := scoresBuf[:len(candidates)]
-	if len(candidates) > len(scoresBuf) {
-		scores = make([]float64, len(candidates))
-	}
-	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+	scoreBuf := acquireScoreSlice(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+	releaseScoreSlice(scoreBuf)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := indexName + "/" + docID
-		obs.OnRoute(buildRouteEvent(
-			indexName, key, fanOut, len(conns), candidates, best, slot, nil, &shardCostForReads, "",
-			routingValue, effectiveRoutingKey, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
-		))
+		obs.OnRoute(buildRouteEvent(routeEventParams{
+			indexName:           indexName,
+			key:                 key,
+			fanOut:              fanOut,
+			totalNodes:          len(conns),
+			candidates:          candidates,
+			best:                best,
+			slot:                slot,
+			costs:               &shardCostForReads,
+			routingValue:        routingValue,
+			effectiveRoutingKey: effectiveRoutingKey,
+			targetShard:         shardNum,
+			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+		}))
 	}
 
 	putConnSlice(bp)
 
+	if best == nil {
+		return NextHop{}, nil
+	}
 	return NextHop{Conn: best}, nil
 }
 
@@ -197,11 +230,6 @@ func (p *DocRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error {
 // RotateStandby is a no-op. Lifecycle is managed by the underlying pool.
 func (p *DocRouter) RotateStandby(_ context.Context, _ int) (int, error) {
 	return 0, nil
-}
-
-// routerSnapshot implements routerSnapshotProvider.
-func (p *DocRouter) routerSnapshot() RouterSnapshot {
-	return p.cache.snapshot()
 }
 
 // routerCache implements [routerCacheProvider].

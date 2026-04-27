@@ -80,7 +80,18 @@ func TestBuildRouteEvent(t *testing.T) {
 	slot := &indexSlot{}
 	candidates := []*Connection{conn1, conn2}
 
-	event := buildRouteEvent("test-index", "test-index", 3, 5, candidates, conn1, slot, nil, &shardCostForReads, "", "", "", -1, false, true)
+	event := buildRouteEvent(routeEventParams{
+		indexName:     "test-index",
+		key:           "test-index",
+		fanOut:        3,
+		totalNodes:    5,
+		candidates:    candidates,
+		best:          conn1,
+		slot:          slot,
+		costs:         &shardCostForReads,
+		targetShard:   -1,
+		poolInfoReady: true,
+	})
 
 	require.Equal(t, "test-index", event.IndexName)
 	require.Equal(t, "test-index", event.Key)
@@ -209,50 +220,6 @@ func TestIndexSlotCacheSnapshot(t *testing.T) {
 	require.InDelta(t, 0.999, snap.Config.DecayFactor, 0)
 	require.InDelta(t, 500.0, snap.Config.FanOutPerReq, 0)
 	require.Equal(t, (90 * time.Minute).String(), snap.Config.IdleEvictionTTL)
-}
-
-func TestCollectRouterSnapshot(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil returns nil", func(t *testing.T) {
-		t.Parallel()
-		require.Nil(t, collectRouterSnapshot(nil))
-	})
-
-	t.Run("non-provider returns nil", func(t *testing.T) {
-		t.Parallel()
-		require.Nil(t, collectRouterSnapshot("not a provider"))
-	})
-
-	t.Run("policy chain with no provider returns nil", func(t *testing.T) {
-		t.Parallel()
-		chain := &PolicyChain{policies: []Policy{&NullPolicy{}}}
-		require.Nil(t, collectRouterSnapshot(chain))
-	})
-
-	t.Run("returns snapshot from IndexRouter", func(t *testing.T) {
-		t.Parallel()
-		policy := NewIndexRouter(indexSlotCacheConfig{
-			minFanOut:    2,
-			maxFanOut:    8,
-			decayFactor:  0.999,
-			fanOutPerReq: 500,
-		})
-		policy.cache.getOrCreate("test-index")
-
-		snap := collectRouterSnapshot(policy)
-		require.NotNil(t, snap)
-		require.Len(t, snap.Indexes, 1)
-		require.Equal(t, "test-index", snap.Indexes[0].Name)
-	})
-
-	t.Run("returns nil when no provider exists", func(t *testing.T) {
-		t.Parallel()
-		// A bare policy without cache doesn't implement routerSnapshotProvider.
-		type barePolicy struct{ Policy }
-		snap := collectRouterSnapshot(&barePolicy{})
-		require.Nil(t, snap)
-	})
 }
 
 func TestConnectionInspectionMethods(t *testing.T) {

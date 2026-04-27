@@ -158,7 +158,7 @@ type Config struct {
 	// connection reuse. With HTTP/1.1, the caller must fully read the body
 	// before it can be reused.
 	//
-	// Default: false (existing behavior — body is fully buffered).
+	// Default: false (existing behavior -- body is fully buffered).
 	DisableResponseBuffering bool
 
 	CompressRequestBody bool
@@ -401,6 +401,11 @@ type Client struct {
 	// ceiling based on allocatedProcessors.
 	poolInfoReady atomic.Bool
 	poolInfoCount atomic.Int32 // connections with known thread pool configs
+
+	// Cluster-wide search pool AIMD for adaptive max_concurrent_shard_requests.
+	// The cwnd is updated by pollNodeStats after each full poll cycle and read
+	// atomically by poolRouter.Eval.
+	clusterSearch clusterSearchAIMD
 
 	healthCheck HealthCheckFunc
 
@@ -976,8 +981,10 @@ func New(cfg Config) (*Client, error) {
 			healthCheck:                  client.healthCheck,
 			observer:                     client.observer.Load(),
 			poolInfoReady:                &client.poolInfoReady,
+			clusterSearchCwnd:            &client.clusterSearch.cwnd,
 			activeListCap:                client.activeListCapConfig,
 			standbyPromotionChecks:       client.standbyPromotionChecks,
+			metrics:                      client.metrics,
 		}
 		// Use type assertion to check if the router (which is a Policy) implements policyConfigurable
 		if configurablePolicy, ok := client.router.(policyConfigurable); ok {
@@ -1126,6 +1133,13 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			hop, err = c.router.Route(req.Context(), req)
 			conn = hop.Conn
 			poolName = hop.PoolName
+
+			// Inject adaptive max_concurrent_shard_requests when the
+			// routing layer computed a value and the caller didn't
+			// already set one. This respects explicit caller overrides.
+			if hop.MaxConcurrentShardRequests > 0 {
+				appendAdaptiveConcurrency(req, hop.MaxConcurrentShardRequests)
+			}
 		} else {
 			c.mu.RLock()
 			pool := c.mu.connectionPool
@@ -1184,7 +1198,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			// If the response body is non-nil, the caller is responsible for
 			// reading and closing it. Cancel the attempt context only after
 			// the body is fully consumed or on error. For now, cancel
-			// immediately — http.Transport will not abort an in-progress
+			// immediately -- http.Transport will not abort an in-progress
 			// body read on a completed RoundTrip when the context expires.
 			// The timeout bounds the headers-received phase; body reads
 			// proceed independently.
@@ -1392,7 +1406,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	}
 
 	// Read, close and replace the http response body to close the connection.
-	// Skipped when DisableResponseBuffering is set — the caller is responsible
+	// Skipped when DisableResponseBuffering is set -- the caller is responsible
 	// for fully reading and closing the body.
 	if !c.disableResponseBuffering && res != nil && res.Body != nil {
 		body, err := io.ReadAll(res.Body)
@@ -1408,7 +1422,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 // performSeedFallback attempts a single request using the seed URL fallback pool.
 // Called as the absolute last resort when all router policies and connection pools
-// are exhausted. Does not retry — this is already the final fallback.
+// are exhausted. Does not retry -- this is already the final fallback.
 //
 // On success: marks the seed connection healthy and sets discoveryNeeded to
 // expedite full cluster rediscovery.
@@ -2423,6 +2437,34 @@ func extractRouting(req *http.Request) string {
 		}
 	}
 	return ""
+}
+
+const maxConcurrentShardRequestsParam = "max_concurrent_shard_requests"
+
+// appendAdaptiveConcurrency appends max_concurrent_shard_requests=N to the
+// request's query string, but only if the caller hasn't already set it.
+// Uses a zero-alloc linear scan of RawQuery to check for the existing
+// parameter, then appends directly to avoid url.Query() overhead.
+func appendAdaptiveConcurrency(req *http.Request, value int) {
+	raw := req.URL.RawQuery
+
+	// Zero-alloc check: scan RawQuery for "max_concurrent_shard_requests="
+	// anchored at start-of-string or after '&'.
+	const needle = maxConcurrentShardRequestsParam + "="
+	for i := 0; i <= len(raw)-len(needle); i++ {
+		if raw[i:i+len(needle)] == needle && (i == 0 || raw[i-1] == '&') {
+			return // Caller already set it; respect the override.
+		}
+	}
+
+	// Append. strconv.Itoa is allocation-free for small integers (0-99
+	// via the small string cache, and a single stack allocation otherwise).
+	param := maxConcurrentShardRequestsParam + "=" + strconv.Itoa(value)
+	if raw == "" {
+		req.URL.RawQuery = param
+	} else {
+		req.URL.RawQuery = raw + "&" + param
+	}
 }
 
 // cancelOnCloseBody wraps a response body so that a context cancel function

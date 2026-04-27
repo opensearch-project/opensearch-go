@@ -1612,7 +1612,7 @@ func (c *Client) fetchRoutingNumShards(ctx context.Context, shardPlacement map[s
 			continue
 		}
 
-		// Already cached — carry forward into the placement data.
+		// Already cached -- carry forward into the placement data.
 		shardPlacement[indexName].RoutingNumShards = sm.RoutingNumShards
 		if sm.NumberOfPrimaryShards > 0 {
 			shardPlacement[indexName].NumberOfPrimaryShards = sm.NumberOfPrimaryShards

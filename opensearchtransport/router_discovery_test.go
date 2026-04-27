@@ -31,7 +31,7 @@ func TestRouterWithDiscovery(t *testing.T) {
 	require.NoError(t, err)
 
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
-	testutil.SkipIfSingleNode(t, 2)
+	testutil.RequireMinNodes(t, 2)
 
 	t.Run("Complete seed URL to router transition", func(t *testing.T) {
 		// Create mux router (which has IfEnabledPolicy for coordinator nodes)
