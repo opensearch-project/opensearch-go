@@ -437,7 +437,7 @@ cluster.wait-ready: ## Poll cluster until health status is green or yellow
 				else \
 					printf "\033[33m⋯ Waiting for cluster to respond (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\033[0m\n"; \
 					ATTEMPT=$$((ATTEMPT + 1)); \
-					sleep 2; \
+					sleep 3; \
 					continue; \
 				fi; \
 			fi; \
@@ -464,7 +464,7 @@ cluster.wait-ready: ## Poll cluster until health status is green or yellow
 				printf "\033[33m⋯ Waiting for cluster to respond (attempt $$ATTEMPT/$$MAX_ATTEMPTS)\033[0m\n"; \
 			fi; \
 			ATTEMPT=$$((ATTEMPT + 1)); \
-			sleep 2; \
+			sleep 3; \
 		done; \
 		printf "\033[31m✗ Cluster failed to become ready after $$MAX_ATTEMPTS attempts\033[0m\n"; \
 		printf "\033[2m\n--- Diagnostic Information ---\033[0m\n"; \
