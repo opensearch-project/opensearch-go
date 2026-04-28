@@ -18,6 +18,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add typed path segment types and struct-per-shape path builders for compile-time URL construction safety ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
   - Domain types: `Index`, `Indices`, `Action`, `DocumentID`, `Alias`, `Repo`, `Snapshot`, `NodeID`, `Plugin`, `Policy`, `Block`, `Prefix`, `Suffix`, `Name`, `Resource`, `Attr`, `Value`, `Metric`, `IndexMetric`, `Metrics`, `NodeFilter`
   - 25 path builder structs: `IndexPath`, `DocumentPath`, `IndicesActionPath`, `AliasPath`, `SnapshotPath`, `NodesPath`, `PluginResourcePath`, `PrefixActionPath`, `ActionSuffixPath`, etc.
+  - `sync.Pool`-backed `[]byte` buffers eliminate per-request allocation churn; buffers over 4 KiB are discarded to bound pool growth
   - `ToIndices([]string)` helper
   - Published API types in `opensearchapi/` and `plugins/` remain `string`/`[]string`; casts to domain types happen internally in `GetRequest()` methods
 - opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)

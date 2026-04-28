@@ -24,14 +24,59 @@ package opensearch
 import (
 	"errors"
 	"fmt"
-	"strings"
+	"sync"
 )
 
-const pathSep = "/"
+const (
+	pathSep  = "/"
+	indexSep = ","
+)
 
 // ErrPathRequired is returned by a path's Build method when a required segment
 // is empty.
 var ErrPathRequired = errors.New("opensearch: required path segment is empty")
+
+// ---------------------------------------------------------------------------
+// Pooled path buffer
+// ---------------------------------------------------------------------------
+
+type pathBuf struct {
+	buf []byte
+}
+
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var pathBufPool = sync.Pool{
+	New: func() any {
+		return &pathBuf{buf: make([]byte, 0, 256)}
+	},
+}
+
+const maxPooledPathBuf = 4096
+
+func acquirePathBuf() *pathBuf {
+	pb := pathBufPool.Get().(*pathBuf)
+	pb.buf = pb.buf[:0]
+	return pb
+}
+
+func (pb *pathBuf) release() string {
+	s := string(pb.buf)
+	if cap(pb.buf) <= maxPooledPathBuf {
+		pathBufPool.Put(pb)
+	}
+	return s
+}
+
+func (pb *pathBuf) writeReq(v string) {
+	pb.buf = append(pb.buf, pathSep...)
+	pb.buf = append(pb.buf, v...)
+}
+
+func (pb *pathBuf) writeOpt(v string) {
+	if v != "" {
+		pb.writeReq(v)
+	}
+}
 
 // ---------------------------------------------------------------------------
 // Typed path components
@@ -109,102 +154,17 @@ func ToIndices(ss []string) Indices {
 	return ii
 }
 
-// Join returns the comma-separated index names, or "" if empty.
-func (ii Indices) Join() string {
-	switch len(ii) {
-	case 0:
-		return ""
-	case 1:
-		return string(ii[0])
-	}
-	var b strings.Builder
-	b.Grow(ii.joinLen())
-	ii.join(&b)
-	return b.String()
-}
-
-// joinLen returns the byte length of the comma-joined result.
-func (ii Indices) joinLen() int {
-	if len(ii) == 0 {
-		return 0
-	}
-	n := len(ii) - 1 // commas
-	for _, idx := range ii {
-		n += len(idx)
-	}
-	return n
-}
-
-// optSegLen returns the path contribution of the optional indices segment:
-// len("/") + joinLen when non-empty, 0 otherwise. Used in the pre-compute
-// phase to size the strings.Builder before writing.
-func (ii Indices) optSegLen() int {
-	jl := ii.joinLen()
-	if jl == 0 {
-		return 0
-	}
-	return len(pathSep) + jl
-}
-
-// optSegWrite writes "/idx1,idx2" into b during the copy phase. No-op when
-// the Indices slice is empty, matching the zero returned by optSegLen.
-func (ii Indices) optSegWrite(b *strings.Builder) {
+// writePathBuf writes "/idx1,idx2" into pb. No-op when the Indices slice is empty.
+func (ii Indices) writePathBuf(pb *pathBuf) {
 	if len(ii) == 0 {
 		return
 	}
-	b.WriteString(pathSep)
-	ii.join(b)
-}
-
-// join writes the comma-separated names into b without a leading slash.
-func (ii Indices) join(b *strings.Builder) {
+	pb.buf = append(pb.buf, pathSep...)
 	for i, idx := range ii {
 		if i > 0 {
-			b.WriteByte(',')
+			pb.buf = append(pb.buf, indexSep...)
 		}
-		b.WriteString(string(idx))
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Internal helpers for scalar path segments
-//
-// Path strings are built in two phases:
-//   1. Pre-compute: sum the byte length of every segment using reqSegLen /
-//      optSegLen, then Grow the strings.Builder once to avoid reallocation.
-//   2. Copy: write each segment into the builder using reqSegWrite /
-//      optSegWrite, which prepend the "/" separator before the value.
-//
-// "req" helpers always contribute their segment.
-// "opt" helpers are no-ops (and return 0) when the value is empty.
-// ---------------------------------------------------------------------------
-
-// reqSegWrite writes "/{value}" into b during the copy phase. The caller must
-// have accounted for this segment with reqSegLen during the pre-compute phase.
-func reqSegWrite(b *strings.Builder, value string) {
-	b.WriteString(pathSep)
-	b.WriteString(value)
-}
-
-// reqSegLen returns the number of bytes "/{value}" contributes to the path
-// during the pre-compute phase: len("/") + len(value).
-func reqSegLen(v string) int { return len(pathSep) + len(v) }
-
-// optSegLen returns reqSegLen(v) when v is non-empty, 0 otherwise. Used in
-// the pre-compute phase for optional path segments.
-func optSegLen(v string) int {
-	if v == "" {
-		return 0
-	}
-	return reqSegLen(v)
-}
-
-// optSegWrite writes "/{value}" into b only when value is non-empty. The
-// caller must have used optSegLen during the pre-compute phase so the builder
-// capacity is correct regardless of whether the segment is present.
-func optSegWrite(b *strings.Builder, value string) {
-	if value != "" {
-		reqSegWrite(b, value)
+		pb.buf = append(pb.buf, string(idx)...)
 	}
 }
 
@@ -223,10 +183,9 @@ func (p IndexPath) Build() (string, error) {
 	if p.Index == "" {
 		return "", fmt.Errorf("IndexPath.Index: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Index)))
-	reqSegWrite(&b, string(p.Index))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Index))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -245,11 +204,10 @@ func (p IndexActionPath) Build() (string, error) {
 	if p.Index == "" || p.Action == "" {
 		return "", fmt.Errorf("IndexActionPath.Index or .Action: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Index)) + reqSegLen(string(p.Action)))
-	reqSegWrite(&b, string(p.Index))
-	reqSegWrite(&b, string(p.Action))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Index))
+	pb.writeReq(string(p.Action))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -272,12 +230,11 @@ func (p DocumentPath) Build() (string, error) {
 	if p.Index == "" || p.Action == "" || p.DocumentID == "" {
 		return "", fmt.Errorf("DocumentPath.Index, .Action, or .DocumentID: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Index)) + reqSegLen(string(p.Action)) + reqSegLen(string(p.DocumentID)))
-	reqSegWrite(&b, string(p.Index))
-	reqSegWrite(&b, string(p.Action))
-	reqSegWrite(&b, string(p.DocumentID))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Index))
+	pb.writeReq(string(p.Action))
+	pb.writeReq(string(p.DocumentID))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -297,12 +254,11 @@ func (p IndexTargetPath) Build() (string, error) {
 	if p.Index == "" || p.Action == "" || p.Target == "" {
 		return "", fmt.Errorf("IndexTargetPath.Index, .Action, or .Target: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Index)) + reqSegLen(string(p.Action)) + reqSegLen(string(p.Target)))
-	reqSegWrite(&b, string(p.Index))
-	reqSegWrite(&b, string(p.Action))
-	reqSegWrite(&b, string(p.Target))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Index))
+	pb.writeReq(string(p.Action))
+	pb.writeReq(string(p.Target))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -322,11 +278,10 @@ func (p IndicesActionPath) Build() (string, error) {
 	if len(p.Indices) == 0 || p.Action == "" {
 		return "", fmt.Errorf("IndicesActionPath.Indices or .Action: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(p.Indices.optSegLen() + reqSegLen(string(p.Action)))
-	p.Indices.optSegWrite(&b)
-	reqSegWrite(&b, string(p.Action))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	p.Indices.writePathBuf(pb)
+	pb.writeReq(string(p.Action))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -346,12 +301,11 @@ func (p IndicesBlockPath) Build() (string, error) {
 		return "", fmt.Errorf("IndicesBlockPath.Indices or .Block: %w", ErrPathRequired)
 	}
 	const action = "_block"
-	var b strings.Builder
-	b.Grow(p.Indices.optSegLen() + reqSegLen(action) + reqSegLen(string(p.Block)))
-	p.Indices.optSegWrite(&b)
-	reqSegWrite(&b, action)
-	reqSegWrite(&b, string(p.Block))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	p.Indices.writePathBuf(pb)
+	pb.writeReq(action)
+	pb.writeReq(string(p.Block))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -369,13 +323,11 @@ type AliasPath struct {
 // Build returns the path.
 func (p AliasPath) Build() (string, error) { //nolint:unparam // error kept for interface consistency
 	const action = "_alias"
-	var b strings.Builder
-	alias := string(p.Alias)
-	b.Grow(p.Indices.optSegLen() + reqSegLen(action) + optSegLen(alias))
-	p.Indices.optSegWrite(&b)
-	reqSegWrite(&b, action)
-	optSegWrite(&b, alias)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	p.Indices.writePathBuf(pb)
+	pb.writeReq(action)
+	pb.writeOpt(string(p.Alias))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -399,11 +351,10 @@ func (p ResourcePath) Build() (string, error) {
 	if p.Prefix == "" || p.Name == "" {
 		return "", fmt.Errorf("ResourcePath.Prefix or .Name: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Prefix)) + reqSegLen(string(p.Name)))
-	reqSegWrite(&b, string(p.Prefix))
-	reqSegWrite(&b, string(p.Name))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Prefix))
+	pb.writeReq(string(p.Name))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -427,12 +378,11 @@ func (p ResourceActionPath) Build() (string, error) {
 	if p.Prefix == "" || p.Name == "" || p.Action == "" {
 		return "", fmt.Errorf("ResourceActionPath.Prefix, .Name, or .Action: %w", ErrPathRequired)
 	}
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Prefix)) + reqSegLen(string(p.Name)) + reqSegLen(string(p.Action)))
-	reqSegWrite(&b, string(p.Prefix))
-	reqSegWrite(&b, string(p.Name))
-	reqSegWrite(&b, string(p.Action))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Prefix))
+	pb.writeReq(string(p.Name))
+	pb.writeReq(string(p.Action))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -452,12 +402,11 @@ func (p SnapshotPath) Build() (string, error) {
 		return "", fmt.Errorf("SnapshotPath.Repo or .Snapshot: %w", ErrPathRequired)
 	}
 	const prefix = "_snapshot"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Repo)) + reqSegLen(string(p.Snapshot)))
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Repo))
-	reqSegWrite(&b, string(p.Snapshot))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Repo))
+	pb.writeReq(string(p.Snapshot))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -479,13 +428,12 @@ func (p SnapshotActionPath) Build() (string, error) {
 		return "", fmt.Errorf("SnapshotActionPath.Repo, .Snapshot, or .Action: %w", ErrPathRequired)
 	}
 	const prefix = "_snapshot"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Repo)) + reqSegLen(string(p.Snapshot)) + reqSegLen(string(p.Action)))
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Repo))
-	reqSegWrite(&b, string(p.Snapshot))
-	reqSegWrite(&b, string(p.Action))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Repo))
+	pb.writeReq(string(p.Snapshot))
+	pb.writeReq(string(p.Action))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -508,15 +456,13 @@ func (p SnapshotClonePath) Build() (string, error) {
 	}
 	const prefix = "_snapshot"
 	const action = "_clone"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Repo)) + reqSegLen(string(p.Snapshot)) +
-		reqSegLen(action) + reqSegLen(string(p.TargetSnapshot)))
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Repo))
-	reqSegWrite(&b, string(p.Snapshot))
-	reqSegWrite(&b, action)
-	reqSegWrite(&b, string(p.TargetSnapshot))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Repo))
+	pb.writeReq(string(p.Snapshot))
+	pb.writeReq(action)
+	pb.writeReq(string(p.TargetSnapshot))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -542,14 +488,13 @@ func (p PluginResourcePath) Build() (string, error) {
 	}
 	const prefix = "_plugins"
 	const api = "api"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Plugin)) + reqSegLen(api) + reqSegLen(string(p.Resource)) + reqSegLen(string(p.Name)))
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Plugin))
-	reqSegWrite(&b, api)
-	reqSegWrite(&b, string(p.Resource))
-	reqSegWrite(&b, string(p.Name))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Plugin))
+	pb.writeReq(api)
+	pb.writeReq(string(p.Resource))
+	pb.writeReq(string(p.Name))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -574,13 +519,12 @@ func (p PluginIndexPath) Build() (string, error) {
 		return "", fmt.Errorf("PluginIndexPath.Plugin or .Action: %w", ErrPathRequired)
 	}
 	const prefix = "_plugins"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Plugin)) + reqSegLen(string(p.Action)) + p.Indices.optSegLen())
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Plugin))
-	reqSegWrite(&b, string(p.Action))
-	p.Indices.optSegWrite(&b)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Plugin))
+	pb.writeReq(string(p.Action))
+	p.Indices.writePathBuf(pb)
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -602,13 +546,12 @@ func (p PluginPolicyPath) Build() (string, error) {
 	}
 	const prefix = "_plugins"
 	const policies = "policies"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Plugin)) + reqSegLen(policies) + reqSegLen(string(p.Policy)))
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Plugin))
-	reqSegWrite(&b, policies)
-	reqSegWrite(&b, string(p.Policy))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Plugin))
+	pb.writeReq(policies)
+	pb.writeReq(string(p.Policy))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -629,12 +572,11 @@ func (p DecommissionPath) Build() (string, error) {
 		return "", fmt.Errorf("DecommissionPath.Attr or .Value: %w", ErrPathRequired)
 	}
 	const prefix = "_cluster/decommission/awareness"
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + reqSegLen(string(p.Attr)) + reqSegLen(string(p.Value)))
-	reqSegWrite(&b, prefix)
-	reqSegWrite(&b, string(p.Attr))
-	reqSegWrite(&b, string(p.Value))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeReq(string(p.Attr))
+	pb.writeReq(string(p.Value))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -657,12 +599,10 @@ func (p PrefixActionPath) Build() (string, error) {
 	if p.Action == "" {
 		return "", fmt.Errorf("PrefixActionPath.Action: %w", ErrPathRequired)
 	}
-	pfx := string(p.Prefix)
-	var b strings.Builder
-	b.Grow(optSegLen(pfx) + reqSegLen(string(p.Action)))
-	optSegWrite(&b, pfx)
-	reqSegWrite(&b, string(p.Action))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeOpt(string(p.Prefix))
+	pb.writeReq(string(p.Action))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -683,14 +623,11 @@ func (p PrefixActionSuffixPath) Build() (string, error) {
 	if p.Action == "" {
 		return "", fmt.Errorf("PrefixActionSuffixPath.Action: %w", ErrPathRequired)
 	}
-	pfx := string(p.Prefix)
-	sfx := string(p.Suffix)
-	var b strings.Builder
-	b.Grow(optSegLen(pfx) + reqSegLen(string(p.Action)) + optSegLen(sfx))
-	optSegWrite(&b, pfx)
-	reqSegWrite(&b, string(p.Action))
-	optSegWrite(&b, sfx)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeOpt(string(p.Prefix))
+	pb.writeReq(string(p.Action))
+	pb.writeOpt(string(p.Suffix))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -710,12 +647,10 @@ func (p ActionSuffixPath) Build() (string, error) {
 	if p.Action == "" {
 		return "", fmt.Errorf("ActionSuffixPath.Action: %w", ErrPathRequired)
 	}
-	sfx := string(p.Suffix)
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Action)) + optSegLen(sfx))
-	reqSegWrite(&b, string(p.Action))
-	optSegWrite(&b, sfx)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Action))
+	pb.writeOpt(string(p.Suffix))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -736,13 +671,11 @@ func (p PrefixSuffixActionPath) Build() (string, error) {
 	if p.Prefix == "" || p.Action == "" {
 		return "", fmt.Errorf("PrefixSuffixActionPath.Prefix or .Action: %w", ErrPathRequired)
 	}
-	sfx := string(p.Suffix)
-	var b strings.Builder
-	b.Grow(reqSegLen(string(p.Prefix)) + optSegLen(sfx) + reqSegLen(string(p.Action)))
-	reqSegWrite(&b, string(p.Prefix))
-	optSegWrite(&b, sfx)
-	reqSegWrite(&b, string(p.Action))
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Prefix))
+	pb.writeOpt(string(p.Suffix))
+	pb.writeReq(string(p.Action))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -763,14 +696,11 @@ func (p RolloverPath) Build() (string, error) {
 		return "", fmt.Errorf("RolloverPath.Alias: %w", ErrPathRequired)
 	}
 	const action = "_rollover"
-	alias := string(p.Alias)
-	idx := string(p.Index)
-	var b strings.Builder
-	b.Grow(reqSegLen(alias) + reqSegLen(action) + optSegLen(idx))
-	reqSegWrite(&b, alias)
-	reqSegWrite(&b, action)
-	optSegWrite(&b, idx)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(string(p.Alias))
+	pb.writeReq(action)
+	pb.writeOpt(string(p.Index))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -788,14 +718,11 @@ type TermvectorsPath struct {
 // Build returns the path.
 func (p TermvectorsPath) Build() (string, error) { //nolint:unparam // error kept for interface consistency
 	const action = "_termvectors"
-	idx := string(p.Index)
-	docID := string(p.DocumentID)
-	var b strings.Builder
-	b.Grow(optSegLen(idx) + reqSegLen(action) + optSegLen(docID))
-	optSegWrite(&b, idx)
-	reqSegWrite(&b, action)
-	optSegWrite(&b, docID)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeOpt(string(p.Index))
+	pb.writeReq(action)
+	pb.writeOpt(string(p.DocumentID))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -821,17 +748,13 @@ func (p NodesPath) Build() (string, error) {
 		return "", fmt.Errorf("NodesPath.Action: %w", ErrPathRequired)
 	}
 	const prefix = "_nodes"
-	nodeID := string(p.NodeID)
-	metric := string(p.Metric)
-	idxMetric := string(p.IndexMetric)
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + optSegLen(nodeID) + reqSegLen(string(p.Action)) + optSegLen(metric) + optSegLen(idxMetric))
-	reqSegWrite(&b, prefix)
-	optSegWrite(&b, nodeID)
-	reqSegWrite(&b, string(p.Action))
-	optSegWrite(&b, metric)
-	optSegWrite(&b, idxMetric)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeOpt(string(p.NodeID))
+	pb.writeReq(string(p.Action))
+	pb.writeOpt(string(p.Metric))
+	pb.writeOpt(string(p.IndexMetric))
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -849,13 +772,11 @@ type ClusterStatePath struct {
 // Build returns the path.
 func (p ClusterStatePath) Build() (string, error) { //nolint:unparam // error kept for interface consistency
 	const prefix = "_cluster/state"
-	metrics := string(p.Metrics)
-	var b strings.Builder
-	b.Grow(reqSegLen(prefix) + optSegLen(metrics) + p.Indices.optSegLen())
-	reqSegWrite(&b, prefix)
-	optSegWrite(&b, metrics)
-	p.Indices.optSegWrite(&b)
-	return b.String(), nil
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
+	pb.writeOpt(string(p.Metrics))
+	p.Indices.writePathBuf(pb)
+	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
@@ -872,16 +793,12 @@ type ClusterStatsPath struct {
 func (p ClusterStatsPath) Build() (string, error) { //nolint:unparam // error kept for interface consistency
 	const prefix = "_cluster/stats"
 	const nodes = "nodes"
+	pb := acquirePathBuf()
+	pb.writeReq(prefix)
 	nf := string(p.NodeFilter)
-	var b strings.Builder
-	if nf == "" {
-		b.Grow(reqSegLen(prefix))
-		reqSegWrite(&b, prefix)
-	} else {
-		b.Grow(reqSegLen(prefix) + reqSegLen(nodes) + reqSegLen(nf))
-		reqSegWrite(&b, prefix)
-		reqSegWrite(&b, nodes)
-		reqSegWrite(&b, nf)
+	if nf != "" {
+		pb.writeReq(nodes)
+		pb.writeReq(nf)
 	}
-	return b.String(), nil
+	return pb.release(), nil
 }

@@ -340,10 +340,3 @@ func TestToIndices(t *testing.T) {
 	got := opensearch.ToIndices([]string{"a", "b", "c"})
 	require.Equal(t, opensearch.Indices{"a", "b", "c"}, got)
 }
-
-func TestIndicesJoin(t *testing.T) {
-	t.Parallel()
-	require.Equal(t, "", opensearch.Indices(nil).Join())
-	require.Equal(t, "a", opensearch.Indices{"a"}.Join())
-	require.Equal(t, "a,b,c", opensearch.Indices{"a", "b", "c"}.Join())
-}
