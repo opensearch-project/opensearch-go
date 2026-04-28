@@ -69,6 +69,9 @@ type TasksGetResp struct {
 				ActiveThreads    int `json:"active_threads"`
 			} `json:"thread_info"`
 		} `json:"resource_stats"`
+		// Status is polymorphic; its shape depends on the task action.
+		// Use ParseTaskStatus[T] to unmarshal into a concrete type.
+		Status json.RawMessage `json:"status,omitempty"`
 	} `json:"task"`
 	response *opensearch.Response
 }

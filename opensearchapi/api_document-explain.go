@@ -40,7 +40,7 @@ func (r DocumentExplainReq) GetRequest() (*http.Request, error) {
 type DocumentExplainResp struct {
 	Index       string                 `json:"_index"`
 	ID          string                 `json:"_id"`
-	Type        string                 `json:"_type"` // Deprecated field
+	Type        string                 `json:"_type,omitempty"` // Deprecated: ES 6.0, removed in OS 2.0
 	Matched     bool                   `json:"matched"`
 	Explanation DocumentExplainDetails `json:"explanation"`
 	response    *opensearch.Response

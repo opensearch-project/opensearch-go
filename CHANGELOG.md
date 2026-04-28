@@ -12,6 +12,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add per-attempt `RequestTimeout` to bound individual HTTP round-trips, preventing indefinite hangs on stalled connections ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add `opensearchutil/shardhash` package with exported `Hash` and `ForRouting` functions for computing OpenSearch shard routing
 - Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
+- Add `Status` field (`json.RawMessage`) to `TasksGetResp`, `TasksListTask`, and `TaskCancelInfo` for polymorphic task status data; add typed status structs matching the OpenSearch API specification: `BulkByScrollTaskStatus`, `ReplicationTaskStatus`, `ResyncTaskStatus`, `PersistentTaskStatus`; add `Parse*` helpers and `BulkByScrollTaskStatusOrException` for sliced task status ([#788](https://github.com/opensearch-project/opensearch-go/issues/788))
 - Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
 - opensearchapi/testutil package with test suite, client helpers, and JSON comparison utilities
 - opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
@@ -108,6 +109,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `cluster.homogeneous` removes all overrides to reset to default configuration
   - `cluster.status` now shows per-node roles and allocated processors via `_nodes/http,os`
 - Add request routing guide (`guides/routing.md`) consolidating routing architecture, connection scoring, pool lifecycle, cost model, and configuration reference ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add per-item `Error` field to `MGetResp`, `MTermvectorsResp`, and `MSearchResp` for detecting partial failures in multi-document operations ([#797](https://github.com/opensearch-project/opensearch-go/issues/797))
+- Add `DocumentError` type for structured per-item error information in multi-document responses
+- Add `BulkByScrollFailure` type for structured failure information in `_delete_by_query`, `_update_by_query`, and `_reindex` responses
+- Add `Routing` and `Fields` to `MGetResp.Docs` to match the full OpenSearch `_mget` response format
+- Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
+- Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
 
 ### Changed
 
@@ -140,6 +147,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Constructor now takes `aws.Config` instead of `session.Options`
   - See USER_GUIDE.md for details required to migrate
   - Users who need access to the existing `signer/awsv2` API can still use it, however they are encouraged to migrate to `signer/aws`
+- **BREAKING**: Replace `[]json.RawMessage` with typed `[]BulkByScrollFailure` for `Failures` field in `DocumentDeleteByQueryResp`, `UpdateByQueryResp`, and `ReindexResp` ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). This is a compile-time change only — callers that were not accessing `.Failures` are unaffected, and callers that were manually unmarshaling `json.RawMessage` can now access typed fields directly.
+- Replace inline `_shards` struct with `ResponseShards` in `IndexResp`, `DocumentCreateResp`, `DocumentDeleteResp`, `UpdateResp`, `IndicesRefreshResp`, and `IndicesCountResp` to expose shard `Failures` and `Skipped` fields ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). Code accessing `resp.Shards.Total`, `resp.Shards.Successful`, or `resp.Shards.Failed` compiles unchanged.
+- Add `omitempty` to all deprecated `_type` JSON tags so empty values are omitted during marshaling
 
 ### Deprecated
 
