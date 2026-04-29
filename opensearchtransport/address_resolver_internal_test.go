@@ -375,26 +375,67 @@ func TestAddressResolver(t *testing.T) {
 		require.Equal(t, int32(1), maxConcurrent.Load(), "only one resolver should run at a time")
 	})
 
-	t.Run("context cancellation stops launching resolvers", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		tp, err := New(Config{
-			URLs:        []*url.URL{testSeedURL(t)},
-			Transport:   newResolverTestTransport(t, nodesJSON),
-			HealthCheck: NoOpHealthCheck,
-			AddressResolver: func(_ context.Context, _ NodeInfo) (*url.URL, error) {
-				return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+	cancelTests := []struct {
+		name         string
+		setup        func(t *testing.T) (context.Context, AddressResolverFunc)
+		maxResolvers int
+		wantErr      error
+		wantNodes    int
+	}{
+		{
+			name: "pre-cancelled context returns error",
+			setup: func(t *testing.T) (context.Context, AddressResolverFunc) {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
+					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+				}
 			},
-		})
-		require.NoError(t, err)
+			wantErr: context.Canceled,
+		},
+		{
+			name: "mid-flight cancellation preserves resolved nodes",
+			setup: func(t *testing.T) (context.Context, AddressResolverFunc) {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				var calls atomic.Int32
+				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
+					if calls.Add(1) == 1 {
+						cancel()
+					}
+					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+				}
+			},
+			maxResolvers: 1,
+			wantNodes:    1,
+		},
+	}
 
-		nodes, err := tp.getNodesInfo(ctx)
-		require.NoError(t, err)
-		require.LessOrEqual(t, len(nodes), 2)
-	})
+	for _, tt := range cancelTests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, resolver := tt.setup(t)
+
+			tp, err := New(Config{
+				URLs:                []*url.URL{testSeedURL(t)},
+				Transport:           newResolverTestTransport(t, nodesJSON),
+				HealthCheck:         NoOpHealthCheck,
+				AddressResolver:     resolver,
+				MaxAddressResolvers: tt.maxResolvers,
+			})
+			require.NoError(t, err)
+
+			nodes, err := tp.getNodesInfo(ctx)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantNodes, len(nodes))
+		})
+	}
 
 	t.Run("stalled resolver unblocks on context cancellation", func(t *testing.T) {
 		t.Parallel()
@@ -464,6 +505,138 @@ func TestAddressResolver(t *testing.T) {
 			t.Fatal("expected multiServerPool, got singleServerPool")
 		}
 	})
+}
+
+// TestDiscoverNodes_PartialCancelDoesNotEvict verifies that context
+// cancellation during resolver fan-out does not let a partial node list flow
+// into updateConnectionPool and silently evict healthy connections that the
+// cancelled goroutines never got a chance to resolve. Covers both the
+// built-in handler and the AddressResolverRunner code path.
+func TestDiscoverNodes_PartialCancelDoesNotEvict(t *testing.T) {
+	t.Parallel()
+
+	twoNodes := map[string]nodeInfo{
+		"node-1": {
+			Name:  "alpha",
+			Roles: []string{"data"},
+			HTTP:  nodeInfoHTTP{PublishAddress: "10.0.0.1:9200"},
+		},
+		"node-2": {
+			Name:  "beta",
+			Roles: []string{"data"},
+			HTTP:  nodeInfoHTTP{PublishAddress: "10.0.0.2:9200"},
+		},
+	}
+	nodesJSON := testNodesResponse(t, twoNodes)
+
+	tests := []struct {
+		name      string
+		configure func(t *testing.T, cancel context.CancelFunc) Config
+	}{
+		{
+			name: "built-in handler / pre-cancelled context",
+			configure: func(t *testing.T, cancel context.CancelFunc) Config {
+				t.Helper()
+				return Config{
+					URLs:        []*url.URL{testSeedURL(t)},
+					Transport:   newResolverTestTransport(t, nodesJSON),
+					HealthCheck: NoOpHealthCheck,
+					AddressResolver: func(_ context.Context, node NodeInfo) (*url.URL, error) {
+						cancel() // ensure context is cancelled before any resolver work
+						return node.URL, nil
+					},
+					MaxAddressResolvers: 1,
+				}
+			},
+		},
+		{
+			name: "built-in handler / mid-flight cancellation",
+			configure: func(t *testing.T, cancel context.CancelFunc) Config {
+				t.Helper()
+				var calls atomic.Int32
+				return Config{
+					URLs:        []*url.URL{testSeedURL(t)},
+					Transport:   newResolverTestTransport(t, nodesJSON),
+					HealthCheck: NoOpHealthCheck,
+					AddressResolver: func(_ context.Context, node NodeInfo) (*url.URL, error) {
+						// MaxAddressResolvers=1 serializes the fan-out, so
+						// cancelling on the first call leaves the second
+						// node's slot as a zero-value resolvedNode.
+						if calls.Add(1) == 1 {
+							cancel()
+						}
+						return node.URL, nil
+					},
+					MaxAddressResolvers: 1,
+				}
+			},
+		},
+		{
+			name: "runner path / cancellation",
+			configure: func(t *testing.T, cancel context.CancelFunc) Config {
+				t.Helper()
+				var cycle atomic.Int32
+				return Config{
+					URLs:        []*url.URL{testSeedURL(t)},
+					Transport:   newResolverTestTransport(t, nodesJSON),
+					HealthCheck: NoOpHealthCheck,
+					AddressResolver: func(_ context.Context, node NodeInfo) (*url.URL, error) {
+						return node.URL, nil
+					},
+					AddressResolverRunner: func(_ context.Context, nodes []NodeInfo, resolve AddressResolverFunc) ([]ResolvedAddress, error) {
+						// Seed cycle: resolve all nodes normally so the pool
+						// is fully populated. Cancellation cycle: resolve
+						// the first node, then cancel before the second --
+						// mirrors a runner with a per-node deadline that
+						// fires partway through.
+						isCancellationCycle := cycle.Add(1) > 1
+						out := make([]ResolvedAddress, 0, len(nodes))
+						for i, n := range nodes {
+							u, err := resolve(context.Background(), n)
+							if err == nil {
+								out = append(out, ResolvedAddress{Node: n, URL: u})
+							}
+							if isCancellationCycle && i == 0 {
+								cancel()
+								break
+							}
+						}
+						return out, nil
+					},
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+
+			tp, err := New(tt.configure(t, cancel))
+			require.NoError(t, err)
+
+			// Seed the pool with a clean discovery cycle.
+			require.NoError(t, tp.DiscoverNodes(t.Context()))
+
+			tp.mu.RLock()
+			pool := tp.mu.connectionPool
+			tp.mu.RUnlock()
+			require.NotNil(t, pool)
+			require.Len(t, pool.URLs(), 2, "seed discovery should populate two connections")
+
+			// Trigger the cancellation-affected discovery cycle.
+			err = tp.DiscoverNodes(ctx)
+			require.ErrorIs(t, err, context.Canceled)
+
+			tp.mu.RLock()
+			pool = tp.mu.connectionPool
+			tp.mu.RUnlock()
+			require.Len(t, pool.URLs(), 2, "cancelled discovery must not evict healthy connections")
+		})
+	}
 }
 
 // ---------------------------------------------------------------------------

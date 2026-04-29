@@ -362,6 +362,16 @@ func (c *Client) doDiscoverNodes(ctx context.Context) error {
 		return discoverErr
 	}
 
+	// If the context was cancelled mid-resolution, the resolver paths may
+	// have returned a partial node list (the cancelled goroutines silently
+	// drop their slots). Letting that partial list flow into
+	// updateConnectionPool would treat the missing nodes as departed and
+	// evict their healthy connections. Bail out before that happens.
+	if err := ctx.Err(); err != nil {
+		discoverErr = fmt.Errorf("discovery: %w", err)
+		return discoverErr
+	}
+
 	c.mu.RLock()
 	connPool := c.mu.connectionPool
 	c.mu.RUnlock()
@@ -1367,6 +1377,13 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 
 	if len(out) == 0 && len(errs) > 0 {
 		return nil, fmt.Errorf("%w: %w", ErrAllResolversFailed, errors.Join(errs...))
+	}
+
+	if len(out) == 0 && len(pending) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return nil, ErrAllResolversFailed
 	}
 
 	return out, nil
