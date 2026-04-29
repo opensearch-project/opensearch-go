@@ -1249,30 +1249,7 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 			}
 
 			node := p.node
-			u := p.defaultURL
-
-			if resolved != nil && resolved.String() != u.String() {
-				node.rewritten = true
-
-				if c.metrics != nil {
-					c.metrics.addressResolverRewrites.Add(1)
-				}
-
-				if obs != nil {
-					obs.OnAddressRewrite(AddressRewriteEvent{
-						ID:           node.ID,
-						Name:         node.Name,
-						Roles:        node.Roles,
-						OriginalURL:  u.String(),
-						RewrittenURL: resolved.String(),
-						Timestamp:    time.Now().UTC(),
-					})
-				}
-
-				u = resolved
-			}
-
-			node.url = u
+			node.url = c.applyRewrite(&node, p.defaultURL, resolved, obs)
 			results[i] = resolvedNode{node: node}
 		}(i, p)
 	}
@@ -1303,6 +1280,34 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 	}
 
 	return out, nil
+}
+
+// applyRewrite checks whether resolved differs from defaultURL and, when it
+// does, marks the node as rewritten, increments the rewrite metric, and fires
+// the OnAddressRewrite observer event. Returns the URL to use for the node.
+func (c *Client) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
+	if resolved == nil || resolved.String() == defaultURL.String() {
+		return defaultURL
+	}
+
+	node.rewritten = true
+
+	if c.metrics != nil {
+		c.metrics.addressResolverRewrites.Add(1)
+	}
+
+	if obs != nil {
+		obs.OnAddressRewrite(AddressRewriteEvent{
+			ID:           node.ID,
+			Name:         node.Name,
+			Roles:        node.Roles,
+			OriginalURL:  defaultURL.String(),
+			RewrittenURL: resolved.String(),
+			Timestamp:    time.Now().UTC(),
+		})
+	}
+
+	return resolved
 }
 
 // newInstrumentedResolver wraps an AddressResolverFunc with metrics
@@ -1375,30 +1380,7 @@ func (c *Client) runAddressResolverRunner(ctx context.Context, pending []discove
 		}
 
 		node := p.node
-		u := p.defaultURL
-
-		if ra.URL.String() != u.String() {
-			node.rewritten = true
-
-			if c.metrics != nil {
-				c.metrics.addressResolverRewrites.Add(1)
-			}
-
-			if obs != nil {
-				obs.OnAddressRewrite(AddressRewriteEvent{
-					ID:           node.ID,
-					Name:         node.Name,
-					Roles:        node.Roles,
-					OriginalURL:  u.String(),
-					RewrittenURL: ra.URL.String(),
-					Timestamp:    time.Now().UTC(),
-				})
-			}
-
-			u = ra.URL
-		}
-
-		node.url = u
+		node.url = c.applyRewrite(&node, p.defaultURL, ra.URL, obs)
 		out = append(out, node)
 	}
 

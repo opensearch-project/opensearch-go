@@ -389,7 +389,7 @@ func TestAddressResolver(t *testing.T) {
 				ctx, cancel := context.WithCancel(t.Context())
 				cancel()
 				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
-					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+					return nil, nil
 				}
 			},
 			wantErr: context.Canceled,
@@ -399,12 +399,13 @@ func TestAddressResolver(t *testing.T) {
 			setup: func(t *testing.T) (context.Context, AddressResolverFunc) {
 				t.Helper()
 				ctx, cancel := context.WithCancel(t.Context())
+				t.Cleanup(cancel)
 				var calls atomic.Int32
 				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
 					if calls.Add(1) == 1 {
 						cancel()
 					}
-					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+					return nil, nil
 				}
 			},
 			maxResolvers: 1,
@@ -433,7 +434,7 @@ func TestAddressResolver(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.wantNodes, len(nodes))
+			require.Len(t, nodes, tt.wantNodes)
 		})
 	}
 
@@ -635,42 +636,83 @@ func TestAddressResolverRunner(t *testing.T) {
 			"resolve param should be nil when AddressResolver is not set")
 	})
 
-	t.Run("runner context cancellation propagated", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		tp, err := New(Config{
-			URLs:        []*url.URL{testSeedURL(t)},
-			Transport:   newResolverTestTransport(t, nodesJSON),
-			HealthCheck: NoOpHealthCheck,
-			AddressResolverRunner: func(ctx context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+	runnerEdgeCases := []struct {
+		name      string
+		makeCtx   func(t *testing.T) context.Context
+		runner    AddressResolverRunnerFunc
+		wantErr   error
+		wantNodes int
+	}{
+		{
+			name: "context cancellation propagated",
+			makeCtx: func(t *testing.T) context.Context {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				return ctx
+			},
+			runner: func(ctx context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
 				return nil, ctx.Err()
 			},
-		})
-		require.NoError(t, err)
-
-		_, err = tp.getNodesInfo(ctx)
-		require.ErrorIs(t, err, context.Canceled)
-	})
-
-	t.Run("runner drops all returns ErrAllResolversFailed", func(t *testing.T) {
-		t.Parallel()
-
-		tp, err := New(Config{
-			URLs:        []*url.URL{testSeedURL(t)},
-			Transport:   newResolverTestTransport(t, nodesJSON),
-			HealthCheck: NoOpHealthCheck,
-			AddressResolverRunner: func(_ context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+			wantErr: context.Canceled,
+		},
+		{
+			name: "drops all returns ErrAllResolversFailed",
+			runner: func(_ context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
 				return nil, nil
 			},
-		})
-		require.NoError(t, err)
+			wantErr: ErrAllResolversFailed,
+		},
+		{
+			name: "nil URLs are skipped",
+			runner: func(_ context.Context, nodes []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+				out := make([]ResolvedAddress, len(nodes))
+				for i, n := range nodes {
+					out[i] = ResolvedAddress{Node: n, URL: nil}
+				}
+				return out, nil
+			},
+			wantErr: ErrAllResolversFailed,
+		},
+		{
+			name: "unknown node ID is ignored",
+			runner: func(_ context.Context, nodes []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+				bogus := NodeInfo{ID: "bogus-id", Name: "ghost"}
+				return []ResolvedAddress{
+					{Node: nodes[0], URL: nodes[0].URL},
+					{Node: bogus, URL: nodes[0].URL},
+				}, nil
+			},
+			wantNodes: 1,
+		},
+	}
 
-		_, err = tp.getNodesInfo(t.Context())
-		require.ErrorIs(t, err, ErrAllResolversFailed)
-	})
+	for _, tt := range runnerEdgeCases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			if tt.makeCtx != nil {
+				ctx = tt.makeCtx(t)
+			}
+
+			tp, err := New(Config{
+				URLs:                  []*url.URL{testSeedURL(t)},
+				Transport:             newResolverTestTransport(t, nodesJSON),
+				HealthCheck:           NoOpHealthCheck,
+				AddressResolverRunner: tt.runner,
+			})
+			require.NoError(t, err)
+
+			nodes, err := tp.getNodesInfo(ctx)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, nodes, tt.wantNodes)
+		})
+	}
 
 	t.Run("runner error propagated", func(t *testing.T) {
 		t.Parallel()
