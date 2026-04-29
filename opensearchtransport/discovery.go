@@ -1333,30 +1333,7 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 			}
 
 			node := p.node
-			u := p.defaultURL
-
-			if resolved != nil && resolved.String() != u.String() {
-				node.rewritten = true
-
-				if c.metrics != nil {
-					c.metrics.addressResolverRewrites.Add(1)
-				}
-
-				if obs != nil {
-					obs.OnAddressRewrite(AddressRewriteEvent{
-						ID:           node.ID,
-						Name:         node.Name,
-						Roles:        node.Roles,
-						OriginalURL:  u.String(),
-						RewrittenURL: resolved.String(),
-						Timestamp:    time.Now().UTC(),
-					})
-				}
-
-				u = resolved
-			}
-
-			node.url = u
+			node.url = c.applyRewrite(&node, p.defaultURL, resolved, obs)
 			results[i] = resolvedNode{node: node}
 		}(i, p)
 	}
@@ -1387,6 +1364,53 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 	}
 
 	return out, nil
+}
+
+// applyRewrite checks whether resolved differs from defaultURL and, when it
+// does, marks the node as rewritten, increments the rewrite metric, and fires
+// the OnAddressRewrite observer event. Returns the URL to use for the node.
+//
+// A non-nil resolved URL with an empty Scheme or Host is treated as a
+// resolver error: the default URL is kept, the error counter is incremented,
+// and a debug log is emitted. Validating here surfaces the misuse at
+// resolver time rather than letting a malformed URL flow into the connection
+// pool and fail later as a confusing HTTP error.
+func (c *Client) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
+	if resolved == nil || resolved.String() == defaultURL.String() {
+		return defaultURL
+	}
+
+	if resolved.Scheme == "" || resolved.Host == "" {
+		if c.metrics != nil {
+			c.metrics.addressResolverErrors.Add(1)
+		}
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("AddressResolver returned malformed URL for node %q (scheme=%q host=%q); keeping default %q\n",
+				node.Name, resolved.Scheme, resolved.Host, defaultURL)
+		}
+		return defaultURL
+	}
+
+	node.rewritten = true
+
+	if c.metrics != nil {
+		c.metrics.addressResolverRewrites.Add(1)
+	}
+
+	if obs != nil {
+		// Clone Roles so an observer that retains the event sees a stable
+		// copy -- matches ConnectionEvent's c.Roles.toSlice() behavior.
+		obs.OnAddressRewrite(AddressRewriteEvent{
+			ID:           node.ID,
+			Name:         node.Name,
+			Roles:        slices.Clone(node.Roles),
+			OriginalURL:  defaultURL.String(),
+			RewrittenURL: resolved.String(),
+			Timestamp:    time.Now().UTC(),
+		})
+	}
+
+	return resolved
 }
 
 // newInstrumentedResolver wraps an AddressResolverFunc with metrics
@@ -1474,30 +1498,7 @@ func (c *Client) runAddressResolverRunner(ctx context.Context, pending []discove
 		seen[ra.Node.ID] = struct{}{}
 
 		node := p.node
-		u := p.defaultURL
-
-		if ra.URL.String() != u.String() {
-			node.rewritten = true
-
-			if c.metrics != nil {
-				c.metrics.addressResolverRewrites.Add(1)
-			}
-
-			if obs != nil {
-				obs.OnAddressRewrite(AddressRewriteEvent{
-					ID:           node.ID,
-					Name:         node.Name,
-					Roles:        node.Roles,
-					OriginalURL:  u.String(),
-					RewrittenURL: ra.URL.String(),
-					Timestamp:    time.Now().UTC(),
-				})
-			}
-
-			u = ra.URL
-		}
-
-		node.url = u
+		node.url = c.applyRewrite(&node, p.defaultURL, ra.URL, obs)
 		out = append(out, node)
 	}
 

@@ -177,6 +177,18 @@ func TestAddressResolver(t *testing.T) {
 			wantPort: map[string]string{"rewrite-me": "9201", "keep-me": "9200"},
 			metrics:  wantMetrics{calls: 3, rewrites: 1, errors: 1},
 		},
+		{
+			name:    "malformed URL keeps default and counts an error",
+			inAddrs: map[string]string{"alpha": "10.0.0.1:9200", "beta": "10.0.0.2:9200"},
+			resolver: func(_ context.Context, _ NodeInfo) (*url.URL, error) {
+				// Empty Scheme/Host -- the kind of URL a resolver might
+				// return from a buggy parse. The client must reject it
+				// rather than enrolling a malformed connection.
+				return &url.URL{}, nil
+			},
+			wantPort: map[string]string{"alpha": "9200", "beta": "9200"},
+			metrics:  wantMetrics{calls: 2, rewrites: 0, errors: 2},
+		},
 	}
 
 	for _, tt := range protocolTests {
@@ -389,7 +401,7 @@ func TestAddressResolver(t *testing.T) {
 				ctx, cancel := context.WithCancel(t.Context())
 				cancel()
 				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
-					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+					return nil, nil
 				}
 			},
 			wantErr: context.Canceled,
@@ -399,12 +411,13 @@ func TestAddressResolver(t *testing.T) {
 			setup: func(t *testing.T) (context.Context, AddressResolverFunc) {
 				t.Helper()
 				ctx, cancel := context.WithCancel(t.Context())
+				t.Cleanup(cancel)
 				var calls atomic.Int32
 				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
 					if calls.Add(1) == 1 {
 						cancel()
 					}
-					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+					return nil, nil
 				}
 			},
 			maxResolvers: 1,
@@ -433,7 +446,7 @@ func TestAddressResolver(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.wantNodes, len(nodes))
+			require.Len(t, nodes, tt.wantNodes)
 		})
 	}
 
@@ -560,7 +573,7 @@ func TestDiscoverNodes_PartialCancelDoesNotEvict(t *testing.T) {
 					HealthCheck: NoOpHealthCheck,
 					AddressResolver: func(_ context.Context, node NodeInfo) (*url.URL, error) {
 						// MaxAddressResolvers=1 serializes the fan-out, so
-						// cancelling on the first call leaves the second
+						// canceling on the first call leaves the second
 						// node's slot as a zero-value resolvedNode.
 						if calls.Add(1) == 1 {
 							cancel()
@@ -583,7 +596,7 @@ func TestDiscoverNodes_PartialCancelDoesNotEvict(t *testing.T) {
 					AddressResolver: func(_ context.Context, node NodeInfo) (*url.URL, error) {
 						return node.URL, nil
 					},
-					AddressResolverRunner: func(_ context.Context, nodes []NodeInfo, resolve AddressResolverFunc) ([]ResolvedAddress, error) {
+					AddressResolverRunner: func(ctx context.Context, nodes []NodeInfo, resolve AddressResolverFunc) ([]ResolvedAddress, error) {
 						// Seed cycle: resolve all nodes normally so the pool
 						// is fully populated. Cancellation cycle: resolve
 						// the first node, then cancel before the second --
@@ -592,7 +605,7 @@ func TestDiscoverNodes_PartialCancelDoesNotEvict(t *testing.T) {
 						isCancellationCycle := cycle.Add(1) > 1
 						out := make([]ResolvedAddress, 0, len(nodes))
 						for i, n := range nodes {
-							u, err := resolve(context.Background(), n)
+							u, err := resolve(ctx, n)
 							if err == nil {
 								out = append(out, ResolvedAddress{Node: n, URL: u})
 							}
@@ -767,42 +780,83 @@ func TestAddressResolverRunner(t *testing.T) {
 			"resolve param should be nil when AddressResolver is not set")
 	})
 
-	t.Run("runner context cancellation propagated", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		tp, err := New(Config{
-			URLs:        []*url.URL{testSeedURL(t)},
-			Transport:   newResolverTestTransport(t, nodesJSON),
-			HealthCheck: NoOpHealthCheck,
-			AddressResolverRunner: func(ctx context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+	runnerEdgeCases := []struct {
+		name      string
+		makeCtx   func(t *testing.T) context.Context
+		runner    AddressResolverRunnerFunc
+		wantErr   error
+		wantNodes int
+	}{
+		{
+			name: "context cancellation propagated",
+			makeCtx: func(t *testing.T) context.Context {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				return ctx
+			},
+			runner: func(ctx context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
 				return nil, ctx.Err()
 			},
-		})
-		require.NoError(t, err)
-
-		_, err = tp.getNodesInfo(ctx)
-		require.ErrorIs(t, err, context.Canceled)
-	})
-
-	t.Run("runner drops all returns ErrAllResolversFailed", func(t *testing.T) {
-		t.Parallel()
-
-		tp, err := New(Config{
-			URLs:        []*url.URL{testSeedURL(t)},
-			Transport:   newResolverTestTransport(t, nodesJSON),
-			HealthCheck: NoOpHealthCheck,
-			AddressResolverRunner: func(_ context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+			wantErr: context.Canceled,
+		},
+		{
+			name: "drops all returns ErrAllResolversFailed",
+			runner: func(_ context.Context, _ []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
 				return nil, nil
 			},
-		})
-		require.NoError(t, err)
+			wantErr: ErrAllResolversFailed,
+		},
+		{
+			name: "nil URLs are skipped",
+			runner: func(_ context.Context, nodes []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+				out := make([]ResolvedAddress, len(nodes))
+				for i, n := range nodes {
+					out[i] = ResolvedAddress{Node: n, URL: nil}
+				}
+				return out, nil
+			},
+			wantErr: ErrAllResolversFailed,
+		},
+		{
+			name: "unknown node ID is ignored",
+			runner: func(_ context.Context, nodes []NodeInfo, _ AddressResolverFunc) ([]ResolvedAddress, error) {
+				bogus := NodeInfo{ID: "bogus-id", Name: "ghost"}
+				return []ResolvedAddress{
+					{Node: nodes[0], URL: nodes[0].URL},
+					{Node: bogus, URL: nodes[0].URL},
+				}, nil
+			},
+			wantNodes: 1,
+		},
+	}
 
-		_, err = tp.getNodesInfo(t.Context())
-		require.ErrorIs(t, err, ErrAllResolversFailed)
-	})
+	for _, tt := range runnerEdgeCases {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx := t.Context()
+			if tt.makeCtx != nil {
+				ctx = tt.makeCtx(t)
+			}
+
+			tp, err := New(Config{
+				URLs:                  []*url.URL{testSeedURL(t)},
+				Transport:             newResolverTestTransport(t, nodesJSON),
+				HealthCheck:           NoOpHealthCheck,
+				AddressResolverRunner: tt.runner,
+			})
+			require.NoError(t, err)
+
+			nodes, err := tp.getNodesInfo(ctx)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Len(t, nodes, tt.wantNodes)
+		})
+	}
 
 	t.Run("runner error propagated", func(t *testing.T) {
 		t.Parallel()
@@ -840,7 +894,8 @@ func TestAddressResolverRunner(t *testing.T) {
 		}{
 			{
 				name: "exact duplicate per node",
-				emit: func(_ *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+				emit: func(t *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+					t.Helper()
 					out := make([]ResolvedAddress, 0, 2*len(byID))
 					for _, n := range byID {
 						out = append(out, ResolvedAddress{Node: n, URL: n.URL})
@@ -853,6 +908,7 @@ func TestAddressResolverRunner(t *testing.T) {
 			{
 				name: "duplicate with different URL keeps first",
 				emit: func(t *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+					t.Helper()
 					n1 := byID["node-1"]
 					n2 := byID["node-2"]
 					return []ResolvedAddress{
@@ -865,7 +921,8 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 			{
 				name: "triplicate collapses to one",
-				emit: func(_ *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+				emit: func(t *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+					t.Helper()
 					n1 := byID["node-1"]
 					n2 := byID["node-2"]
 					return []ResolvedAddress{
@@ -879,7 +936,8 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 			{
 				name: "duplicate after a nil URL is still skipped",
-				emit: func(_ *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+				emit: func(t *testing.T, byID map[string]NodeInfo) []ResolvedAddress {
+					t.Helper()
 					n1 := byID["node-1"]
 					n2 := byID["node-2"]
 					return []ResolvedAddress{
