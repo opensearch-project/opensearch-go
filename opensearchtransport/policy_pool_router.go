@@ -158,21 +158,19 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		effectiveRoutingKey = keyB // OpenSearch default: _id is the routing value
 	}
 
-	var shardCandidates []*Connection
+	var candidatesBuf pooledConns
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
 
 	if !strings.Contains(routingValue, routingValueSeparator) {
-		shardCandidates, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
 	} else {
-		var candidates pooledConns
-		candidates, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
-		shardCandidates = candidates.Slice()
+		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
-	if len(shardCandidates) > 0 {
+	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
 			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
@@ -189,6 +187,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				routingValue, effectiveRoutingKey, shardNum, true, loadPoolInfoReady(p.poolInfoReady), p.scoreFunc,
 			))
 		}
+		candidatesBuf.Release()
 
 		// Verify the selected connection is still active.
 		if best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {

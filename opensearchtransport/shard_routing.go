@@ -15,65 +15,72 @@ import (
 // returns the connections hosting that shard. The 1:1 relationship between key
 // and shard makes this a direct lookup with no intermediate data structures.
 //
-// Returns nil when shard-exact routing is disabled via features, shard map data
-// is unavailable, the routing value is empty, or no connections match.
+// Returns a zero-value pooledConns when shard-exact routing is disabled via
+// features, shard map data is unavailable, the routing value is empty, or no
+// connections match. Callers must call Release on the returned pooledConns
+// when done.
+//
 // Per-shard cost is derived from the returned [shardNodes] by the caller via
 // [shardCostMultiplier.forShard].
-func calcSingleKeyCost( //nolint:nonamedreturns // named returns document the three result values
+func calcSingleKeyCost(
 	features routingFeatures,
 	slot *indexSlot,
 	routingValue string,
 	conns []*Connection,
-) (candidates []*Connection, shardNum int, shard *shardNodes) {
+) (pooledConns, int, *shardNodes) {
 	if !features.shardExactEnabled() {
-		return nil, -1, nil
+		return pooledConns{}, -1, nil
 	}
 
 	if routingValue == "" {
-		return nil, -1, nil
+		return pooledConns{}, -1, nil
 	}
 
 	sm := slot.shardMap.Load()
 	if sm == nil || sm.NumberOfPrimaryShards == 0 || sm.RoutingNumShards == 0 || len(sm.Shards) == 0 {
-		return nil, -1, nil
+		return pooledConns{}, -1, nil
 	}
 
-	shardNum = shardForRouting(routingValue, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
+	shardNum := shardForRouting(routingValue, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
 
 	shardCopy := sm.Shards[shardNum]
 	if shardCopy == nil {
-		return nil, -1, nil
+		return pooledConns{}, -1, nil
 	}
 
 	// Build a set of node names hosting this shard.
-	nodeNames := make(map[string]struct{}, 1+len(shardCopy.Replicas))
+	nodeNames := acquireNodeSet()
 	if shardCopy.Primary != "" {
-		nodeNames[shardCopy.Primary] = struct{}{}
+		nodeNames.Add(shardCopy.Primary)
 	}
 	for _, r := range shardCopy.Replicas {
-		nodeNames[r] = struct{}{}
+		nodeNames.Add(r)
 	}
 
-	if len(nodeNames) == 0 {
-		return nil, -1, nil
+	if nodeNames.Len() == 0 {
+		nodeNames.Release()
+		return pooledConns{}, -1, nil
 	}
 
 	// Resolve node names to connections. Filter out connections that
 	// need a /_cat/shards refresh (stale shard data).
+	bp := getConnSlice(nodeNames.Len())
 	for _, c := range conns {
 		if c.needsCatUpdate() {
 			continue
 		}
-		if _, ok := nodeNames[c.Name]; ok {
-			candidates = append(candidates, c)
+		if nodeNames.Contains(c.Name) {
+			*bp = append(*bp, c)
 		}
 	}
+	nodeNames.Release()
 
-	if len(candidates) == 0 {
-		return nil, -1, nil
+	if len(*bp) == 0 {
+		putConnSlice(bp)
+		return pooledConns{}, -1, nil
 	}
 
-	return candidates, shardNum, shardCopy
+	return pooledConns{p: bp}, shardNum, shardCopy
 }
 
 // calcMultiKeyCost resolves multiple comma-separated routing keys to their
@@ -180,6 +187,53 @@ func acquireNodeHits() *map[string]int {
 func releaseNodeHits(m *map[string]int) {
 	clear(*m)
 	nodeHitsPool.Put(m)
+}
+
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var nodeSetPool = sync.Pool{
+	New: func() any {
+		m := make(map[string]struct{}, 8)
+		return &m
+	},
+}
+
+// pooledNodeSet is a pooled map[string]struct{} buffer used as a node-name
+// lookup set. The zero value represents an empty/nil result; calling Release
+// on it is a no-op.
+type pooledNodeSet struct{ p *map[string]struct{} }
+
+// acquireNodeSet returns a pooled node-name set, cleared and ready for use.
+func acquireNodeSet() pooledNodeSet {
+	bp := nodeSetPool.Get().(*map[string]struct{}) //nolint:forcetypeassert // pool only stores *map[string]struct{}
+	return pooledNodeSet{p: bp}
+}
+
+// Add inserts a node name into the set.
+func (b pooledNodeSet) Add(name string) {
+	(*b.p)[name] = struct{}{}
+}
+
+// Contains returns true if the set contains the given name.
+func (b pooledNodeSet) Contains(name string) bool {
+	_, ok := (*b.p)[name]
+	return ok
+}
+
+// Len returns the number of entries in the set.
+func (b pooledNodeSet) Len() int {
+	if b.p == nil {
+		return 0
+	}
+	return len(*b.p)
+}
+
+// Release clears the map and returns it to the pool. Safe to call on zero-value.
+func (b pooledNodeSet) Release() {
+	if b.p == nil {
+		return
+	}
+	clear(*b.p)
+	nodeSetPool.Put(b.p)
 }
 
 //nolint:gochecknoglobals // sync.Pool must be package-level

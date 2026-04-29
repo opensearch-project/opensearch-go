@@ -84,7 +84,9 @@ func TestShardExactCandidates_CorrectNodes(t *testing.T) {
 	for _, routing := range routingValues {
 		t.Run("routing="+routing, func(t *testing.T) {
 			t.Parallel()
-			candidates, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, conns)
+			buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, conns)
+			candidates := buf.Slice()
+			defer buf.Release()
 
 			// Independent shard computation via murmur3.
 			expectedShard := shardForRouting(routing, sm.RoutingNumShards, sm.NumberOfPrimaryShards)
@@ -126,7 +128,9 @@ func TestShardExactCandidates_EmptyRouting(t *testing.T) {
 	slot.shardMap.Store(shardMap3())
 	connA := newTestConn(t, "nodeA")
 
-	candidates, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
+	buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, "", []*Connection{connA})
+	candidates := buf.Slice()
+	defer buf.Release()
 	require.Nil(t, candidates)
 	require.Equal(t, -1, shardNum)
 }
@@ -140,7 +144,9 @@ func TestShardExactCandidates_DisabledByFeatureFlag(t *testing.T) {
 
 	// With routingSkipShardExact set, shard-exact routing is disabled
 	// even when shard map and routing value are valid.
-	candidates, shardNum, _ := calcSingleKeyCost(routingSkipShardExact, slot, "test-routing", []*Connection{connA})
+	buf, shardNum, _ := calcSingleKeyCost(routingSkipShardExact, slot, "test-routing", []*Connection{connA})
+	candidates := buf.Slice()
+	defer buf.Release()
 	require.Nil(t, candidates)
 	require.Equal(t, -1, shardNum)
 }
@@ -152,7 +158,9 @@ func TestShardExactCandidates_NilShardMap(t *testing.T) {
 	// No shardMap stored.
 	connA := newTestConn(t, "nodeA")
 
-	candidates, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, "abc", []*Connection{connA})
+	buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, "abc", []*Connection{connA})
+	candidates := buf.Slice()
+	defer buf.Release()
 	require.Nil(t, candidates)
 	require.Equal(t, -1, shardNum)
 }
@@ -180,7 +188,9 @@ func TestShardExactCandidates_MissingConnection(t *testing.T) {
 	}
 	require.NotEmpty(t, routingForShard1, "could not find a routing value mapping to shard 1")
 
-	candidates, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routingForShard1, conns)
+	buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routingForShard1, conns)
+	candidates := buf.Slice()
+	defer buf.Release()
 	require.Equal(t, 1, shardNum)
 	require.NotNil(t, candidates)
 
@@ -467,7 +477,8 @@ func TestShardExactRouting_AllShardsReachable(t *testing.T) {
 	shardsHit := make(map[int]bool)
 	for i := range 200 {
 		routing := fmt.Sprintf("probe-%d", i)
-		candidates, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, conns)
+		buf, shardNum, _ := calcSingleKeyCost(routingFeatures(0), slot, routing, conns)
+		candidates := buf.Slice()
 		require.NotNil(t, candidates)
 		require.GreaterOrEqual(t, shardNum, 0)
 		require.Less(t, shardNum, sm.NumberOfPrimaryShards)
@@ -480,6 +491,7 @@ func TestShardExactRouting_AllShardsReachable(t *testing.T) {
 			require.True(t, ok,
 				"routing=%q shard=%d: candidate %s not in %v", routing, shardNum, c.Name, expectedNodes)
 		}
+		buf.Release()
 	}
 
 	for shard := 0; shard < sm.NumberOfPrimaryShards; shard++ {

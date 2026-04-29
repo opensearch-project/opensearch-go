@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package opensearchtransport
+package opensearchtransport //nolint:testpackage // benchmarks need internal access
 
 import (
 	"fmt"
@@ -88,8 +88,8 @@ func BenchmarkCalcSingleKeyCost(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
-		candidates, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, conns)
-		_ = candidates
+		buf, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, conns)
+		buf.Release()
 	}
 }
 
