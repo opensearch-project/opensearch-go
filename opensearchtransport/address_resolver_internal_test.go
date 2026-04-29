@@ -375,26 +375,67 @@ func TestAddressResolver(t *testing.T) {
 		require.Equal(t, int32(1), maxConcurrent.Load(), "only one resolver should run at a time")
 	})
 
-	t.Run("context cancellation stops launching resolvers", func(t *testing.T) {
-		t.Parallel()
-
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-
-		tp, err := New(Config{
-			URLs:        []*url.URL{testSeedURL(t)},
-			Transport:   newResolverTestTransport(t, nodesJSON),
-			HealthCheck: NoOpHealthCheck,
-			AddressResolver: func(_ context.Context, _ NodeInfo) (*url.URL, error) {
-				return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+	cancelTests := []struct {
+		name         string
+		setup        func(t *testing.T) (context.Context, AddressResolverFunc)
+		maxResolvers int
+		wantErr      error
+		wantNodes    int
+	}{
+		{
+			name: "pre-cancelled context returns error",
+			setup: func(t *testing.T) (context.Context, AddressResolverFunc) {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
+				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
+					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+				}
 			},
-		})
-		require.NoError(t, err)
+			wantErr: context.Canceled,
+		},
+		{
+			name: "mid-flight cancellation preserves resolved nodes",
+			setup: func(t *testing.T) (context.Context, AddressResolverFunc) {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				var calls atomic.Int32
+				return ctx, func(_ context.Context, _ NodeInfo) (*url.URL, error) {
+					if calls.Add(1) == 1 {
+						cancel()
+					}
+					return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
+				}
+			},
+			maxResolvers: 1,
+			wantNodes:    1,
+		},
+	}
 
-		nodes, err := tp.getNodesInfo(ctx)
-		require.NoError(t, err)
-		require.LessOrEqual(t, len(nodes), 2)
-	})
+	for _, tt := range cancelTests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, resolver := tt.setup(t)
+
+			tp, err := New(Config{
+				URLs:                []*url.URL{testSeedURL(t)},
+				Transport:           newResolverTestTransport(t, nodesJSON),
+				HealthCheck:         NoOpHealthCheck,
+				AddressResolver:     resolver,
+				MaxAddressResolvers: tt.maxResolvers,
+			})
+			require.NoError(t, err)
+
+			nodes, err := tp.getNodesInfo(ctx)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantNodes, len(nodes))
+		})
+	}
 
 	t.Run("stalled resolver unblocks on context cancellation", func(t *testing.T) {
 		t.Parallel()

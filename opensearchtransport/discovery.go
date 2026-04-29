@@ -1295,6 +1295,13 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 		return nil, fmt.Errorf("%w: %w", ErrAllResolversFailed, errors.Join(errs...))
 	}
 
+	if len(out) == 0 && len(pending) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return nil, ErrAllResolversFailed
+	}
+
 	return out, nil
 }
 
