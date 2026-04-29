@@ -7,7 +7,7 @@
 package opensearchtransport
 
 import (
-	"sort"
+	"slices"
 	"sync"
 )
 
@@ -144,8 +144,8 @@ func calcMultiKeyCost(
 		return pooledConns{}, pooledFloats{}
 	}
 
-	sort.Slice(*scored, func(i, j int) bool {
-		return (*scored)[i].hits > (*scored)[j].hits
+	slices.SortFunc(*scored, func(a, b scoredConn) int {
+		return b.hits - a.hits
 	})
 
 	n := len(*scored)
