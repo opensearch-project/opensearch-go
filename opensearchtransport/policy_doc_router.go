@@ -163,21 +163,19 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 		effectiveRoutingKey = docID
 	}
 
-	var shardCandidates []*Connection
+	var candidatesBuf pooledConns
 	var shardNum int
 	var shard *shardNodes
 	var extraCost pooledFloats
 
 	if !strings.Contains(routingValue, routingValueSeparator) {
-		shardCandidates, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
 	} else {
-		var candidates pooledConns
-		candidates, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
-		shardCandidates = candidates.Slice()
+		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
 		shardNum = -1
 	}
 
-	if len(shardCandidates) > 0 {
+	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
 		scores := acquireFloats(len(shardCandidates))
 		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName,
 			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
@@ -205,6 +203,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 				scoreFunc:           p.scoreFunc,
 			}))
 		}
+		candidatesBuf.Release()
 
 		if best == nil {
 			return NextHop{}, nil

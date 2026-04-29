@@ -163,3 +163,56 @@ func (b pooledFloats) Release() {
 	*b.p = (*b.p)[:0]
 	floatSlicePool.Put(b.p)
 }
+
+// --- Node-name set (membership lookup, not append) --------------------------
+
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var nodeSetPool = sync.Pool{
+	New: func() any {
+		m := make(map[string]struct{}, 8)
+		return &m
+	},
+}
+
+// pooledNodeSet is a pooled map[string]struct{} buffer used as a node-name
+// lookup set. The zero value represents an empty/nil result; calling
+// [pooledNodeSet.Release] on it is a no-op. Add and Contains panic on the
+// zero value -- callers must obtain an instance from [acquireNodeSet].
+type pooledNodeSet struct{ p *map[string]struct{} }
+
+// acquireNodeSet returns an empty pooled node-name set. The map is cleared
+// by [pooledNodeSet.Release] when prior users return it to the pool, so
+// every call here observes an empty map.
+func acquireNodeSet() pooledNodeSet {
+	bp := nodeSetPool.Get().(*map[string]struct{}) //nolint:forcetypeassert // pool only stores *map[string]struct{}
+	return pooledNodeSet{p: bp}
+}
+
+// Add inserts a node name into the set.
+func (b pooledNodeSet) Add(name string) {
+	(*b.p)[name] = struct{}{}
+}
+
+// Contains returns true if the set contains the given name.
+func (b pooledNodeSet) Contains(name string) bool {
+	_, ok := (*b.p)[name]
+	return ok
+}
+
+// Len returns the number of entries in the set.
+func (b pooledNodeSet) Len() int {
+	if b.p == nil {
+		return 0
+	}
+	return len(*b.p)
+}
+
+// Release clears the map and returns it to the pool. Safe to call on the
+// zero value.
+func (b pooledNodeSet) Release() {
+	if b.p == nil {
+		return
+	}
+	clear(*b.p)
+	nodeSetPool.Put(b.p)
+}
