@@ -9,6 +9,7 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -115,10 +116,10 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			return hop, nil
 		}
 
-		scoreBuf := acquireScoreSlice(len(conns))
+		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, *scoreBuf, p.scoreFunc)
-		releaseScoreSlice(scoreBuf)
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil)
+		scores.Release()
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 			return hop, nil
@@ -161,13 +162,27 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	if effectiveRoutingKey == "" && keyB != "" {
 		effectiveRoutingKey = keyB // OpenSearch default: _id is the routing value
 	}
-	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
-	if len(shardCandidates) > 0 { //nolint:nestif // shard-exact path has scoring and observer notification
-		// Shard-exact: fan-out is 1 (single shard replica set), so adaptive
-		// MCSR is not applicable and intentionally skipped.
-		scoreBuf := acquireScoreSlice(len(shardCandidates))
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf, p.scoreFunc)
-		releaseScoreSlice(scoreBuf)
+
+	var shardCandidates []*Connection
+	var shardNum int
+	var shard *shardNodes
+	var extraCost pooledFloats
+
+	if !strings.Contains(routingValue, routingValueSeparator) {
+		shardCandidates, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+	} else {
+		var candidates pooledConns
+		candidates, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		shardCandidates = candidates.Slice()
+		shardNum = -1
+	}
+
+	if len(shardCandidates) > 0 {
+		scores := acquireFloats(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
+			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+		scores.Release()
+		extraCost.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := keyA
@@ -224,9 +239,10 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	scoreBuf := acquireScoreSlice(len(candidates))
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf, p.scoreFunc)
-	releaseScoreSlice(scoreBuf)
+	scores := acquireFloats(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
+		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
 	// routed through a coordinator (non-shard-exact).

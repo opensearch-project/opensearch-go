@@ -163,11 +163,26 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 		effectiveRoutingKey = docID
 	}
 
-	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
+	var shardCandidates []*Connection
+	var shardNum int
+	var shard *shardNodes
+	var extraCost pooledFloats
+
+	if !strings.Contains(routingValue, routingValueSeparator) {
+		shardCandidates, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+	} else {
+		var candidates pooledConns
+		candidates, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		shardCandidates = candidates.Slice()
+		shardNum = -1
+	}
+
 	if len(shardCandidates) > 0 {
-		scoreBuf := acquireScoreSlice(len(shardCandidates))
-		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName, loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf, p.scoreFunc)
-		releaseScoreSlice(scoreBuf)
+		scores := acquireFloats(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, &shardCostForReads, p.poolName,
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+		scores.Release()
+		extraCost.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
@@ -218,10 +233,10 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	scoreBuf := acquireScoreSlice(len(candidates))
+	scores := acquireFloats(len(candidates))
 	best := connScoreSelect(candidates, slot, nil, &shardCostForReads, p.poolName,
-		loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf, p.scoreFunc)
-	releaseScoreSlice(scoreBuf)
+		loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := indexName + "/" + docID
