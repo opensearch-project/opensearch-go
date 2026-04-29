@@ -7,10 +7,11 @@
 package opensearchtransport
 
 import (
+	"cmp"
 	"context"
 	"math/rand/v2"
 	"net/url"
-	"sort"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -452,14 +453,8 @@ func (cp *multiServerPool) OnFailure(c *Connection) error {
 	}
 
 	// Sort by failure count for resurrection prioritization.
-	sort.Slice(cp.mu.dead, func(i, j int) bool {
-		c1 := cp.mu.dead[i]
-		c2 := cp.mu.dead[j]
-
-		failures1 := c1.failures.Load()
-		failures2 := c2.failures.Load()
-
-		return failures1 > failures2
+	slices.SortFunc(cp.mu.dead, func(a, b *Connection) int {
+		return cmp.Compare(b.failures.Load(), a.failures.Load())
 	})
 
 	// Snapshot standby availability while we hold the lock -- used after unlock
