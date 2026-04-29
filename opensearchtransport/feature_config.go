@@ -50,8 +50,8 @@ type routingFeatures uint32
 
 const (
 	// routingSkipShardExact disables murmur3 shard-exact routing.
-	// When set, shardExactCandidates returns nil and shard-exact
-	// routing is bypassed.
+	// When set, calcSingleKeyCost and calcMultiKeyCost return nil and
+	// shard-exact routing is bypassed.
 	routingSkipShardExact routingFeatures = 1 << iota
 )
 

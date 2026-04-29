@@ -218,7 +218,7 @@ func TestConnScoreSelect_WarmupGating(t *testing.T) {
 		// because connScoreSelect tries in score order and picks the
 		// first non-warming candidate.
 		scores := make([]float64, 2)
-		best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores, nil)
+		best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores, nil, nil)
 		require.Equal(t, warmed, best,
 			"warmed connection should be preferred over warming")
 	})
@@ -250,7 +250,7 @@ func TestConnScoreSelect_WarmupGating(t *testing.T) {
 		accepted := 0
 		for range 50 {
 			scores := make([]float64, 2)
-			best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores, nil)
+			best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores, nil, nil)
 			require.NotNil(t, best, "should always return a candidate")
 			accepted++
 		}

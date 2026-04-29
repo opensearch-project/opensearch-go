@@ -566,8 +566,8 @@ func WithFanOutPerRequest(f float64) RouterOption {
 }
 
 // WithShardExactRouting enables or disables murmur3 shard-exact routing.
-// When disabled, shardExactCandidates returns nil and shard-exact routing
-// is bypassed. Default: true (enabled).
+// When disabled, calcSingleKeyCost and calcMultiKeyCost return nil and
+// shard-exact routing is bypassed. Default: true (enabled).
 //
 // Can also be controlled via OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact.
 // The environment variable takes precedence over this option.

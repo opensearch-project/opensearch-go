@@ -2392,7 +2392,10 @@ func NoOpHealthCheck(_ context.Context, _ *Connection, _ *url.URL) (*http.Respon
 	return nil, nil //nolint:nilnil // Intentional no-op: nil response + nil error signals "healthy, no body".
 }
 
-const routingParam = "routing"
+const (
+	routingParam          = "routing"
+	routingValueSeparator = ","
+)
 
 // extractRouting returns the value of ?routing=X from the request's query
 // string, or "" if absent. Uses a zero-alloc linear scan to avoid
@@ -2434,6 +2437,45 @@ func extractRouting(req *http.Request) string {
 		}
 	}
 	return ""
+}
+
+// splitRoutingValues splits a comma-separated routing value into individual
+// keys, skipping empty segments. Writes into buf to avoid allocation on the
+// hot path; callers should use acquireRoutingValues/releaseRoutingValues.
+func splitRoutingValues(routingValue string, buf *[]string) []string {
+	s := (*buf)[:0]
+	for {
+		i := strings.Index(routingValue, routingValueSeparator)
+		if i < 0 {
+			if routingValue != "" {
+				s = append(s, routingValue)
+			}
+			break
+		}
+		if i > 0 {
+			s = append(s, routingValue[:i])
+		}
+		routingValue = routingValue[i+len(routingValueSeparator):]
+	}
+	*buf = s
+	return s
+}
+
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var routingValuesPool = sync.Pool{
+	New: func() any {
+		s := make([]string, 0, 8)
+		return &s
+	},
+}
+
+func acquireRoutingValues() *[]string {
+	return routingValuesPool.Get().(*[]string) //nolint:forcetypeassert // pool only stores *[]string
+}
+
+func releaseRoutingValues(buf *[]string) {
+	*buf = (*buf)[:0]
+	routingValuesPool.Put(buf)
 }
 
 // cancelOnCloseBody wraps a response body so that a context cancel function

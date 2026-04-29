@@ -100,12 +100,9 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 			return NextHop{}, nil
 		}
 
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(conns)]
-		if len(conns) > len(scoresBuf) {
-			scores = make([]float64, len(conns))
-		}
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
+		scores := acquireFloats(len(conns))
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), nil, nil)
+		scores.Release()
 		if best == nil {
 			return NextHop{}, nil
 		}
@@ -125,15 +122,27 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 
 	// Attempt shard-exact routing when ?routing=X is present.
 	routingValue := extractRouting(req)
-	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, routingValue, conns)
+
+	var shardCandidates []*Connection
+	var shardNum int
+	var shard *shardNodes
+	var extraCost pooledFloats
+
+	if !strings.Contains(routingValue, routingValueSeparator) {
+		shardCandidates, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, conns)
+	} else {
+		var candidates pooledConns
+		candidates, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		shardCandidates = candidates.Slice()
+		shardNum = -1
+	}
+
 	if len(shardCandidates) > 0 {
-		// Shard-exact path: score the shard-hosting candidates directly.
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(shardCandidates)]
-		if len(shardCandidates) > len(scoresBuf) {
-			scores = make([]float64, len(shardCandidates))
-		}
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
+		scores := acquireFloats(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "",
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), nil, extraCost.Slice())
+		scores.Release()
+		extraCost.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			obs.OnRoute(buildRouteEvent(
@@ -170,12 +179,9 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	var scoresBuf [8]float64
-	scores := scoresBuf[:len(candidates)]
-	if len(candidates) > len(scoresBuf) {
-		scores = make([]float64, len(candidates))
-	}
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores, nil)
+	scores := acquireFloats(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), nil, nil)
+	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		obs.OnRoute(buildRouteEvent(
@@ -349,6 +355,7 @@ func connScoreSelect(
 	poolInfoReady bool,
 	scores []float64,
 	scoreFunc connScoreFunc,
+	extraCost []float64,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -369,6 +376,10 @@ func connScoreSelect(
 			primaryPct = calcNodePrimaryPct(nodeInfo)
 		default:
 			sc = costUnknown
+		}
+
+		if extraCost != nil {
+			sc += extraCost[i]
 		}
 
 		if scoreFunc != nil {
