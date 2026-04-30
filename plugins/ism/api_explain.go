@@ -10,9 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Explain executes a explain policy request with the optional ExplainReq
@@ -25,7 +26,7 @@ func (c Client) Explain(ctx context.Context, req *ExplainReq) (ExplainResp, erro
 		data ExplainResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodGet, req, &data); err != nil {
 		return data, err
 	}
 
@@ -41,13 +42,13 @@ type ExplainReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ExplainReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_ism/explain", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+func (r ExplainReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IsmExplainPolicyPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ExplainResp represents the returned struct of the explain policy response

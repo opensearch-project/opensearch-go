@@ -9,6 +9,7 @@ package security
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 )
 
 type auditClient struct {
@@ -25,7 +26,7 @@ func (c auditClient) Get(ctx context.Context, req *AuditGetReq) (AuditGetResp, e
 		data AuditGetResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodGet, req, &data); err != nil {
 		return data, err
 	}
 
@@ -38,7 +39,7 @@ func (c auditClient) Put(ctx context.Context, req AuditPutReq) (AuditPutResp, er
 		data AuditPutResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPut, req, &data); err != nil {
 		return data, err
 	}
 
@@ -51,7 +52,7 @@ func (c auditClient) Patch(ctx context.Context, req AuditPatchReq) (AuditPatchRe
 		data AuditPatchResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPatch, req, &data); err != nil {
 		return data, err
 	}
 

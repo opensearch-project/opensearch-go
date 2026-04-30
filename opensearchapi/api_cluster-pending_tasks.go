@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // ClusterPendingTasksReq represents possible options for the /_cluster/pending_tasks request
@@ -19,9 +20,9 @@ type ClusterPendingTasksReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ClusterPendingTasksReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r ClusterPendingTasksReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_cluster/pending_tasks",
 		nil,
 		r.Params.get(),

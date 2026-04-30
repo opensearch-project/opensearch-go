@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IngestGetReq represents possible options for the index create request
@@ -23,17 +25,13 @@ type IngestGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IngestGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionSuffixPath{
-		Prefix: "_ingest",
-		Action: "pipeline",
-		Suffix: opensearch.Suffix(strings.Join(r.PipelineIDs, ",")),
-	}.Build()
+func (r IngestGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IngestGetPipelinePath{ID: strings.Join(r.PipelineIDs, ",")}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IngestGetResp represents the returned struct of the index create response

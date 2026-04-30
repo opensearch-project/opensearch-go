@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DanglingDeleteReq represents possible options for the delete dangling request
@@ -21,13 +23,13 @@ type DanglingDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DanglingDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_dangling", Name: opensearch.Name(r.IndexUUID)}.Build()
+func (r DanglingDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.DanglingIndicesDeleteDanglingIndexPath{IndexUUID: r.IndexUUID}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // DanglingDeleteResp represents the returned struct of the delete dangling response

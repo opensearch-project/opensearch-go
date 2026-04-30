@@ -45,6 +45,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
@@ -361,7 +362,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 		require.NotNil(t, newClient)
 
 		// Verify the new client works by making a request
-		req, err := opensearch.BuildRequest("GET", "/", nil, nil, nil)
+		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
 		require.Nil(t, err)
 
 		resp, err := newClient.Perform(req)
@@ -407,7 +408,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 		require.Equal(t, osClient.Transport, apiClient.Client.Transport)
 
 		// Verify both clients can make requests successfully
-		req, err := opensearch.BuildRequest("GET", "/", nil, nil, nil)
+		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
 		require.Nil(t, err)
 
 		resp1, err := osClient.Perform(req)

@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesReloadSecurityReq represents possible options for the /_nodes request
@@ -25,15 +26,12 @@ type NodesReloadSecurityReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesReloadSecurityReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.NodesPath{
-		NodeID: opensearch.NodeID(strings.Join(r.NodeID, ",")),
-		Action: "reload_secure_settings",
-	}.Build()
+func (r NodesReloadSecurityReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.NodesReloadSecureSettingsPath{NodeID: r.NodeID}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // NodesReloadSecurityResp represents the returned struct of the /_nodes response

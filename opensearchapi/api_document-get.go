@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DocumentGetReq represents possible options for the /<Index>/_doc/<DocumentID> get request
@@ -23,17 +25,16 @@ type DocumentGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DocumentGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.DocumentPath{
-		Index:      opensearch.Index(r.Index),
-		Action:     "_doc",
-		DocumentID: opensearch.DocumentID(r.DocumentID),
+func (r DocumentGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.GetPath{
+		ID:    r.DocumentID,
+		Index: r.Index,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // DocumentGetResp represents the returned struct of the /<Index>/_doc/<DocumentID> get response

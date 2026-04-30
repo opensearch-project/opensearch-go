@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestAliasPutReq_GetRequest_URLPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpReq, err := tt.req.GetRequest()
+			httpReq, err := tt.req.GetRequest(http.MethodPut)
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
@@ -75,7 +76,7 @@ func TestAliasGetReq_GetRequest_URLPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpReq, err := tt.req.GetRequest()
+			httpReq, err := tt.req.GetRequest(http.MethodGet)
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
@@ -89,6 +90,7 @@ func TestAliasDeleteReq_GetRequest_URLPath(t *testing.T) {
 		name     string
 		req      opensearchapi.AliasDeleteReq
 		wantPath string
+		wantErr  bool
 	}{
 		{
 			name:     "with indices and alias",
@@ -96,15 +98,19 @@ func TestAliasDeleteReq_GetRequest_URLPath(t *testing.T) {
 			wantPath: "/myindex/_alias/myalias",
 		},
 		{
-			name:     "without indices",
-			req:      opensearchapi.AliasDeleteReq{Alias: []string{"myalias"}},
-			wantPath: "/_alias/myalias",
+			name:    "without indices",
+			req:     opensearchapi.AliasDeleteReq{Alias: []string{"myalias"}},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpReq, err := tt.req.GetRequest()
+			httpReq, err := tt.req.GetRequest(http.MethodDelete)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
@@ -133,7 +139,7 @@ func TestAliasExistsReq_GetRequest_URLPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			httpReq, err := tt.req.GetRequest()
+			httpReq, err := tt.req.GetRequest(http.MethodHead)
 			require.NoError(t, err)
 			require.NotNil(t, httpReq)
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)

@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IngestDeleteReq represents possible options for the index create request
@@ -21,13 +23,13 @@ type IngestDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IngestDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourceActionPath{Prefix: "_ingest", Name: "pipeline", Action: opensearch.Action(r.PipelineID)}.Build()
+func (r IngestDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IngestDeletePipelinePath{ID: r.PipelineID}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IngestDeleteResp represents the returned struct of the index create response

@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TemplateDeleteReq represents possible options for the index create request
@@ -21,13 +23,13 @@ type TemplateDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TemplateDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_template", Name: opensearch.Name(r.Template)}.Build()
+func (r TemplateDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesDeleteTemplatePath{Name: r.Template}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // TemplateDeleteResp represents the returned struct of the index create response

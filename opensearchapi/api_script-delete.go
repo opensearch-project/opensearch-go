@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ScriptDeleteReq represents possible options for the delete script request
@@ -21,13 +23,13 @@ type ScriptDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ScriptDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_scripts", Name: opensearch.Name(r.ScriptID)}.Build()
+func (r ScriptDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.DeleteScriptPath{ID: r.ScriptID}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ScriptDeleteResp represents the returned struct of the delete script response

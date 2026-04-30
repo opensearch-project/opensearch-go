@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ComponentTemplateGetReq represents possible options for the _component_template get request
@@ -22,12 +24,12 @@ type ComponentTemplateGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ComponentTemplateGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_component_template", Suffix: opensearch.Suffix(r.ComponentTemplate)}.Build()
+func (r ComponentTemplateGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ClusterGetComponentTemplatePath{Name: r.ComponentTemplate}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ComponentTemplateGetResp represents the returned struct of the index create response

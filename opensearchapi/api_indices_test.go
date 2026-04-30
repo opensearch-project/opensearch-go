@@ -826,7 +826,7 @@ func TestIndicesClient(t *testing.T) {
 			// Refresh only this test's index to avoid conflicts with closed indices from other parallel tests
 			res, err := client.Indices.Refresh(
 				t.Context(),
-				&opensearchapi.IndicesRefreshReq{Indices: []string{index}},
+				&opensearchapi.IndicesRefreshReq{Index: []string{index}},
 			)
 			validateDefault(t, res, err)
 		})
@@ -835,7 +835,7 @@ func TestIndicesClient(t *testing.T) {
 			t.Parallel()
 			res, err := client.Indices.Refresh(
 				t.Context(),
-				&opensearchapi.IndicesRefreshReq{Indices: []string{index}},
+				&opensearchapi.IndicesRefreshReq{Index: []string{index}},
 			)
 			validateDefault(t, res, err)
 		})
@@ -844,7 +844,7 @@ func TestIndicesClient(t *testing.T) {
 			t.Parallel()
 			res, err := failingClient.Indices.Refresh(
 				t.Context(),
-				&opensearchapi.IndicesRefreshReq{Indices: []string{index}},
+				&opensearchapi.IndicesRefreshReq{Index: []string{index}},
 			)
 			validateInspect(t, res, err)
 		})
@@ -1056,11 +1056,11 @@ func TestIndicesClient(t *testing.T) {
 		// Test Field Mapping (requires PutMapping to have run)
 		t.Run("FieldMapping", func(t *testing.T) {
 			t.Run("with_nil_request", func(t *testing.T) {
-				// Nil request is valid code path, but OpenSearch will error because fields are required
+				// Nil request becomes empty MappingFieldReq{}, which fails path validation
+				// because Fields is a required path parameter.
 				res, err := client.Indices.Mapping.Field(t.Context(), nil)
-				require.Error(t, err, "OpenSearch should reject empty field list")
+				require.Error(t, err)
 				require.NotNil(t, res)
-				require.NotNil(t, res.Inspect().Response)
 			})
 
 			t.Run("with_request", func(t *testing.T) {

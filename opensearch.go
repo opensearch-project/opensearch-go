@@ -42,6 +42,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v4/internal/path"
 	"github.com/opensearch-project/opensearch-go/v4/internal/version"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
@@ -79,6 +80,7 @@ var (
 	ErrCreateTransport                     = errors.New("error creating transport")
 	ErrParseVersion                        = errors.New("failed to parse opensearch version")
 	ErrParseURL                            = errors.New("cannot parse url")
+	ErrPathRequired                        = path.ErrRequired
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
 )
@@ -402,7 +404,14 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 
 // Perform delegates to Transport to execute a request and return a response.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
-	// Perform the original request.
+	if req.Header == nil {
+		// Pre-allocate for the headers the transport layer sets on every
+		// outgoing request (User-Agent, Authorization, Content-Type,
+		// Content-Encoding, etc.) so the map does not have to resize on
+		// the hot path.
+		const defaultHeaderCount = 8
+		req.Header = make(http.Header, defaultHeaderCount)
+	}
 	return c.Transport.Perform(req)
 }
 
@@ -412,8 +421,8 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 // Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
 // unmarshaling. The method remains fully functional and will not be removed; this annotation
 // exists to steer callers toward the safer generic alternative.
-func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Response, error) {
-	httpReq, err := req.GetRequest()
+func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer any) (*Response, error) {
+	httpReq, err := req.GetRequest(method)
 	if err != nil {
 		return nil, err
 	}
@@ -430,8 +439,8 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Respons
 
 	response := &Response{
 		StatusCode: resp.StatusCode,
-		Body:       resp.Body,
 		Header:     resp.Header,
+		Body:       resp.Body,
 	}
 
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {
@@ -440,6 +449,7 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Respons
 			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
 		}
 
+		response.rawBody = data
 		response.Body = io.NopCloser(bytes.NewReader(data))
 
 		if err := json.Unmarshal(data, dataPointer); err != nil {
@@ -461,11 +471,11 @@ type NoBody struct{}
 // A nil dataPointer is forwarded as untyped nil so that [Client.Do] skips
 // unmarshalling. This prevents a typed nil (e.g. (*MyResp)(nil)) from being
 // widened into a non-nil any interface that would reach [json.Unmarshal].
-func Do[T any](ctx context.Context, c *Client, req Request, dataPointer *T) (*Response, error) {
+func Do[T any](ctx context.Context, c *Client, method string, req Request, dataPointer *T) (*Response, error) {
 	if dataPointer == nil {
-		return c.Do(ctx, req, nil)
+		return c.Do(ctx, method, req, nil)
 	}
-	return c.Do(ctx, req, dataPointer)
+	return c.Do(ctx, method, req, dataPointer)
 }
 
 // Metrics returns the client metrics.

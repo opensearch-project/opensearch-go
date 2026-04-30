@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ScriptPutReq represents possible options for the put script request
@@ -25,16 +27,15 @@ type ScriptPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ScriptPutReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionSuffixPath{
-		Prefix: "_scripts",
-		Action: opensearch.Action(r.ScriptID),
-		Suffix: opensearch.Suffix(r.ScriptContext),
+func (r ScriptPutReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.PutScriptPath{
+		Context: r.ScriptContext,
+		ID:      r.ScriptID,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // ScriptPutResp represents the returned struct of the put script response

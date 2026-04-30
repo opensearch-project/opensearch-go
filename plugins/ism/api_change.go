@@ -11,9 +11,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Change executes a change policy request with the required ChangeReq
@@ -22,7 +23,7 @@ func (c Client) Change(ctx context.Context, req ChangeReq) (ChangeResp, error) {
 		data ChangeResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return data, err
 	}
 
@@ -38,21 +39,18 @@ type ChangeReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ChangeReq) GetRequest() (*http.Request, error) {
+func (r ChangeReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := opensearch.ActionSuffixPath{
-		Action: "_plugins/_ism/change_policy",
-		Suffix: opensearch.Suffix(strings.Join(r.Indices, ",")),
-	}.Build()
+	path, err := ospath.IsmChangePolicyPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, bytes.NewReader(body), make(map[string]string), r.Header)
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // ChangeResp represents the returned struct of the change policy response

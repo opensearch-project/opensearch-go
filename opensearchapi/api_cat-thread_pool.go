@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // CatThreadPoolReq represent possible options for the /_cat/thread_pool request
@@ -21,12 +22,12 @@ type CatThreadPoolReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r CatThreadPoolReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_cat/thread_pool", Suffix: opensearch.Suffix(strings.Join(r.Pools, ","))}.Build()
+func (r CatThreadPoolReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.CatThreadPoolPath{ThreadPoolPatterns: r.Pools}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // CatThreadPoolResp represents the returned struct of the /_cat/thread_pool response

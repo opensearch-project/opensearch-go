@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RolesMappingPatchReq represents possible options for the rolesmapping patch request
@@ -23,19 +25,24 @@ type RolesMappingPatchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RolesMappingPatchReq) GetRequest() (*http.Request, error) {
+func (r RolesMappingPatchReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/rolesmapping", Suffix: opensearch.Suffix(r.Role)}.Build()
+	var path string
+	if r.Role == "" {
+		path, err = ospath.SecurityPatchRoleMappingsPath{}.Build()
+	} else {
+		path, err = ospath.SecurityPatchRoleMappingPath{Role: r.Role}.Build()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodPatch,
+	return build.Request(
+		method,
 		path,
 		bytes.NewReader(body),
 		make(map[string]string),

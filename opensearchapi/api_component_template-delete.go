@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ComponentTemplateDeleteReq represents possible options for the _component_template delete request
@@ -21,13 +23,13 @@ type ComponentTemplateDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ComponentTemplateDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_component_template", Name: opensearch.Name(r.ComponentTemplate)}.Build()
+func (r ComponentTemplateDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ClusterDeleteComponentTemplatePath{Name: r.ComponentTemplate}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ComponentTemplateDeleteResp represents the returned struct of the _component_template delete response

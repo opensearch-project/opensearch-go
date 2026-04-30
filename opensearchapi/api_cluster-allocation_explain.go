@@ -13,6 +13,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // ClusterAllocationExplainReq represents possible options for the /_nodes request
@@ -23,7 +24,7 @@ type ClusterAllocationExplainReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ClusterAllocationExplainReq) GetRequest() (*http.Request, error) {
+func (r ClusterAllocationExplainReq) GetRequest(method string) (*http.Request, error) {
 	var reader io.Reader
 
 	if r.Body != nil {
@@ -35,8 +36,8 @@ func (r ClusterAllocationExplainReq) GetRequest() (*http.Request, error) {
 		reader = bytes.NewReader(body)
 	}
 
-	return opensearch.BuildRequest(
-		"GET",
+	return build.Request(
+		method,
 		"/_cluster/allocation/explain",
 		reader,
 		r.Params.get(),

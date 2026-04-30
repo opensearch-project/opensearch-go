@@ -71,7 +71,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.IndexTemplate.Get(t.Context(), &opensearchapi.IndexTemplateGetReq{IndexTemplates: []string{indexTemplate}})
+						return client.IndexTemplate.Get(t.Context(), &opensearchapi.IndexTemplateGetReq{IndexTemplates: indexTemplate})
 					},
 				},
 				{

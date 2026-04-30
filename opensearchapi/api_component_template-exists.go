@@ -9,7 +9,8 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ComponentTemplateExistsReq represents possible options for the _component_template exists request
@@ -21,11 +22,11 @@ type ComponentTemplateExistsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ComponentTemplateExistsReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_component_template", Name: opensearch.Name(r.ComponentTemplate)}.Build()
+func (r ComponentTemplateExistsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ClusterExistsComponentTemplatePath{Name: r.ComponentTemplate}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }

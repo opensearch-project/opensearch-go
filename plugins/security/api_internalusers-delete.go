@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // InternalUsersDeleteReq represents possible options for the internalusers delete request
@@ -20,13 +22,13 @@ type InternalUsersDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r InternalUsersDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "internalusers", Name: opensearch.Name(r.User)}.Build()
+func (r InternalUsersDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SecurityDeleteUserPath{Username: r.User}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // InternalUsersDeleteResp represents the returned struct of the internalusers delete response

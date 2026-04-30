@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesDNDeleteReq represents possible options for the nodesdn delete request
@@ -20,13 +22,13 @@ type NodesDNDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesDNDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "nodesdn", Name: opensearch.Name(r.Cluster)}.Build()
+func (r NodesDNDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SecurityDeleteDistinguishedNamePath{ClusterName: r.Cluster}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // NodesDNDeleteResp represents the returned struct of the nodesdn delete response

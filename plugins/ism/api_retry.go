@@ -12,9 +12,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Retry executes a retry policy request with the required RetryReq
@@ -23,7 +24,7 @@ func (c Client) Retry(ctx context.Context, req RetryReq) (RetryResp, error) {
 		data RetryResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return data, err
 	}
 
@@ -39,7 +40,7 @@ type RetryReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RetryReq) GetRequest() (*http.Request, error) {
+func (r RetryReq) GetRequest(method string) (*http.Request, error) {
 	var reqBody io.Reader
 	if r.Body != nil {
 		body, err := json.Marshal(r.Body)
@@ -49,12 +50,12 @@ func (r RetryReq) GetRequest() (*http.Request, error) {
 		reqBody = bytes.NewReader(body)
 	}
 
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_ism/retry", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+	path, err := ospath.IsmRetryIndexPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, reqBody, make(map[string]string), r.Header)
+	return build.Request(method, path, reqBody, make(map[string]string), r.Header)
 }
 
 // RetryResp represents the returned struct of the retry policy response

@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Index executes a /_doc request with the given IndexReq
@@ -20,7 +22,11 @@ func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 		data IndexResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	method := http.MethodPost
+	if req.DocumentID != "" {
+		method = http.MethodPut
+	}
+	if data.response, err = do(ctx, &c, method, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -37,32 +43,16 @@ type IndexReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndexReq) GetRequest() (*http.Request, error) {
-	var (
-		method string
-		path   string
-		err    error
-	)
-
-	if r.DocumentID != "" {
-		method = http.MethodPut
-		path, err = opensearch.DocumentPath{
-			Index:      opensearch.Index(r.Index),
-			Action:     "_doc",
-			DocumentID: opensearch.DocumentID(r.DocumentID),
-		}.Build()
-	} else {
-		method = http.MethodPost
-		path, err = opensearch.IndexActionPath{
-			Index:  opensearch.Index(r.Index),
-			Action: "_doc",
-		}.Build()
-	}
+func (r IndexReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndexPath{
+		ID:    r.DocumentID,
+		Index: r.Index,
+	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(method, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndexResp represents the returned struct of the /_doc response

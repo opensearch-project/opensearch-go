@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesOpenReq represents possible options for the index open request
@@ -21,12 +23,12 @@ type IndicesOpenReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesOpenReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.IndexActionPath{Index: opensearch.Index(r.Index), Action: "_open"}.Build()
+func (r IndicesOpenReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesOpenPath{Index: []string{r.Index}}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesOpenResp represents the returned struct of the index open response

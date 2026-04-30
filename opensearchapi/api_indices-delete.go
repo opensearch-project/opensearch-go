@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesDeleteReq represents possible options for the delete indices request
@@ -21,13 +22,13 @@ type IndicesDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.IndexPath{Index: opensearch.Index(strings.Join(r.Indices, ","))}.Build()
+func (r IndicesDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesDeletePath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesDeleteResp represents the returned struct of the delete indices response

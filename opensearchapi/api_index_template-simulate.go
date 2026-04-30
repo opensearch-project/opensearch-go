@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndexTemplateSimulateReq represents possible options for the index create request
@@ -25,17 +27,13 @@ type IndexTemplateSimulateReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndexTemplateSimulateReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionSuffixPath{
-		Prefix: "_index_template",
-		Action: "_simulate",
-		Suffix: opensearch.Suffix(r.IndexTemplate),
-	}.Build()
+func (r IndexTemplateSimulateReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesSimulateTemplatePath{Name: r.IndexTemplate}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndexTemplateSimulateResp represents the returned struct of the index create response

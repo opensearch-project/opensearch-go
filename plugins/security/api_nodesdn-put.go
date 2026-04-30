@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesDNPutReq represents possible options for the nodesdn put request
@@ -23,18 +25,18 @@ type NodesDNPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesDNPutReq) GetRequest() (*http.Request, error) {
+func (r NodesDNPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "nodesdn", Name: opensearch.Name(r.Cluster)}.Build()
+	path, err := ospath.SecurityUpdateDistinguishedNamePath{ClusterName: r.Cluster}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // NodesDNPutBody reperensts the request body for NodesDNPutReq

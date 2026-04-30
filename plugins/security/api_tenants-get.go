@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TenantsGetReq represents possible options for the tenants get request
@@ -20,14 +22,20 @@ type TenantsGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TenantsGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/tenants", Suffix: opensearch.Suffix(r.Tenant)}.Build()
+func (r TenantsGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Tenant == "" {
+		path, err = ospath.SecurityGetTenantsPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetTenantPath{Tenant: r.Tenant}.Build()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodGet,
+	return build.Request(
+		method,
 		path,
 		nil,
 		make(map[string]string),

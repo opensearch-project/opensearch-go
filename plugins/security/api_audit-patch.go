@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // AuditPatchReq represents possible options for the audit patch request
@@ -22,14 +23,14 @@ type AuditPatchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r AuditPatchReq) GetRequest() (*http.Request, error) {
+func (r AuditPatchReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PATCH",
+	return build.Request(
+		method,
 		"/_plugins/_security/api/audit",
 		bytes.NewReader(body),
 		make(map[string]string),

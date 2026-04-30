@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesUsageReq represents possible options for the /_nodes request
@@ -24,16 +25,15 @@ type NodesUsageReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesUsageReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.NodesPath{
-		NodeID: opensearch.NodeID(strings.Join(r.NodeID, ",")),
-		Action: "usage",
-		Metric: opensearch.Metric(strings.Join(r.Metrics, ",")),
+func (r NodesUsageReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.NodesUsagePath{
+		Metric: r.Metrics,
+		NodeID: r.NodeID,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // NodesUsageResp represents the returned struct of the /_nodes response

@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TemplateGetReq represents possible options for the index create request
@@ -23,16 +24,13 @@ type TemplateGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TemplateGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{
-		Action: "_template",
-		Suffix: opensearch.Suffix(strings.Join(r.Templates, ",")),
-	}.Build()
+func (r TemplateGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesGetTemplatePath{Name: r.Templates}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // TemplateGetResp represents the returned struct of the index create response

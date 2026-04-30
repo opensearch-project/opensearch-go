@@ -1,24 +1,28 @@
-- [Upgrading OpenSearch Go Client](#upgrading-opensearch-go-client)
-  - [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
-    - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
-  - [Upgrading to >= 4.0.0](#upgrading-to->=-4.0.0)
-    - [Import path](#import-path)
-    - [Error types](#error-types)
-    - [AWS signer](#aws-signer)
-    - [Typed failure arrays in by-query and reindex responses](#typed-failure-arrays-in-by-query-and-reindex-responses)
-    - [Inline _shards structs replaced with ResponseShards](#inline-_shards-structs-replaced-with-responseshards)
-    - [_type field tags now include omitempty](#_type-field-tags-now-include-omitempty)
-    - [Import path](#import-path)
-    - [Error types](#error-types)
-    - [AWS signer](#aws-signer)
-  - [Upgrading to >= 3.0.0](#upgrading-to->=-3.0.0)
-    - [Client creation](#client-creation)
-    - [Requests](#requests)
-    - [Responses](#responses)
-    - [Error handling](#error-handling)
-    - [API reorganization](#api-reorganization)
-  - [Upgrading to >= 2.3.0](#upgrading-to->=-2.3.0)
-    - [Snapshot delete](#snapshot-delete)
+- [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
+  - [Response.Body becomes a method](#responsebody-becomes-a-method)
+  - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
+- [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
+  - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
+  - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
+  - [osapi/ package - v5 preview API surface](#osapi-package---v5-preview-api-surface)
+- [Upgrading to >= 4.0.0](#upgrading-to->=-4.0.0)
+  - [Import path](#import-path)
+  - [Error types](#error-types)
+  - [AWS signer](#aws-signer)
+  - [Typed failure arrays in by-query and reindex responses](#typed-failure-arrays-in-by-query-and-reindex-responses)
+  - [Inline `_shards` structs replaced with ResponseShards](#inline-_shards-structs-replaced-with-responseshards)
+  - [`_type` field tags now include omitempty](#_type-field-tags-now-include-omitempty)
+  - [Import path](#import-path)
+  - [Error types](#error-types)
+  - [AWS signer](#aws-signer)
+- [Upgrading to >= 3.0.0](#upgrading-to->=-3.0.0)
+  - [Client creation](#client-creation)
+  - [Requests](#requests)
+  - [Responses](#responses)
+  - [Error handling](#error-handling)
+  - [API reorganization](#api-reorganization)
+- [Upgrading to >= 2.3.0](#upgrading-to->=-2.3.0)
+  - [Snapshot delete](#snapshot-delete)
 
 # Upgrading OpenSearch Go Client
 
@@ -65,6 +69,85 @@ if err != nil {
 	}
 }
 ```
+
+### `Response.Body` becomes a method
+
+`Response.Body` changes from a public `io.ReadCloser` field to a `Body()` method. The new `RawBody() []byte` method (available since v4) provides access to the buffered response bytes without consuming the body reader.
+
+Before 5.0.0:
+
+```go
+body, err := io.ReadAll(resp.Body)
+```
+
+After 5.0.0:
+
+```go
+body, err := io.ReadAll(resp.Body())
+
+// Or, if you only need the raw bytes and the response was already read:
+raw := resp.RawBody()
+```
+
+## Upgrading to >= 4.7.0
+
+### `opensearch.Request` interface signature change
+
+`GetRequest()` now receives the HTTP method from the caller:
+
+```go
+// Before
+GetRequest() (*http.Request, error)
+
+// After
+GetRequest(method string) (*http.Request, error)
+```
+
+This change is invisible to almost all callers: the typed `Req` structs that the client consumes (e.g. `opensearchapi.SearchReq`, `osapi.IndexReq`) already implement the new signature. Only code that defines a custom type satisfying `opensearch.Request` is affected. If you maintain such a type, add a `method string` parameter and forward it to your underlying `http.NewRequest` call (or `opensearch.BuildRequest`).
+
+### Path segment values are percent-encoded
+
+Every typed `Req.GetRequest()` method now constructs URL paths through the generated `internal/path/*Path` builders, which unconditionally percent-encode user-supplied segment values (via `url.PathEscape`, plus an explicit `/` -> `%2F` substitution). This closes the [#650] path-injection class of bugs: an `Index` value containing `../../_cluster/health` can no longer escape its segment to alter routing.
+
+Prior to this release, `buildPath` wrote segment values raw, which left the wire format ambiguous and the encoding contract undefined: callers who passed unencoded metacharacters got a malformed URL, and callers who passed pre-encoded values got the encoded bytes through to the server. Both interpretations existed simultaneously. The client now defines a single contract — pass raw, unencoded values; the client encodes — and applies it everywhere.
+
+The practical consequence for callers who were already passing pre-encoded values is that those values are now double-encoded:
+
+```go
+// Before: the URL contained "my%2Findex" verbatim (relying on undefined behavior)
+// After:  the URL contains "my%252Findex" (the percent itself is encoded)
+client.Indices.Get(ctx, opensearchapi.IndicesGetReq{Index: []string{"my%2Findex"}})
+```
+
+If your code intentionally passes percent-encoded values, decode them with `url.PathUnescape` before populating the Req struct.
+
+[#650]: https://github.com/opensearch-project/opensearch-go/issues/650
+
+### `osapi/` package — v5 preview API surface
+
+This release introduces a new `osapi/` package alongside the existing `opensearchapi/` package. `osapi/` is the **preview of the v5 API in the v4 branch**. `osapi/` is generated from the OpenSearch OpenAPI spec by `cmd/osgen`. When the v5 branch is cut the contents of `osapi/` will relocate to the current `opensearchapi/` package. Callers who migrate to `osapi/` during the v4 branch will be able to use the v5 API today; the only thing that changes at v5 release time is the import path and the package qualifier on every reference.
+
+**Migration Considerations:**
+
+- Migrating to `osapi/` in v4 gives you the v5 surface ahead of v5 release. The trade-off is a search-and-replace at v5 release time: both the import path (`/v4/osapi` -> `/v5/opensearchapi`) and every package qualifier (`osapi.IndexReq` -> `opensearchapi.IndexReq`, `osapi.NewClient` -> `opensearchapi.NewClient`, etc.).
+- Staying on `opensearchapi/` is fine through the rest of v4. At v5, the hand-written `opensearchapi/` is removed; the only forward path is the code-generated API surface (closely matches the existing hand-written ergonomics).
+- We are also evaluating an alternative import path of `github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi` for the preview package (tracked in [#835](https://github.com/opensearch-project/opensearch-go/issues/835)) so the package qualifier never changes; if that lands the only edit at v5 will be the import path.
+
+**Import path:**
+
+```go
+import "github.com/opensearch-project/opensearch-go/v4/osapi"
+
+client, err := osapi.NewClient(osapi.Config{...})
+```
+
+**Surface differences worth knowing about:**
+
+- Optional `Params` are `*Params` pointer fields (nil-safe; pass `&osapi.IndexParams{...}` to set).
+- Optional boolean query parameters are `*bool` so a deliberate `false` can be sent over the wire.
+- Plugin APIs (k-NN, ML, Security, ISM, etc.) live in `osapi/plugins/`.
+
+See `osapi/README.md` for the full usage guide.
 
 ## Upgrading to >= 4.0.0
 
@@ -185,7 +268,7 @@ for _, f := range resp.Failures {
 }
 ```
 
-### Inline _shards Structs Replaced with ResponseShards
+### Inline `_shards` Structs Replaced with ResponseShards
 
 The `Shards` field in `IndexResp`, `DocumentCreateResp`, `DocumentDeleteResp`, `UpdateResp`, `IndicesRefreshResp`, and `IndicesCountResp` changed from an anonymous inline struct to the named `ResponseShards` type.
 

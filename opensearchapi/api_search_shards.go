@@ -10,9 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SearchShards executes a /_search request with the optional SearchShardsReq
@@ -25,7 +26,7 @@ func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*Search
 		data SearchShardsResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -41,12 +42,12 @@ type SearchShardsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SearchShardsReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_search_shards"}.Build()
+func (r SearchShardsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SearchShardsPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // SearchShardsResp represents the returned struct of the /_search response

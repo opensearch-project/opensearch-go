@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SnapshotRestoreReq represents possible options for the index create request
@@ -25,17 +27,16 @@ type SnapshotRestoreReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SnapshotRestoreReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.SnapshotActionPath{
-		Repo:     opensearch.Repo(r.Repo),
-		Snapshot: opensearch.Snapshot(r.Snapshot),
-		Action:   "_restore",
+func (r SnapshotRestoreReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SnapshotRestorePath{
+		Repository: r.Repo,
+		Snapshot:   r.Snapshot,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // SnapshotRestoreResp represents the returned struct of the index create response

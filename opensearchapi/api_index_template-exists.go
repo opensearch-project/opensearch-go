@@ -9,7 +9,8 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndexTemplateExistsReq represents possible options for the index create request
@@ -21,11 +22,11 @@ type IndexTemplateExistsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndexTemplateExistsReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_index_template", Name: opensearch.Name(r.IndexTemplate)}.Build()
+func (r IndexTemplateExistsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesExistsIndexTemplatePath{Name: r.IndexTemplate}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }

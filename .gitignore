@@ -13,3 +13,6 @@ admin.key
 
 # Downloaded OpenAPI spec (fetched by `make fetch-opensearch-spec`)
 opensearch-openapi.yaml
+
+# Compiled generator binaries
+cmd/gen-paths/gen-paths

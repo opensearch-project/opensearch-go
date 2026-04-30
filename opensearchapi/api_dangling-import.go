@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DanglingImportReq represents possible options for the dangling import request
@@ -21,13 +23,13 @@ type DanglingImportReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DanglingImportReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_dangling", Name: opensearch.Name(r.IndexUUID)}.Build()
+func (r DanglingImportReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.DanglingIndicesImportDanglingIndexPath{IndexUUID: r.IndexUUID}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // DanglingImportResp represents the returned struct of thedangling import response

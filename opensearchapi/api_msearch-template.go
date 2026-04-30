@@ -10,9 +10,10 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // MSearchTemplate executes a /_msearch request with the optional MSearchTemplateReq
@@ -21,7 +22,7 @@ func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*M
 		data MSearchTemplateResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -39,12 +40,12 @@ type MSearchTemplateReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r MSearchTemplateReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_msearch/template"}.Build()
+func (r MSearchTemplateReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.MsearchTemplatePath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MSearchTemplateResp represents the returned struct of the /_msearch response

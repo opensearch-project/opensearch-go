@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesCloneReq represents possible options for the index clone request
@@ -25,12 +27,15 @@ type IndicesCloneReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesCloneReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.IndexTargetPath{Index: opensearch.Index(r.Index), Action: "_clone", Target: opensearch.Index(r.Target)}.Build()
+func (r IndicesCloneReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesClonePath{
+		Index:  r.Index,
+		Target: r.Target,
+	}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesCloneResp represents the returned struct of the index clone response

@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Bulk executes a /_bulk request with the needed BulkReq
@@ -20,7 +22,7 @@ func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
 		data BulkResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -36,12 +38,12 @@ type BulkReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r BulkReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(r.Index), Action: "_bulk"}.Build()
+func (r BulkReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.BulkPath{Index: r.Index}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // BulkResp represents the returned struct of the /_bulk response

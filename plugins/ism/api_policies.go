@@ -9,6 +9,7 @@ package ism
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 )
 
 type policiesClient struct {
@@ -25,7 +26,7 @@ func (c policiesClient) Get(ctx context.Context, req *PoliciesGetReq) (PoliciesG
 		data PoliciesGetResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodGet, req, &data); err != nil {
 		return data, err
 	}
 
@@ -38,7 +39,7 @@ func (c policiesClient) Put(ctx context.Context, req PoliciesPutReq) (PoliciesPu
 		data PoliciesPutResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPut, req, &data); err != nil {
 		return data, err
 	}
 
@@ -51,7 +52,7 @@ func (c policiesClient) Delete(ctx context.Context, req PoliciesDeleteReq) (Poli
 		data PoliciesDeleteResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodDelete, req, &data); err != nil {
 		return data, err
 	}
 

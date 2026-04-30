@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DocumentDeleteReq represents possible options for the /<index>/_doc/<DocID> delete request
@@ -22,17 +24,16 @@ type DocumentDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DocumentDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.DocumentPath{
-		Index:      opensearch.Index(r.Index),
-		Action:     "_doc",
-		DocumentID: opensearch.DocumentID(r.DocumentID),
+func (r DocumentDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.DeletePath{
+		ID:    r.DocumentID,
+		Index: r.Index,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // DocumentDeleteResp represents the returned struct of the /<index>/_doc/<DocID> response

@@ -43,10 +43,10 @@ func NewClient(config Config) (*Client, error) {
 	return clientInit(rootClient), nil
 }
 
-// do calls [opensearch.Do] and checks the response for response errors.
+// do calls [opensearch.Do] and checks the response for errors.
 // The generic *T parameter enforces that dataPointer is a pointer at compile time.
-func do[T any](ctx context.Context, c *Client, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, req, dataPointer)
+func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}

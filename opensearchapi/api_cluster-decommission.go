@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ClusterPutDecommissionReq represents possible options for the /_cluster/decommission/awareness request
@@ -22,13 +24,16 @@ type ClusterPutDecommissionReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ClusterPutDecommissionReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.DecommissionPath{Attr: opensearch.Attr(r.AwarenessAttrName), Value: opensearch.Value(r.AwarenessAttrValue)}.Build()
+func (r ClusterPutDecommissionReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ClusterPutDecommissionAwarenessPath{
+		AwarenessAttributeName:  r.AwarenessAttrName,
+		AwarenessAttributeValue: r.AwarenessAttrValue,
+	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPut, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ClusterPutDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response
@@ -49,9 +54,9 @@ type ClusterDeleteDecommissionReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ClusterDeleteDecommissionReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		http.MethodDelete,
+func (r ClusterDeleteDecommissionReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_cluster/decommission/awareness",
 		nil,
 		r.Params.get(),
@@ -79,13 +84,13 @@ type ClusterGetDecommissionReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ClusterGetDecommissionReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.DecommissionPath{Attr: opensearch.Attr(r.AwarenessAttrName), Value: "_status"}.Build()
+func (r ClusterGetDecommissionReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ClusterGetDecommissionAwarenessPath{AwarenessAttributeName: r.AwarenessAttrName}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ClusterGetDecommissionResp represents the returned struct of the /_cluster/decommission/awareness response

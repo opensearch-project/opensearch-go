@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RolesGetReq represents possible options for the roles get request
@@ -20,14 +22,20 @@ type RolesGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RolesGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/roles", Suffix: opensearch.Suffix(r.Role)}.Build()
+func (r RolesGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Role == "" {
+		path, err = ospath.SecurityGetRolesPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetRolePath{Role: r.Role}.Build()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodGet,
+	return build.Request(
+		method,
 		path,
 		nil,
 		make(map[string]string),

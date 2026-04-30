@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SnapshotRepositoryVerifyReq represents possible options for the index create request
@@ -21,13 +23,13 @@ type SnapshotRepositoryVerifyReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SnapshotRepositoryVerifyReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourceActionPath{Prefix: "_snapshot", Name: opensearch.Name(r.Repo), Action: "_verify"}.Build()
+func (r SnapshotRepositoryVerifyReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SnapshotVerifyRepositoryPath{Repository: r.Repo}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotRepositoryVerifyResp represents the returned struct of the index create response

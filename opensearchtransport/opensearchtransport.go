@@ -1631,14 +1631,26 @@ func (c *Client) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 
-	if u.Path != "" && u.Path != "/" {
-		// Only prepend the base path if it's not empty or just "/"
-		// This prevents double slashes like "//" when base URL has trailing slash
-		var b strings.Builder
-		b.Grow(len(u.Path) + len(req.URL.Path))
-		b.WriteString(strings.TrimRight(u.Path, "/")) // Remove trailing slash from base
-		b.WriteString(req.URL.Path)
-		req.URL.Path = b.String()
+	// Scan backwards to find the effective base path length, excluding
+	// trailing slashes. This avoids the closure allocation that
+	// strings.TrimRight incurs via makeCutsetFunc.
+	baseLen := len(u.Path)
+	for baseLen > 0 && u.Path[baseLen-1] == '/' {
+		baseLen--
+	}
+	if baseLen == 0 {
+		return
+	}
+
+	// u.Path[:baseLen] is a substring slice (no allocation). The + operator
+	// compiles to concatstring2 which pre-sizes the result exactly.
+	base := u.Path[:baseLen]
+	req.URL.Path = base + req.URL.Path
+
+	// Preserve percent-encoded path segments (e.g. %2F in document IDs)
+	// so EscapedPath() honors RawPath instead of re-encoding from Path.
+	if req.URL.RawPath != "" {
+		req.URL.RawPath = base + req.URL.RawPath
 	}
 }
 

@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Update executes a /_update request with the optional UpdateReq
@@ -20,7 +22,7 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 		data UpdateResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -39,17 +41,16 @@ type UpdateReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r UpdateReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.DocumentPath{
-		Index:      opensearch.Index(r.Index),
-		Action:     "_update",
-		DocumentID: opensearch.DocumentID(r.DocumentID),
+func (r UpdateReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.UpdatePath{
+		ID:    r.DocumentID,
+		Index: r.Index,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // UpdateResp represents the returned struct of the /_update response

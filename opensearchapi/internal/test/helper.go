@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -50,9 +50,9 @@ func CreateFailingClient(t *testing.T) (*opensearchapi.Client, error) {
 // VerifyInspect validates the returned opensearchapi.Inspect type
 func VerifyInspect(t *testing.T, inspect opensearchapi.Inspect) {
 	t.Helper()
-	assert.NotEmpty(t, inspect)
-	assert.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
-	assert.NotEmpty(t, inspect.Response.Body)
+	require.NotNil(t, inspect.Response, "Inspect().Response must not be nil")
+	require.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
+	require.NotEmpty(t, inspect.Response.Body)
 }
 
 // DummyInspect is a struct to match the Response interface that is used for testing

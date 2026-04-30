@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // CatIndicesReq represent possible options for the /_cat/indices request
@@ -21,12 +22,12 @@ type CatIndicesReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r CatIndicesReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_cat/indices", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+func (r CatIndicesReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.CatIndicesPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // CatIndicesResp represents the returned struct of the /_cat/indices response

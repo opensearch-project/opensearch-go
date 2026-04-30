@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesRolloverReq represents possible options for the index shrink request
@@ -25,12 +27,15 @@ type IndicesRolloverReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesRolloverReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.RolloverPath{Alias: opensearch.Alias(r.Alias), Index: opensearch.Index(r.Index)}.Build()
+func (r IndicesRolloverReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesRolloverPath{
+		Alias:    r.Alias,
+		NewIndex: r.Index,
+	}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndicesRolloverResp represents the returned struct of the index shrink response

@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TenantsDeleteReq represents possible options for the tenants delete request
@@ -20,13 +22,13 @@ type TenantsDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TenantsDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "tenants", Name: opensearch.Name(r.Tenant)}.Build()
+func (r TenantsDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SecurityDeleteTenantPath{Tenant: r.Tenant}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // TenantsDeleteResp represents the returned struct of the tenants delete response

@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SnapshotStatusReq represents possible options for the index create request
@@ -23,17 +24,16 @@ type SnapshotStatusReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SnapshotStatusReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.SnapshotActionPath{
-		Repo:     opensearch.Repo(r.Repo),
-		Snapshot: opensearch.Snapshot(strings.Join(r.Snapshots, ",")),
-		Action:   "_status",
+func (r SnapshotStatusReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SnapshotStatusPath{
+		Repository: r.Repo,
+		Snapshot:   r.Snapshots,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotStatusResp represents the returned struct of the index create response

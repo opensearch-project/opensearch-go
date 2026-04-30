@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RolesMappingDeleteReq represents possible options for the roles delete request
@@ -20,13 +22,13 @@ type RolesMappingDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RolesMappingDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "rolesmapping", Name: opensearch.Name(r.Role)}.Build()
+func (r RolesMappingDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SecurityDeleteRoleMappingPath{Role: r.Role}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, make(map[string]string), r.Header)
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // RolesMappingDeleteResp represents the returned struct of the roles delete response

@@ -9,9 +9,10 @@ package ism
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RefreshSearchAnalyzers executes a request to refresh search analyzers with the required RefreshSearchAnalyzersReq
@@ -20,7 +21,7 @@ func (c Client) RefreshSearchAnalyzers(ctx context.Context, req RefreshSearchAna
 		data RefreshSearchAnalyzersResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return data, err
 	}
 
@@ -36,16 +37,13 @@ type RefreshSearchAnalyzersReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RefreshSearchAnalyzersReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{
-		Action: "_plugins/_refresh_search_analyzers",
-		Suffix: opensearch.Suffix(strings.Join(r.Indices, ",")),
-	}.Build()
+func (r RefreshSearchAnalyzersReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IsmRefreshSearchAnalyzersPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // RefreshSearchAnalyzersResp represents the returned struct of the refreshed search analyzers response

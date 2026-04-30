@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // CatSnapshotsReq represent possible options for the /_cat/snapshots request
@@ -20,13 +22,17 @@ type CatSnapshotsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r CatSnapshotsReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourceActionPath{Prefix: "_cat", Name: "snapshots", Action: opensearch.Action(r.Repository)}.Build()
+func (r CatSnapshotsReq) GetRequest(method string) (*http.Request, error) {
+	var repo []string
+	if r.Repository != "" {
+		repo = []string{r.Repository}
+	}
+	path, err := ospath.CatSnapshotsPath{Repository: repo}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // CatSnapshotsResp represents the returned struct of the /_cat/snapshots response

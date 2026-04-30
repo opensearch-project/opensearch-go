@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RolesPutReq represents possible options for the roles put request
@@ -23,18 +25,18 @@ type RolesPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RolesPutReq) GetRequest() (*http.Request, error) {
+func (r RolesPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "roles", Name: opensearch.Name(r.Role)}.Build()
+	path, err := ospath.SecurityCreateRolePath{Role: r.Role}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // RolesPutBody represents the request body for RolesPutReq

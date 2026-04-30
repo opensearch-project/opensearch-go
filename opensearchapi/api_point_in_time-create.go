@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // PointInTimeCreateReq represents possible options for the index create request
@@ -22,12 +23,12 @@ type PointInTimeCreateReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r PointInTimeCreateReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_search/point_in_time"}.Build()
+func (r PointInTimeCreateReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.CreatePitPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // PointInTimeCreateResp represents the returned struct of the index create response

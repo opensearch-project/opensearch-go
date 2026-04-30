@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DataStreamDeleteReq represents possible options for the index _data_stream delete request
@@ -21,13 +23,13 @@ type DataStreamDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DataStreamDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_data_stream", Name: opensearch.Name(r.DataStream)}.Build()
+func (r DataStreamDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesDeleteDataStreamPath{Name: []string{r.DataStream}}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // DataStreamDeleteResp represents the returned struct of the _data_stream delete response

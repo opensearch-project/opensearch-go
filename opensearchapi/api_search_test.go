@@ -11,6 +11,7 @@ package opensearchapi_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -141,13 +142,13 @@ func TestSearch(t *testing.T) {
 	t.Run("url path", func(t *testing.T) {
 		t.Parallel()
 		req := &opensearchapi.SearchReq{}
-		httpReq, err := req.GetRequest()
+		httpReq, err := req.GetRequest(http.MethodPost)
 		require.NoError(t, err)
 		require.NotNil(t, httpReq)
 		assert.Equal(t, "/_search", httpReq.URL.Path)
 
 		req = &opensearchapi.SearchReq{Indices: []string{index}}
-		httpReq, err = req.GetRequest()
+		httpReq, err = req.GetRequest(http.MethodPost)
 		require.NoError(t, err)
 		require.NotNil(t, httpReq)
 		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)

@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SnapshotRepositoryCleanupReq represents possible options for the index create request
@@ -21,13 +23,13 @@ type SnapshotRepositoryCleanupReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SnapshotRepositoryCleanupReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourceActionPath{Prefix: "_snapshot", Name: opensearch.Name(r.Repo), Action: "_cleanup"}.Build()
+func (r SnapshotRepositoryCleanupReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SnapshotCleanupRepositoryPath{Repository: r.Repo}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotRepositoryCleanupResp represents the returned struct of the index create response

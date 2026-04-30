@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SnapshotDeleteReq represents possible options for the index create request
@@ -23,16 +24,16 @@ type SnapshotDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SnapshotDeleteReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.SnapshotPath{
-		Repo:     opensearch.Repo(r.Repo),
-		Snapshot: opensearch.Snapshot(strings.Join(r.Snapshots, ",")),
+func (r SnapshotDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SnapshotDeletePath{
+		Repository: r.Repo,
+		Snapshot:   r.Snapshots,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodDelete, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // SnapshotDeleteResp represents the returned struct of the index create response

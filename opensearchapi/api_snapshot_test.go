@@ -305,7 +305,7 @@ func TestSnapshotClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Snapshot.Repository.Delete(t.Context(), opensearchapi.SnapshotRepositoryDeleteReq{})
+						return failingClient.Snapshot.Repository.Delete(t.Context(), opensearchapi.SnapshotRepositoryDeleteReq{Repos: []string{testRepo}})
 					},
 				},
 			},

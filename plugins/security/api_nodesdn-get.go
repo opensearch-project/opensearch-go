@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesDNGetReq represents possible options for the nodes dn get request
@@ -19,14 +21,20 @@ type NodesDNGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesDNGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/nodesdn", Suffix: opensearch.Suffix(r.Cluster)}.Build()
+func (r NodesDNGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Cluster == "" {
+		path, err = ospath.SecurityGetDistinguishedNamesPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetDistinguishedNamePath{ClusterName: r.Cluster}.Build()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodGet,
+	return build.Request(
+		method,
 		path,
 		nil,
 		make(map[string]string),

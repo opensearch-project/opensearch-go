@@ -11,6 +11,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TasksGetReq represents possible options for the index create request
@@ -22,13 +24,13 @@ type TasksGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TasksGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_tasks", Name: opensearch.Name(r.TaskID)}.Build()
+func (r TasksGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.TasksGetPath{TaskID: r.TaskID}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // TasksGetResp represents the returned struct of the index create response

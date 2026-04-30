@@ -8,6 +8,7 @@ package security
 
 import (
 	"context"
+	"net/http"
 )
 
 type internalusersClient struct {
@@ -24,7 +25,7 @@ func (c internalusersClient) Get(ctx context.Context, req *InternalUsersGetReq) 
 		data InternalUsersGetResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data.Users); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodGet, req, &data.Users); err != nil {
 		return data, err
 	}
 
@@ -37,7 +38,7 @@ func (c internalusersClient) Put(ctx context.Context, req InternalUsersPutReq) (
 		data InternalUsersPutResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPut, req, &data); err != nil {
 		return data, err
 	}
 
@@ -50,7 +51,7 @@ func (c internalusersClient) Delete(ctx context.Context, req InternalUsersDelete
 		data InternalUsersDeleteResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodDelete, req, &data); err != nil {
 		return data, err
 	}
 
@@ -63,7 +64,7 @@ func (c internalusersClient) Patch(ctx context.Context, req InternalUsersPatchRe
 		data InternalUsersPatchResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPatch, req, &data); err != nil {
 		return data, err
 	}
 

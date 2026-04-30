@@ -9,7 +9,8 @@ package opensearchapi
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DocumentExistsSourceReq represents possible options for the _source exists request
@@ -22,15 +23,14 @@ type DocumentExistsSourceReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DocumentExistsSourceReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.DocumentPath{
-		Index:      opensearch.Index(r.Index),
-		Action:     "_source",
-		DocumentID: opensearch.DocumentID(r.DocumentID),
+func (r DocumentExistsSourceReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ExistsSourcePath{
+		ID:    r.DocumentID,
+		Index: r.Index,
 	}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodHead, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }

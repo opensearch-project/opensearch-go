@@ -88,7 +88,9 @@ func TestPointInTimeClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.PointInTime.Create(t.Context(), opensearchapi.PointInTimeCreateReq{})
+						return failingClient.PointInTime.Create(t.Context(), opensearchapi.PointInTimeCreateReq{
+							Indices: []string{index},
+						})
 					},
 				},
 			},

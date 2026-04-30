@@ -340,7 +340,7 @@ func TestCatClient(t *testing.T) {
 			{
 				Name: "with request",
 				Results: func() (osapitest.Response, error) {
-					return client.Cat.Templates(t.Context(), &opensearchapi.CatTemplatesReq{Templates: []string{"*"}})
+					return client.Cat.Templates(t.Context(), &opensearchapi.CatTemplatesReq{Templates: "*"})
 				},
 			},
 			{

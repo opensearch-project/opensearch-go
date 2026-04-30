@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // SSLTransportReloadReq represents possible options for the transport ssl reload request
@@ -18,9 +19,9 @@ type SSLTransportReloadReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SSLTransportReloadReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"PUT",
+func (r SSLTransportReloadReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/api/ssl/transport/reloadcerts",
 		nil,
 		make(map[string]string),

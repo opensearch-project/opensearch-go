@@ -141,6 +141,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- **BREAKING**: `opensearch.Request` interface signature changed from `GetRequest() (*http.Request, error)` to `GetRequest(method string) (*http.Request, error)`. The HTTP method is now caller-provided rather than hardcoded per operation, enabling correct method selection for operations that support multiple HTTP methods (e.g. search supports both GET and POST). This only affects code that implements or calls `GetRequest` directly; standard usage through client methods (e.g. `client.Search(ctx, req)`) is unaffected ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Bump CI and developer guide OpenSearch versions: compatibility matrix to 2.19.5, default integration test version to 3.6.0 ([#810](https://github.com/opensearch-project/opensearch-go/pull/810))
 - Include `_nodes.failures` detail in discovery error messages for diagnosing intermittent CI failures on older OpenSearch versions ([#823](https://github.com/opensearch-project/opensearch-go/pull/823))
 - Test against Opensearch 3.6.0 ([#817](https://github.com/opensearch-project/opensearch-go/pull/817))
@@ -155,6 +156,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Generate unique document IDs in tests for parallel test execution and eliminate known test flakes
 - Reduce integration test timeout from 1h to 10m per package with parallel execution support
 - Refactor transport code for improved maintainability (rename ErrInvalidRole -> InvalidRoleError, add response body cleanup, simplify initialization)
+- **BREAKING**: Change `CatTemplatesReq.Templates` and `IndexTemplateGetReq.IndexTemplates` from `[]string` to `string` to match the OpenSearch API specification, which types these path parameters as scalar name patterns (not comma-separated lists). This breakage will show up at compile time as a type mismatch and is easy to fix. Callers passing a single pattern only need to remove the slice literal (e.g. `[]string{"*"}` becomes `"*"`). Callers that relied on the old behavior of joining multiple patterns can use `strings.Join(patterns, ",")` to produce the comma-separated string themselves.
 - **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
   - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
   - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
@@ -189,6 +191,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix URL path construction across 74 `GetRequest` methods where empty path segments produced a double-slash `//` that `http.NewRequest` misparsed as an RFC 3986 authority separator; replace manual `strings.Builder` paths with typed path builder structs that reject empty required segments ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+- Eliminate per-request `url.Parse` overhead by constructing `*http.Request` directly with a coalesced struct; reduce per-request allocations from 8/2930B to 2/472B for typical operations ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix alias, mapping, settings, and block API URL path construction when Indices is empty, which caused `http.NewRequest` to misparse the double-slash as an authority separator ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))
 - Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)

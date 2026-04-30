@@ -586,6 +586,9 @@ func longestPath(paths []pathVariant) string {
 // ---------------------------------------------------------------------------
 
 // deriveStructName converts an x-operation-group to an unexported Go struct name.
+// Core operations (search, get, index, bulk, etc.) are unnamespaced in the spec,
+// while feature areas use a dotted prefix (indices.create, cat.health, nodes.info).
+// There is no "_core." prefix to strip; the spec simply omits the namespace for core ops.
 func deriveStructName(group string) string {
 	parts := strings.Split(group, ".")
 	var result strings.Builder

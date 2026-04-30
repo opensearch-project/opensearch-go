@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesAnalyzeReq represents possible options for the <indices>/_analyze request
@@ -37,17 +39,17 @@ type IndicesAnalyzeBody struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesAnalyzeReq) GetRequest() (*http.Request, error) {
+func (r IndicesAnalyzeReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(r.Index), Action: "_analyze"}.Build()
+	path, err := ospath.IndicesAnalyzePath{Index: r.Index}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodGet, path, bytes.NewReader(body), r.Params.get(), r.Header)
+	return build.Request(method, path, bytes.NewReader(body), r.Params.get(), r.Header)
 }
 
 // IndicesAnalyzeResp represents the returned struct of the index create response

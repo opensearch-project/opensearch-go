@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // InternalUsersGetReq represents possible options for the internal users get request
@@ -20,14 +22,20 @@ type InternalUsersGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r InternalUsersGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ActionSuffixPath{Action: "_plugins/_security/api/internalusers", Suffix: opensearch.Suffix(r.User)}.Build()
+func (r InternalUsersGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.User == "" {
+		path, err = ospath.SecurityGetUsersPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetUserPath{Username: r.User}.Build()
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodGet,
+	return build.Request(
+		method,
 		path,
 		nil,
 		make(map[string]string),

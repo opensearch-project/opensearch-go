@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ScriptGetReq represents possible options for the get script request
@@ -21,13 +23,13 @@ type ScriptGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ScriptGetReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.ResourcePath{Prefix: "_scripts", Name: opensearch.Name(r.ScriptID)}.Build()
+func (r ScriptGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.GetScriptPath{ID: r.ScriptID}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // ScriptGetResp represents the returned struct of the get script response

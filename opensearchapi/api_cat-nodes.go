@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // CatNodesReq represent possible options for the /_cat/nodes request
@@ -19,9 +20,9 @@ type CatNodesReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r CatNodesReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r CatNodesReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_cat/nodes",
 		nil,
 		r.Params.get(),

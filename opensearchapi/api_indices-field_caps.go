@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesFieldCapsReq represents possible options for the index shrink request
@@ -25,12 +26,12 @@ type IndicesFieldCapsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesFieldCapsReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_field_caps"}.Build()
+func (r IndicesFieldCapsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.FieldCapsPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesFieldCapsResp represents the returned struct of the index shrink response

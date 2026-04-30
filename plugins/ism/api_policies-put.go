@@ -12,6 +12,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // PoliciesPutReq represents possible options for the policies get request
@@ -24,18 +26,18 @@ type PoliciesPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r PoliciesPutReq) GetRequest() (*http.Request, error) {
+func (r PoliciesPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := opensearch.PluginPolicyPath{Plugin: "_ism", Policy: opensearch.Policy(r.Policy)}.Build()
+	path, err := ospath.IsmPutPolicyPath{PolicyID: r.Policy}.Build()
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), r.Params.get(), r.Header)
+	return build.Request(method, path, bytes.NewReader(body), r.Params.get(), r.Header)
 }
 
 // PoliciesPutResp represents the returned struct of the policies get response

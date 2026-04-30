@@ -13,6 +13,8 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Termvectors executes a /_termvectors request with the required TermvectorsReq
@@ -21,7 +23,7 @@ func (c Client) Termvectors(ctx context.Context, req TermvectorsReq) (*Termvecto
 		data TermvectorsResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -40,12 +42,15 @@ type TermvectorsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TermvectorsReq) GetRequest() (*http.Request, error) {
-	path, err := opensearch.TermvectorsPath{Index: opensearch.Index(r.Index), DocumentID: opensearch.DocumentID(r.DocumentID)}.Build()
+func (r TermvectorsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.TermvectorsPath{
+		ID:    r.DocumentID,
+		Index: r.Index,
+	}.Build()
 	if err != nil {
 		return nil, err
 	}
-	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // TermvectorsResp represents the returned struct of the /_termvectors response

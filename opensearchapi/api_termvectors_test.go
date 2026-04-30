@@ -108,7 +108,7 @@ func TestTermvectors(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Termvectors(t.Context(), opensearchapi.TermvectorsReq{})
+		res, err := failingClient.Termvectors(t.Context(), opensearchapi.TermvectorsReq{Index: testIndex})
 		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
