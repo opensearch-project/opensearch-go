@@ -109,7 +109,22 @@ gen-coverage:  ## Generate test coverage report
 build-coverage:
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
+OPENAPI_SPEC := opensearch-openapi.yaml
+OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specification/releases/latest/download/opensearch-openapi.yaml
+
 ##@ Development
+fetch-opensearch-spec:  ## Download the OpenSearch OpenAPI spec (skips if cached)
+	@if [ ! -f "$(OPENAPI_SPEC)" ]; then \
+		printf "\033[2m-> Downloading OpenSearch OpenAPI spec...\033[0m\n"; \
+		curl -sSfL "$(OPENAPI_SPEC_URL)" -o "$(OPENAPI_SPEC)"; \
+	else \
+		printf "\033[2m-> OpenAPI spec already cached at $(OPENAPI_SPEC)\033[0m\n"; \
+	fi
+
+gen: fetch-opensearch-spec  ## Regenerate path builders from OpenAPI spec
+	@printf "\033[2m-> Regenerating path builders...\033[0m\n"
+	cd cmd/osgen && go run . -spec ../../$(OPENAPI_SPEC) -pkg path -o ../../internal/path/builders_gen.go -test-out ../../internal/path/builders_gen_test.go
+
 lint:  ## Run lint on the package
 	@$(MAKE) linters
 

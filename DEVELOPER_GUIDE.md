@@ -382,6 +382,25 @@ make gh.checks            # All checks on the current branch
 make gh.checks.failed     # Only failed checks
 ```
 
+## Path Builder Code Generation
+
+The `internal/path` package contains generated typed path builder structs for every OpenSearch API operation, produced from the published [OpenSearch OpenAPI specification](https://github.com/opensearch-project/opensearch-api-specification).
+
+To regenerate (downloads the spec automatically if not cached):
+
+```
+make gen
+```
+
+To force a fresh spec download, remove the cached file first:
+
+```
+rm -f opensearch-openapi.yaml
+make gen
+```
+
+If new path types appear, create corresponding consumer files in `opensearchapi/` or `plugins/`. See `cmd/osgen/README.md` for detailed generator usage.
+
 ## Lint
 
 To keep all the code in a certain uniform format, it was decided to use some writing rules. If you wrote something wrong, it's okay, you can simply run the script to check the necessary files, and optionally format the content. But keep in mind that all these checks are repeated on the pipeline, so it's better to check locally.
