@@ -29,7 +29,8 @@ type multiServerPool struct {
 	// resurrection, RTT probes). Derived from Client.ctx during pool construction
 	// so that Client.Close() cancels all background goroutines.
 	//nolint:containedctx // Long-lived context required for background worker lifecycle
-	ctx context.Context
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	mu struct {
 		sync.RWMutex
