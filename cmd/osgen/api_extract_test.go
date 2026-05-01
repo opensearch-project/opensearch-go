@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"os"
 	"testing"
 
@@ -69,8 +70,7 @@ func TestBuildAPIOperation_Metadata(t *testing.T) {
 	op := ops[0]
 	require.Equal(t, "ClusterHealth", op.TypePrefix)
 	require.Equal(t, "ClusterHealthPath", op.PathBuilderName)
-	require.Equal(t, "http.MethodGet", op.HTTPMethod)
-	require.Equal(t, "GET", op.HTTPVerb)
+	require.Equal(t, []string{http.MethodGet}, op.HTTPMethods)
 	require.Contains(t, op.PrimaryPath, "/_cluster/health")
 	require.Equal(t, "Returns cluster health.", op.Description)
 	require.Equal(t, "1.0", op.VersionAdded)
@@ -88,8 +88,7 @@ func TestBuildAPIOperation_WithBody(t *testing.T) {
 
 	op := ops[0]
 	require.Equal(t, "IndicesRefresh", op.TypePrefix)
-	require.Equal(t, "http.MethodPost", op.HTTPMethod)
-	require.Equal(t, "POST", op.HTTPVerb)
+	require.Equal(t, []string{http.MethodPost}, op.HTTPMethods)
 }
 
 func TestBuildAPIOperation_Deprecated(t *testing.T) {

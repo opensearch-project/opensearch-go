@@ -40,7 +40,7 @@ type builderField struct {
 type opKind uint8
 
 const (
-	opLit        opKind = iota
+	opLit opKind = iota
 	opField
 	opList
 	opIfList
@@ -217,6 +217,7 @@ type pathTrie struct {
 	wilds      []*wildChild
 	terminal   bool
 	deprecated bool
+	methods    map[string]struct{} // HTTP methods at this terminal (nil for non-terminals)
 }
 
 type wildChild struct {
@@ -224,7 +225,7 @@ type wildChild struct {
 	node  *pathTrie
 }
 
-func (t *pathTrie) insert(segments []string, deprecated bool) {
+func (t *pathTrie) insert(segments []string, deprecated bool, methods map[string]struct{}) {
 	node := t
 	for _, seg := range segments {
 		if m := pathParamRE.FindStringSubmatch(seg); m != nil {
@@ -260,6 +261,12 @@ func (t *pathTrie) insert(segments []string, deprecated bool) {
 		node = child
 	}
 	node.terminal = true
+	if node.methods == nil {
+		node.methods = make(map[string]struct{}, len(methods))
+	}
+	for m := range methods {
+		node.methods[m] = struct{}{}
+	}
 }
 
 func buildOps(paths []pathVariant, fields []builderField) []emitOp {
@@ -271,7 +278,7 @@ func buildOps(paths []pathVariant, fields []builderField) []emitOp {
 	root := &pathTrie{}
 	for _, pv := range paths {
 		segments := splitPath(pv.path)
-		root.insert(segments, pv.deprecated)
+		root.insert(segments, pv.deprecated, pv.methods)
 	}
 
 	var ops []emitOp
@@ -287,7 +294,6 @@ const (
 )
 
 var segmentAlias = map[string]string{
-	"_aliases":   "_alias",
 	"hotthreads": "hot_threads",
 }
 
@@ -324,6 +330,19 @@ func preferredLiteral(children map[string]*pathTrie) (string, *pathTrie) {
 func emitTrie(node *pathTrie, fields map[string]builderField, ops *[]emitOp) {
 	if len(node.children) == 1 && len(node.wilds) == 0 {
 		for seg, child := range node.children {
+			// If the literal's subtree only leads to terminals through wild
+			// params (no terminal reachable via literals alone), guard the
+			// literal on the first wild param it leads to. Otherwise the
+			// literal is always emitted even when all fields are empty.
+			if !terminalViaLiterals(child) && !terminalViaRequired(child, fields) {
+				if guardField, ok := firstWildField(child, fields); ok && !guardField.Required {
+					emitGuardOpen(guardField, ops, "if")
+					*ops = append(*ops, emitOp{Kind: opLit, Value: seg})
+					emitTrie(child, fields, ops)
+					*ops = append(*ops, emitOp{Kind: opEnd})
+					return
+				}
+			}
 			*ops = append(*ops, emitOp{Kind: opLit, Value: seg})
 			emitTrie(child, fields, ops)
 		}
@@ -428,6 +447,64 @@ func literalsSubsumed(currentLiterals map[string]*pathTrie, wildChildNode *pathT
 		}
 	}
 	return true
+}
+
+// terminalViaLiterals returns true if node (or a descendant reachable only
+// through literal children) is terminal. In other words, there exists a valid
+// path that ends at or below this node without needing any wild parameters.
+func terminalViaLiterals(node *pathTrie) bool {
+	if node.terminal {
+		return true
+	}
+	for _, child := range node.children {
+		if terminalViaLiterals(child) {
+			return true
+		}
+	}
+	return false
+}
+
+// terminalViaRequired reports whether a terminal is reachable from node
+// by traversing literals and required wild parameters (but not optional
+// ones). This prevents wrapping shared literal prefixes inside an
+// optional-field guard when the subtree has a valid path that doesn't
+// depend on the optional field.
+func terminalViaRequired(node *pathTrie, fields map[string]builderField) bool {
+	if node.terminal {
+		return true
+	}
+	for _, child := range node.children {
+		if terminalViaRequired(child, fields) {
+			return true
+		}
+	}
+	for _, wc := range node.wilds {
+		if f, ok := fields[wc.param]; ok && f.Required {
+			if terminalViaRequired(wc.node, fields) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// firstWildField finds the first wild parameter reachable from node by
+// traversing only literal children and single wilds. Returns the corresponding
+// builderField for use as a guard condition.
+func firstWildField(node *pathTrie, fields map[string]builderField) (builderField, bool) {
+	for {
+		if len(node.wilds) > 0 {
+			f, ok := fields[node.wilds[0].param]
+			return f, ok
+		}
+		if len(node.children) == 1 {
+			for _, child := range node.children {
+				node = child
+			}
+			continue
+		}
+		return builderField{}, false
+	}
 }
 
 func emitField(f builderField, ops *[]emitOp) {

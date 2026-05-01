@@ -6,6 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling. Includes `opensearch.NoBody` marker type for calls that expect no response body, unifying all internal dispatch through a single generic path ([#809](https://github.com/opensearch-project/opensearch-go/pull/809))
 - Add dynamic read cost scoring: primary shard cost scales with write-pool utilization via `connScoreFunc`, preferring primaries at idle and shedding reads to replicas under write load
@@ -20,12 +21,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `Status` field (`json.RawMessage`) to `TasksGetResp`, `TasksListTask`, and `TaskCancelInfo` for polymorphic task status data; add typed status structs matching the OpenSearch API specification: `BulkByScrollTaskStatus`, `ReplicationTaskStatus`, `ResyncTaskStatus`, `PersistentTaskStatus`; add `Parse*` helpers and `BulkByScrollTaskStatusOrException` for sliced task status ([#788](https://github.com/opensearch-project/opensearch-go/issues/788))
 - Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
 - opensearchapi/testutil package with test suite, client helpers, and JSON comparison utilities
-- Add typed path segment types and struct-per-shape path builders for compile-time URL construction safety ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
-  - Domain types: `Index`, `Indices`, `Action`, `DocumentID`, `Alias`, `Repo`, `Snapshot`, `NodeID`, `Plugin`, `Policy`, `Block`, `Prefix`, `Suffix`, `Name`, `Resource`, `Attr`, `Value`, `Metric`, `IndexMetric`, `Metrics`, `NodeFilter`
-  - 25 path builder structs: `IndexPath`, `DocumentPath`, `IndicesActionPath`, `AliasPath`, `SnapshotPath`, `NodesPath`, `PluginResourcePath`, `PrefixActionPath`, `ActionSuffixPath`, etc.
+- Add typed path builders in `internal/path/` generated from the OpenAPI spec via `cmd/osgen` for compile-time URL construction safety ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
   - `sync.Pool`-backed `[]byte` buffers eliminate per-request allocation churn; buffers over 4 KiB are discarded to bound pool growth
-  - `ToIndices([]string)` helper
-  - Published API types in `opensearchapi/` and `plugins/` remain `string`/`[]string`; casts to domain types happen internally in `GetRequest()` methods
 - opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
 - Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))

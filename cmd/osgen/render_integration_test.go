@@ -10,6 +10,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -108,17 +109,16 @@ func TestRenderAPIFile(t *testing.T) {
 		Group:           "cluster.health",
 		TypePrefix:      "ClusterHealth",
 		PathBuilderName: "ClusterHealthPath",
-		HTTPMethod:      "http.MethodGet",
-		HTTPVerb:        "GET",
+		HTTPMethods:     []string{http.MethodGet},
 		PrimaryPath:     "/_cluster/health",
 		Description:     "Returns basic cluster health info.",
 		VersionAdded:    "1.0",
 		HasBody:         false,
 	}
 
-	src, err := renderAPIFile(op, "opensearchapi")
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
 	require.NoError(t, err)
-	require.Contains(t, src, "package opensearchapi")
+	require.Contains(t, src, "package osapi")
 	require.Contains(t, src, "ClusterHealthReq")
 	require.Contains(t, src, "ClusterHealthResp")
 	require.Contains(t, src, "GET /_cluster/health")
@@ -133,8 +133,7 @@ func TestRenderAPIFile_WithBody(t *testing.T) {
 		Group:           "search",
 		TypePrefix:      "Search",
 		PathBuilderName: "SearchPath",
-		HTTPMethod:      "http.MethodPost",
-		HTTPVerb:        "POST",
+		HTTPMethods:     []string{http.MethodGet, http.MethodPost},
 		PrimaryPath:     "/_search",
 		HasBody:         true,
 		PathFields: []apiPathField{
@@ -142,7 +141,7 @@ func TestRenderAPIFile_WithBody(t *testing.T) {
 		},
 	}
 
-	src, err := renderAPIFile(op, "opensearchapi")
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
 	require.NoError(t, err)
 	require.Contains(t, src, "io.Reader")
 	require.Contains(t, src, "Body")
@@ -156,8 +155,7 @@ func TestRenderAPIFile_Deprecated(t *testing.T) {
 		Group:             "old.endpoint",
 		TypePrefix:        "OldEndpoint",
 		PathBuilderName:   "OldEndpointPath",
-		HTTPMethod:        "http.MethodGet",
-		HTTPVerb:          "GET",
+		HTTPMethods:       []string{http.MethodGet},
 		PrimaryPath:       "/_old",
 		VersionAdded:      "1.0",
 		VersionDeprecated: "2.0",
@@ -165,22 +163,26 @@ func TestRenderAPIFile_Deprecated(t *testing.T) {
 		DeprecationMsg:    "Use new_endpoint instead.",
 	}
 
-	src, err := renderAPIFile(op, "opensearchapi")
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
 	require.NoError(t, err)
-	require.Contains(t, src, "Availability:")
-	require.Contains(t, src, ">= 1.0.0")
-	require.Contains(t, src, "<= 2.0.0")
-	require.Contains(t, src, "Use new_endpoint instead.")
+	require.Contains(t, src, "Deprecated: since 2.0.0.")
+	require.Contains(t, src, "Available >= 1.0.0")
+	require.Contains(t, src, "new_endpoint")
 	assertValidGo(t, src)
 }
 
-func TestRenderParamsFile(t *testing.T) {
+func TestRenderAPIFile_Params(t *testing.T) {
 	t.Parallel()
 
 	op := apiOperation{
-		Group:        "search",
-		TypePrefix:   "Search",
-		VersionAdded: "1.0",
+		Group:           "search",
+		TypePrefix:      "Search",
+		PathBuilderName: "SearchPath",
+		HTTPMethods:     []string{http.MethodGet, http.MethodPost},
+		PrimaryPath:     "/_search",
+		VersionAdded:    "1.0",
+		HasBody:         true,
+		PathFields:      []apiPathField{{GoName: "Index", IsList: true}},
 		QueryParams: []apiQueryParam{
 			{GoName: "Size", ParamName: "size", GoType: "int", IsInt: true},
 			{GoName: "Timeout", ParamName: "timeout", GoType: "time.Duration", IsDuration: true},
@@ -190,9 +192,9 @@ func TestRenderParamsFile(t *testing.T) {
 		},
 	}
 
-	src, err := renderParamsFile(op, "opensearchapi")
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
 	require.NoError(t, err)
-	require.Contains(t, src, "package opensearchapi")
+	require.Contains(t, src, "package osapi")
 	require.Contains(t, src, "SearchParams")
 	require.Contains(t, src, "Available: >= 1.0.0")
 	require.Contains(t, src, `"strconv"`)
@@ -203,12 +205,15 @@ func TestRenderParamsFile(t *testing.T) {
 	assertValidGo(t, src)
 }
 
-func TestRenderParamsFile_Deprecated(t *testing.T) {
+func TestRenderAPIFile_ParamsDeprecated(t *testing.T) {
 	t.Parallel()
 
 	op := apiOperation{
 		Group:             "old",
 		TypePrefix:        "Old",
+		PathBuilderName:   "OldPath",
+		HTTPMethods:       []string{http.MethodGet},
+		PrimaryPath:       "/_old",
 		VersionAdded:      "1.0",
 		VersionDeprecated: "3.0",
 		Deprecated:        true,
@@ -216,21 +221,122 @@ func TestRenderParamsFile_Deprecated(t *testing.T) {
 		QueryParams:       []apiQueryParam{},
 	}
 
-	src, err := renderParamsFile(op, "opensearchapi")
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
 	require.NoError(t, err)
-	require.Contains(t, src, "Availability:")
-	require.Contains(t, src, ">= 1.0.0")
-	require.Contains(t, src, "<= 3.0.0")
+	require.Contains(t, src, "Deprecated: since 3.0.0.")
+	require.Contains(t, src, "Available >= 1.0.0")
+	require.Contains(t, src, "Removed.")
 	assertValidGo(t, src)
 }
 
 func TestRenderCompatFile(t *testing.T) {
 	t.Parallel()
 
-	src, err := renderCompatFile("knn")
+	src, err := renderCompatFile("knn", false)
 	require.NoError(t, err)
 	require.Contains(t, src, "package knn")
 	require.Contains(t, src, "Inspect")
+	assertValidGo(t, src)
+}
+
+func TestRenderAPIFile_TypedResponse(t *testing.T) {
+	t.Parallel()
+
+	op := apiOperation{
+		Group:           "cluster.health",
+		TypePrefix:      "ClusterHealth",
+		PathBuilderName: "ClusterHealthPath",
+		HTTPMethods:     []string{http.MethodGet},
+		PrimaryPath:     "/_cluster/health",
+		VersionAdded:    "1.0",
+		HasBody:         false,
+		RespFields: []goField{
+			{GoName: "ClusterName", JSONName: "cluster_name", GoType: "string"},
+			{GoName: "Status", JSONName: "status", GoType: "string"},
+			{GoName: "TimedOut", JSONName: "timed_out", GoType: "*bool", IsPointer: true, OmitEmpty: true},
+			{GoName: "NumberOfNodes", JSONName: "number_of_nodes", GoType: "*int", IsPointer: true, OmitEmpty: true},
+		},
+		SiblingTypes: []*goType{
+			{
+				Name:    "ClusterHealthIndexStats",
+				Comment: "Per-index health statistics.",
+				Fields: []goField{
+					{GoName: "Status", JSONName: "status", GoType: "string"},
+					{GoName: "NumberOfShards", JSONName: "number_of_shards", GoType: "int"},
+				},
+			},
+		},
+	}
+
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
+	require.NoError(t, err)
+	require.Contains(t, src, "ClusterHealthResp")
+	require.Contains(t, src, "ClusterName")
+	require.Contains(t, src, `json:"cluster_name"`)
+	require.Contains(t, src, "TimedOut")
+	require.Contains(t, src, "*bool")
+	require.Contains(t, src, `json:"timed_out,omitempty"`)
+	require.Contains(t, src, "ClusterHealthIndexStats")
+	require.Contains(t, src, "NumberOfShards")
+	require.Contains(t, src, "response")
+	require.Contains(t, src, "*opensearch.Response")
+	require.Contains(t, src, "Inspect()")
+	assertValidGo(t, src)
+}
+
+func TestRenderAPIFile_JSONRawMessage(t *testing.T) {
+	t.Parallel()
+
+	op := apiOperation{
+		Group:           "search",
+		TypePrefix:      "Search",
+		PathBuilderName: "SearchPath",
+		HTTPMethods:     []string{http.MethodGet, http.MethodPost},
+		PrimaryPath:     "/_search",
+		HasBody:         true,
+		RespFields: []goField{
+			{GoName: "Hits", JSONName: "hits", GoType: "json.RawMessage"},
+		},
+	}
+
+	src, err := renderAPIFile(op, "osapi", newTypeRegistry("osapi"))
+	require.NoError(t, err)
+	require.Contains(t, src, `"encoding/json"`)
+	require.Contains(t, src, "json.RawMessage")
+	assertValidGo(t, src)
+}
+
+func TestRenderSharedTypesFile(t *testing.T) {
+	t.Parallel()
+
+	types := []*goType{
+		{
+			Name:    "ShardStatistics",
+			Comment: "Shard-level statistics.",
+			Fields: []goField{
+				{GoName: "Total", JSONName: "total", GoType: "int"},
+				{GoName: "Successful", JSONName: "successful", GoType: "int"},
+				{GoName: "Failed", JSONName: "failed", GoType: "int"},
+				{GoName: "Failures", JSONName: "failures", GoType: "[]ShardFailure", OmitEmpty: true},
+			},
+		},
+		{
+			Name: "ErrorCause",
+			Fields: []goField{
+				{GoName: "Type", JSONName: "type", GoType: "string"},
+				{GoName: "Reason", JSONName: "reason", GoType: "string"},
+				{GoName: "CausedBy", JSONName: "caused_by", GoType: "*ErrorCause", IsPointer: true, OmitEmpty: true},
+			},
+		},
+	}
+
+	src, err := renderSharedTypesFile(types, "osapi")
+	require.NoError(t, err)
+	require.Contains(t, src, "package osapi")
+	require.Contains(t, src, "ShardStatistics")
+	require.Contains(t, src, "ErrorCause")
+	require.Contains(t, src, `json:"total"`)
+	require.Contains(t, src, `json:"caused_by,omitempty"`)
 	assertValidGo(t, src)
 }
 

@@ -28,35 +28,35 @@ import (
 func Test{{.StructName}}_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    {{.StructName}}
-		want    string
-		wantErr bool
+		name     string
+		path     {{.StructName}}
+		wantPath string
+		wantErr  bool
 	}{
 {{- range .TestCases}}
-		{name: {{quote .Name}}, path: {{.Fields}}, want: {{quote .Want}}, wantErr: {{.WantErr}}},
+		{name: {{quote .Name}}, path: {{.Fields}}, wantPath: {{quote .WantPath}}, wantErr: {{.WantErr}}},
 {{- end}}
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
 {{end}}`))
 
 type testCase struct {
-	Name    string
-	Fields  string
-	Want    string
-	WantErr string
+	Name     string
+	Fields   string
+	WantPath string
+	WantErr  string
 }
 
 type testBuilder struct {
@@ -110,18 +110,18 @@ func synthesizeTestCases(b builder) []testCase {
 	emptyFields := b.StructName + "{}"
 	if hasRequired {
 		cases = append(cases, testCase{
-			Name:    "required fields empty",
-			Fields:  emptyFields,
-			Want:    "",
-			WantErr: "true",
+			Name:     "required fields empty",
+			Fields:   emptyFields,
+			WantPath: "",
+			WantErr:  "true",
 		})
 	} else {
-		basePath := simulateBuild(b, nil)
+		path := simulateBuild(b, nil)
 		cases = append(cases, testCase{
-			Name:    "all empty",
-			Fields:  emptyFields,
-			Want:    basePath,
-			WantErr: "false",
+			Name:     "all empty",
+			Fields:   emptyFields,
+			WantPath: path,
+			WantErr:  "false",
 		})
 	}
 
@@ -130,12 +130,12 @@ func synthesizeTestCases(b builder) []testCase {
 		values[f.Name] = []string{"test-" + strings.ToLower(f.Name)}
 	}
 	if len(b.Fields) > 0 {
-		fullPath := simulateBuild(b, values)
+		path := simulateBuild(b, values)
 		cases = append(cases, testCase{
-			Name:    "all fields",
-			Fields:  buildStructLiteral(b, values),
-			Want:    fullPath,
-			WantErr: "false",
+			Name:     "all fields",
+			Fields:   buildStructLiteral(b, values),
+			WantPath: path,
+			WantErr:  "false",
 		})
 	}
 
@@ -144,12 +144,12 @@ func synthesizeTestCases(b builder) []testCase {
 			singleValue := map[string][]string{
 				f.Name: {"val-" + strings.ToLower(f.Name)},
 			}
-			singlePath := simulateBuild(b, singleValue)
+			path := simulateBuild(b, singleValue)
 			cases = append(cases, testCase{
-				Name:    "only " + f.Name,
-				Fields:  buildStructLiteral(b, singleValue),
-				Want:    singlePath,
-				WantErr: "false",
+				Name:     "only " + f.Name,
+				Fields:   buildStructLiteral(b, singleValue),
+				WantPath: path,
+				WantErr:  "false",
 			})
 		}
 	}
@@ -163,12 +163,12 @@ func synthesizeTestCases(b builder) []testCase {
 				}
 			}
 			multiValue[f.Name] = []string{"a", "b", "c"}
-			multiPath := simulateBuild(b, multiValue)
+			path := simulateBuild(b, multiValue)
 			cases = append(cases, testCase{
-				Name:    f.Name + " multi-value",
-				Fields:  buildStructLiteral(b, multiValue),
-				Want:    multiPath,
-				WantErr: "false",
+				Name:     f.Name + " multi-value",
+				Fields:   buildStructLiteral(b, multiValue),
+				WantPath: path,
+				WantErr:  "false",
 			})
 			break
 		}
@@ -177,6 +177,7 @@ func synthesizeTestCases(b builder) []testCase {
 	return cases
 }
 
+// simulateBuild returns the path that Build() would produce for the given field values.
 func simulateBuild(b builder, values map[string][]string) string {
 	if len(b.Ops) == 0 {
 		return "/"
@@ -270,7 +271,11 @@ func simulateBuild(b builder, values map[string][]string) string {
 			}
 		}
 	}
-	return result.String()
+	path := result.String()
+	if path == "" {
+		path = "/"
+	}
+	return path
 }
 
 func buildStructLiteral(b builder, values map[string][]string) string {

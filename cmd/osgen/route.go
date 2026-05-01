@@ -18,6 +18,11 @@ const (
 
 	genFileSuffix     = "_gen.go"
 	genTestFileSuffix = "_gen_test.go"
+
+	// envSkipGitCheck disables the git-toplevel safety check when set to a
+	// truthy value (per strconv.ParseBool). Useful in CI environments where
+	// the generator runs outside a git working tree.
+	envSkipGitCheck = "OSGEN_SKIP_GIT_CHECK"
 )
 
 // coreGroups are operation-group prefixes that belong in opensearchapi/.

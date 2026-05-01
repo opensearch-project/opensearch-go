@@ -7,14 +7,18 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/google/renameio/v2"
 )
 
 // runAPI implements the "osgen api" subcommand. It parses flags and delegates
@@ -50,15 +54,10 @@ func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir str
 		return err
 	}
 
-	if err := removeGenFiles(outDir); err != nil {
-		return err
-	}
-	if pluginsDir != "" {
-		if err := removeGenFiles(pluginsDir); err != nil {
-			return err
-		}
-	}
+	// Track every file we write so we can remove stale ones afterward.
+	written := make(map[string]struct{})
 
+	var wrote int
 	for _, op := range ops {
 		pkg, dir := routeOperation(op.Group, outDir, pluginsDir)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -67,27 +66,22 @@ func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir str
 
 		basename := operationFilename(op.Group)
 
-		apiFile := filepath.Join(dir, basename+genFileSuffix)
+		apiFile, err := filepath.Abs(filepath.Join(dir, basename+genFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving path: %w", err)
+		}
 		apiSrc, err := renderAPIFile(op, pkg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "render %q: %v\n", op.Group, err)
 			continue
 		}
-		if err := os.WriteFile(apiFile, []byte(apiSrc), 0o644); err != nil {
-			return fmt.Errorf("writing %q: %w", apiFile, err)
+		if changed, werr := writeIfChanged(apiFile, []byte(apiSrc)); werr != nil {
+			return werr
+		} else if changed {
+			fmt.Fprintf(os.Stderr, "  %q -> %s\n", op.Group, repoRelPath(apiFile))
+			wrote++
 		}
-
-		paramsFile := filepath.Join(dir, basename+"-params"+genFileSuffix)
-		paramsSrc, err := renderParamsFile(op, pkg)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "render params %q: %v\n", op.Group, err)
-			continue
-		}
-		if err := os.WriteFile(paramsFile, []byte(paramsSrc), 0o644); err != nil {
-			return fmt.Errorf("writing %q: %w", paramsFile, err)
-		}
-
-		fmt.Fprintf(os.Stderr, "  %q -> %q\n", op.Group, apiFile)
+		written[apiFile] = struct{}{}
 	}
 
 	// Generate compat.go for each plugin package.
@@ -99,53 +93,82 @@ func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir str
 		}
 	}
 	for pkg, dir := range pluginPkgs {
-		compatFile := filepath.Join(dir, "compat"+genFileSuffix)
+		compatFile, err := filepath.Abs(filepath.Join(dir, "compat"+genFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving path: %w", err)
+		}
 		src, err := renderCompatFile(pkg)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "render compat %q: %v\n", pkg, err)
 			continue
 		}
-		if err := os.WriteFile(compatFile, []byte(src), 0o644); err != nil {
-			return fmt.Errorf("writing %q: %w", compatFile, err)
+		if changed, werr := writeIfChanged(compatFile, []byte(src)); werr != nil {
+			return fmt.Errorf("writing %q: %w", compatFile, werr)
+		} else if changed {
+			fmt.Fprintf(os.Stderr, "  compat -> %s\n", repoRelPath(compatFile))
+			wrote++
 		}
+		written[compatFile] = struct{}{}
 	}
 
-	fmt.Fprintf(os.Stderr, "generated %d operations\n", len(ops))
+	// Remove stale _gen.go files not produced by this run.
+	removed, err := removeStaleGenFiles(outDir, written)
+	if err != nil {
+		return err
+	}
+	if pluginsDir != "" {
+		n, err := removeStaleGenFiles(pluginsDir, written)
+		if err != nil {
+			return err
+		}
+		removed += n
+	}
+
+	fmt.Fprintf(os.Stderr, "generated %d operations (%d files written, %d stale removed)\n", len(ops), wrote, removed)
 	return nil
 }
 
-// removeGenFiles removes all *_gen.go files under root, recursively.
-// It cleans and resolves the path, verifies the target is inside the git
-// working tree, and uses os.OpenRoot to confine removal to the directory.
-func removeGenFiles(root string) error {
+// removeStaleGenFiles removes *_gen.go files under root that are not in
+// the written set. It resolves root, verifies it is inside the git working
+// tree, and uses os.OpenRoot to confine removal.
+func removeStaleGenFiles(root string, written map[string]struct{}) (int, error) {
 	abs, err := resolveGenRoot(root)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	dir, err := os.OpenRoot(abs)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil
+			return 0, nil
 		}
-		return fmt.Errorf("opening root %q: %w", abs, err)
+		return 0, fmt.Errorf("opening root %q: %w", abs, err)
 	}
 	defer dir.Close()
 
-	return fs.WalkDir(dir.FS(), ".", func(path string, d fs.DirEntry, err error) error {
+	var removed int
+	err = fs.WalkDir(dir.FS(), ".", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		if d.IsDir() {
 			return nil
 		}
-		if strings.HasSuffix(d.Name(), genFileSuffix) {
-			if err := dir.Remove(path); err != nil {
-				return fmt.Errorf("removing stale %q: %w", path, err)
-			}
+		if !strings.HasSuffix(d.Name(), genFileSuffix) {
+			return nil
 		}
+		full := filepath.Join(abs, path)
+		if _, ok := written[full]; ok {
+			return nil
+		}
+		if err := dir.Remove(path); err != nil {
+			return fmt.Errorf("removing stale %q: %w", path, err)
+		}
+		fmt.Fprintf(os.Stderr, "  removed stale %s\n", repoRelPath(full))
+		removed++
 		return nil
 	})
+	return removed, err
 }
 
 var (
@@ -176,8 +199,9 @@ func repoRootGit() (string, error) {
 }
 
 // resolveGenRoot cleans and resolves root to an absolute path, then verifies
-// it is a subdirectory of the git working tree. Returns an error if the path
-// is the filesystem root, the user's home directory, or outside the repo.
+// it is a subdirectory of the git working tree (unless OSGEN_SKIP_GIT_CHECK
+// is set). Returns an error if the path is the filesystem root, the user's
+// home directory, or outside the repo.
 func resolveGenRoot(root string) (string, error) {
 	cleaned := filepath.Clean(root)
 	abs, err := filepath.Abs(cleaned)
@@ -192,13 +216,52 @@ func resolveGenRoot(root string) (string, error) {
 		return "", fmt.Errorf("refusing to operate on home directory %q", abs)
 	}
 
-	gitTop, err := repoRoot()
-	if err != nil {
-		return "", err
-	}
-	if abs != gitTop && !strings.HasPrefix(abs, gitTop+string(filepath.Separator)) {
-		return "", fmt.Errorf("refusing to operate on %q: outside git root %q", abs, gitTop)
+	if !skipGitCheck() {
+		gitTop, err := repoRoot()
+		if err != nil {
+			return "", fmt.Errorf("%w (set %s=1 to bypass)", err, envSkipGitCheck)
+		}
+		if abs != gitTop && !strings.HasPrefix(abs, gitTop+string(filepath.Separator)) {
+			return "", fmt.Errorf("refusing to operate on %q: outside git root %q (set %s=1 to bypass)", abs, gitTop, envSkipGitCheck)
+		}
 	}
 
 	return abs, nil
+}
+
+// skipGitCheck returns true when envSkipGitCheck is set to a truthy value
+// (per strconv.ParseBool: 1, t, true, yes, on).
+func skipGitCheck() bool {
+	v, _ := strconv.ParseBool(os.Getenv(envSkipGitCheck))
+	return v
+}
+
+// writeIfChanged compares data against the existing file at path. If the
+// content differs (or the file does not exist), it atomically writes data
+// using renameio and returns true. If the content is identical, it returns
+// false without touching the file.
+func writeIfChanged(path string, data []byte) (bool, error) {
+	existing, err := os.ReadFile(path)
+	if err == nil && bytes.Equal(existing, data) {
+		return false, nil
+	}
+	if err := renameio.WriteFile(path, data, 0o644); err != nil {
+		return false, fmt.Errorf("writing %q: %w", path, err)
+	}
+	return true, nil
+}
+
+// repoRelPath returns path relative to the git working tree root for
+// display purposes. Falls back to the absolute path if the root is
+// unavailable or the path is not under it.
+func repoRelPath(abs string) string {
+	root, err := repoRoot()
+	if err != nil {
+		return abs
+	}
+	rel, err := filepath.Rel(root, abs)
+	if err != nil {
+		return abs
+	}
+	return rel
 }

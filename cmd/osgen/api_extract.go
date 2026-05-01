@@ -8,21 +8,30 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 // apiOperation holds everything needed to generate one set of API files.
 type apiOperation struct {
-	Group             string
-	TypePrefix        string
-	PathBuilderName   string
-	HTTPMethod        string
-	HTTPVerb          string // human-readable verb (e.g. "POST") for doc comments
-	PrimaryPath       string // canonical URL path pattern (e.g. "/{index}/_refresh")
-	Description       string
+	Group           string
+	TypePrefix      string
+	PathBuilderName string
+
+	// HTTPMethods lists all valid HTTP methods for this operation. The first
+	// element is always the primary method (from the primary/shortest path
+	// variant in the spec); remaining methods are sorted alphabetically.
+	// For [GET, POST] operations with a body, POST is used when Body != nil.
+	HTTPMethods []string
+
+	PrimaryPath string // canonical URL path pattern (e.g. "/{index}/_refresh")
+
+	Description string
 	VersionAdded      string
 	VersionDeprecated string
 	Deprecated        bool
@@ -32,13 +41,34 @@ type apiOperation struct {
 	HasBody           bool
 	PathFields        []apiPathField
 	QueryParams       []apiQueryParam
+	ResponseRef       string // schema key for the 200 response body (e.g. "cluster.health___HealthResponseBody")
+
+	// ResponseSchemaRef is the resolved schema for the 200 response body,
+	// used to walk inline schemas that aren't in Components.Schemas.
+	ResponseSchemaRef *openapi3.SchemaRef
+
+	// Dispatch routes for this operation (primary flat + optional deprecated nested).
+	DispatchRoutes []dispatchRoute
+	IsPointerReq   bool // true when all path fields are optional (pointer req convention)
+	IsNoBody       bool // true for HEAD-only operations (returns *opensearch.Response)
+
+	// PathBuilder holds the analyzed trie ops for path construction, used by
+	// test generation to simulate Build() without importing internal/path.
+	PathBuilder builder
+
+	// Populated after schema walking.
+	RespFields    []goField      // fields for the top-level Resp struct
+	SiblingTypes  []*goType      // operation-specific types emitted alongside Resp
+	RespShape     ir.RespShape   // overall response body structure (struct/map/array/raw)
+	RespElemType  *goType        // element type for map/array shapes (the T in map[string]T or []T)
 }
 
 // apiPathField is one path parameter exposed as a struct field on the Req.
 // The generated Req struct includes one field per URL path placeholder.
 type apiPathField struct {
-	GoName string // exported Go field name (e.g. "IndexUUID")
-	IsList bool   // true if the parameter accepts comma-separated values
+	GoName   string // exported Go field name (e.g. "IndexUUID")
+	WireName string // original OpenAPI parameter name (e.g. "index_uuid")
+	IsList   bool   // true if the parameter accepts comma-separated values
 }
 
 // apiQueryParam is one query parameter exposed on the Params struct.
@@ -47,23 +77,29 @@ type apiQueryParam struct {
 	GoName            string // exported Go field name
 	ParamName         string // wire name used in the query string (e.g. "wait_for_active_shards")
 	GoType            string // Go type for the field (e.g. "string", "bool", "time.Duration")
+	Description       string // human-readable description from the spec
+	Default           string // server default value (e.g. "true", "30s")
 	IsDuration        bool   // true if the value encodes as an OpenSearch duration string
 	IsBool            bool
 	IsList            bool // true if the value is comma-joined ([]string)
 	IsInt             bool
+	Required          bool
 	Deprecated        bool
+	VersionAdded      string // semver when this param was introduced
 	VersionDeprecated string // semver when this param was deprecated
+	DeprecationMsg    string // explains what to use instead
 }
 
 // extractOperations parses the OpenAPI spec and returns one apiOperation per
 // x-operation-group. An optional filter restricts output to named groups.
-func extractOperations(specPath string, filter map[string]bool) ([]apiOperation, error) {
+// It also returns the loaded spec for use by the response schema walker.
+func extractOperations(specPath string, filter map[string]bool) ([]apiOperation, *openapi3.T, error) {
 	loader := openapi3.NewLoader()
 	loader.IsExternalRefsAllowed = true
 
 	spec, err := loader.LoadFromFile(specPath)
 	if err != nil {
-		return nil, fmt.Errorf("loading spec: %w", err)
+		return nil, nil, fmt.Errorf("loading spec: %w", err)
 	}
 
 	type groupData struct {
@@ -113,7 +149,7 @@ func extractOperations(specPath string, filter map[string]bool) ([]apiOperation,
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Group < result[j].Group
 	})
-	return result, nil
+	return result, spec, nil
 }
 
 // buildAPIOperation constructs an apiOperation from all path variants sharing
@@ -125,6 +161,16 @@ func buildAPIOperation(group string, ops []struct {
 	path   *openapi3.PathItem
 	url    string
 }, spec *openapi3.T) apiOperation {
+	// Sort ops by URL for determinism, then by operationId within the same URL
+	// to preserve the spec's declared primary ordering (e.g. search.0 is POST,
+	// search.1 is GET - the spec author chose .0 as primary).
+	sort.Slice(ops, func(i, j int) bool {
+		if ops[i].url != ops[j].url {
+			return ops[i].url < ops[j].url
+		}
+		return ops[i].op.OperationID < ops[j].op.OperationID
+	})
+
 	// Pick the primary (non-deprecated) operation for metadata.
 	var primary struct {
 		method string
@@ -158,12 +204,28 @@ func buildAPIOperation(group string, ops []struct {
 		}
 	}
 
+	// Collect all distinct HTTP methods across variants of this operation,
+	// with the primary method first and the rest sorted.
+	primaryMeth := strings.ToUpper(primary.method)
+	methodSet := make(map[string]struct{})
+	for _, o := range ops {
+		methodSet[strings.ToUpper(o.method)] = struct{}{}
+	}
+	methods := make([]string, 0, len(methodSet))
+	methods = append(methods, primaryMeth)
+	delete(methodSet, primaryMeth)
+	rest := make([]string, 0, len(methodSet))
+	for m := range methodSet {
+		rest = append(rest, m)
+	}
+	sort.Strings(rest)
+	methods = append(methods, rest...)
+
 	apiOp := apiOperation{
 		Group:             group,
 		TypePrefix:        typePrefix,
 		PathBuilderName:   pathBuilderName(group),
-		HTTPMethod:        httpMethodConst(primary.method),
-		HTTPVerb:          strings.ToUpper(primary.method),
+		HTTPMethods:       methods,
 		PrimaryPath:       primary.url,
 		Description:       op.Description,
 		VersionAdded:      extensionString(op.Extensions, extVersionAdded),
@@ -175,17 +237,103 @@ func buildAPIOperation(group string, ops []struct {
 		HasBody:           op.RequestBody != nil,
 	}
 
-	// Extract path fields from the path builder.
-	pathParams := extractPathParams(primary.path, op, primary.url)
-	for _, pp := range pathParams {
-		apiOp.PathFields = append(apiOp.PathFields, apiPathField{
-			GoName: pathFieldName(pp.name),
-			IsList: pp.isList,
-		})
+	// Union path fields across all URL variants.
+	seenPath := make(map[string]bool)
+	for _, o := range ops {
+		pathParams := extractPathParams(o.path, o.op, o.url)
+		for _, pp := range pathParams {
+			goName := pathFieldName(pp.name)
+			if seenPath[goName] {
+				continue
+			}
+			seenPath[goName] = true
+			apiOp.PathFields = append(apiOp.PathFields, apiPathField{
+				GoName:   goName,
+				WireName: pp.name,
+				IsList:   pp.isList,
+			})
+		}
 	}
 
-	// Extract query parameters.
-	apiOp.QueryParams = extractQueryParams(primary.path, op, spec)
+	// Build path trie for test generation (same logic as paths subcommand).
+	// Group by URL path and collect all HTTP methods for each path.
+	type variantData struct {
+		params      []string
+		arrayParams map[string]bool
+		deprecated  bool
+		methods     map[string]struct{}
+	}
+	variantsByURL := make(map[string]*variantData)
+	variantOrder := make([]string, 0, len(ops))
+	for _, o := range ops {
+		if vd, ok := variantsByURL[o.url]; ok {
+			vd.methods[strings.ToUpper(o.method)] = struct{}{}
+			if !o.op.Deprecated {
+				vd.deprecated = false
+			}
+			continue
+		}
+		params := extractPathParams(o.path, o.op, o.url)
+		paramNames := make([]string, 0, len(params))
+		arrayParams := make(map[string]bool)
+		for _, pp := range params {
+			paramNames = append(paramNames, pp.name)
+			if pp.isList {
+				arrayParams[pp.name] = true
+			}
+		}
+		variantsByURL[o.url] = &variantData{
+			params:      paramNames,
+			arrayParams: arrayParams,
+			deprecated:  o.op.Deprecated,
+			methods:     map[string]struct{}{strings.ToUpper(o.method): {}},
+		}
+		variantOrder = append(variantOrder, o.url)
+	}
+	variants := make([]pathVariant, 0, len(variantsByURL))
+	for _, url := range variantOrder {
+		vd := variantsByURL[url]
+		variants = append(variants, pathVariant{
+			path:        url,
+			methods:     vd.methods,
+			pathParams:  vd.params,
+			arrayParams: vd.arrayParams,
+			deprecated:  vd.deprecated,
+		})
+	}
+	if b, err := analyzeGroup(opGroup{name: group, pathSpecs: variants}); err == nil {
+		b.export()
+		apiOp.PathBuilder = b
+	}
+
+	// Union query parameters across all variants.
+	apiOp.QueryParams = extractQueryParamsUnion(ops, spec)
+
+	// Extract response schema ref from the first variant with a 200 response.
+	for _, o := range ops {
+		if o.op.Responses == nil {
+			continue
+		}
+		resp := o.op.Responses.Value("200")
+		if resp == nil || resp.Value == nil || resp.Value.Content == nil {
+			continue
+		}
+		mt := resp.Value.Content.Get("application/json")
+		if mt == nil || mt.Schema == nil {
+			continue
+		}
+		apiOp.ResponseRef = refToSchemaKey(mt.Schema.Ref)
+		if apiOp.ResponseRef == "" {
+			apiOp.ResponseRef = group + "___ResponseBody"
+		}
+		apiOp.ResponseSchemaRef = mt.Schema
+		break
+	}
+
+	// Resolve dispatch routes and request style.
+	apiOp.DispatchRoutes = resolveDispatchRoutes(group)
+	apiOp.IsPointerReq = !hasRequiredScalarPath(apiOp.PathFields)
+	apiOp.IsNoBody = len(methods) == 1 && methods[0] == http.MethodHead
 
 	return apiOp
 }
@@ -260,13 +408,20 @@ func extractQueryParams(pathItem *openapi3.PathItem, op *openapi3.Operation, spe
 			qp := apiQueryParam{
 				GoName:            pathFieldName(p.Name),
 				ParamName:         p.Name,
+				Description:       p.Description,
+				Required:          p.Required,
 				Deprecated:        p.Deprecated,
+				VersionAdded:      extensionString(p.Extensions, extVersionAdded),
 				VersionDeprecated: extensionString(p.Extensions, extVersionDeprecated),
+				DeprecationMsg:    extensionString(p.Extensions, extDeprecationMessage),
 			}
 
 			if p.Schema != nil && p.Schema.Value != nil {
 				s := p.Schema.Value
 				qp.GoType, qp.IsDuration, qp.IsBool, qp.IsList, qp.IsInt = classifyParamSchema(s, ref)
+				if s.Default != nil {
+					qp.Default = fmt.Sprintf("%v", s.Default)
+				}
 			} else {
 				qp.GoType = "string"
 			}
@@ -277,6 +432,68 @@ func extractQueryParams(pathItem *openapi3.PathItem, op *openapi3.Operation, spe
 
 	collect(pathItem.Parameters)
 	collect(op.Parameters)
+
+	sort.Slice(params, func(i, j int) bool {
+		return params[i].ParamName < params[j].ParamName
+	})
+	return params
+}
+
+// extractQueryParamsUnion merges query parameters from all operation variants
+// in a group, deduplicating by wire name. This ensures that params available
+// on any URL pattern appear in the generated Params struct.
+func extractQueryParamsUnion(ops []struct {
+	method string
+	op     *openapi3.Operation
+	path   *openapi3.PathItem
+	url    string
+}, spec *openapi3.T) []apiQueryParam {
+	seen := make(map[string]bool)
+	var params []apiQueryParam
+
+	for _, o := range ops {
+		collect := func(refs openapi3.Parameters) {
+			for _, ref := range refs {
+				p := ref.Value
+				if p == nil || p.In != "query" {
+					continue
+				}
+				if isGlobalParam(p.Name) {
+					continue
+				}
+				if seen[p.Name] {
+					continue
+				}
+				seen[p.Name] = true
+
+				qp := apiQueryParam{
+					GoName:            pathFieldName(p.Name),
+					ParamName:         p.Name,
+					Description:       p.Description,
+					Required:          p.Required,
+					Deprecated:        p.Deprecated,
+					VersionAdded:      extensionString(p.Extensions, extVersionAdded),
+					VersionDeprecated: extensionString(p.Extensions, extVersionDeprecated),
+					DeprecationMsg:    extensionString(p.Extensions, extDeprecationMessage),
+				}
+
+				if p.Schema != nil && p.Schema.Value != nil {
+					s := p.Schema.Value
+					qp.GoType, qp.IsDuration, qp.IsBool, qp.IsList, qp.IsInt = classifyParamSchema(s, ref)
+					if s.Default != nil {
+						qp.Default = fmt.Sprintf("%v", s.Default)
+					}
+				} else {
+					qp.GoType = "string"
+				}
+
+				params = append(params, qp)
+			}
+		}
+
+		collect(o.path.Parameters)
+		collect(o.op.Parameters)
+	}
 
 	sort.Slice(params, func(i, j int) bool {
 		return params[i].ParamName < params[j].ParamName
@@ -345,6 +562,19 @@ func hasOneOfType(s *openapi3.Schema, typeName string) bool {
 	}
 	for _, ref := range s.AnyOf {
 		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is(typeName) {
+			return true
+		}
+	}
+	return false
+}
+
+// hasRequiredScalarPath returns true if any path field is a scalar (non-list)
+// string, meaning the caller must provide a value. List-typed path fields
+// ([]string) are always optional since their zero value (nil) produces a
+// valid URL pattern without that segment.
+func hasRequiredScalarPath(fields []apiPathField) bool {
+	for _, f := range fields {
+		if !f.IsList {
 			return true
 		}
 	}

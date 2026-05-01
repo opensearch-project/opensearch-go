@@ -1390,7 +1390,7 @@ func TestDanglingIndicesDeleteDanglingIndexPath_Build(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "required fields empty", path: DanglingIndicesDeleteDanglingIndexPath{}, want: "", wantErr: true},
-		{name: "all fields", path: DanglingIndicesDeleteDanglingIndexPath{IndexUuid: "test-indexuuid"}, want: "/_dangling/test-indexuuid", wantErr: false},
+		{name: "all fields", path: DanglingIndicesDeleteDanglingIndexPath{IndexUUID: "test-indexuuid"}, want: "/_dangling/test-indexuuid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1415,7 +1415,7 @@ func TestDanglingIndicesImportDanglingIndexPath_Build(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "required fields empty", path: DanglingIndicesImportDanglingIndexPath{}, want: "", wantErr: true},
-		{name: "all fields", path: DanglingIndicesImportDanglingIndexPath{IndexUuid: "test-indexuuid"}, want: "/_dangling/test-indexuuid", wantErr: false},
+		{name: "all fields", path: DanglingIndicesImportDanglingIndexPath{IndexUUID: "test-indexuuid"}, want: "/_dangling/test-indexuuid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9250,15 +9250,15 @@ func TestSecurityPostDashboardsInfoPath_Build(t *testing.T) {
 	}
 }
 
-func TestSecurityReloadHttpCertificatesPath_Build(t *testing.T) {
+func TestSecurityReloadHTTPCertificatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SecurityReloadHttpCertificatesPath
+		path    SecurityReloadHTTPCertificatesPath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SecurityReloadHttpCertificatesPath{}, want: "/_plugins/_security/api/ssl/http/reloadcerts", wantErr: false},
+		{name: "all empty", path: SecurityReloadHTTPCertificatesPath{}, want: "/_plugins/_security/api/ssl/http/reloadcerts", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9947,15 +9947,15 @@ func TestSnapshotVerifyRepositoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestSqlClosePath_Build(t *testing.T) {
+func TestSQLClosePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SqlClosePath
+		path    SQLClosePath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SqlClosePath{}, want: "/_plugins/_sql/close", wantErr: false},
+		{name: "all empty", path: SQLClosePath{}, want: "/_plugins/_sql/close", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9971,15 +9971,15 @@ func TestSqlClosePath_Build(t *testing.T) {
 	}
 }
 
-func TestSqlExplainPath_Build(t *testing.T) {
+func TestSQLExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SqlExplainPath
+		path    SQLExplainPath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SqlExplainPath{}, want: "/_plugins/_sql/_explain", wantErr: false},
+		{name: "all empty", path: SQLExplainPath{}, want: "/_plugins/_sql/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9995,15 +9995,15 @@ func TestSqlExplainPath_Build(t *testing.T) {
 	}
 }
 
-func TestSqlGetStatsPath_Build(t *testing.T) {
+func TestSQLGetStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SqlGetStatsPath
+		path    SQLGetStatsPath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SqlGetStatsPath{}, want: "/_plugins/_sql/stats", wantErr: false},
+		{name: "all empty", path: SQLGetStatsPath{}, want: "/_plugins/_sql/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -10019,15 +10019,15 @@ func TestSqlGetStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestSqlPostStatsPath_Build(t *testing.T) {
+func TestSQLPostStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SqlPostStatsPath
+		path    SQLPostStatsPath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SqlPostStatsPath{}, want: "/_plugins/_sql/stats", wantErr: false},
+		{name: "all empty", path: SQLPostStatsPath{}, want: "/_plugins/_sql/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -10043,15 +10043,15 @@ func TestSqlPostStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestSqlQueryPath_Build(t *testing.T) {
+func TestSQLQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SqlQueryPath
+		path    SQLQueryPath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SqlQueryPath{}, want: "/_plugins/_sql", wantErr: false},
+		{name: "all empty", path: SQLQueryPath{}, want: "/_plugins/_sql", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -10067,15 +10067,15 @@ func TestSqlQueryPath_Build(t *testing.T) {
 	}
 }
 
-func TestSqlSettingsPath_Build(t *testing.T) {
+func TestSQLSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name    string
-		path    SqlSettingsPath
+		path    SQLSettingsPath
 		want    string
 		wantErr bool
 	}{
-		{name: "all empty", path: SqlSettingsPath{}, want: "/_plugins/_query/settings", wantErr: false},
+		{name: "all empty", path: SQLSettingsPath{}, want: "/_plugins/_query/settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

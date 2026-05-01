@@ -7,6 +7,7 @@
 package main
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -101,6 +102,7 @@ func TestAnalyzeGroup_SinglePath(t *testing.T) {
 		pathSpecs: []pathVariant{
 			{
 				path:         "/_cluster/health",
+				methods:      map[string]struct{}{http.MethodGet: {}},
 				pathParams:   []string{},
 				arrayParams:  map[string]bool{},
 				description:  "Returns cluster health.",
@@ -117,7 +119,6 @@ func TestAnalyzeGroup_SinglePath(t *testing.T) {
 	require.Equal(t, "1.0", b.VersionAdded)
 	require.Empty(t, b.Fields)
 
-	// Should emit a single literal op for each path segment.
 	require.Len(t, b.Ops, 2)
 	require.Equal(t, opLit, b.Ops[0].Kind)
 	require.Equal(t, "_cluster", b.Ops[0].Value)
@@ -278,7 +279,6 @@ func TestCanonicalSegment(t *testing.T) {
 		seg  string
 		want string
 	}{
-		{name: "alias mapping", seg: "_aliases", want: "_alias"},
 		{name: "hotthreads mapping", seg: "hotthreads", want: "hot_threads"},
 		{name: "no mapping", seg: "_cluster", want: "_cluster"},
 	}

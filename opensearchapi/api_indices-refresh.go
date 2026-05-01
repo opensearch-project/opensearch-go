@@ -9,6 +9,7 @@
 package opensearchapi
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -16,30 +17,29 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// IndicesRefreshReq represents possible options for the <index>/_refresh request
+// IndicesRefreshReq represents the request for the indices.refresh operation.
 type IndicesRefreshReq struct {
-	Indices []string
-
+	Index  []string
 	Header http.Header
 	Params IndicesRefreshParams
 }
 
-// GetRequest returns the *http.Request that gets executed by the client
+// GetRequest builds the HTTP request from the structured fields.
 func (r IndicesRefreshReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.IndicesRefreshPath{Index: r.Indices}.Build()
+	path, err := ospath.IndicesRefreshPath{Index: r.Index}.Build()
 	if err != nil {
 		return nil, err
 	}
 	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
-// IndicesRefreshResp represents the returned struct of the index shrink response
+// IndicesRefreshResp represents the response for the indices.refresh operation.
 type IndicesRefreshResp struct {
-	Shards   ResponseShards `json:"_shards"`
+	Shards   json.RawMessage `json:"_shards"`
 	response *opensearch.Response
 }
 
-// Inspect returns the Inspect type containing the raw *opensearch.Response
+// Inspect returns the raw OpenSearch response for debugging or advanced use.
 func (r IndicesRefreshResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }

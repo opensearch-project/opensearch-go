@@ -8,5 +8,5 @@
 // API operations. Each struct corresponds to one x-operation-group from the
 // OpenSearch API specification and builds the URL path used in HTTP requests.
 //
-//go:generate sh -c "cd ../../cmd/osgen && go run . -spec ../../opensearch-openapi.yaml -pkg path -o ../../internal/path/builders_gen.go -test-out ../../internal/path/builders_gen_test.go"
+//go:generate sh -c "cd ../../cmd/osgen && go run . paths -spec ../../opensearch-openapi.yaml -pkg path -o ../../internal/path/builders_gen.go -test-out ../../internal/path/builders_gen_test.go"
 package path

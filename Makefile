@@ -112,6 +112,13 @@ build-coverage:
 OPENAPI_SPEC := opensearch-openapi.yaml
 OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specification/releases/latest/download/opensearch-openapi.yaml
 
+# Version filtering defaults for code generation.
+# Override on the command line to scope generated code to a version window:
+#   make gen GEN_MIN_VERSION=2.0 GEN_REMOVE_DEPRECATED=2.0
+GEN_MIN_VERSION        ?= epoch
+GEN_MAX_VERSION        ?= latest
+GEN_REMOVE_DEPRECATED  ?= epoch
+
 ##@ Development
 fetch-opensearch-spec:  ## Download the OpenSearch OpenAPI spec (skips if cached)
 	@if [ ! -f "$(OPENAPI_SPEC)" ]; then \
@@ -121,9 +128,24 @@ fetch-opensearch-spec:  ## Download the OpenSearch OpenAPI spec (skips if cached
 		printf "\033[2m-> OpenAPI spec already cached at $(OPENAPI_SPEC)\033[0m\n"; \
 	fi
 
-gen: fetch-opensearch-spec  ## Regenerate path builders from OpenAPI spec
+gen: fetch-opensearch-spec  ## Regenerate all code from OpenAPI spec
 	@printf "\033[2m-> Regenerating path builders...\033[0m\n"
-	cd cmd/osgen && go run . paths -spec ../../$(OPENAPI_SPEC) -pkg path -o ../../internal/path/builders_gen.go -test-out ../../internal/path/builders_gen_test.go
+	cd cmd/osgen && go run . paths \
+		-spec ../../$(OPENAPI_SPEC) \
+		-pkg path \
+		-o ../../internal/path/builders_gen.go \
+		-test-out ../../internal/path/builders_gen_test.go \
+		-min-version=$(GEN_MIN_VERSION) \
+		-max-version=$(GEN_MAX_VERSION) \
+		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
+	@printf "\033[2m-> Regenerating API consumer files...\033[0m\n"
+	cd cmd/osgen && go run . api \
+		-spec ../../$(OPENAPI_SPEC) \
+		-out ../../opensearchapi \
+		-plugins-out ../../plugins \
+		-min-version=$(GEN_MIN_VERSION) \
+		-max-version=$(GEN_MAX_VERSION) \
+		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
 
 lint:  ## Run lint on the package
 	@$(MAKE) linters

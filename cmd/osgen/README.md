@@ -104,7 +104,21 @@ go run . api \
   -groups cluster.health
 ```
 
+## Environment Variables
+
+| Variable               | Default | Description                                                                                                                                                                                             |
+| ---------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OSGEN_SKIP_GIT_CHECK` | `false` | Set to `1` or `true` to disable the git-toplevel safety check. Useful in CI environments where the generator runs outside a git working tree. Accepts any value recognized by Go's `strconv.ParseBool`. |
+
 ## How It Works
+
+### Output Behavior
+
+- **Idempotent**: Only files whose content actually changed are written. Running `make gen` twice produces no output on the second run.
+- **Atomic writes**: Files are written atomically via [renameio](https://github.com/google/renameio) to avoid partial output on failure.
+- **Stale removal**: Any `*_gen.go` file in the output directory that was not produced by the current run is removed automatically.
+- **Git safety**: Output directories are validated to be inside the git working tree (via `git rev-parse --show-toplevel` and `os.OpenRoot`). Set `OSGEN_SKIP_GIT_CHECK=1` to bypass when running outside a git repository.
+- **Multi-method operations**: When an operation accepts multiple HTTP methods (e.g., GET and POST), the generated `GetRequest` uses POST when a body is present.
 
 ### Path Generation
 
