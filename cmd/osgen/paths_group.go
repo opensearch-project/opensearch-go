@@ -7,7 +7,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -23,10 +22,15 @@ type opGroup struct {
 // pathVariant is one URL path variant within an operation group.
 type pathVariant struct {
 	path               string
-	pathParams         []string          // ordered parameter names from the URL
-	arrayParams        map[string]bool   // params whose spec schema is type=array
+	pathParams         []string
+	arrayParams        map[string]bool
 	deprecated         bool
 	deprecationMessage string
+	description        string
+	versionAdded       string
+	versionDeprecated  string
+	docsURL            string
+	excludedDistros    []string
 }
 
 // loadAndGroup loads an OpenAPI spec and groups operations by x-operation-group.
@@ -69,15 +73,26 @@ func groupFromSpec(spec *openapi3.T, filter map[string]bool) []opGroup {
 					existing.deprecated = false
 					existing.deprecationMessage = ""
 				}
-			} else {
-				g.pathSpecs = append(g.pathSpecs, pathVariant{
-					path:               urlPath,
-					pathParams:         params,
-					arrayParams:        arrayParams,
-					deprecated:         op.Deprecated,
-					deprecationMessage: deprecationMessage(op),
-				})
+				continue
 			}
+
+			var docsURL string
+			if op.ExternalDocs != nil {
+				docsURL = op.ExternalDocs.URL
+			}
+
+			g.pathSpecs = append(g.pathSpecs, pathVariant{
+				path:               urlPath,
+				pathParams:         params,
+				arrayParams:        arrayParams,
+				deprecated:         op.Deprecated,
+				deprecationMessage: deprecationMessage(op),
+				description:        op.Description,
+				versionAdded:       extensionString(op.Extensions, extVersionAdded),
+				versionDeprecated:  extensionString(op.Extensions, extVersionDeprecated),
+				docsURL:            docsURL,
+				excludedDistros:    extensionStringSlice(op.Extensions, extDistributionsExcluded),
+			})
 		}
 	}
 
@@ -100,45 +115,38 @@ func (g *opGroup) findPath(path string) *pathVariant {
 	return nil
 }
 
-// pathParamInfo extracts path parameter names and identifies which are array-typed,
-// ordered by their appearance in the URL template.
+// pathParamInfo extracts path parameter names and identifies which are array-typed.
 func pathParamInfo(pathItem *openapi3.PathItem, op *openapi3.Operation, urlPath string) ([]string, map[string]bool) {
 	paramSet := make(map[string]bool)
 	arraySet := make(map[string]bool)
 
 	for _, p := range pathItem.Parameters {
-		if p.Value != nil && p.Value.In == "path" {
-			paramSet[p.Value.Name] = true
-			if isArrayParam(p.Value) {
-				arraySet[p.Value.Name] = true
-			}
+		if p.Value == nil || p.Value.In != "path" {
+			continue
+		}
+		paramSet[p.Value.Name] = true
+		if isArrayParam(p.Value) {
+			arraySet[p.Value.Name] = true
 		}
 	}
 	for _, p := range op.Parameters {
-		if p.Value != nil && p.Value.In == "path" {
-			paramSet[p.Value.Name] = true
-			if isArrayParam(p.Value) {
-				arraySet[p.Value.Name] = true
-			}
+		if p.Value == nil || p.Value.In != "path" {
+			continue
+		}
+		paramSet[p.Value.Name] = true
+		if isArrayParam(p.Value) {
+			arraySet[p.Value.Name] = true
 		}
 	}
 
-	// Order by appearance in URL template.
 	matches := pathParamRE.FindAllStringSubmatch(urlPath, -1)
 	ordered := make([]string, 0, len(matches))
 	for _, m := range matches {
-		name := m[1]
-		if paramSet[name] {
-			ordered = append(ordered, name)
-		} else {
-			ordered = append(ordered, name)
-		}
+		ordered = append(ordered, m[1])
 	}
 	return ordered, arraySet
 }
 
-// isArrayParam returns true if the parameter accepts multiple comma-separated values.
-// This covers direct array schemas and oneOf/anyOf unions containing an array variant.
 func isArrayParam(p *openapi3.Parameter) bool {
 	if p.Schema == nil || p.Schema.Value == nil {
 		return false
@@ -161,50 +169,4 @@ func schemaIsArray(s *openapi3.Schema) bool {
 		}
 	}
 	return false
-}
-
-// operationGroup reads x-operation-group from an operation's extensions.
-func operationGroup(op *openapi3.Operation) string {
-	if op == nil || op.Extensions == nil {
-		return ""
-	}
-	ext, ok := op.Extensions["x-operation-group"]
-	if !ok {
-		return ""
-	}
-	switch v := ext.(type) {
-	case json.RawMessage:
-		var s string
-		if err := json.Unmarshal(v, &s); err != nil {
-			return ""
-		}
-		return s
-	case string:
-		return v
-	default:
-		return ""
-	}
-}
-
-// deprecationMessage reads x-deprecation-message from an operation's extensions.
-func deprecationMessage(op *openapi3.Operation) string {
-	if op == nil || op.Extensions == nil {
-		return ""
-	}
-	ext, ok := op.Extensions["x-deprecation-message"]
-	if !ok {
-		return ""
-	}
-	switch v := ext.(type) {
-	case json.RawMessage:
-		var s string
-		if err := json.Unmarshal(v, &s); err != nil {
-			return ""
-		}
-		return s
-	case string:
-		return v
-	default:
-		return ""
-	}
 }

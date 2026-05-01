@@ -64,7 +64,6 @@ type testBuilder struct {
 	TestCases  []testCase
 }
 
-// generateTests produces a test file with golden path expectations.
 func generateTests(builders []builder, pkg string) (string, error) {
 	var testBuilders []testBuilder
 
@@ -97,8 +96,6 @@ func generateTests(builders []builder, pkg string) (string, error) {
 	return string(formatted), nil
 }
 
-// synthesizeTestCases generates test inputs/outputs for a builder by
-// simulating the ops with known values.
 func synthesizeTestCases(b builder) []testCase {
 	var cases []testCase
 
@@ -128,7 +125,6 @@ func synthesizeTestCases(b builder) []testCase {
 		})
 	}
 
-	// All fields populated with single values.
 	values := make(map[string][]string)
 	for _, f := range b.Fields {
 		values[f.Name] = []string{"test-" + strings.ToLower(f.Name)}
@@ -143,7 +139,6 @@ func synthesizeTestCases(b builder) []testCase {
 		})
 	}
 
-	// For structs with multiple optional fields, test each individually.
 	if !hasRequired && len(b.Fields) > 1 {
 		for _, f := range b.Fields {
 			singleValue := map[string][]string{
@@ -159,7 +154,6 @@ func synthesizeTestCases(b builder) []testCase {
 		}
 	}
 
-	// For list fields, test multiple comma-joined values.
 	for _, f := range b.Fields {
 		if f.IsList {
 			multiValue := make(map[string][]string)
@@ -183,8 +177,6 @@ func synthesizeTestCases(b builder) []testCase {
 	return cases
 }
 
-// simulateBuild executes the ops with the given field values to produce the
-// expected path string.
 func simulateBuild(b builder, values map[string][]string) string {
 	if len(b.Ops) == 0 {
 		return "/"
@@ -202,14 +194,6 @@ func simulateBuild(b builder, values map[string][]string) string {
 		}
 		return stack[len(stack)-1].active
 	}
-
-	parentActive := func() bool {
-		if len(stack) < 2 {
-			return true
-		}
-		return stack[len(stack)-2].active
-	}
-	_ = parentActive
 
 	for _, op := range b.Ops {
 		switch op.Kind {
@@ -289,7 +273,6 @@ func simulateBuild(b builder, values map[string][]string) string {
 	return result.String()
 }
 
-// buildStructLiteral produces Go source for a struct literal with the given values.
 func buildStructLiteral(b builder, values map[string][]string) string {
 	var sb strings.Builder
 	sb.WriteString(b.StructName)

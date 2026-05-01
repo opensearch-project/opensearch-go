@@ -4,87 +4,55 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-// osgen reads the OpenSearch API specification and generates typed path
-// builder structs grouped by x-operation-group.
-//
-// It uses kin-openapi to parse the spec and resolve $refs, then groups
-// operations by x-operation-group and emits builder code.
+// osgen is the unified code generator for the OpenSearch Go client.
+// It reads the OpenSearch API specification and generates typed path builder
+// structs and API consumer files.
 //
 // Usage:
 //
-//	go run ./cmd/osgen -spec /path/to/opensearch-openapi.yaml
-//	go run ./cmd/osgen -spec /path/to/opensearch-openapi.yaml -groups indices.get_alias,search
+//	osgen paths -spec <openapi-spec.yaml> [-groups g1,g2] [-pkg path] [-o out.go] [-test-out out_test.go]
+//	osgen api   -spec <openapi-spec.yaml> [-out dir] [-plugins-out dir]
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func main() {
-	specPath := flag.String("spec", "", "path to OpenAPI spec YAML (single combined file)")
-	groups := flag.String("groups", "", "comma-separated x-operation-group names (empty = all)")
-	pkg := flag.String("pkg", "path", "output package name")
-	outFile := flag.String("o", "", "output file for builders (default: stdout)")
-	testFile := flag.String("test-out", "", "output file for tests (empty = no tests)")
-	flag.Parse()
-
-	if *specPath == "" {
-		fmt.Fprintln(os.Stderr, "usage: osgen -spec <openapi-spec.yaml> [-groups group1,group2] [-pkg path] [-o builders.go] [-test-out builders_test.go]")
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "osgen: %v\n", err)
 		os.Exit(1)
 	}
+}
 
-	var filter map[string]bool
-	if *groups != "" {
-		filter = make(map[string]bool)
-		for g := range strings.SplitSeq(*groups, ",") {
-			filter[strings.TrimSpace(g)] = true
-		}
+func run() error {
+	if len(os.Args) < 2 {
+		usage()
+		return nil
 	}
 
-	grouped, err := loadAndGroup(*specPath, filter)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
+	switch os.Args[1] {
+	case "paths":
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+		return runPaths()
+	case "api":
+		os.Args = append(os.Args[:1], os.Args[2:]...)
+		return runAPI()
+	case "-h", "-help", "--help", "help":
+		usage()
+		return nil
+	default:
+		return fmt.Errorf("unknown subcommand %q", os.Args[1])
 	}
+}
 
-	builders := make([]builder, 0, len(grouped))
-	for _, g := range grouped {
-		b, err := analyzeGroup(g)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "skipping %s: %v\n", g.name, err)
-			continue
-		}
-		b.export()
-		builders = append(builders, b)
-	}
+func usage() {
+	fmt.Fprintln(os.Stderr, `Usage: osgen <command> [flags]
 
-	out, err := render(builders, *pkg, true)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "render error: %v\n", err)
-		os.Exit(1)
-	}
+Commands:
+  paths   Generate typed path builder structs from the OpenAPI spec
+  api     Generate API consumer files (Req, Params, Resp) from the OpenAPI spec
 
-	if *outFile != "" {
-		if err := os.WriteFile(*outFile, []byte(out), 0o644); err != nil {
-			fmt.Fprintf(os.Stderr, "writing %s: %v\n", *outFile, err)
-			os.Exit(1)
-		}
-	} else {
-		fmt.Print(out)
-	}
-
-	if *testFile != "" {
-		testOut, err := generateTests(builders, *pkg)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "test generation error: %v\n", err)
-			os.Exit(1)
-		}
-		if err := os.WriteFile(*testFile, []byte(testOut), 0o644); err != nil {
-			fmt.Fprintf(os.Stderr, "writing %s: %v\n", *testFile, err)
-			os.Exit(1)
-		}
-	}
+Run "osgen <command> -help" for command-specific flags.`)
 }

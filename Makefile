@@ -123,7 +123,7 @@ fetch-opensearch-spec:  ## Download the OpenSearch OpenAPI spec (skips if cached
 
 gen: fetch-opensearch-spec  ## Regenerate path builders from OpenAPI spec
 	@printf "\033[2m-> Regenerating path builders...\033[0m\n"
-	cd cmd/osgen && go run . -spec ../../$(OPENAPI_SPEC) -pkg path -o ../../internal/path/builders_gen.go -test-out ../../internal/path/builders_gen_test.go
+	cd cmd/osgen && go run . paths -spec ../../$(OPENAPI_SPEC) -pkg path -o ../../internal/path/builders_gen.go -test-out ../../internal/path/builders_gen_test.go
 
 lint:  ## Run lint on the package
 	@$(MAKE) linters
@@ -355,11 +355,8 @@ cluster.docker-build:
 	@echo "Pre-pulling base image opensearchproject/opensearch:$(OPENSEARCH_VERSION)..."
 	@for attempt in $$(seq 30); do \
 		docker pull opensearchproject/opensearch:$(OPENSEARCH_VERSION) && break; \
-		if [ "$$attempt" -eq 30 ]; then \
-			echo "All 30 pull attempts failed, aborting."; \
-			exit 1; \
-		fi; \
 		echo "Pull attempt $$attempt/30 failed, retrying in 10s..."; \
+		[ "$$attempt" -eq 30 ] && { echo "All 30 pull attempts failed, aborting."; exit 1; }; \
 		sleep 10; \
 	done
 	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \

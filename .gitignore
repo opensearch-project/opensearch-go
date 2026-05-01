@@ -15,4 +15,4 @@ admin.key
 opensearch-openapi.yaml
 
 # Compiled generator binaries
-cmd/gen-paths/gen-paths
+cmd/osgen/osgen

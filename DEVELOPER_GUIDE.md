@@ -399,7 +399,7 @@ rm -f opensearch-openapi.yaml
 make gen
 ```
 
-If new path types appear, create corresponding consumer files in `opensearchapi/` or `plugins/`. See `cmd/osgen/README.md` for detailed generator usage.
+If new path types appear, create corresponding consumer files in `opensearchapi/` or `plugins/`. Run `cd cmd/osgen && go run . paths -help` for generator usage.
 
 ## Lint
 
