@@ -223,12 +223,12 @@ Long-running tasks can be cancelled by task ID:
 
 The OpenSearch server returns different status structures depending on the task type. All status types have been present since OpenSearch 1.0.0.
 
-| Task Type                                 | Call                                      | Status Struct            | Key Fields                                                                |
-| ----------------------------------------- | ----------------------------------------- | ------------------------ | ------------------------------------------------------------------------- |
+| Task Type | Call | Status Struct | Key Fields |
+| --- | --- | --- | --- |
 | reindex, delete_by_query, update_by_query | `ParseTaskStatus[BulkByScrollTaskStatus]` | `BulkByScrollTaskStatus` | total, created, updated, deleted, batches, retries, throttle info, slices |
-| replication (index, delete, bulk shard)   | `ParseTaskStatus[ReplicationTaskStatus]`  | `ReplicationTaskStatus`  | phase                                                                     |
-| primary-replica resync                    | `ParseTaskStatus[ResyncTaskStatus]`       | `ResyncTaskStatus`       | phase, totalOperations, resyncedOperations, skippedOperations             |
-| persistent task executor                  | `ParseTaskStatus[PersistentTaskStatus]`   | `PersistentTaskStatus`   | state                                                                     |
+| replication (index, delete, bulk shard) | `ParseTaskStatus[ReplicationTaskStatus]` | `ReplicationTaskStatus` | phase |
+| primary-replica resync | `ParseTaskStatus[ResyncTaskStatus]` | `ResyncTaskStatus` | phase, totalOperations, resyncedOperations, skippedOperations |
+| persistent task executor | `ParseTaskStatus[PersistentTaskStatus]` | `PersistentTaskStatus` | state |
 
 For any unrecognized task type, the `Status` field remains available as `json.RawMessage` for direct unmarshaling.
 

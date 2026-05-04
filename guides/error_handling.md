@@ -22,13 +22,13 @@ This design maximizes availability but requires careful error checking in client
 
 ### Operations That Can Have Partial Failures
 
-| Operation               | HTTP Status | Partial Failure Indicator | Impact                                    |
-| ----------------------- | ----------- | ------------------------- | ----------------------------------------- |
-| **Bulk**                | 200         | `errors: true`            | Data loss - some documents not indexed    |
-| **Search**              | 200         | `_shards.failed > 0`      | Incomplete results - missing data         |
-| **Index/Update/Delete** | 201/200     | `_shards.failed > 0`      | Durability risk - no replica confirmation |
-| **Refresh**             | 200         | `_shards.failed > 0`      | Incomplete refresh                        |
-| **Cluster operations**  | 200         | `_shards.failed > 0`      | Incomplete stats/operations               |
+| Operation | HTTP Status | Partial Failure Indicator | Impact |
+| --- | --- | --- | --- |
+| **Bulk** | 200 | `errors: true` | Data loss - some documents not indexed |
+| **Search** | 200 | `_shards.failed > 0` | Incomplete results - missing data |
+| **Index/Update/Delete** | 201/200 | `_shards.failed > 0` | Durability risk - no replica confirmation |
+| **Refresh** | 200 | `_shards.failed > 0` | Incomplete refresh |
+| **Cluster operations** | 200 | `_shards.failed > 0` | Incomplete stats/operations |
 
 ## Checking for Partial Failures
 
@@ -341,23 +341,23 @@ func (m *OperationMetrics) Report() {
 
 ### Bulk Operation Errors
 
-| Error Type                          | Description                        | Retryable? | Action                                                                  |
-| ----------------------------------- | ---------------------------------- | ---------- | ----------------------------------------------------------------------- |
-| `mapper_parsing_exception`          | Invalid document format            | No         | Fix document                                                            |
-| `version_conflict_engine_exception` | Version conflict                   | Maybe      | Retry with updated version                                              |
-| `document_missing_exception`        | Document not found (update/delete) | No         | Skip or create                                                          |
-| `es_rejected_execution_exception`   | Queue full                         | Yes        | Retry with backoff                                                      |
-| `circuit_breaking_exception`        | Circuit breaker tripped            | Yes        | Retry with backoff                                                      |
-| `timeout_exception`                 | Operation timeout                  | Yes        | Retry; see [Bulk: Timeout Configuration](bulk.md#timeout-configuration) |
+| Error Type | Description | Retryable? | Action |
+| --- | --- | --- | --- |
+| `mapper_parsing_exception` | Invalid document format | No | Fix document |
+| `version_conflict_engine_exception` | Version conflict | Maybe | Retry with updated version |
+| `document_missing_exception` | Document not found (update/delete) | No | Skip or create |
+| `es_rejected_execution_exception` | Queue full | Yes | Retry with backoff |
+| `circuit_breaking_exception` | Circuit breaker tripped | Yes | Retry with backoff |
+| `timeout_exception` | Operation timeout | Yes | Retry; see [Bulk: Timeout Configuration](bulk.md#timeout-configuration) |
 
 ### Shard Failure Reasons
 
-| Reason Type                        | Description           | Action               |
-| ---------------------------------- | --------------------- | -------------------- |
-| `shard_not_available_exception`    | Shard not ready       | Retry or wait        |
+| Reason Type | Description | Action |
+| --- | --- | --- |
+| `shard_not_available_exception` | Shard not ready | Retry or wait |
 | `primary_missing_action_exception` | Primary shard missing | Check cluster health |
-| `search_phase_execution_exception` | Search phase failed   | Review query         |
-| `illegal_argument_exception`       | Invalid parameters    | Fix query            |
+| `search_phase_execution_exception` | Search phase failed | Review query |
+| `illegal_argument_exception` | Invalid parameters | Fix query |
 
 ## Complete Example: Production-Ready Bulk Indexer
 
