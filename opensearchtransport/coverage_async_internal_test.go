@@ -68,7 +68,7 @@ func TestHealthCheckWithRetries(t *testing.T) {
 			healthCheckTimeout: 100 * time.Millisecond,
 			healthCheckJitter:  0,
 			transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				return &http.Response{StatusCode: 200, Body: validHealthCheckBody()}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: validHealthCheckBody()}, nil
 			}),
 		}
 
@@ -111,15 +111,14 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 	t.Run("invokes health check", func(t *testing.T) {
 		t.Parallel()
 		var checked atomic.Int32
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		ctx := t.Context()
 
 		c := &Client{
 			ctx:                     ctx,
 			resurrectTimeoutInitial: time.Millisecond,
 			healthCheck: func(ctx context.Context, conn *Connection, u *url.URL) (*http.Response, error) {
 				checked.Add(1)
-				return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 			},
 		}
 
@@ -134,15 +133,14 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 	t.Run("throttles repeated calls", func(t *testing.T) {
 		t.Parallel()
 		var checked atomic.Int32
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		ctx := t.Context()
 
 		c := &Client{
 			ctx:                     ctx,
 			resurrectTimeoutInitial: 5 * time.Second, // long throttle
 			healthCheck: func(ctx context.Context, conn *Connection, u *url.URL) (*http.Response, error) {
 				checked.Add(1)
-				return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 			},
 		}
 
@@ -299,8 +297,8 @@ func TestPolicyChainSetEnvOverride(t *testing.T) {
 	chain := &PolicyChain{policies: []Policy{NewNullPolicy()}}
 
 	chain.setEnvOverride(false)
-	require.True(t, chain.policyState.Load()&psEnvDisabled != 0)
+	require.NotEqual(t, 0, chain.policyState.Load()&psEnvDisabled)
 
 	chain.setEnvOverride(true)
-	require.True(t, chain.policyState.Load()&psEnvEnabled != 0)
+	require.NotEqual(t, 0, chain.policyState.Load()&psEnvEnabled)
 }
