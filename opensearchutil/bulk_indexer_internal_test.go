@@ -708,7 +708,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				}}})
 				flushIndex := testutil.MustUniqueString(t, "test-flush")
 
-				var flushEndCalled bool
+				var flushEndCalled atomic.Bool
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					Client: client,
 					Index:  flushIndex,
@@ -717,7 +717,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					},
 					OnFlushEnd: func(ctx context.Context) {
 						if v, ok := ctx.Value(contextKey("flushing")).(bool); ok && v {
-							flushEndCalled = true
+							flushEndCalled.Store(true)
 						}
 					},
 				})
@@ -729,7 +729,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.NoError(t, bi.Close(context.Background()))
 
 				require.Equal(t, uint64(1), bi.Stats().NumAdded, "NumAdded")
-				require.True(t, flushEndCalled, "OnFlushEnd should have been called with the context from OnFlushStart")
+				require.True(t, flushEndCalled.Load(), "OnFlushEnd should have been called with the context from OnFlushStart")
 			},
 		},
 		{
