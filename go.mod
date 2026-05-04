@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
 	github.com/stretchr/testify v1.11.1
 	github.com/wI2L/jsondiff v0.7.0
-	golang.org/x/mod v0.33.0
+	golang.org/x/mod v0.35.0
 	golang.org/x/sync v0.20.0
 )
 

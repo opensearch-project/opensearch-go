@@ -184,6 +184,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Bump golangci-lint from v2.11.2 to v2.11.4
 - Bump `golang.org/x/sync` from v0.19.0 to v0.20.0 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `golang.org/x/mod` from v0.33.0 to v0.35.0 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.7 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767))
 
 ## [4.6.0]
