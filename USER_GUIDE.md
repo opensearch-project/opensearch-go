@@ -517,6 +517,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 - [Advanced Index Actions](guides/advanced_index_actions.md)
 - [Index Templates](guides/index_template.md)
 - [Data Streams](guides/data_streams.md)
+- [Making Raw JSON REST Requests](guides/json.md)
 - [Request Routing](guides/routing.md)
 - [Cluster Health Checking](guides/cluster_health_checking.md)
 - [Node Discovery and Role Management](guides/node_discovery_and_roles.md)

@@ -30,7 +30,7 @@ func (c mappingClient) Get(ctx context.Context, req *MappingGetReq) (*MappingGet
 		data MappingGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -43,7 +43,7 @@ func (c mappingClient) Put(ctx context.Context, req MappingPutReq) (*MappingPutR
 		data MappingPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -60,7 +60,7 @@ func (c mappingClient) Field(ctx context.Context, req *MappingFieldReq) (*Mappin
 		data MappingFieldResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

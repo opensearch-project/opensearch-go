@@ -25,7 +25,7 @@ func (c Client) Explain(ctx context.Context, req *ExplainReq) (ExplainResp, erro
 		data ExplainResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 

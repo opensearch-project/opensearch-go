@@ -25,7 +25,7 @@ func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*Search
 		data SearchShardsResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

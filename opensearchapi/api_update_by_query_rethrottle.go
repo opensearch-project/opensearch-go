@@ -21,7 +21,7 @@ func (c Client) UpdateByQueryRethrottle(ctx context.Context, req UpdateByQueryRe
 		data UpdateByQueryRethrottleResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

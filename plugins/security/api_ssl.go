@@ -24,7 +24,7 @@ func (c sslClient) Get(ctx context.Context, req *SSLGetReq) (SSLGetResp, error) 
 		data SSLGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -41,7 +41,7 @@ func (c sslClient) HTTPReload(ctx context.Context, req *SSLHTTPReloadReq) (SSLHT
 		data SSLHTTPReloadResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -58,7 +58,7 @@ func (c sslClient) TransportReload(ctx context.Context, req *SSLTransportReloadR
 		data SSLTransportReloadResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

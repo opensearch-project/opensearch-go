@@ -19,7 +19,7 @@ func (c snapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*Sna
 		data SnapshotCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -32,7 +32,7 @@ func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*Sna
 		data SnapshotDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -45,7 +45,7 @@ func (c snapshotClient) Get(ctx context.Context, req SnapshotGetReq) (*SnapshotG
 		data SnapshotGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -58,7 +58,7 @@ func (c snapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*Snaps
 		data SnapshotCloneResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -71,7 +71,7 @@ func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*S
 		data SnapshotRestoreResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -84,7 +84,7 @@ func (c snapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*Sna
 		data SnapshotStatusResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

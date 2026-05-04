@@ -25,7 +25,7 @@ func (c indicesClient) Delete(ctx context.Context, req IndicesDeleteReq) (*Indic
 		data IndicesDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -38,7 +38,7 @@ func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*Indic
 		data IndicesCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -47,7 +47,7 @@ func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*Indic
 
 // Exists executes a exists indices request with the required IndicesExistsReq
 func (c indicesClient) Exists(ctx context.Context, req IndicesExistsReq) (*opensearch.Response, error) {
-	return c.apiClient.do(ctx, req, nil)
+	return doRequest(ctx, c.apiClient, req)
 }
 
 // Block executes a /<index>/_block request with the required IndicesBlockReq
@@ -56,7 +56,7 @@ func (c indicesClient) Block(ctx context.Context, req IndicesBlockReq) (*Indices
 		data IndicesBlockResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -69,7 +69,7 @@ func (c indicesClient) Analyze(ctx context.Context, req IndicesAnalyzeReq) (*Ind
 		data IndicesAnalyzeResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -86,7 +86,7 @@ func (c indicesClient) ClearCache(ctx context.Context, req *IndicesClearCacheReq
 		data IndicesClearCacheResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -99,7 +99,7 @@ func (c indicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*Indices
 		data IndicesCloneResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -112,7 +112,7 @@ func (c indicesClient) Close(ctx context.Context, req IndicesCloseReq) (*Indices
 		data IndicesCloseResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -126,7 +126,7 @@ func (c indicesClient) Get(ctx context.Context, req IndicesGetReq) (*IndicesGetR
 		err  error
 	)
 	data.IndicesGetRespData = &IndicesGetRespData{}
-	if data.response, err = c.apiClient.do(ctx, req, data.IndicesGetRespData); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, data.IndicesGetRespData); err != nil {
 		return &data, err
 	}
 
@@ -139,7 +139,7 @@ func (c indicesClient) Open(ctx context.Context, req IndicesOpenReq) (*IndicesOp
 		data IndicesOpenResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -152,7 +152,7 @@ func (c indicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*Indic
 		data IndicesShrinkResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -165,7 +165,7 @@ func (c indicesClient) Split(ctx context.Context, req IndicesSplitReq) (*Indices
 		data IndicesSplitResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -182,7 +182,7 @@ func (c indicesClient) Flush(ctx context.Context, req *IndicesFlushReq) (*Indice
 		data IndicesFlushResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -199,7 +199,7 @@ func (c indicesClient) Forcemerge(ctx context.Context, req *IndicesForcemergeReq
 		data IndicesForcemergeResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -216,7 +216,7 @@ func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*
 		data IndicesRecoveryResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -233,7 +233,7 @@ func (c indicesClient) Refresh(ctx context.Context, req *IndicesRefreshReq) (*In
 		data IndicesRefreshResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -246,7 +246,7 @@ func (c indicesClient) Rollover(ctx context.Context, req IndicesRolloverReq) (*I
 		data IndicesRolloverResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -263,7 +263,7 @@ func (c indicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*
 		data IndicesSegmentsResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -280,7 +280,7 @@ func (c indicesClient) ShardStores(ctx context.Context, req *IndicesShardStoresR
 		data IndicesShardStoresResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -297,7 +297,7 @@ func (c indicesClient) Stats(ctx context.Context, req *IndicesStatsReq) (*Indice
 		data IndicesStatsResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -310,7 +310,7 @@ func (c indicesClient) ValidateQuery(ctx context.Context, req IndicesValidateQue
 		data IndicesValidateQueryResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -327,7 +327,7 @@ func (c indicesClient) Count(ctx context.Context, req *IndicesCountReq) (*Indice
 		data IndicesCountResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -340,7 +340,7 @@ func (c indicesClient) FieldCaps(ctx context.Context, req IndicesFieldCapsReq) (
 		data IndicesFieldCapsResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -353,7 +353,7 @@ func (c indicesClient) Resolve(ctx context.Context, req IndicesResolveReq) (*Ind
 		data IndicesResolveResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

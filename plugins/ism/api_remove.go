@@ -20,7 +20,7 @@ func (c Client) Remove(ctx context.Context, req RemoveReq) (RemoveResp, error) {
 		data RemoveResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 

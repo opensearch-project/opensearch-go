@@ -21,7 +21,7 @@ func (c documentClient) Create(ctx context.Context, req DocumentCreateReq) (*Doc
 		data DocumentCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -34,7 +34,7 @@ func (c documentClient) Delete(ctx context.Context, req DocumentDeleteReq) (*Doc
 		data DocumentDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -47,7 +47,7 @@ func (c documentClient) DeleteByQuery(ctx context.Context, req DocumentDeleteByQ
 		data DocumentDeleteByQueryResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -63,7 +63,7 @@ func (c documentClient) DeleteByQueryRethrottle(
 		data DocumentDeleteByQueryRethrottleResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -72,12 +72,12 @@ func (c documentClient) DeleteByQueryRethrottle(
 
 // Exists executes a exists document request with the required DocumentExistsReq
 func (c documentClient) Exists(ctx context.Context, req DocumentExistsReq) (*opensearch.Response, error) {
-	return c.apiClient.do(ctx, req, nil)
+	return doRequest(ctx, c.apiClient, req)
 }
 
 // ExistsSource executes a exists source request with the required DocumentExistsSourceReq
 func (c documentClient) ExistsSource(ctx context.Context, req DocumentExistsSourceReq) (*opensearch.Response, error) {
-	return c.apiClient.do(ctx, req, nil)
+	return doRequest(ctx, c.apiClient, req)
 }
 
 // Explain executes an explain document request with the required DocumentExplainReq
@@ -86,7 +86,7 @@ func (c documentClient) Explain(ctx context.Context, req DocumentExplainReq) (*D
 		data DocumentExplainResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -99,7 +99,7 @@ func (c documentClient) Get(ctx context.Context, req DocumentGetReq) (*DocumentG
 		data DocumentGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -112,7 +112,7 @@ func (c documentClient) Source(ctx context.Context, req DocumentSourceReq) (*Doc
 		data DocumentSourceResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Source); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.Source); err != nil {
 		return &data, err
 	}
 

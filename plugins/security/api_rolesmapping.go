@@ -24,7 +24,7 @@ func (c rolesmappingClient) Get(ctx context.Context, req *RolesMappingGetReq) (R
 		data RolesMappingGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.RolesMapping); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.RolesMapping); err != nil {
 		return data, err
 	}
 
@@ -37,7 +37,7 @@ func (c rolesmappingClient) Put(ctx context.Context, req RolesMappingPutReq) (Ro
 		data RolesMappingPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -50,7 +50,7 @@ func (c rolesmappingClient) Delete(ctx context.Context, req RolesMappingDeleteRe
 		data RolesMappingDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -63,7 +63,7 @@ func (c rolesmappingClient) Patch(ctx context.Context, req RolesMappingPatchReq)
 		data RolesMappingPatchResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

@@ -24,7 +24,7 @@ func (c accountClient) Get(ctx context.Context, req *AccountGetReq) (AccountGetR
 		data AccountGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 
@@ -37,7 +37,7 @@ func (c accountClient) Put(ctx context.Context, req AccountPutReq) (AccountPutRe
 		data AccountPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return data, err
 	}
 

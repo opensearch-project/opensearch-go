@@ -23,7 +23,7 @@ func (c Client) FlushCache(ctx context.Context, req *FlushCacheReq) (FlushCacheR
 		data FlushCacheResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return data, err
 	}
 
