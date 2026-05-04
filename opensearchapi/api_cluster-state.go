@@ -25,28 +25,14 @@ type ClusterStateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ClusterStateReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	metrics := strings.Join(r.Metrics, ",")
-
-	var path strings.Builder
-	path.Grow(17 + len(indices) + len(metrics))
-	path.WriteString("/_cluster/state")
-	if len(metrics) > 0 {
-		path.WriteString("/")
-		path.WriteString(metrics)
-		if len(indices) > 0 {
-			path.WriteString("/")
-			path.WriteString(indices)
-		}
+	path, err := opensearch.ClusterStatePath{
+		Metrics: opensearch.Metrics(strings.Join(r.Metrics, ",")),
+		Indices: opensearch.ToIndices(r.Indices),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // ClusterStateResp represents the returned struct of the ClusterStateReq response

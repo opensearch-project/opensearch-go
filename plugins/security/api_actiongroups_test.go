@@ -121,7 +121,7 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Put(t.Context(), security.ActionGroupsPutReq{})
+						return failingClient.ActionGroups.Put(t.Context(), security.ActionGroupsPutReq{ActionGroup: "test"})
 					},
 				},
 			},
@@ -138,7 +138,7 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Delete(t.Context(), security.ActionGroupsDeleteReq{})
+						return failingClient.ActionGroups.Delete(t.Context(), security.ActionGroupsDeleteReq{ActionGroup: "test"})
 					},
 				},
 			},

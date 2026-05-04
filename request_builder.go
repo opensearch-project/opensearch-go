@@ -30,9 +30,9 @@ const (
 	headerContentType = "Content-Type"
 )
 
-// BuildRequest is a helper function to build a http.Request
+// BuildRequest is a helper function to build an [http.Request].
 func BuildRequest(method string, path string, body io.Reader, params map[string]string, headers http.Header) (*http.Request, error) {
-	//nolint:noctx // ctx gets appended when the requests gets executet
+	//nolint:noctx // ctx gets appended when the request gets executed
 	httpReq, err := http.NewRequest(method, path, body)
 	if err != nil {
 		return nil, err

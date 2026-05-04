@@ -258,7 +258,7 @@ func TestPoliciesClient(t *testing.T) {
 					Name: "inspect",
 					Results: func(t *testing.T) (osismtest.Response, error) {
 						t.Helper()
-						return failingClient.Policies.Put(t.Context(), ism.PoliciesPutReq{})
+						return failingClient.Policies.Put(t.Context(), ism.PoliciesPutReq{Policy: "test"})
 					},
 				},
 			},
@@ -303,7 +303,7 @@ func TestPoliciesClient(t *testing.T) {
 					Name: "inspect",
 					Results: func(t *testing.T) (osismtest.Response, error) {
 						t.Helper()
-						return failingClient.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{})
+						return failingClient.Policies.Delete(t.Context(), ism.PoliciesDeleteReq{Policy: "test"})
 					},
 				},
 			},

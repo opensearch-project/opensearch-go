@@ -23,22 +23,11 @@ type IndicesForcemergeReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesForcemergeReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(len("//_forcemerge") + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_forcemerge"}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_forcemerge")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesForcemergeResp represents the returned struct of the flush indices response

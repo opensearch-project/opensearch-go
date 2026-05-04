@@ -25,38 +25,16 @@ type NodesStatsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r NodesStatsReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-
-	path.Grow(13 + len(strings.Join(r.NodeID, ",")) + 1 + len(strings.Join(r.Metric, ",")) + 1 + len(strings.Join(r.IndexMetric, ",")))
-
-	path.WriteString("/")
-	path.WriteString("_nodes")
-
-	if len(r.NodeID) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.NodeID, ","))
+	path, err := opensearch.NodesPath{
+		NodeID:      opensearch.NodeID(strings.Join(r.NodeID, ",")),
+		Action:      "stats",
+		Metric:      opensearch.Metric(strings.Join(r.Metric, ",")),
+		IndexMetric: opensearch.IndexMetric(strings.Join(r.IndexMetric, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	path.WriteString("/")
-	path.WriteString("stats")
-
-	if len(r.Metric) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.Metric, ","))
-	}
-
-	if len(r.IndexMetric) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.IndexMetric, ","))
-	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // NodesStatsResp represents the returned struct of the /_nodes response

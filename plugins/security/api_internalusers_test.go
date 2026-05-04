@@ -63,7 +63,7 @@ func TestSecurityInternalUsersClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.InternalUsers.Put(t.Context(), security.InternalUsersPutReq{})
+						return failingClient.InternalUsers.Put(t.Context(), security.InternalUsersPutReq{User: "test"})
 					},
 				},
 			},

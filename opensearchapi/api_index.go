@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -39,23 +38,31 @@ type IndexReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndexReq) GetRequest() (*http.Request, error) {
-	var method, path string
+	var (
+		method string
+		path   string
+		err    error
+	)
 
 	if r.DocumentID != "" {
-		method = "PUT"
-		path = fmt.Sprintf("/%s/_doc/%s", r.Index, r.DocumentID)
+		method = http.MethodPut
+		path, err = opensearch.DocumentPath{
+			Index:      opensearch.Index(r.Index),
+			Action:     "_doc",
+			DocumentID: opensearch.DocumentID(r.DocumentID),
+		}.Build()
 	} else {
-		method = "POST"
-		path = fmt.Sprintf("/%s/_doc", r.Index)
+		method = http.MethodPost
+		path, err = opensearch.IndexActionPath{
+			Index:  opensearch.Index(r.Index),
+			Action: "_doc",
+		}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		method,
-		path,
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // IndexResp represents the returned struct of the /_doc response

@@ -64,7 +64,7 @@ func TestUpdateByQuery(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.UpdateByQuery(t.Context(), opensearchapi.UpdateByQueryReq{})
+		res, err := failingClient.UpdateByQuery(t.Context(), opensearchapi.UpdateByQueryReq{Indices: []string{"test"}})
 		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

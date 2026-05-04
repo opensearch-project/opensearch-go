@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -23,13 +22,11 @@ type IndicesCloseReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesCloseReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/%s/_close", r.Index),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndexActionPath{Index: opensearch.Index(r.Index), Action: "_close"}.Build()
+	if err != nil {
+		return nil, err
+	}
+	return opensearch.BuildRequest(http.MethodPost, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesCloseResp represents the returned struct of the index close response

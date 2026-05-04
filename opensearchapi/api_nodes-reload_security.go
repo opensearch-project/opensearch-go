@@ -26,26 +26,14 @@ type NodesReloadSecurityReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r NodesReloadSecurityReq) GetRequest() (*http.Request, error) {
-	nodes := strings.Join(r.NodeID, ",")
-
-	var path strings.Builder
-
-	path.Grow(len("/_nodes//reload_secure_settings") + len(nodes))
-
-	path.WriteString("/_nodes")
-	if len(r.NodeID) > 0 {
-		path.WriteString("/")
-		path.WriteString(nodes)
+	path, err := opensearch.NodesPath{
+		NodeID: opensearch.NodeID(strings.Join(r.NodeID, ",")),
+		Action: "reload_secure_settings",
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/reload_secure_settings")
-
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // NodesReloadSecurityResp represents the returned struct of the /_nodes response

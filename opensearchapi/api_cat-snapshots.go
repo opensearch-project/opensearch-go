@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -22,13 +21,12 @@ type CatSnapshotsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r CatSnapshotsReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
-		fmt.Sprintf("%s%s", "/_cat/snapshots/", r.Repository),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourceActionPath{Prefix: "_cat", Name: "snapshots", Action: opensearch.Action(r.Repository)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // CatSnapshotsResp represents the returned struct of the /_cat/snapshots response

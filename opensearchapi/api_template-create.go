@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -26,13 +25,12 @@ type TemplateCreateReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r TemplateCreateReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_template/%s", r.Template),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.ResourcePath{Prefix: "_template", Name: opensearch.Name(r.Template)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, r.Body, r.Params.get(), r.Header)
 }
 
 // TemplateCreateResp represents the returned struct of the index create response

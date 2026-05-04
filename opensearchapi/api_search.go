@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -45,15 +44,13 @@ type SearchReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SearchReq) GetRequest() (*http.Request, error) {
-	var path string
-	if len(r.Indices) > 0 {
-		path = fmt.Sprintf("/%s/_search", strings.Join(r.Indices, ","))
-	} else {
-		path = "/_search"
+	path, err := opensearch.PrefixActionPath{Prefix: opensearch.Prefix(strings.Join(r.Indices, ",")), Action: "_search"}.Build()
+	if err != nil {
+		return nil, err
 	}
 
 	return opensearch.BuildRequest(
-		"POST",
+		http.MethodPost,
 		path,
 		r.Body,
 		r.Params.get(),

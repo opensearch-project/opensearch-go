@@ -8,10 +8,8 @@ package opensearchapi
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -41,13 +39,12 @@ type UpdateByQueryReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r UpdateByQueryReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/%s/_update_by_query", strings.Join(r.Indices, ",")),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.IndicesActionPath{Indices: opensearch.ToIndices(r.Indices), Action: "_update_by_query"}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // UpdateByQueryResp represents the returned struct of the /_update_by_query response

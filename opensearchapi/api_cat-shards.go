@@ -22,21 +22,11 @@ type CatShardsReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r CatShardsReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("/_cat/shards/") + len(indices))
-	path.WriteString("/_cat/shards")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+	path, err := opensearch.ActionSuffixPath{Action: "_cat/shards", Suffix: opensearch.Suffix(strings.Join(r.Indices, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // CatShardsResp represents the returned struct of the /_cat/shards response

@@ -9,7 +9,6 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -30,13 +29,12 @@ func (r NodesDNPutReq) GetRequest() (*http.Request, error) {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/nodesdn/%s", r.Cluster),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := opensearch.PluginResourcePath{Plugin: "_security", Resource: "nodesdn", Name: opensearch.Name(r.Cluster)}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPut, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // NodesDNPutBody reperensts the request body for NodesDNPutReq

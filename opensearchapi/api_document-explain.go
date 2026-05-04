@@ -7,7 +7,6 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
@@ -27,13 +26,16 @@ type DocumentExplainReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DocumentExplainReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/%s/_explain/%s", r.Index, r.DocumentID),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.DocumentPath{
+		Index:      opensearch.Index(r.Index),
+		Action:     "_explain",
+		DocumentID: opensearch.DocumentID(r.DocumentID),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodPost, path, r.Body, r.Params.get(), r.Header)
 }
 
 // DocumentExplainResp represents the returned struct of the /<Index>/_explain/<DocumentID> response

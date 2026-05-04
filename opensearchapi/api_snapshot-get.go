@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -29,13 +28,15 @@ type SnapshotGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r SnapshotGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
-		fmt.Sprintf("/_snapshot/%s/%s", r.Repo, strings.Join(r.Snapshots, ",")),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	path, err := opensearch.SnapshotPath{
+		Repo:     opensearch.Repo(r.Repo),
+		Snapshot: opensearch.Snapshot(strings.Join(r.Snapshots, ",")),
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return opensearch.BuildRequest(http.MethodGet, path, r.Body, r.Params.get(), r.Header)
 }
 
 // SnapshotGetResp represents the returned struct of the index create response

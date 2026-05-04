@@ -23,23 +23,11 @@ type DataStreamGetReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r DataStreamGetReq) GetRequest() (*http.Request, error) {
-	dataStreams := strings.Join(r.DataStreams, ",")
-
-	var path strings.Builder
-	path.Grow(len("/_data_stream/") + len(dataStreams))
-	path.WriteString("/_data_stream")
-	if len(r.DataStreams) > 0 {
-		path.WriteString("/")
-		path.WriteString(dataStreams)
+	path, err := opensearch.ActionSuffixPath{Action: "_data_stream", Suffix: opensearch.Suffix(strings.Join(r.DataStreams, ","))}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodGet, path, nil, r.Params.get(), r.Header)
 }
 
 // DataStreamGetResp represents the returned struct of the _data_stream get response

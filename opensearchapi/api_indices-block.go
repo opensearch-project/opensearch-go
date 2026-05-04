@@ -8,7 +8,6 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -24,21 +23,12 @@ type IndicesBlockReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r IndicesBlockReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
+	path, err := opensearch.IndicesBlockPath{Indices: opensearch.ToIndices(r.Indices), Block: opensearch.Block(r.Block)}.Build()
+	if err != nil {
+		return nil, err
+	}
 
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(r.Block))
-	path.WriteString("/")
-	path.WriteString(indices)
-	path.WriteString("/_block/")
-	path.WriteString(r.Block)
-	return opensearch.BuildRequest(
-		"PUT",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return opensearch.BuildRequest(http.MethodPut, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesBlockResp represents the returned struct of the index create response
