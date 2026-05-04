@@ -181,8 +181,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Security
 
 ### Dependencies
-
 - Bump golangci-lint from v2.11.2 to v2.11.4
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.7 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767))
+- Bump `golang.org/x/sync` from 0.19.0 to 0.20.0 ([#806](https://github.com/opensearch-project/opensearch-go/pull/806))
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.7 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767))
 
 ## [4.6.0]
