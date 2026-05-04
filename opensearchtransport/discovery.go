@@ -37,10 +37,14 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/semaphore"
 )
 
 // errDiscoveryEmpty is returned by getNodesInfo when the /_nodes response
@@ -221,7 +225,8 @@ type nodeInfo struct {
 	ThreadPool map[string]nodeInfoThreadPool `json:"thread_pool,omitempty"`
 
 	// Internal fields (not part of JSON)
-	roleSet roleSet
+	roleSet   roleSet
+	rewritten bool // true when AddressResolverFunc rewrote the URL
 }
 
 // _NodesMeta is the "_nodes" metadata envelope returned by all
@@ -460,6 +465,7 @@ func (c *Client) createConnection(node nodeInfo) *Connection {
 		Name:       node.Name,
 		Roles:      node.roleSet,
 		Attributes: node.Attributes,
+		Rewritten:  node.rewritten,
 	}
 	conn.estLoad.clock = realClock{}
 	conn.weight.Store(1)
@@ -1108,15 +1114,39 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		}
 	}
 
-	out := make([]nodeInfo, len(nodes))
-	idx := 0
+	out := make([]nodeInfo, 0, len(nodes))
 
+	// Compute default URLs for all nodes (sequential, cheap string parsing).
+	pending := make([]discoveryPendingNode, 0, len(nodes))
 	for id, node := range nodes {
 		node.ID = id
 		u := c.getNodeURL(node, scheme)
-		node.url = u
-		out[idx] = node
-		idx++
+		pending = append(pending, discoveryPendingNode{node: node, defaultURL: u})
+	}
+
+	switch {
+	case c.addressResolverRunner != nil:
+		// Custom runner: wraps the per-node resolver with metrics, delegates
+		// concurrency and failure policy to the user-supplied runner.
+		resolved, err := c.runAddressResolverRunner(ctx, pending)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, resolved...)
+	case c.addressResolver != nil:
+		// Built-in handler: semaphore-bounded parallel fan-out with partial
+		// failure tolerance.
+		resolved, err := c.resolveDiscoveredNodes(ctx, pending)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, resolved...)
+	default:
+		// Fast path: no resolver, assign default URLs directly.
+		for _, p := range pending {
+			p.node.url = p.defaultURL
+			out = append(out, p.node)
+		}
 	}
 
 	// Report connection success to the pool.
@@ -1125,6 +1155,237 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	c.mu.RUnlock()
 	if pool != nil {
 		pool.OnSuccess(conn)
+	}
+
+	return out, nil
+}
+
+// discoveryPendingNode pairs a discovered nodeInfo with its default URL
+// (computed by getNodeURL from the server's publish_address).
+type discoveryPendingNode struct {
+	node       nodeInfo
+	defaultURL *url.URL
+}
+
+// resolvedNode holds the result of a single AddressResolverFunc invocation.
+type resolvedNode struct {
+	node nodeInfo
+	err  error // non-nil when the resolver returned an error
+}
+
+// resolveDiscoveredNodes is the built-in resolution handler. It invokes the
+// configured AddressResolverFunc for each discovered node, bounded by
+// maxAddressResolvers concurrency.
+//
+// Protocol: partial failures are tolerated — nodes whose resolver returned
+// (nil, error) are dropped, but all other nodes are kept. Only when every
+// node fails (zero usable results) does this method return an error
+// (errors.Join of all resolver errors). This protocol is specific to the
+// built-in handler; a future abstraction could let users control partial
+// failure behavior.
+func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
+	results := make([]resolvedNode, len(pending))
+
+	var sem *semaphore.Weighted
+	switch {
+	case c.maxAddressResolvers == 0:
+		sem = semaphore.NewWeighted(int64(min(len(pending), runtime.GOMAXPROCS(0))))
+	case c.maxAddressResolvers > 0:
+		sem = semaphore.NewWeighted(int64(c.maxAddressResolvers))
+	default:
+		// <0: unlimited, no semaphore
+	}
+
+	obs := observerFromAtomic(&c.observer)
+
+	var wg sync.WaitGroup
+	for i, p := range pending {
+		if sem != nil {
+			// If the context is cancelled, Acquire returns an error. In that
+			// case we stop launching new goroutines and let already-running
+			// ones finish naturally via the WaitGroup.
+			if err := sem.Acquire(ctx, 1); err != nil {
+				break
+			}
+		}
+		wg.Add(1)
+		go func(i int, p discoveryPendingNode) {
+			defer func() {
+				wg.Done()
+				if sem != nil {
+					sem.Release(1)
+				}
+			}()
+
+			if c.metrics != nil {
+				c.metrics.addressResolverCalls.Add(1)
+			}
+
+			info := NodeInfo{
+				ID:             p.node.ID,
+				Name:           p.node.Name,
+				Roles:          p.node.Roles,
+				Attributes:     p.node.Attributes,
+				PublishAddress: p.node.HTTP.PublishAddress,
+				URL:            p.defaultURL,
+			}
+
+			resolved, err := c.addressResolver(ctx, info)
+			if err != nil {
+				if c.metrics != nil {
+					c.metrics.addressResolverErrors.Add(1)
+				}
+				if dl := loadDebugLogger(); dl != nil {
+					dl.Logf("AddressResolver error for node %q (%q): %v\n",
+						p.node.Name, p.defaultURL, err)
+				}
+			}
+
+			// Protocol: nil URL means skip adding this node to the client;
+			// non-nil URL is used even when an error is also returned.
+			if resolved == nil && err != nil {
+				results[i] = resolvedNode{err: err}
+				return
+			}
+
+			node := p.node
+			node.url = c.applyRewrite(&node, p.defaultURL, resolved, obs)
+			results[i] = resolvedNode{node: node}
+		}(i, p)
+	}
+	wg.Wait()
+
+	// Collect successful results. If all nodes failed, return a combined error.
+	out := make([]nodeInfo, 0, len(results))
+	var errs []error
+	for _, r := range results {
+		if r.err != nil {
+			errs = append(errs, r.err)
+			continue
+		}
+		if r.node.url != nil {
+			out = append(out, r.node)
+		}
+	}
+
+	if len(out) == 0 && len(errs) > 0 {
+		return nil, fmt.Errorf("%w: %w", ErrAllResolversFailed, errors.Join(errs...))
+	}
+
+	if len(out) == 0 && len(pending) > 0 {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		return nil, ErrAllResolversFailed
+	}
+
+	return out, nil
+}
+
+// applyRewrite checks whether resolved differs from defaultURL and, when it
+// does, marks the node as rewritten, increments the rewrite metric, and fires
+// the OnAddressRewrite observer event. Returns the URL to use for the node.
+func (c *Client) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
+	if resolved == nil || resolved.String() == defaultURL.String() {
+		return defaultURL
+	}
+
+	node.rewritten = true
+
+	if c.metrics != nil {
+		c.metrics.addressResolverRewrites.Add(1)
+	}
+
+	if obs != nil {
+		obs.OnAddressRewrite(AddressRewriteEvent{
+			ID:           node.ID,
+			Name:         node.Name,
+			Roles:        node.Roles,
+			OriginalURL:  defaultURL.String(),
+			RewrittenURL: resolved.String(),
+			Timestamp:    time.Now().UTC(),
+		})
+	}
+
+	return resolved
+}
+
+// newInstrumentedResolver wraps an AddressResolverFunc with metrics
+// instrumentation. Each invocation increments addressResolverCalls, and
+// non-nil errors increment addressResolverErrors and emit a debug log.
+// Returns nil when resolve is nil.
+func newInstrumentedResolver(resolve AddressResolverFunc, m *metrics) AddressResolverFunc {
+	if resolve == nil {
+		return nil
+	}
+	return func(ctx context.Context, node NodeInfo) (*url.URL, error) {
+		if m != nil {
+			m.addressResolverCalls.Add(1)
+		}
+		u, err := resolve(ctx, node)
+		if err != nil {
+			if m != nil {
+				m.addressResolverErrors.Add(1)
+			}
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("AddressResolver error for node %q (%q): %v\n",
+					node.Name, node.URL, err)
+			}
+		}
+		return u, err
+	}
+}
+
+// runAddressResolverRunner bridges the internal discovery types and the
+// exported AddressResolverRunnerFunc. It builds []NodeInfo from the pending
+// nodes, wraps the per-node AddressResolverFunc with metrics instrumentation,
+// invokes the runner, then converts results back to []nodeInfo while handling
+// rewrite detection, metrics, and observer events.
+func (c *Client) runAddressResolverRunner(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
+	nodeInfos := make([]NodeInfo, len(pending))
+	byID := make(map[string]discoveryPendingNode, len(pending))
+	for i, p := range pending {
+		nodeInfos[i] = NodeInfo{
+			ID:             p.node.ID,
+			Name:           p.node.Name,
+			Roles:          p.node.Roles,
+			Attributes:     p.node.Attributes,
+			PublishAddress: p.node.HTTP.PublishAddress,
+			URL:            p.defaultURL,
+		}
+		byID[p.node.ID] = p
+	}
+
+	// Wrap the user's per-node resolver with metrics instrumentation so
+	// that call and error counters fire on every invocation regardless of
+	// how the runner orchestrates calls.
+	instrumentedResolver := newInstrumentedResolver(c.addressResolver, c.metrics)
+
+	results, err := c.addressResolverRunner(ctx, nodeInfos, instrumentedResolver)
+	if err != nil {
+		return nil, fmt.Errorf("address resolver runner: %w", err)
+	}
+
+	obs := observerFromAtomic(&c.observer)
+
+	out := make([]nodeInfo, 0, len(results))
+	for _, ra := range results {
+		if ra.URL == nil {
+			continue
+		}
+
+		p, ok := byID[ra.Node.ID]
+		if !ok {
+			continue
+		}
+
+		node := p.node
+		node.url = c.applyRewrite(&node, p.defaultURL, ra.URL, obs)
+		out = append(out, node)
+	}
+
+	if len(out) == 0 && len(pending) > 0 {
+		return nil, ErrAllResolversFailed
 	}
 
 	return out, nil
