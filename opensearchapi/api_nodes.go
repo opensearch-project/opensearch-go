@@ -55,7 +55,7 @@ func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*
 	if req == nil {
 		req = &NodesHotThreadsReq{}
 	}
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // ReloadSecurity executes a /_nodes/reload_secure_settings request with the optional NodesReloadSecurityReq

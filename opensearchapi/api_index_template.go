@@ -61,7 +61,7 @@ func (c indexTemplateClient) Get(ctx context.Context, req *IndexTemplateGetReq) 
 
 // Exists executes a exists indexTemplate request with the required IndexTemplatExistsReq
 func (c indexTemplateClient) Exists(ctx context.Context, req IndexTemplateExistsReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // Simulate executes a _simulate indexTemplate request with the required IndexTemplateSimulateReq

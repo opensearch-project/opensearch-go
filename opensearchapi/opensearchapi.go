@@ -113,25 +113,19 @@ func do[T any](ctx context.Context, c *Client, req opensearch.Request, dataPoint
 	}
 
 	if resp.IsError() {
+		if dataPointer == nil && resp.Body == nil {
+			return resp, fmt.Errorf("status: %q", resp.Status())
+		}
 		return resp, opensearch.ParseError(resp)
 	}
 
 	return resp, nil
 }
 
-// doRequest calls [opensearch.Client.Do] for requests that expect no response body.
-func doRequest(ctx context.Context, c *Client, req opensearch.Request) (*opensearch.Response, error) {
-	resp, err := c.Client.Do(ctx, req, nil) //nolint:staticcheck // intentional use of deprecated method for nil dataPointer
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.IsError() {
-		return resp, fmt.Errorf("status: %s", resp.Status())
-	}
-
-	return resp, nil
-}
+// noBody is a typed-nil sentinel passed to do() when the caller does not
+// expect a response body. The nil pointer triggers the dataPointer == nil
+// guard in [opensearch.Do], skipping json.Unmarshal.
+var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sentinel value
 
 // formatDuration converts duration to a string in the format
 // accepted by Opensearch.

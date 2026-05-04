@@ -61,5 +61,5 @@ func (c componentTemplateClient) Get(ctx context.Context, req *ComponentTemplate
 
 // Exists executes a exists componentTemplate request with the required ComponentTemplatExistsReq
 func (c componentTemplateClient) Exists(ctx context.Context, req ComponentTemplateExistsReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }

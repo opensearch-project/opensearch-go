@@ -153,7 +153,7 @@ func (c clusterClient) PostVotingConfigExclusions(
 		resp *opensearch.Response
 		err  error
 	)
-	if resp, err = doRequest(ctx, c.apiClient, req); err != nil {
+	if resp, err = do(ctx, c.apiClient, req, noBody); err != nil {
 		return resp, err
 	}
 
@@ -170,7 +170,7 @@ func (c clusterClient) DeleteVotingConfigExclusions(
 		resp *opensearch.Response
 		err  error
 	)
-	if resp, err = doRequest(ctx, c.apiClient, req); err != nil {
+	if resp, err = do(ctx, c.apiClient, req, noBody); err != nil {
 		return resp, err
 	}
 

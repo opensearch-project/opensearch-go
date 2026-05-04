@@ -69,5 +69,5 @@ func (c templateClient) Get(ctx context.Context, req *TemplateGetReq) (*Template
 //
 // Deprecated: uses legacy API (/_template), correct API is /_index_template, use IndexTemplate.Exists instread
 func (c templateClient) Exists(ctx context.Context, req TemplateExistsReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }

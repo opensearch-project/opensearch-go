@@ -60,7 +60,7 @@ func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, e
 
 // Exists executes an exists alias request with the required AliasExistsReq
 func (c aliasClient) Exists(ctx context.Context, req AliasExistsReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // AliasDeleteReq represents possible options for the alias delete request

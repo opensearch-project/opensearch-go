@@ -72,12 +72,12 @@ func (c documentClient) DeleteByQueryRethrottle(
 
 // Exists executes a exists document request with the required DocumentExistsReq
 func (c documentClient) Exists(ctx context.Context, req DocumentExistsReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // ExistsSource executes a exists source request with the required DocumentExistsSourceReq
 func (c documentClient) ExistsSource(ctx context.Context, req DocumentExistsSourceReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // Explain executes an explain document request with the required DocumentExplainReq

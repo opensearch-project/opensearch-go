@@ -8,6 +8,7 @@ package security
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
@@ -69,6 +70,9 @@ func do[T any](ctx context.Context, c *Client, req opensearch.Request, dataPoint
 	}
 
 	if resp.IsError() {
+		if dataPointer == nil && resp.Body == nil {
+			return resp, fmt.Errorf("status: %q", resp.Status())
+		}
 		return resp, opensearch.ParseError(resp)
 	}
 

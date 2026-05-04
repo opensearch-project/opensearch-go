@@ -231,18 +231,18 @@ func TestClientInterfe(t *testing.T) {
 		}
 
 		var got rootResp
-		resp, err := Do(context.TODO(), c, testReq{Path: "/"}, &got)
+		resp, err := Do(t.Context(), c, testReq{Path: "/"}, &got)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Equal(t, "1.0.0", got.Version.Number)
 		require.Equal(t, "opensearch", got.Version.Distribution)
 	})
 
-	t.Run("Generic Do() nil pointer", func(t *testing.T) {
+	t.Run("Generic Do() nil NoBody pointer", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
-		resp, err := Do[struct{}](context.TODO(), c, testReq{}, nil)
+		resp, err := Do[NoBody](t.Context(), c, testReq{Path: "/"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 	})

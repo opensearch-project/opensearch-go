@@ -47,7 +47,7 @@ func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*Indic
 
 // Exists executes a exists indices request with the required IndicesExistsReq
 func (c indicesClient) Exists(ctx context.Context, req IndicesExistsReq) (*opensearch.Response, error) {
-	return doRequest(ctx, c.apiClient, req)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // Block executes a /<index>/_block request with the required IndicesBlockReq
