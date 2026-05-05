@@ -25,7 +25,7 @@ func (c aliasClient) Delete(ctx context.Context, req AliasDeleteReq) (*AliasDele
 		data AliasDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -38,7 +38,7 @@ func (c aliasClient) Get(ctx context.Context, req AliasGetReq) (*AliasGetResp, e
 		data AliasGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -51,7 +51,7 @@ func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, e
 		data AliasPutResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -60,7 +60,7 @@ func (c aliasClient) Put(ctx context.Context, req AliasPutReq) (*AliasPutResp, e
 
 // Exists executes an exists alias request with the required AliasExistsReq
 func (c aliasClient) Exists(ctx context.Context, req AliasExistsReq) (*opensearch.Response, error) {
-	return c.apiClient.do(ctx, req, nil)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // AliasDeleteReq represents possible options for the alias delete request

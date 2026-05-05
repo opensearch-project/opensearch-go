@@ -27,7 +27,7 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 		data SearchResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

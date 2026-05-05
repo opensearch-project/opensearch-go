@@ -19,7 +19,7 @@ func (c Client) Ping(ctx context.Context, req *PingReq) (*opensearch.Response, e
 		req = &PingReq{}
 	}
 
-	return c.do(ctx, req, nil)
+	return do(ctx, &c, req, noBody)
 }
 
 // PingReq represents possible options for the / request

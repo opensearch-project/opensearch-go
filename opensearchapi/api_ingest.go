@@ -20,7 +20,7 @@ func (c ingestClient) Create(ctx context.Context, req IngestCreateReq) (*IngestC
 		data IngestCreateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -33,7 +33,7 @@ func (c ingestClient) Delete(ctx context.Context, req IngestDeleteReq) (*IngestD
 		data IngestDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -50,7 +50,7 @@ func (c ingestClient) Get(ctx context.Context, req *IngestGetReq) (*IngestGetRes
 		data IngestGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data.Pipelines); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data.Pipelines); err != nil {
 		return &data, err
 	}
 
@@ -63,7 +63,7 @@ func (c ingestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*Ing
 		data IngestSimulateResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -80,7 +80,7 @@ func (c ingestClient) Grok(ctx context.Context, req *IngestGrokReq) (*IngestGrok
 		data IngestGrokResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

@@ -23,7 +23,7 @@ func (c Client) Info(ctx context.Context, req *InfoReq) (*InfoResp, error) {
 		data InfoResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

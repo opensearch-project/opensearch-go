@@ -22,7 +22,7 @@ func (c Client) RankEval(ctx context.Context, req RankEvalReq) (*RankEvalResp, e
 		data RankEvalResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

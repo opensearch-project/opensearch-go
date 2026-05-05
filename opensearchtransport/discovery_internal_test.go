@@ -1109,7 +1109,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				actualNodes[conn.Name] = true
 			}
 
-			require.Equal(t, len(tt.expectedNodes), len(actualNodes),
+			require.Len(t, actualNodes, len(tt.expectedNodes),
 				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
 
 			for _, expectedNode := range tt.expectedNodes {
@@ -1292,7 +1292,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			// Verify total count
 			expectedTotal := len(tt.expectedIncluded)
-			require.Equal(t, expectedTotal, len(actualNodes),
+			require.Len(t, actualNodes, expectedTotal,
 				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
@@ -1852,9 +1852,9 @@ func TestUpdateConnectionPool(t *testing.T) {
 		err = client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{conn1, conn3}, nil)
 		require.NoError(t, err)
 
-		require.Greater(t, obs.count("discovery_add"), 0)
-		require.Greater(t, obs.count("discovery_remove"), 0)
-		require.Greater(t, obs.count("discovery_unchanged"), 0)
+		require.Positive(t, obs.count("discovery_add"))
+		require.Positive(t, obs.count("discovery_remove"))
+		require.Positive(t, obs.count("discovery_unchanged"))
 	})
 
 	t.Run("stale dead state resurrected", func(t *testing.T) {

@@ -21,7 +21,7 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 		data UpdateResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

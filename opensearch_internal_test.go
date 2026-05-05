@@ -218,6 +218,35 @@ func TestClientInterfe(t *testing.T) {
 		assert.NotNil(t, resp)
 	})
 
+	t.Run("Generic Do()", func(t *testing.T) {
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+		require.NoError(t, err)
+
+		type versionInfo struct {
+			Number       string `json:"number"`
+			Distribution string `json:"distribution"`
+		}
+		type rootResp struct {
+			Version versionInfo `json:"version"`
+		}
+
+		var got rootResp
+		resp, err := Do(t.Context(), c, testReq{Path: "/"}, &got)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, "1.0.0", got.Version.Number)
+		require.Equal(t, "opensearch", got.Version.Distribution)
+	})
+
+	t.Run("Generic Do() nil NoBody pointer", func(t *testing.T) {
+		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+		require.NoError(t, err)
+
+		resp, err := Do[NoBody](t.Context(), c, testReq{Path: "/"}, nil)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+	})
+
 	t.Run("Do() GetRequest error", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)

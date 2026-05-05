@@ -21,7 +21,7 @@ func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 		data IndexResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

@@ -26,7 +26,7 @@ func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStats
 		data NodesStatsResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -43,7 +43,7 @@ func (c nodesClient) Info(ctx context.Context, req *NodesInfoReq) (*NodesInfoRes
 		data NodesInfoResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -55,7 +55,7 @@ func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*
 	if req == nil {
 		req = &NodesHotThreadsReq{}
 	}
-	return c.apiClient.do(ctx, req, nil)
+	return do(ctx, c.apiClient, req, noBody)
 }
 
 // ReloadSecurity executes a /_nodes/reload_secure_settings request with the optional NodesReloadSecurityReq
@@ -68,7 +68,7 @@ func (c nodesClient) ReloadSecurity(ctx context.Context, req *NodesReloadSecurit
 		data NodesReloadSecurityResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -85,7 +85,7 @@ func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsage
 		data NodesUsageResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

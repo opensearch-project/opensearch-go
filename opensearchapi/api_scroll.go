@@ -20,7 +20,7 @@ func (c scrollClient) Delete(ctx context.Context, req ScrollDeleteReq) (*ScrollD
 		data ScrollDeleteResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -33,7 +33,7 @@ func (c scrollClient) Get(ctx context.Context, req ScrollGetReq) (*ScrollGetResp
 		data ScrollGetResp
 		err  error
 	)
-	if data.response, err = c.apiClient.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
 		return &data, err
 	}
 

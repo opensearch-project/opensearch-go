@@ -381,7 +381,12 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	return c.Transport.Perform(req)
 }
 
-// Do gets and performs the request. It also tries to parse the response into the dataPointer
+// Do gets and performs the request. It also tries to parse the response into the dataPointer.
+//
+// Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
+// Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
+// unmarshaling. The method remains fully functional and will not be removed; this annotation
+// exists to steer callers toward the safer generic alternative.
 func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Response, error) {
 	httpReq, err := req.GetRequest()
 	if err != nil {
@@ -418,6 +423,24 @@ func (c *Client) Do(ctx context.Context, req Request, dataPointer any) (*Respons
 	}
 
 	return response, nil
+}
+
+// NoBody is a marker type for [Do] calls that expect no response body.
+// Pass (*NoBody)(nil) to skip JSON unmarshaling while retaining compile-time
+// pointer enforcement.
+type NoBody struct{}
+
+// Do is a generic version of [Client.Do] that enforces dataPointer as a pointer at compile time.
+// It delegates to [Client.Do] after the type system has guaranteed *T.
+//
+// A nil dataPointer is forwarded as untyped nil so that [Client.Do] skips
+// unmarshalling. This prevents a typed nil (e.g. (*MyResp)(nil)) from being
+// widened into a non-nil any interface that would reach [json.Unmarshal].
+func Do[T any](ctx context.Context, c *Client, req Request, dataPointer *T) (*Response, error) {
+	if dataPointer == nil {
+		return c.Do(ctx, req, nil)
+	}
+	return c.Do(ctx, req, dataPointer)
 }
 
 // Metrics returns the client metrics.

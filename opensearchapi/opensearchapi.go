@@ -104,23 +104,28 @@ func NewFromClient(client *opensearch.Client) *Client {
 	return clientInit(client)
 }
 
-// do calls the opensearch.Client.Do() and checks the response for openseach api errors
-func (c *Client) do(ctx context.Context, req opensearch.Request, dataPointer any) (*opensearch.Response, error) {
-	resp, err := c.Client.Do(ctx, req, dataPointer)
+// do calls [opensearch.Do] and checks the response for OpenSearch API errors.
+// The generic *T parameter enforces that dataPointer is a pointer at compile time.
+func do[T any](ctx context.Context, c *Client, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Do(ctx, c.Client, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.IsError() {
-		if dataPointer != nil {
-			return resp, opensearch.ParseError(resp)
-		} else {
-			return resp, fmt.Errorf("status: %s", resp.Status())
+		if dataPointer == nil && resp.Body == nil {
+			return resp, fmt.Errorf("status: %q", resp.Status())
 		}
+		return resp, opensearch.ParseError(resp)
 	}
 
 	return resp, nil
 }
+
+// noBody is a typed-nil sentinel passed to do() when the caller does not
+// expect a response body. The nil pointer triggers the dataPointer == nil
+// guard in [opensearch.Do], skipping json.Unmarshal.
+var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sentinel value
 
 // formatDuration converts duration to a string in the format
 // accepted by Opensearch.

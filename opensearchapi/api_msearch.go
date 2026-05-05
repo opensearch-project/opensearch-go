@@ -22,7 +22,7 @@ func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, erro
 		data MSearchResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 

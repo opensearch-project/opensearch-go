@@ -20,7 +20,7 @@ func (c Client) Reindex(ctx context.Context, req ReindexReq) (*ReindexResp, erro
 		data ReindexResp
 		err  error
 	)
-	if data.response, err = c.do(ctx, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, req, &data); err != nil {
 		return &data, err
 	}
 
