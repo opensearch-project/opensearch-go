@@ -334,6 +334,17 @@ type Config struct {
 	Router    Router             // Optional router for cluster-aware request routing
 	Observer  ConnectionObserver // Optional observer for connection lifecycle events
 
+	// ShardCostConfig overrides shard cost multipliers used for connection scoring.
+	// Passed through to the router via [WithShardCosts] when constructing the
+	// default router. Format: bare numeric (sets r:base, the primary read cost
+	// at idle) or comma-separated key=value items. Dynamic keys are prefixed
+	// with "r:" (r:base, r:amplify, r:exponent) and control the read-primary
+	// cost curve. Static keys (unknown, relocating, initializing, replica,
+	// write_primary, write_replica) override shard state costs in the lookup
+	// tables.
+	// Can also be set via OPENSEARCH_GO_SHARD_COST (env var takes precedence).
+	ShardCostConfig string
+
 	// Context for background operations (node discovery, health checks, stats polling).
 	// If nil, context.Background() is used. The transport derives a child context from
 	// this, so canceling the parent automatically stops all background goroutines.
@@ -2381,7 +2392,10 @@ func NoOpHealthCheck(_ context.Context, _ *Connection, _ *url.URL) (*http.Respon
 	return nil, nil //nolint:nilnil // Intentional no-op: nil response + nil error signals "healthy, no body".
 }
 
-const routingParam = "routing"
+const (
+	routingParam          = "routing"
+	routingValueSeparator = ","
+)
 
 // extractRouting returns the value of ?routing=X from the request's query
 // string, or "" if absent. Uses a zero-alloc linear scan to avoid
@@ -2423,6 +2437,45 @@ func extractRouting(req *http.Request) string {
 		}
 	}
 	return ""
+}
+
+// splitRoutingValues splits a comma-separated routing value into individual
+// keys, skipping empty segments. Writes into buf to avoid allocation on the
+// hot path; callers should use acquireRoutingValues/releaseRoutingValues.
+func splitRoutingValues(routingValue string, buf *[]string) []string {
+	s := (*buf)[:0]
+	for {
+		i := strings.Index(routingValue, routingValueSeparator)
+		if i < 0 {
+			if routingValue != "" {
+				s = append(s, routingValue)
+			}
+			break
+		}
+		if i > 0 {
+			s = append(s, routingValue[:i])
+		}
+		routingValue = routingValue[i+len(routingValueSeparator):]
+	}
+	*buf = s
+	return s
+}
+
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var routingValuesPool = sync.Pool{
+	New: func() any {
+		s := make([]string, 0, 8)
+		return &s
+	},
+}
+
+func acquireRoutingValues() *[]string {
+	return routingValuesPool.Get().(*[]string) //nolint:forcetypeassert // pool only stores *[]string
+}
+
+func releaseRoutingValues(buf *[]string) {
+	*buf = (*buf)[:0]
+	routingValuesPool.Put(buf)
 }
 
 // cancelOnCloseBody wraps a response body so that a context cancel function

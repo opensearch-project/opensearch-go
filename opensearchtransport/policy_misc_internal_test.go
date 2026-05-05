@@ -77,3 +77,51 @@ func TestWithShardExactRouting(t *testing.T) {
 		require.False(t, cfg.routingFeatures.shardExactEnabled())
 	})
 }
+
+func TestWithShardCosts(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		initial string // pre-existing shardCostConfig value
+		spec    string // argument to WithShardCosts
+		want    string // expected shardCostConfig after applying
+	}{
+		{
+			name: "stores spec in config",
+			spec: "preferred=1.0,alternate=1.0",
+			want: "preferred=1.0,alternate=1.0",
+		},
+		{
+			name: "bare numeric",
+			spec: "1.5",
+			want: "1.5",
+		},
+		{
+			name: "prefixed keys",
+			spec: "r:replica=1.0,w:primary=0.5",
+			want: "r:replica=1.0,w:primary=0.5",
+		},
+		{
+			name:    "empty spec clears config",
+			initial: "preferred=2.0",
+			spec:    "",
+			want:    "",
+		},
+		{
+			name:    "overwrites previous value",
+			initial: "preferred=2.0",
+			spec:    "alternate=3.0",
+			want:    "alternate=3.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := routerConfig{shardCostConfig: tt.initial}
+			WithShardCosts(tt.spec)(&cfg)
+			require.Equal(t, tt.want, cfg.shardCostConfig)
+		})
+	}
+}

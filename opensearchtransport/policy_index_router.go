@@ -10,131 +10,10 @@ import (
 	"context"
 	"math"
 	"net/http"
-	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
 )
-
-const (
-	// counterFloor is the minimum value used for the decay counter
-	// in score calculations. Prevents division-by-zero-like effects when a
-	// node has received no recent traffic.
-	counterFloor = 1.0
-
-	// Shard cost multipliers used in the [shardCostMultiplier] tables and
-	// [warmupPenaltyMax]. Lower value = preferred node.
-	costPreferred    = 1.0  // best-case: node hosts the ideal shard type
-	costAlternate    = 2.0  // acceptable: node can serve but may proxy
-	costRelocating   = 8.0  // shard moving, may require proxy hop
-	costInitializing = 16.0 // shard not yet ready to serve
-	costUnknown      = 32.0 // no shard data, heavily penalized
-)
-
-// shardCostIndex identifies a shard state position in a [shardCostMultiplier].
-type shardCostIndex int
-
-const (
-	// shardCostUnknown is the zero value: no shard data available.
-	// A zero-initialized [shardCostMultiplier] produces 0.0 for unknown,
-	// so tables must be explicitly constructed.
-	shardCostUnknown shardCostIndex = iota
-
-	// shardCostReplica: node hosts only replica shards for this index.
-	shardCostReplica
-
-	// shardCostPrimary: node hosts only primary shards for this index.
-	shardCostPrimary
-
-	// shardCostInitializing: node has initializing shards (reserved for
-	// future use; discovery currently filters to STARTED shards only).
-	shardCostInitializing
-
-	// shardCostRelocating: node has relocating shards (reserved for
-	// future use; discovery currently filters to STARTED shards only).
-	shardCostRelocating
-)
-
-// shardCostMultiplier holds per-shard-state score multipliers used in
-// [calcConnScore]. The appropriate table is selected at policy construction
-// time based on whether the route handles reads or writes.
-//
-// Lower multiplier = preferred node. Index via [shardCostIndex] constants.
-type shardCostMultiplier [5]float64
-
-// shardCostForReads prefers replica-hosting nodes. Replicas serve reads
-// from a lock-free Lucene snapshot that doesn't contend with writes.
-//
-//nolint:gochecknoglobals // Package-level constant table used by calcConnScore.
-var shardCostForReads = shardCostMultiplier{
-	shardCostUnknown:      costUnknown,      // no data, heavily penalized
-	shardCostReplica:      costPreferred,    // preferred for reads
-	shardCostPrimary:      costAlternate,    // primaries contend with writes
-	shardCostInitializing: costInitializing, // shard not yet ready
-	shardCostRelocating:   costRelocating,   // shard moving, may proxy
-}
-
-// shardCostForWrites prefers primary-hosting nodes. Writes always go to
-// the primary shard first; routing to a replica-only node forces a
-// coordinator proxy hop.
-//
-//nolint:gochecknoglobals // Package-level constant table used by calcConnScore.
-var shardCostForWrites = shardCostMultiplier{
-	shardCostUnknown:      costUnknown,      // no data, heavily penalized
-	shardCostReplica:      costAlternate,    // replica must proxy to primary
-	shardCostPrimary:      costPreferred,    // preferred -- write lands directly
-	shardCostInitializing: costInitializing, // shard not yet ready
-	shardCostRelocating:   costRelocating,   // shard moving, may proxy
-}
-
-// forNode returns the shard cost multiplier for a node based on its shard
-// composition for the target index.
-//
-// The lookup is categorical: if the node hosts the preferred shard type
-// (as encoded by the table), it gets the preferred cost. Mixed nodes that
-// host both primaries and replicas get the best (lowest) cost since they
-// can serve both reads and writes locally. Load-based differentiation
-// between nodes is handled by the utilization ratio (inFlight+1)/cwnd, not by this
-// multiplier.
-func (m *shardCostMultiplier) forNode(node *shardNodeInfo) float64 {
-	if node == nil {
-		return m[shardCostUnknown]
-	}
-	total := node.Primaries + node.Replicas
-	if total == 0 {
-		return m[shardCostUnknown]
-	}
-	if node.Primaries == 0 {
-		return m[shardCostReplica]
-	}
-	if node.Replicas == 0 {
-		return m[shardCostPrimary]
-	}
-	// Mixed node: hosts both primaries and replicas. It can serve reads
-	// from replicas and writes to primaries locally. Use the better cost;
-	// the CPU counter differentiates actual load between mixed nodes.
-	return min(m[shardCostReplica], m[shardCostPrimary])
-}
-
-// forShard returns the shard cost multiplier for a connection based on its
-// role for a specific shard. Unlike [forNode] (which uses aggregate per-node
-// counts across all shards of an index), this uses the per-shard placement
-// data from [shardNodes] to determine the exact role --primary or replica
-// --for the target shard resolved via murmur3 hashing.
-//
-// Used by the shard lookup path when the target shard number is known.
-func (m *shardCostMultiplier) forShard(shard *shardNodes, connName string) float64 {
-	if shard == nil {
-		return m[shardCostUnknown]
-	}
-	if shard.Primary == connName {
-		return m[shardCostPrimary]
-	}
-	if slices.Contains(shard.Replicas, connName) {
-		return m[shardCostReplica]
-	}
-	return m[shardCostUnknown]
-}
 
 // Compile-time interface compliance checks.
 var (
@@ -221,12 +100,9 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 			return NextHop{}, nil
 		}
 
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(conns)]
-		if len(conns) > len(scoresBuf) {
-			scores = make([]float64, len(conns))
-		}
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		scores := acquireFloats(len(conns))
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), nil, nil)
+		scores.Release()
 		if best == nil {
 			return NextHop{}, nil
 		}
@@ -246,22 +122,33 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 
 	// Attempt shard-exact routing when ?routing=X is present.
 	routingValue := extractRouting(req)
-	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, routingValue, conns)
-	if len(shardCandidates) > 0 {
-		// Shard-exact path: score the shard-hosting candidates directly.
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(shardCandidates)]
-		if len(shardCandidates) > len(scoresBuf) {
-			scores = make([]float64, len(shardCandidates))
-		}
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+
+	var candidatesBuf pooledConns
+	var shardNum int
+	var shard *shardNodes
+	var extraCost pooledFloats
+
+	if !strings.Contains(routingValue, routingValueSeparator) {
+		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, routingValue, conns)
+	} else {
+		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		shardNum = -1
+	}
+
+	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
+		scores := acquireFloats(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "",
+			loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), nil, extraCost.Slice())
+		scores.Release()
+		extraCost.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			obs.OnRoute(buildRouteEvent(
 				indexName, indexName, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, "",
-				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
+				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady), nil,
 			))
 		}
+		candidatesBuf.Release()
 
 		return NextHop{Conn: best}, nil
 	}
@@ -291,17 +178,14 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	var scoresBuf [8]float64
-	scores := scoresBuf[:len(candidates)]
-	if len(candidates) > len(scoresBuf) {
-		scores = make([]float64, len(candidates))
-	}
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+	scores := acquireFloats(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores.Slice(), nil, nil)
+	scores.Release()
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		obs.OnRoute(buildRouteEvent(
 			indexName, indexName, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, "",
-			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
+			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady), nil,
 		))
 	}
 
@@ -412,38 +296,6 @@ func loadPoolInfoReady(p *atomic.Bool) bool {
 	return p != nil && p.Load()
 }
 
-// calcConnScore computes the node selection score for a connection.
-// Lower score = preferred node.
-//
-// The score is: rttBucket * (inFlight + 1) / cwnd * shardCost
-//
-// The shardCost parameter is pre-computed by the caller via [forShard] (shard
-// lookup) or [forNode] (index/cluster lookup). poolInfoReady indicates whether
-// thread pool quorum has been reached; when false, cwnd falls back to a
-// synthetic ceiling based on allocatedProcessors.
-//
-// When the named thread pool is overloaded (rejected requests or HTTP 429),
-// the score is math.MaxFloat64 to skip the node for that pool.
-//
-// Warmup state is NOT included in the score. Instead, warming connections
-// are handled by [connScoreSelect] which tries candidates in score order
-// and uses [tryWarmupSkip] to gate actual traffic via the S-curve ramp.
-// This avoids a circular dependency where warmup penalty prevents selection,
-// which prevents warmup advancement.
-func calcConnScore(conn *Connection, shardCost float64, poolName string, poolInfoReady bool) float64 {
-	if poolName != "" && conn.isPoolOverloaded(poolName) {
-		return math.MaxFloat64
-	}
-
-	rtt := float64(conn.rttRing.medianBucket())
-
-	cwnd := float64(conn.loadCwnd(poolName, poolInfoReady))
-	inFlight := float64(conn.loadInFlight(poolName))
-	utilization := (inFlight + 1.0) / cwnd
-
-	return rtt * utilization * shardCost
-}
-
 const (
 	// warmupPenaltyMax is the worst-case multiplier applied at the start of
 	// warmup (remaining == total). Matches costUnknown so a freshly-promoted
@@ -488,6 +340,11 @@ func warmupPenalty(cs connState) float64 {
 // When shard is non-nil (shard lookup path), scoring uses [forShard] for
 // per-shard primary/replica cost. When nil (index lookup or cluster lookup),
 // scoring uses [forNode] with per-node aggregate data from the index slot.
+//
+// When scoreFunc is non-nil, it replaces the static scoring formula for
+// all candidates. This allows operation-specific scoring strategies (e.g.,
+// dynamic read cost that adjusts primary shard cost based on write-pool
+// utilization). When nil, the static formula is used via [calcConnDefaultScore].
 func connScoreSelect(
 	candidates []*Connection,
 	slot *indexSlot,
@@ -496,6 +353,8 @@ func connScoreSelect(
 	poolName string,
 	poolInfoReady bool,
 	scores []float64,
+	scoreFunc connScoreFunc,
+	extraCost []float64,
 ) *Connection {
 	n := len(candidates)
 	if n == 0 {
@@ -504,17 +363,28 @@ func connScoreSelect(
 
 	// Compute scores once upfront.
 	for i, c := range candidates {
+		var sc float64
+		var primaryPct float64
 		switch {
 		case shard != nil:
-			// Shard lookup: per-shard role from shardNodes.
-			scores[i] = calcConnScore(c, costs.forShard(shard, c.Name), poolName, poolInfoReady)
+			sc = costs.forShard(shard, c.Name)
+			primaryPct = calcShardPrimaryPct(shard, c.Name)
 		case slot != nil:
-			// Index lookup: per-node aggregate from indexSlot.
-			scores[i] = calcConnScore(c, costs.forNode(slot.shardNodeInfoFor(c.Name)), poolName, poolInfoReady)
+			nodeInfo := slot.shardNodeInfoFor(c.Name)
+			sc = costs.forNode(nodeInfo)
+			primaryPct = calcNodePrimaryPct(nodeInfo)
 		default:
-			// Cluster lookup: no shard data. All nodes get costUnknown;
-			// equal cost cancels out, so selection is by RTT + congestion.
-			scores[i] = calcConnScore(c, costUnknown, poolName, poolInfoReady)
+			sc = costUnknown
+		}
+
+		if extraCost != nil {
+			sc += extraCost[i]
+		}
+
+		if scoreFunc != nil {
+			scores[i] = scoreFunc(c, sc, primaryPct, poolName, poolInfoReady)
+		} else {
+			scores[i] = calcConnDefaultScore(c, sc, poolName, poolInfoReady)
 		}
 	}
 
