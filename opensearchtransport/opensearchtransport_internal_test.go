@@ -1450,6 +1450,40 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		require.Nil(t, singlePool.connection, "Should handle empty pool gracefully")
 	})
 
+	t.Run("demoteConnectionPoolWithLock cancels old pool context", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://localhost:9200")
+		client, err := New(Config{URLs: []*url.URL{u}})
+		require.NoError(t, err)
+
+		client.mu.Lock()
+		pool := client.newMultiServerPoolFromClientWithLock("test", nil)
+		pool.mu.ready = []*Connection{{URL: &url.URL{Host: "node:9200"}}}
+		pool.mu.activeCount = 1
+		client.mu.connectionPool = pool
+		client.mu.Unlock()
+
+		poolCtx := pool.ctx
+
+		// Context should be alive before demotion.
+		select {
+		case <-poolCtx.Done():
+			t.Fatal("pool context should not be cancelled before demotion")
+		default:
+		}
+
+		client.mu.Lock()
+		client.demoteConnectionPoolWithLock()
+		client.mu.Unlock()
+
+		// Context should be cancelled after demotion.
+		select {
+		case <-poolCtx.Done():
+		default:
+			t.Fatal("pool context should be cancelled after demotion")
+		}
+	})
+
 	t.Run("promoteConnectionPoolWithLock preserves resurrection timeout settings", func(t *testing.T) {
 		// Create initial multiServerPool with custom settings
 		customInitial := 120 * time.Second

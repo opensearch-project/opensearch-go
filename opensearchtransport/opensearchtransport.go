@@ -2231,9 +2231,11 @@ func initUserAgent() string {
 //
 // Caller must hold c.mu.Lock().
 func (c *Client) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
+	ctx, cancel := context.WithCancel(c.ctx)
 	pool := &multiServerPool{
 		name:                         name,
-		ctx:                          c.ctx,
+		ctx:                          ctx,
+		cancel:                       cancel,
 		resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
 		resurrectTimeoutMax:          c.resurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
@@ -2315,6 +2317,11 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *multiServerPool:
+		// Cancel the old pool's context to clean up stale background goroutines.
+		if currentPool.cancel != nil {
+			currentPool.cancel()
+		}
+
 		// Demote from multi-node to single-node pool
 		metrics := currentPool.metrics
 
