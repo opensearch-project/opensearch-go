@@ -187,6 +187,13 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Dependencies
 
 - Bump golangci-lint from v2.11.2 to v2.11.4
+- Bump `golang.org/x/sync` from v0.19.0 to v0.20.0 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `golang.org/x/mod` from v0.33.0 to v0.35.0 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `github.com/wI2L/jsondiff` from v0.7.0 to v0.7.1 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `github.com/aws/aws-sdk-go-v2` from v1.41.1 to v1.41.7 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `github.com/aws/aws-sdk-go-v2/config` from v1.32.7 to v1.32.17 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `github.com/aws/aws-sdk-go-v2/credentials` from v1.19.7 to v1.19.16 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
+- Bump `github.com/aws/smithy-go` from v1.24.0 to v1.25.1 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
 - Bump `github.com/aws/aws-sdk-go-v2/config` from 1.32.6 to 1.32.7 ([#767](https://github.com/opensearch-project/opensearch-go/pull/767))
 
 ## [4.6.0]
