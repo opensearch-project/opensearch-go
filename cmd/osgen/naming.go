@@ -13,7 +13,7 @@ var acronyms = map[string]string{
 	"id": "ID", "uuid": "UUID", "uri": "URI", "url": "URL",
 	"http": "HTTP", "https": "HTTPS", "ttl": "TTL", "ip": "IP",
 	"tcp": "TCP", "tls": "TLS", "ssl": "SSL", "api": "API",
-	"json": "JSON", "xml": "XML", "sql": "SQL",
+	"json": "JSON", "xml": "XML", "sql": "SQL", "dsl": "DSL",
 }
 
 // titleSegment capitalizes a segment with full acronym expansion.
@@ -94,7 +94,7 @@ func goFieldName(name string) string {
 func baseGoName(jsonName string) string {
 	name := strings.TrimLeft(jsonName, "_")
 	parts := strings.FieldsFunc(name, func(r rune) bool {
-		return r == '_' || r == '.'
+		return r == '_' || r == '.' || r == '-'
 	})
 	var sb strings.Builder
 	for _, p := range parts {
@@ -145,4 +145,165 @@ func isGoKeyword(s string) bool {
 		return true
 	}
 	return false
+}
+
+// schemaTypeName converts an OpenAPI spec schema key (e.g.
+// "cluster.health___IndexHealthStats") to a Go type name. It implements
+// de-stutter for operation-specific types and prefix-free naming for shared
+// _common___ types.
+//
+// When isRespBody is true, the function returns the response body type name
+// (e.g. "ClusterHealthResp") regardless of the local schema name.
+func schemaTypeName(schemaKey string, isRespBody bool) string {
+	groupPart, localPart, ok := strings.Cut(schemaKey, "___")
+	if !ok {
+		return pascalFromSegments(schemaKey)
+	}
+
+	if groupPart == "_common" {
+		return pascalFromSegments(localPart)
+	}
+
+	// Handle group._common (e.g. "nodes._common___NodesResponseBase").
+	if strings.HasSuffix(groupPart, "._common") {
+		parentGroup := strings.TrimSuffix(groupPart, "._common")
+		prefix := pascalFromSegments(parentGroup)
+		local := pascalFromSegments(localPart)
+		return deStutterPrefix(prefix, local, parentGroup)
+	}
+
+	prefix := pascalFromSegments(groupPart)
+
+	if isRespBody {
+		return prefix + "Resp"
+	}
+
+	local := pascalFromSegments(localPart)
+	return deStutterPrefix(prefix, local, groupPart)
+}
+
+// deStutterPrefix removes the first PascalCase-boundary occurrence of the
+// group's leaf word from local, provided the result is non-empty.
+func deStutterPrefix(prefix, local, group string) string {
+	leaf := groupLeaf(group)
+	leafPascal := pascalFromSegments(leaf)
+	if leafPascal == "" {
+		return prefix + local
+	}
+	idx := strings.Index(local, leafPascal)
+	if idx < 0 {
+		return prefix + local
+	}
+	after := idx + len(leafPascal)
+	if after < len(local) && local[after] >= 'a' && local[after] <= 'z' {
+		return prefix + local
+	}
+	trimmed := local[:idx] + local[after:]
+	if trimmed != "" {
+		return prefix + trimmed
+	}
+	return prefix + local
+}
+
+// groupLeaf returns the last segment of a dotted group name.
+func groupLeaf(group string) string {
+	if idx := strings.LastIndexByte(group, '.'); idx >= 0 {
+		return group[idx+1:]
+	}
+	return group
+}
+
+// pascalFromSegments converts a dot-and-underscore-separated string to
+// PascalCase with acronym expansion. Leading "_core" is converted to "Core".
+func pascalFromSegments(s string) string {
+	s = strings.TrimPrefix(s, "_core.")
+	if s == "_core" {
+		return "Core"
+	}
+	parts := strings.FieldsFunc(s, func(r rune) bool {
+		return r == '.' || r == '_'
+	})
+	var sb strings.Builder
+	for _, p := range parts {
+		sb.WriteString(titleSegment(p))
+	}
+	return sb.String()
+}
+
+// scalarAliases maps OpenAPI spec $ref suffixes to their Go primitive types.
+// Schemas matching these are inlined as the primitive type rather than
+// generating a named Go type.
+var scalarAliases = map[string]string{
+	"_common___Name":               "string",
+	"_common___Names":              "string",
+	"_common___Field":              "string",
+	"_common___Fields":             "string",
+	"_common___Id":                 "string",
+	"_common___Ids":                "string",
+	"_common___IndexName":          "string",
+	"_common___IndexAlias":         "string",
+	"_common___Indices":            "string",
+	"_common___DataStreamName":     "string",
+	"_common___DataStreamNames":    "string",
+	"_common___Host":               "string",
+	"_common___ScrollId":           "string",
+	"_common___Fuzziness":          "string",
+	"_common___Routing":            "string",
+	"_common___Uri":                "string",
+	"_common___Uuid":               "string",
+	"_common___NodeId":             "string",
+	"_common___NodeName":           "string",
+	"_common___Password":           "string",
+	"_common___PipelineName":       "string",
+	"_common___RelationName":       "string",
+	"_common___TaskId":             "string",
+	"_common___TimeZone":           "string",
+	"_common___TransportAddress":   "string",
+	"_common___Type":               "string",
+	"_common___Username":           "string",
+	"_common___Ip":                 "string",
+	"_common___Distance":           "string",
+	"_common___GeoHash":            "string",
+	"_common___ResourceType":       "string",
+	"_common___SortOrder":          "string",
+	"_common___SuggestMode":        "string",
+	"_common___BuiltinScriptLanguage": "string",
+	"_common___ClusterSearchStatus": "string",
+	"_common___VersionString":      "string",
+	"_common___VersionNumber":      "int64",
+	"_common___SequenceNumber":     "int64",
+	"_common___uint":               "int",
+	"_common___short":              "int",
+	"_common___byte":               "int",
+	"_common___long":               "int64",
+	"_common___integer":            "int",
+	"_common___double":             "float64",
+	"_common___float":              "float64",
+	"_common___PercentageNumber":   "float64",
+	"_common___PercentageString":   "string",
+	"_common___ByteCount":          "int64",
+	"_common___HumanReadableByteCount": "string",
+	"_common___EpochTimeUnitMillis": "int64",
+	"_common___EpochTimeUnitSeconds": "int64",
+	"_common___Duration":           "string",
+	"_common___DurationLarge":      "string",
+	"_common___DurationValueUnitMillis": "int64",
+	"_common___DurationValueUnitNanos":  "int64",
+	"_common___DurationValueUnitMicros": "int64",
+	"_common___DateFormat":         "string",
+	"_common___DateMath":           "string",
+	"_common___DateTime":           "string",
+	"_common___StringifiedBoolean": "string",
+	"_common___StringifiedDouble":  "string",
+	"_common___StringifiedInteger": "string",
+	"_common___StringifiedLong":    "string",
+	"_common___EmptyObject":        "struct{}",
+}
+
+// isScalarAlias returns the Go primitive type for schema references that are
+// simple type aliases and should not generate named Go types. The ref should
+// be the schema key portion after "#/components/schemas/" (e.g. "_common___uint").
+func isScalarAlias(ref string) (string, bool) {
+	goType, ok := scalarAliases[ref]
+	return goType, ok
 }

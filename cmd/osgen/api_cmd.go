@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/renameio/v2"
 )
 
@@ -29,10 +30,11 @@ func runAPI() error {
 	groups := fs.String("groups", "", "comma-separated x-operation-group names (empty = all)")
 	outDir := fs.String("out", "", "output directory for core API files (opensearchapi/)")
 	pluginsDir := fs.String("plugins-out", "", "output directory for plugin files (plugins/)")
+	pkg := fs.String("pkg", opensearchAPIPkgName, "Go package name for core API output")
 	fs.Parse(os.Args[1:])
 
 	if *specPath == "" || *outDir == "" {
-		return fmt.Errorf("usage: osgen api -spec <openapi-spec.yaml> -out <opensearchapi/> -plugins-out <plugins/>")
+		return fmt.Errorf("usage: osgen api -spec <openapi-spec.yaml> -out <dir/> [-pkg <name>] -plugins-out <plugins/>")
 	}
 
 	var filter map[string]bool
@@ -43,23 +45,27 @@ func runAPI() error {
 		}
 	}
 
-	return generateAPI(*specPath, filter, *outDir, *pluginsDir)
+	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg)
 }
 
 // generateAPI extracts operations from the spec and writes Req/Params/Resp
 // files. This is the testable core of the "api" subcommand.
-func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir string) error {
-	ops, err := extractOperations(specPath, filter)
+func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir, corePkg string) error {
+	ops, spec, err := extractOperations(specPath, filter)
 	if err != nil {
 		return err
 	}
+
+	// Walk response schemas to populate typed response fields.
+	registry := newTypeRegistry(corePkg)
+	populateResponseTypes(ops, spec, registry)
 
 	// Track every file we write so we can remove stale ones afterward.
 	written := make(map[string]struct{})
 
 	var wrote int
 	for _, op := range ops {
-		pkg, dir := routeOperation(op.Group, outDir, pluginsDir)
+		routePkg, dir := routeOperation(op.Group, outDir, pluginsDir)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return fmt.Errorf("creating %q: %w", dir, err)
 		}
@@ -70,7 +76,11 @@ func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir str
 		if err != nil {
 			return fmt.Errorf("resolving path: %w", err)
 		}
-		apiSrc, err := renderAPIFile(op, pkg)
+		filePkg := routePkg
+		if filePkg == opensearchAPIPkgName {
+			filePkg = corePkg
+		}
+		apiSrc, err := renderAPIFile(op, filePkg, registry)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "render %q: %v\n", op.Group, err)
 			continue
@@ -82,22 +92,93 @@ func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir str
 			wrote++
 		}
 		written[apiFile] = struct{}{}
+
+		// Generate params test (white-box, same package).
+		paramsTestFile, err := filepath.Abs(filepath.Join(dir, basename+"_internal"+genTestFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving test path: %w", err)
+		}
+		paramsSrc, err := renderParamsTest(op, filePkg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "render params test %q: %v\n", op.Group, err)
+		} else if paramsSrc != "" {
+			if changed, werr := writeIfChanged(paramsTestFile, []byte(paramsSrc)); werr != nil {
+				return werr
+			} else if changed {
+				wrote++
+			}
+			written[paramsTestFile] = struct{}{}
+		}
+
+		// Generate GetRequest test (black-box, external test package).
+		reqTestFile, err := filepath.Abs(filepath.Join(dir, basename+genTestFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving req test path: %w", err)
+		}
+		fileImport := importPathForPkg(op.Group, corePkg)
+		reqSrc, err := renderReqTest(op, filePkg, fileImport)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "render req test %q: %v\n", op.Group, err)
+		} else if reqSrc != "" {
+			if changed, werr := writeIfChanged(reqTestFile, []byte(reqSrc)); werr != nil {
+				return werr
+			} else if changed {
+				wrote++
+			}
+			written[reqTestFile] = struct{}{}
+		}
+
+		// Generate integration test (black-box, external test package).
+		integTestFile, err := filepath.Abs(filepath.Join(dir, basename+"_integ"+genTestFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving integ test path: %w", err)
+		}
+		integSrc, err := renderIntegTest(op, filePkg, fileImport, corePkg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "render integ test %q: %v\n", op.Group, err)
+		} else if integSrc != "" {
+			if changed, werr := writeIfChanged(integTestFile, []byte(integSrc)); werr != nil {
+				return werr
+			} else if changed {
+				wrote++
+			}
+			written[integTestFile] = struct{}{}
+		}
 	}
 
 	// Generate compat.go for each plugin package.
-	pluginPkgs := make(map[string]string)
+	type pluginInfo struct {
+		dir         string
+		hasDuration bool
+		ops         []apiOperation
+	}
+	pluginPkgs := make(map[string]*pluginInfo)
 	for _, op := range ops {
 		pkg, dir := routeOperation(op.Group, outDir, pluginsDir)
-		if pkg != opensearchAPIPkgName {
-			pluginPkgs[pkg] = dir
+		if pkg == opensearchAPIPkgName || pkg == corePkg {
+			continue
+		}
+		pi, ok := pluginPkgs[pkg]
+		if !ok {
+			pi = &pluginInfo{dir: dir}
+			pluginPkgs[pkg] = pi
+		}
+		pi.ops = append(pi.ops, op)
+		if !pi.hasDuration {
+			for _, p := range op.QueryParams {
+				if p.IsDuration {
+					pi.hasDuration = true
+					break
+				}
+			}
 		}
 	}
-	for pkg, dir := range pluginPkgs {
-		compatFile, err := filepath.Abs(filepath.Join(dir, "compat"+genFileSuffix))
+	for pkg, pi := range pluginPkgs {
+		compatFile, err := filepath.Abs(filepath.Join(pi.dir, "compat"+genFileSuffix))
 		if err != nil {
 			return fmt.Errorf("resolving path: %w", err)
 		}
-		src, err := renderCompatFile(pkg)
+		src, err := renderCompatFile(pkg, pi.hasDuration)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "render compat %q: %v\n", pkg, err)
 			continue
@@ -109,6 +190,147 @@ func generateAPI(specPath string, filter map[string]bool, outDir, pluginsDir str
 			wrote++
 		}
 		written[compatFile] = struct{}{}
+
+		// Generate client_gen.go for each plugin package.
+		clientFile, err := filepath.Abs(filepath.Join(pi.dir, "client"+genFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving plugin client path: %w", err)
+		}
+		clientSrc, err := renderPluginClientFile(pkg, pi.ops)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "render plugin client %q: %v\n", pkg, err)
+		} else {
+			if changed, werr := writeIfChanged(clientFile, []byte(clientSrc)); werr != nil {
+				return fmt.Errorf("writing %q: %w", clientFile, werr)
+			} else if changed {
+				fmt.Fprintf(os.Stderr, "  plugin client -> %s\n", repoRelPath(clientFile))
+				wrote++
+			}
+			written[clientFile] = struct{}{}
+		}
+
+		// Generate internal/test/helpers_gen.go for each plugin package.
+		testDir := filepath.Join(pi.dir, "internal", "test")
+		if err := os.MkdirAll(testDir, 0o755); err != nil {
+			return fmt.Errorf("creating %q: %w", testDir, err)
+		}
+		testHelperFile, err := filepath.Abs(filepath.Join(testDir, "helpers"+genFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving plugin test helper path: %w", err)
+		}
+		pluginImport := importPathForPkg(pi.ops[0].Group, corePkg)
+		coreImport := modulePath + "/" + corePkg
+		testHelperSrc, err := renderPluginTestHelper(pkg, pluginImport, coreImport)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "render plugin test helper %q: %v\n", pkg, err)
+		} else {
+			if changed, werr := writeIfChanged(testHelperFile, []byte(testHelperSrc)); werr != nil {
+				return fmt.Errorf("writing %q: %w", testHelperFile, werr)
+			} else if changed {
+				fmt.Fprintf(os.Stderr, "  plugin test helper -> %s\n", repoRelPath(testHelperFile))
+				wrote++
+			}
+			written[testHelperFile] = struct{}{}
+		}
+	}
+
+	// Generate types_gen.go for shared types in the core package.
+	sharedTypes := registry.shared()
+	if len(sharedTypes) > 0 {
+		// Partition into struct types and union types.
+		var structTypes, unionTypes []*goType
+		for _, t := range sharedTypes {
+			if t.IsUnion {
+				unionTypes = append(unionTypes, t)
+			} else {
+				structTypes = append(structTypes, t)
+			}
+		}
+
+		if len(structTypes) > 0 {
+			typesFile, err := filepath.Abs(filepath.Join(outDir, "types"+genFileSuffix))
+			if err != nil {
+				return fmt.Errorf("resolving types path: %w", err)
+			}
+			src, err := renderSharedTypesFile(structTypes, corePkg)
+			if err != nil {
+				return fmt.Errorf("render shared types: %w", err)
+			}
+			if src != "" {
+				if changed, werr := writeIfChanged(typesFile, []byte(src)); werr != nil {
+					return fmt.Errorf("writing %q: %w", typesFile, werr)
+				} else if changed {
+					fmt.Fprintf(os.Stderr, "  shared types -> %s\n", repoRelPath(typesFile))
+					wrote++
+				}
+				written[typesFile] = struct{}{}
+			}
+		}
+
+		if len(unionTypes) > 0 {
+			unionsFile, err := filepath.Abs(filepath.Join(outDir, "unions"+genFileSuffix))
+			if err != nil {
+				return fmt.Errorf("resolving unions path: %w", err)
+			}
+			src, err := renderUnionTypesFile(unionTypes, corePkg)
+			if err != nil {
+				return fmt.Errorf("render union types: %w", err)
+			}
+			if src != "" {
+				if changed, werr := writeIfChanged(unionsFile, []byte(src)); werr != nil {
+					return fmt.Errorf("writing %q: %w", unionsFile, werr)
+				} else if changed {
+					fmt.Fprintf(os.Stderr, "  union types -> %s\n", repoRelPath(unionsFile))
+					wrote++
+				}
+				written[unionsFile] = struct{}{}
+			}
+		}
+	}
+
+	// Generate clients_gen.go for Client struct and sub-client types.
+	clientsFile, err := filepath.Abs(filepath.Join(outDir, "clients"+genFileSuffix))
+	if err != nil {
+		return fmt.Errorf("resolving clients path: %w", err)
+	}
+	clientsSrc, err := renderClientsFile(corePkg)
+	if err != nil {
+		return fmt.Errorf("render clients: %w", err)
+	}
+	if changed, werr := writeIfChanged(clientsFile, []byte(clientsSrc)); werr != nil {
+		return fmt.Errorf("writing %q: %w", clientsFile, werr)
+	} else if changed {
+		fmt.Fprintf(os.Stderr, "  clients -> %s\n", repoRelPath(clientsFile))
+		wrote++
+	}
+	written[clientsFile] = struct{}{}
+
+	// Generate dispatch_gen_test.go for compile-time signature assertions.
+	coreOps := make([]apiOperation, 0, len(ops))
+	for _, op := range ops {
+		if len(op.DispatchRoutes) > 0 {
+			coreOps = append(coreOps, op)
+		}
+	}
+	if len(coreOps) > 0 {
+		dispatchTestFile, err := filepath.Abs(filepath.Join(outDir, "dispatch"+genTestFileSuffix))
+		if err != nil {
+			return fmt.Errorf("resolving dispatch test path: %w", err)
+		}
+		coreImport := modulePath + "/" + corePkg
+		dispatchSrc, err := renderDispatchTest(coreOps, corePkg, coreImport)
+		if err != nil {
+			return fmt.Errorf("render dispatch test: %w", err)
+		}
+		if dispatchSrc != "" {
+			if changed, werr := writeIfChanged(dispatchTestFile, []byte(dispatchSrc)); werr != nil {
+				return fmt.Errorf("writing %q: %w", dispatchTestFile, werr)
+			} else if changed {
+				fmt.Fprintf(os.Stderr, "  dispatch test -> %s\n", repoRelPath(dispatchTestFile))
+				wrote++
+			}
+			written[dispatchTestFile] = struct{}{}
+		}
 	}
 
 	// Remove stale _gen.go files not produced by this run.
@@ -264,4 +486,202 @@ func repoRelPath(abs string) string {
 		return abs
 	}
 	return rel
+}
+
+// populateResponseTypes walks response schemas for all operations, registering
+// types in the registry. It then populates each operation's RespFields and
+// SiblingTypes from the registry.
+func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeRegistry) {
+	if spec == nil || spec.Components == nil || spec.Components.Schemas == nil {
+		return
+	}
+
+	w := &walker{
+		registry: registry,
+		spec:     spec,
+		inFlight: make(map[string]struct{}),
+	}
+
+	// Walk all response schemas to build the full type registry.
+	for i := range ops {
+		ref := ops[i].ResponseRef
+		if ref == "" {
+			continue
+		}
+		schemaRef, ok := spec.Components.Schemas[ref]
+		if !ok {
+			// Inline response schema (defined in components/responses, not
+			// components/schemas). Use the resolved SchemaRef directly.
+			if ops[i].ResponseSchemaRef != nil {
+				w.walkSchema(ops[i].ResponseSchemaRef, ref, ops[i].Group, true)
+			}
+			continue
+		}
+		w.walkSchema(schemaRef, ref, ops[i].Group, true)
+	}
+
+	// Populate each operation's RespFields and SiblingTypes.
+	// First, identify types used by multiple operations and promote them to
+	// shared so they are emitted once in types_gen.go instead of duplicated.
+	groupPkgs := make(map[string]string, len(ops))
+	for _, op := range ops {
+		prefix := groupPrefix(op.Group)
+		if coreGroups[prefix] {
+			groupPkgs[op.Group] = opensearchAPIPkgName
+		} else {
+			groupPkgs[op.Group] = prefix
+		}
+	}
+	promoteMultiUseTypes(ops, registry, groupPkgs)
+
+	// Promote types transitively referenced by shared types to shared.
+	registry.promoteSharedDeps()
+
+	// Track which types have already been assigned to an operation's SiblingTypes
+	// to avoid emitting the same type in multiple files within the same package.
+	claimed := make(map[string]bool)
+
+	for i := range ops {
+		ref := ops[i].ResponseRef
+		if ref == "" {
+			continue
+		}
+		respType, ok := registry.lookup(ref)
+		if !ok {
+			// No registered Resp struct (e.g. array-typed responses).
+			// Collect sibling types that belong to this operation's group.
+			for _, st := range registry.forOperation(ops[i].Group) {
+				if !st.IsResp && !st.IsShared && !claimed[st.SchemaRef] {
+					ops[i].SiblingTypes = append(ops[i].SiblingTypes, st)
+					claimed[st.SchemaRef] = true
+				}
+			}
+			continue
+		}
+		ops[i].RespFields = respType.Fields
+
+		// Collect non-shared sibling types reachable from this response.
+		for _, st := range registry.reachableFrom(ref) {
+			if !claimed[st.SchemaRef] {
+				ops[i].SiblingTypes = append(ops[i].SiblingTypes, st)
+				claimed[st.SchemaRef] = true
+			}
+		}
+	}
+}
+
+type typeUsage struct {
+	groups map[string]struct{}
+	pkgs   map[string]struct{}
+	pkg    string
+}
+
+// promoteMultiUseTypes marks non-Resp types as shared when they are
+// referenced by more than one operation group across different packages.
+// This ensures types like SearchHitsMetadata (from _core.search) that are
+// also used by scroll get emitted to types_gen.go rather than duplicated.
+// Types shared within the same package don't need promotion since all files
+// in a Go package can access each other's declarations.
+func promoteMultiUseTypes(ops []apiOperation, registry *typeRegistry, groupPkgs map[string]string) {
+	uses := make(map[string]*typeUsage)
+
+	for _, op := range ops {
+		ref := op.ResponseRef
+		if ref == "" {
+			continue
+		}
+		respType, ok := registry.lookup(ref)
+		if !ok {
+			// No registered Resp struct (e.g. array-typed responses).
+			// Still collect types associated with this group.
+			for _, st := range registry.forOperation(op.Group) {
+				collectTypeRefs(op.Group, st.SchemaRef, registry, uses, groupPkgs)
+			}
+			continue
+		}
+		// Collect from the response type's direct fields.
+		for _, f := range respType.Fields {
+			typeName := unwrapTypeName(f.GoType)
+			if child, ok := registry.lookupByName(typeName); ok {
+				collectTypeRefs(op.Group, child.SchemaRef, registry, uses, groupPkgs)
+			}
+		}
+		// Also collect from union branches of the response type.
+		for _, b := range respType.Branches {
+			typeName := unwrapTypeName(b.GoType)
+			if child, ok := registry.lookupByName(typeName); ok {
+				collectTypeRefs(op.Group, child.SchemaRef, registry, uses, groupPkgs)
+			}
+		}
+	}
+
+	for ref, u := range uses {
+		if len(u.pkgs) <= 1 {
+			continue
+		}
+		t, ok := registry.lookup(ref)
+		if !ok || t.IsResp || t.IsShared {
+			continue
+		}
+		t.IsShared = true
+		t.Pkg = u.pkg
+	}
+}
+
+// collectTypeRefs recursively finds all type refs used by an operation's
+// response schema and records which operation groups use each type.
+func collectTypeRefs(group, ref string, registry *typeRegistry, uses map[string]*typeUsage, groupPkgs map[string]string) {
+	t, ok := registry.lookup(ref)
+	if !ok || t.IsResp {
+		return
+	}
+	u, exists := uses[ref]
+	if !exists {
+		u = &typeUsage{groups: make(map[string]struct{}), pkgs: make(map[string]struct{}), pkg: t.Pkg}
+		uses[ref] = u
+	}
+	if _, seen := u.groups[group]; seen {
+		return
+	}
+	u.groups[group] = struct{}{}
+	if pkg, ok := groupPkgs[group]; ok {
+		u.pkgs[pkg] = struct{}{}
+	}
+
+	for _, f := range t.Fields {
+		typeName := unwrapTypeName(f.GoType)
+		if child, ok := registry.lookupByName(typeName); ok {
+			collectTypeRefs(group, child.SchemaRef, registry, uses, groupPkgs)
+		}
+	}
+	for _, b := range t.Branches {
+		typeName := unwrapTypeName(b.GoType)
+		if child, ok := registry.lookupByName(typeName); ok {
+			collectTypeRefs(group, child.SchemaRef, registry, uses, groupPkgs)
+		}
+	}
+}
+
+// unwrapTypeName strips pointer, slice, and map wrappers to get the base type name.
+func unwrapTypeName(goType string) string {
+	for {
+		prev := goType
+		for strings.HasPrefix(goType, "*") {
+			goType = goType[1:]
+		}
+		for strings.HasPrefix(goType, "[]") {
+			goType = goType[2:]
+		}
+		for strings.HasPrefix(goType, "map[") {
+			if idx := strings.Index(goType, "]"); idx >= 0 {
+				goType = goType[idx+1:]
+			} else {
+				break
+			}
+		}
+		if goType == prev {
+			break
+		}
+	}
+	return goType
 }

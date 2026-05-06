@@ -21,7 +21,7 @@ func TestExtractOperations(t *testing.T) {
 
 	spec := buildTestSpec(t)
 
-	ops, err := extractOperations(spec, nil)
+	ops, _, err := extractOperations(spec, nil)
 	require.NoError(t, err)
 	require.NotEmpty(t, ops)
 
@@ -40,7 +40,7 @@ func TestExtractOperations_Filter(t *testing.T) {
 	spec := buildTestSpec(t)
 
 	filter := map[string]bool{"cluster.health": true}
-	ops, err := extractOperations(spec, filter)
+	ops, _, err := extractOperations(spec, filter)
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 	require.Equal(t, "cluster.health", ops[0].Group)
@@ -51,7 +51,7 @@ func TestExtractOperations_SkipsIgnorable(t *testing.T) {
 
 	spec := buildTestSpecWithIgnorable(t)
 
-	ops, err := extractOperations(spec, nil)
+	ops, _, err := extractOperations(spec, nil)
 	require.NoError(t, err)
 
 	for _, op := range ops {
@@ -63,7 +63,7 @@ func TestBuildAPIOperation_Metadata(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
-	ops, err := extractOperations(spec, map[string]bool{"cluster.health": true})
+	ops, _, err := extractOperations(spec, map[string]bool{"cluster.health": true})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -82,7 +82,7 @@ func TestBuildAPIOperation_WithBody(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
-	ops, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
+	ops, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -95,7 +95,7 @@ func TestBuildAPIOperation_Deprecated(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithDeprecated(t)
-	ops, err := extractOperations(spec, map[string]bool{"old.api": true})
+	ops, _, err := extractOperations(spec, map[string]bool{"old.api": true})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -109,7 +109,7 @@ func TestBuildAPIOperation_PathFields(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
-	ops, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
+	ops, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -123,7 +123,7 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithQueryParams(t)
-	ops, err := extractOperations(spec, map[string]bool{"search": true})
+	ops, _, err := extractOperations(spec, map[string]bool{"search": true})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -433,6 +433,129 @@ func buildTestSpecWithDeprecated(t *testing.T) string {
 					"x-deprecation-message": "Use new.api instead.",
 					"deprecated":           true,
 					"responses":            map[string]any{"200": map[string]any{"description": "OK"}},
+				},
+			},
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+func TestBuildAPIOperation_PathFieldUnion(t *testing.T) {
+	t.Parallel()
+
+	spec := buildTestSpecWithMultipleVariants(t)
+	ops, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
+	require.NoError(t, err)
+	require.Len(t, ops, 1)
+
+	op := ops[0]
+	require.Len(t, op.PathFields, 1)
+	require.Equal(t, "Index", op.PathFields[0].GoName)
+	require.True(t, op.PathFields[0].IsList)
+}
+
+func TestBuildAPIOperation_ResponseRef(t *testing.T) {
+	t.Parallel()
+
+	spec := buildTestSpecWithResponseSchema(t)
+	ops, _, err := extractOperations(spec, map[string]bool{"cluster.health": true})
+	require.NoError(t, err)
+	require.Len(t, ops, 1)
+
+	require.Equal(t, "cluster.health___HealthResponseBody", ops[0].ResponseRef)
+}
+
+func TestPopulateResponseTypes(t *testing.T) {
+	t.Parallel()
+
+	spec := buildTestSpecWithResponseSchema(t)
+	ops, loadedSpec, err := extractOperations(spec, map[string]bool{"cluster.health": true})
+	require.NoError(t, err)
+	require.Len(t, ops, 1)
+
+	registry := newTypeRegistry(opensearchAPIPkgName)
+	populateResponseTypes(ops, loadedSpec, registry)
+
+	require.NotEmpty(t, ops[0].RespFields)
+
+	fieldMap := make(map[string]goField)
+	for _, f := range ops[0].RespFields {
+		fieldMap[f.JSONName] = f
+	}
+	require.Equal(t, "string", fieldMap["cluster_name"].GoType)
+	require.Equal(t, "string", fieldMap["status"].GoType)
+	require.Equal(t, "*bool", fieldMap["timed_out"].GoType)
+}
+
+func buildTestSpecWithMultipleVariants(t *testing.T) string {
+	t.Helper()
+	spec := map[string]any{
+		"openapi": "3.0.3",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			"/_refresh": map[string]any{
+				"post": map[string]any{
+					"x-operation-group": "indices.refresh",
+					"x-version-added":   "1.0",
+					"responses":         map[string]any{"200": map[string]any{"description": "OK"}},
+				},
+			},
+			"/{index}/_refresh": map[string]any{
+				"post": map[string]any{
+					"x-operation-group": "indices.refresh",
+					"x-version-added":   "1.0",
+					"parameters": []any{
+						map[string]any{
+							"name":   "index",
+							"in":     "path",
+							"schema": map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+						},
+					},
+					"responses": map[string]any{"200": map[string]any{"description": "OK"}},
+				},
+			},
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+func buildTestSpecWithResponseSchema(t *testing.T) string {
+	t.Helper()
+	spec := map[string]any{
+		"openapi": "3.0.3",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			"/_cluster/health": map[string]any{
+				"get": map[string]any{
+					"x-operation-group": "cluster.health",
+					"x-version-added":   "1.0",
+					"description":       "Returns cluster health.",
+					"responses": map[string]any{
+						"200": map[string]any{
+							"description": "OK",
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"$ref": "#/components/schemas/cluster.health___HealthResponseBody",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"components": map[string]any{
+			"schemas": map[string]any{
+				"cluster.health___HealthResponseBody": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"cluster_name": map[string]any{"type": "string"},
+						"status":       map[string]any{"type": "string"},
+						"timed_out":    map[string]any{"type": "boolean"},
+						"number_of_nodes": map[string]any{"type": "integer"},
+					},
+					"required": []any{"cluster_name", "status"},
 				},
 			},
 		},

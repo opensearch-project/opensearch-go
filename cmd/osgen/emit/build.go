@@ -17,6 +17,19 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
+// Path field name constants used in test generation to identify fields that
+// require special handling (dedicated test indices, valid enum values, etc.).
+const (
+	fieldIndex          = "Index"
+	fieldID             = "ID"
+	fieldDocumentID     = "DocumentID"
+	fieldNewIndex       = "NewIndex"
+	fieldContext         = "Context"
+	fieldMetric         = "Metric"
+	fieldIndexMetric    = "IndexMetric"
+	fieldNodeIDOrMetric = "NodeIDOrMetric"
+)
+
 // BuildConfig holds configuration for target construction.
 type BuildConfig struct {
 	OutDir     string
@@ -474,14 +487,18 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClien
 	hasRequiredIndex := false
 	hasRequiredID := false
 	hasOtherRequired := false
+	hasOptionalIndex := false
 	for _, f := range op.PathBuilder.Fields {
 		if !f.Required {
+			if f.Name == fieldIndex {
+				hasOptionalIndex = true
+			}
 			continue
 		}
 		switch f.Name {
-		case "Index":
+		case fieldIndex:
 			hasRequiredIndex = true
-		case "ID", "DocumentID":
+		case fieldID, fieldDocumentID:
 			hasRequiredID = true
 		default:
 			hasOtherRequired = true
@@ -504,6 +521,9 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClien
 
 	// Determine fixture based on operation semantics.
 	fixtureKind := integFixtureKind(op.Group, hasRequiredIndex, hasRequiredID)
+	if fixtureKind == fixtureNone && hasOptionalIndex {
+		fixtureKind = fixtureIndex
+	}
 	switch fixtureKind {
 	case fixtureDoc:
 		cfg.FixtureCode = buildDocFixtureIR(corePkg, isPlugin)
@@ -543,14 +563,14 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClien
 
 	// Only count optional name fields when the call expression will actually
 	// build a non-nil request literal (otherwise the variable is unused).
-	willBuildReq := hasRequiredIndex || hasRequiredID || hasOtherRequired || needsBody || bodyOverride != ""
+	willBuildReq := hasRequiredIndex || hasRequiredID || hasOtherRequired || hasOptionalIndex || needsBody || bodyOverride != ""
 	if !op.IsPointerReq {
 		willBuildReq = true
 	}
 	cfg.NeedsName = hasOtherRequired || fixtureNeedsName(fixtureKind) || hasRequiredStringParam(op) || (willBuildReq && hasOptionalNameField(op))
 
-	cfg.CallExpr = buildCallExprIR(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, needsBody, isMutating, bodyOverride, false)
-	cfg.FailCallExpr = buildCallExprIR(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, needsBody, isMutating, bodyOverride, true)
+	cfg.CallExpr = buildCallExprIR(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, false)
+	cfg.FailCallExpr = buildCallExprIR(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, true)
 
 	// Build all necessary query params (required params + cat format=json).
 	if paramStr := buildIntegParams(op, pkg); paramStr != "" {
@@ -569,14 +589,14 @@ func primaryRouteIR(op *ir.Operation) ir.DispatchRoute {
 	return ir.DispatchRoute{MethodName: op.TypePrefix}
 }
 
-func buildCallExprIR(callPrefix string, op *ir.Operation, pkg string, hasRequiredIndex, hasRequiredID, hasOtherRequired, needsBody, isMutating bool, bodyOverride string, isFailing bool) string {
+func buildCallExprIR(callPrefix string, op *ir.Operation, pkg string, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating bool, bodyOverride string, isFailing bool) string {
 	prefix := callPrefix
 	if isFailing {
 		prefix = strings.Replace(callPrefix, "client.", "failingClient.", 1)
 	}
 
 	if op.IsPointerReq {
-		if !hasRequiredIndex && !hasRequiredID && !hasOtherRequired && !needsBody && bodyOverride == "" {
+		if !hasRequiredIndex && !hasRequiredID && !hasOtherRequired && !hasOptionalIndex && !needsBody && bodyOverride == "" {
 			return prefix + "(t.Context(), nil)"
 		}
 		return prefix + "(t.Context(), &" + buildReqLiteralIR(op, pkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
@@ -589,22 +609,20 @@ func buildReqLiteralIR(op *ir.Operation, pkg string, hasRequiredIndex, hasRequir
 
 	// Populate all path fields in the test request for a comprehensive happy-path
 	// exercise. Optional fields are included too, since they exercise longer URL
-	// variants.
-	forceIndex := op.Group == "indices.put_alias" || op.Group == "indices.put_settings"
+	// variants and scope operations to dedicated test indices.
 
 	for _, f := range op.PathBuilder.Fields {
 		if !f.Required {
 			switch f.Name {
-			case "Index":
-				if forceIndex {
-					if f.IsList {
-						fields = append(fields, "Index: []string{index}")
-					} else {
-						fields = append(fields, "Index: index")
-					}
+			case fieldIndex:
+				if f.IsList {
+					fields = append(fields, "Index: []string{index}")
+				} else {
+					fields = append(fields, "Index: index")
 				}
-			case "ID", "DocumentID", "NewIndex", "Context":
-				// optional ID, NewIndex, and Context fields are not populated
+			case fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
+				fieldMetric, fieldIndexMetric, fieldNodeIDOrMetric:
+				// not populated: these require specific valid values
 			default:
 				if f.IsList {
 					fields = append(fields, fmt.Sprintf("%s: []string{name}", f.Name))
@@ -615,13 +633,13 @@ func buildReqLiteralIR(op *ir.Operation, pkg string, hasRequiredIndex, hasRequir
 			continue
 		}
 		switch f.Name {
-		case "Index":
+		case fieldIndex:
 			if f.IsList {
 				fields = append(fields, "Index: []string{index}")
 			} else {
 				fields = append(fields, "Index: index")
 			}
-		case "ID", "DocumentID":
+		case fieldID, fieldDocumentID:
 			fields = append(fields, f.Name+": docID")
 		default:
 			if f.IsList {
@@ -853,6 +871,18 @@ func integSkipReason(group string) string {
 	case strings.HasPrefix(group, "transforms"):
 		return "requires transform job configuration"
 
+	// UBI plugin requires initialization state not available in test clusters.
+	case strings.HasPrefix(group, "ubi"):
+		return "requires UBI plugin initialization"
+
+	// Ingestion operations require an index with pull-based ingestion source (e.g. Kafka).
+	case strings.HasPrefix(group, "ingestion"):
+		return "requires index with pull-based ingestion source configured"
+
+	// Search relevance operations require existing resources (experiments, query sets).
+	case strings.HasPrefix(group, "search_relevance"):
+		return "requires search relevance resources (experiments, query sets)"
+
 	// WLM operations require workload group setup.
 	case strings.HasPrefix(group, "wlm"):
 		return "requires workload management query group"
@@ -927,7 +957,8 @@ func hasOptionalNameField(op *ir.Operation) bool {
 			continue
 		}
 		switch f.Name {
-		case "Index", "ID", "DocumentID", "NewIndex", "Context":
+		case fieldIndex, fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
+			fieldMetric, fieldIndexMetric, fieldNodeIDOrMetric:
 			continue
 		default:
 			return true
@@ -961,10 +992,6 @@ func integFixtureKind(group string, hasRequiredIndex, hasRequiredID bool) fixtur
 	case "indices.get_alias", "indices.exists_alias", "indices.delete_alias",
 		"indices.update_aliases":
 		return fixtureAlias
-
-	// put_alias needs an index (server rejects without one even though path is optional).
-	case "indices.put_alias", "indices.put_settings":
-		return fixtureIndex
 
 	// Rollover needs a write alias.
 	case "indices.rollover":

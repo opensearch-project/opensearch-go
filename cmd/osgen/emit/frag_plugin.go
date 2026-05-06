@@ -123,8 +123,10 @@ type PluginTestHelperFragment struct {
 
 func (f *PluginTestHelperFragment) Imports() []Import {
 	return []Import{
+		{Path: "io"},
 		{Path: "net/http"},
 		{Path: "net/http/httptest"},
+		{Path: "strings"},
 		{Path: "testing"},
 		{Path: "github.com/stretchr/testify/require"},
 		{Path: "github.com/opensearch-project/opensearch-go/v4"},
@@ -153,17 +155,21 @@ func NewClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 
-// CreateFailingClient returns a plugin client that always fails with a transport error.
+// CreateFailingClient returns a plugin client that always fails with HTTP 400.
+//
+// The handler writes a real error response body (matching the OpenSearch
+// error envelope) so the typed client returns a *opensearch.Response
+// populated with status code and body. A transport-layer error
+// (hijack-and-close) would leave Inspect().Response nil and break
+// VerifyInspect's NotNil assertion.
 func CreateFailingClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	t.Helper()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Close immediately to cause a transport error.
-		hj, ok := w.(http.Hijacker)
-		if !ok {
-			t.Fatal("server does not support hijacking")
+		if r.Body != nil {
+			defer r.Body.Close()
 		}
-		conn, _, _ := hj.Hijack()
-		conn.Close()
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = io.Copy(w, strings.NewReader("{\"status\": 400, \"error\": \"Test Failing Client Response\"}"))
 	}))
 	t.Cleanup(ts.Close)
 

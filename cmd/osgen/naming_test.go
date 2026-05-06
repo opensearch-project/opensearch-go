@@ -7,6 +7,7 @@
 package main
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -205,15 +206,15 @@ func TestHTTPMethodConst(t *testing.T) {
 		method string
 		want   string
 	}{
-		{name: "get", method: "GET", want: "http.MethodGet"},
-		{name: "post", method: "POST", want: "http.MethodPost"},
-		{name: "put", method: "PUT", want: "http.MethodPut"},
-		{name: "delete", method: "DELETE", want: "http.MethodDelete"},
-		{name: "head", method: "HEAD", want: "http.MethodHead"},
-		{name: "patch", method: "PATCH", want: "http.MethodPatch"},
-		{name: "options", method: "OPTIONS", want: "http.MethodOptions"},
-		{name: "trace", method: "TRACE", want: "http.MethodTrace"},
-		{name: "connect", method: "CONNECT", want: "http.MethodConnect"},
+		{name: "get", method: http.MethodGet, want: "http.MethodGet"},
+		{name: "post", method: http.MethodPost, want: "http.MethodPost"},
+		{name: "put", method: http.MethodPut, want: "http.MethodPut"},
+		{name: "delete", method: http.MethodDelete, want: "http.MethodDelete"},
+		{name: "head", method: http.MethodHead, want: "http.MethodHead"},
+		{name: "patch", method: http.MethodPatch, want: "http.MethodPatch"},
+		{name: "options", method: http.MethodOptions, want: "http.MethodOptions"},
+		{name: "trace", method: http.MethodTrace, want: "http.MethodTrace"},
+		{name: "connect", method: http.MethodConnect, want: "http.MethodConnect"},
 		{name: "lowercase", method: "get", want: "http.MethodGet"},
 		{name: "unknown defaults to get", method: "UNKNOWN", want: "http.MethodGet"},
 	}
@@ -231,4 +232,99 @@ func TestGoFieldName(t *testing.T) {
 
 	require.Equal(t, "nodeID", goFieldName("node_id"))
 	require.Equal(t, "clusterName", goFieldName("cluster_name"))
+}
+
+func TestSchemaTypeName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		schemaKey  string
+		isRespBody bool
+		want       string
+	}{
+		{name: "common type", schemaKey: "_common___ShardStatistics", want: "ShardStatistics"},
+		{name: "common error cause", schemaKey: "_common___ErrorCause", want: "ErrorCause"},
+		{name: "common acknowledged", schemaKey: "_common___AcknowledgedResponseBase", want: "AcknowledgedResponseBase"},
+		{name: "resp body", schemaKey: "cluster.health___HealthResponseBody", isRespBody: true, want: "ClusterHealthResp"},
+		{name: "resp body search", schemaKey: "_core.search___ResponseBody", isRespBody: true, want: "SearchResp"},
+		{name: "de-stutter cluster.health", schemaKey: "cluster.health___IndexHealthStats", want: "ClusterHealthIndexStats"},
+		{name: "de-stutter cluster.health shard", schemaKey: "cluster.health___ShardHealthStats", want: "ClusterHealthShardStats"},
+		{name: "no stutter", schemaKey: "cluster.health___AwarenessAttributeStats", want: "ClusterHealthAwarenessAttributeStats"},
+		{name: "no stutter short name", schemaKey: "cluster.health___Level", want: "ClusterHealthLevel"},
+		{name: "core prefix stripped", schemaKey: "_core.search___SearchHits", want: "SearchHits"},
+		{name: "core search hit", schemaKey: "_core.search___SearchHit", want: "SearchHit"},
+		{name: "de-stutter cat aliases", schemaKey: "cat.aliases___AliasesRecord", want: "CatAliasesRecord"},
+		{name: "de-stutter cat health", schemaKey: "cat.health___HealthRecord", want: "CatHealthRecord"},
+		{name: "nodes stats", schemaKey: "nodes.stats___ClusterNodes", want: "NodesStatsClusterNodes"},
+		{name: "cluster stats indices", schemaKey: "cluster.stats___ClusterIndices", want: "ClusterStatsClusterIndices"},
+		{name: "group._common", schemaKey: "nodes._common___NodesResponseBase", want: "NodesResponseBase"},
+		{name: "group._common cluster", schemaKey: "cluster._common___ComponentTemplate", want: "ClusterComponentTemplate"},
+		{name: "acronyms", schemaKey: "security._common___SSLInfo", want: "SecuritySSLInfo"},
+		{name: "sql plugin", schemaKey: "sql._common___SQLQuery", want: "SQLQuery"},
+		{name: "de-stutter empty result kept", schemaKey: "cluster.health___Health", want: "ClusterHealthHealth"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, schemaTypeName(tt.schemaKey, tt.isRespBody))
+		})
+	}
+}
+
+func TestIsScalarAlias(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		ref     string
+		wantTyp string
+		wantOK  bool
+	}{
+		{name: "Name is string", ref: "_common___Name", wantTyp: "string", wantOK: true},
+		{name: "uint is int", ref: "_common___uint", wantTyp: "int", wantOK: true},
+		{name: "PercentageNumber is float64", ref: "_common___PercentageNumber", wantTyp: "float64", wantOK: true},
+		{name: "Duration is string", ref: "_common___Duration", wantTyp: "string", wantOK: true},
+		{name: "EpochTimeUnitMillis is int64", ref: "_common___EpochTimeUnitMillis", wantTyp: "int64", wantOK: true},
+		{name: "ShardStatistics is not scalar", ref: "_common___ShardStatistics", wantTyp: "", wantOK: false},
+		{name: "ErrorCause is not scalar", ref: "_common___ErrorCause", wantTyp: "", wantOK: false},
+		{name: "non-common is not scalar", ref: "cluster.health___Level", wantTyp: "", wantOK: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			goType, ok := isScalarAlias(tt.ref)
+			require.Equal(t, tt.wantOK, ok)
+			if ok {
+				require.Equal(t, tt.wantTyp, goType)
+			}
+		})
+	}
+}
+
+func TestPascalFromSegments(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{name: "simple", input: "cluster", want: "Cluster"},
+		{name: "dotted", input: "cluster.health", want: "ClusterHealth"},
+		{name: "underscore", input: "hot_threads", want: "HotThreads"},
+		{name: "core prefix", input: "_core.search", want: "Search"},
+		{name: "bare core", input: "_core", want: "Core"},
+		{name: "acronym", input: "http", want: "HTTP"},
+		{name: "multi segment", input: "reload_http_certificates", want: "ReloadHTTPCertificates"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, pascalFromSegments(tt.input))
+		})
+	}
 }
