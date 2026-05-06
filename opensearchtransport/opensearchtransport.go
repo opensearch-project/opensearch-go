@@ -517,7 +517,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	if len(cfg.RetryOnStatus) == 0 && cfg.RetryOnStatus == nil {
-		cfg.RetryOnStatus = []int{502, 503, 504}
+		cfg.RetryOnStatus = []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout}
 	}
 
 	if cfg.MaxRetries == 0 {

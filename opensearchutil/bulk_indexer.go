@@ -568,7 +568,7 @@ func (w *worker) flush(ctx context.Context) error {
 			op = k
 			info = v
 		}
-		if info.Error != nil || info.Status > 201 {
+		if info.Error != nil || info.Status >= http.StatusMultipleChoices {
 			atomic.AddUint64(&w.bi.stats.numFailed, 1)
 			if item.OnFailure != nil {
 				item.OnFailure(ctx, item, info, nil)
