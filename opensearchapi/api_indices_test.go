@@ -12,6 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -69,7 +70,8 @@ func TestIndicesClient(t *testing.T) {
 
 			// Validate HTTP success
 			response := res.Inspect().Response
-			require.True(t, response.StatusCode >= 200 && response.StatusCode < 300,
+			// Any 2xx status is acceptable (200 <= code < 300).
+			require.True(t, response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices,
 				"Expected successful HTTP status, got %d", response.StatusCode)
 
 			// Parse response body to validate structure
@@ -216,7 +218,7 @@ func TestIndicesClient(t *testing.T) {
 			resp, err := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{index}})
 			require.NoError(t, err)
 			require.NotNil(t, resp)
-			require.Equal(t, 200, resp.StatusCode)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
 		})
 
 		t.Run("inspect", func(t *testing.T) {

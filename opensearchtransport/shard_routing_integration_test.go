@@ -74,7 +74,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 		if perfErr != nil {
 			return false
 		}
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode >= http.StatusInternalServerError {
 			resp.Body.Close()
 			return false
 		}
@@ -332,7 +332,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		if perfErr != nil {
 			return false
 		}
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode >= http.StatusInternalServerError {
 			resp.Body.Close()
 			return false
 		}
@@ -619,7 +619,7 @@ func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.C
 
 		// Retry on 5xx -- server may still be settling cluster state
 		// (e.g. OptionalDataException on OpenSearch 2.0.x).
-		if resp.StatusCode >= 500 {
+		if resp.StatusCode >= http.StatusInternalServerError {
 			if testutil.IsDebugEnabled(t) {
 				t.Logf("_cluster/state/metadata/%s returned %d, retrying: %s",
 					index, resp.StatusCode, string(body))
