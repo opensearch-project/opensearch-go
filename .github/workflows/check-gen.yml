@@ -1,0 +1,23 @@
+name: Check generated code
+
+on: [push, pull_request]
+
+jobs:
+  check-gen:
+    name: Generated code up to date
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with: { go-version-file: 'go.mod' }
+      - name: Fetch OpenAPI spec
+        run: make fetch-opensearch-spec
+      - name: Regenerate path builders
+        run: make gen
+      - name: Check for diff
+        run: |
+          if ! git diff --exit-code internal/path/builders_gen.go internal/path/builders_gen_test.go osapi/; then
+            echo "::warning::Generated code is out of date. Run 'make gen' and commit the result."
+            exit 1
+          fi
