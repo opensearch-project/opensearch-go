@@ -6,7 +6,12 @@
 
 package main
 
-import "strings"
+import (
+	"fmt"
+	"go/token"
+	"go/types"
+	"strings"
+)
 
 // acronyms maps lowercase segments to their Go-idiomatic uppercase form.
 var acronyms = map[string]string{
@@ -14,6 +19,7 @@ var acronyms = map[string]string{
 	"http": "HTTP", "https": "HTTPS", "ttl": "TTL", "ip": "IP",
 	"tcp": "TCP", "tls": "TLS", "ssl": "SSL", "api": "API",
 	"json": "JSON", "xml": "XML", "sql": "SQL", "dsl": "DSL",
+	"pit": "PIT",
 }
 
 // titleSegment capitalizes a segment with full acronym expansion.
@@ -53,7 +59,11 @@ func pathFieldName(name string) string {
 	for _, p := range parts {
 		sb.WriteString(titleSegment(p))
 	}
-	return sb.String()
+	result := sb.String()
+	if result == "" || !token.IsIdentifier(result) {
+		panic(fmt.Sprintf("pathFieldName(%q) produced invalid Go identifier %q", name, result))
+	}
+	return result
 }
 
 // unexportedFieldName converts a spec parameter name to an unexported Go field
@@ -66,18 +76,16 @@ func unexportedFieldName(name string) string {
 	var sb strings.Builder
 	for i, p := range parts {
 		if i == 0 {
-			lower := strings.ToLower(p)
-			if upper, ok := acronyms[lower]; ok {
-				sb.WriteString(strings.ToLower(upper[:1]) + upper[1:])
-			} else {
-				sb.WriteString(lower)
-			}
+			// First segment is always all lowercase to keep the identifier
+			// unexported. If the segment is itself an acronym (id, url, http),
+			// we still want plain lowercase rather than "iD" / "uRL" / "hTTP".
+			sb.WriteString(strings.ToLower(p))
 		} else {
 			sb.WriteString(titleSegment(p))
 		}
 	}
 	result := sb.String()
-	if isGoKeyword(result) {
+	if token.IsKeyword(result) || isPredeclaredIdent(result) {
 		return result + "Val"
 	}
 	return result
@@ -100,7 +108,14 @@ func baseGoName(jsonName string) string {
 	for _, p := range parts {
 		sb.WriteString(titleSegment(p))
 	}
-	return sb.String()
+	result := sb.String()
+	if len(result) > 0 && result[0] >= '0' && result[0] <= '9' {
+		result = "N" + result
+	}
+	if result == "" || !token.IsIdentifier(result) {
+		panic(fmt.Sprintf("baseGoName(%q) produced invalid Go identifier %q", jsonName, result))
+	}
+	return result
 }
 
 // pkgScopedName returns the Go type prefix for an operation, scoped to its
@@ -135,16 +150,14 @@ func pkgScopedName(group string) string {
 	return sb.String()
 }
 
-func isGoKeyword(s string) bool {
-	switch s {
-	case "break", "case", "chan", "const", "continue",
-		"default", "defer", "else", "fallthrough", "for",
-		"func", "go", "goto", "if", "import",
-		"interface", "map", "package", "range", "return",
-		"select", "struct", "switch", "type", "var":
-		return true
+// isPredeclaredIdent reports whether s shadows a Go predeclared identifier
+// (builtins, named primitive types, true/false/nil/iota). The set is
+// sourced from go/types.Universe so it stays current with the language.
+func isPredeclaredIdent(s string) bool {
+	if s == "_" {
+		return false
 	}
-	return false
+	return types.Universe.Lookup(s) != nil
 }
 
 // schemaTypeName converts an OpenAPI spec schema key (e.g.
@@ -235,14 +248,14 @@ func pascalFromSegments(s string) string {
 // generating a named Go type.
 var scalarAliases = map[string]string{
 	"_common___Name":               "string",
-	"_common___Names":              "string",
+	"_common___Names":              "[]string",
 	"_common___Field":              "string",
 	"_common___Fields":             "string",
 	"_common___Id":                 "string",
 	"_common___Ids":                "string",
 	"_common___IndexName":          "string",
 	"_common___IndexAlias":         "string",
-	"_common___Indices":            "string",
+	"_common___Indices":            "[]string",
 	"_common___DataStreamName":     "string",
 	"_common___DataStreamNames":    "string",
 	"_common___Host":               "string",

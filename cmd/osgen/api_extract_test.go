@@ -21,7 +21,7 @@ func TestExtractOperations(t *testing.T) {
 
 	spec := buildTestSpec(t)
 
-	ops, _, err := extractOperations(spec, nil)
+	ops, _, _, _, err := extractOperations(spec, nil, VersionRange{})
 	require.NoError(t, err)
 	require.NotEmpty(t, ops)
 
@@ -40,7 +40,7 @@ func TestExtractOperations_Filter(t *testing.T) {
 	spec := buildTestSpec(t)
 
 	filter := map[string]bool{"cluster.health": true}
-	ops, _, err := extractOperations(spec, filter)
+	ops, _, _, _, err := extractOperations(spec, filter, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 	require.Equal(t, "cluster.health", ops[0].Group)
@@ -51,7 +51,7 @@ func TestExtractOperations_SkipsIgnorable(t *testing.T) {
 
 	spec := buildTestSpecWithIgnorable(t)
 
-	ops, _, err := extractOperations(spec, nil)
+	ops, _, _, _, err := extractOperations(spec, nil, VersionRange{})
 	require.NoError(t, err)
 
 	for _, op := range ops {
@@ -63,7 +63,7 @@ func TestBuildAPIOperation_Metadata(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"cluster.health": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"cluster.health": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -82,7 +82,7 @@ func TestBuildAPIOperation_WithBody(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -95,7 +95,7 @@ func TestBuildAPIOperation_Deprecated(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithDeprecated(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"old.api": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"old.api": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -109,7 +109,7 @@ func TestBuildAPIOperation_PathFields(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -123,7 +123,7 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithQueryParams(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"search": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"search": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -143,9 +143,9 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	require.True(t, paramMap["size"].IsInt)
 	require.Equal(t, "int", paramMap["size"].GoType)
 
-	// Duration param.
-	require.True(t, paramMap["timeout"].IsDuration)
-	require.Equal(t, "time.Duration", paramMap["timeout"].GoType)
+	// Duration param (non-shared; timeout is now a shared param).
+	require.True(t, paramMap["scroll"].IsDuration)
+	require.Equal(t, "time.Duration", paramMap["scroll"].GoType)
 
 	// List param.
 	require.True(t, paramMap["expand_wildcards"].IsList)
@@ -154,6 +154,10 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	// Global params should be excluded.
 	_, hasPretty := paramMap["pretty"]
 	require.False(t, hasPretty)
+
+	// Shared timeout params should be excluded.
+	_, hasTimeout := paramMap["timeout"]
+	require.False(t, hasTimeout)
 }
 
 func TestIsGlobalParam(t *testing.T) {
@@ -168,8 +172,16 @@ func TestIsGlobalParam(t *testing.T) {
 		{"error_trace", true},
 		{"source", true},
 		{"filter_path", true},
-		{"timeout", false},
+		{"format", true},
+		{"help", true},
+		{"v", true},
+		{"s", true},
+		{"h", true},
+		{"timeout", true},
+		{"cluster_manager_timeout", true},
+		{"master_timeout", true},
 		{"index", false},
+		{"level", false},
 	}
 
 	for _, tt := range tests {
@@ -444,7 +456,7 @@ func TestBuildAPIOperation_PathFieldUnion(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithMultipleVariants(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -458,7 +470,7 @@ func TestBuildAPIOperation_ResponseRef(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithResponseSchema(t)
-	ops, _, err := extractOperations(spec, map[string]bool{"cluster.health": true})
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"cluster.health": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
@@ -469,12 +481,12 @@ func TestPopulateResponseTypes(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithResponseSchema(t)
-	ops, loadedSpec, err := extractOperations(spec, map[string]bool{"cluster.health": true})
+	ops, loadedSpec, _, _, err := extractOperations(spec, map[string]bool{"cluster.health": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
 
 	registry := newTypeRegistry(opensearchAPIPkgName)
-	populateResponseTypes(ops, loadedSpec, registry)
+	populateResponseTypes(ops, loadedSpec, registry, VersionRange{})
 
 	require.NotEmpty(t, ops[0].RespFields)
 
@@ -577,6 +589,7 @@ func buildTestSpecWithQueryParams(t *testing.T) string {
 						map[string]any{"name": "allow_partial_results", "in": "query", "schema": map[string]any{"type": "boolean"}},
 						map[string]any{"name": "size", "in": "query", "schema": map[string]any{"type": "integer"}},
 						map[string]any{"name": "timeout", "in": "query", "schema": map[string]any{"type": "string", "pattern": "([0-9]+)(?:d|h|m|s|ms|micros|nanos)", "x-data-type": "time"}},
+						map[string]any{"name": "scroll", "in": "query", "schema": map[string]any{"type": "string", "pattern": "([0-9]+)(?:d|h|m|s|ms|micros|nanos)", "x-data-type": "time"}},
 						map[string]any{"name": "expand_wildcards", "in": "query", "schema": map[string]any{"oneOf": []any{map[string]any{"type": "string"}, map[string]any{"type": "array", "items": map[string]any{"type": "string"}}}}},
 						map[string]any{"name": "pretty", "in": "query", "schema": map[string]any{"type": "boolean"}},
 					},

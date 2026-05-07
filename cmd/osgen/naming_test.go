@@ -109,11 +109,15 @@ func TestUnexportedFieldName(t *testing.T) {
 		{name: "simple", input: "index", want: "index"},
 		{name: "id suffix", input: "node_id", want: "nodeID"},
 		{name: "uuid suffix", input: "index_uuid", want: "indexUUID"},
-		{name: "starts with acronym", input: "id", want: "iD"},
+		{name: "starts with acronym", input: "id", want: "id"},
+		{name: "url alone", input: "url", want: "url"},
 		{name: "multi word", input: "scroll_id", want: "scrollID"},
 		{name: "dotted url", input: "chime.url", want: "chimeURL"},
 		{name: "underscore and dot", input: "cluster_name", want: "clusterName"},
 		{name: "go keyword", input: "type", want: "typeVal"},
+		{name: "predeclared len", input: "len", want: "lenVal"},
+		{name: "predeclared new", input: "new", want: "newVal"},
+		{name: "predeclared string", input: "string", want: "stringVal"},
 	}
 
 	for _, tt := range tests {

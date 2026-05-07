@@ -3,6 +3,7 @@
 package path
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,24 +12,26 @@ import (
 func TestAsynchronousSearchDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    AsynchronousSearchDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       AsynchronousSearchDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: AsynchronousSearchDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: AsynchronousSearchDeletePath{ID: "test-id"}, want: "/_plugins/_asynchronous_search/test-id", wantErr: false},
+		{name: "required fields empty", path: AsynchronousSearchDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: AsynchronousSearchDeletePath{ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_asynchronous_search/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -36,24 +39,26 @@ func TestAsynchronousSearchDeletePath_Build(t *testing.T) {
 func TestAsynchronousSearchGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    AsynchronousSearchGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       AsynchronousSearchGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: AsynchronousSearchGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: AsynchronousSearchGetPath{ID: "test-id"}, want: "/_plugins/_asynchronous_search/test-id", wantErr: false},
+		{name: "required fields empty", path: AsynchronousSearchGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: AsynchronousSearchGetPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_asynchronous_search/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -61,23 +66,25 @@ func TestAsynchronousSearchGetPath_Build(t *testing.T) {
 func TestAsynchronousSearchSearchPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    AsynchronousSearchSearchPath
-		want    string
-		wantErr bool
+		name       string
+		path       AsynchronousSearchSearchPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: AsynchronousSearchSearchPath{}, want: "/_plugins/_asynchronous_search", wantErr: false},
+		{name: "all empty", path: AsynchronousSearchSearchPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_asynchronous_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -85,23 +92,25 @@ func TestAsynchronousSearchSearchPath_Build(t *testing.T) {
 func TestAsynchronousSearchStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    AsynchronousSearchStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       AsynchronousSearchStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: AsynchronousSearchStatsPath{}, want: "/_plugins/_asynchronous_search/stats", wantErr: false},
+		{name: "all empty", path: AsynchronousSearchStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_asynchronous_search/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -109,24 +118,26 @@ func TestAsynchronousSearchStatsPath_Build(t *testing.T) {
 func TestBulkPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    BulkPath
-		want    string
-		wantErr bool
+		name       string
+		path       BulkPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: BulkPath{}, want: "/_bulk", wantErr: false},
-		{name: "all fields", path: BulkPath{Index: "test-index"}, want: "/test-index/_bulk", wantErr: false},
+		{name: "all empty", path: BulkPath{}, wantMethod: http.MethodPost, wantPath: "/_bulk", wantErr: false},
+		{name: "all fields", path: BulkPath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/test-index/_bulk", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -134,24 +145,26 @@ func TestBulkPath_Build(t *testing.T) {
 func TestBulkStreamPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    BulkStreamPath
-		want    string
-		wantErr bool
+		name       string
+		path       BulkStreamPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: BulkStreamPath{}, want: "/_bulk/stream", wantErr: false},
-		{name: "all fields", path: BulkStreamPath{Index: "test-index"}, want: "/test-index/_bulk/stream", wantErr: false},
+		{name: "all empty", path: BulkStreamPath{}, wantMethod: http.MethodPost, wantPath: "/_bulk/stream", wantErr: false},
+		{name: "all fields", path: BulkStreamPath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/test-index/_bulk/stream", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -159,25 +172,27 @@ func TestBulkStreamPath_Build(t *testing.T) {
 func TestCatAliasesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatAliasesPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatAliasesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatAliasesPath{}, want: "/_cat/aliases", wantErr: false},
-		{name: "all fields", path: CatAliasesPath{Name: []string{"test-name"}}, want: "/_cat/aliases/test-name", wantErr: false},
-		{name: "Name multi-value", path: CatAliasesPath{Name: []string{"a", "b", "c"}}, want: "/_cat/aliases/a,b,c", wantErr: false},
+		{name: "all empty", path: CatAliasesPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/aliases", wantErr: false},
+		{name: "all fields", path: CatAliasesPath{Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/_cat/aliases/test-name", wantErr: false},
+		{name: "Name multi-value", path: CatAliasesPath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/aliases/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -185,23 +200,25 @@ func TestCatAliasesPath_Build(t *testing.T) {
 func TestCatAllPITSegmentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatAllPITSegmentsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatAllPITSegmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatAllPITSegmentsPath{}, want: "/_cat/pit_segments/_all", wantErr: false},
+		{name: "all empty", path: CatAllPITSegmentsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/pit_segments/_all", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -209,25 +226,27 @@ func TestCatAllPITSegmentsPath_Build(t *testing.T) {
 func TestCatAllocationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatAllocationPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatAllocationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatAllocationPath{}, want: "/_cat/allocation", wantErr: false},
-		{name: "all fields", path: CatAllocationPath{NodeID: []string{"test-nodeid"}}, want: "/_cat/allocation/test-nodeid", wantErr: false},
-		{name: "NodeID multi-value", path: CatAllocationPath{NodeID: []string{"a", "b", "c"}}, want: "/_cat/allocation/a,b,c", wantErr: false},
+		{name: "all empty", path: CatAllocationPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/allocation", wantErr: false},
+		{name: "all fields", path: CatAllocationPath{NodeID: []string{"test-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_cat/allocation/test-nodeid", wantErr: false},
+		{name: "NodeID multi-value", path: CatAllocationPath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/allocation/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -235,23 +254,25 @@ func TestCatAllocationPath_Build(t *testing.T) {
 func TestCatClusterManagerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatClusterManagerPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatClusterManagerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatClusterManagerPath{}, want: "/_cat/cluster_manager", wantErr: false},
+		{name: "all empty", path: CatClusterManagerPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/cluster_manager", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -259,25 +280,27 @@ func TestCatClusterManagerPath_Build(t *testing.T) {
 func TestCatCountPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatCountPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatCountPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatCountPath{}, want: "/_cat/count", wantErr: false},
-		{name: "all fields", path: CatCountPath{Index: []string{"test-index"}}, want: "/_cat/count/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatCountPath{Index: []string{"a", "b", "c"}}, want: "/_cat/count/a,b,c", wantErr: false},
+		{name: "all empty", path: CatCountPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/count", wantErr: false},
+		{name: "all fields", path: CatCountPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cat/count/test-index", wantErr: false},
+		{name: "Index multi-value", path: CatCountPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/count/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -285,25 +308,27 @@ func TestCatCountPath_Build(t *testing.T) {
 func TestCatFielddataPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatFielddataPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatFielddataPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatFielddataPath{}, want: "/_cat/fielddata", wantErr: false},
-		{name: "all fields", path: CatFielddataPath{Fields: []string{"test-fields"}}, want: "/_cat/fielddata/test-fields", wantErr: false},
-		{name: "Fields multi-value", path: CatFielddataPath{Fields: []string{"a", "b", "c"}}, want: "/_cat/fielddata/a,b,c", wantErr: false},
+		{name: "all empty", path: CatFielddataPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/fielddata", wantErr: false},
+		{name: "all fields", path: CatFielddataPath{Fields: []string{"test-fields"}}, wantMethod: http.MethodGet, wantPath: "/_cat/fielddata/test-fields", wantErr: false},
+		{name: "Fields multi-value", path: CatFielddataPath{Fields: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/fielddata/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -311,23 +336,25 @@ func TestCatFielddataPath_Build(t *testing.T) {
 func TestCatHealthPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatHealthPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatHealthPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatHealthPath{}, want: "/_cat/health", wantErr: false},
+		{name: "all empty", path: CatHealthPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/health", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -335,23 +362,25 @@ func TestCatHealthPath_Build(t *testing.T) {
 func TestCatHelpPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatHelpPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatHelpPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatHelpPath{}, want: "/_cat", wantErr: false},
+		{name: "all empty", path: CatHelpPath{}, wantMethod: http.MethodGet, wantPath: "/_cat", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -359,25 +388,27 @@ func TestCatHelpPath_Build(t *testing.T) {
 func TestCatIndicesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatIndicesPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatIndicesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatIndicesPath{}, want: "/_cat/indices", wantErr: false},
-		{name: "all fields", path: CatIndicesPath{Index: []string{"test-index"}}, want: "/_cat/indices/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatIndicesPath{Index: []string{"a", "b", "c"}}, want: "/_cat/indices/a,b,c", wantErr: false},
+		{name: "all empty", path: CatIndicesPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/indices", wantErr: false},
+		{name: "all fields", path: CatIndicesPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cat/indices/test-index", wantErr: false},
+		{name: "Index multi-value", path: CatIndicesPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/indices/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -385,23 +416,25 @@ func TestCatIndicesPath_Build(t *testing.T) {
 func TestCatMasterPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatMasterPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatMasterPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatMasterPath{}, want: "/_cat/master", wantErr: false},
+		{name: "all empty", path: CatMasterPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/master", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -409,23 +442,25 @@ func TestCatMasterPath_Build(t *testing.T) {
 func TestCatNodeattrsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatNodeattrsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatNodeattrsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatNodeattrsPath{}, want: "/_cat/nodeattrs", wantErr: false},
+		{name: "all empty", path: CatNodeattrsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/nodeattrs", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -433,23 +468,25 @@ func TestCatNodeattrsPath_Build(t *testing.T) {
 func TestCatNodesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatNodesPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatNodesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatNodesPath{}, want: "/_cat/nodes", wantErr: false},
+		{name: "all empty", path: CatNodesPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/nodes", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -457,23 +494,25 @@ func TestCatNodesPath_Build(t *testing.T) {
 func TestCatPendingTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatPendingTasksPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatPendingTasksPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatPendingTasksPath{}, want: "/_cat/pending_tasks", wantErr: false},
+		{name: "all empty", path: CatPendingTasksPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/pending_tasks", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -481,23 +520,25 @@ func TestCatPendingTasksPath_Build(t *testing.T) {
 func TestCatPITSegmentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatPITSegmentsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatPITSegmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatPITSegmentsPath{}, want: "/_cat/pit_segments", wantErr: false},
+		{name: "all empty", path: CatPITSegmentsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/pit_segments", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -505,23 +546,25 @@ func TestCatPITSegmentsPath_Build(t *testing.T) {
 func TestCatPluginsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatPluginsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatPluginsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatPluginsPath{}, want: "/_cat/plugins", wantErr: false},
+		{name: "all empty", path: CatPluginsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/plugins", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -529,25 +572,27 @@ func TestCatPluginsPath_Build(t *testing.T) {
 func TestCatRecoveryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatRecoveryPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatRecoveryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatRecoveryPath{}, want: "/_cat/recovery", wantErr: false},
-		{name: "all fields", path: CatRecoveryPath{Index: []string{"test-index"}}, want: "/_cat/recovery/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatRecoveryPath{Index: []string{"a", "b", "c"}}, want: "/_cat/recovery/a,b,c", wantErr: false},
+		{name: "all empty", path: CatRecoveryPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/recovery", wantErr: false},
+		{name: "all fields", path: CatRecoveryPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cat/recovery/test-index", wantErr: false},
+		{name: "Index multi-value", path: CatRecoveryPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/recovery/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -555,23 +600,25 @@ func TestCatRecoveryPath_Build(t *testing.T) {
 func TestCatRepositoriesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatRepositoriesPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatRepositoriesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatRepositoriesPath{}, want: "/_cat/repositories", wantErr: false},
+		{name: "all empty", path: CatRepositoriesPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/repositories", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -579,25 +626,27 @@ func TestCatRepositoriesPath_Build(t *testing.T) {
 func TestCatSegmentReplicationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatSegmentReplicationPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatSegmentReplicationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatSegmentReplicationPath{}, want: "/_cat/segment_replication", wantErr: false},
-		{name: "all fields", path: CatSegmentReplicationPath{Index: []string{"test-index"}}, want: "/_cat/segment_replication/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatSegmentReplicationPath{Index: []string{"a", "b", "c"}}, want: "/_cat/segment_replication/a,b,c", wantErr: false},
+		{name: "all empty", path: CatSegmentReplicationPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/segment_replication", wantErr: false},
+		{name: "all fields", path: CatSegmentReplicationPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cat/segment_replication/test-index", wantErr: false},
+		{name: "Index multi-value", path: CatSegmentReplicationPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/segment_replication/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -605,25 +654,27 @@ func TestCatSegmentReplicationPath_Build(t *testing.T) {
 func TestCatSegmentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatSegmentsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatSegmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatSegmentsPath{}, want: "/_cat/segments", wantErr: false},
-		{name: "all fields", path: CatSegmentsPath{Index: []string{"test-index"}}, want: "/_cat/segments/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatSegmentsPath{Index: []string{"a", "b", "c"}}, want: "/_cat/segments/a,b,c", wantErr: false},
+		{name: "all empty", path: CatSegmentsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/segments", wantErr: false},
+		{name: "all fields", path: CatSegmentsPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cat/segments/test-index", wantErr: false},
+		{name: "Index multi-value", path: CatSegmentsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/segments/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -631,25 +682,27 @@ func TestCatSegmentsPath_Build(t *testing.T) {
 func TestCatShardsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatShardsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatShardsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatShardsPath{}, want: "/_cat/shards", wantErr: false},
-		{name: "all fields", path: CatShardsPath{Index: []string{"test-index"}}, want: "/_cat/shards/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatShardsPath{Index: []string{"a", "b", "c"}}, want: "/_cat/shards/a,b,c", wantErr: false},
+		{name: "all empty", path: CatShardsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/shards", wantErr: false},
+		{name: "all fields", path: CatShardsPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cat/shards/test-index", wantErr: false},
+		{name: "Index multi-value", path: CatShardsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/shards/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -657,25 +710,27 @@ func TestCatShardsPath_Build(t *testing.T) {
 func TestCatSnapshotsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatSnapshotsPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatSnapshotsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatSnapshotsPath{}, want: "/_cat/snapshots", wantErr: false},
-		{name: "all fields", path: CatSnapshotsPath{Repository: []string{"test-repository"}}, want: "/_cat/snapshots/test-repository", wantErr: false},
-		{name: "Repository multi-value", path: CatSnapshotsPath{Repository: []string{"a", "b", "c"}}, want: "/_cat/snapshots/a,b,c", wantErr: false},
+		{name: "all empty", path: CatSnapshotsPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/snapshots", wantErr: false},
+		{name: "all fields", path: CatSnapshotsPath{Repository: []string{"test-repository"}}, wantMethod: http.MethodGet, wantPath: "/_cat/snapshots/test-repository", wantErr: false},
+		{name: "Repository multi-value", path: CatSnapshotsPath{Repository: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/snapshots/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -683,23 +738,25 @@ func TestCatSnapshotsPath_Build(t *testing.T) {
 func TestCatTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatTasksPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatTasksPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatTasksPath{}, want: "/_cat/tasks", wantErr: false},
+		{name: "all empty", path: CatTasksPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/tasks", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -707,24 +764,26 @@ func TestCatTasksPath_Build(t *testing.T) {
 func TestCatTemplatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatTemplatesPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatTemplatesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatTemplatesPath{}, want: "/_cat/templates", wantErr: false},
-		{name: "all fields", path: CatTemplatesPath{Name: "test-name"}, want: "/_cat/templates/test-name", wantErr: false},
+		{name: "all empty", path: CatTemplatesPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/templates", wantErr: false},
+		{name: "all fields", path: CatTemplatesPath{Name: "test-name"}, wantMethod: http.MethodGet, wantPath: "/_cat/templates/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -732,25 +791,27 @@ func TestCatTemplatesPath_Build(t *testing.T) {
 func TestCatThreadPoolPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CatThreadPoolPath
-		want    string
-		wantErr bool
+		name       string
+		path       CatThreadPoolPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CatThreadPoolPath{}, want: "/_cat/thread_pool", wantErr: false},
-		{name: "all fields", path: CatThreadPoolPath{ThreadPoolPatterns: []string{"test-threadpoolpatterns"}}, want: "/_cat/thread_pool/test-threadpoolpatterns", wantErr: false},
-		{name: "ThreadPoolPatterns multi-value", path: CatThreadPoolPath{ThreadPoolPatterns: []string{"a", "b", "c"}}, want: "/_cat/thread_pool/a,b,c", wantErr: false},
+		{name: "all empty", path: CatThreadPoolPath{}, wantMethod: http.MethodGet, wantPath: "/_cat/thread_pool", wantErr: false},
+		{name: "all fields", path: CatThreadPoolPath{ThreadPoolPatterns: []string{"test-threadpoolpatterns"}}, wantMethod: http.MethodGet, wantPath: "/_cat/thread_pool/test-threadpoolpatterns", wantErr: false},
+		{name: "ThreadPoolPatterns multi-value", path: CatThreadPoolPath{ThreadPoolPatterns: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cat/thread_pool/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -758,25 +819,27 @@ func TestCatThreadPoolPath_Build(t *testing.T) {
 func TestClearScrollPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClearScrollPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClearScrollPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClearScrollPath{}, want: "/_search/scroll", wantErr: false},
-		{name: "all fields", path: ClearScrollPath{ScrollID: []string{"test-scrollid"}}, want: "/_search/scroll/test-scrollid", wantErr: false},
-		{name: "ScrollID multi-value", path: ClearScrollPath{ScrollID: []string{"a", "b", "c"}}, want: "/_search/scroll/a,b,c", wantErr: false},
+		{name: "all empty", path: ClearScrollPath{}, wantMethod: http.MethodDelete, wantPath: "/_search/scroll", wantErr: false},
+		{name: "all fields", path: ClearScrollPath{ScrollID: []string{"test-scrollid"}}, wantMethod: http.MethodDelete, wantPath: "/_search/scroll/test-scrollid", wantErr: false},
+		{name: "ScrollID multi-value", path: ClearScrollPath{ScrollID: []string{"a", "b", "c"}}, wantMethod: http.MethodDelete, wantPath: "/_search/scroll/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -784,23 +847,25 @@ func TestClearScrollPath_Build(t *testing.T) {
 func TestClusterAllocationExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterAllocationExplainPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterAllocationExplainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterAllocationExplainPath{}, want: "/_cluster/allocation/explain", wantErr: false},
+		{name: "all empty", path: ClusterAllocationExplainPath{}, wantMethod: http.MethodGet, wantPath: "/_cluster/allocation/explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -808,24 +873,26 @@ func TestClusterAllocationExplainPath_Build(t *testing.T) {
 func TestClusterDeleteComponentTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterDeleteComponentTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterDeleteComponentTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterDeleteComponentTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterDeleteComponentTemplatePath{Name: "test-name"}, want: "/_component_template/test-name", wantErr: false},
+		{name: "required fields empty", path: ClusterDeleteComponentTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterDeleteComponentTemplatePath{Name: "test-name"}, wantMethod: http.MethodDelete, wantPath: "/_component_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -833,23 +900,25 @@ func TestClusterDeleteComponentTemplatePath_Build(t *testing.T) {
 func TestClusterDeleteDecommissionAwarenessPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterDeleteDecommissionAwarenessPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterDeleteDecommissionAwarenessPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterDeleteDecommissionAwarenessPath{}, want: "/_cluster/decommission/awareness", wantErr: false},
+		{name: "all empty", path: ClusterDeleteDecommissionAwarenessPath{}, wantMethod: http.MethodDelete, wantPath: "/_cluster/decommission/awareness", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -857,23 +926,25 @@ func TestClusterDeleteDecommissionAwarenessPath_Build(t *testing.T) {
 func TestClusterDeleteVotingConfigExclusionsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterDeleteVotingConfigExclusionsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterDeleteVotingConfigExclusionsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterDeleteVotingConfigExclusionsPath{}, want: "/_cluster/voting_config_exclusions", wantErr: false},
+		{name: "all empty", path: ClusterDeleteVotingConfigExclusionsPath{}, wantMethod: http.MethodDelete, wantPath: "/_cluster/voting_config_exclusions", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -881,23 +952,25 @@ func TestClusterDeleteVotingConfigExclusionsPath_Build(t *testing.T) {
 func TestClusterDeleteWeightedRoutingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterDeleteWeightedRoutingPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterDeleteWeightedRoutingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterDeleteWeightedRoutingPath{}, want: "/_cluster/routing/awareness/weights", wantErr: false},
+		{name: "all empty", path: ClusterDeleteWeightedRoutingPath{}, wantMethod: http.MethodDelete, wantPath: "/_cluster/routing/awareness/weights", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -905,24 +978,26 @@ func TestClusterDeleteWeightedRoutingPath_Build(t *testing.T) {
 func TestClusterExistsComponentTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterExistsComponentTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterExistsComponentTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterExistsComponentTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterExistsComponentTemplatePath{Name: "test-name"}, want: "/_component_template/test-name", wantErr: false},
+		{name: "required fields empty", path: ClusterExistsComponentTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterExistsComponentTemplatePath{Name: "test-name"}, wantMethod: http.MethodHead, wantPath: "/_component_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -930,24 +1005,26 @@ func TestClusterExistsComponentTemplatePath_Build(t *testing.T) {
 func TestClusterGetComponentTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterGetComponentTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterGetComponentTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterGetComponentTemplatePath{}, want: "/_component_template", wantErr: false},
-		{name: "all fields", path: ClusterGetComponentTemplatePath{Name: "test-name"}, want: "/_component_template/test-name", wantErr: false},
+		{name: "all empty", path: ClusterGetComponentTemplatePath{}, wantMethod: http.MethodGet, wantPath: "/_component_template", wantErr: false},
+		{name: "all fields", path: ClusterGetComponentTemplatePath{Name: "test-name"}, wantMethod: http.MethodGet, wantPath: "/_component_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -955,24 +1032,26 @@ func TestClusterGetComponentTemplatePath_Build(t *testing.T) {
 func TestClusterGetDecommissionAwarenessPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterGetDecommissionAwarenessPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterGetDecommissionAwarenessPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterGetDecommissionAwarenessPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterGetDecommissionAwarenessPath{AwarenessAttributeName: "test-awarenessattributename"}, want: "/_cluster/decommission/awareness/test-awarenessattributename/_status", wantErr: false},
+		{name: "required fields empty", path: ClusterGetDecommissionAwarenessPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterGetDecommissionAwarenessPath{AwarenessAttributeName: "test-awarenessattributename"}, wantMethod: http.MethodGet, wantPath: "/_cluster/decommission/awareness/test-awarenessattributename/_status", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -980,23 +1059,25 @@ func TestClusterGetDecommissionAwarenessPath_Build(t *testing.T) {
 func TestClusterGetSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterGetSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterGetSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterGetSettingsPath{}, want: "/_cluster/settings", wantErr: false},
+		{name: "all empty", path: ClusterGetSettingsPath{}, wantMethod: http.MethodGet, wantPath: "/_cluster/settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1004,24 +1085,26 @@ func TestClusterGetSettingsPath_Build(t *testing.T) {
 func TestClusterGetWeightedRoutingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterGetWeightedRoutingPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterGetWeightedRoutingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterGetWeightedRoutingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterGetWeightedRoutingPath{Attribute: "test-attribute"}, want: "/_cluster/routing/awareness/test-attribute/weights", wantErr: false},
+		{name: "required fields empty", path: ClusterGetWeightedRoutingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterGetWeightedRoutingPath{Attribute: "test-attribute"}, wantMethod: http.MethodGet, wantPath: "/_cluster/routing/awareness/test-attribute/weights", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1029,25 +1112,27 @@ func TestClusterGetWeightedRoutingPath_Build(t *testing.T) {
 func TestClusterHealthPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterHealthPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterHealthPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterHealthPath{}, want: "/_cluster/health", wantErr: false},
-		{name: "all fields", path: ClusterHealthPath{Index: []string{"test-index"}}, want: "/_cluster/health/test-index", wantErr: false},
-		{name: "Index multi-value", path: ClusterHealthPath{Index: []string{"a", "b", "c"}}, want: "/_cluster/health/a,b,c", wantErr: false},
+		{name: "all empty", path: ClusterHealthPath{}, wantMethod: http.MethodGet, wantPath: "/_cluster/health", wantErr: false},
+		{name: "all fields", path: ClusterHealthPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/health/test-index", wantErr: false},
+		{name: "Index multi-value", path: ClusterHealthPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/health/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1055,23 +1140,25 @@ func TestClusterHealthPath_Build(t *testing.T) {
 func TestClusterPendingTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterPendingTasksPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterPendingTasksPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterPendingTasksPath{}, want: "/_cluster/pending_tasks", wantErr: false},
+		{name: "all empty", path: ClusterPendingTasksPath{}, wantMethod: http.MethodGet, wantPath: "/_cluster/pending_tasks", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1079,23 +1166,25 @@ func TestClusterPendingTasksPath_Build(t *testing.T) {
 func TestClusterPostVotingConfigExclusionsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterPostVotingConfigExclusionsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterPostVotingConfigExclusionsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterPostVotingConfigExclusionsPath{}, want: "/_cluster/voting_config_exclusions", wantErr: false},
+		{name: "all empty", path: ClusterPostVotingConfigExclusionsPath{}, wantMethod: http.MethodPost, wantPath: "/_cluster/voting_config_exclusions", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1103,24 +1192,26 @@ func TestClusterPostVotingConfigExclusionsPath_Build(t *testing.T) {
 func TestClusterPutComponentTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterPutComponentTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterPutComponentTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterPutComponentTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterPutComponentTemplatePath{Name: "test-name"}, want: "/_component_template/test-name", wantErr: false},
+		{name: "required fields empty", path: ClusterPutComponentTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterPutComponentTemplatePath{Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_component_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1128,24 +1219,26 @@ func TestClusterPutComponentTemplatePath_Build(t *testing.T) {
 func TestClusterPutDecommissionAwarenessPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterPutDecommissionAwarenessPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterPutDecommissionAwarenessPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterPutDecommissionAwarenessPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterPutDecommissionAwarenessPath{AwarenessAttributeName: "test-awarenessattributename", AwarenessAttributeValue: "test-awarenessattributevalue"}, want: "/_cluster/decommission/awareness/test-awarenessattributename/test-awarenessattributevalue", wantErr: false},
+		{name: "required fields empty", path: ClusterPutDecommissionAwarenessPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterPutDecommissionAwarenessPath{AwarenessAttributeName: "test-awarenessattributename", AwarenessAttributeValue: "test-awarenessattributevalue"}, wantMethod: http.MethodPut, wantPath: "/_cluster/decommission/awareness/test-awarenessattributename/test-awarenessattributevalue", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1153,23 +1246,25 @@ func TestClusterPutDecommissionAwarenessPath_Build(t *testing.T) {
 func TestClusterPutSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterPutSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterPutSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterPutSettingsPath{}, want: "/_cluster/settings", wantErr: false},
+		{name: "all empty", path: ClusterPutSettingsPath{}, wantMethod: http.MethodPut, wantPath: "/_cluster/settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1177,24 +1272,26 @@ func TestClusterPutSettingsPath_Build(t *testing.T) {
 func TestClusterPutWeightedRoutingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterPutWeightedRoutingPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterPutWeightedRoutingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ClusterPutWeightedRoutingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ClusterPutWeightedRoutingPath{Attribute: "test-attribute"}, want: "/_cluster/routing/awareness/test-attribute/weights", wantErr: false},
+		{name: "required fields empty", path: ClusterPutWeightedRoutingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ClusterPutWeightedRoutingPath{Attribute: "test-attribute"}, wantMethod: http.MethodPut, wantPath: "/_cluster/routing/awareness/test-attribute/weights", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1202,23 +1299,25 @@ func TestClusterPutWeightedRoutingPath_Build(t *testing.T) {
 func TestClusterRemoteInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterRemoteInfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterRemoteInfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterRemoteInfoPath{}, want: "/_remote/info", wantErr: false},
+		{name: "all empty", path: ClusterRemoteInfoPath{}, wantMethod: http.MethodGet, wantPath: "/_remote/info", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1226,23 +1325,25 @@ func TestClusterRemoteInfoPath_Build(t *testing.T) {
 func TestClusterReroutePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterReroutePath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterReroutePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterReroutePath{}, want: "/_cluster/reroute", wantErr: false},
+		{name: "all empty", path: ClusterReroutePath{}, wantMethod: http.MethodPost, wantPath: "/_cluster/reroute", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1250,27 +1351,29 @@ func TestClusterReroutePath_Build(t *testing.T) {
 func TestClusterStatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterStatePath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterStatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterStatePath{}, want: "/_cluster/state", wantErr: false},
-		{name: "all fields", path: ClusterStatePath{Metric: []string{"test-metric"}, Index: []string{"test-index"}}, want: "/_cluster/state/test-metric/test-index", wantErr: false},
-		{name: "only Metric", path: ClusterStatePath{Metric: []string{"val-metric"}}, want: "/_cluster/state/val-metric", wantErr: false},
-		{name: "only Index", path: ClusterStatePath{Index: []string{"val-index"}}, want: "/_cluster/state/val-index", wantErr: false},
-		{name: "Metric multi-value", path: ClusterStatePath{Metric: []string{"a", "b", "c"}}, want: "/_cluster/state/a,b,c", wantErr: false},
+		{name: "all empty", path: ClusterStatePath{}, wantMethod: http.MethodGet, wantPath: "/_cluster/state", wantErr: false},
+		{name: "all fields", path: ClusterStatePath{Metric: []string{"test-metric"}, Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/state/test-metric/test-index", wantErr: false},
+		{name: "only Metric", path: ClusterStatePath{Metric: []string{"val-metric"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/state/val-metric", wantErr: false},
+		{name: "only Index", path: ClusterStatePath{Index: []string{"val-index"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/state/val-index", wantErr: false},
+		{name: "Metric multi-value", path: ClusterStatePath{Metric: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/state/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1278,28 +1381,30 @@ func TestClusterStatePath_Build(t *testing.T) {
 func TestClusterStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ClusterStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ClusterStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ClusterStatsPath{}, want: "/_cluster/stats/nodes", wantErr: false},
-		{name: "all fields", path: ClusterStatsPath{Metric: []string{"test-metric"}, IndexMetric: []string{"test-indexmetric"}, NodeID: []string{"test-nodeid"}}, want: "/_cluster/stats/test-metric/test-indexmetric/nodes/test-nodeid", wantErr: false},
-		{name: "only Metric", path: ClusterStatsPath{Metric: []string{"val-metric"}}, want: "/_cluster/stats/val-metric/nodes", wantErr: false},
-		{name: "only IndexMetric", path: ClusterStatsPath{IndexMetric: []string{"val-indexmetric"}}, want: "/_cluster/stats/val-indexmetric/nodes", wantErr: false},
-		{name: "only NodeID", path: ClusterStatsPath{NodeID: []string{"val-nodeid"}}, want: "/_cluster/stats/nodes/val-nodeid", wantErr: false},
-		{name: "Metric multi-value", path: ClusterStatsPath{Metric: []string{"a", "b", "c"}}, want: "/_cluster/stats/a,b,c/nodes", wantErr: false},
+		{name: "all empty", path: ClusterStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_cluster/stats/nodes", wantErr: false},
+		{name: "all fields", path: ClusterStatsPath{Metric: []string{"test-metric"}, IndexMetric: []string{"test-indexmetric"}, NodeID: []string{"test-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/stats/test-metric/test-indexmetric/nodes/test-nodeid", wantErr: false},
+		{name: "only Metric", path: ClusterStatsPath{Metric: []string{"val-metric"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/stats/val-metric/nodes", wantErr: false},
+		{name: "only IndexMetric", path: ClusterStatsPath{IndexMetric: []string{"val-indexmetric"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/stats/val-indexmetric/nodes", wantErr: false},
+		{name: "only NodeID", path: ClusterStatsPath{NodeID: []string{"val-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/stats/nodes/val-nodeid", wantErr: false},
+		{name: "Metric multi-value", path: ClusterStatsPath{Metric: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_cluster/stats/a,b,c/nodes", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1307,25 +1412,27 @@ func TestClusterStatsPath_Build(t *testing.T) {
 func TestCountPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CountPath
-		want    string
-		wantErr bool
+		name       string
+		path       CountPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: CountPath{}, want: "/_count", wantErr: false},
-		{name: "all fields", path: CountPath{Index: []string{"test-index"}}, want: "/test-index/_count", wantErr: false},
-		{name: "Index multi-value", path: CountPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_count", wantErr: false},
+		{name: "all empty", path: CountPath{}, wantMethod: http.MethodGet, wantPath: "/_count", wantErr: false},
+		{name: "all fields", path: CountPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_count", wantErr: false},
+		{name: "Index multi-value", path: CountPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_count", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1333,24 +1440,26 @@ func TestCountPath_Build(t *testing.T) {
 func TestCreatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CreatePath
-		want    string
-		wantErr bool
+		name       string
+		path       CreatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: CreatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: CreatePath{Index: "test-index", ID: "test-id"}, want: "/test-index/_create/test-id", wantErr: false},
+		{name: "required fields empty", path: CreatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: CreatePath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/test-index/_create/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1358,25 +1467,27 @@ func TestCreatePath_Build(t *testing.T) {
 func TestCreatePITPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    CreatePITPath
-		want    string
-		wantErr bool
+		name       string
+		path       CreatePITPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: CreatePITPath{}, want: "", wantErr: true},
-		{name: "all fields", path: CreatePITPath{Index: []string{"test-index"}}, want: "/test-index/_search/point_in_time", wantErr: false},
-		{name: "Index multi-value", path: CreatePITPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_search/point_in_time", wantErr: false},
+		{name: "required fields empty", path: CreatePITPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: CreatePITPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_search/point_in_time", wantErr: false},
+		{name: "Index multi-value", path: CreatePITPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_search/point_in_time", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1384,24 +1495,26 @@ func TestCreatePITPath_Build(t *testing.T) {
 func TestDanglingIndicesDeleteDanglingIndexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DanglingIndicesDeleteDanglingIndexPath
-		want    string
-		wantErr bool
+		name       string
+		path       DanglingIndicesDeleteDanglingIndexPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: DanglingIndicesDeleteDanglingIndexPath{}, want: "", wantErr: true},
-		{name: "all fields", path: DanglingIndicesDeleteDanglingIndexPath{IndexUUID: "test-indexuuid"}, want: "/_dangling/test-indexuuid", wantErr: false},
+		{name: "required fields empty", path: DanglingIndicesDeleteDanglingIndexPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: DanglingIndicesDeleteDanglingIndexPath{IndexUUID: "test-indexuuid"}, wantMethod: http.MethodDelete, wantPath: "/_dangling/test-indexuuid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1409,24 +1522,26 @@ func TestDanglingIndicesDeleteDanglingIndexPath_Build(t *testing.T) {
 func TestDanglingIndicesImportDanglingIndexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DanglingIndicesImportDanglingIndexPath
-		want    string
-		wantErr bool
+		name       string
+		path       DanglingIndicesImportDanglingIndexPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: DanglingIndicesImportDanglingIndexPath{}, want: "", wantErr: true},
-		{name: "all fields", path: DanglingIndicesImportDanglingIndexPath{IndexUUID: "test-indexuuid"}, want: "/_dangling/test-indexuuid", wantErr: false},
+		{name: "required fields empty", path: DanglingIndicesImportDanglingIndexPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: DanglingIndicesImportDanglingIndexPath{IndexUUID: "test-indexuuid"}, wantMethod: http.MethodPost, wantPath: "/_dangling/test-indexuuid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1434,23 +1549,25 @@ func TestDanglingIndicesImportDanglingIndexPath_Build(t *testing.T) {
 func TestDanglingIndicesListDanglingIndicesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DanglingIndicesListDanglingIndicesPath
-		want    string
-		wantErr bool
+		name       string
+		path       DanglingIndicesListDanglingIndicesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: DanglingIndicesListDanglingIndicesPath{}, want: "/_dangling", wantErr: false},
+		{name: "all empty", path: DanglingIndicesListDanglingIndicesPath{}, wantMethod: http.MethodGet, wantPath: "/_dangling", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1458,24 +1575,26 @@ func TestDanglingIndicesListDanglingIndicesPath_Build(t *testing.T) {
 func TestDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       DeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: DeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: DeletePath{Index: "test-index", ID: "test-id"}, want: "/test-index/_doc/test-id", wantErr: false},
+		{name: "required fields empty", path: DeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: DeletePath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/test-index/_doc/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1483,23 +1602,25 @@ func TestDeletePath_Build(t *testing.T) {
 func TestDeleteAllPitsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DeleteAllPitsPath
-		want    string
-		wantErr bool
+		name       string
+		path       DeleteAllPitsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: DeleteAllPitsPath{}, want: "/_search/point_in_time/_all", wantErr: false},
+		{name: "all empty", path: DeleteAllPitsPath{}, wantMethod: http.MethodDelete, wantPath: "/_search/point_in_time/_all", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1507,25 +1628,27 @@ func TestDeleteAllPitsPath_Build(t *testing.T) {
 func TestDeleteByQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DeleteByQueryPath
-		want    string
-		wantErr bool
+		name       string
+		path       DeleteByQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: DeleteByQueryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: DeleteByQueryPath{Index: []string{"test-index"}}, want: "/test-index/_delete_by_query", wantErr: false},
-		{name: "Index multi-value", path: DeleteByQueryPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_delete_by_query", wantErr: false},
+		{name: "required fields empty", path: DeleteByQueryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: DeleteByQueryPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_delete_by_query", wantErr: false},
+		{name: "Index multi-value", path: DeleteByQueryPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_delete_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1533,24 +1656,26 @@ func TestDeleteByQueryPath_Build(t *testing.T) {
 func TestDeleteByQueryRethrottlePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DeleteByQueryRethrottlePath
-		want    string
-		wantErr bool
+		name       string
+		path       DeleteByQueryRethrottlePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: DeleteByQueryRethrottlePath{}, want: "", wantErr: true},
-		{name: "all fields", path: DeleteByQueryRethrottlePath{TaskID: "test-taskid"}, want: "/_delete_by_query/test-taskid/_rethrottle", wantErr: false},
+		{name: "required fields empty", path: DeleteByQueryRethrottlePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: DeleteByQueryRethrottlePath{TaskID: "test-taskid"}, wantMethod: http.MethodPost, wantPath: "/_delete_by_query/test-taskid/_rethrottle", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1558,23 +1683,25 @@ func TestDeleteByQueryRethrottlePath_Build(t *testing.T) {
 func TestDeletePITPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DeletePITPath
-		want    string
-		wantErr bool
+		name       string
+		path       DeletePITPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: DeletePITPath{}, want: "/_search/point_in_time", wantErr: false},
+		{name: "all empty", path: DeletePITPath{}, wantMethod: http.MethodDelete, wantPath: "/_search/point_in_time", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1582,24 +1709,26 @@ func TestDeletePITPath_Build(t *testing.T) {
 func TestDeleteScriptPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    DeleteScriptPath
-		want    string
-		wantErr bool
+		name       string
+		path       DeleteScriptPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: DeleteScriptPath{}, want: "", wantErr: true},
-		{name: "all fields", path: DeleteScriptPath{ID: "test-id"}, want: "/_scripts/test-id", wantErr: false},
+		{name: "required fields empty", path: DeleteScriptPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: DeleteScriptPath{ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_scripts/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1607,24 +1736,26 @@ func TestDeleteScriptPath_Build(t *testing.T) {
 func TestExistsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ExistsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ExistsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ExistsPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ExistsPath{Index: "test-index", ID: "test-id"}, want: "/test-index/_doc/test-id", wantErr: false},
+		{name: "required fields empty", path: ExistsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ExistsPath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodHead, wantPath: "/test-index/_doc/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1632,24 +1763,26 @@ func TestExistsPath_Build(t *testing.T) {
 func TestExistsSourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ExistsSourcePath
-		want    string
-		wantErr bool
+		name       string
+		path       ExistsSourcePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ExistsSourcePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ExistsSourcePath{Index: "test-index", ID: "test-id"}, want: "/test-index/_source/test-id", wantErr: false},
+		{name: "required fields empty", path: ExistsSourcePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ExistsSourcePath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodHead, wantPath: "/test-index/_source/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1657,24 +1790,26 @@ func TestExistsSourcePath_Build(t *testing.T) {
 func TestExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ExplainPath
-		want    string
-		wantErr bool
+		name       string
+		path       ExplainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ExplainPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ExplainPath{Index: "test-index", ID: "test-id"}, want: "/test-index/_explain/test-id", wantErr: false},
+		{name: "required fields empty", path: ExplainPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ExplainPath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/test-index/_explain/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1682,25 +1817,27 @@ func TestExplainPath_Build(t *testing.T) {
 func TestFieldCapsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FieldCapsPath
-		want    string
-		wantErr bool
+		name       string
+		path       FieldCapsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: FieldCapsPath{}, want: "/_field_caps", wantErr: false},
-		{name: "all fields", path: FieldCapsPath{Index: []string{"test-index"}}, want: "/test-index/_field_caps", wantErr: false},
-		{name: "Index multi-value", path: FieldCapsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_field_caps", wantErr: false},
+		{name: "all empty", path: FieldCapsPath{}, wantMethod: http.MethodGet, wantPath: "/_field_caps", wantErr: false},
+		{name: "all fields", path: FieldCapsPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_field_caps", wantErr: false},
+		{name: "Index multi-value", path: FieldCapsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_field_caps", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1708,23 +1845,25 @@ func TestFieldCapsPath_Build(t *testing.T) {
 func TestFlowFrameworkCreatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkCreatePath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkCreatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: FlowFrameworkCreatePath{}, want: "/_plugins/_flow_framework/workflow", wantErr: false},
+		{name: "all empty", path: FlowFrameworkCreatePath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_flow_framework/workflow", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1732,24 +1871,26 @@ func TestFlowFrameworkCreatePath_Build(t *testing.T) {
 func TestFlowFrameworkDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: FlowFrameworkDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: FlowFrameworkDeletePath{WorkflowID: "test-workflowid"}, want: "/_plugins/_flow_framework/workflow/test-workflowid", wantErr: false},
+		{name: "required fields empty", path: FlowFrameworkDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: FlowFrameworkDeletePath{WorkflowID: "test-workflowid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_flow_framework/workflow/test-workflowid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1757,24 +1898,26 @@ func TestFlowFrameworkDeletePath_Build(t *testing.T) {
 func TestFlowFrameworkDeprovisionPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkDeprovisionPath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkDeprovisionPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: FlowFrameworkDeprovisionPath{}, want: "", wantErr: true},
-		{name: "all fields", path: FlowFrameworkDeprovisionPath{WorkflowID: "test-workflowid"}, want: "/_plugins/_flow_framework/workflow/test-workflowid/_deprovision", wantErr: false},
+		{name: "required fields empty", path: FlowFrameworkDeprovisionPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: FlowFrameworkDeprovisionPath{WorkflowID: "test-workflowid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_flow_framework/workflow/test-workflowid/_deprovision", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1782,24 +1925,26 @@ func TestFlowFrameworkDeprovisionPath_Build(t *testing.T) {
 func TestFlowFrameworkGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: FlowFrameworkGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: FlowFrameworkGetPath{WorkflowID: "test-workflowid"}, want: "/_plugins/_flow_framework/workflow/test-workflowid", wantErr: false},
+		{name: "required fields empty", path: FlowFrameworkGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: FlowFrameworkGetPath{WorkflowID: "test-workflowid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_flow_framework/workflow/test-workflowid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1807,24 +1952,26 @@ func TestFlowFrameworkGetPath_Build(t *testing.T) {
 func TestFlowFrameworkGetStatusPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkGetStatusPath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkGetStatusPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: FlowFrameworkGetStatusPath{}, want: "", wantErr: true},
-		{name: "all fields", path: FlowFrameworkGetStatusPath{WorkflowID: "test-workflowid"}, want: "/_plugins/_flow_framework/workflow/test-workflowid/_status", wantErr: false},
+		{name: "required fields empty", path: FlowFrameworkGetStatusPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: FlowFrameworkGetStatusPath{WorkflowID: "test-workflowid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_flow_framework/workflow/test-workflowid/_status", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1832,23 +1979,25 @@ func TestFlowFrameworkGetStatusPath_Build(t *testing.T) {
 func TestFlowFrameworkGetStepsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkGetStepsPath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkGetStepsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: FlowFrameworkGetStepsPath{}, want: "/_plugins/_flow_framework/workflow/_steps", wantErr: false},
+		{name: "all empty", path: FlowFrameworkGetStepsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_flow_framework/workflow/_steps", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1856,24 +2005,26 @@ func TestFlowFrameworkGetStepsPath_Build(t *testing.T) {
 func TestFlowFrameworkProvisionPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkProvisionPath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkProvisionPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: FlowFrameworkProvisionPath{}, want: "", wantErr: true},
-		{name: "all fields", path: FlowFrameworkProvisionPath{WorkflowID: "test-workflowid"}, want: "/_plugins/_flow_framework/workflow/test-workflowid/_provision", wantErr: false},
+		{name: "required fields empty", path: FlowFrameworkProvisionPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: FlowFrameworkProvisionPath{WorkflowID: "test-workflowid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_flow_framework/workflow/test-workflowid/_provision", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1881,23 +2032,25 @@ func TestFlowFrameworkProvisionPath_Build(t *testing.T) {
 func TestFlowFrameworkSearchPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkSearchPath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkSearchPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: FlowFrameworkSearchPath{}, want: "/_plugins/_flow_framework/workflow/_search", wantErr: false},
+		{name: "all empty", path: FlowFrameworkSearchPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_flow_framework/workflow/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1905,23 +2058,25 @@ func TestFlowFrameworkSearchPath_Build(t *testing.T) {
 func TestFlowFrameworkSearchStatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkSearchStatePath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkSearchStatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: FlowFrameworkSearchStatePath{}, want: "/_plugins/_flow_framework/workflow/state/_search", wantErr: false},
+		{name: "all empty", path: FlowFrameworkSearchStatePath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_flow_framework/workflow/state/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1929,24 +2084,26 @@ func TestFlowFrameworkSearchStatePath_Build(t *testing.T) {
 func TestFlowFrameworkUpdatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    FlowFrameworkUpdatePath
-		want    string
-		wantErr bool
+		name       string
+		path       FlowFrameworkUpdatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: FlowFrameworkUpdatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: FlowFrameworkUpdatePath{WorkflowID: "test-workflowid"}, want: "/_plugins/_flow_framework/workflow/test-workflowid", wantErr: false},
+		{name: "required fields empty", path: FlowFrameworkUpdatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: FlowFrameworkUpdatePath{WorkflowID: "test-workflowid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_flow_framework/workflow/test-workflowid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1954,24 +2111,26 @@ func TestFlowFrameworkUpdatePath_Build(t *testing.T) {
 func TestGeospatialDeleteIp2geoDatasourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialDeleteIp2geoDatasourcePath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialDeleteIp2geoDatasourcePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: GeospatialDeleteIp2geoDatasourcePath{}, want: "", wantErr: true},
-		{name: "all fields", path: GeospatialDeleteIp2geoDatasourcePath{Name: "test-name"}, want: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
+		{name: "required fields empty", path: GeospatialDeleteIp2geoDatasourcePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: GeospatialDeleteIp2geoDatasourcePath{Name: "test-name"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -1979,23 +2138,25 @@ func TestGeospatialDeleteIp2geoDatasourcePath_Build(t *testing.T) {
 func TestGeospatialGeojsonUploadPostPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialGeojsonUploadPostPath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialGeojsonUploadPostPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GeospatialGeojsonUploadPostPath{}, want: "/_plugins/geospatial/geojson/_upload", wantErr: false},
+		{name: "all empty", path: GeospatialGeojsonUploadPostPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/geospatial/geojson/_upload", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2003,23 +2164,25 @@ func TestGeospatialGeojsonUploadPostPath_Build(t *testing.T) {
 func TestGeospatialGeojsonUploadPutPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialGeojsonUploadPutPath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialGeojsonUploadPutPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GeospatialGeojsonUploadPutPath{}, want: "/_plugins/geospatial/geojson/_upload", wantErr: false},
+		{name: "all empty", path: GeospatialGeojsonUploadPutPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/geospatial/geojson/_upload", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2027,25 +2190,27 @@ func TestGeospatialGeojsonUploadPutPath_Build(t *testing.T) {
 func TestGeospatialGetIp2geoDatasourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialGetIp2geoDatasourcePath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialGetIp2geoDatasourcePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GeospatialGetIp2geoDatasourcePath{}, want: "/_plugins/geospatial/ip2geo/datasource", wantErr: false},
-		{name: "all fields", path: GeospatialGetIp2geoDatasourcePath{Name: []string{"test-name"}}, want: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
-		{name: "Name multi-value", path: GeospatialGetIp2geoDatasourcePath{Name: []string{"a", "b", "c"}}, want: "/_plugins/geospatial/ip2geo/datasource/a,b,c", wantErr: false},
+		{name: "all empty", path: GeospatialGetIp2geoDatasourcePath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/geospatial/ip2geo/datasource", wantErr: false},
+		{name: "all fields", path: GeospatialGetIp2geoDatasourcePath{Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
+		{name: "Name multi-value", path: GeospatialGetIp2geoDatasourcePath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/geospatial/ip2geo/datasource/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2053,23 +2218,25 @@ func TestGeospatialGetIp2geoDatasourcePath_Build(t *testing.T) {
 func TestGeospatialGetUploadStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialGetUploadStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialGetUploadStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GeospatialGetUploadStatsPath{}, want: "/_plugins/geospatial/_upload/stats", wantErr: false},
+		{name: "all empty", path: GeospatialGetUploadStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/geospatial/_upload/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2077,24 +2244,26 @@ func TestGeospatialGetUploadStatsPath_Build(t *testing.T) {
 func TestGeospatialPutIp2geoDatasourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialPutIp2geoDatasourcePath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialPutIp2geoDatasourcePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: GeospatialPutIp2geoDatasourcePath{}, want: "", wantErr: true},
-		{name: "all fields", path: GeospatialPutIp2geoDatasourcePath{Name: "test-name"}, want: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
+		{name: "required fields empty", path: GeospatialPutIp2geoDatasourcePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: GeospatialPutIp2geoDatasourcePath{Name: "test-name"}, wantMethod: http.MethodPut, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2102,24 +2271,26 @@ func TestGeospatialPutIp2geoDatasourcePath_Build(t *testing.T) {
 func TestGeospatialPutIp2geoDatasourceSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GeospatialPutIp2geoDatasourceSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       GeospatialPutIp2geoDatasourceSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: GeospatialPutIp2geoDatasourceSettingsPath{}, want: "", wantErr: true},
-		{name: "all fields", path: GeospatialPutIp2geoDatasourceSettingsPath{Name: "test-name"}, want: "/_plugins/geospatial/ip2geo/datasource/test-name/_settings", wantErr: false},
+		{name: "required fields empty", path: GeospatialPutIp2geoDatasourceSettingsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: GeospatialPutIp2geoDatasourceSettingsPath{Name: "test-name"}, wantMethod: http.MethodPut, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name/_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2127,24 +2298,26 @@ func TestGeospatialPutIp2geoDatasourceSettingsPath_Build(t *testing.T) {
 func TestGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GetPath
-		want    string
-		wantErr bool
+		name       string
+		path       GetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: GetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: GetPath{Index: "test-index", ID: "test-id"}, want: "/test-index/_doc/test-id", wantErr: false},
+		{name: "required fields empty", path: GetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: GetPath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/test-index/_doc/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2152,23 +2325,25 @@ func TestGetPath_Build(t *testing.T) {
 func TestGetAllPitsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GetAllPitsPath
-		want    string
-		wantErr bool
+		name       string
+		path       GetAllPitsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GetAllPitsPath{}, want: "/_search/point_in_time/_all", wantErr: false},
+		{name: "all empty", path: GetAllPitsPath{}, wantMethod: http.MethodGet, wantPath: "/_search/point_in_time/_all", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2176,24 +2351,26 @@ func TestGetAllPitsPath_Build(t *testing.T) {
 func TestGetScriptPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GetScriptPath
-		want    string
-		wantErr bool
+		name       string
+		path       GetScriptPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: GetScriptPath{}, want: "", wantErr: true},
-		{name: "all fields", path: GetScriptPath{ID: "test-id"}, want: "/_scripts/test-id", wantErr: false},
+		{name: "required fields empty", path: GetScriptPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: GetScriptPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_scripts/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2201,23 +2378,25 @@ func TestGetScriptPath_Build(t *testing.T) {
 func TestGetScriptContextPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GetScriptContextPath
-		want    string
-		wantErr bool
+		name       string
+		path       GetScriptContextPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GetScriptContextPath{}, want: "/_script_context", wantErr: false},
+		{name: "all empty", path: GetScriptContextPath{}, wantMethod: http.MethodGet, wantPath: "/_script_context", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2225,23 +2404,25 @@ func TestGetScriptContextPath_Build(t *testing.T) {
 func TestGetScriptLanguagesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GetScriptLanguagesPath
-		want    string
-		wantErr bool
+		name       string
+		path       GetScriptLanguagesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: GetScriptLanguagesPath{}, want: "/_script_language", wantErr: false},
+		{name: "all empty", path: GetScriptLanguagesPath{}, wantMethod: http.MethodGet, wantPath: "/_script_language", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2249,24 +2430,26 @@ func TestGetScriptLanguagesPath_Build(t *testing.T) {
 func TestGetSourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    GetSourcePath
-		want    string
-		wantErr bool
+		name       string
+		path       GetSourcePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: GetSourcePath{}, want: "", wantErr: true},
-		{name: "all fields", path: GetSourcePath{Index: "test-index", ID: "test-id"}, want: "/test-index/_source/test-id", wantErr: false},
+		{name: "required fields empty", path: GetSourcePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: GetSourcePath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/test-index/_source/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2274,24 +2457,26 @@ func TestGetSourcePath_Build(t *testing.T) {
 func TestIndexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndexPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndexPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndexPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndexPath{Index: "test-index", ID: "test-id"}, want: "/test-index/_doc/test-id", wantErr: false},
+		{name: "required fields empty", path: IndexPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndexPath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/test-index/_doc/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2299,25 +2484,27 @@ func TestIndexPath_Build(t *testing.T) {
 func TestIndicesAddBlockPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesAddBlockPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesAddBlockPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesAddBlockPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesAddBlockPath{Index: []string{"test-index"}, Block: "test-block"}, want: "/test-index/_block/test-block", wantErr: false},
-		{name: "Index multi-value", path: IndicesAddBlockPath{Index: []string{"a", "b", "c"}, Block: "req-block"}, want: "/a,b,c/_block/req-block", wantErr: false},
+		{name: "required fields empty", path: IndicesAddBlockPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesAddBlockPath{Index: []string{"test-index"}, Block: "test-block"}, wantMethod: http.MethodPut, wantPath: "/test-index/_block/test-block", wantErr: false},
+		{name: "Index multi-value", path: IndicesAddBlockPath{Index: []string{"a", "b", "c"}, Block: "req-block"}, wantMethod: http.MethodPut, wantPath: "/a,b,c/_block/req-block", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2325,24 +2512,26 @@ func TestIndicesAddBlockPath_Build(t *testing.T) {
 func TestIndicesAnalyzePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesAnalyzePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesAnalyzePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesAnalyzePath{}, want: "/_analyze", wantErr: false},
-		{name: "all fields", path: IndicesAnalyzePath{Index: "test-index"}, want: "/test-index/_analyze", wantErr: false},
+		{name: "all empty", path: IndicesAnalyzePath{}, wantMethod: http.MethodGet, wantPath: "/_analyze", wantErr: false},
+		{name: "all fields", path: IndicesAnalyzePath{Index: "test-index"}, wantMethod: http.MethodGet, wantPath: "/test-index/_analyze", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2350,25 +2539,27 @@ func TestIndicesAnalyzePath_Build(t *testing.T) {
 func TestIndicesClearCachePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesClearCachePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesClearCachePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesClearCachePath{}, want: "/_cache/clear", wantErr: false},
-		{name: "all fields", path: IndicesClearCachePath{Index: []string{"test-index"}}, want: "/test-index/_cache/clear", wantErr: false},
-		{name: "Index multi-value", path: IndicesClearCachePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_cache/clear", wantErr: false},
+		{name: "all empty", path: IndicesClearCachePath{}, wantMethod: http.MethodPost, wantPath: "/_cache/clear", wantErr: false},
+		{name: "all fields", path: IndicesClearCachePath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_cache/clear", wantErr: false},
+		{name: "Index multi-value", path: IndicesClearCachePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_cache/clear", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2376,24 +2567,26 @@ func TestIndicesClearCachePath_Build(t *testing.T) {
 func TestIndicesClonePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesClonePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesClonePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesClonePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesClonePath{Index: "test-index", Target: "test-target"}, want: "/test-index/_clone/test-target", wantErr: false},
+		{name: "required fields empty", path: IndicesClonePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesClonePath{Index: "test-index", Target: "test-target"}, wantMethod: http.MethodPost, wantPath: "/test-index/_clone/test-target", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2401,25 +2594,27 @@ func TestIndicesClonePath_Build(t *testing.T) {
 func TestIndicesClosePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesClosePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesClosePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesClosePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesClosePath{Index: []string{"test-index"}}, want: "/test-index/_close", wantErr: false},
-		{name: "Index multi-value", path: IndicesClosePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_close", wantErr: false},
+		{name: "required fields empty", path: IndicesClosePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesClosePath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_close", wantErr: false},
+		{name: "Index multi-value", path: IndicesClosePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_close", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2427,24 +2622,26 @@ func TestIndicesClosePath_Build(t *testing.T) {
 func TestIndicesCreatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesCreatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesCreatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesCreatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesCreatePath{Index: "test-index"}, want: "/test-index", wantErr: false},
+		{name: "required fields empty", path: IndicesCreatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesCreatePath{Index: "test-index"}, wantMethod: http.MethodPut, wantPath: "/test-index", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2452,24 +2649,26 @@ func TestIndicesCreatePath_Build(t *testing.T) {
 func TestIndicesCreateDataStreamPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesCreateDataStreamPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesCreateDataStreamPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesCreateDataStreamPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesCreateDataStreamPath{Name: "test-name"}, want: "/_data_stream/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesCreateDataStreamPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesCreateDataStreamPath{Name: "test-name"}, wantMethod: http.MethodPut, wantPath: "/_data_stream/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2477,25 +2676,27 @@ func TestIndicesCreateDataStreamPath_Build(t *testing.T) {
 func TestIndicesDataStreamsStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesDataStreamsStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesDataStreamsStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesDataStreamsStatsPath{}, want: "/_data_stream/_stats", wantErr: false},
-		{name: "all fields", path: IndicesDataStreamsStatsPath{Name: []string{"test-name"}}, want: "/_data_stream/test-name/_stats", wantErr: false},
-		{name: "Name multi-value", path: IndicesDataStreamsStatsPath{Name: []string{"a", "b", "c"}}, want: "/_data_stream/a,b,c/_stats", wantErr: false},
+		{name: "all empty", path: IndicesDataStreamsStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_data_stream/_stats", wantErr: false},
+		{name: "all fields", path: IndicesDataStreamsStatsPath{Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/_data_stream/test-name/_stats", wantErr: false},
+		{name: "Name multi-value", path: IndicesDataStreamsStatsPath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_data_stream/a,b,c/_stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2503,25 +2704,27 @@ func TestIndicesDataStreamsStatsPath_Build(t *testing.T) {
 func TestIndicesDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesDeletePath{Index: []string{"test-index"}}, want: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesDeletePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c", wantErr: false},
+		{name: "required fields empty", path: IndicesDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeletePath{Index: []string{"test-index"}}, wantMethod: http.MethodDelete, wantPath: "/test-index", wantErr: false},
+		{name: "Index multi-value", path: IndicesDeletePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodDelete, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2529,25 +2732,27 @@ func TestIndicesDeletePath_Build(t *testing.T) {
 func TestIndicesDeleteAliasPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesDeleteAliasPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesDeleteAliasPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesDeleteAliasPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesDeleteAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, want: "/test-index/_alias/test-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesDeleteAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, want: "/a,b,c/_alias/req-name", wantErr: false},
+		{name: "required fields empty", path: IndicesDeleteAliasPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeleteAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantMethod: http.MethodDelete, wantPath: "/test-index/_alias/test-name", wantErr: false},
+		{name: "Index multi-value", path: IndicesDeleteAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantMethod: http.MethodDelete, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2555,25 +2760,27 @@ func TestIndicesDeleteAliasPath_Build(t *testing.T) {
 func TestIndicesDeleteDataStreamPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesDeleteDataStreamPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesDeleteDataStreamPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesDeleteDataStreamPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesDeleteDataStreamPath{Name: []string{"test-name"}}, want: "/_data_stream/test-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesDeleteDataStreamPath{Name: []string{"a", "b", "c"}}, want: "/_data_stream/a,b,c", wantErr: false},
+		{name: "required fields empty", path: IndicesDeleteDataStreamPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeleteDataStreamPath{Name: []string{"test-name"}}, wantMethod: http.MethodDelete, wantPath: "/_data_stream/test-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesDeleteDataStreamPath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodDelete, wantPath: "/_data_stream/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2581,24 +2788,26 @@ func TestIndicesDeleteDataStreamPath_Build(t *testing.T) {
 func TestIndicesDeleteIndexTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesDeleteIndexTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesDeleteIndexTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesDeleteIndexTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesDeleteIndexTemplatePath{Name: "test-name"}, want: "/_index_template/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesDeleteIndexTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeleteIndexTemplatePath{Name: "test-name"}, wantMethod: http.MethodDelete, wantPath: "/_index_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2606,24 +2815,26 @@ func TestIndicesDeleteIndexTemplatePath_Build(t *testing.T) {
 func TestIndicesDeleteTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesDeleteTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesDeleteTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesDeleteTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesDeleteTemplatePath{Name: "test-name"}, want: "/_template/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesDeleteTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeleteTemplatePath{Name: "test-name"}, wantMethod: http.MethodDelete, wantPath: "/_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2631,25 +2842,27 @@ func TestIndicesDeleteTemplatePath_Build(t *testing.T) {
 func TestIndicesExistsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesExistsPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesExistsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesExistsPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsPath{Index: []string{"test-index"}}, want: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesExistsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c", wantErr: false},
+		{name: "required fields empty", path: IndicesExistsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesExistsPath{Index: []string{"test-index"}}, wantMethod: http.MethodHead, wantPath: "/test-index", wantErr: false},
+		{name: "Index multi-value", path: IndicesExistsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodHead, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2657,25 +2870,27 @@ func TestIndicesExistsPath_Build(t *testing.T) {
 func TestIndicesExistsAliasPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesExistsAliasPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesExistsAliasPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesExistsAliasPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, want: "/test-index/_alias/test-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesExistsAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, want: "/a,b,c/_alias/req-name", wantErr: false},
+		{name: "required fields empty", path: IndicesExistsAliasPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesExistsAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantMethod: http.MethodHead, wantPath: "/test-index/_alias/test-name", wantErr: false},
+		{name: "Index multi-value", path: IndicesExistsAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantMethod: http.MethodHead, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2683,24 +2898,26 @@ func TestIndicesExistsAliasPath_Build(t *testing.T) {
 func TestIndicesExistsIndexTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesExistsIndexTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesExistsIndexTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesExistsIndexTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsIndexTemplatePath{Name: "test-name"}, want: "/_index_template/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesExistsIndexTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesExistsIndexTemplatePath{Name: "test-name"}, wantMethod: http.MethodHead, wantPath: "/_index_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2708,25 +2925,27 @@ func TestIndicesExistsIndexTemplatePath_Build(t *testing.T) {
 func TestIndicesExistsTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesExistsTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesExistsTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesExistsTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsTemplatePath{Name: []string{"test-name"}}, want: "/_template/test-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesExistsTemplatePath{Name: []string{"a", "b", "c"}}, want: "/_template/a,b,c", wantErr: false},
+		{name: "required fields empty", path: IndicesExistsTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesExistsTemplatePath{Name: []string{"test-name"}}, wantMethod: http.MethodHead, wantPath: "/_template/test-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesExistsTemplatePath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodHead, wantPath: "/_template/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2734,25 +2953,27 @@ func TestIndicesExistsTemplatePath_Build(t *testing.T) {
 func TestIndicesFlushPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesFlushPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesFlushPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesFlushPath{}, want: "/_flush", wantErr: false},
-		{name: "all fields", path: IndicesFlushPath{Index: []string{"test-index"}}, want: "/test-index/_flush", wantErr: false},
-		{name: "Index multi-value", path: IndicesFlushPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_flush", wantErr: false},
+		{name: "all empty", path: IndicesFlushPath{}, wantMethod: http.MethodGet, wantPath: "/_flush", wantErr: false},
+		{name: "all fields", path: IndicesFlushPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_flush", wantErr: false},
+		{name: "Index multi-value", path: IndicesFlushPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_flush", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2760,25 +2981,27 @@ func TestIndicesFlushPath_Build(t *testing.T) {
 func TestIndicesForcemergePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesForcemergePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesForcemergePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesForcemergePath{}, want: "/_forcemerge", wantErr: false},
-		{name: "all fields", path: IndicesForcemergePath{Index: []string{"test-index"}}, want: "/test-index/_forcemerge", wantErr: false},
-		{name: "Index multi-value", path: IndicesForcemergePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_forcemerge", wantErr: false},
+		{name: "all empty", path: IndicesForcemergePath{}, wantMethod: http.MethodPost, wantPath: "/_forcemerge", wantErr: false},
+		{name: "all fields", path: IndicesForcemergePath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_forcemerge", wantErr: false},
+		{name: "Index multi-value", path: IndicesForcemergePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_forcemerge", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2786,25 +3009,27 @@ func TestIndicesForcemergePath_Build(t *testing.T) {
 func TestIndicesGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesGetPath{Index: []string{"test-index"}}, want: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c", wantErr: false},
+		{name: "required fields empty", path: IndicesGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesGetPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index", wantErr: false},
+		{name: "Index multi-value", path: IndicesGetPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2812,27 +3037,29 @@ func TestIndicesGetPath_Build(t *testing.T) {
 func TestIndicesGetAliasPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetAliasPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetAliasPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetAliasPath{}, want: "/_alias", wantErr: false},
-		{name: "all fields", path: IndicesGetAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, want: "/test-index/_alias/test-name", wantErr: false},
-		{name: "only Index", path: IndicesGetAliasPath{Index: []string{"val-index"}}, want: "/val-index/_alias", wantErr: false},
-		{name: "only Name", path: IndicesGetAliasPath{Name: []string{"val-name"}}, want: "/_alias/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetAliasPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_alias", wantErr: false},
+		{name: "all empty", path: IndicesGetAliasPath{}, wantMethod: http.MethodGet, wantPath: "/_alias", wantErr: false},
+		{name: "all fields", path: IndicesGetAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_alias/test-name", wantErr: false},
+		{name: "only Index", path: IndicesGetAliasPath{Index: []string{"val-index"}}, wantMethod: http.MethodGet, wantPath: "/val-index/_alias", wantErr: false},
+		{name: "only Name", path: IndicesGetAliasPath{Name: []string{"val-name"}}, wantMethod: http.MethodGet, wantPath: "/_alias/val-name", wantErr: false},
+		{name: "Index multi-value", path: IndicesGetAliasPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_alias", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2840,25 +3067,27 @@ func TestIndicesGetAliasPath_Build(t *testing.T) {
 func TestIndicesGetDataStreamPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetDataStreamPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetDataStreamPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetDataStreamPath{}, want: "/_data_stream", wantErr: false},
-		{name: "all fields", path: IndicesGetDataStreamPath{Name: []string{"test-name"}}, want: "/_data_stream/test-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesGetDataStreamPath{Name: []string{"a", "b", "c"}}, want: "/_data_stream/a,b,c", wantErr: false},
+		{name: "all empty", path: IndicesGetDataStreamPath{}, wantMethod: http.MethodGet, wantPath: "/_data_stream", wantErr: false},
+		{name: "all fields", path: IndicesGetDataStreamPath{Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/_data_stream/test-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesGetDataStreamPath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_data_stream/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2866,25 +3095,27 @@ func TestIndicesGetDataStreamPath_Build(t *testing.T) {
 func TestIndicesGetFieldMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetFieldMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetFieldMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesGetFieldMappingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesGetFieldMappingPath{Index: []string{"test-index"}, Fields: []string{"test-fields"}}, want: "/test-index/_mapping/field/test-fields", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetFieldMappingPath{Index: []string{"a", "b", "c"}, Fields: []string{"req-fields"}}, want: "/a,b,c/_mapping/field/req-fields", wantErr: false},
+		{name: "required fields empty", path: IndicesGetFieldMappingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesGetFieldMappingPath{Index: []string{"test-index"}, Fields: []string{"test-fields"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_mapping/field/test-fields", wantErr: false},
+		{name: "Index multi-value", path: IndicesGetFieldMappingPath{Index: []string{"a", "b", "c"}, Fields: []string{"req-fields"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_mapping/field/req-fields", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2892,24 +3123,26 @@ func TestIndicesGetFieldMappingPath_Build(t *testing.T) {
 func TestIndicesGetIndexTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetIndexTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetIndexTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetIndexTemplatePath{}, want: "/_index_template", wantErr: false},
-		{name: "all fields", path: IndicesGetIndexTemplatePath{Name: "test-name"}, want: "/_index_template/test-name", wantErr: false},
+		{name: "all empty", path: IndicesGetIndexTemplatePath{}, wantMethod: http.MethodGet, wantPath: "/_index_template", wantErr: false},
+		{name: "all fields", path: IndicesGetIndexTemplatePath{Name: "test-name"}, wantMethod: http.MethodGet, wantPath: "/_index_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2917,25 +3150,27 @@ func TestIndicesGetIndexTemplatePath_Build(t *testing.T) {
 func TestIndicesGetMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetMappingPath{}, want: "/_mapping", wantErr: false},
-		{name: "all fields", path: IndicesGetMappingPath{Index: []string{"test-index"}}, want: "/test-index/_mapping", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetMappingPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_mapping", wantErr: false},
+		{name: "all empty", path: IndicesGetMappingPath{}, wantMethod: http.MethodGet, wantPath: "/_mapping", wantErr: false},
+		{name: "all fields", path: IndicesGetMappingPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_mapping", wantErr: false},
+		{name: "Index multi-value", path: IndicesGetMappingPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_mapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2943,27 +3178,29 @@ func TestIndicesGetMappingPath_Build(t *testing.T) {
 func TestIndicesGetSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetSettingsPath{}, want: "/_settings", wantErr: false},
-		{name: "all fields", path: IndicesGetSettingsPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, want: "/test-index/_settings/test-name", wantErr: false},
-		{name: "only Index", path: IndicesGetSettingsPath{Index: []string{"val-index"}}, want: "/val-index/_settings", wantErr: false},
-		{name: "only Name", path: IndicesGetSettingsPath{Name: []string{"val-name"}}, want: "/_settings/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetSettingsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_settings", wantErr: false},
+		{name: "all empty", path: IndicesGetSettingsPath{}, wantMethod: http.MethodGet, wantPath: "/_settings", wantErr: false},
+		{name: "all fields", path: IndicesGetSettingsPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_settings/test-name", wantErr: false},
+		{name: "only Index", path: IndicesGetSettingsPath{Index: []string{"val-index"}}, wantMethod: http.MethodGet, wantPath: "/val-index/_settings", wantErr: false},
+		{name: "only Name", path: IndicesGetSettingsPath{Name: []string{"val-name"}}, wantMethod: http.MethodGet, wantPath: "/_settings/val-name", wantErr: false},
+		{name: "Index multi-value", path: IndicesGetSettingsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2971,25 +3208,27 @@ func TestIndicesGetSettingsPath_Build(t *testing.T) {
 func TestIndicesGetTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetTemplatePath{}, want: "/_template", wantErr: false},
-		{name: "all fields", path: IndicesGetTemplatePath{Name: []string{"test-name"}}, want: "/_template/test-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesGetTemplatePath{Name: []string{"a", "b", "c"}}, want: "/_template/a,b,c", wantErr: false},
+		{name: "all empty", path: IndicesGetTemplatePath{}, wantMethod: http.MethodGet, wantPath: "/_template", wantErr: false},
+		{name: "all fields", path: IndicesGetTemplatePath{Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/_template/test-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesGetTemplatePath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_template/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -2997,25 +3236,27 @@ func TestIndicesGetTemplatePath_Build(t *testing.T) {
 func TestIndicesGetUpgradePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesGetUpgradePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesGetUpgradePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesGetUpgradePath{}, want: "/_upgrade", wantErr: false},
-		{name: "all fields", path: IndicesGetUpgradePath{Index: []string{"test-index"}}, want: "/test-index/_upgrade", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetUpgradePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_upgrade", wantErr: false},
+		{name: "all empty", path: IndicesGetUpgradePath{}, wantMethod: http.MethodGet, wantPath: "/_upgrade", wantErr: false},
+		{name: "all fields", path: IndicesGetUpgradePath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_upgrade", wantErr: false},
+		{name: "Index multi-value", path: IndicesGetUpgradePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_upgrade", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3023,25 +3264,27 @@ func TestIndicesGetUpgradePath_Build(t *testing.T) {
 func TestIndicesOpenPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesOpenPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesOpenPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesOpenPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesOpenPath{Index: []string{"test-index"}}, want: "/test-index/_open", wantErr: false},
-		{name: "Index multi-value", path: IndicesOpenPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_open", wantErr: false},
+		{name: "required fields empty", path: IndicesOpenPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesOpenPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_open", wantErr: false},
+		{name: "Index multi-value", path: IndicesOpenPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_open", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3049,27 +3292,29 @@ func TestIndicesOpenPath_Build(t *testing.T) {
 func TestIndicesPutAliasPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesPutAliasPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesPutAliasPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesPutAliasPath{}, want: "/_alias", wantErr: false},
-		{name: "all fields", path: IndicesPutAliasPath{Index: []string{"test-index"}, Name: "test-name"}, want: "/test-index/_alias/test-name", wantErr: false},
-		{name: "only Index", path: IndicesPutAliasPath{Index: []string{"val-index"}}, want: "/val-index/_alias", wantErr: false},
-		{name: "only Name", path: IndicesPutAliasPath{Name: "val-name"}, want: "/_alias/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutAliasPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_alias", wantErr: false},
+		{name: "all empty", path: IndicesPutAliasPath{}, wantMethod: http.MethodPut, wantPath: "/_alias", wantErr: false},
+		{name: "all fields", path: IndicesPutAliasPath{Index: []string{"test-index"}, Name: "test-name"}, wantMethod: http.MethodPut, wantPath: "/test-index/_alias/test-name", wantErr: false},
+		{name: "only Index", path: IndicesPutAliasPath{Index: []string{"val-index"}}, wantMethod: http.MethodPut, wantPath: "/val-index/_alias", wantErr: false},
+		{name: "only Name", path: IndicesPutAliasPath{Name: "val-name"}, wantMethod: http.MethodPut, wantPath: "/_alias/val-name", wantErr: false},
+		{name: "Index multi-value", path: IndicesPutAliasPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPut, wantPath: "/a,b,c/_alias", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3077,24 +3322,26 @@ func TestIndicesPutAliasPath_Build(t *testing.T) {
 func TestIndicesPutIndexTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesPutIndexTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesPutIndexTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesPutIndexTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesPutIndexTemplatePath{Name: "test-name"}, want: "/_index_template/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesPutIndexTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesPutIndexTemplatePath{Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_index_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3102,25 +3349,27 @@ func TestIndicesPutIndexTemplatePath_Build(t *testing.T) {
 func TestIndicesPutMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesPutMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesPutMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesPutMappingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesPutMappingPath{Index: []string{"test-index"}}, want: "/test-index/_mapping", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutMappingPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_mapping", wantErr: false},
+		{name: "required fields empty", path: IndicesPutMappingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesPutMappingPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_mapping", wantErr: false},
+		{name: "Index multi-value", path: IndicesPutMappingPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_mapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3128,25 +3377,27 @@ func TestIndicesPutMappingPath_Build(t *testing.T) {
 func TestIndicesPutSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesPutSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesPutSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesPutSettingsPath{}, want: "/_settings", wantErr: false},
-		{name: "all fields", path: IndicesPutSettingsPath{Index: []string{"test-index"}}, want: "/test-index/_settings", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutSettingsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_settings", wantErr: false},
+		{name: "all empty", path: IndicesPutSettingsPath{}, wantMethod: http.MethodPut, wantPath: "/_settings", wantErr: false},
+		{name: "all fields", path: IndicesPutSettingsPath{Index: []string{"test-index"}}, wantMethod: http.MethodPut, wantPath: "/test-index/_settings", wantErr: false},
+		{name: "Index multi-value", path: IndicesPutSettingsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPut, wantPath: "/a,b,c/_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3154,24 +3405,26 @@ func TestIndicesPutSettingsPath_Build(t *testing.T) {
 func TestIndicesPutTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesPutTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesPutTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesPutTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesPutTemplatePath{Name: "test-name"}, want: "/_template/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesPutTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesPutTemplatePath{Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_template/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3179,25 +3432,27 @@ func TestIndicesPutTemplatePath_Build(t *testing.T) {
 func TestIndicesRecoveryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesRecoveryPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesRecoveryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesRecoveryPath{}, want: "/_recovery", wantErr: false},
-		{name: "all fields", path: IndicesRecoveryPath{Index: []string{"test-index"}}, want: "/test-index/_recovery", wantErr: false},
-		{name: "Index multi-value", path: IndicesRecoveryPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_recovery", wantErr: false},
+		{name: "all empty", path: IndicesRecoveryPath{}, wantMethod: http.MethodGet, wantPath: "/_recovery", wantErr: false},
+		{name: "all fields", path: IndicesRecoveryPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_recovery", wantErr: false},
+		{name: "Index multi-value", path: IndicesRecoveryPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_recovery", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3205,25 +3460,27 @@ func TestIndicesRecoveryPath_Build(t *testing.T) {
 func TestIndicesRefreshPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesRefreshPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesRefreshPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesRefreshPath{}, want: "/_refresh", wantErr: false},
-		{name: "all fields", path: IndicesRefreshPath{Index: []string{"test-index"}}, want: "/test-index/_refresh", wantErr: false},
-		{name: "Index multi-value", path: IndicesRefreshPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_refresh", wantErr: false},
+		{name: "all empty", path: IndicesRefreshPath{}, wantMethod: http.MethodGet, wantPath: "/_refresh", wantErr: false},
+		{name: "all fields", path: IndicesRefreshPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_refresh", wantErr: false},
+		{name: "Index multi-value", path: IndicesRefreshPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_refresh", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3231,25 +3488,27 @@ func TestIndicesRefreshPath_Build(t *testing.T) {
 func TestIndicesResolveIndexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesResolveIndexPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesResolveIndexPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesResolveIndexPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesResolveIndexPath{Name: []string{"test-name"}}, want: "/_resolve/index/test-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesResolveIndexPath{Name: []string{"a", "b", "c"}}, want: "/_resolve/index/a,b,c", wantErr: false},
+		{name: "required fields empty", path: IndicesResolveIndexPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesResolveIndexPath{Name: []string{"test-name"}}, wantMethod: http.MethodGet, wantPath: "/_resolve/index/test-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesResolveIndexPath{Name: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_resolve/index/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3257,24 +3516,26 @@ func TestIndicesResolveIndexPath_Build(t *testing.T) {
 func TestIndicesRolloverPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesRolloverPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesRolloverPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesRolloverPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesRolloverPath{Alias: "test-alias", NewIndex: "test-newindex"}, want: "/test-alias/_rollover/test-newindex", wantErr: false},
+		{name: "required fields empty", path: IndicesRolloverPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesRolloverPath{Alias: "test-alias", NewIndex: "test-newindex"}, wantMethod: http.MethodPost, wantPath: "/test-alias/_rollover/test-newindex", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3282,25 +3543,27 @@ func TestIndicesRolloverPath_Build(t *testing.T) {
 func TestIndicesSegmentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesSegmentsPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesSegmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesSegmentsPath{}, want: "/_segments", wantErr: false},
-		{name: "all fields", path: IndicesSegmentsPath{Index: []string{"test-index"}}, want: "/test-index/_segments", wantErr: false},
-		{name: "Index multi-value", path: IndicesSegmentsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_segments", wantErr: false},
+		{name: "all empty", path: IndicesSegmentsPath{}, wantMethod: http.MethodGet, wantPath: "/_segments", wantErr: false},
+		{name: "all fields", path: IndicesSegmentsPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_segments", wantErr: false},
+		{name: "Index multi-value", path: IndicesSegmentsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_segments", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3308,25 +3571,27 @@ func TestIndicesSegmentsPath_Build(t *testing.T) {
 func TestIndicesShardStoresPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesShardStoresPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesShardStoresPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesShardStoresPath{}, want: "/_shard_stores", wantErr: false},
-		{name: "all fields", path: IndicesShardStoresPath{Index: []string{"test-index"}}, want: "/test-index/_shard_stores", wantErr: false},
-		{name: "Index multi-value", path: IndicesShardStoresPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_shard_stores", wantErr: false},
+		{name: "all empty", path: IndicesShardStoresPath{}, wantMethod: http.MethodGet, wantPath: "/_shard_stores", wantErr: false},
+		{name: "all fields", path: IndicesShardStoresPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_shard_stores", wantErr: false},
+		{name: "Index multi-value", path: IndicesShardStoresPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_shard_stores", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3334,24 +3599,26 @@ func TestIndicesShardStoresPath_Build(t *testing.T) {
 func TestIndicesShrinkPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesShrinkPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesShrinkPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesShrinkPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesShrinkPath{Index: "test-index", Target: "test-target"}, want: "/test-index/_shrink/test-target", wantErr: false},
+		{name: "required fields empty", path: IndicesShrinkPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesShrinkPath{Index: "test-index", Target: "test-target"}, wantMethod: http.MethodPost, wantPath: "/test-index/_shrink/test-target", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3359,24 +3626,26 @@ func TestIndicesShrinkPath_Build(t *testing.T) {
 func TestIndicesSimulateIndexTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesSimulateIndexTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesSimulateIndexTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesSimulateIndexTemplatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesSimulateIndexTemplatePath{Name: "test-name"}, want: "/_index_template/_simulate_index/test-name", wantErr: false},
+		{name: "required fields empty", path: IndicesSimulateIndexTemplatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesSimulateIndexTemplatePath{Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_index_template/_simulate_index/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3384,24 +3653,26 @@ func TestIndicesSimulateIndexTemplatePath_Build(t *testing.T) {
 func TestIndicesSimulateTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesSimulateTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesSimulateTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesSimulateTemplatePath{}, want: "/_index_template/_simulate", wantErr: false},
-		{name: "all fields", path: IndicesSimulateTemplatePath{Name: "test-name"}, want: "/_index_template/_simulate/test-name", wantErr: false},
+		{name: "all empty", path: IndicesSimulateTemplatePath{}, wantMethod: http.MethodPost, wantPath: "/_index_template/_simulate", wantErr: false},
+		{name: "all fields", path: IndicesSimulateTemplatePath{Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_index_template/_simulate/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3409,24 +3680,26 @@ func TestIndicesSimulateTemplatePath_Build(t *testing.T) {
 func TestIndicesSplitPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesSplitPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesSplitPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IndicesSplitPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IndicesSplitPath{Index: "test-index", Target: "test-target"}, want: "/test-index/_split/test-target", wantErr: false},
+		{name: "required fields empty", path: IndicesSplitPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesSplitPath{Index: "test-index", Target: "test-target"}, wantMethod: http.MethodPost, wantPath: "/test-index/_split/test-target", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3434,27 +3707,29 @@ func TestIndicesSplitPath_Build(t *testing.T) {
 func TestIndicesStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesStatsPath{}, want: "/_stats", wantErr: false},
-		{name: "all fields", path: IndicesStatsPath{Index: []string{"test-index"}, Metric: []string{"test-metric"}}, want: "/test-index/_stats/test-metric", wantErr: false},
-		{name: "only Index", path: IndicesStatsPath{Index: []string{"val-index"}}, want: "/val-index/_stats", wantErr: false},
-		{name: "only Metric", path: IndicesStatsPath{Metric: []string{"val-metric"}}, want: "/_stats/val-metric", wantErr: false},
-		{name: "Index multi-value", path: IndicesStatsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_stats", wantErr: false},
+		{name: "all empty", path: IndicesStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_stats", wantErr: false},
+		{name: "all fields", path: IndicesStatsPath{Index: []string{"test-index"}, Metric: []string{"test-metric"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_stats/test-metric", wantErr: false},
+		{name: "only Index", path: IndicesStatsPath{Index: []string{"val-index"}}, wantMethod: http.MethodGet, wantPath: "/val-index/_stats", wantErr: false},
+		{name: "only Metric", path: IndicesStatsPath{Metric: []string{"val-metric"}}, wantMethod: http.MethodGet, wantPath: "/_stats/val-metric", wantErr: false},
+		{name: "Index multi-value", path: IndicesStatsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3462,23 +3737,25 @@ func TestIndicesStatsPath_Build(t *testing.T) {
 func TestIndicesUpdateAliasesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesUpdateAliasesPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesUpdateAliasesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesUpdateAliasesPath{}, want: "/_alias", wantErr: false},
+		{name: "all empty", path: IndicesUpdateAliasesPath{}, wantMethod: http.MethodPost, wantPath: "/_aliases", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3486,25 +3763,27 @@ func TestIndicesUpdateAliasesPath_Build(t *testing.T) {
 func TestIndicesUpgradePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesUpgradePath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesUpgradePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesUpgradePath{}, want: "/_upgrade", wantErr: false},
-		{name: "all fields", path: IndicesUpgradePath{Index: []string{"test-index"}}, want: "/test-index/_upgrade", wantErr: false},
-		{name: "Index multi-value", path: IndicesUpgradePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_upgrade", wantErr: false},
+		{name: "all empty", path: IndicesUpgradePath{}, wantMethod: http.MethodPost, wantPath: "/_upgrade", wantErr: false},
+		{name: "all fields", path: IndicesUpgradePath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_upgrade", wantErr: false},
+		{name: "Index multi-value", path: IndicesUpgradePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_upgrade", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3512,25 +3791,27 @@ func TestIndicesUpgradePath_Build(t *testing.T) {
 func TestIndicesValidateQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IndicesValidateQueryPath
-		want    string
-		wantErr bool
+		name       string
+		path       IndicesValidateQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IndicesValidateQueryPath{}, want: "/_validate/query", wantErr: false},
-		{name: "all fields", path: IndicesValidateQueryPath{Index: []string{"test-index"}}, want: "/test-index/_validate/query", wantErr: false},
-		{name: "Index multi-value", path: IndicesValidateQueryPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_validate/query", wantErr: false},
+		{name: "all empty", path: IndicesValidateQueryPath{}, wantMethod: http.MethodGet, wantPath: "/_validate/query", wantErr: false},
+		{name: "all fields", path: IndicesValidateQueryPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_validate/query", wantErr: false},
+		{name: "Index multi-value", path: IndicesValidateQueryPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_validate/query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3538,23 +3819,25 @@ func TestIndicesValidateQueryPath_Build(t *testing.T) {
 func TestInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    InfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       InfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: InfoPath{}, want: "/", wantErr: false},
+		{name: "all empty", path: InfoPath{}, wantMethod: http.MethodGet, wantPath: "/", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3562,24 +3845,26 @@ func TestInfoPath_Build(t *testing.T) {
 func TestIngestDeletePipelinePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IngestDeletePipelinePath
-		want    string
-		wantErr bool
+		name       string
+		path       IngestDeletePipelinePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IngestDeletePipelinePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IngestDeletePipelinePath{ID: "test-id"}, want: "/_ingest/pipeline/test-id", wantErr: false},
+		{name: "required fields empty", path: IngestDeletePipelinePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IngestDeletePipelinePath{ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_ingest/pipeline/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3587,24 +3872,26 @@ func TestIngestDeletePipelinePath_Build(t *testing.T) {
 func TestIngestGetPipelinePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IngestGetPipelinePath
-		want    string
-		wantErr bool
+		name       string
+		path       IngestGetPipelinePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IngestGetPipelinePath{}, want: "/_ingest/pipeline", wantErr: false},
-		{name: "all fields", path: IngestGetPipelinePath{ID: "test-id"}, want: "/_ingest/pipeline/test-id", wantErr: false},
+		{name: "all empty", path: IngestGetPipelinePath{}, wantMethod: http.MethodGet, wantPath: "/_ingest/pipeline", wantErr: false},
+		{name: "all fields", path: IngestGetPipelinePath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_ingest/pipeline/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3612,23 +3899,25 @@ func TestIngestGetPipelinePath_Build(t *testing.T) {
 func TestIngestProcessorGrokPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IngestProcessorGrokPath
-		want    string
-		wantErr bool
+		name       string
+		path       IngestProcessorGrokPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IngestProcessorGrokPath{}, want: "/_ingest/processor/grok", wantErr: false},
+		{name: "all empty", path: IngestProcessorGrokPath{}, wantMethod: http.MethodGet, wantPath: "/_ingest/processor/grok", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3636,24 +3925,26 @@ func TestIngestProcessorGrokPath_Build(t *testing.T) {
 func TestIngestPutPipelinePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IngestPutPipelinePath
-		want    string
-		wantErr bool
+		name       string
+		path       IngestPutPipelinePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IngestPutPipelinePath{}, want: "", wantErr: true},
-		{name: "all fields", path: IngestPutPipelinePath{ID: "test-id"}, want: "/_ingest/pipeline/test-id", wantErr: false},
+		{name: "required fields empty", path: IngestPutPipelinePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IngestPutPipelinePath{ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_ingest/pipeline/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3661,24 +3952,107 @@ func TestIngestPutPipelinePath_Build(t *testing.T) {
 func TestIngestSimulatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IngestSimulatePath
-		want    string
-		wantErr bool
+		name       string
+		path       IngestSimulatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IngestSimulatePath{}, want: "/_ingest/pipeline/_simulate", wantErr: false},
-		{name: "all fields", path: IngestSimulatePath{ID: "test-id"}, want: "/_ingest/pipeline/test-id/_simulate", wantErr: false},
+		{name: "all empty", path: IngestSimulatePath{}, wantMethod: http.MethodGet, wantPath: "/_ingest/pipeline/_simulate", wantErr: false},
+		{name: "all fields", path: IngestSimulatePath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_ingest/pipeline/test-id/_simulate", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestIngestionGetStatePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       IngestionGetStatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: IngestionGetStatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IngestionGetStatePath{Index: "test-index"}, wantMethod: http.MethodGet, wantPath: "/test-index/ingestion/_state", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestIngestionPausePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       IngestionPausePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: IngestionPausePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IngestionPausePath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/test-index/ingestion/_pause", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestIngestionResumePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       IngestionResumePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: IngestionResumePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IngestionResumePath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/test-index/ingestion/_resume", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3686,23 +4060,25 @@ func TestIngestSimulatePath_Build(t *testing.T) {
 func TestInsightsTopQueriesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    InsightsTopQueriesPath
-		want    string
-		wantErr bool
+		name       string
+		path       InsightsTopQueriesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: InsightsTopQueriesPath{}, want: "/_insights/top_queries", wantErr: false},
+		{name: "all empty", path: InsightsTopQueriesPath{}, wantMethod: http.MethodGet, wantPath: "/_insights/top_queries", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3710,24 +4086,27 @@ func TestInsightsTopQueriesPath_Build(t *testing.T) {
 func TestIsmAddPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmAddPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmAddPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmAddPolicyPath{}, want: "/_plugins/_ism/add", wantErr: false},
-		{name: "all fields", path: IsmAddPolicyPath{Index: "test-index"}, want: "/_plugins/_ism/add/test-index", wantErr: false},
+		{name: "all empty", path: IsmAddPolicyPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/add", wantErr: false},
+		{name: "all fields", path: IsmAddPolicyPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/add/test-index", wantErr: false},
+		{name: "Index multi-value", path: IsmAddPolicyPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/add/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3735,24 +4114,27 @@ func TestIsmAddPolicyPath_Build(t *testing.T) {
 func TestIsmChangePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmChangePolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmChangePolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmChangePolicyPath{}, want: "/_plugins/_ism/change_policy", wantErr: false},
-		{name: "all fields", path: IsmChangePolicyPath{Index: "test-index"}, want: "/_plugins/_ism/change_policy/test-index", wantErr: false},
+		{name: "all empty", path: IsmChangePolicyPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/change_policy", wantErr: false},
+		{name: "all fields", path: IsmChangePolicyPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/change_policy/test-index", wantErr: false},
+		{name: "Index multi-value", path: IsmChangePolicyPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/change_policy/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3760,24 +4142,26 @@ func TestIsmChangePolicyPath_Build(t *testing.T) {
 func TestIsmDeletePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmDeletePolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmDeletePolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IsmDeletePolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IsmDeletePolicyPath{PolicyID: "test-policyid"}, want: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: IsmDeletePolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IsmDeletePolicyPath{PolicyID: "test-policyid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3785,24 +4169,26 @@ func TestIsmDeletePolicyPath_Build(t *testing.T) {
 func TestIsmExistsPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmExistsPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmExistsPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IsmExistsPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IsmExistsPolicyPath{PolicyID: "test-policyid"}, want: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: IsmExistsPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IsmExistsPolicyPath{PolicyID: "test-policyid"}, wantMethod: http.MethodHead, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3810,24 +4196,27 @@ func TestIsmExistsPolicyPath_Build(t *testing.T) {
 func TestIsmExplainPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmExplainPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmExplainPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmExplainPolicyPath{}, want: "/_plugins/_ism/explain", wantErr: false},
-		{name: "all fields", path: IsmExplainPolicyPath{Index: "test-index"}, want: "/_plugins/_ism/explain/test-index", wantErr: false},
+		{name: "all empty", path: IsmExplainPolicyPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ism/explain", wantErr: false},
+		{name: "all fields", path: IsmExplainPolicyPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ism/explain/test-index", wantErr: false},
+		{name: "Index multi-value", path: IsmExplainPolicyPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ism/explain/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3835,23 +4224,25 @@ func TestIsmExplainPolicyPath_Build(t *testing.T) {
 func TestIsmGetPoliciesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmGetPoliciesPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmGetPoliciesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmGetPoliciesPath{}, want: "/_plugins/_ism/policies", wantErr: false},
+		{name: "all empty", path: IsmGetPoliciesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ism/policies", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3859,24 +4250,26 @@ func TestIsmGetPoliciesPath_Build(t *testing.T) {
 func TestIsmGetPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmGetPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmGetPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IsmGetPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IsmGetPolicyPath{PolicyID: "test-policyid"}, want: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: IsmGetPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IsmGetPolicyPath{PolicyID: "test-policyid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3884,23 +4277,25 @@ func TestIsmGetPolicyPath_Build(t *testing.T) {
 func TestIsmPutPoliciesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmPutPoliciesPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmPutPoliciesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmPutPoliciesPath{}, want: "/_plugins/_ism/policies", wantErr: false},
+		{name: "all empty", path: IsmPutPoliciesPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ism/policies", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3908,24 +4303,26 @@ func TestIsmPutPoliciesPath_Build(t *testing.T) {
 func TestIsmPutPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmPutPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmPutPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IsmPutPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IsmPutPolicyPath{PolicyID: "test-policyid"}, want: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: IsmPutPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IsmPutPolicyPath{PolicyID: "test-policyid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3933,24 +4330,27 @@ func TestIsmPutPolicyPath_Build(t *testing.T) {
 func TestIsmRefreshSearchAnalyzersPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmRefreshSearchAnalyzersPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmRefreshSearchAnalyzersPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: IsmRefreshSearchAnalyzersPath{}, want: "", wantErr: true},
-		{name: "all fields", path: IsmRefreshSearchAnalyzersPath{Index: "test-index"}, want: "/_plugins/_refresh_search_analyzers/test-index", wantErr: false},
+		{name: "required fields empty", path: IsmRefreshSearchAnalyzersPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: IsmRefreshSearchAnalyzersPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_refresh_search_analyzers/test-index", wantErr: false},
+		{name: "Index multi-value", path: IsmRefreshSearchAnalyzersPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_refresh_search_analyzers/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3958,24 +4358,27 @@ func TestIsmRefreshSearchAnalyzersPath_Build(t *testing.T) {
 func TestIsmRemovePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmRemovePolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmRemovePolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmRemovePolicyPath{}, want: "/_plugins/_ism/remove", wantErr: false},
-		{name: "all fields", path: IsmRemovePolicyPath{Index: "test-index"}, want: "/_plugins/_ism/remove/test-index", wantErr: false},
+		{name: "all empty", path: IsmRemovePolicyPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/remove", wantErr: false},
+		{name: "all fields", path: IsmRemovePolicyPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/remove/test-index", wantErr: false},
+		{name: "Index multi-value", path: IsmRemovePolicyPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/remove/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -3983,24 +4386,27 @@ func TestIsmRemovePolicyPath_Build(t *testing.T) {
 func TestIsmRetryIndexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    IsmRetryIndexPath
-		want    string
-		wantErr bool
+		name       string
+		path       IsmRetryIndexPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: IsmRetryIndexPath{}, want: "/_plugins/_ism/retry", wantErr: false},
-		{name: "all fields", path: IsmRetryIndexPath{Index: "test-index"}, want: "/_plugins/_ism/retry/test-index", wantErr: false},
+		{name: "all empty", path: IsmRetryIndexPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/retry", wantErr: false},
+		{name: "all fields", path: IsmRetryIndexPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/retry/test-index", wantErr: false},
+		{name: "Index multi-value", path: IsmRetryIndexPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ism/retry/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4008,24 +4414,26 @@ func TestIsmRetryIndexPath_Build(t *testing.T) {
 func TestKnnDeleteModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    KnnDeleteModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       KnnDeleteModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: KnnDeleteModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: KnnDeleteModelPath{ModelID: "test-modelid"}, want: "/_plugins/_knn/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: KnnDeleteModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: KnnDeleteModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_knn/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4033,24 +4441,26 @@ func TestKnnDeleteModelPath_Build(t *testing.T) {
 func TestKnnGetModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    KnnGetModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       KnnGetModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: KnnGetModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: KnnGetModelPath{ModelID: "test-modelid"}, want: "/_plugins/_knn/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: KnnGetModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: KnnGetModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4058,23 +4468,25 @@ func TestKnnGetModelPath_Build(t *testing.T) {
 func TestKnnSearchModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    KnnSearchModelsPath
-		want    string
-		wantErr bool
+		name       string
+		path       KnnSearchModelsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: KnnSearchModelsPath{}, want: "/_plugins/_knn/models/_search", wantErr: false},
+		{name: "all empty", path: KnnSearchModelsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/models/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4082,27 +4494,29 @@ func TestKnnSearchModelsPath_Build(t *testing.T) {
 func TestKnnStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    KnnStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       KnnStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: KnnStatsPath{}, want: "/_plugins/_knn/stats", wantErr: false},
-		{name: "all fields", path: KnnStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, want: "/_plugins/_knn/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: KnnStatsPath{NodeID: []string{"val-nodeid"}}, want: "/_plugins/_knn/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: KnnStatsPath{Stat: []string{"val-stat"}}, want: "/_plugins/_knn/stats/val-stat", wantErr: false},
-		{name: "NodeID multi-value", path: KnnStatsPath{NodeID: []string{"a", "b", "c"}}, want: "/_plugins/_knn/a,b,c/stats", wantErr: false},
+		{name: "all empty", path: KnnStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/stats", wantErr: false},
+		{name: "all fields", path: KnnStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: KnnStatsPath{NodeID: []string{"val-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: KnnStatsPath{Stat: []string{"val-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/stats/val-stat", wantErr: false},
+		{name: "NodeID multi-value", path: KnnStatsPath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/a,b,c/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4110,24 +4524,26 @@ func TestKnnStatsPath_Build(t *testing.T) {
 func TestKnnTrainModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    KnnTrainModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       KnnTrainModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: KnnTrainModelPath{}, want: "/_plugins/_knn/models/_train", wantErr: false},
-		{name: "all fields", path: KnnTrainModelPath{ModelID: "test-modelid"}, want: "/_plugins/_knn/models/test-modelid/_train", wantErr: false},
+		{name: "all empty", path: KnnTrainModelPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_knn/models/_train", wantErr: false},
+		{name: "all fields", path: KnnTrainModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_knn/models/test-modelid/_train", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4135,25 +4551,27 @@ func TestKnnTrainModelPath_Build(t *testing.T) {
 func TestKnnWarmupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    KnnWarmupPath
-		want    string
-		wantErr bool
+		name       string
+		path       KnnWarmupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: KnnWarmupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: KnnWarmupPath{Index: []string{"test-index"}}, want: "/_plugins/_knn/warmup/test-index", wantErr: false},
-		{name: "Index multi-value", path: KnnWarmupPath{Index: []string{"a", "b", "c"}}, want: "/_plugins/_knn/warmup/a,b,c", wantErr: false},
+		{name: "required fields empty", path: KnnWarmupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: KnnWarmupPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/warmup/test-index", wantErr: false},
+		{name: "Index multi-value", path: KnnWarmupPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_knn/warmup/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4161,23 +4579,25 @@ func TestKnnWarmupPath_Build(t *testing.T) {
 func TestListHelpPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ListHelpPath
-		want    string
-		wantErr bool
+		name       string
+		path       ListHelpPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ListHelpPath{}, want: "/_list", wantErr: false},
+		{name: "all empty", path: ListHelpPath{}, wantMethod: http.MethodGet, wantPath: "/_list", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4185,25 +4605,27 @@ func TestListHelpPath_Build(t *testing.T) {
 func TestListIndicesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ListIndicesPath
-		want    string
-		wantErr bool
+		name       string
+		path       ListIndicesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ListIndicesPath{}, want: "/_list/indices", wantErr: false},
-		{name: "all fields", path: ListIndicesPath{Index: []string{"test-index"}}, want: "/_list/indices/test-index", wantErr: false},
-		{name: "Index multi-value", path: ListIndicesPath{Index: []string{"a", "b", "c"}}, want: "/_list/indices/a,b,c", wantErr: false},
+		{name: "all empty", path: ListIndicesPath{}, wantMethod: http.MethodGet, wantPath: "/_list/indices", wantErr: false},
+		{name: "all fields", path: ListIndicesPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_list/indices/test-index", wantErr: false},
+		{name: "Index multi-value", path: ListIndicesPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_list/indices/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4211,25 +4633,81 @@ func TestListIndicesPath_Build(t *testing.T) {
 func TestListShardsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ListShardsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ListShardsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ListShardsPath{}, want: "/_list/shards", wantErr: false},
-		{name: "all fields", path: ListShardsPath{Index: []string{"test-index"}}, want: "/_list/shards/test-index", wantErr: false},
-		{name: "Index multi-value", path: ListShardsPath{Index: []string{"a", "b", "c"}}, want: "/_list/shards/a,b,c", wantErr: false},
+		{name: "all empty", path: ListShardsPath{}, wantMethod: http.MethodGet, wantPath: "/_list/shards", wantErr: false},
+		{name: "all fields", path: ListShardsPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/_list/shards/test-index", wantErr: false},
+		{name: "Index multi-value", path: ListShardsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_list/shards/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrAddFeaturesToSetPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrAddFeaturesToSetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrAddFeaturesToSetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrAddFeaturesToSetPath{Store: "test-store", Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_ltr/test-store/_featureset/test-name/_addfeatures", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrAddFeaturesToSetByQueryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrAddFeaturesToSetByQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrAddFeaturesToSetByQueryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrAddFeaturesToSetByQueryPath{Store: "test-store", Name: "test-name", Query: "test-query"}, wantMethod: http.MethodPost, wantPath: "/_ltr/test-store/_featureset/test-name/_addfeatures/test-query", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4237,23 +4715,25 @@ func TestListShardsPath_Build(t *testing.T) {
 func TestLtrCacheStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrCacheStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrCacheStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: LtrCacheStatsPath{}, want: "/_ltr/_cachestats", wantErr: false},
+		{name: "all empty", path: LtrCacheStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_ltr/_cachestats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4261,24 +4741,26 @@ func TestLtrCacheStatsPath_Build(t *testing.T) {
 func TestLtrClearCachePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrClearCachePath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrClearCachePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: LtrClearCachePath{}, want: "/_ltr/_clearcache", wantErr: false},
-		{name: "all fields", path: LtrClearCachePath{Store: "test-store"}, want: "/_ltr/test-store/_clearcache", wantErr: false},
+		{name: "all empty", path: LtrClearCachePath{}, wantMethod: http.MethodPost, wantPath: "/_ltr/_clearcache", wantErr: false},
+		{name: "all fields", path: LtrClearCachePath{Store: "test-store"}, wantMethod: http.MethodPost, wantPath: "/_ltr/test-store/_clearcache", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4286,23 +4768,133 @@ func TestLtrClearCachePath_Build(t *testing.T) {
 func TestLtrCreateDefaultStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrCreateDefaultStorePath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrCreateDefaultStorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: LtrCreateDefaultStorePath{}, want: "/_ltr", wantErr: false},
+		{name: "all empty", path: LtrCreateDefaultStorePath{}, wantMethod: http.MethodPut, wantPath: "/_ltr", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrCreateFeaturePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrCreateFeaturePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrCreateFeaturePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrCreateFeaturePath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrCreateFeaturesetPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrCreateFeaturesetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrCreateFeaturesetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrCreateFeaturesetPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrCreateModelPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrCreateModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrCreateModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrCreateModelPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrCreateModelFromSetPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrCreateModelFromSetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrCreateModelFromSetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrCreateModelFromSetPath{Store: "test-store", Name: "test-name"}, wantMethod: http.MethodPost, wantPath: "/_ltr/test-store/_featureset/test-name/_createmodel", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4310,24 +4902,26 @@ func TestLtrCreateDefaultStorePath_Build(t *testing.T) {
 func TestLtrCreateStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrCreateStorePath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrCreateStorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: LtrCreateStorePath{}, want: "", wantErr: true},
-		{name: "all fields", path: LtrCreateStorePath{Store: "test-store"}, want: "/_ltr/test-store", wantErr: false},
+		{name: "required fields empty", path: LtrCreateStorePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrCreateStorePath{Store: "test-store"}, wantMethod: http.MethodPut, wantPath: "/_ltr/test-store", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4335,23 +4929,106 @@ func TestLtrCreateStorePath_Build(t *testing.T) {
 func TestLtrDeleteDefaultStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrDeleteDefaultStorePath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrDeleteDefaultStorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: LtrDeleteDefaultStorePath{}, want: "/_ltr", wantErr: false},
+		{name: "all empty", path: LtrDeleteDefaultStorePath{}, wantMethod: http.MethodDelete, wantPath: "/_ltr", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrDeleteFeaturePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrDeleteFeaturePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrDeleteFeaturePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrDeleteFeaturePath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrDeleteFeaturesetPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrDeleteFeaturesetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrDeleteFeaturesetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrDeleteFeaturesetPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrDeleteModelPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrDeleteModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrDeleteModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrDeleteModelPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4359,24 +5036,107 @@ func TestLtrDeleteDefaultStorePath_Build(t *testing.T) {
 func TestLtrDeleteStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrDeleteStorePath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrDeleteStorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: LtrDeleteStorePath{}, want: "", wantErr: true},
-		{name: "all fields", path: LtrDeleteStorePath{Store: "test-store"}, want: "/_ltr/test-store", wantErr: false},
+		{name: "required fields empty", path: LtrDeleteStorePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrDeleteStorePath{Store: "test-store"}, wantMethod: http.MethodDelete, wantPath: "/_ltr/test-store", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrGetFeaturePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrGetFeaturePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrGetFeaturePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrGetFeaturePath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrGetFeaturesetPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrGetFeaturesetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrGetFeaturesetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrGetFeaturesetPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrGetModelPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrGetModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrGetModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrGetModelPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4384,24 +5144,26 @@ func TestLtrDeleteStorePath_Build(t *testing.T) {
 func TestLtrGetStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrGetStorePath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrGetStorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: LtrGetStorePath{}, want: "", wantErr: true},
-		{name: "all fields", path: LtrGetStorePath{Store: "test-store"}, want: "/_ltr/test-store", wantErr: false},
+		{name: "required fields empty", path: LtrGetStorePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrGetStorePath{Store: "test-store"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4409,23 +5171,106 @@ func TestLtrGetStorePath_Build(t *testing.T) {
 func TestLtrListStoresPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrListStoresPath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrListStoresPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: LtrListStoresPath{}, want: "/_ltr", wantErr: false},
+		{name: "all empty", path: LtrListStoresPath{}, wantMethod: http.MethodGet, wantPath: "/_ltr", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrSearchFeaturesPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrSearchFeaturesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: LtrSearchFeaturesPath{}, wantMethod: http.MethodGet, wantPath: "/_ltr/_feature", wantErr: false},
+		{name: "all fields", path: LtrSearchFeaturesPath{Store: "test-store"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store/_feature", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrSearchFeaturesetsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrSearchFeaturesetsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: LtrSearchFeaturesetsPath{}, wantMethod: http.MethodGet, wantPath: "/_ltr/_featureset", wantErr: false},
+		{name: "all fields", path: LtrSearchFeaturesetsPath{Store: "test-store"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store/_featureset", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrSearchModelsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrSearchModelsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: LtrSearchModelsPath{}, wantMethod: http.MethodGet, wantPath: "/_ltr/_model", wantErr: false},
+		{name: "all fields", path: LtrSearchModelsPath{Store: "test-store"}, wantMethod: http.MethodGet, wantPath: "/_ltr/test-store/_model", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4433,27 +5278,83 @@ func TestLtrListStoresPath_Build(t *testing.T) {
 func TestLtrStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    LtrStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       LtrStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: LtrStatsPath{}, want: "/_plugins/_ltr/stats", wantErr: false},
-		{name: "all fields", path: LtrStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, want: "/_plugins/_ltr/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: LtrStatsPath{NodeID: []string{"val-nodeid"}}, want: "/_plugins/_ltr/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: LtrStatsPath{Stat: []string{"val-stat"}}, want: "/_plugins/_ltr/stats/val-stat", wantErr: false},
-		{name: "NodeID multi-value", path: LtrStatsPath{NodeID: []string{"a", "b", "c"}}, want: "/_plugins/_ltr/a,b,c/stats", wantErr: false},
+		{name: "all empty", path: LtrStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ltr/stats", wantErr: false},
+		{name: "all fields", path: LtrStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ltr/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: LtrStatsPath{NodeID: []string{"val-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ltr/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: LtrStatsPath{Stat: []string{"val-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ltr/stats/val-stat", wantErr: false},
+		{name: "NodeID multi-value", path: LtrStatsPath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ltr/a,b,c/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrUpdateFeaturePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrUpdateFeaturePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrUpdateFeaturePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrUpdateFeaturePath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestLtrUpdateFeaturesetPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       LtrUpdateFeaturesetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: LtrUpdateFeaturesetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: LtrUpdateFeaturesetPath{Store: "test-store", ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4461,24 +5362,53 @@ func TestLtrStatsPath_Build(t *testing.T) {
 func TestMgetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MgetPath
-		want    string
-		wantErr bool
+		name       string
+		path       MgetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MgetPath{}, want: "/_mget", wantErr: false},
-		{name: "all fields", path: MgetPath{Index: "test-index"}, want: "/test-index/_mget", wantErr: false},
+		{name: "all empty", path: MgetPath{}, wantMethod: http.MethodGet, wantPath: "/_mget", wantErr: false},
+		{name: "all fields", path: MgetPath{Index: "test-index"}, wantMethod: http.MethodGet, wantPath: "/test-index/_mget", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlAddAgenticMemoryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlAddAgenticMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlAddAgenticMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlAddAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4486,24 +5416,26 @@ func TestMgetPath_Build(t *testing.T) {
 func TestMlChunkModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlChunkModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlChunkModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlChunkModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlChunkModelPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, want: "/_plugins/_ml/models/test-modelid/chunk/test-chunknumber", wantErr: false},
+		{name: "required fields empty", path: MlChunkModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlChunkModelPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/chunk/test-chunknumber", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4511,23 +5443,25 @@ func TestMlChunkModelPath_Build(t *testing.T) {
 func TestMlCreateConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlCreateConnectorPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlCreateConnectorPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlCreateConnectorPath{}, want: "/_plugins/_ml/connectors/_create", wantErr: false},
+		{name: "all empty", path: MlCreateConnectorPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/connectors/_create", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4535,24 +5469,26 @@ func TestMlCreateConnectorPath_Build(t *testing.T) {
 func TestMlCreateControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlCreateControllerPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlCreateControllerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlCreateControllerPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlCreateControllerPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlCreateControllerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlCreateControllerPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4560,23 +5496,78 @@ func TestMlCreateControllerPath_Build(t *testing.T) {
 func TestMlCreateMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlCreateMemoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlCreateMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlCreateMemoryPath{}, want: "/_plugins/_ml/memory", wantErr: false},
+		{name: "all empty", path: MlCreateMemoryPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/memory", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlCreateMemoryContainerPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlCreateMemoryContainerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: MlCreateMemoryContainerPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/memory_containers/_create", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlCreateMemoryContainerSessionPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlCreateMemoryContainerSessionPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlCreateMemoryContainerSessionPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlCreateMemoryContainerSessionPath{MemoryContainerID: "test-memorycontainerid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/sessions", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4584,24 +5575,26 @@ func TestMlCreateMemoryPath_Build(t *testing.T) {
 func TestMlCreateMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlCreateMessagePath
-		want    string
-		wantErr bool
+		name       string
+		path       MlCreateMessagePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlCreateMessagePath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlCreateMessagePath{MemoryID: "test-memoryid"}, want: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
+		{name: "required fields empty", path: MlCreateMessagePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlCreateMessagePath{MemoryID: "test-memoryid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4609,23 +5602,25 @@ func TestMlCreateMessagePath_Build(t *testing.T) {
 func TestMlCreateModelMetaPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlCreateModelMetaPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlCreateModelMetaPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlCreateModelMetaPath{}, want: "/_plugins/_ml/models/meta", wantErr: false},
+		{name: "all empty", path: MlCreateModelMetaPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/meta", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4633,24 +5628,80 @@ func TestMlCreateModelMetaPath_Build(t *testing.T) {
 func TestMlDeleteAgentPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteAgentPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteAgentPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteAgentPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteAgentPath{AgentID: "test-agentid"}, want: "/_plugins/_ml/agents/test-agentid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteAgentPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteAgentPath{AgentID: "test-agentid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/agents/test-agentid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlDeleteAgenticMemoryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlDeleteAgenticMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlDeleteAgenticMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlDeleteAgenticMemoryQueryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlDeleteAgenticMemoryQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlDeleteAgenticMemoryQueryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteAgenticMemoryQueryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_delete_by_query", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4658,24 +5709,26 @@ func TestMlDeleteAgentPath_Build(t *testing.T) {
 func TestMlDeleteConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteConnectorPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteConnectorPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteConnectorPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteConnectorPath{ConnectorID: "test-connectorid"}, want: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteConnectorPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteConnectorPath{ConnectorID: "test-connectorid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4683,24 +5736,26 @@ func TestMlDeleteConnectorPath_Build(t *testing.T) {
 func TestMlDeleteControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteControllerPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteControllerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteControllerPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteControllerPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteControllerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteControllerPath{ModelID: "test-modelid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4708,24 +5763,53 @@ func TestMlDeleteControllerPath_Build(t *testing.T) {
 func TestMlDeleteMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteMemoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteMemoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteMemoryPath{MemoryID: "test-memoryid"}, want: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteMemoryPath{MemoryID: "test-memoryid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlDeleteMemoryContainerPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlDeleteMemoryContainerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlDeleteMemoryContainerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4733,24 +5817,26 @@ func TestMlDeleteMemoryPath_Build(t *testing.T) {
 func TestMlDeleteModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4758,24 +5844,26 @@ func TestMlDeleteModelPath_Build(t *testing.T) {
 func TestMlDeleteModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteModelGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteModelGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteModelGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteModelGroupPath{ModelGroupID: "test-modelgroupid"}, want: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteModelGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4783,24 +5871,26 @@ func TestMlDeleteModelGroupPath_Build(t *testing.T) {
 func TestMlDeleteTaskPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeleteTaskPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeleteTaskPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeleteTaskPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeleteTaskPath{TaskID: "test-taskid"}, want: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
+		{name: "required fields empty", path: MlDeleteTaskPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeleteTaskPath{TaskID: "test-taskid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4808,24 +5898,26 @@ func TestMlDeleteTaskPath_Build(t *testing.T) {
 func TestMlDeployModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlDeployModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlDeployModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlDeployModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlDeployModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid/_deploy", wantErr: false},
+		{name: "required fields empty", path: MlDeployModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlDeployModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/_deploy", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4833,24 +5925,53 @@ func TestMlDeployModelPath_Build(t *testing.T) {
 func TestMlExecuteAgentPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlExecuteAgentPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlExecuteAgentPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlExecuteAgentPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlExecuteAgentPath{AgentID: "test-agentid"}, want: "/_plugins/_ml/agents/test-agentid/_execute", wantErr: false},
+		{name: "required fields empty", path: MlExecuteAgentPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlExecuteAgentPath{AgentID: "test-agentid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/agents/test-agentid/_execute", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlExecuteAgentStreamPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlExecuteAgentStreamPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlExecuteAgentStreamPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlExecuteAgentStreamPath{AgentID: "test-agentid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/agents/test-agentid/_execute/stream", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4858,24 +5979,53 @@ func TestMlExecuteAgentPath_Build(t *testing.T) {
 func TestMlExecuteAlgorithmPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlExecuteAlgorithmPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlExecuteAlgorithmPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlExecuteAlgorithmPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlExecuteAlgorithmPath{AlgorithmName: "test-algorithmname"}, want: "/_plugins/_ml/_execute/test-algorithmname", wantErr: false},
+		{name: "required fields empty", path: MlExecuteAlgorithmPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlExecuteAlgorithmPath{AlgorithmName: "test-algorithmname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/_execute/test-algorithmname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlExecuteToolPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlExecuteToolPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlExecuteToolPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlExecuteToolPath{ToolName: "test-toolname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/tools/_execute/test-toolname", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4883,24 +6033,53 @@ func TestMlExecuteAlgorithmPath_Build(t *testing.T) {
 func TestMlGetAgentPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetAgentPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetAgentPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetAgentPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetAgentPath{AgentID: "test-agentid"}, want: "/_plugins/_ml/agents/test-agentid", wantErr: false},
+		{name: "required fields empty", path: MlGetAgentPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetAgentPath{AgentID: "test-agentid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/agents/test-agentid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlGetAgenticMemoryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlGetAgenticMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlGetAgenticMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4908,23 +6087,25 @@ func TestMlGetAgentPath_Build(t *testing.T) {
 func TestMlGetAllMemoriesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetAllMemoriesPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetAllMemoriesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlGetAllMemoriesPath{}, want: "/_plugins/_ml/memory", wantErr: false},
+		{name: "all empty", path: MlGetAllMemoriesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4932,24 +6113,26 @@ func TestMlGetAllMemoriesPath_Build(t *testing.T) {
 func TestMlGetAllMessagesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetAllMessagesPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetAllMessagesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetAllMessagesPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetAllMessagesPath{MemoryID: "test-memoryid"}, want: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
+		{name: "required fields empty", path: MlGetAllMessagesPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetAllMessagesPath{MemoryID: "test-memoryid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4957,23 +6140,25 @@ func TestMlGetAllMessagesPath_Build(t *testing.T) {
 func TestMlGetAllToolsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetAllToolsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetAllToolsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlGetAllToolsPath{}, want: "/_plugins/_ml/tools", wantErr: false},
+		{name: "all empty", path: MlGetAllToolsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/tools", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -4981,24 +6166,26 @@ func TestMlGetAllToolsPath_Build(t *testing.T) {
 func TestMlGetConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetConnectorPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetConnectorPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetConnectorPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetConnectorPath{ConnectorID: "test-connectorid"}, want: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
+		{name: "required fields empty", path: MlGetConnectorPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetConnectorPath{ConnectorID: "test-connectorid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5006,24 +6193,26 @@ func TestMlGetConnectorPath_Build(t *testing.T) {
 func TestMlGetControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetControllerPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetControllerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetControllerPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetControllerPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlGetControllerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetControllerPath{ModelID: "test-modelid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5031,24 +6220,53 @@ func TestMlGetControllerPath_Build(t *testing.T) {
 func TestMlGetMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetMemoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetMemoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetMemoryPath{MemoryID: "test-memoryid"}, want: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
+		{name: "required fields empty", path: MlGetMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetMemoryPath{MemoryID: "test-memoryid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlGetMemoryContainerPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlGetMemoryContainerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlGetMemoryContainerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5056,24 +6274,26 @@ func TestMlGetMemoryPath_Build(t *testing.T) {
 func TestMlGetMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetMessagePath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetMessagePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetMessagePath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetMessagePath{MessageID: "test-messageid"}, want: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
+		{name: "required fields empty", path: MlGetMessagePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetMessagePath{MessageID: "test-messageid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5081,24 +6301,26 @@ func TestMlGetMessagePath_Build(t *testing.T) {
 func TestMlGetMessageTracesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetMessageTracesPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetMessageTracesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetMessageTracesPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetMessageTracesPath{MessageID: "test-messageid"}, want: "/_plugins/_ml/memory/message/test-messageid/traces", wantErr: false},
+		{name: "required fields empty", path: MlGetMessageTracesPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetMessageTracesPath{MessageID: "test-messageid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory/message/test-messageid/traces", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5106,24 +6328,26 @@ func TestMlGetMessageTracesPath_Build(t *testing.T) {
 func TestMlGetModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlGetModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5131,24 +6355,26 @@ func TestMlGetModelPath_Build(t *testing.T) {
 func TestMlGetModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetModelGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetModelGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetModelGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetModelGroupPath{ModelGroupID: "test-modelgroupid"}, want: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
+		{name: "required fields empty", path: MlGetModelGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5156,23 +6382,25 @@ func TestMlGetModelGroupPath_Build(t *testing.T) {
 func TestMlGetProfilePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetProfilePath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetProfilePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlGetProfilePath{}, want: "/_plugins/_ml/profile", wantErr: false},
+		{name: "all empty", path: MlGetProfilePath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/profile", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5180,24 +6408,26 @@ func TestMlGetProfilePath_Build(t *testing.T) {
 func TestMlGetProfileModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetProfileModelsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetProfileModelsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlGetProfileModelsPath{}, want: "/_plugins/_ml/profile/models", wantErr: false},
-		{name: "all fields", path: MlGetProfileModelsPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/profile/models/test-modelid", wantErr: false},
+		{name: "all empty", path: MlGetProfileModelsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/profile/models", wantErr: false},
+		{name: "all fields", path: MlGetProfileModelsPath{ModelID: "test-modelid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/profile/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5205,24 +6435,26 @@ func TestMlGetProfileModelsPath_Build(t *testing.T) {
 func TestMlGetProfileTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetProfileTasksPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetProfileTasksPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlGetProfileTasksPath{}, want: "/_plugins/_ml/profile/tasks", wantErr: false},
-		{name: "all fields", path: MlGetProfileTasksPath{TaskID: "test-taskid"}, want: "/_plugins/_ml/profile/tasks/test-taskid", wantErr: false},
+		{name: "all empty", path: MlGetProfileTasksPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/profile/tasks", wantErr: false},
+		{name: "all fields", path: MlGetProfileTasksPath{TaskID: "test-taskid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/profile/tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5230,26 +6462,29 @@ func TestMlGetProfileTasksPath_Build(t *testing.T) {
 func TestMlGetStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlGetStatsPath{}, want: "/_plugins/_ml/stats", wantErr: false},
-		{name: "all fields", path: MlGetStatsPath{NodeID: "test-nodeid", Stat: "test-stat"}, want: "/_plugins/_ml/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: MlGetStatsPath{NodeID: "val-nodeid"}, want: "/_plugins/_ml/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: MlGetStatsPath{Stat: "val-stat"}, want: "/_plugins/_ml/stats/val-stat", wantErr: false},
+		{name: "all empty", path: MlGetStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/stats", wantErr: false},
+		{name: "all fields", path: MlGetStatsPath{NodeID: "test-nodeid", Stat: []string{"test-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: MlGetStatsPath{NodeID: "val-nodeid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: MlGetStatsPath{Stat: []string{"val-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/stats/val-stat", wantErr: false},
+		{name: "Stat multi-value", path: MlGetStatsPath{Stat: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5257,24 +6492,26 @@ func TestMlGetStatsPath_Build(t *testing.T) {
 func TestMlGetTaskPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetTaskPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetTaskPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetTaskPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetTaskPath{TaskID: "test-taskid"}, want: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
+		{name: "required fields empty", path: MlGetTaskPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetTaskPath{TaskID: "test-taskid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5282,24 +6519,26 @@ func TestMlGetTaskPath_Build(t *testing.T) {
 func TestMlGetToolPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlGetToolPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlGetToolPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlGetToolPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlGetToolPath{ToolName: "test-toolname"}, want: "/_plugins/_ml/tools/test-toolname", wantErr: false},
+		{name: "required fields empty", path: MlGetToolPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlGetToolPath{ToolName: "test-toolname"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/tools/test-toolname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5307,24 +6546,26 @@ func TestMlGetToolPath_Build(t *testing.T) {
 func TestMlLoadModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlLoadModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlLoadModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlLoadModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlLoadModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid/_load", wantErr: false},
+		{name: "required fields empty", path: MlLoadModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlLoadModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/_load", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5332,24 +6573,26 @@ func TestMlLoadModelPath_Build(t *testing.T) {
 func TestMlPredictPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlPredictPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlPredictPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlPredictPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlPredictPath{AlgorithmName: "test-algorithmname", ModelID: "test-modelid"}, want: "/_plugins/_ml/_predict/test-algorithmname/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlPredictPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlPredictPath{AlgorithmName: "test-algorithmname", ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/_predict/test-algorithmname/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5357,24 +6600,53 @@ func TestMlPredictPath_Build(t *testing.T) {
 func TestMlPredictModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlPredictModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlPredictModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlPredictModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlPredictModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid/_predict", wantErr: false},
+		{name: "required fields empty", path: MlPredictModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlPredictModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/_predict", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlPredictModelStreamPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlPredictModelStreamPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlPredictModelStreamPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlPredictModelStreamPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/_predict/stream", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5382,23 +6654,25 @@ func TestMlPredictModelPath_Build(t *testing.T) {
 func TestMlRegisterAgentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlRegisterAgentsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlRegisterAgentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlRegisterAgentsPath{}, want: "/_plugins/_ml/agents/_register", wantErr: false},
+		{name: "all empty", path: MlRegisterAgentsPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/agents/_register", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5406,23 +6680,25 @@ func TestMlRegisterAgentsPath_Build(t *testing.T) {
 func TestMlRegisterModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlRegisterModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlRegisterModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlRegisterModelPath{}, want: "/_plugins/_ml/models/_register", wantErr: false},
+		{name: "all empty", path: MlRegisterModelPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/_register", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5430,23 +6706,25 @@ func TestMlRegisterModelPath_Build(t *testing.T) {
 func TestMlRegisterModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlRegisterModelGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlRegisterModelGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlRegisterModelGroupPath{}, want: "/_plugins/_ml/model_groups/_register", wantErr: false},
+		{name: "all empty", path: MlRegisterModelGroupPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/model_groups/_register", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5454,23 +6732,52 @@ func TestMlRegisterModelGroupPath_Build(t *testing.T) {
 func TestMlRegisterModelMetaPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlRegisterModelMetaPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlRegisterModelMetaPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlRegisterModelMetaPath{}, want: "/_plugins/_ml/models/_register_meta", wantErr: false},
+		{name: "all empty", path: MlRegisterModelMetaPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/_register_meta", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlSearchAgenticMemoryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlSearchAgenticMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlSearchAgenticMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlSearchAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_search", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5478,23 +6785,25 @@ func TestMlRegisterModelMetaPath_Build(t *testing.T) {
 func TestMlSearchAgentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchAgentsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchAgentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlSearchAgentsPath{}, want: "/_plugins/_ml/agents/_search", wantErr: false},
+		{name: "all empty", path: MlSearchAgentsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/agents/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5502,23 +6811,25 @@ func TestMlSearchAgentsPath_Build(t *testing.T) {
 func TestMlSearchConnectorsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchConnectorsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchConnectorsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlSearchConnectorsPath{}, want: "/_plugins/_ml/connectors/_search", wantErr: false},
+		{name: "all empty", path: MlSearchConnectorsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/connectors/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5526,23 +6837,51 @@ func TestMlSearchConnectorsPath_Build(t *testing.T) {
 func TestMlSearchMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchMemoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlSearchMemoryPath{}, want: "/_plugins/_ml/memory/_search", wantErr: false},
+		{name: "all empty", path: MlSearchMemoryPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlSearchMemoryContainerPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlSearchMemoryContainerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: MlSearchMemoryContainerPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory_containers/_search", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5550,24 +6889,26 @@ func TestMlSearchMemoryPath_Build(t *testing.T) {
 func TestMlSearchMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchMessagePath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchMessagePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlSearchMessagePath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlSearchMessagePath{MemoryID: "test-memoryid"}, want: "/_plugins/_ml/memory/test-memoryid/_search", wantErr: false},
+		{name: "required fields empty", path: MlSearchMessagePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlSearchMessagePath{MemoryID: "test-memoryid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/memory/test-memoryid/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5575,23 +6916,25 @@ func TestMlSearchMessagePath_Build(t *testing.T) {
 func TestMlSearchModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchModelGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchModelGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlSearchModelGroupPath{}, want: "/_plugins/_ml/model_groups/_search", wantErr: false},
+		{name: "all empty", path: MlSearchModelGroupPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/model_groups/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5599,23 +6942,25 @@ func TestMlSearchModelGroupPath_Build(t *testing.T) {
 func TestMlSearchModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchModelsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchModelsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlSearchModelsPath{}, want: "/_plugins/_ml/models/_search", wantErr: false},
+		{name: "all empty", path: MlSearchModelsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/models/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5623,23 +6968,25 @@ func TestMlSearchModelsPath_Build(t *testing.T) {
 func TestMlSearchTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlSearchTasksPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlSearchTasksPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlSearchTasksPath{}, want: "/_plugins/_ml/tasks/_search", wantErr: false},
+		{name: "all empty", path: MlSearchTasksPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ml/tasks/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5647,24 +6994,26 @@ func TestMlSearchTasksPath_Build(t *testing.T) {
 func TestMlTrainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlTrainPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlTrainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlTrainPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlTrainPath{AlgorithmName: "test-algorithmname"}, want: "/_plugins/_ml/_train/test-algorithmname", wantErr: false},
+		{name: "required fields empty", path: MlTrainPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlTrainPath{AlgorithmName: "test-algorithmname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/_train/test-algorithmname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5672,24 +7021,26 @@ func TestMlTrainPath_Build(t *testing.T) {
 func TestMlTrainPredictPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlTrainPredictPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlTrainPredictPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlTrainPredictPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlTrainPredictPath{AlgorithmName: "test-algorithmname"}, want: "/_plugins/_ml/_train_predict/test-algorithmname", wantErr: false},
+		{name: "required fields empty", path: MlTrainPredictPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlTrainPredictPath{AlgorithmName: "test-algorithmname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/_train_predict/test-algorithmname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5697,24 +7048,26 @@ func TestMlTrainPredictPath_Build(t *testing.T) {
 func TestMlUndeployModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUndeployModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUndeployModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlUndeployModelPath{}, want: "/_plugins/_ml/models/_undeploy", wantErr: false},
-		{name: "all fields", path: MlUndeployModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid/_undeploy", wantErr: false},
+		{name: "all empty", path: MlUndeployModelPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/_undeploy", wantErr: false},
+		{name: "all fields", path: MlUndeployModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/_undeploy", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5722,24 +7075,53 @@ func TestMlUndeployModelPath_Build(t *testing.T) {
 func TestMlUnloadModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUnloadModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUnloadModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlUnloadModelPath{}, want: "/_plugins/_ml/models/_unload", wantErr: false},
-		{name: "all fields", path: MlUnloadModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid/_unload", wantErr: false},
+		{name: "all empty", path: MlUnloadModelPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/_unload", wantErr: false},
+		{name: "all fields", path: MlUnloadModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/_unload", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlUpdateAgenticMemoryPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlUpdateAgenticMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlUpdateAgenticMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5747,24 +7129,26 @@ func TestMlUnloadModelPath_Build(t *testing.T) {
 func TestMlUpdateConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUpdateConnectorPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUpdateConnectorPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUpdateConnectorPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUpdateConnectorPath{ConnectorID: "test-connectorid"}, want: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
+		{name: "required fields empty", path: MlUpdateConnectorPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateConnectorPath{ConnectorID: "test-connectorid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5772,24 +7156,26 @@ func TestMlUpdateConnectorPath_Build(t *testing.T) {
 func TestMlUpdateControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUpdateControllerPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUpdateControllerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUpdateControllerPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUpdateControllerPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlUpdateControllerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateControllerPath{ModelID: "test-modelid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5797,24 +7183,53 @@ func TestMlUpdateControllerPath_Build(t *testing.T) {
 func TestMlUpdateMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUpdateMemoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUpdateMemoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUpdateMemoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUpdateMemoryPath{MemoryID: "test-memoryid"}, want: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
+		{name: "required fields empty", path: MlUpdateMemoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateMemoryPath{MemoryID: "test-memoryid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestMlUpdateMemoryContainerPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       MlUpdateMemoryContainerPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: MlUpdateMemoryContainerPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5822,24 +7237,26 @@ func TestMlUpdateMemoryPath_Build(t *testing.T) {
 func TestMlUpdateMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUpdateMessagePath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUpdateMessagePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUpdateMessagePath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUpdateMessagePath{MessageID: "test-messageid"}, want: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
+		{name: "required fields empty", path: MlUpdateMessagePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateMessagePath{MessageID: "test-messageid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5847,24 +7264,26 @@ func TestMlUpdateMessagePath_Build(t *testing.T) {
 func TestMlUpdateModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUpdateModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUpdateModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUpdateModelPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUpdateModelPath{ModelID: "test-modelid"}, want: "/_plugins/_ml/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MlUpdateModelPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateModelPath{ModelID: "test-modelid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5872,24 +7291,26 @@ func TestMlUpdateModelPath_Build(t *testing.T) {
 func TestMlUpdateModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUpdateModelGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUpdateModelGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUpdateModelGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUpdateModelGroupPath{ModelGroupID: "test-modelgroupid"}, want: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
+		{name: "required fields empty", path: MlUpdateModelGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUpdateModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5897,24 +7318,26 @@ func TestMlUpdateModelGroupPath_Build(t *testing.T) {
 func TestMlUploadChunkPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUploadChunkPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUploadChunkPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: MlUploadChunkPath{}, want: "", wantErr: true},
-		{name: "all fields", path: MlUploadChunkPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, want: "/_plugins/_ml/models/test-modelid/upload_chunk/test-chunknumber", wantErr: false},
+		{name: "required fields empty", path: MlUploadChunkPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: MlUploadChunkPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/test-modelid/upload_chunk/test-chunknumber", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5922,23 +7345,25 @@ func TestMlUploadChunkPath_Build(t *testing.T) {
 func TestMlUploadModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MlUploadModelPath
-		want    string
-		wantErr bool
+		name       string
+		path       MlUploadModelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MlUploadModelPath{}, want: "/_plugins/_ml/models/_upload", wantErr: false},
+		{name: "all empty", path: MlUploadModelPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ml/models/_upload", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5946,25 +7371,27 @@ func TestMlUploadModelPath_Build(t *testing.T) {
 func TestMsearchPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MsearchPath
-		want    string
-		wantErr bool
+		name       string
+		path       MsearchPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MsearchPath{}, want: "/_msearch", wantErr: false},
-		{name: "all fields", path: MsearchPath{Index: []string{"test-index"}}, want: "/test-index/_msearch", wantErr: false},
-		{name: "Index multi-value", path: MsearchPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_msearch", wantErr: false},
+		{name: "all empty", path: MsearchPath{}, wantMethod: http.MethodGet, wantPath: "/_msearch", wantErr: false},
+		{name: "all fields", path: MsearchPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_msearch", wantErr: false},
+		{name: "Index multi-value", path: MsearchPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_msearch", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5972,25 +7399,27 @@ func TestMsearchPath_Build(t *testing.T) {
 func TestMsearchTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MsearchTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       MsearchTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MsearchTemplatePath{}, want: "/_msearch/template", wantErr: false},
-		{name: "all fields", path: MsearchTemplatePath{Index: []string{"test-index"}}, want: "/test-index/_msearch/template", wantErr: false},
-		{name: "Index multi-value", path: MsearchTemplatePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_msearch/template", wantErr: false},
+		{name: "all empty", path: MsearchTemplatePath{}, wantMethod: http.MethodGet, wantPath: "/_msearch/template", wantErr: false},
+		{name: "all fields", path: MsearchTemplatePath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_msearch/template", wantErr: false},
+		{name: "Index multi-value", path: MsearchTemplatePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_msearch/template", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -5998,24 +7427,26 @@ func TestMsearchTemplatePath_Build(t *testing.T) {
 func TestMtermvectorsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    MtermvectorsPath
-		want    string
-		wantErr bool
+		name       string
+		path       MtermvectorsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: MtermvectorsPath{}, want: "/_mtermvectors", wantErr: false},
-		{name: "all fields", path: MtermvectorsPath{Index: "test-index"}, want: "/test-index/_mtermvectors", wantErr: false},
+		{name: "all empty", path: MtermvectorsPath{}, wantMethod: http.MethodGet, wantPath: "/_mtermvectors", wantErr: false},
+		{name: "all fields", path: MtermvectorsPath{Index: "test-index"}, wantMethod: http.MethodGet, wantPath: "/test-index/_mtermvectors", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6023,26 +7454,29 @@ func TestMtermvectorsPath_Build(t *testing.T) {
 func TestNeuralStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NeuralStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NeuralStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NeuralStatsPath{}, want: "/_plugins/_neural/stats", wantErr: false},
-		{name: "all fields", path: NeuralStatsPath{NodeID: "test-nodeid", Stat: "test-stat"}, want: "/_plugins/_neural/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: NeuralStatsPath{NodeID: "val-nodeid"}, want: "/_plugins/_neural/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: NeuralStatsPath{Stat: "val-stat"}, want: "/_plugins/_neural/stats/val-stat", wantErr: false},
+		{name: "all empty", path: NeuralStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_neural/stats", wantErr: false},
+		{name: "all fields", path: NeuralStatsPath{NodeID: "test-nodeid", Stat: []string{"test-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_neural/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: NeuralStatsPath{NodeID: "val-nodeid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_neural/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: NeuralStatsPath{Stat: []string{"val-stat"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_neural/stats/val-stat", wantErr: false},
+		{name: "Stat multi-value", path: NeuralStatsPath{Stat: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_plugins/_neural/stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6050,25 +7484,27 @@ func TestNeuralStatsPath_Build(t *testing.T) {
 func TestNodesHotThreadsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NodesHotThreadsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NodesHotThreadsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NodesHotThreadsPath{}, want: "/_nodes/hot_threads", wantErr: false},
-		{name: "all fields", path: NodesHotThreadsPath{NodeID: []string{"test-nodeid"}}, want: "/_nodes/test-nodeid/hot_threads", wantErr: false},
-		{name: "NodeID multi-value", path: NodesHotThreadsPath{NodeID: []string{"a", "b", "c"}}, want: "/_nodes/a,b,c/hot_threads", wantErr: false},
+		{name: "all empty", path: NodesHotThreadsPath{}, wantMethod: http.MethodGet, wantPath: "/_nodes/hot_threads", wantErr: false},
+		{name: "all fields", path: NodesHotThreadsPath{NodeID: []string{"test-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/test-nodeid/hot_threads", wantErr: false},
+		{name: "NodeID multi-value", path: NodesHotThreadsPath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/a,b,c/hot_threads", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6076,28 +7512,30 @@ func TestNodesHotThreadsPath_Build(t *testing.T) {
 func TestNodesInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NodesInfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       NodesInfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NodesInfoPath{}, want: "/_nodes", wantErr: false},
-		{name: "all fields", path: NodesInfoPath{NodeIDOrMetric: []string{"test-nodeidormetric"}, Metric: []string{"test-metric"}, NodeID: []string{"test-nodeid"}}, want: "/_nodes/test-nodeid/test-metric", wantErr: false},
-		{name: "only NodeIDOrMetric", path: NodesInfoPath{NodeIDOrMetric: []string{"val-nodeidormetric"}}, want: "/_nodes/val-nodeidormetric", wantErr: false},
-		{name: "only Metric", path: NodesInfoPath{Metric: []string{"val-metric"}}, want: "/_nodes", wantErr: false},
-		{name: "only NodeID", path: NodesInfoPath{NodeID: []string{"val-nodeid"}}, want: "/_nodes/val-nodeid", wantErr: false},
-		{name: "NodeIDOrMetric multi-value", path: NodesInfoPath{NodeIDOrMetric: []string{"a", "b", "c"}}, want: "/_nodes/a,b,c", wantErr: false},
+		{name: "all empty", path: NodesInfoPath{}, wantMethod: http.MethodGet, wantPath: "/_nodes", wantErr: false},
+		{name: "all fields", path: NodesInfoPath{NodeIDOrMetric: []string{"test-nodeidormetric"}, Metric: []string{"test-metric"}, NodeID: []string{"test-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/test-nodeid/test-metric", wantErr: false},
+		{name: "only NodeIDOrMetric", path: NodesInfoPath{NodeIDOrMetric: []string{"val-nodeidormetric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/val-nodeidormetric", wantErr: false},
+		{name: "only Metric", path: NodesInfoPath{Metric: []string{"val-metric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes", wantErr: false},
+		{name: "only NodeID", path: NodesInfoPath{NodeID: []string{"val-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/val-nodeid", wantErr: false},
+		{name: "NodeIDOrMetric multi-value", path: NodesInfoPath{NodeIDOrMetric: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6105,25 +7543,27 @@ func TestNodesInfoPath_Build(t *testing.T) {
 func TestNodesReloadSecureSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NodesReloadSecureSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NodesReloadSecureSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NodesReloadSecureSettingsPath{}, want: "/_nodes/reload_secure_settings", wantErr: false},
-		{name: "all fields", path: NodesReloadSecureSettingsPath{NodeID: []string{"test-nodeid"}}, want: "/_nodes/test-nodeid/reload_secure_settings", wantErr: false},
-		{name: "NodeID multi-value", path: NodesReloadSecureSettingsPath{NodeID: []string{"a", "b", "c"}}, want: "/_nodes/a,b,c/reload_secure_settings", wantErr: false},
+		{name: "all empty", path: NodesReloadSecureSettingsPath{}, wantMethod: http.MethodPost, wantPath: "/_nodes/reload_secure_settings", wantErr: false},
+		{name: "all fields", path: NodesReloadSecureSettingsPath{NodeID: []string{"test-nodeid"}}, wantMethod: http.MethodPost, wantPath: "/_nodes/test-nodeid/reload_secure_settings", wantErr: false},
+		{name: "NodeID multi-value", path: NodesReloadSecureSettingsPath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/_nodes/a,b,c/reload_secure_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6131,28 +7571,30 @@ func TestNodesReloadSecureSettingsPath_Build(t *testing.T) {
 func TestNodesStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NodesStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NodesStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NodesStatsPath{}, want: "/_nodes/stats", wantErr: false},
-		{name: "all fields", path: NodesStatsPath{NodeID: []string{"test-nodeid"}, Metric: []string{"test-metric"}, IndexMetric: []string{"test-indexmetric"}}, want: "/_nodes/test-nodeid/stats/test-metric/test-indexmetric", wantErr: false},
-		{name: "only NodeID", path: NodesStatsPath{NodeID: []string{"val-nodeid"}}, want: "/_nodes/val-nodeid/stats", wantErr: false},
-		{name: "only Metric", path: NodesStatsPath{Metric: []string{"val-metric"}}, want: "/_nodes/stats/val-metric", wantErr: false},
-		{name: "only IndexMetric", path: NodesStatsPath{IndexMetric: []string{"val-indexmetric"}}, want: "/_nodes/stats/val-indexmetric", wantErr: false},
-		{name: "NodeID multi-value", path: NodesStatsPath{NodeID: []string{"a", "b", "c"}}, want: "/_nodes/a,b,c/stats", wantErr: false},
+		{name: "all empty", path: NodesStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_nodes/stats", wantErr: false},
+		{name: "all fields", path: NodesStatsPath{NodeID: []string{"test-nodeid"}, Metric: []string{"test-metric"}, IndexMetric: []string{"test-indexmetric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/test-nodeid/stats/test-metric/test-indexmetric", wantErr: false},
+		{name: "only NodeID", path: NodesStatsPath{NodeID: []string{"val-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/val-nodeid/stats", wantErr: false},
+		{name: "only Metric", path: NodesStatsPath{Metric: []string{"val-metric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/stats/val-metric", wantErr: false},
+		{name: "only IndexMetric", path: NodesStatsPath{IndexMetric: []string{"val-indexmetric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/stats/val-indexmetric", wantErr: false},
+		{name: "NodeID multi-value", path: NodesStatsPath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/a,b,c/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6160,27 +7602,29 @@ func TestNodesStatsPath_Build(t *testing.T) {
 func TestNodesUsagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NodesUsagePath
-		want    string
-		wantErr bool
+		name       string
+		path       NodesUsagePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NodesUsagePath{}, want: "/_nodes/usage", wantErr: false},
-		{name: "all fields", path: NodesUsagePath{NodeID: []string{"test-nodeid"}, Metric: []string{"test-metric"}}, want: "/_nodes/test-nodeid/usage/test-metric", wantErr: false},
-		{name: "only NodeID", path: NodesUsagePath{NodeID: []string{"val-nodeid"}}, want: "/_nodes/val-nodeid/usage", wantErr: false},
-		{name: "only Metric", path: NodesUsagePath{Metric: []string{"val-metric"}}, want: "/_nodes/usage/val-metric", wantErr: false},
-		{name: "NodeID multi-value", path: NodesUsagePath{NodeID: []string{"a", "b", "c"}}, want: "/_nodes/a,b,c/usage", wantErr: false},
+		{name: "all empty", path: NodesUsagePath{}, wantMethod: http.MethodGet, wantPath: "/_nodes/usage", wantErr: false},
+		{name: "all fields", path: NodesUsagePath{NodeID: []string{"test-nodeid"}, Metric: []string{"test-metric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/test-nodeid/usage/test-metric", wantErr: false},
+		{name: "only NodeID", path: NodesUsagePath{NodeID: []string{"val-nodeid"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/val-nodeid/usage", wantErr: false},
+		{name: "only Metric", path: NodesUsagePath{Metric: []string{"val-metric"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/usage/val-metric", wantErr: false},
+		{name: "NodeID multi-value", path: NodesUsagePath{NodeID: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_nodes/a,b,c/usage", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6188,23 +7632,25 @@ func TestNodesUsagePath_Build(t *testing.T) {
 func TestNotificationsCreateConfigPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsCreateConfigPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsCreateConfigPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NotificationsCreateConfigPath{}, want: "/_plugins/_notifications/configs", wantErr: false},
+		{name: "all empty", path: NotificationsCreateConfigPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_notifications/configs", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6212,24 +7658,26 @@ func TestNotificationsCreateConfigPath_Build(t *testing.T) {
 func TestNotificationsDeleteConfigPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsDeleteConfigPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsDeleteConfigPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: NotificationsDeleteConfigPath{}, want: "", wantErr: true},
-		{name: "all fields", path: NotificationsDeleteConfigPath{ConfigID: "test-configid"}, want: "/_plugins/_notifications/configs/test-configid", wantErr: false},
+		{name: "required fields empty", path: NotificationsDeleteConfigPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: NotificationsDeleteConfigPath{ConfigID: "test-configid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_notifications/configs/test-configid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6237,23 +7685,25 @@ func TestNotificationsDeleteConfigPath_Build(t *testing.T) {
 func TestNotificationsDeleteConfigsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsDeleteConfigsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsDeleteConfigsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NotificationsDeleteConfigsPath{}, want: "/_plugins/_notifications/configs", wantErr: false},
+		{name: "all empty", path: NotificationsDeleteConfigsPath{}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_notifications/configs", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6261,24 +7711,26 @@ func TestNotificationsDeleteConfigsPath_Build(t *testing.T) {
 func TestNotificationsGetConfigPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsGetConfigPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsGetConfigPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: NotificationsGetConfigPath{}, want: "", wantErr: true},
-		{name: "all fields", path: NotificationsGetConfigPath{ConfigID: "test-configid"}, want: "/_plugins/_notifications/configs/test-configid", wantErr: false},
+		{name: "required fields empty", path: NotificationsGetConfigPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: NotificationsGetConfigPath{ConfigID: "test-configid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_notifications/configs/test-configid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6286,23 +7738,25 @@ func TestNotificationsGetConfigPath_Build(t *testing.T) {
 func TestNotificationsGetConfigsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsGetConfigsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsGetConfigsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NotificationsGetConfigsPath{}, want: "/_plugins/_notifications/configs", wantErr: false},
+		{name: "all empty", path: NotificationsGetConfigsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_notifications/configs", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6310,23 +7764,25 @@ func TestNotificationsGetConfigsPath_Build(t *testing.T) {
 func TestNotificationsListChannelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsListChannelsPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsListChannelsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NotificationsListChannelsPath{}, want: "/_plugins/_notifications/channels", wantErr: false},
+		{name: "all empty", path: NotificationsListChannelsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_notifications/channels", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6334,23 +7790,25 @@ func TestNotificationsListChannelsPath_Build(t *testing.T) {
 func TestNotificationsListFeaturesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsListFeaturesPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsListFeaturesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: NotificationsListFeaturesPath{}, want: "/_plugins/_notifications/features", wantErr: false},
+		{name: "all empty", path: NotificationsListFeaturesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_notifications/features", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6358,24 +7816,26 @@ func TestNotificationsListFeaturesPath_Build(t *testing.T) {
 func TestNotificationsSendTestPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsSendTestPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsSendTestPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: NotificationsSendTestPath{}, want: "", wantErr: true},
-		{name: "all fields", path: NotificationsSendTestPath{ConfigID: "test-configid"}, want: "/_plugins/_notifications/feature/test/test-configid", wantErr: false},
+		{name: "required fields empty", path: NotificationsSendTestPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: NotificationsSendTestPath{ConfigID: "test-configid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_notifications/feature/test/test-configid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6383,24 +7843,26 @@ func TestNotificationsSendTestPath_Build(t *testing.T) {
 func TestNotificationsUpdateConfigPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    NotificationsUpdateConfigPath
-		want    string
-		wantErr bool
+		name       string
+		path       NotificationsUpdateConfigPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: NotificationsUpdateConfigPath{}, want: "", wantErr: true},
-		{name: "all fields", path: NotificationsUpdateConfigPath{ConfigID: "test-configid"}, want: "/_plugins/_notifications/configs/test-configid", wantErr: false},
+		{name: "required fields empty", path: NotificationsUpdateConfigPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: NotificationsUpdateConfigPath{ConfigID: "test-configid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_notifications/configs/test-configid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6408,23 +7870,25 @@ func TestNotificationsUpdateConfigPath_Build(t *testing.T) {
 func TestObservabilityCreateObjectPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityCreateObjectPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityCreateObjectPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ObservabilityCreateObjectPath{}, want: "/_plugins/_observability/object", wantErr: false},
+		{name: "all empty", path: ObservabilityCreateObjectPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_observability/object", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6432,24 +7896,26 @@ func TestObservabilityCreateObjectPath_Build(t *testing.T) {
 func TestObservabilityDeleteObjectPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityDeleteObjectPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityDeleteObjectPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ObservabilityDeleteObjectPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ObservabilityDeleteObjectPath{ObjectID: "test-objectid"}, want: "/_plugins/_observability/object/test-objectid", wantErr: false},
+		{name: "required fields empty", path: ObservabilityDeleteObjectPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ObservabilityDeleteObjectPath{ObjectID: "test-objectid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_observability/object/test-objectid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6457,23 +7923,25 @@ func TestObservabilityDeleteObjectPath_Build(t *testing.T) {
 func TestObservabilityDeleteObjectsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityDeleteObjectsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityDeleteObjectsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ObservabilityDeleteObjectsPath{}, want: "/_plugins/_observability/object", wantErr: false},
+		{name: "all empty", path: ObservabilityDeleteObjectsPath{}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_observability/object", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6481,23 +7949,25 @@ func TestObservabilityDeleteObjectsPath_Build(t *testing.T) {
 func TestObservabilityGetLocalstatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityGetLocalstatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityGetLocalstatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ObservabilityGetLocalstatsPath{}, want: "/_plugins/_observability/_local/stats", wantErr: false},
+		{name: "all empty", path: ObservabilityGetLocalstatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_observability/_local/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6505,24 +7975,26 @@ func TestObservabilityGetLocalstatsPath_Build(t *testing.T) {
 func TestObservabilityGetObjectPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityGetObjectPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityGetObjectPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ObservabilityGetObjectPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ObservabilityGetObjectPath{ObjectID: "test-objectid"}, want: "/_plugins/_observability/object/test-objectid", wantErr: false},
+		{name: "required fields empty", path: ObservabilityGetObjectPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ObservabilityGetObjectPath{ObjectID: "test-objectid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_observability/object/test-objectid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6530,23 +8002,25 @@ func TestObservabilityGetObjectPath_Build(t *testing.T) {
 func TestObservabilityListObjectsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityListObjectsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityListObjectsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ObservabilityListObjectsPath{}, want: "/_plugins/_observability/object", wantErr: false},
+		{name: "all empty", path: ObservabilityListObjectsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_observability/object", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6554,24 +8028,26 @@ func TestObservabilityListObjectsPath_Build(t *testing.T) {
 func TestObservabilityUpdateObjectPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ObservabilityUpdateObjectPath
-		want    string
-		wantErr bool
+		name       string
+		path       ObservabilityUpdateObjectPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ObservabilityUpdateObjectPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ObservabilityUpdateObjectPath{ObjectID: "test-objectid"}, want: "/_plugins/_observability/object/test-objectid", wantErr: false},
+		{name: "required fields empty", path: ObservabilityUpdateObjectPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ObservabilityUpdateObjectPath{ObjectID: "test-objectid"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_observability/object/test-objectid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6579,23 +8055,25 @@ func TestObservabilityUpdateObjectPath_Build(t *testing.T) {
 func TestPingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    PingPath
-		want    string
-		wantErr bool
+		name       string
+		path       PingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: PingPath{}, want: "/", wantErr: false},
+		{name: "all empty", path: PingPath{}, wantMethod: http.MethodHead, wantPath: "/", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6603,23 +8081,25 @@ func TestPingPath_Build(t *testing.T) {
 func TestPplExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    PplExplainPath
-		want    string
-		wantErr bool
+		name       string
+		path       PplExplainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: PplExplainPath{}, want: "/_plugins/_ppl/_explain", wantErr: false},
+		{name: "all empty", path: PplExplainPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ppl/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6627,23 +8107,25 @@ func TestPplExplainPath_Build(t *testing.T) {
 func TestPplGetStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    PplGetStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       PplGetStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: PplGetStatsPath{}, want: "/_plugins/_ppl/stats", wantErr: false},
+		{name: "all empty", path: PplGetStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_ppl/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6651,23 +8133,25 @@ func TestPplGetStatsPath_Build(t *testing.T) {
 func TestPplPostStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    PplPostStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       PplPostStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: PplPostStatsPath{}, want: "/_plugins/_ppl/stats", wantErr: false},
+		{name: "all empty", path: PplPostStatsPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ppl/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6675,23 +8159,25 @@ func TestPplPostStatsPath_Build(t *testing.T) {
 func TestPplQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    PplQueryPath
-		want    string
-		wantErr bool
+		name       string
+		path       PplQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: PplQueryPath{}, want: "/_plugins/_ppl", wantErr: false},
+		{name: "all empty", path: PplQueryPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_ppl", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6699,24 +8185,26 @@ func TestPplQueryPath_Build(t *testing.T) {
 func TestPutScriptPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    PutScriptPath
-		want    string
-		wantErr bool
+		name       string
+		path       PutScriptPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: PutScriptPath{}, want: "", wantErr: true},
-		{name: "all fields", path: PutScriptPath{ID: "test-id", Context: "test-context"}, want: "/_scripts/test-id/test-context", wantErr: false},
+		{name: "required fields empty", path: PutScriptPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: PutScriptPath{ID: "test-id", Context: "test-context"}, wantMethod: http.MethodPost, wantPath: "/_scripts/test-id/test-context", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6724,24 +8212,26 @@ func TestPutScriptPath_Build(t *testing.T) {
 func TestQueryDatasourceDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    QueryDatasourceDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       QueryDatasourceDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: QueryDatasourceDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: QueryDatasourceDeletePath{DatasourceName: "test-datasourcename"}, want: "/_plugins/_query/_datasources/test-datasourcename", wantErr: false},
+		{name: "required fields empty", path: QueryDatasourceDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: QueryDatasourceDeletePath{DatasourceName: "test-datasourcename"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_query/_datasources/test-datasourcename", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6749,24 +8239,26 @@ func TestQueryDatasourceDeletePath_Build(t *testing.T) {
 func TestQueryDatasourceRetrievePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    QueryDatasourceRetrievePath
-		want    string
-		wantErr bool
+		name       string
+		path       QueryDatasourceRetrievePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: QueryDatasourceRetrievePath{}, want: "", wantErr: true},
-		{name: "all fields", path: QueryDatasourceRetrievePath{DatasourceName: "test-datasourcename"}, want: "/_plugins/_query/_datasources/test-datasourcename", wantErr: false},
+		{name: "required fields empty", path: QueryDatasourceRetrievePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: QueryDatasourceRetrievePath{DatasourceName: "test-datasourcename"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_query/_datasources/test-datasourcename", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6774,23 +8266,25 @@ func TestQueryDatasourceRetrievePath_Build(t *testing.T) {
 func TestQueryDatasourcesCreatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    QueryDatasourcesCreatePath
-		want    string
-		wantErr bool
+		name       string
+		path       QueryDatasourcesCreatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: QueryDatasourcesCreatePath{}, want: "/_plugins/_query/_datasources", wantErr: false},
+		{name: "all empty", path: QueryDatasourcesCreatePath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_query/_datasources", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6798,23 +8292,25 @@ func TestQueryDatasourcesCreatePath_Build(t *testing.T) {
 func TestQueryDatasourcesListPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    QueryDatasourcesListPath
-		want    string
-		wantErr bool
+		name       string
+		path       QueryDatasourcesListPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: QueryDatasourcesListPath{}, want: "/_plugins/_query/_datasources", wantErr: false},
+		{name: "all empty", path: QueryDatasourcesListPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_query/_datasources", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6822,23 +8318,25 @@ func TestQueryDatasourcesListPath_Build(t *testing.T) {
 func TestQueryDatasourcesUpdatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    QueryDatasourcesUpdatePath
-		want    string
-		wantErr bool
+		name       string
+		path       QueryDatasourcesUpdatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: QueryDatasourcesUpdatePath{}, want: "/_plugins/_query/_datasources", wantErr: false},
+		{name: "all empty", path: QueryDatasourcesUpdatePath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_query/_datasources", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6846,25 +8344,27 @@ func TestQueryDatasourcesUpdatePath_Build(t *testing.T) {
 func TestRankEvalPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RankEvalPath
-		want    string
-		wantErr bool
+		name       string
+		path       RankEvalPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: RankEvalPath{}, want: "/_rank_eval", wantErr: false},
-		{name: "all fields", path: RankEvalPath{Index: []string{"test-index"}}, want: "/test-index/_rank_eval", wantErr: false},
-		{name: "Index multi-value", path: RankEvalPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_rank_eval", wantErr: false},
+		{name: "all empty", path: RankEvalPath{}, wantMethod: http.MethodGet, wantPath: "/_rank_eval", wantErr: false},
+		{name: "all fields", path: RankEvalPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_rank_eval", wantErr: false},
+		{name: "Index multi-value", path: RankEvalPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_rank_eval", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6872,23 +8372,25 @@ func TestRankEvalPath_Build(t *testing.T) {
 func TestReindexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReindexPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReindexPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ReindexPath{}, want: "/_reindex", wantErr: false},
+		{name: "all empty", path: ReindexPath{}, wantMethod: http.MethodPost, wantPath: "/_reindex", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6896,24 +8398,26 @@ func TestReindexPath_Build(t *testing.T) {
 func TestReindexRethrottlePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReindexRethrottlePath
-		want    string
-		wantErr bool
+		name       string
+		path       ReindexRethrottlePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReindexRethrottlePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReindexRethrottlePath{TaskID: "test-taskid"}, want: "/_reindex/test-taskid/_rethrottle", wantErr: false},
+		{name: "required fields empty", path: ReindexRethrottlePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReindexRethrottlePath{TaskID: "test-taskid"}, wantMethod: http.MethodPost, wantPath: "/_reindex/test-taskid/_rethrottle", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6921,23 +8425,25 @@ func TestReindexRethrottlePath_Build(t *testing.T) {
 func TestRemoteStoreRestorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RemoteStoreRestorePath
-		want    string
-		wantErr bool
+		name       string
+		path       RemoteStoreRestorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: RemoteStoreRestorePath{}, want: "/_remotestore/_restore", wantErr: false},
+		{name: "all empty", path: RemoteStoreRestorePath{}, wantMethod: http.MethodPost, wantPath: "/_remotestore/_restore", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6945,24 +8451,26 @@ func TestRemoteStoreRestorePath_Build(t *testing.T) {
 func TestRenderSearchTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RenderSearchTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       RenderSearchTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: RenderSearchTemplatePath{}, want: "/_render/template", wantErr: false},
-		{name: "all fields", path: RenderSearchTemplatePath{ID: "test-id"}, want: "/_render/template/test-id", wantErr: false},
+		{name: "all empty", path: RenderSearchTemplatePath{}, wantMethod: http.MethodGet, wantPath: "/_render/template", wantErr: false},
+		{name: "all fields", path: RenderSearchTemplatePath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_render/template/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6970,23 +8478,25 @@ func TestRenderSearchTemplatePath_Build(t *testing.T) {
 func TestReplicationAutofollowStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationAutofollowStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationAutofollowStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ReplicationAutofollowStatsPath{}, want: "/_plugins/_replication/autofollow_stats", wantErr: false},
+		{name: "all empty", path: ReplicationAutofollowStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_replication/autofollow_stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -6994,23 +8504,25 @@ func TestReplicationAutofollowStatsPath_Build(t *testing.T) {
 func TestReplicationCreateReplicationRulePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationCreateReplicationRulePath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationCreateReplicationRulePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ReplicationCreateReplicationRulePath{}, want: "/_plugins/_replication/_autofollow", wantErr: false},
+		{name: "all empty", path: ReplicationCreateReplicationRulePath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_replication/_autofollow", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7018,23 +8530,25 @@ func TestReplicationCreateReplicationRulePath_Build(t *testing.T) {
 func TestReplicationDeleteReplicationRulePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationDeleteReplicationRulePath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationDeleteReplicationRulePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ReplicationDeleteReplicationRulePath{}, want: "/_plugins/_replication/_autofollow", wantErr: false},
+		{name: "all empty", path: ReplicationDeleteReplicationRulePath{}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_replication/_autofollow", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7042,23 +8556,25 @@ func TestReplicationDeleteReplicationRulePath_Build(t *testing.T) {
 func TestReplicationFollowerStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationFollowerStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationFollowerStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ReplicationFollowerStatsPath{}, want: "/_plugins/_replication/follower_stats", wantErr: false},
+		{name: "all empty", path: ReplicationFollowerStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_replication/follower_stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7066,23 +8582,25 @@ func TestReplicationFollowerStatsPath_Build(t *testing.T) {
 func TestReplicationLeaderStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationLeaderStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationLeaderStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ReplicationLeaderStatsPath{}, want: "/_plugins/_replication/leader_stats", wantErr: false},
+		{name: "all empty", path: ReplicationLeaderStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_replication/leader_stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7090,24 +8608,26 @@ func TestReplicationLeaderStatsPath_Build(t *testing.T) {
 func TestReplicationPausePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationPausePath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationPausePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReplicationPausePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReplicationPausePath{Index: "test-index"}, want: "/_plugins/_replication/test-index/_pause", wantErr: false},
+		{name: "required fields empty", path: ReplicationPausePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReplicationPausePath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_replication/test-index/_pause", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7115,24 +8635,26 @@ func TestReplicationPausePath_Build(t *testing.T) {
 func TestReplicationResumePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationResumePath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationResumePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReplicationResumePath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReplicationResumePath{Index: "test-index"}, want: "/_plugins/_replication/test-index/_resume", wantErr: false},
+		{name: "required fields empty", path: ReplicationResumePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReplicationResumePath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_replication/test-index/_resume", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7140,24 +8662,26 @@ func TestReplicationResumePath_Build(t *testing.T) {
 func TestReplicationStartPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationStartPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationStartPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReplicationStartPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReplicationStartPath{Index: "test-index"}, want: "/_plugins/_replication/test-index/_start", wantErr: false},
+		{name: "required fields empty", path: ReplicationStartPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReplicationStartPath{Index: "test-index"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_replication/test-index/_start", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7165,24 +8689,26 @@ func TestReplicationStartPath_Build(t *testing.T) {
 func TestReplicationStatusPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationStatusPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationStatusPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReplicationStatusPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReplicationStatusPath{Index: "test-index"}, want: "/_plugins/_replication/test-index/_status", wantErr: false},
+		{name: "required fields empty", path: ReplicationStatusPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReplicationStatusPath{Index: "test-index"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_replication/test-index/_status", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7190,24 +8716,26 @@ func TestReplicationStatusPath_Build(t *testing.T) {
 func TestReplicationStopPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationStopPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationStopPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReplicationStopPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReplicationStopPath{Index: "test-index"}, want: "/_plugins/_replication/test-index/_stop", wantErr: false},
+		{name: "required fields empty", path: ReplicationStopPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReplicationStopPath{Index: "test-index"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_replication/test-index/_stop", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7215,24 +8743,26 @@ func TestReplicationStopPath_Build(t *testing.T) {
 func TestReplicationUpdateSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ReplicationUpdateSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       ReplicationUpdateSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: ReplicationUpdateSettingsPath{}, want: "", wantErr: true},
-		{name: "all fields", path: ReplicationUpdateSettingsPath{Index: "test-index"}, want: "/_plugins/_replication/test-index/_update", wantErr: false},
+		{name: "required fields empty", path: ReplicationUpdateSettingsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: ReplicationUpdateSettingsPath{Index: "test-index"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_replication/test-index/_update", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7240,24 +8770,26 @@ func TestReplicationUpdateSettingsPath_Build(t *testing.T) {
 func TestRollupsDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RollupsDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       RollupsDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: RollupsDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: RollupsDeletePath{ID: "test-id"}, want: "/_plugins/_rollup/jobs/test-id", wantErr: false},
+		{name: "required fields empty", path: RollupsDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: RollupsDeletePath{ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_rollup/jobs/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7265,24 +8797,26 @@ func TestRollupsDeletePath_Build(t *testing.T) {
 func TestRollupsExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RollupsExplainPath
-		want    string
-		wantErr bool
+		name       string
+		path       RollupsExplainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: RollupsExplainPath{}, want: "", wantErr: true},
-		{name: "all fields", path: RollupsExplainPath{ID: "test-id"}, want: "/_plugins/_rollup/jobs/test-id/_explain", wantErr: false},
+		{name: "required fields empty", path: RollupsExplainPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: RollupsExplainPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_rollup/jobs/test-id/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7290,24 +8824,26 @@ func TestRollupsExplainPath_Build(t *testing.T) {
 func TestRollupsGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RollupsGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       RollupsGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: RollupsGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: RollupsGetPath{ID: "test-id"}, want: "/_plugins/_rollup/jobs/test-id", wantErr: false},
+		{name: "required fields empty", path: RollupsGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: RollupsGetPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_rollup/jobs/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7315,24 +8851,26 @@ func TestRollupsGetPath_Build(t *testing.T) {
 func TestRollupsPutPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RollupsPutPath
-		want    string
-		wantErr bool
+		name       string
+		path       RollupsPutPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: RollupsPutPath{}, want: "", wantErr: true},
-		{name: "all fields", path: RollupsPutPath{ID: "test-id"}, want: "/_plugins/_rollup/jobs/test-id", wantErr: false},
+		{name: "required fields empty", path: RollupsPutPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: RollupsPutPath{ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_rollup/jobs/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7340,24 +8878,26 @@ func TestRollupsPutPath_Build(t *testing.T) {
 func TestRollupsStartPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RollupsStartPath
-		want    string
-		wantErr bool
+		name       string
+		path       RollupsStartPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: RollupsStartPath{}, want: "", wantErr: true},
-		{name: "all fields", path: RollupsStartPath{ID: "test-id"}, want: "/_plugins/_rollup/jobs/test-id/_start", wantErr: false},
+		{name: "required fields empty", path: RollupsStartPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: RollupsStartPath{ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_rollup/jobs/test-id/_start", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7365,24 +8905,26 @@ func TestRollupsStartPath_Build(t *testing.T) {
 func TestRollupsStopPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    RollupsStopPath
-		want    string
-		wantErr bool
+		name       string
+		path       RollupsStopPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: RollupsStopPath{}, want: "", wantErr: true},
-		{name: "all fields", path: RollupsStopPath{ID: "test-id"}, want: "/_plugins/_rollup/jobs/test-id/_stop", wantErr: false},
+		{name: "required fields empty", path: RollupsStopPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: RollupsStopPath{ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_rollup/jobs/test-id/_stop", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7390,23 +8932,25 @@ func TestRollupsStopPath_Build(t *testing.T) {
 func TestScriptsPainlessExecutePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ScriptsPainlessExecutePath
-		want    string
-		wantErr bool
+		name       string
+		path       ScriptsPainlessExecutePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ScriptsPainlessExecutePath{}, want: "/_scripts/painless/_execute", wantErr: false},
+		{name: "all empty", path: ScriptsPainlessExecutePath{}, wantMethod: http.MethodGet, wantPath: "/_scripts/painless/_execute", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7414,24 +8958,26 @@ func TestScriptsPainlessExecutePath_Build(t *testing.T) {
 func TestScrollPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    ScrollPath
-		want    string
-		wantErr bool
+		name       string
+		path       ScrollPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: ScrollPath{}, want: "/_search/scroll", wantErr: false},
-		{name: "all fields", path: ScrollPath{ScrollID: "test-scrollid"}, want: "/_search/scroll/test-scrollid", wantErr: false},
+		{name: "all empty", path: ScrollPath{}, wantMethod: http.MethodGet, wantPath: "/_search/scroll", wantErr: false},
+		{name: "all fields", path: ScrollPath{ScrollID: "test-scrollid"}, wantMethod: http.MethodGet, wantPath: "/_search/scroll/test-scrollid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7439,25 +8985,27 @@ func TestScrollPath_Build(t *testing.T) {
 func TestSearchPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SearchPath
-		want    string
-		wantErr bool
+		name       string
+		path       SearchPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SearchPath{}, want: "/_search", wantErr: false},
-		{name: "all fields", path: SearchPath{Index: []string{"test-index"}}, want: "/test-index/_search", wantErr: false},
-		{name: "Index multi-value", path: SearchPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_search", wantErr: false},
+		{name: "all empty", path: SearchPath{}, wantMethod: http.MethodGet, wantPath: "/_search", wantErr: false},
+		{name: "all fields", path: SearchPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_search", wantErr: false},
+		{name: "Index multi-value", path: SearchPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7465,24 +9013,26 @@ func TestSearchPath_Build(t *testing.T) {
 func TestSearchPipelineDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SearchPipelineDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       SearchPipelineDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SearchPipelineDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SearchPipelineDeletePath{ID: "test-id"}, want: "/_search/pipeline/test-id", wantErr: false},
+		{name: "required fields empty", path: SearchPipelineDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchPipelineDeletePath{ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_search/pipeline/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7490,24 +9040,26 @@ func TestSearchPipelineDeletePath_Build(t *testing.T) {
 func TestSearchPipelineGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SearchPipelineGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       SearchPipelineGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SearchPipelineGetPath{}, want: "/_search/pipeline", wantErr: false},
-		{name: "all fields", path: SearchPipelineGetPath{ID: "test-id"}, want: "/_search/pipeline/test-id", wantErr: false},
+		{name: "all empty", path: SearchPipelineGetPath{}, wantMethod: http.MethodGet, wantPath: "/_search/pipeline", wantErr: false},
+		{name: "all fields", path: SearchPipelineGetPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_search/pipeline/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7515,24 +9067,506 @@ func TestSearchPipelineGetPath_Build(t *testing.T) {
 func TestSearchPipelinePutPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SearchPipelinePutPath
-		want    string
-		wantErr bool
+		name       string
+		path       SearchPipelinePutPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SearchPipelinePutPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SearchPipelinePutPath{ID: "test-id"}, want: "/_search/pipeline/test-id", wantErr: false},
+		{name: "required fields empty", path: SearchPipelinePutPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchPipelinePutPath{ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_search/pipeline/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceDeleteExperimentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceDeleteExperimentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: SearchRelevanceDeleteExperimentsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevanceDeleteExperimentsPath{ExperimentID: "test-experimentid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_search_relevance/experiments/test-experimentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceDeleteJudgmentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceDeleteJudgmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: SearchRelevanceDeleteJudgmentsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevanceDeleteJudgmentsPath{JudgmentID: "test-judgmentid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_search_relevance/judgments/test-judgmentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceDeleteQuerySetsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceDeleteQuerySetsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: SearchRelevanceDeleteQuerySetsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevanceDeleteQuerySetsPath{QuerySetID: "test-querysetid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_search_relevance/query_sets/test-querysetid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceDeleteScheduledExperimentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceDeleteScheduledExperimentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: SearchRelevanceDeleteScheduledExperimentsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevanceDeleteScheduledExperimentsPath{ExperimentID: "test-experimentid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_search_relevance/experiments/schedule/test-experimentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceDeleteSearchConfigurationsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceDeleteSearchConfigurationsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: SearchRelevanceDeleteSearchConfigurationsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevanceDeleteSearchConfigurationsPath{SearchConfigurationID: "test-searchconfigurationid"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_search_relevance/search_configurations/test-searchconfigurationid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetExperimentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetExperimentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevanceGetExperimentsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/experiments", wantErr: false},
+		{name: "all fields", path: SearchRelevanceGetExperimentsPath{ExperimentID: "test-experimentid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/experiments/test-experimentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetJudgmentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetJudgmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevanceGetJudgmentsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/judgments", wantErr: false},
+		{name: "all fields", path: SearchRelevanceGetJudgmentsPath{JudgmentID: "test-judgmentid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/judgments/test-judgmentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetNodeStatsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetNodeStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "required fields empty", path: SearchRelevanceGetNodeStatsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SearchRelevanceGetNodeStatsPath{NodeID: "test-nodeid", Stat: "test-stat"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/test-nodeid/stats/test-stat", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetQuerySetsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetQuerySetsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevanceGetQuerySetsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/query_sets", wantErr: false},
+		{name: "all fields", path: SearchRelevanceGetQuerySetsPath{QuerySetID: "test-querysetid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/query_sets/test-querysetid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetScheduledExperimentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetScheduledExperimentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevanceGetScheduledExperimentsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/experiments/schedule", wantErr: false},
+		{name: "all fields", path: SearchRelevanceGetScheduledExperimentsPath{ExperimentID: "test-experimentid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/experiments/schedule/test-experimentid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetSearchConfigurationsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetSearchConfigurationsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevanceGetSearchConfigurationsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/search_configurations", wantErr: false},
+		{name: "all fields", path: SearchRelevanceGetSearchConfigurationsPath{SearchConfigurationID: "test-searchconfigurationid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/search_configurations/test-searchconfigurationid", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevanceGetStatsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevanceGetStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevanceGetStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/stats", wantErr: false},
+		{name: "all fields", path: SearchRelevanceGetStatsPath{Stat: "test-stat"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_search_relevance/stats/test-stat", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevancePostQuerySetsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevancePostQuerySetsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevancePostQuerySetsPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_search_relevance/query_sets", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevancePostScheduledExperimentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevancePostScheduledExperimentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevancePostScheduledExperimentsPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_search_relevance/experiments/schedule", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevancePutExperimentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevancePutExperimentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevancePutExperimentsPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_search_relevance/experiments", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevancePutJudgmentsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevancePutJudgmentsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevancePutJudgmentsPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_search_relevance/judgments", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevancePutQuerySetsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevancePutQuerySetsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevancePutQuerySetsPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_search_relevance/query_sets", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSearchRelevancePutSearchConfigurationsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SearchRelevancePutSearchConfigurationsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SearchRelevancePutSearchConfigurationsPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_search_relevance/search_configurations", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7540,25 +9574,27 @@ func TestSearchPipelinePutPath_Build(t *testing.T) {
 func TestSearchShardsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SearchShardsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SearchShardsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SearchShardsPath{}, want: "/_search_shards", wantErr: false},
-		{name: "all fields", path: SearchShardsPath{Index: []string{"test-index"}}, want: "/test-index/_search_shards", wantErr: false},
-		{name: "Index multi-value", path: SearchShardsPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_search_shards", wantErr: false},
+		{name: "all empty", path: SearchShardsPath{}, wantMethod: http.MethodGet, wantPath: "/_search_shards", wantErr: false},
+		{name: "all fields", path: SearchShardsPath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_search_shards", wantErr: false},
+		{name: "Index multi-value", path: SearchShardsPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_search_shards", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7566,25 +9602,27 @@ func TestSearchShardsPath_Build(t *testing.T) {
 func TestSearchTemplatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SearchTemplatePath
-		want    string
-		wantErr bool
+		name       string
+		path       SearchTemplatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SearchTemplatePath{}, want: "/_search/template", wantErr: false},
-		{name: "all fields", path: SearchTemplatePath{Index: []string{"test-index"}}, want: "/test-index/_search/template", wantErr: false},
-		{name: "Index multi-value", path: SearchTemplatePath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_search/template", wantErr: false},
+		{name: "all empty", path: SearchTemplatePath{}, wantMethod: http.MethodGet, wantPath: "/_search/template", wantErr: false},
+		{name: "all fields", path: SearchTemplatePath{Index: []string{"test-index"}}, wantMethod: http.MethodGet, wantPath: "/test-index/_search/template", wantErr: false},
+		{name: "Index multi-value", path: SearchTemplatePath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/a,b,c/_search/template", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7592,23 +9630,25 @@ func TestSearchTemplatePath_Build(t *testing.T) {
 func TestSecurityAuthinfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityAuthinfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityAuthinfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityAuthinfoPath{}, want: "/_plugins/_security/authinfo", wantErr: false},
+		{name: "all empty", path: SecurityAuthinfoPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/authinfo", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7616,23 +9656,25 @@ func TestSecurityAuthinfoPath_Build(t *testing.T) {
 func TestSecurityAuthtokenPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityAuthtokenPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityAuthtokenPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityAuthtokenPath{}, want: "/_plugins/_security/api/authtoken", wantErr: false},
+		{name: "all empty", path: SecurityAuthtokenPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/api/authtoken", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7640,23 +9682,25 @@ func TestSecurityAuthtokenPath_Build(t *testing.T) {
 func TestSecurityCachePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCachePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCachePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityCachePath{}, want: "/_plugins/_security/api/cache", wantErr: false},
+		{name: "all empty", path: SecurityCachePath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/cache", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7664,23 +9708,25 @@ func TestSecurityCachePath_Build(t *testing.T) {
 func TestSecurityChangePasswordPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityChangePasswordPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityChangePasswordPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityChangePasswordPath{}, want: "/_plugins/_security/api/account", wantErr: false},
+		{name: "all empty", path: SecurityChangePasswordPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/account", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7688,23 +9734,25 @@ func TestSecurityChangePasswordPath_Build(t *testing.T) {
 func TestSecurityConfigUpgradeCheckPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityConfigUpgradeCheckPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityConfigUpgradeCheckPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityConfigUpgradeCheckPath{}, want: "/_plugins/_security/api/_upgrade_check", wantErr: false},
+		{name: "all empty", path: SecurityConfigUpgradeCheckPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/_upgrade_check", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7712,23 +9760,25 @@ func TestSecurityConfigUpgradeCheckPath_Build(t *testing.T) {
 func TestSecurityConfigUpgradePerformPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityConfigUpgradePerformPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityConfigUpgradePerformPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityConfigUpgradePerformPath{}, want: "/_plugins/_security/api/_upgrade_perform", wantErr: false},
+		{name: "all empty", path: SecurityConfigUpgradePerformPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/api/_upgrade_perform", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7736,24 +9786,26 @@ func TestSecurityConfigUpgradePerformPath_Build(t *testing.T) {
 func TestSecurityCreateActionGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateActionGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateActionGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityCreateActionGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityCreateActionGroupPath{ActionGroup: "test-actiongroup"}, want: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
+		{name: "required fields empty", path: SecurityCreateActionGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityCreateActionGroupPath{ActionGroup: "test-actiongroup"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7761,23 +9813,25 @@ func TestSecurityCreateActionGroupPath_Build(t *testing.T) {
 func TestSecurityCreateAllowlistPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateAllowlistPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateAllowlistPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityCreateAllowlistPath{}, want: "/_plugins/_security/api/allowlist", wantErr: false},
+		{name: "all empty", path: SecurityCreateAllowlistPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/allowlist", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7785,24 +9839,26 @@ func TestSecurityCreateAllowlistPath_Build(t *testing.T) {
 func TestSecurityCreateRolePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateRolePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateRolePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityCreateRolePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityCreateRolePath{Role: "test-role"}, want: "/_plugins/_security/api/roles/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityCreateRolePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityCreateRolePath{Role: "test-role"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/roles/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7810,24 +9866,26 @@ func TestSecurityCreateRolePath_Build(t *testing.T) {
 func TestSecurityCreateRoleMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateRoleMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateRoleMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityCreateRoleMappingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityCreateRoleMappingPath{Role: "test-role"}, want: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityCreateRoleMappingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityCreateRoleMappingPath{Role: "test-role"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7835,24 +9893,26 @@ func TestSecurityCreateRoleMappingPath_Build(t *testing.T) {
 func TestSecurityCreateTenantPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateTenantPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateTenantPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityCreateTenantPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityCreateTenantPath{Tenant: "test-tenant"}, want: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
+		{name: "required fields empty", path: SecurityCreateTenantPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityCreateTenantPath{Tenant: "test-tenant"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7860,23 +9920,25 @@ func TestSecurityCreateTenantPath_Build(t *testing.T) {
 func TestSecurityCreateUpdateTenancyConfigPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateUpdateTenancyConfigPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateUpdateTenancyConfigPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityCreateUpdateTenancyConfigPath{}, want: "/_plugins/_security/api/tenancy/config", wantErr: false},
+		{name: "all empty", path: SecurityCreateUpdateTenancyConfigPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/tenancy/config", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7884,24 +9946,26 @@ func TestSecurityCreateUpdateTenancyConfigPath_Build(t *testing.T) {
 func TestSecurityCreateUserPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateUserPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateUserPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityCreateUserPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityCreateUserPath{Username: "test-username"}, want: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityCreateUserPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityCreateUserPath{Username: "test-username"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7909,24 +9973,26 @@ func TestSecurityCreateUserPath_Build(t *testing.T) {
 func TestSecurityCreateUserLegacyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityCreateUserLegacyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityCreateUserLegacyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityCreateUserLegacyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityCreateUserLegacyPath{Username: "test-username"}, want: "/_plugins/_security/api/user/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityCreateUserLegacyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityCreateUserLegacyPath{Username: "test-username"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/user/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7934,24 +10000,26 @@ func TestSecurityCreateUserLegacyPath_Build(t *testing.T) {
 func TestSecurityDeleteActionGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteActionGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteActionGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteActionGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteActionGroupPath{ActionGroup: "test-actiongroup"}, want: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteActionGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteActionGroupPath{ActionGroup: "test-actiongroup"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7959,24 +10027,26 @@ func TestSecurityDeleteActionGroupPath_Build(t *testing.T) {
 func TestSecurityDeleteDistinguishedNamePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteDistinguishedNamePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteDistinguishedNamePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteDistinguishedNamePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteDistinguishedNamePath{ClusterName: "test-clustername"}, want: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteDistinguishedNamePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteDistinguishedNamePath{ClusterName: "test-clustername"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -7984,24 +10054,26 @@ func TestSecurityDeleteDistinguishedNamePath_Build(t *testing.T) {
 func TestSecurityDeleteRolePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteRolePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteRolePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteRolePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteRolePath{Role: "test-role"}, want: "/_plugins/_security/api/roles/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteRolePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteRolePath{Role: "test-role"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/roles/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8009,24 +10081,26 @@ func TestSecurityDeleteRolePath_Build(t *testing.T) {
 func TestSecurityDeleteRoleMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteRoleMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteRoleMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteRoleMappingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteRoleMappingPath{Role: "test-role"}, want: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteRoleMappingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteRoleMappingPath{Role: "test-role"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8034,24 +10108,26 @@ func TestSecurityDeleteRoleMappingPath_Build(t *testing.T) {
 func TestSecurityDeleteTenantPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteTenantPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteTenantPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteTenantPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteTenantPath{Tenant: "test-tenant"}, want: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteTenantPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteTenantPath{Tenant: "test-tenant"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8059,24 +10135,26 @@ func TestSecurityDeleteTenantPath_Build(t *testing.T) {
 func TestSecurityDeleteUserPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteUserPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteUserPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteUserPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteUserPath{Username: "test-username"}, want: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteUserPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteUserPath{Username: "test-username"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8084,24 +10162,26 @@ func TestSecurityDeleteUserPath_Build(t *testing.T) {
 func TestSecurityDeleteUserLegacyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityDeleteUserLegacyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityDeleteUserLegacyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityDeleteUserLegacyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityDeleteUserLegacyPath{Username: "test-username"}, want: "/_plugins/_security/api/user/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityDeleteUserLegacyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityDeleteUserLegacyPath{Username: "test-username"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/user/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8109,23 +10189,25 @@ func TestSecurityDeleteUserLegacyPath_Build(t *testing.T) {
 func TestSecurityFlushCachePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityFlushCachePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityFlushCachePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityFlushCachePath{}, want: "/_plugins/_security/api/cache", wantErr: false},
+		{name: "all empty", path: SecurityFlushCachePath{}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_security/api/cache", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8133,23 +10215,25 @@ func TestSecurityFlushCachePath_Build(t *testing.T) {
 func TestSecurityGenerateOboTokenPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGenerateOboTokenPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGenerateOboTokenPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGenerateOboTokenPath{}, want: "/_plugins/_security/api/generateonbehalfoftoken", wantErr: false},
+		{name: "all empty", path: SecurityGenerateOboTokenPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/api/generateonbehalfoftoken", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8157,24 +10241,26 @@ func TestSecurityGenerateOboTokenPath_Build(t *testing.T) {
 func TestSecurityGenerateUserTokenPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGenerateUserTokenPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGenerateUserTokenPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGenerateUserTokenPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGenerateUserTokenPath{Username: "test-username"}, want: "/_plugins/_security/api/internalusers/test-username/authtoken", wantErr: false},
+		{name: "required fields empty", path: SecurityGenerateUserTokenPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGenerateUserTokenPath{Username: "test-username"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/api/internalusers/test-username/authtoken", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8182,24 +10268,26 @@ func TestSecurityGenerateUserTokenPath_Build(t *testing.T) {
 func TestSecurityGenerateUserTokenLegacyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGenerateUserTokenLegacyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGenerateUserTokenLegacyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGenerateUserTokenLegacyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGenerateUserTokenLegacyPath{Username: "test-username"}, want: "/_plugins/_security/api/user/test-username/authtoken", wantErr: false},
+		{name: "required fields empty", path: SecurityGenerateUserTokenLegacyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGenerateUserTokenLegacyPath{Username: "test-username"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/api/user/test-username/authtoken", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8207,23 +10295,25 @@ func TestSecurityGenerateUserTokenLegacyPath_Build(t *testing.T) {
 func TestSecurityGetAccountDetailsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetAccountDetailsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetAccountDetailsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetAccountDetailsPath{}, want: "/_plugins/_security/api/account", wantErr: false},
+		{name: "all empty", path: SecurityGetAccountDetailsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/account", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8231,24 +10321,26 @@ func TestSecurityGetAccountDetailsPath_Build(t *testing.T) {
 func TestSecurityGetActionGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetActionGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetActionGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetActionGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetActionGroupPath{ActionGroup: "test-actiongroup"}, want: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
+		{name: "required fields empty", path: SecurityGetActionGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetActionGroupPath{ActionGroup: "test-actiongroup"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8256,23 +10348,25 @@ func TestSecurityGetActionGroupPath_Build(t *testing.T) {
 func TestSecurityGetActionGroupsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetActionGroupsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetActionGroupsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetActionGroupsPath{}, want: "/_plugins/_security/api/actiongroups", wantErr: false},
+		{name: "all empty", path: SecurityGetActionGroupsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/actiongroups", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8280,23 +10374,25 @@ func TestSecurityGetActionGroupsPath_Build(t *testing.T) {
 func TestSecurityGetAllCertificatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetAllCertificatesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetAllCertificatesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetAllCertificatesPath{}, want: "/_plugins/_security/api/certificates", wantErr: false},
+		{name: "all empty", path: SecurityGetAllCertificatesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/certificates", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8304,23 +10400,25 @@ func TestSecurityGetAllCertificatesPath_Build(t *testing.T) {
 func TestSecurityGetAllowlistPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetAllowlistPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetAllowlistPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetAllowlistPath{}, want: "/_plugins/_security/api/allowlist", wantErr: false},
+		{name: "all empty", path: SecurityGetAllowlistPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/allowlist", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8328,23 +10426,25 @@ func TestSecurityGetAllowlistPath_Build(t *testing.T) {
 func TestSecurityGetAuditConfigurationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetAuditConfigurationPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetAuditConfigurationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetAuditConfigurationPath{}, want: "/_plugins/_security/api/audit", wantErr: false},
+		{name: "all empty", path: SecurityGetAuditConfigurationPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/audit", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8352,23 +10452,25 @@ func TestSecurityGetAuditConfigurationPath_Build(t *testing.T) {
 func TestSecurityGetCertificatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetCertificatesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetCertificatesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetCertificatesPath{}, want: "/_plugins/_security/api/ssl/certs", wantErr: false},
+		{name: "all empty", path: SecurityGetCertificatesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/ssl/certs", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8376,23 +10478,25 @@ func TestSecurityGetCertificatesPath_Build(t *testing.T) {
 func TestSecurityGetConfigurationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetConfigurationPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetConfigurationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetConfigurationPath{}, want: "/_plugins/_security/api/securityconfig", wantErr: false},
+		{name: "all empty", path: SecurityGetConfigurationPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/securityconfig", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8400,23 +10504,25 @@ func TestSecurityGetConfigurationPath_Build(t *testing.T) {
 func TestSecurityGetDashboardsInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetDashboardsInfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetDashboardsInfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetDashboardsInfoPath{}, want: "/_plugins/_security/dashboardsinfo", wantErr: false},
+		{name: "all empty", path: SecurityGetDashboardsInfoPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/dashboardsinfo", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8424,24 +10530,26 @@ func TestSecurityGetDashboardsInfoPath_Build(t *testing.T) {
 func TestSecurityGetDistinguishedNamePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetDistinguishedNamePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetDistinguishedNamePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetDistinguishedNamePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetDistinguishedNamePath{ClusterName: "test-clustername"}, want: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
+		{name: "required fields empty", path: SecurityGetDistinguishedNamePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetDistinguishedNamePath{ClusterName: "test-clustername"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8449,23 +10557,25 @@ func TestSecurityGetDistinguishedNamePath_Build(t *testing.T) {
 func TestSecurityGetDistinguishedNamesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetDistinguishedNamesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetDistinguishedNamesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetDistinguishedNamesPath{}, want: "/_plugins/_security/api/nodesdn", wantErr: false},
+		{name: "all empty", path: SecurityGetDistinguishedNamesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/nodesdn", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8473,24 +10583,26 @@ func TestSecurityGetDistinguishedNamesPath_Build(t *testing.T) {
 func TestSecurityGetNodeCertificatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetNodeCertificatesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetNodeCertificatesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetNodeCertificatesPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetNodeCertificatesPath{NodeID: "test-nodeid"}, want: "/_plugins/_security/api/certificates/test-nodeid", wantErr: false},
+		{name: "required fields empty", path: SecurityGetNodeCertificatesPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetNodeCertificatesPath{NodeID: "test-nodeid"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/certificates/test-nodeid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8498,23 +10610,25 @@ func TestSecurityGetNodeCertificatesPath_Build(t *testing.T) {
 func TestSecurityGetPermissionsInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetPermissionsInfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetPermissionsInfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetPermissionsInfoPath{}, want: "/_plugins/_security/api/permissionsinfo", wantErr: false},
+		{name: "all empty", path: SecurityGetPermissionsInfoPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/permissionsinfo", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8522,24 +10636,26 @@ func TestSecurityGetPermissionsInfoPath_Build(t *testing.T) {
 func TestSecurityGetRolePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetRolePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetRolePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetRolePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetRolePath{Role: "test-role"}, want: "/_plugins/_security/api/roles/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityGetRolePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetRolePath{Role: "test-role"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/roles/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8547,24 +10663,26 @@ func TestSecurityGetRolePath_Build(t *testing.T) {
 func TestSecurityGetRoleMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetRoleMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetRoleMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetRoleMappingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetRoleMappingPath{Role: "test-role"}, want: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityGetRoleMappingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetRoleMappingPath{Role: "test-role"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8572,23 +10690,25 @@ func TestSecurityGetRoleMappingPath_Build(t *testing.T) {
 func TestSecurityGetRoleMappingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetRoleMappingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetRoleMappingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetRoleMappingsPath{}, want: "/_plugins/_security/api/rolesmapping", wantErr: false},
+		{name: "all empty", path: SecurityGetRoleMappingsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/rolesmapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8596,23 +10716,25 @@ func TestSecurityGetRoleMappingsPath_Build(t *testing.T) {
 func TestSecurityGetRolesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetRolesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetRolesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetRolesPath{}, want: "/_plugins/_security/api/roles", wantErr: false},
+		{name: "all empty", path: SecurityGetRolesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/roles", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8620,23 +10742,25 @@ func TestSecurityGetRolesPath_Build(t *testing.T) {
 func TestSecurityGetSslinfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetSslinfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetSslinfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetSslinfoPath{}, want: "/_opendistro/_security/sslinfo", wantErr: false},
+		{name: "all empty", path: SecurityGetSslinfoPath{}, wantMethod: http.MethodGet, wantPath: "/_opendistro/_security/sslinfo", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8644,23 +10768,25 @@ func TestSecurityGetSslinfoPath_Build(t *testing.T) {
 func TestSecurityGetTenancyConfigPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetTenancyConfigPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetTenancyConfigPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetTenancyConfigPath{}, want: "/_plugins/_security/api/tenancy/config", wantErr: false},
+		{name: "all empty", path: SecurityGetTenancyConfigPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/tenancy/config", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8668,24 +10794,26 @@ func TestSecurityGetTenancyConfigPath_Build(t *testing.T) {
 func TestSecurityGetTenantPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetTenantPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetTenantPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetTenantPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetTenantPath{Tenant: "test-tenant"}, want: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
+		{name: "required fields empty", path: SecurityGetTenantPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetTenantPath{Tenant: "test-tenant"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8693,23 +10821,25 @@ func TestSecurityGetTenantPath_Build(t *testing.T) {
 func TestSecurityGetTenantsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetTenantsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetTenantsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetTenantsPath{}, want: "/_plugins/_security/api/tenants", wantErr: false},
+		{name: "all empty", path: SecurityGetTenantsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/tenants", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8717,24 +10847,26 @@ func TestSecurityGetTenantsPath_Build(t *testing.T) {
 func TestSecurityGetUserPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetUserPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetUserPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetUserPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetUserPath{Username: "test-username"}, want: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityGetUserPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetUserPath{Username: "test-username"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8742,24 +10874,26 @@ func TestSecurityGetUserPath_Build(t *testing.T) {
 func TestSecurityGetUserLegacyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetUserLegacyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetUserLegacyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityGetUserLegacyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityGetUserLegacyPath{Username: "test-username"}, want: "/_plugins/_security/api/user/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityGetUserLegacyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityGetUserLegacyPath{Username: "test-username"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/user/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8767,23 +10901,25 @@ func TestSecurityGetUserLegacyPath_Build(t *testing.T) {
 func TestSecurityGetUsersPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetUsersPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetUsersPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetUsersPath{}, want: "/_plugins/_security/api/internalusers", wantErr: false},
+		{name: "all empty", path: SecurityGetUsersPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/internalusers", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8791,23 +10927,25 @@ func TestSecurityGetUsersPath_Build(t *testing.T) {
 func TestSecurityGetUsersLegacyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityGetUsersLegacyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityGetUsersLegacyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityGetUsersLegacyPath{}, want: "/_plugins/_security/api/user", wantErr: false},
+		{name: "all empty", path: SecurityGetUsersLegacyPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/user", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8815,23 +10953,25 @@ func TestSecurityGetUsersLegacyPath_Build(t *testing.T) {
 func TestSecurityHealthPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityHealthPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityHealthPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityHealthPath{}, want: "/_plugins/_security/health", wantErr: false},
+		{name: "all empty", path: SecurityHealthPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/health", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8839,23 +10979,25 @@ func TestSecurityHealthPath_Build(t *testing.T) {
 func TestSecurityMigratePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityMigratePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityMigratePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityMigratePath{}, want: "/_plugins/_security/api/migrate", wantErr: false},
+		{name: "all empty", path: SecurityMigratePath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/api/migrate", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8863,24 +11005,26 @@ func TestSecurityMigratePath_Build(t *testing.T) {
 func TestSecurityPatchActionGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchActionGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchActionGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityPatchActionGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityPatchActionGroupPath{ActionGroup: "test-actiongroup"}, want: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
+		{name: "required fields empty", path: SecurityPatchActionGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityPatchActionGroupPath{ActionGroup: "test-actiongroup"}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/actiongroups/test-actiongroup", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8888,23 +11032,25 @@ func TestSecurityPatchActionGroupPath_Build(t *testing.T) {
 func TestSecurityPatchActionGroupsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchActionGroupsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchActionGroupsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchActionGroupsPath{}, want: "/_plugins/_security/api/actiongroups", wantErr: false},
+		{name: "all empty", path: SecurityPatchActionGroupsPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/actiongroups", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8912,23 +11058,25 @@ func TestSecurityPatchActionGroupsPath_Build(t *testing.T) {
 func TestSecurityPatchAllowlistPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchAllowlistPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchAllowlistPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchAllowlistPath{}, want: "/_plugins/_security/api/allowlist", wantErr: false},
+		{name: "all empty", path: SecurityPatchAllowlistPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/allowlist", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8936,23 +11084,25 @@ func TestSecurityPatchAllowlistPath_Build(t *testing.T) {
 func TestSecurityPatchAuditConfigurationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchAuditConfigurationPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchAuditConfigurationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchAuditConfigurationPath{}, want: "/_plugins/_security/api/audit", wantErr: false},
+		{name: "all empty", path: SecurityPatchAuditConfigurationPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/audit", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8960,23 +11110,25 @@ func TestSecurityPatchAuditConfigurationPath_Build(t *testing.T) {
 func TestSecurityPatchConfigurationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchConfigurationPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchConfigurationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchConfigurationPath{}, want: "/_plugins/_security/api/securityconfig", wantErr: false},
+		{name: "all empty", path: SecurityPatchConfigurationPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/securityconfig", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -8984,24 +11136,26 @@ func TestSecurityPatchConfigurationPath_Build(t *testing.T) {
 func TestSecurityPatchDistinguishedNamePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchDistinguishedNamePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchDistinguishedNamePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityPatchDistinguishedNamePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityPatchDistinguishedNamePath{ClusterName: "test-clustername"}, want: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
+		{name: "required fields empty", path: SecurityPatchDistinguishedNamePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityPatchDistinguishedNamePath{ClusterName: "test-clustername"}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9009,23 +11163,25 @@ func TestSecurityPatchDistinguishedNamePath_Build(t *testing.T) {
 func TestSecurityPatchDistinguishedNamesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchDistinguishedNamesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchDistinguishedNamesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchDistinguishedNamesPath{}, want: "/_plugins/_security/api/nodesdn", wantErr: false},
+		{name: "all empty", path: SecurityPatchDistinguishedNamesPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/nodesdn", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9033,24 +11189,26 @@ func TestSecurityPatchDistinguishedNamesPath_Build(t *testing.T) {
 func TestSecurityPatchRolePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchRolePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchRolePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityPatchRolePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityPatchRolePath{Role: "test-role"}, want: "/_plugins/_security/api/roles/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityPatchRolePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityPatchRolePath{Role: "test-role"}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/roles/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9058,24 +11216,26 @@ func TestSecurityPatchRolePath_Build(t *testing.T) {
 func TestSecurityPatchRoleMappingPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchRoleMappingPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchRoleMappingPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityPatchRoleMappingPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityPatchRoleMappingPath{Role: "test-role"}, want: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
+		{name: "required fields empty", path: SecurityPatchRoleMappingPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityPatchRoleMappingPath{Role: "test-role"}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/rolesmapping/test-role", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9083,23 +11243,25 @@ func TestSecurityPatchRoleMappingPath_Build(t *testing.T) {
 func TestSecurityPatchRoleMappingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchRoleMappingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchRoleMappingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchRoleMappingsPath{}, want: "/_plugins/_security/api/rolesmapping", wantErr: false},
+		{name: "all empty", path: SecurityPatchRoleMappingsPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/rolesmapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9107,23 +11269,25 @@ func TestSecurityPatchRoleMappingsPath_Build(t *testing.T) {
 func TestSecurityPatchRolesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchRolesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchRolesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchRolesPath{}, want: "/_plugins/_security/api/roles", wantErr: false},
+		{name: "all empty", path: SecurityPatchRolesPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/roles", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9131,24 +11295,26 @@ func TestSecurityPatchRolesPath_Build(t *testing.T) {
 func TestSecurityPatchTenantPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchTenantPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchTenantPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityPatchTenantPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityPatchTenantPath{Tenant: "test-tenant"}, want: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
+		{name: "required fields empty", path: SecurityPatchTenantPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityPatchTenantPath{Tenant: "test-tenant"}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/tenants/test-tenant", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9156,23 +11322,25 @@ func TestSecurityPatchTenantPath_Build(t *testing.T) {
 func TestSecurityPatchTenantsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchTenantsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchTenantsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchTenantsPath{}, want: "/_plugins/_security/api/tenants", wantErr: false},
+		{name: "all empty", path: SecurityPatchTenantsPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/tenants", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9180,24 +11348,26 @@ func TestSecurityPatchTenantsPath_Build(t *testing.T) {
 func TestSecurityPatchUserPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchUserPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchUserPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityPatchUserPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityPatchUserPath{Username: "test-username"}, want: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
+		{name: "required fields empty", path: SecurityPatchUserPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityPatchUserPath{Username: "test-username"}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/internalusers/test-username", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9205,23 +11375,25 @@ func TestSecurityPatchUserPath_Build(t *testing.T) {
 func TestSecurityPatchUsersPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPatchUsersPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPatchUsersPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPatchUsersPath{}, want: "/_plugins/_security/api/internalusers", wantErr: false},
+		{name: "all empty", path: SecurityPatchUsersPath{}, wantMethod: http.MethodPatch, wantPath: "/_plugins/_security/api/internalusers", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9229,23 +11401,25 @@ func TestSecurityPatchUsersPath_Build(t *testing.T) {
 func TestSecurityPostDashboardsInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityPostDashboardsInfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityPostDashboardsInfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityPostDashboardsInfoPath{}, want: "/_plugins/_security/dashboardsinfo", wantErr: false},
+		{name: "all empty", path: SecurityPostDashboardsInfoPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_security/dashboardsinfo", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9253,23 +11427,25 @@ func TestSecurityPostDashboardsInfoPath_Build(t *testing.T) {
 func TestSecurityReloadHTTPCertificatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityReloadHTTPCertificatesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityReloadHTTPCertificatesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityReloadHTTPCertificatesPath{}, want: "/_plugins/_security/api/ssl/http/reloadcerts", wantErr: false},
+		{name: "all empty", path: SecurityReloadHTTPCertificatesPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/ssl/http/reloadcerts", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9277,23 +11453,25 @@ func TestSecurityReloadHTTPCertificatesPath_Build(t *testing.T) {
 func TestSecurityReloadTransportCertificatesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityReloadTransportCertificatesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityReloadTransportCertificatesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityReloadTransportCertificatesPath{}, want: "/_plugins/_security/api/ssl/transport/reloadcerts", wantErr: false},
+		{name: "all empty", path: SecurityReloadTransportCertificatesPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/ssl/transport/reloadcerts", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9301,23 +11479,25 @@ func TestSecurityReloadTransportCertificatesPath_Build(t *testing.T) {
 func TestSecurityTenantInfoPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityTenantInfoPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityTenantInfoPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityTenantInfoPath{}, want: "/_plugins/_security/tenantinfo", wantErr: false},
+		{name: "all empty", path: SecurityTenantInfoPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/tenantinfo", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9325,23 +11505,25 @@ func TestSecurityTenantInfoPath_Build(t *testing.T) {
 func TestSecurityUpdateAuditConfigurationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityUpdateAuditConfigurationPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityUpdateAuditConfigurationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityUpdateAuditConfigurationPath{}, want: "/_plugins/_security/api/audit/config", wantErr: false},
+		{name: "all empty", path: SecurityUpdateAuditConfigurationPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/audit/config", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9349,23 +11531,25 @@ func TestSecurityUpdateAuditConfigurationPath_Build(t *testing.T) {
 func TestSecurityUpdateConfigurationPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityUpdateConfigurationPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityUpdateConfigurationPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityUpdateConfigurationPath{}, want: "/_plugins/_security/api/securityconfig/config", wantErr: false},
+		{name: "all empty", path: SecurityUpdateConfigurationPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/securityconfig/config", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9373,24 +11557,26 @@ func TestSecurityUpdateConfigurationPath_Build(t *testing.T) {
 func TestSecurityUpdateDistinguishedNamePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityUpdateDistinguishedNamePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityUpdateDistinguishedNamePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SecurityUpdateDistinguishedNamePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SecurityUpdateDistinguishedNamePath{ClusterName: "test-clustername"}, want: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
+		{name: "required fields empty", path: SecurityUpdateDistinguishedNamePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SecurityUpdateDistinguishedNamePath{ClusterName: "test-clustername"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_security/api/nodesdn/test-clustername", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9398,23 +11584,25 @@ func TestSecurityUpdateDistinguishedNamePath_Build(t *testing.T) {
 func TestSecurityValidatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityValidatePath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityValidatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityValidatePath{}, want: "/_plugins/_security/api/validate", wantErr: false},
+		{name: "all empty", path: SecurityValidatePath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/api/validate", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9422,23 +11610,25 @@ func TestSecurityValidatePath_Build(t *testing.T) {
 func TestSecurityWhoAmIPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityWhoAmIPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityWhoAmIPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityWhoAmIPath{}, want: "/_plugins/_security/whoami", wantErr: false},
+		{name: "all empty", path: SecurityWhoAmIPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/whoami", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9446,23 +11636,103 @@ func TestSecurityWhoAmIPath_Build(t *testing.T) {
 func TestSecurityWhoAmIProtectedPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SecurityWhoAmIProtectedPath
-		want    string
-		wantErr bool
+		name       string
+		path       SecurityWhoAmIProtectedPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SecurityWhoAmIProtectedPath{}, want: "/_plugins/_security/whoamiprotected", wantErr: false},
+		{name: "all empty", path: SecurityWhoAmIProtectedPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security/whoamiprotected", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSecurityAnalyticsGetAlertsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SecurityAnalyticsGetAlertsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SecurityAnalyticsGetAlertsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security_analytics/alerts", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSecurityAnalyticsGetFindingsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SecurityAnalyticsGetFindingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SecurityAnalyticsGetFindingsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security_analytics/findings/_search", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestSecurityAnalyticsSearchFindingCorrelationsPath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       SecurityAnalyticsSearchFindingCorrelationsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: SecurityAnalyticsSearchFindingCorrelationsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_security_analytics/findings/correlate", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9470,24 +11740,26 @@ func TestSecurityWhoAmIProtectedPath_Build(t *testing.T) {
 func TestSmCreatePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmCreatePolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmCreatePolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmCreatePolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmCreatePolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SmCreatePolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmCreatePolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9495,24 +11767,26 @@ func TestSmCreatePolicyPath_Build(t *testing.T) {
 func TestSmDeletePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmDeletePolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmDeletePolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmDeletePolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmDeletePolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SmDeletePolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmDeletePolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9520,24 +11794,26 @@ func TestSmDeletePolicyPath_Build(t *testing.T) {
 func TestSmExplainPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmExplainPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmExplainPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmExplainPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmExplainPolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname/_explain", wantErr: false},
+		{name: "required fields empty", path: SmExplainPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmExplainPolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_sm/policies/test-policyname/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9545,23 +11821,25 @@ func TestSmExplainPolicyPath_Build(t *testing.T) {
 func TestSmGetPoliciesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmGetPoliciesPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmGetPoliciesPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SmGetPoliciesPath{}, want: "/_plugins/_sm/policies", wantErr: false},
+		{name: "all empty", path: SmGetPoliciesPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_sm/policies", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9569,24 +11847,26 @@ func TestSmGetPoliciesPath_Build(t *testing.T) {
 func TestSmGetPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmGetPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmGetPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmGetPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmGetPolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SmGetPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmGetPolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9594,24 +11874,26 @@ func TestSmGetPolicyPath_Build(t *testing.T) {
 func TestSmStartPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmStartPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmStartPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmStartPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmStartPolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname/_start", wantErr: false},
+		{name: "required fields empty", path: SmStartPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmStartPolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sm/policies/test-policyname/_start", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9619,24 +11901,26 @@ func TestSmStartPolicyPath_Build(t *testing.T) {
 func TestSmStopPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmStopPolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmStopPolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmStopPolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmStopPolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname/_stop", wantErr: false},
+		{name: "required fields empty", path: SmStopPolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmStopPolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sm/policies/test-policyname/_stop", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9644,24 +11928,26 @@ func TestSmStopPolicyPath_Build(t *testing.T) {
 func TestSmUpdatePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SmUpdatePolicyPath
-		want    string
-		wantErr bool
+		name       string
+		path       SmUpdatePolicyPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SmUpdatePolicyPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SmUpdatePolicyPath{PolicyName: "test-policyname"}, want: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SmUpdatePolicyPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SmUpdatePolicyPath{PolicyName: "test-policyname"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9669,24 +11955,26 @@ func TestSmUpdatePolicyPath_Build(t *testing.T) {
 func TestSnapshotCleanupRepositoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotCleanupRepositoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotCleanupRepositoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotCleanupRepositoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotCleanupRepositoryPath{Repository: "test-repository"}, want: "/_snapshot/test-repository/_cleanup", wantErr: false},
+		{name: "required fields empty", path: SnapshotCleanupRepositoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotCleanupRepositoryPath{Repository: "test-repository"}, wantMethod: http.MethodPost, wantPath: "/_snapshot/test-repository/_cleanup", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9694,24 +11982,26 @@ func TestSnapshotCleanupRepositoryPath_Build(t *testing.T) {
 func TestSnapshotClonePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotClonePath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotClonePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotClonePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotClonePath{Repository: "test-repository", Snapshot: "test-snapshot", TargetSnapshot: "test-targetsnapshot"}, want: "/_snapshot/test-repository/test-snapshot/_clone/test-targetsnapshot", wantErr: false},
+		{name: "required fields empty", path: SnapshotClonePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotClonePath{Repository: "test-repository", Snapshot: "test-snapshot", TargetSnapshot: "test-targetsnapshot"}, wantMethod: http.MethodPut, wantPath: "/_snapshot/test-repository/test-snapshot/_clone/test-targetsnapshot", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9719,24 +12009,26 @@ func TestSnapshotClonePath_Build(t *testing.T) {
 func TestSnapshotCreatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotCreatePath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotCreatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotCreatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotCreatePath{Repository: "test-repository", Snapshot: "test-snapshot"}, want: "/_snapshot/test-repository/test-snapshot", wantErr: false},
+		{name: "required fields empty", path: SnapshotCreatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotCreatePath{Repository: "test-repository", Snapshot: "test-snapshot"}, wantMethod: http.MethodPost, wantPath: "/_snapshot/test-repository/test-snapshot", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9744,24 +12036,26 @@ func TestSnapshotCreatePath_Build(t *testing.T) {
 func TestSnapshotCreateRepositoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotCreateRepositoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotCreateRepositoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotCreateRepositoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotCreateRepositoryPath{Repository: "test-repository"}, want: "/_snapshot/test-repository", wantErr: false},
+		{name: "required fields empty", path: SnapshotCreateRepositoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotCreateRepositoryPath{Repository: "test-repository"}, wantMethod: http.MethodPost, wantPath: "/_snapshot/test-repository", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9769,24 +12063,26 @@ func TestSnapshotCreateRepositoryPath_Build(t *testing.T) {
 func TestSnapshotDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotDeletePath{Repository: "test-repository", Snapshot: "test-snapshot"}, want: "/_snapshot/test-repository/test-snapshot", wantErr: false},
+		{name: "required fields empty", path: SnapshotDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotDeletePath{Repository: "test-repository", Snapshot: "test-snapshot"}, wantMethod: http.MethodDelete, wantPath: "/_snapshot/test-repository/test-snapshot", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9794,25 +12090,27 @@ func TestSnapshotDeletePath_Build(t *testing.T) {
 func TestSnapshotDeleteRepositoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotDeleteRepositoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotDeleteRepositoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotDeleteRepositoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotDeleteRepositoryPath{Repository: []string{"test-repository"}}, want: "/_snapshot/test-repository", wantErr: false},
-		{name: "Repository multi-value", path: SnapshotDeleteRepositoryPath{Repository: []string{"a", "b", "c"}}, want: "/_snapshot/a,b,c", wantErr: false},
+		{name: "required fields empty", path: SnapshotDeleteRepositoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotDeleteRepositoryPath{Repository: []string{"test-repository"}}, wantMethod: http.MethodDelete, wantPath: "/_snapshot/test-repository", wantErr: false},
+		{name: "Repository multi-value", path: SnapshotDeleteRepositoryPath{Repository: []string{"a", "b", "c"}}, wantMethod: http.MethodDelete, wantPath: "/_snapshot/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9820,25 +12118,27 @@ func TestSnapshotDeleteRepositoryPath_Build(t *testing.T) {
 func TestSnapshotGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotGetPath{Repository: "test-repository", Snapshot: []string{"test-snapshot"}}, want: "/_snapshot/test-repository/test-snapshot", wantErr: false},
-		{name: "Snapshot multi-value", path: SnapshotGetPath{Repository: "req-repository", Snapshot: []string{"a", "b", "c"}}, want: "/_snapshot/req-repository/a,b,c", wantErr: false},
+		{name: "required fields empty", path: SnapshotGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotGetPath{Repository: "test-repository", Snapshot: []string{"test-snapshot"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/test-repository/test-snapshot", wantErr: false},
+		{name: "Snapshot multi-value", path: SnapshotGetPath{Repository: "req-repository", Snapshot: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/req-repository/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9846,25 +12146,27 @@ func TestSnapshotGetPath_Build(t *testing.T) {
 func TestSnapshotGetRepositoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotGetRepositoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotGetRepositoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SnapshotGetRepositoryPath{}, want: "/_snapshot", wantErr: false},
-		{name: "all fields", path: SnapshotGetRepositoryPath{Repository: []string{"test-repository"}}, want: "/_snapshot/test-repository", wantErr: false},
-		{name: "Repository multi-value", path: SnapshotGetRepositoryPath{Repository: []string{"a", "b", "c"}}, want: "/_snapshot/a,b,c", wantErr: false},
+		{name: "all empty", path: SnapshotGetRepositoryPath{}, wantMethod: http.MethodGet, wantPath: "/_snapshot", wantErr: false},
+		{name: "all fields", path: SnapshotGetRepositoryPath{Repository: []string{"test-repository"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/test-repository", wantErr: false},
+		{name: "Repository multi-value", path: SnapshotGetRepositoryPath{Repository: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9872,24 +12174,26 @@ func TestSnapshotGetRepositoryPath_Build(t *testing.T) {
 func TestSnapshotRestorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotRestorePath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotRestorePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotRestorePath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotRestorePath{Repository: "test-repository", Snapshot: "test-snapshot"}, want: "/_snapshot/test-repository/test-snapshot/_restore", wantErr: false},
+		{name: "required fields empty", path: SnapshotRestorePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotRestorePath{Repository: "test-repository", Snapshot: "test-snapshot"}, wantMethod: http.MethodPost, wantPath: "/_snapshot/test-repository/test-snapshot/_restore", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9897,27 +12201,29 @@ func TestSnapshotRestorePath_Build(t *testing.T) {
 func TestSnapshotStatusPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotStatusPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotStatusPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SnapshotStatusPath{}, want: "/_snapshot/_status", wantErr: false},
-		{name: "all fields", path: SnapshotStatusPath{Repository: "test-repository", Snapshot: []string{"test-snapshot"}}, want: "/_snapshot/test-repository/test-snapshot/_status", wantErr: false},
-		{name: "only Repository", path: SnapshotStatusPath{Repository: "val-repository"}, want: "/_snapshot/val-repository/_status", wantErr: false},
-		{name: "only Snapshot", path: SnapshotStatusPath{Snapshot: []string{"val-snapshot"}}, want: "/_snapshot/val-snapshot/_status", wantErr: false},
-		{name: "Snapshot multi-value", path: SnapshotStatusPath{Snapshot: []string{"a", "b", "c"}}, want: "/_snapshot/a,b,c/_status", wantErr: false},
+		{name: "all empty", path: SnapshotStatusPath{}, wantMethod: http.MethodGet, wantPath: "/_snapshot/_status", wantErr: false},
+		{name: "all fields", path: SnapshotStatusPath{Repository: "test-repository", Snapshot: []string{"test-snapshot"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/test-repository/test-snapshot/_status", wantErr: false},
+		{name: "only Repository", path: SnapshotStatusPath{Repository: "val-repository"}, wantMethod: http.MethodGet, wantPath: "/_snapshot/val-repository/_status", wantErr: false},
+		{name: "only Snapshot", path: SnapshotStatusPath{Snapshot: []string{"val-snapshot"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/val-snapshot/_status", wantErr: false},
+		{name: "Snapshot multi-value", path: SnapshotStatusPath{Snapshot: []string{"a", "b", "c"}}, wantMethod: http.MethodGet, wantPath: "/_snapshot/a,b,c/_status", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9925,24 +12231,26 @@ func TestSnapshotStatusPath_Build(t *testing.T) {
 func TestSnapshotVerifyRepositoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SnapshotVerifyRepositoryPath
-		want    string
-		wantErr bool
+		name       string
+		path       SnapshotVerifyRepositoryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: SnapshotVerifyRepositoryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: SnapshotVerifyRepositoryPath{Repository: "test-repository"}, want: "/_snapshot/test-repository/_verify", wantErr: false},
+		{name: "required fields empty", path: SnapshotVerifyRepositoryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: SnapshotVerifyRepositoryPath{Repository: "test-repository"}, wantMethod: http.MethodPost, wantPath: "/_snapshot/test-repository/_verify", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9950,23 +12258,25 @@ func TestSnapshotVerifyRepositoryPath_Build(t *testing.T) {
 func TestSQLClosePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SQLClosePath
-		want    string
-		wantErr bool
+		name       string
+		path       SQLClosePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SQLClosePath{}, want: "/_plugins/_sql/close", wantErr: false},
+		{name: "all empty", path: SQLClosePath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sql/close", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9974,23 +12284,25 @@ func TestSQLClosePath_Build(t *testing.T) {
 func TestSQLExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SQLExplainPath
-		want    string
-		wantErr bool
+		name       string
+		path       SQLExplainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SQLExplainPath{}, want: "/_plugins/_sql/_explain", wantErr: false},
+		{name: "all empty", path: SQLExplainPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sql/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -9998,23 +12310,25 @@ func TestSQLExplainPath_Build(t *testing.T) {
 func TestSQLGetStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SQLGetStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SQLGetStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SQLGetStatsPath{}, want: "/_plugins/_sql/stats", wantErr: false},
+		{name: "all empty", path: SQLGetStatsPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_sql/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10022,23 +12336,25 @@ func TestSQLGetStatsPath_Build(t *testing.T) {
 func TestSQLPostStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SQLPostStatsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SQLPostStatsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SQLPostStatsPath{}, want: "/_plugins/_sql/stats", wantErr: false},
+		{name: "all empty", path: SQLPostStatsPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sql/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10046,23 +12362,25 @@ func TestSQLPostStatsPath_Build(t *testing.T) {
 func TestSQLQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SQLQueryPath
-		want    string
-		wantErr bool
+		name       string
+		path       SQLQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SQLQueryPath{}, want: "/_plugins/_sql", wantErr: false},
+		{name: "all empty", path: SQLQueryPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_sql", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10070,23 +12388,25 @@ func TestSQLQueryPath_Build(t *testing.T) {
 func TestSQLSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    SQLSettingsPath
-		want    string
-		wantErr bool
+		name       string
+		path       SQLSettingsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: SQLSettingsPath{}, want: "/_plugins/_query/settings", wantErr: false},
+		{name: "all empty", path: SQLSettingsPath{}, wantMethod: http.MethodPut, wantPath: "/_plugins/_query/settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10094,24 +12414,26 @@ func TestSQLSettingsPath_Build(t *testing.T) {
 func TestTasksCancelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TasksCancelPath
-		want    string
-		wantErr bool
+		name       string
+		path       TasksCancelPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: TasksCancelPath{}, want: "/_tasks/_cancel", wantErr: false},
-		{name: "all fields", path: TasksCancelPath{TaskID: "test-taskid"}, want: "/_tasks/test-taskid/_cancel", wantErr: false},
+		{name: "all empty", path: TasksCancelPath{}, wantMethod: http.MethodPost, wantPath: "/_tasks/_cancel", wantErr: false},
+		{name: "all fields", path: TasksCancelPath{TaskID: "test-taskid"}, wantMethod: http.MethodPost, wantPath: "/_tasks/test-taskid/_cancel", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10119,24 +12441,26 @@ func TestTasksCancelPath_Build(t *testing.T) {
 func TestTasksGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TasksGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       TasksGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TasksGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TasksGetPath{TaskID: "test-taskid"}, want: "/_tasks/test-taskid", wantErr: false},
+		{name: "required fields empty", path: TasksGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TasksGetPath{TaskID: "test-taskid"}, wantMethod: http.MethodGet, wantPath: "/_tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10144,23 +12468,25 @@ func TestTasksGetPath_Build(t *testing.T) {
 func TestTasksListPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TasksListPath
-		want    string
-		wantErr bool
+		name       string
+		path       TasksListPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: TasksListPath{}, want: "/_tasks", wantErr: false},
+		{name: "all empty", path: TasksListPath{}, wantMethod: http.MethodGet, wantPath: "/_tasks", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10168,24 +12494,26 @@ func TestTasksListPath_Build(t *testing.T) {
 func TestTermvectorsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TermvectorsPath
-		want    string
-		wantErr bool
+		name       string
+		path       TermvectorsPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TermvectorsPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TermvectorsPath{Index: "test-index", ID: "test-id"}, want: "/test-index/_termvectors/test-id", wantErr: false},
+		{name: "required fields empty", path: TermvectorsPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TermvectorsPath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/test-index/_termvectors/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10193,24 +12521,26 @@ func TestTermvectorsPath_Build(t *testing.T) {
 func TestTransformsDeletePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsDeletePath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsDeletePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TransformsDeletePath{}, want: "", wantErr: true},
-		{name: "all fields", path: TransformsDeletePath{ID: "test-id"}, want: "/_plugins/_transform/test-id", wantErr: false},
+		{name: "required fields empty", path: TransformsDeletePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TransformsDeletePath{ID: "test-id"}, wantMethod: http.MethodDelete, wantPath: "/_plugins/_transform/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10218,24 +12548,26 @@ func TestTransformsDeletePath_Build(t *testing.T) {
 func TestTransformsExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsExplainPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsExplainPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TransformsExplainPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TransformsExplainPath{ID: "test-id"}, want: "/_plugins/_transform/test-id/_explain", wantErr: false},
+		{name: "required fields empty", path: TransformsExplainPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TransformsExplainPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_transform/test-id/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10243,24 +12575,26 @@ func TestTransformsExplainPath_Build(t *testing.T) {
 func TestTransformsGetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsGetPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsGetPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TransformsGetPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TransformsGetPath{ID: "test-id"}, want: "/_plugins/_transform/test-id", wantErr: false},
+		{name: "required fields empty", path: TransformsGetPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TransformsGetPath{ID: "test-id"}, wantMethod: http.MethodGet, wantPath: "/_plugins/_transform/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10268,23 +12602,25 @@ func TestTransformsGetPath_Build(t *testing.T) {
 func TestTransformsPreviewPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsPreviewPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsPreviewPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: TransformsPreviewPath{}, want: "/_plugins/_transform/_preview", wantErr: false},
+		{name: "all empty", path: TransformsPreviewPath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/_transform/_preview", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10292,24 +12628,26 @@ func TestTransformsPreviewPath_Build(t *testing.T) {
 func TestTransformsPutPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsPutPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsPutPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TransformsPutPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TransformsPutPath{ID: "test-id"}, want: "/_plugins/_transform/test-id", wantErr: false},
+		{name: "required fields empty", path: TransformsPutPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TransformsPutPath{ID: "test-id"}, wantMethod: http.MethodPut, wantPath: "/_plugins/_transform/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10317,23 +12655,25 @@ func TestTransformsPutPath_Build(t *testing.T) {
 func TestTransformsSearchPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsSearchPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsSearchPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: TransformsSearchPath{}, want: "/_plugins/_transform", wantErr: false},
+		{name: "all empty", path: TransformsSearchPath{}, wantMethod: http.MethodGet, wantPath: "/_plugins/_transform", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10341,24 +12681,26 @@ func TestTransformsSearchPath_Build(t *testing.T) {
 func TestTransformsStartPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsStartPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsStartPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TransformsStartPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TransformsStartPath{ID: "test-id"}, want: "/_plugins/_transform/test-id/_start", wantErr: false},
+		{name: "required fields empty", path: TransformsStartPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TransformsStartPath{ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_transform/test-id/_start", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10366,24 +12708,52 @@ func TestTransformsStartPath_Build(t *testing.T) {
 func TestTransformsStopPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    TransformsStopPath
-		want    string
-		wantErr bool
+		name       string
+		path       TransformsStopPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: TransformsStopPath{}, want: "", wantErr: true},
-		{name: "all fields", path: TransformsStopPath{ID: "test-id"}, want: "/_plugins/_transform/test-id/_stop", wantErr: false},
+		{name: "required fields empty", path: TransformsStopPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: TransformsStopPath{ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/_plugins/_transform/test-id/_stop", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
+		})
+	}
+}
+
+func TestUbiInitializePath_Build(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name       string
+		path       UbiInitializePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{name: "all empty", path: UbiInitializePath{}, wantMethod: http.MethodPost, wantPath: "/_plugins/ubi/initialize", wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			gotMethod, gotPath, err := tt.path.Build()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10391,24 +12761,26 @@ func TestTransformsStopPath_Build(t *testing.T) {
 func TestUpdatePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    UpdatePath
-		want    string
-		wantErr bool
+		name       string
+		path       UpdatePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: UpdatePath{}, want: "", wantErr: true},
-		{name: "all fields", path: UpdatePath{Index: "test-index", ID: "test-id"}, want: "/test-index/_update/test-id", wantErr: false},
+		{name: "required fields empty", path: UpdatePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: UpdatePath{Index: "test-index", ID: "test-id"}, wantMethod: http.MethodPost, wantPath: "/test-index/_update/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10416,25 +12788,27 @@ func TestUpdatePath_Build(t *testing.T) {
 func TestUpdateByQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    UpdateByQueryPath
-		want    string
-		wantErr bool
+		name       string
+		path       UpdateByQueryPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: UpdateByQueryPath{}, want: "", wantErr: true},
-		{name: "all fields", path: UpdateByQueryPath{Index: []string{"test-index"}}, want: "/test-index/_update_by_query", wantErr: false},
-		{name: "Index multi-value", path: UpdateByQueryPath{Index: []string{"a", "b", "c"}}, want: "/a,b,c/_update_by_query", wantErr: false},
+		{name: "required fields empty", path: UpdateByQueryPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: UpdateByQueryPath{Index: []string{"test-index"}}, wantMethod: http.MethodPost, wantPath: "/test-index/_update_by_query", wantErr: false},
+		{name: "Index multi-value", path: UpdateByQueryPath{Index: []string{"a", "b", "c"}}, wantMethod: http.MethodPost, wantPath: "/a,b,c/_update_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10442,24 +12816,26 @@ func TestUpdateByQueryPath_Build(t *testing.T) {
 func TestUpdateByQueryRethrottlePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    UpdateByQueryRethrottlePath
-		want    string
-		wantErr bool
+		name       string
+		path       UpdateByQueryRethrottlePath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: UpdateByQueryRethrottlePath{}, want: "", wantErr: true},
-		{name: "all fields", path: UpdateByQueryRethrottlePath{TaskID: "test-taskid"}, want: "/_update_by_query/test-taskid/_rethrottle", wantErr: false},
+		{name: "required fields empty", path: UpdateByQueryRethrottlePath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: UpdateByQueryRethrottlePath{TaskID: "test-taskid"}, wantMethod: http.MethodPost, wantPath: "/_update_by_query/test-taskid/_rethrottle", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10467,23 +12843,25 @@ func TestUpdateByQueryRethrottlePath_Build(t *testing.T) {
 func TestWlmCreateQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    WlmCreateQueryGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       WlmCreateQueryGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: WlmCreateQueryGroupPath{}, want: "/_wlm/query_group", wantErr: false},
+		{name: "all empty", path: WlmCreateQueryGroupPath{}, wantMethod: http.MethodPut, wantPath: "/_wlm/query_group", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10491,24 +12869,26 @@ func TestWlmCreateQueryGroupPath_Build(t *testing.T) {
 func TestWlmDeleteQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    WlmDeleteQueryGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       WlmDeleteQueryGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: WlmDeleteQueryGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: WlmDeleteQueryGroupPath{Name: "test-name"}, want: "/_wlm/query_group/test-name", wantErr: false},
+		{name: "required fields empty", path: WlmDeleteQueryGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: WlmDeleteQueryGroupPath{Name: "test-name"}, wantMethod: http.MethodDelete, wantPath: "/_wlm/query_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10516,24 +12896,26 @@ func TestWlmDeleteQueryGroupPath_Build(t *testing.T) {
 func TestWlmGetQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    WlmGetQueryGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       WlmGetQueryGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "all empty", path: WlmGetQueryGroupPath{}, want: "/_wlm/query_group", wantErr: false},
-		{name: "all fields", path: WlmGetQueryGroupPath{Name: "test-name"}, want: "/_wlm/query_group/test-name", wantErr: false},
+		{name: "all empty", path: WlmGetQueryGroupPath{}, wantMethod: http.MethodGet, wantPath: "/_wlm/query_group", wantErr: false},
+		{name: "all fields", path: WlmGetQueryGroupPath{Name: "test-name"}, wantMethod: http.MethodGet, wantPath: "/_wlm/query_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }
@@ -10541,24 +12923,26 @@ func TestWlmGetQueryGroupPath_Build(t *testing.T) {
 func TestWlmUpdateQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name    string
-		path    WlmUpdateQueryGroupPath
-		want    string
-		wantErr bool
+		name       string
+		path       WlmUpdateQueryGroupPath
+		wantMethod string
+		wantPath   string
+		wantErr    bool
 	}{
-		{name: "required fields empty", path: WlmUpdateQueryGroupPath{}, want: "", wantErr: true},
-		{name: "all fields", path: WlmUpdateQueryGroupPath{Name: "test-name"}, want: "/_wlm/query_group/test-name", wantErr: false},
+		{name: "required fields empty", path: WlmUpdateQueryGroupPath{}, wantMethod: "", wantPath: "", wantErr: true},
+		{name: "all fields", path: WlmUpdateQueryGroupPath{Name: "test-name"}, wantMethod: http.MethodPut, wantPath: "/_wlm/query_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := tt.path.Build()
+			gotMethod, gotPath, err := tt.path.Build()
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, got)
+			require.Equal(t, tt.wantMethod, gotMethod)
+			require.Equal(t, tt.wantPath, gotPath)
 		})
 	}
 }

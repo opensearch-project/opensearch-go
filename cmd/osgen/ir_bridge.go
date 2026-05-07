@@ -7,6 +7,7 @@
 package main
 
 import (
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
@@ -45,6 +46,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		HTTPMethods:       op.HTTPMethods,
 		PrimaryPath:       op.PrimaryPath,
 		HasBody:           op.HasBody,
+		IsNDJSON:          op.IsNDJSON,
 		IsPointerReq:      op.IsPointerReq,
 		IsNoBody:          op.IsNoBody,
 		IsPlugin:          !coreGroups[groupPrefix(op.Group)],
@@ -116,6 +118,34 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		irOp.RespElemType = convertType(op.RespElemType)
 	}
 
+	// Convert request body type.
+	if op.HasTypedBody && len(op.ReqBodyFields) > 0 {
+		name := op.ReqBodyTypeName
+		if name == "" {
+			name = op.TypePrefix + emit.BodySuffix
+		}
+		scope := ir.ScopeLocal
+		if op.ReqBodyIsShared {
+			scope = ir.ScopeShared
+		}
+		bodyType := &ir.Type{
+			Name:       name,
+			SchemaRef:  op.RequestRef,
+			Kind:       ir.TypeStruct,
+			Scope:      scope,
+			OwnerGroup: op.Group,
+		}
+		for _, f := range op.ReqBodyFields {
+			bodyType.Fields = append(bodyType.Fields, convertField(f))
+		}
+		irOp.RequestBody = bodyType
+		irOp.HasTypedBody = true
+	}
+
+	for _, st := range op.ReqBodySiblings {
+		irOp.ReqBodySiblings = append(irOp.ReqBodySiblings, convertType(st))
+	}
+
 	return irOp
 }
 
@@ -127,6 +157,7 @@ func convertQueryParam(p apiQueryParam) ir.QueryParam {
 		Default:           p.Default,
 		GoType:            p.GoType,
 		Kind:              classifyParamKind(p),
+		Group:             sharedParamGroup(p.ParamName),
 		Required:          p.Required,
 		Deprecated:        p.Deprecated,
 		VersionAdded:      p.VersionAdded,
@@ -163,9 +194,30 @@ func convertPathBuilder(b builder) ir.PathBuilder {
 		})
 	}
 	for _, op := range b.Ops {
+		conds := make([]ir.PathCaseCondition, 0, len(op.Conditions))
+		for _, c := range op.Conditions {
+			conds = append(conds, ir.PathCaseCondition{Field: c.Field, IsList: c.IsList})
+		}
 		pb.Ops = append(pb.Ops, ir.PathOp{
-			Kind:  convertOpKind(op.Kind),
-			Value: op.Value,
+			Kind:       convertOpKind(op.Kind),
+			Value:      op.Value,
+			Conditions: conds,
+		})
+	}
+	for _, dep := range b.PositionalDeps {
+		pb.PositionalDeps = append(pb.PositionalDeps, ir.PathPositionalDep{
+			Dependent: ir.PathBuilderField{
+				Name:     dep.Dependent.Name,
+				Param:    dep.Dependent.Param,
+				Required: dep.Dependent.Required,
+				IsList:   dep.Dependent.IsList,
+			},
+			Predecessor: ir.PathBuilderField{
+				Name:     dep.Predecessor.Name,
+				Param:    dep.Predecessor.Param,
+				Required: dep.Predecessor.Required,
+				IsList:   dep.Predecessor.IsList,
+			},
 		})
 	}
 	return pb
@@ -179,18 +231,20 @@ func convertOpKind(k opKind) ir.PathOpKind {
 		return ir.PathOpField
 	case opList:
 		return ir.PathOpList
-	case opIfList:
-		return ir.PathOpIfList
-	case opIfStr:
-		return ir.PathOpIfStr
-	case opElseIfList:
-		return ir.PathOpElseIfList
-	case opElseIfStr:
-		return ir.PathOpElseIfStr
-	case opElse:
-		return ir.PathOpElse
-	case opEnd:
-		return ir.PathOpEnd
+	case opSwitch:
+		return ir.PathOpSwitch
+	case opCase:
+		return ir.PathOpCase
+	case opDefault:
+		return ir.PathOpDefault
+	case opSwitchEnd:
+		return ir.PathOpSwitchEnd
+	case opIf:
+		return ir.PathOpIf
+	case opIfEnd:
+		return ir.PathOpIfEnd
+	case opExplainCheck:
+		return ir.PathOpExplainCheck
 	default:
 		return ir.PathOpLit
 	}

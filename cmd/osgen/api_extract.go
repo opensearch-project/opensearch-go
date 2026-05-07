@@ -17,6 +17,17 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
+// Content types and schema key suffixes used during extraction.
+const (
+	contentJSON   = "application/json"
+	contentNDJSON = "application/x-ndjson"
+
+	// Schema key suffixes appended to the group name when a schema is inline
+	// (not a $ref to components/schemas/).
+	respBodySuffix = "___ResponseBody"
+	reqBodySuffix  = "___Body"
+)
+
 // apiOperation holds everything needed to generate one set of API files.
 type apiOperation struct {
 	Group           string
@@ -47,6 +58,10 @@ type apiOperation struct {
 	// used to walk inline schemas that aren't in Components.Schemas.
 	ResponseSchemaRef *openapi3.SchemaRef
 
+	RequestRef       string             // schema key for request body (e.g. "ml.register_model___Body")
+	RequestSchemaRef *openapi3.SchemaRef // resolved request body schema
+	IsNDJSON         bool               // true for application/x-ndjson request bodies
+
 	// Dispatch routes for this operation (primary flat + optional deprecated nested).
 	DispatchRoutes []dispatchRoute
 	IsPointerReq   bool // true when all path fields are optional (pointer req convention)
@@ -61,6 +76,13 @@ type apiOperation struct {
 	SiblingTypes  []*goType      // operation-specific types emitted alongside Resp
 	RespShape     ir.RespShape   // overall response body structure (struct/map/array/raw)
 	RespElemType  *goType        // element type for map/array shapes (the T in map[string]T or []T)
+
+	// Populated after request body schema walking.
+	ReqBodyFields    []goField  // fields for the top-level Body struct
+	ReqBodySiblings  []*goType  // operation-specific types from request body
+	ReqBodyTypeName  string     // Go type name for the body struct (e.g. "MlRegisterModelBody")
+	ReqBodyIsShared  bool       // true when body type is shared (emitted in types_gen.go)
+	HasTypedBody     bool       // true when body has properties (typed struct, not io.Reader)
 }
 
 // apiPathField is one path parameter exposed as a struct field on the Req.
@@ -91,15 +113,19 @@ type apiQueryParam struct {
 }
 
 // extractOperations parses the OpenAPI spec and returns one apiOperation per
-// x-operation-group. An optional filter restricts output to named groups.
-// It also returns the loaded spec for use by the response schema walker.
-func extractOperations(specPath string, filter map[string]bool) ([]apiOperation, *openapi3.T, error) {
+// x-operation-group. An optional filter restricts output to named groups. It
+// also returns the loaded spec for use by the response schema walker, and the
+// version-filter exclusions (operations and query params) so the caller can
+// emit breadcrumb comments for items dropped by --min-version/--max-version.
+func extractOperations(
+	specPath string, filter map[string]bool, vrange VersionRange,
+) ([]apiOperation, *openapi3.T, []ir.Exclusion, []ir.Exclusion, error) {
 	loader := openapi3.NewLoader()
 	loader.IsExternalRefsAllowed = true
 
 	spec, err := loader.LoadFromFile(specPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("loading spec: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("loading spec: %w", err)
 	}
 
 	type groupData struct {
@@ -112,14 +138,55 @@ func extractOperations(specPath string, filter map[string]bool) ([]apiOperation,
 	}
 
 	grouped := make(map[string]*groupData)
+	var (
+		opExclusions    []ir.Exclusion
+		opExclusionSeen = make(map[string]bool) // dedupe by group name
+	)
 
-	for urlPath, pathItem := range spec.Paths.Map() {
-		for method, op := range pathItem.Operations() {
+	// Iterate paths and methods in sorted order so that exclusion order is
+	// deterministic across runs (Go's randomized map iteration would otherwise
+	// shuffle the breadcrumb output).
+	pathKeys := make([]string, 0, len(spec.Paths.Map()))
+	for k := range spec.Paths.Map() {
+		pathKeys = append(pathKeys, k)
+	}
+	sort.Strings(pathKeys)
+
+	for _, urlPath := range pathKeys {
+		pathItem := spec.Paths.Map()[urlPath]
+		opMap := pathItem.Operations()
+		methods := make([]string, 0, len(opMap))
+		for m := range opMap {
+			methods = append(methods, m)
+		}
+		sort.Strings(methods)
+		for _, method := range methods {
+			op := opMap[method]
 			group := operationGroup(op)
 			if group == "" {
 				continue
 			}
 			if extensionBool(op.Extensions, extIgnorable) {
+				continue
+			}
+			vAdded := extensionString(op.Extensions, extVersionAdded)
+			vRemoved := extensionString(op.Extensions, extVersionRemoved)
+			vDeprecated := extensionString(op.Extensions, extVersionDeprecated)
+			if !vrange.Includes(vAdded, vRemoved, vDeprecated) {
+				if filter != nil && !filter[group] {
+					continue
+				}
+				if opExclusionSeen[group] {
+					continue
+				}
+				if exc := vrange.Exclusion(group, vAdded, vRemoved, vDeprecated); exc != nil {
+					opExclusions = append(opExclusions, ir.Exclusion{
+						Name:    exc.Name,
+						Reason:  exc.Reason,
+						IsOlder: exc.IsOlder,
+					})
+					opExclusionSeen[group] = true
+				}
 				continue
 			}
 			if filter != nil && !filter[group] {
@@ -141,26 +208,32 @@ func extractOperations(specPath string, filter map[string]bool) ([]apiOperation,
 	}
 
 	result := make([]apiOperation, 0, len(grouped))
+	var paramExclusions []ir.Exclusion
 	for group, gd := range grouped {
-		op := buildAPIOperation(group, gd.ops, spec)
+		op, pExc := buildAPIOperation(group, gd.ops, spec, vrange)
 		result = append(result, op)
+		paramExclusions = append(paramExclusions, pExc...)
 	}
 
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].Group < result[j].Group
 	})
-	return result, spec, nil
+	sort.Slice(opExclusions, func(i, j int) bool { return opExclusions[i].Name < opExclusions[j].Name })
+	sort.Slice(paramExclusions, func(i, j int) bool { return paramExclusions[i].Name < paramExclusions[j].Name })
+	return result, spec, opExclusions, paramExclusions, nil
 }
 
 // buildAPIOperation constructs an apiOperation from all path variants sharing
 // a group name. It picks the primary (non-deprecated) variant for metadata and
-// merges query parameters from all variants.
+// merges query parameters from all variants. Returns the operation and any
+// query-param exclusions produced by the version-range filter.
 func buildAPIOperation(group string, ops []struct {
 	method string
 	op     *openapi3.Operation
 	path   *openapi3.PathItem
 	url    string
-}, spec *openapi3.T) apiOperation {
+}, _ *openapi3.T, vrange VersionRange,
+) (apiOperation, []ir.Exclusion) {
 	// Sort ops by URL for determinism, then by operationId within the same URL
 	// to preserve the spec's declared primary ordering (e.g. search.0 is POST,
 	// search.1 is GET - the spec author chose .0 as primary).
@@ -237,11 +310,31 @@ func buildAPIOperation(group string, ops []struct {
 		HasBody:           op.RequestBody != nil,
 	}
 
-	// Union path fields across all URL variants.
+	// Extract request body schema ref.
+	if op.RequestBody != nil && op.RequestBody.Value != nil && op.RequestBody.Value.Content != nil {
+		if mt := op.RequestBody.Value.Content.Get(contentNDJSON); mt != nil {
+			apiOp.IsNDJSON = true
+		} else if mt := op.RequestBody.Value.Content.Get(contentJSON); mt != nil && mt.Schema != nil {
+			apiOp.RequestRef = refToSchemaKey(mt.Schema.Ref)
+			if apiOp.RequestRef == "" {
+				apiOp.RequestRef = group + reqBodySuffix
+			}
+			apiOp.RequestSchemaRef = mt.Schema
+		}
+	}
+
+	// Union path fields across all URL variants. Union path parameters
+	// (anyOf members) are dropped from the request struct: their concrete
+	// values are passed through the member fields, and Build() picks the
+	// right path variant from which fields are populated.
+	unionParams := collectUnionParams(ops)
 	seenPath := make(map[string]bool)
 	for _, o := range ops {
 		pathParams := extractPathParams(o.path, o.op, o.url)
 		for _, pp := range pathParams {
+			if _, isUnion := unionParams[pp.name]; isUnion {
+				continue
+			}
 			goName := pathFieldName(pp.name)
 			if seenPath[goName] {
 				continue
@@ -301,13 +394,14 @@ func buildAPIOperation(group string, ops []struct {
 			deprecated:  vd.deprecated,
 		})
 	}
-	if b, err := analyzeGroup(opGroup{name: group, pathSpecs: variants}); err == nil {
+	if b, err := analyzeGroup(opGroup{name: group, pathSpecs: variants, unionParams: unionParams}); err == nil {
 		b.export()
 		apiOp.PathBuilder = b
 	}
 
 	// Union query parameters across all variants.
-	apiOp.QueryParams = extractQueryParamsUnion(ops, spec)
+	queryParams, paramExc := extractQueryParamsUnion(group, ops, vrange)
+	apiOp.QueryParams = queryParams
 
 	// Extract response schema ref from the first variant with a 200 response.
 	for _, o := range ops {
@@ -318,13 +412,13 @@ func buildAPIOperation(group string, ops []struct {
 		if resp == nil || resp.Value == nil || resp.Value.Content == nil {
 			continue
 		}
-		mt := resp.Value.Content.Get("application/json")
+		mt := resp.Value.Content.Get(contentJSON)
 		if mt == nil || mt.Schema == nil {
 			continue
 		}
 		apiOp.ResponseRef = refToSchemaKey(mt.Schema.Ref)
 		if apiOp.ResponseRef == "" {
-			apiOp.ResponseRef = group + "___ResponseBody"
+			apiOp.ResponseRef = group + respBodySuffix
 		}
 		apiOp.ResponseSchemaRef = mt.Schema
 		break
@@ -335,12 +429,36 @@ func buildAPIOperation(group string, ops []struct {
 	apiOp.IsPointerReq = !hasRequiredScalarPath(apiOp.PathFields)
 	apiOp.IsNoBody = len(methods) == 1 && methods[0] == http.MethodHead
 
-	return apiOp
+	return apiOp, paramExc
 }
 
 type pathParam struct {
 	name   string
 	isList bool
+}
+
+// collectUnionParams gathers union path parameters across every operation
+// variant in a group. The result keys are synthetic param names (e.g.
+// "node_id_or_metric"); values are the anyOf member titles. Used by
+// buildAPIOperation to drop the synthetic param from the request struct
+// and by analyzeGroup to expand path variants for Build() emission.
+func collectUnionParams(ops []struct {
+	method string
+	op     *openapi3.Operation
+	path   *openapi3.PathItem
+	url    string
+},
+) map[string][]string {
+	out := map[string][]string{}
+	for _, o := range ops {
+		for k, v := range unionPathParams(o.path, o.op) {
+			out[k] = v
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 // extractPathParams returns ordered path placeholders from the URL template,
@@ -350,7 +468,7 @@ func extractPathParams(pathItem *openapi3.PathItem, op *openapi3.Operation, urlP
 	arraySet := make(map[string]bool)
 
 	for _, p := range pathItem.Parameters {
-		if p.Value == nil || p.Value.In != "path" {
+		if p.Value == nil || p.Value.In != openapi3.ParameterInPath {
 			continue
 		}
 		paramSet[p.Value.Name] = true
@@ -359,7 +477,7 @@ func extractPathParams(pathItem *openapi3.PathItem, op *openapi3.Operation, urlP
 		}
 	}
 	for _, p := range op.Parameters {
-		if p.Value == nil || p.Value.In != "path" {
+		if p.Value == nil || p.Value.In != openapi3.ParameterInPath {
 			continue
 		}
 		paramSet[p.Value.Name] = true
@@ -441,15 +559,22 @@ func extractQueryParams(pathItem *openapi3.PathItem, op *openapi3.Operation, spe
 
 // extractQueryParamsUnion merges query parameters from all operation variants
 // in a group, deduplicating by wire name. This ensures that params available
-// on any URL pattern appear in the generated Params struct.
-func extractQueryParamsUnion(ops []struct {
+// on any URL pattern appear in the generated Params struct. It also returns
+// breadcrumb-eligible exclusions for params dropped by the version filter,
+// keyed as "<group>.<paramName>".
+func extractQueryParamsUnion(group string, ops []struct {
 	method string
 	op     *openapi3.Operation
 	path   *openapi3.PathItem
 	url    string
-}, spec *openapi3.T) []apiQueryParam {
+}, vrange VersionRange,
+) ([]apiQueryParam, []ir.Exclusion) {
 	seen := make(map[string]bool)
-	var params []apiQueryParam
+	excSeen := make(map[string]bool)
+	var (
+		params     []apiQueryParam
+		exclusions []ir.Exclusion
+	)
 
 	for _, o := range ops {
 		collect := func(refs openapi3.Parameters) {
@@ -464,6 +589,25 @@ func extractQueryParamsUnion(ops []struct {
 				if seen[p.Name] {
 					continue
 				}
+
+				vAdded := extensionString(p.Extensions, extVersionAdded)
+				vRemoved := extensionString(p.Extensions, extVersionRemoved)
+				vDeprecated := extensionString(p.Extensions, extVersionDeprecated)
+				if !vrange.Includes(vAdded, vRemoved, vDeprecated) {
+					qualified := group + "." + p.Name
+					if !excSeen[qualified] {
+						excSeen[qualified] = true
+						if exc := vrange.Exclusion(qualified, vAdded, vRemoved, vDeprecated); exc != nil {
+							exclusions = append(exclusions, ir.Exclusion{
+								Name:    exc.Name,
+								Reason:  exc.Reason,
+								IsOlder: exc.IsOlder,
+							})
+						}
+					}
+					continue
+				}
+
 				seen[p.Name] = true
 
 				qp := apiQueryParam{
@@ -472,7 +616,7 @@ func extractQueryParamsUnion(ops []struct {
 					Description:       p.Description,
 					Required:          p.Required,
 					Deprecated:        p.Deprecated,
-					VersionAdded:      extensionString(p.Extensions, extVersionAdded),
+					VersionAdded:      vAdded,
 					VersionDeprecated: extensionString(p.Extensions, extVersionDeprecated),
 					DeprecationMsg:    extensionString(p.Extensions, extDeprecationMessage),
 				}
@@ -498,18 +642,56 @@ func extractQueryParamsUnion(ops []struct {
 	sort.Slice(params, func(i, j int) bool {
 		return params[i].ParamName < params[j].ParamName
 	})
-	return params
+	sort.Slice(exclusions, func(i, j int) bool { return exclusions[i].Name < exclusions[j].Name })
+	return params, exclusions
 }
 
-// isGlobalParam returns true for query parameters that are handled globally
-// by the client (pretty-printing, error trace, etc.) and should not appear
-// as per-operation Params fields.
-func isGlobalParam(name string) bool {
-	switch name {
-	case "pretty", "human", "error_trace", "source", "filter_path":
-		return true
+// sharedParamGroups maps wire names of query parameters handled by shared
+// param group structs (TimeoutParams, DebugParams) to their group. Parameters
+// in this map are filtered out of per-operation QueryParams since they're
+// provided by embedded structs. Populated by init(); conflicts panic.
+var sharedParamGroups map[string]ir.ParamGroup //nolint:gochecknoglobals // init-time registry, immutable after init
+
+func init() { //nolint:gochecknoinits // validates shared param group assignments at startup
+	entries := []struct {
+		group ir.ParamGroup
+		names []string
+	}{
+		{ir.ParamGroupTimeout, []string{
+			"timeout", "cluster_manager_timeout", "master_timeout",
+		}},
+		{ir.ParamGroupDebug, []string{
+			"pretty", "human", "error_trace", "source", "filter_path",
+			"format", "help", "v", "s", "h",
+		}},
 	}
-	return false
+
+	sharedParamGroups = make(map[string]ir.ParamGroup)
+	for _, e := range entries {
+		for _, name := range e.names {
+			if prev, exists := sharedParamGroups[name]; exists {
+				panic(fmt.Sprintf("sharedParamGroups: param %q appears in both %q and %q groups",
+					name, prev, e.group))
+			}
+			sharedParamGroups[name] = e.group
+		}
+	}
+}
+
+// isGlobalParam returns true for query parameters handled by shared param
+// group structs (TimeoutParams, DebugParams).
+func isGlobalParam(name string) bool {
+	_, ok := sharedParamGroups[name]
+	return ok
+}
+
+// sharedParamGroup returns the ParamGroup for a shared parameter wire name,
+// or ParamGroupOperation if the name is not shared.
+func sharedParamGroup(name string) ir.ParamGroup {
+	if g, ok := sharedParamGroups[name]; ok {
+		return g
+	}
+	return ir.ParamGroupOperation
 }
 
 // classifyParamSchema maps an OpenAPI schema to its Go type and type flags.

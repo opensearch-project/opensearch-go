@@ -56,10 +56,26 @@ func (f *DispatchFragment) Body() (string, error) {
 var dispatchTmpl = template.Must(template.New("dispatch").Funcs(template.FuncMap{
 	"methodConst":   HTTPMethodConst,
 	"primaryMethod": PrimaryMethod,
+	"opMethodComment": func(methodName string, op *ir.Operation) string {
+		return MethodComment(MethodDocData{
+			MethodName:        methodName,
+			Group:             op.Group,
+			Description:       op.Description,
+			HTTPMethods:       op.HTTPMethods,
+			PrimaryPath:       op.PrimaryPath,
+			VersionAdded:      op.VersionAdded,
+			VersionDeprecated: op.VersionDeprecated,
+			DeprecationMsg:    op.DeprecationMsg,
+			ExcludedDistros:   op.ExcludedDistros,
+			DocsURL:           op.DocsURL,
+		})
+	},
 }).Parse(
 	`{{- range .Routes}}
 {{- if .Deprecated}}
 // Deprecated: use {{$.TypePrefix}} via the parent client instead.
+{{- else}}
+{{opMethodComment .MethodName $.Operation}}
 {{- end}}
 func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $.IsPointerReq}}*{{end}}{{$.TypePrefix}}Req) ({{if $.IsNoBody}}*opensearch.Response{{else}}*{{$.TypePrefix}}Resp{{end}}, error) {
 {{- if $.IsPointerReq}}

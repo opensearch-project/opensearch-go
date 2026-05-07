@@ -22,6 +22,15 @@ func runPaths() error {
 	pkg := fs.String("pkg", "path", "output package name")
 	outFile := fs.String("o", "", "output file for builders (default: stdout)")
 	testFile := fs.String("test-out", "", "output file for tests (empty = no tests)")
+	minVer := fs.String("min-version", versionEpoch, "minimum OpenSearch version (default operator: >=)")
+	maxVer := fs.String("max-version", versionLatest, "maximum OpenSearch version (default operator: <=)")
+	removeDepr := fs.String("remove-deprecated", versionEpoch, "treat operations deprecated at or before this version as removed (default: epoch, meaning keep all)")
+	preserveOpt := fs.Bool("min-version-preserve-optional", false, "keep version-gated fields as pointers even when min-version guarantees their presence")
+	bcOpsFlag := fs.String("version-breadcrumb-operations", breadcrumbModeAll, "emit comments for excluded operations: all, older, newer")
+	bcTypesFlag := fs.String("version-breadcrumb-types", breadcrumbModeAll, "emit comments for excluded types: all, older, newer")
+	bcFieldsFlag := fs.String("version-breadcrumb-fields", breadcrumbModeAll, "emit comments for excluded struct fields: all, older, newer")
+	bcPathsFlag := fs.String("version-breadcrumb-paths", breadcrumbModeAll, "emit comments for excluded path builders: all, older, newer")
+	bcParamsFlag := fs.String("version-breadcrumb-params", breadcrumbModeAll, "emit comments for excluded query parameters: all, older, newer")
 	fs.Parse(os.Args[1:])
 
 	if *specPath == "" {
@@ -36,14 +45,24 @@ func runPaths() error {
 		}
 	}
 
-	return generatePaths(*specPath, filter, *pkg, *outFile, *testFile)
+	vrange, err := ParseVersionRange(*minVer, *maxVer, *removeDepr, *preserveOpt)
+	if err != nil {
+		return err
+	}
+
+	bc, err := parseBreadcrumbFlags(*bcOpsFlag, *bcTypesFlag, *bcFieldsFlag, *bcPathsFlag, *bcParamsFlag)
+	if err != nil {
+		return err
+	}
+
+	return generatePaths(*specPath, filter, *pkg, *outFile, *testFile, vrange, bc)
 }
 
 // generatePaths loads the spec, analyzes operation groups, and writes path
 // builder source and optional test files. This is the testable core of the
 // "paths" subcommand.
-func generatePaths(specPath string, filter map[string]bool, pkg, outFile, testFile string) error {
-	grouped, err := loadAndGroup(specPath, filter)
+func generatePaths(specPath string, filter map[string]bool, pkg, outFile, testFile string, vrange VersionRange, bc BreadcrumbConfig) error {
+	grouped, exclusions, err := loadAndGroup(specPath, filter, vrange)
 	if err != nil {
 		return err
 	}
@@ -59,7 +78,19 @@ func generatePaths(specPath string, filter map[string]bool, pkg, outFile, testFi
 		builders = append(builders, b)
 	}
 
-	out, err := render(builders, pkg, true)
+	var breadcrumbs []string
+	seen := make(map[string]bool)
+	for i := range exclusions {
+		if bc.Paths.ShouldBreadcrumb(&exclusions[i]) {
+			msg := exclusions[i].Name + "Path: " + exclusions[i].Reason + "."
+			if !seen[msg] {
+				seen[msg] = true
+				breadcrumbs = append(breadcrumbs, msg)
+			}
+		}
+	}
+
+	out, err := render(builders, pkg, true, breadcrumbs)
 	if err != nil {
 		return fmt.Errorf("render: %w", err)
 	}

@@ -8,7 +8,8 @@ package main
 
 import (
 	"net/http"
-	"path/filepath"
+	"path"
+	"sort"
 	"strings"
 )
 
@@ -22,8 +23,10 @@ const (
 	// opensearchAPIImport is the full import path for the core API package.
 	opensearchAPIImport = modulePath + "/" + opensearchAPIPkgName
 
-	// pluginsImportBase is the import path prefix for plugin packages.
-	pluginsImportBase = modulePath + "/plugins"
+	// pluginsImportBase is the import path prefix for plugin packages when
+	// using the default package name. When -pkg overrides the package name,
+	// importPathForPkg computes the path from corePkg directly.
+	pluginsImportBase = modulePath + "/" + opensearchAPIPkgName + "/plugins"
 
 	genFileSuffix     = "_gen.go"
 	genTestFileSuffix = "_gen_test.go"
@@ -58,7 +61,7 @@ func routeOperation(group, outDir, pluginsDir string) (pkg, dir string) {
 	if coreGroups[prefix] {
 		return opensearchAPIPkgName, outDir
 	}
-	return prefix, filepath.Join(pluginsDir, prefix)
+	return prefix, path.Join(pluginsDir, prefix)
 }
 
 // importPath returns the full Go import path for the package that owns a
@@ -301,4 +304,209 @@ func httpMethodConst(method string) string {
 	default:
 		return "http.MethodGet"
 	}
+}
+
+// pluginSubClientInfo describes a sub-client within a plugin package.
+type pluginSubClientInfo struct {
+	TypeName  string // e.g. "actionGroupClient"
+	FieldName string // exported field on Client (e.g. "ActionGroup")
+}
+
+// pluginSubClientResult holds the derived sub-client hierarchy for one plugin.
+type pluginSubClientResult struct {
+	SubClients []pluginSubClientInfo
+	// Assignment maps operation group (e.g. "security.get_action_group") to the
+	// sub-client FieldName it belongs to, or "" for root Client operations.
+	Assignment map[string]string
+}
+
+// resolvePluginSubClients derives sub-client groupings for a set of plugin
+// operations sharing a package. Operations are grouped by resource noun
+// extracted from their x-operation-group suffix. Resources with 2+ operations
+// get a sub-client; single-operation resources stay flat on root Client.
+func resolvePluginSubClients(groups []string) pluginSubClientResult {
+	type opInfo struct {
+		group    string // full group (e.g. "security.get_action_group")
+		suffix   string // part after dot (e.g. "get_action_group")
+		resource string // normalized resource noun (e.g. "action_group")
+	}
+
+	var ops []opInfo
+	resourceOps := make(map[string][]string) // resource -> list of groups
+
+	for _, g := range groups {
+		suffix := g
+		if idx := strings.IndexByte(g, '.'); idx >= 0 {
+			suffix = g[idx+1:]
+		}
+
+		resource := extractResourceNoun(suffix)
+		if resource == "" {
+			ops = append(ops, opInfo{group: g, suffix: suffix})
+			continue
+		}
+
+		canonical := normalizeNoun(resource)
+		ops = append(ops, opInfo{group: g, suffix: suffix, resource: canonical})
+		resourceOps[canonical] = append(resourceOps[canonical], g)
+	}
+
+	// Build sub-clients for resources with 2+ operations.
+	subClientMap := make(map[string]pluginSubClientInfo)
+	for resource, opGroups := range resourceOps {
+		if len(opGroups) < 2 {
+			continue
+		}
+		subClientMap[resource] = pluginSubClientInfo{
+			TypeName:  resourceToTypeName(resource),
+			FieldName: resourceToFieldName(resource),
+		}
+	}
+
+	// Collect sub-clients sorted for deterministic output.
+	scNames := make([]string, 0, len(subClientMap))
+	for resource := range subClientMap {
+		scNames = append(scNames, resource)
+	}
+	sort.Strings(scNames)
+
+	result := pluginSubClientResult{
+		Assignment: make(map[string]string, len(ops)),
+	}
+	for _, resource := range scNames {
+		result.SubClients = append(result.SubClients, subClientMap[resource])
+	}
+
+	// Assign each operation to its sub-client (or "" for root).
+	for _, op := range ops {
+		if sc, ok := subClientMap[op.resource]; ok {
+			result.Assignment[op.group] = sc.FieldName
+		}
+	}
+
+	return result
+}
+
+// verbPrefixes are common verb prefixes in operation suffixes, ordered
+// longest-first so longer prefixes match before shorter ones.
+var verbPrefixes = []string{
+	"create_update_",
+	"get_all_",
+	"delete_",
+	"create_",
+	"update_",
+	"search_",
+	"execute_",
+	"deploy_",
+	"undeploy_",
+	"register_",
+	"deregister_",
+	"generate_",
+	"simulate_",
+	"predict_",
+	"reload_",
+	"upload_",
+	"unload_",
+	"change_",
+	"chunk_",
+	"train_",
+	"flush_",
+	"load_",
+	"post_",
+	"patch_",
+	"list_",
+	"add_",
+	"get_",
+	"put_",
+}
+
+// extractResourceNoun strips the leading verb prefix from an operation suffix
+// and returns the remainder as the resource noun. Returns "" if no known verb
+// prefix matches (the operation stays flat on root Client).
+func extractResourceNoun(suffix string) string {
+	for _, vp := range verbPrefixes {
+		if strings.HasPrefix(suffix, vp) {
+			remainder := suffix[len(vp):]
+			if remainder != "" {
+				return remainder
+			}
+		}
+	}
+	return ""
+}
+
+// normalizeNoun singularizes each underscore-separated word in a resource noun
+// so that plural variants group with their singular form.
+func normalizeNoun(noun string) string {
+	words := strings.Split(noun, "_")
+	for i, w := range words {
+		words[i] = singularize(w)
+	}
+	return strings.Join(words, "_")
+}
+
+// singularize attempts to convert a plural English word to singular.
+func singularize(word string) string {
+	if len(word) <= 2 {
+		return word
+	}
+	if s, ok := irregularSingulars[word]; ok {
+		return s
+	}
+	switch {
+	case strings.HasSuffix(word, "ies"):
+		return word[:len(word)-3] + "y"
+	case strings.HasSuffix(word, "sses"):
+		return word[:len(word)-2]
+	case strings.HasSuffix(word, "xes") ||
+		strings.HasSuffix(word, "zes") ||
+		strings.HasSuffix(word, "shes"):
+		return word[:len(word)-2]
+	case strings.HasSuffix(word, "ches"):
+		// "batches" -> "batch" (ch + es), but "caches" -> "cache" (silent-e + s).
+		// English orthography offers no general rule that distinguishes the two
+		// from spelling alone (both have "ch" before "es"), so the irregular
+		// map above carries the silent-e cases we actually encounter.
+		return word[:len(word)-2]
+	case strings.HasSuffix(word, "ses"):
+		// "aliases" -> "alias" (strip "es"), but "responses" -> handled by
+		// the sses rule above.
+		return word[:len(word)-2]
+	case strings.HasSuffix(word, "ss") ||
+		strings.HasSuffix(word, "us") ||
+		strings.HasSuffix(word, "is"):
+		return word
+	case strings.HasSuffix(word, "s"):
+		return word[:len(word)-1]
+	default:
+		return word
+	}
+}
+
+// irregularSingulars maps plural English words to their singular form for
+// cases where suffix-based rules produce the wrong result. Keep this list
+// minimal and limited to nouns that appear in OpenAPI resource paths.
+var irregularSingulars = map[string]string{
+	"caches":  "cache",
+	"niches":  "niche",
+	"indices": "index",
+}
+
+// resourceToTypeName converts a resource noun to an unexported Go client type
+// name. e.g. "action_group" -> "actionGroupClient".
+func resourceToTypeName(resource string) string {
+	parts := strings.Split(resource, "_")
+	var sb strings.Builder
+	sb.WriteString(parts[0])
+	for _, p := range parts[1:] {
+		sb.WriteString(titleSegment(p))
+	}
+	sb.WriteString("Client")
+	return sb.String()
+}
+
+// resourceToFieldName converts a resource noun to an exported Go field name.
+// e.g. "action_group" -> "ActionGroup".
+func resourceToFieldName(resource string) string {
+	return methodNameFromSuffix(resource)
 }

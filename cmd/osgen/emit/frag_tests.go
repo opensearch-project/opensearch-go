@@ -21,9 +21,14 @@ type ParamTestCase struct {
 
 // ParamsTestFragment renders the _internal_gen_test.go content for Params.get().
 type ParamsTestFragment struct {
-	TypePrefix  string
-	HasDuration bool
-	Cases       []ParamTestCase
+	TypePrefix string
+	// FormatOverride, when non-empty, is the runtime default the SDK emits
+	// for the `format` query param when the caller leaves it unset. Mirrors
+	// the override applied in ParamsFragment so generated tests anticipate
+	// the extra map entry.
+	FormatOverride string
+	HasDuration    bool
+	Cases          []ParamTestCase
 }
 
 func (f *ParamsTestFragment) Imports() []Import {
@@ -58,12 +63,16 @@ var paramsTestFragTmpl = template.Must(template.New("paramsTest").Funcs(template
 		params {{.TypePrefix}}Params
 		want   map[string]string
 	}{
-		{name: "empty", params: {{.TypePrefix}}Params{}, want: map[string]string{}},
+{{- if .FormatOverride}}
+		{name: "empty", params: {{.TypePrefix}}Params{}, want: map[string]string{"format": {{quote .FormatOverride}}}},
+{{- else}}
+		{name: "empty", params: {{.TypePrefix}}Params{}, want: nil},
+{{- end}}
 {{- range .Cases}}
 		{
 			name:   {{quote .Name}},
 			params: {{$.TypePrefix}}Params{ {{.FieldAssign}} },
-			want:   map[string]string{ {{.WantAssign}} },
+			want:   map[string]string{ {{if $.FormatOverride}}"format": {{quote $.FormatOverride}}, {{end}}{{.WantAssign}} },
 		},
 {{- end}}
 	}
@@ -283,6 +292,10 @@ func (f *IntegTestFragment) Imports() []Import {
 	cfg := f.Config
 	var imps []Import
 
+	if cfg.FixtureCode != "" {
+		imps = append(imps, Import{Path: "context"})
+	}
+
 	imps = append(imps, Import{Path: "testing"})
 	imps = append(imps, Import{Path: "github.com/stretchr/testify/require"})
 
@@ -368,9 +381,9 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 {{- if .Config.FixtureCode}}
 	t.Cleanup(func() {
 {{- if .Config.IsPlugin}}
-		_, _ = osClient.Indices.Delete(t.Context(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
 {{- else}}
-		_, _ = client.Indices.Delete(t.Context(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
 {{- end}}
 	})
 
@@ -418,16 +431,6 @@ func NewParamsTestFile(outDir, pkg, basename string, frag *ParamsTestFragment) T
 	return &File{
 		FilePath:   outDir + "/" + basename + "_internal_gen_test.go",
 		Package:    pkg,
-		BuildTag:   "!integration",
-		Fragments:  []Fragment{frag},
-	}
-}
-
-// NewReqTestFile builds a Target for <basename>_gen_test.go (black-box, _test package).
-func NewReqTestFile(outDir, pkg, basename string, frag *ReqTestFragment) Target {
-	return &File{
-		FilePath:   outDir + "/" + basename + "_gen_test.go",
-		Package:    pkg + "_test",
 		BuildTag:   "!integration",
 		Fragments:  []Fragment{frag},
 	}

@@ -12,6 +12,40 @@ type Spec struct {
 	Operations []*Operation
 	Types      []*Type
 	Registry   *TypeRegistry
+
+	// Exclusions records items dropped by the version-range filter so the
+	// emit phase can render breadcrumb comments. Each entry carries the
+	// item's qualified name (e.g. "search.SourceIncludes" for a param) and
+	// the category it falls under. The IsOlder field on each entry says
+	// whether the item was excluded by min-version (older) or max-version
+	// (newer); the BreadcrumbMode filter consults this at render time.
+	Exclusions Exclusions
+}
+
+// Exclusions groups version-filter casualties by category. Categories match
+// the --version-breadcrumb-{operations,fields,params} CLI flags.
+type Exclusions struct {
+	Operations []Exclusion
+	Fields     []Exclusion
+	Params     []Exclusion
+}
+
+// Exclusion is a single item dropped by the version-range filter.
+type Exclusion struct {
+	// Name is the dotted, fully-qualified identifier for the item:
+	//   - operations: "<group>" (e.g. "bulk_stream")
+	//   - fields:     "<TypeName>.<FieldName>" with optional
+	//                 "(req)" / "(resp)" suffix to disambiguate when the
+	//                 same type name appears on both sides.
+	//   - params:     "<group>.<paramName>" (e.g. "search.docvalue_fields")
+	Name string
+	// Reason is a short human-readable phrase like
+	// "removed in OpenSearch 3.0" or "requires OpenSearch >= 2.7".
+	Reason string
+	// IsOlder is true when the item was excluded by min-version (it is too
+	// old for the requested range), false when excluded by max-version
+	// (too new). Drives the BreadcrumbOlder/BreadcrumbNewer filter modes.
+	IsOlder bool
 }
 
 // Operation represents one x-operation-group with all its path variants merged.
@@ -34,6 +68,11 @@ type Operation struct {
 
 	PrimaryPath string
 	HasBody     bool
+
+	HasTypedBody    bool    // true when Body is a typed struct (not io.Reader)
+	IsNDJSON        bool    // true when the request body is application/x-ndjson (e.g. _bulk, _msearch)
+	RequestBody     *Type   // typed body struct (nil = io.Reader fallback)
+	ReqBodySiblings []*Type // request-body-specific sibling types
 
 	PathFields  []PathField
 	QueryParams []QueryParam
@@ -74,11 +113,32 @@ type QueryParam struct {
 	Default           string
 	GoType            string
 	Kind              ParamKind
+	Group             ParamGroup
 	Required          bool
 	Deprecated        bool
 	VersionAdded      string
 	VersionDeprecated string
 	DeprecationMsg    string
+}
+
+// ParamGroup classifies a query parameter into a shared embedding group.
+type ParamGroup int
+
+const (
+	ParamGroupOperation ParamGroup = iota
+	ParamGroupTimeout
+	ParamGroupDebug
+)
+
+func (g ParamGroup) String() string {
+	switch g {
+	case ParamGroupTimeout:
+		return "timeout"
+	case ParamGroupDebug:
+		return "debug"
+	default:
+		return "operation"
+	}
 }
 
 // ParamKind classifies query parameter serialization behavior.
@@ -174,9 +234,10 @@ const (
 // PathBuilder holds the analyzed path-building data (trie operations) for one
 // operation, used for both code generation and test generation.
 type PathBuilder struct {
-	StructName string
-	Fields     []PathBuilderField
-	Ops        []PathOp
+	StructName     string
+	Fields         []PathBuilderField
+	Ops            []PathOp
+	PositionalDeps []PathPositionalDep
 }
 
 // PathBuilderField represents a field in the generated path builder struct.
@@ -187,25 +248,43 @@ type PathBuilderField struct {
 	IsList   bool
 }
 
+// PathPositionalDep records that the Dependent field may only be set when
+// the Predecessor field is also set. The path Build() method emits a runtime
+// guard for each entry; test generators can use this list to populate
+// predecessor fields whenever they populate a dependent.
+type PathPositionalDep struct {
+	Dependent   PathBuilderField
+	Predecessor PathBuilderField
+}
+
 // PathOp is one instruction in the generated Build() method body.
 type PathOp struct {
-	Kind  PathOpKind
-	Value string
+	Kind       PathOpKind
+	Value      string
+	Conditions []PathCaseCondition // populated for PathOpCase and PathOpIf
+}
+
+// PathCaseCondition is one field-presence test inside a switch case or
+// single if{} block. Multiple conditions on one op are ANDed together.
+type PathCaseCondition struct {
+	Field  string
+	IsList bool
 }
 
 // PathOpKind classifies path-building operations.
 type PathOpKind uint8
 
 const (
-	PathOpLit        PathOpKind = iota // literal path segment
+	PathOpLit       PathOpKind = iota // literal path segment
 	PathOpField                       // single-value field interpolation
 	PathOpList                        // comma-joined list interpolation
-	PathOpIfList                      // if-branch for list field
-	PathOpIfStr                       // if-branch for string field
-	PathOpElseIfList                  // else-if for list field
-	PathOpElseIfStr                   // else-if for string field
-	PathOpElse                        // else branch
-	PathOpEnd                        // end of conditional
+	PathOpSwitch                      // open switch{} block
+	PathOpCase                        // case <conditions>: label
+	PathOpDefault                     // default: label
+	PathOpSwitchEnd                   // close switch{} block
+	PathOpIf                          // open if{} block
+	PathOpIfEnd                       // close if{} block
+	PathOpExplainCheck                // emit "if any-optional-set { return explain<T>(p) }"
 )
 
 // DispatchRoute describes how an operation maps to a client method.

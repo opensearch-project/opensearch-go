@@ -8,25 +8,43 @@ package emit
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"text/template"
 
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
+// PluginSubClient describes a sub-client within a plugin package.
+type PluginSubClient struct {
+	TypeName  string // unexported type name (e.g. "actionGroupClient")
+	FieldName string // exported field on Client (e.g. "ActionGroup")
+}
+
 // PluginClientOp holds per-operation data needed by the plugin client template.
 type PluginClientOp struct {
-	MethodName   string
-	TypePrefix   string
-	IsPointerReq bool
-	IsNoBody     bool
-	HTTPMethod   string // Go expression for the primary HTTP method (e.g. "http.MethodGet")
+	MethodName        string
+	TypePrefix        string
+	IsPointerReq      bool
+	IsNoBody          bool
+	HTTPMethod        string           // Go expression for the primary HTTP method (e.g. "http.MethodGet")
+	SubClient         *PluginSubClient // nil for root Client ops; set for sub-client dispatch
+	Group             string
+	Description       string
+	HTTPMethods       []string
+	PrimaryPath       string
+	VersionAdded      string
+	VersionDeprecated string
+	DeprecationMsg    string
+	ExcludedDistros   []string
+	DocsURL           string
 }
 
 // PluginClientFragment renders the plugin Client struct, NewClient constructor,
 // do() helper, dispatch methods, and noBody sentinel.
 type PluginClientFragment struct {
-	Ops []PluginClientOp
+	Ops        []PluginClientOp
+	SubClients []PluginSubClient
 }
 
 func (f *PluginClientFragment) Imports() []Import {
@@ -43,21 +61,85 @@ func (f *PluginClientFragment) Body() (string, error) {
 		return "", nil
 	}
 
+	// Split ops into root-level and sub-client-dispatched.
+	var rootOps, subClientOps []PluginClientOp
+	for _, op := range f.Ops {
+		if op.SubClient == nil {
+			rootOps = append(rootOps, op)
+		} else {
+			subClientOps = append(subClientOps, op)
+		}
+	}
+
+	// Build deprecated forwards for sub-client ops (flat method on root Client).
+	type deprecatedForward struct {
+		PluginClientOp
+		SubClientField string
+	}
+	var deprecatedForwards []deprecatedForward
+	for _, op := range subClientOps {
+		deprecatedForwards = append(deprecatedForwards, deprecatedForward{
+			PluginClientOp: op,
+			SubClientField: op.SubClient.FieldName,
+		})
+	}
+
+	data := struct {
+		SubClients         []PluginSubClient
+		RootOps            []PluginClientOp
+		SubClientOps       []PluginClientOp
+		DeprecatedForwards []deprecatedForward
+	}{
+		SubClients:         f.SubClients,
+		RootOps:            rootOps,
+		SubClientOps:       subClientOps,
+		DeprecatedForwards: deprecatedForwards,
+	}
+
 	var sb strings.Builder
-	if err := pluginClientFragTmpl.Execute(&sb, f.Ops); err != nil {
+	if err := pluginClientFragTmpl.Execute(&sb, data); err != nil {
 		return "", fmt.Errorf("rendering PluginClientFragment: %w", err)
 	}
 	return sb.String(), nil
 }
 
-var pluginClientFragTmpl = template.Must(template.New("pluginClient").Parse(`// Client provides methods for this plugin API.
+// pluginMethodComment builds a method doc comment from a PluginClientOp.
+func pluginMethodComment(op PluginClientOp) string {
+	return MethodComment(MethodDocData{
+		MethodName:        op.MethodName,
+		Group:             op.Group,
+		Description:       op.Description,
+		HTTPMethods:       op.HTTPMethods,
+		PrimaryPath:       op.PrimaryPath,
+		VersionAdded:      op.VersionAdded,
+		VersionDeprecated: op.VersionDeprecated,
+		DeprecationMsg:    op.DeprecationMsg,
+		ExcludedDistros:   op.ExcludedDistros,
+		DocsURL:           op.DocsURL,
+	})
+}
+
+var pluginClientFragTmpl = template.Must(template.New("pluginClient").Funcs(template.FuncMap{
+	"methodComment": pluginMethodComment,
+}).Parse(`// Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
+{{- range .SubClients}}
+	{{.FieldName}} {{.TypeName}}
+{{- end}}
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
+{{- if .SubClients}}
+	c := &Client{Client: client}
+{{- range .SubClients}}
+	c.{{.FieldName}} = {{.TypeName}}{client: c}
+{{- end}}
+	return c
+{{- else}}
 	return &Client{Client: client}
+{{- end}}
 }
 
 // do calls [opensearch.Do] and checks the response for errors.
@@ -76,9 +158,14 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 
 	return resp, nil
 }
-{{range .}}
+{{range .SubClients}}
+type {{.TypeName}} struct {
+	client *Client
+}
+{{end}}
+{{- range .RootOps}}
 {{- if .IsPointerReq}}
-// {{.MethodName}} executes the {{.TypePrefix}} operation.
+{{methodComment .}}
 func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 	if req == nil {
 		req = &{{.TypePrefix}}Req{}
@@ -94,7 +181,7 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) (
 {{- end}}
 }
 {{- else}}
-// {{.MethodName}} executes the {{.TypePrefix}} operation.
+{{methodComment .}}
 func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 {{- if .IsNoBody}}
 	return do(ctx, c, {{.HTTPMethod}}, req, noBody)
@@ -108,8 +195,53 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({
 }
 {{- end}}
 {{end}}
+{{- range .SubClientOps}}
+{{- if .IsPointerReq}}
+{{methodComment .}}
+func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+	if req == nil {
+		req = &{{.TypePrefix}}Req{}
+	}
+{{- if .IsNoBody}}
+	return do(ctx, c.client, {{.HTTPMethod}}, *req, noBody)
+{{- else}}
+	var resp {{.TypePrefix}}Resp
+	if _, err := do(ctx, c.client, {{.HTTPMethod}}, *req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+{{- end}}
+}
+{{- else}}
+{{methodComment .}}
+func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+{{- if .IsNoBody}}
+	return do(ctx, c.client, {{.HTTPMethod}}, req, noBody)
+{{- else}}
+	var resp {{.TypePrefix}}Resp
+	if _, err := do(ctx, c.client, {{.HTTPMethod}}, req, &resp); err != nil {
+		return &resp, err
+	}
+	return &resp, nil
+{{- end}}
+}
+{{- end}}
+{{end}}
+{{- range .DeprecatedForwards}}
+{{- if .IsPointerReq}}
+// Deprecated: use Client.{{.SubClientField}}.{{.MethodName}} instead.
+func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+	return c.{{.SubClientField}}.{{.MethodName}}(ctx, req)
+}
+{{- else}}
+// Deprecated: use Client.{{.SubClientField}}.{{.MethodName}} instead.
+func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+	return c.{{.SubClientField}}.{{.MethodName}}(ctx, req)
+}
+{{- end}}
+{{end}}
 // noBody is a sentinel used when an operation returns no JSON body.
-var noBody *struct{} //nolint:gochecknoglobals
+var noBody *struct{} //nolint:gochecknoglobals // package-level marker shared by all no-body operations
 `))
 
 // PluginTestHelperFragment renders the test helper (NewClient + CreateFailingClient)
@@ -192,10 +324,27 @@ func VerifyInspect(t *testing.T, inspect {{.CorePkg}}.Inspect) {
 `))
 
 // NewPluginClientFile builds a Target for a plugin's client_gen.go.
-func NewPluginClientFile(outDir, pkg string, ops []*ir.Operation) Target {
+// The byGroup map (group -> *PluginSubClient) determines which ops dispatch
+// through a sub-client. Operations not in the map stay flat on Client.
+func NewPluginClientFile(outDir, pkg string, ops []*ir.Operation, byGroup map[string]*PluginSubClient) Target {
 	if len(ops) == 0 {
 		return nil
 	}
+
+	// Collect the unique sub-clients in sorted order for deterministic output.
+	seen := make(map[string]bool)
+	var subClients []PluginSubClient
+	for _, op := range ops {
+		sc := byGroup[op.Group]
+		if sc == nil || seen[sc.FieldName] {
+			continue
+		}
+		seen[sc.FieldName] = true
+		subClients = append(subClients, *sc)
+	}
+	sort.Slice(subClients, func(i, j int) bool {
+		return subClients[i].FieldName < subClients[j].FieldName
+	})
 
 	var clientOps []PluginClientOp
 	for _, op := range ops {
@@ -203,19 +352,30 @@ func NewPluginClientFile(outDir, pkg string, ops []*ir.Operation) Target {
 		if idx := strings.IndexByte(suffix, '.'); idx >= 0 {
 			suffix = suffix[idx+1:]
 		}
-		clientOps = append(clientOps, PluginClientOp{
-			MethodName:   PluginMethodName(suffix),
-			TypePrefix:   op.TypePrefix,
-			IsPointerReq: op.IsPointerReq,
-			IsNoBody:     op.IsNoBody,
-			HTTPMethod:   HTTPMethodConst(PrimaryMethod(op)),
-		})
+		pco := PluginClientOp{
+			MethodName:        PluginMethodName(suffix),
+			TypePrefix:        op.TypePrefix,
+			IsPointerReq:      op.IsPointerReq,
+			IsNoBody:          op.IsNoBody,
+			HTTPMethod:        HTTPMethodConst(PrimaryMethod(op)),
+			SubClient:         byGroup[op.Group],
+			Group:             op.Group,
+			Description:       op.Description,
+			HTTPMethods:       op.HTTPMethods,
+			PrimaryPath:       op.PrimaryPath,
+			VersionAdded:      op.VersionAdded,
+			VersionDeprecated: op.VersionDeprecated,
+			DeprecationMsg:    op.DeprecationMsg,
+			ExcludedDistros:   op.ExcludedDistros,
+			DocsURL:           op.DocsURL,
+		}
+		clientOps = append(clientOps, pco)
 	}
 
 	return &File{
 		FilePath:  outDir + "/client_gen.go",
 		Package:   pkg,
-		Fragments: []Fragment{&PluginClientFragment{Ops: clientOps}},
+		Fragments: []Fragment{&PluginClientFragment{Ops: clientOps, SubClients: subClients}},
 	}
 }
 

@@ -40,7 +40,7 @@ func Test{{.TypePrefix}}Params_get(t *testing.T) {
 		params {{.TypePrefix}}Params
 		want   map[string]string
 	}{
-		{name: "empty", params: {{.TypePrefix}}Params{}, want: map[string]string{}},
+		{name: "empty", params: {{.TypePrefix}}Params{}, want: nil},
 {{- range .Cases}}
 		{
 			name:   {{quote .Name}},

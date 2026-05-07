@@ -39,15 +39,13 @@ func TestRender(t *testing.T) {
 				{Name: "Index", Param: "index", Required: false, IsList: true},
 			},
 			Ops: []emitOp{
-				{Kind: opIfList, Value: "Index"},
 				{Kind: opList, Value: "Index"},
-				{Kind: opEnd},
 				{Kind: opLit, Value: "_refresh"},
 			},
 		},
 	}
 
-	src, err := render(builders, "path", true)
+	src, err := render(builders, "path", true, nil)
 	require.NoError(t, err)
 	require.Contains(t, src, "package path")
 	require.Contains(t, src, "ClusterHealthPath")
@@ -76,7 +74,7 @@ func TestRender_RequiredField(t *testing.T) {
 		},
 	}
 
-	src, err := render(builders, "path", true)
+	src, err := render(builders, "path", true, nil)
 	require.NoError(t, err)
 	require.Contains(t, src, "errRequired")
 	require.Contains(t, src, `IndicesDeletePath.Index`)
@@ -96,7 +94,7 @@ func TestRender_Unexported(t *testing.T) {
 		},
 	}
 
-	src, err := render(builders, "path", false)
+	src, err := render(builders, "path", false, nil)
 	require.NoError(t, err)
 	require.Contains(t, src, "func (p TestPath) build()")
 	assertValidGo(t, src)
@@ -351,9 +349,7 @@ func TestGenerateTests(t *testing.T) {
 				{Name: "Index", Param: "index", Required: false, IsList: true},
 			},
 			Ops: []emitOp{
-				{Kind: opIfList, Value: "Index"},
 				{Kind: opList, Value: "Index"},
-				{Kind: opEnd},
 				{Kind: opLit, Value: "_search"},
 			},
 		},
@@ -426,12 +422,12 @@ func TestSimulateBuild(t *testing.T) {
 			want:   "/my-index/_refresh",
 		},
 		{
-			name: "field absent",
+			name: "field absent inside if guard",
 			b: builder{
 				Ops: []emitOp{
-					{Kind: opIfStr, Value: "Index"},
+					{Kind: opIf, Conditions: []caseCondition{{Field: "Index"}}},
 					{Kind: opField, Value: "Index"},
-					{Kind: opEnd},
+					{Kind: opIfEnd},
 					{Kind: opLit, Value: "_refresh"},
 				},
 			},
@@ -450,12 +446,12 @@ func TestSimulateBuild(t *testing.T) {
 			want:   "/a,b/_refresh",
 		},
 		{
-			name: "ifList false skips body",
+			name: "if list false skips body",
 			b: builder{
 				Ops: []emitOp{
-					{Kind: opIfList, Value: "Index"},
+					{Kind: opIf, Conditions: []caseCondition{{Field: "Index", IsList: true}}},
 					{Kind: opList, Value: "Index"},
-					{Kind: opEnd},
+					{Kind: opIfEnd},
 					{Kind: opLit, Value: "_refresh"},
 				},
 			},
@@ -463,56 +459,59 @@ func TestSimulateBuild(t *testing.T) {
 			want:   "/_refresh",
 		},
 		{
-			name: "elseIfStr taken",
+			name: "switch second case taken",
 			b: builder{
 				Ops: []emitOp{
-					{Kind: opIfStr, Value: "A"},
+					{Kind: opSwitch},
+					{Kind: opCase, Conditions: []caseCondition{{Field: "A"}}},
 					{Kind: opField, Value: "A"},
-					{Kind: opElseIfStr, Value: "B"},
+					{Kind: opCase, Conditions: []caseCondition{{Field: "B"}}},
 					{Kind: opField, Value: "B"},
-					{Kind: opEnd},
+					{Kind: opSwitchEnd},
 				},
 			},
 			values: map[string][]string{"B": {"val-b"}},
 			want:   "/val-b",
 		},
 		{
-			name: "elseIfList taken",
+			name: "switch case with list field",
 			b: builder{
 				Ops: []emitOp{
-					{Kind: opIfStr, Value: "A"},
+					{Kind: opSwitch},
+					{Kind: opCase, Conditions: []caseCondition{{Field: "A"}}},
 					{Kind: opField, Value: "A"},
-					{Kind: opElseIfList, Value: "B"},
+					{Kind: opCase, Conditions: []caseCondition{{Field: "B", IsList: true}}},
 					{Kind: opList, Value: "B"},
-					{Kind: opEnd},
+					{Kind: opSwitchEnd},
 				},
 			},
 			values: map[string][]string{"B": {"x", "y"}},
 			want:   "/x,y",
 		},
 		{
-			name: "else taken",
+			name: "default case taken",
 			b: builder{
 				Ops: []emitOp{
-					{Kind: opIfStr, Value: "A"},
+					{Kind: opSwitch},
+					{Kind: opCase, Conditions: []caseCondition{{Field: "A"}}},
 					{Kind: opField, Value: "A"},
-					{Kind: opElse},
+					{Kind: opDefault},
 					{Kind: opLit, Value: "_default"},
-					{Kind: opEnd},
+					{Kind: opSwitchEnd},
 				},
 			},
 			values: nil,
 			want:   "/_default",
 		},
 		{
-			name: "nested inactive suppresses inner ops",
+			name: "nested if inactive suppresses inner ops",
 			b: builder{
 				Ops: []emitOp{
-					{Kind: opIfStr, Value: "A"},
-					{Kind: opIfStr, Value: "B"},
+					{Kind: opIf, Conditions: []caseCondition{{Field: "A"}}},
+					{Kind: opIf, Conditions: []caseCondition{{Field: "B"}}},
 					{Kind: opField, Value: "B"},
-					{Kind: opEnd},
-					{Kind: opEnd},
+					{Kind: opIfEnd},
+					{Kind: opIfEnd},
 					{Kind: opLit, Value: "_end"},
 				},
 			},

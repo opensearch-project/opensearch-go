@@ -17,6 +17,21 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
+// TestVersionOverrides maps operation groups to minimum server versions required
+// for integration tests to pass. Use this when the spec's x-version-added is
+// technically correct (the endpoint exists) but a server or plugin bug prevents
+// the test from succeeding on older versions.
+var TestVersionOverrides = map[string]string{
+	// DELETE /_search/point_in_time/_all returns a malformed error body (HTTP 200
+	// with {"error":{...}}) when no PITs exist. Fixed in 2.12 by
+	// opensearch-project/OpenSearch#11711 (backport #11713).
+	"delete_all_pits": "2.12",
+
+	// k-NN plugin's KNNScoringScriptEngine.getSupportedContexts() returned null,
+	// causing NPE in ScriptService.getScriptLanguages() (opensearch-project/k-NN#560).
+	"get_script_languages": "2.4",
+}
+
 // Path field name constants used in test generation to identify fields that
 // require special handling (dedicated test indices, valid enum values, etc.).
 const (
@@ -30,6 +45,20 @@ const (
 	fieldNodeIDOrMetric = "NodeIDOrMetric"
 )
 
+// Struct field names emitted on generated Req types. Used in both template
+// rendering (frag_req.go) and test synthesis to keep names in sync.
+const (
+	BodyField       = "Body"
+	BodyReaderField = "BodyReader"
+	BodySuffix      = "Body" // Go type name suffix (e.g. "MlRegisterModelBody")
+)
+
+// Variable name prefixes used in generated integration test call expressions.
+const (
+	testClientVar        = "client."
+	testFailingClientVar = "failingClient."
+)
+
 // BuildConfig holds configuration for target construction.
 type BuildConfig struct {
 	OutDir     string
@@ -37,6 +66,12 @@ type BuildConfig struct {
 	CorePkg    string
 	ModulePath string
 	SubClients []SubClient
+
+	// PluginSubClients maps plugin package name to a per-operation-group lookup
+	// of sub-client pointers. Operations not in the inner map stay flat on root
+	// Client. Keyed by package name (e.g. "security"), then by operation group
+	// (e.g. "security.get_action_group").
+	PluginSubClients map[string]map[string]*PluginSubClient
 }
 
 // Build constructs all targets from the IR spec.
@@ -68,9 +103,18 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 			targets = append(targets, NewParamsTestFile(dir, filePkg, basename, paramsFrag))
 		}
 
-		// Req test file.
-		if reqFrag := buildReqTestFrag(op, filePkg, importPath); reqFrag != nil {
-			targets = append(targets, NewReqTestFile(dir, filePkg, basename, reqFrag))
+		// Unit test file (GetRequest path tests + roundtrip dispatch tests).
+		if reqFrag := buildReqTestFrag(op, filePkg, importPath, cfg.CorePkg); reqFrag != nil {
+			frags := []Fragment{reqFrag}
+			if rtFrag := buildRoundtripTestFrag(op, filePkg, importPath, cfg); rtFrag != nil {
+				frags = append(frags, rtFrag)
+			}
+			targets = append(targets, &File{
+				FilePath:  dir + "/" + basename + "_gen_test.go",
+				Package:   filePkg + "_test",
+				BuildTag:  "!integration",
+				Fragments: frags,
+			})
 		}
 
 		// Integration test file.
@@ -113,6 +157,24 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 	// Core compat file is NOT generated - the core package has hand-written
 	// Inspect alias, noBody sentinel, and formatDuration in api.go/clients_gen.go.
 
+	// Shared param group structs (core package).
+	targets = append(targets, &File{
+		FilePath:  cfg.OutDir + "/shared_params_gen.go",
+		Package:   cfg.CorePkg,
+		Fragments: []Fragment{&SharedParamsFragment{}},
+	})
+
+	// Breadcrumbs file (core package): comment-only summary of items dropped
+	// by the version-range filter. Skipped automatically when all three
+	// exclusion slices are empty (the fragment renders an empty body).
+	if frag := newBreadcrumbsFragment(spec.Exclusions); frag != nil {
+		targets = append(targets, &File{
+			FilePath:  cfg.OutDir + "/breadcrumbs_gen.go",
+			Package:   cfg.CorePkg,
+			Fragments: []Fragment{frag},
+		})
+	}
+
 	// Dispatch test file (core operations only).
 	if frag := buildDispatchTestFrag(spec.Operations, cfg.CorePkg, cfg.ModulePath+"/"+cfg.CorePkg); frag != nil {
 		targets = append(targets, NewDispatchTestFile(cfg.OutDir, cfg.CorePkg, frag))
@@ -133,7 +195,8 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 		}
 
 		// Plugin client file.
-		if t := NewPluginClientFile(pi.dir, pkg, pi.ops); t != nil {
+		byGroup := cfg.PluginSubClients[pkg]
+		if t := NewPluginClientFile(pi.dir, pkg, pi.ops, byGroup); t != nil {
 			targets = append(targets, t)
 		}
 
@@ -152,8 +215,8 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.TypeRegistry) Target {
 	var frags []Fragment
 
-	frags = append(frags, &ReqFragment{Op: op})
-	frags = append(frags, &ParamsFragment{Op: op})
+	frags = append(frags, &ReqFragment{Op: op, Registry: reg})
+	frags = append(frags, &ParamsFragment{Op: op, Registry: reg})
 	if op.Response != nil && !op.IsNoBody {
 		frags = append(frags, &RespFragment{Op: op, Registry: reg})
 	}
@@ -173,6 +236,10 @@ func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.Typ
 			frags = append(frags, &UnionFragment{Types: unionSiblings})
 		}
 	}
+	if len(op.ReqBodySiblings) > 0 {
+		frags = append(frags, &SiblingTypesFragment{Op: op, Types: op.ReqBodySiblings, Registry: reg})
+	}
+
 	if len(op.DispatchRoutes) > 0 {
 		frags = append(frags, &DispatchFragment{Op: op})
 	}
@@ -201,9 +268,10 @@ func buildParamsTestFrag(op *ir.Operation, pkg string) *ParamsTestFragment {
 	}
 
 	return &ParamsTestFragment{
-		TypePrefix:  op.TypePrefix,
-		HasDuration: hasDuration,
-		Cases:       cases,
+		TypePrefix:     op.TypePrefix,
+		FormatOverride: HasFormatOverride(op.Group),
+		HasDuration:    hasDuration,
+		Cases:          cases,
 	}
 }
 
@@ -228,8 +296,8 @@ func paramTestValues(p ir.QueryParam) (fieldAssign, wantAssign string) {
 	return fieldAssign, wantAssign
 }
 
-func buildReqTestFrag(op *ir.Operation, pkg, importPath string) *ReqTestFragment {
-	cases := synthesizeReqCasesIR(op)
+func buildReqTestFrag(op *ir.Operation, pkg, importPath, corePkg string) *ReqTestFragment {
+	cases := synthesizeReqCasesIR(op, pkg, corePkg)
 	if len(cases) == 0 {
 		return nil
 	}
@@ -251,7 +319,7 @@ func buildReqTestFrag(op *ir.Operation, pkg, importPath string) *ReqTestFragment
 	}
 }
 
-func synthesizeReqCasesIR(op *ir.Operation) []ReqTestCase {
+func synthesizeReqCasesIR(op *ir.Operation, pkg, corePkg string) []ReqTestCase {
 	var cases []ReqTestCase
 
 	hasRequiredPath := false
@@ -312,7 +380,11 @@ func synthesizeReqCasesIR(op *ir.Operation) []ReqTestCase {
 				substitutions[f.GoName] = "test"
 			}
 		}
-		assigns = append(assigns, `Body: strings.NewReader("{}")`)
+		if op.HasTypedBody {
+			assigns = append(assigns, fmt.Sprintf("%s: &%s", BodyField, qualifiedBodyLiteral(op, pkg, corePkg)))
+		} else {
+			assigns = append(assigns, BodyField+`: strings.NewReader("{}")`)
+		}
 		wantPath := evalPathBuilder(op.PathBuilder, substitutions)
 		cases = append(cases, ReqTestCase{
 			Name:        "body triggers " + switchMethod,
@@ -331,63 +403,75 @@ func synthesizeReqCasesIR(op *ir.Operation) []ReqTestCase {
 // method selection correctly.
 func evalPathBuilder(pb ir.PathBuilder, values map[string]string) string {
 	var segments []string
-	skip := false
-	taken := false
-	depth := 0
+
+	// switch state: when we enter opSwitch, switchActive=true. Each
+	// case/default toggles writing on/off. Once a case matches, taken=true
+	// and subsequent cases (and default) skip until opSwitchEnd.
+	var switchActive, taken, writing bool
+	// if state: ifActive=true between opIf and opIfEnd. writing is false
+	// when the if condition didn't match.
+	var ifActive bool
+
+	condsAllMatch := func(conds []ir.PathCaseCondition) bool {
+		for _, c := range conds {
+			if _, ok := values[c.Field]; !ok {
+				return false
+			}
+		}
+		return len(conds) > 0
+	}
 
 	for _, op := range pb.Ops {
 		switch op.Kind {
 		case ir.PathOpLit:
-			if !skip {
+			if !switchActive && !ifActive {
+				segments = append(segments, op.Value)
+				continue
+			}
+			if writing {
 				segments = append(segments, op.Value)
 			}
-		case ir.PathOpField:
-			if !skip {
-				if v, ok := values[op.Value]; ok {
-					segments = append(segments, v)
-				}
+		case ir.PathOpField, ir.PathOpList:
+			emit := !switchActive && !ifActive
+			if !emit {
+				emit = writing
 			}
-		case ir.PathOpList:
-			if !skip {
-				if v, ok := values[op.Value]; ok {
-					segments = append(segments, v)
-				}
+			if !emit {
+				continue
 			}
-		case ir.PathOpIfStr, ir.PathOpIfList:
-			depth++
-			if _, ok := values[op.Value]; ok {
-				skip = false
+			if v, ok := values[op.Value]; ok {
+				segments = append(segments, v)
+			}
+		case ir.PathOpSwitch:
+			switchActive = true
+			taken = false
+			writing = false
+		case ir.PathOpCase:
+			if taken {
+				writing = false
+				continue
+			}
+			if condsAllMatch(op.Conditions) {
+				writing = true
 				taken = true
 			} else {
-				skip = true
-				taken = false
+				writing = false
 			}
-		case ir.PathOpElseIfStr, ir.PathOpElseIfList:
-			if depth == 1 {
-				if taken {
-					skip = true
-				} else if _, ok := values[op.Value]; ok {
-					skip = false
-					taken = true
-				} else {
-					skip = true
-				}
-			}
-		case ir.PathOpElse:
-			if depth == 1 {
-				if taken {
-					skip = true
-				} else {
-					skip = false
-					taken = true
-				}
-			}
-		case ir.PathOpEnd:
-			depth--
-			if depth == 0 {
-				skip = false
-				taken = false
-			}
+		case ir.PathOpDefault:
+			writing = !taken
+			taken = true
+		case ir.PathOpSwitchEnd:
+			switchActive = false
+			taken = false
+			writing = false
+		case ir.PathOpIf:
+			ifActive = true
+			writing = condsAllMatch(op.Conditions)
+		case ir.PathOpIfEnd:
+			ifActive = false
+			writing = false
+		case ir.PathOpExplainCheck:
+			// Runtime-only error path: never matches valid test inputs.
 		}
 	}
 
@@ -443,7 +527,7 @@ func buildDispatchTestFrag(ops []*ir.Operation, corePkg, coreImport string) *Dis
 
 func buildIntegTestFrag(op *ir.Operation, pkg, importPath string, cfg BuildConfig) *IntegTestFragment {
 	isPlugin := op.IsPlugin
-	config := classifyOpIR(op, pkg, cfg.CorePkg, isPlugin, cfg.SubClients)
+	config := classifyOpIR(op, pkg, cfg.CorePkg, isPlugin, cfg)
 
 	return &IntegTestFragment{
 		PkgName:    pkg,
@@ -454,7 +538,7 @@ func buildIntegTestFrag(op *ir.Operation, pkg, importPath string, cfg BuildConfi
 	}
 }
 
-func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClients []SubClient) IntegTestConfig {
+func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg BuildConfig) IntegTestConfig {
 	cfg := IntegTestConfig{
 		TypePrefix:  op.TypePrefix,
 		IsNoBody:    op.IsNoBody,
@@ -466,6 +550,9 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClien
 	if versionAdded == "1.0.0" || versionAdded == "1.0" {
 		versionAdded = ""
 	}
+	if override, ok := TestVersionOverrides[op.Group]; ok {
+		versionAdded = override
+	}
 	cfg.VersionAdded = versionAdded
 
 	var callPrefix string
@@ -474,10 +561,16 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClien
 		if idx := strings.IndexByte(suffix, '.'); idx >= 0 {
 			suffix = suffix[idx+1:]
 		}
-		callPrefix = "client." + PluginMethodName(suffix)
+		methodName := PluginMethodName(suffix)
+		prefix := groupPrefixIR(op.Group)
+		if sc := buildCfg.PluginSubClients[prefix][op.Group]; sc != nil {
+			callPrefix = testClientVar + sc.FieldName + "." + methodName
+		} else {
+			callPrefix = testClientVar + methodName
+		}
 	} else {
 		route := primaryRouteIR(op)
-		callPrefix = "client."
+		callPrefix = testClientVar
 		if route.FieldPath != "" {
 			callPrefix += route.FieldPath + "."
 		}
@@ -569,11 +662,11 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, subClien
 	}
 	cfg.NeedsName = hasOtherRequired || fixtureNeedsName(fixtureKind) || hasRequiredStringParam(op) || (willBuildReq && hasOptionalNameField(op))
 
-	cfg.CallExpr = buildCallExprIR(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, false)
-	cfg.FailCallExpr = buildCallExprIR(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, true)
+	cfg.CallExpr = buildCallExprIR(callPrefix, op, pkg, corePkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, false)
+	cfg.FailCallExpr = buildCallExprIR(callPrefix, op, pkg, corePkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, true)
 
 	// Build all necessary query params (required params + cat format=json).
-	if paramStr := buildIntegParams(op, pkg); paramStr != "" {
+	if paramStr := buildIntegParams(op, pkg, corePkg); paramStr != "" {
 		cfg.CallExpr = addParamField(cfg.CallExpr, op, pkg, paramStr)
 	}
 
@@ -589,30 +682,38 @@ func primaryRouteIR(op *ir.Operation) ir.DispatchRoute {
 	return ir.DispatchRoute{MethodName: op.TypePrefix}
 }
 
-func buildCallExprIR(callPrefix string, op *ir.Operation, pkg string, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating bool, bodyOverride string, isFailing bool) string {
+func buildCallExprIR(callPrefix string, op *ir.Operation, pkg, corePkg string, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating bool, bodyOverride string, isFailing bool) string {
 	prefix := callPrefix
 	if isFailing {
-		prefix = strings.Replace(callPrefix, "client.", "failingClient.", 1)
+		prefix = strings.Replace(callPrefix, testClientVar, testFailingClientVar, 1)
 	}
 
 	if op.IsPointerReq {
 		if !hasRequiredIndex && !hasRequiredID && !hasOtherRequired && !hasOptionalIndex && !needsBody && bodyOverride == "" {
 			return prefix + "(t.Context(), nil)"
 		}
-		return prefix + "(t.Context(), &" + buildReqLiteralIR(op, pkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
+		return prefix + "(t.Context(), &" + buildReqLiteralIR(op, pkg, corePkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
 	}
-	return prefix + "(t.Context(), " + buildReqLiteralIR(op, pkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
+	return prefix + "(t.Context(), " + buildReqLiteralIR(op, pkg, corePkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
 }
 
-func buildReqLiteralIR(op *ir.Operation, pkg string, hasRequiredIndex, hasRequiredID, needsBody, isMutating bool, bodyOverride string) string {
+func buildReqLiteralIR(op *ir.Operation, pkg, corePkg string, hasRequiredIndex, hasRequiredID, needsBody, isMutating bool, bodyOverride string) string {
 	var fields []string
 
 	// Populate all path fields in the test request for a comprehensive happy-path
 	// exercise. Optional fields are included too, since they exercise longer URL
 	// variants and scope operations to dedicated test indices.
 
+	// Skip optional dependent fields whose predecessor is unpopulated: the
+	// generated Build() rejects such combinations with errRequired and the
+	// predecessor is in the "specific valid values" exclusion list.
+	skip := unsatisfiedPositionalDeps(op.PathBuilder)
+
 	for _, f := range op.PathBuilder.Fields {
 		if !f.Required {
+			if skip[f.Name] {
+				continue
+			}
 			switch f.Name {
 			case fieldIndex:
 				if f.IsList {
@@ -651,13 +752,21 @@ func buildReqLiteralIR(op *ir.Operation, pkg string, hasRequiredIndex, hasRequir
 	}
 
 	if bodyOverride != "" {
-		fields = append(fields, "Body: "+bodyOverride)
+		if op.HasTypedBody {
+			fields = append(fields, BodyReaderField+": "+bodyOverride)
+		} else {
+			fields = append(fields, BodyField+": "+bodyOverride)
+		}
 	} else if needsBody {
-		fields = append(fields, `Body: strings.NewReader("{}")`)
+		if op.HasTypedBody {
+			fields = append(fields, fmt.Sprintf("%s: &%s", BodyField, qualifiedBodyLiteral(op, pkg, corePkg)))
+		} else {
+			fields = append(fields, BodyField+`: strings.NewReader("{}")`)
+		}
 	}
 
 	if isMutating && hasRequiredIndex && !hasRequiredID && hasRefreshParamIR(op) {
-		fields = append(fields, fmt.Sprintf("Params: %s.%sParams{Refresh: %q}", pkg, op.TypePrefix, "true"))
+		fields = append(fields, fmt.Sprintf("Params: &%s.%sParams{Refresh: %q}", pkg, op.TypePrefix, "true"))
 	}
 
 	return fmt.Sprintf("%s.%sReq{%s}", pkg, op.TypePrefix, strings.Join(fields, ", "))
@@ -670,6 +779,41 @@ func hasRefreshParamIR(op *ir.Operation) bool {
 		}
 	}
 	return false
+}
+
+// unsatisfiedPositionalDeps returns the set of optional dependent fields
+// whose predecessor is in the test-fixture exclusion list (Metric,
+// IndexMetric, NodeIDOrMetric, etc.). Populating the dependent without the
+// predecessor would trip the Build() positional guard at runtime, so the
+// caller skips them entirely.
+func unsatisfiedPositionalDeps(pb ir.PathBuilder) map[string]bool {
+	skipped := map[string]bool{
+		fieldMetric:         true,
+		fieldIndexMetric:    true,
+		fieldNodeIDOrMetric: true,
+	}
+	out := make(map[string]bool)
+	for _, dep := range pb.PositionalDeps {
+		if skipped[dep.Predecessor.Name] {
+			out[dep.Dependent.Name] = true
+		}
+	}
+	return out
+}
+
+// qualifiedBodyLiteral returns the Go expression for an empty body struct
+// literal, qualified for use in external test packages (e.g. "osapi.CountBody{}").
+// For plugin operations whose body type lives in the core package, the core
+// package qualifier is used instead.
+func qualifiedBodyLiteral(op *ir.Operation, pkg, corePkg string) string {
+	if op.RequestBody == nil {
+		return pkg + "." + op.TypePrefix + BodySuffix + "{}"
+	}
+	name := op.RequestBody.Name
+	if op.IsPlugin && op.RequestBody.Scope == ir.ScopeShared {
+		return corePkg + "." + name + "{}"
+	}
+	return pkg + "." + name + "{}"
 }
 
 func buildIndexFixtureIR(corePkg string, isPlugin bool) string {
@@ -693,7 +837,7 @@ func buildDocFixtureIR(corePkg string, isPlugin bool) string {
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`+"`"+`{"title":"fixture"}`+"`"+`),
-		Params: %s.IndexParams{Refresh: "true"},
+		Params: &%s.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)`, c, corePkg, c, corePkg, corePkg)
 }
@@ -1084,11 +1228,11 @@ func buildComponentTemplateFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.Cluster.PutComponentTemplate(t.Context(), %s.ClusterPutComponentTemplateReq{
 		Name: name,
-		Body: strings.NewReader(`+"`"+`{"template":{"mappings":{"properties":{"title":{"type":"text"}}}}}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"template":{"mappings":{"properties":{"title":{"type":"text"}}}}}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.Cluster.DeleteComponentTemplate(t.Context(), %s.ClusterDeleteComponentTemplateReq{Name: name})
+		_, _ = %s.Cluster.DeleteComponentTemplate(context.Background(), %s.ClusterDeleteComponentTemplateReq{Name: name})
 	})`, c, corePkg, c, corePkg)
 }
 
@@ -1099,11 +1243,11 @@ func buildIndexTemplateFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.Indices.PutIndexTemplate(t.Context(), %s.IndicesPutIndexTemplateReq{
 		Name: name,
-		Body: strings.NewReader(`+"`"+`{"index_patterns":["` + "`" + ` + name + ` + "`" + `-*"],"template":{"settings":{"number_of_shards":"1"}}}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["` + "`" + ` + name + ` + "`" + `-*"],"template":{"settings":{"number_of_shards":"1"}}}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.Indices.DeleteIndexTemplate(t.Context(), %s.IndicesDeleteIndexTemplateReq{Name: name})
+		_, _ = %s.Indices.DeleteIndexTemplate(context.Background(), %s.IndicesDeleteIndexTemplateReq{Name: name})
 	})`, c, corePkg, c, corePkg)
 }
 
@@ -1114,11 +1258,11 @@ func buildLegacyTemplateFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.Indices.PutTemplate(t.Context(), %s.IndicesPutTemplateReq{
 		Name: name,
-		Body: strings.NewReader(`+"`"+`{"index_patterns":["` + "`" + ` + name + ` + "`" + `-*"]}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["` + "`" + ` + name + ` + "`" + `-*"]}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.Indices.DeleteTemplate(t.Context(), %s.IndicesDeleteTemplateReq{Name: name})
+		_, _ = %s.Indices.DeleteTemplate(context.Background(), %s.IndicesDeleteTemplateReq{Name: name})
 	})`, c, corePkg, c, corePkg)
 }
 
@@ -1149,7 +1293,7 @@ func buildWriteAliasFixtureIR(corePkg string, isPlugin bool) string {
 	_, err = %s.Indices.PutAlias(t.Context(), %s.IndicesPutAliasReq{
 		Index: []string{index},
 		Name: name,
-		Body: strings.NewReader(`+"`"+`{"is_write_index":true}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"is_write_index":true}`+"`"+`),
 	})
 	require.NoError(t, err)`, c, corePkg, c, corePkg)
 }
@@ -1161,11 +1305,11 @@ func buildPipelineFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.Ingest.PutPipeline(t.Context(), %s.IngestPutPipelineReq{
 		ID: docID,
-		Body: strings.NewReader(`+"`"+`{"description":"test","processors":[{"uppercase":{"field":"title"}}]}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"description":"test","processors":[{"uppercase":{"field":"title"}}]}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.Ingest.DeletePipeline(t.Context(), %s.IngestDeletePipelineReq{ID: docID})
+		_, _ = %s.Ingest.DeletePipeline(context.Background(), %s.IngestDeletePipelineReq{ID: docID})
 	})`, c, corePkg, c, corePkg)
 }
 
@@ -1176,11 +1320,11 @@ func buildScriptFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.PutScript(t.Context(), %s.PutScriptReq{
 		ID: docID,
-		Body: strings.NewReader(`+"`"+`{"script":{"lang":"painless","source":"doc['title'].value"}}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"script":{"lang":"painless","source":"doc['title'].value"}}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.DeleteScript(t.Context(), %s.DeleteScriptReq{ID: docID})
+		_, _ = %s.DeleteScript(context.Background(), %s.DeleteScriptReq{ID: docID})
 	})`, c, corePkg, c, corePkg)
 }
 
@@ -1193,31 +1337,27 @@ func buildDataStreamFixtureIR(corePkg string, isPlugin bool) string {
 	dsName := index + "-ds"
 	_, err = %s.Indices.PutIndexTemplate(t.Context(), %s.IndicesPutIndexTemplateReq{
 		Name: dsTemplate,
-		Body: strings.NewReader(`+"`"+`{"index_patterns":["`+"`"+` + dsName + `+"`"+`"],"data_stream":{}}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["`+"`"+` + dsName + `+"`"+`"],"data_stream":{}}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.Indices.DeleteIndexTemplate(t.Context(), %s.IndicesDeleteIndexTemplateReq{Name: dsTemplate})
+		_, _ = %s.Indices.DeleteIndexTemplate(context.Background(), %s.IndicesDeleteIndexTemplateReq{Name: dsTemplate})
 	})
 
 	_, err = %s.Indices.CreateDataStream(t.Context(), %s.IndicesCreateDataStreamReq{Name: dsName})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = %s.Indices.DeleteDataStream(t.Context(), &%s.IndicesDeleteDataStreamReq{Name: []string{dsName}})
+		_, _ = %s.Indices.DeleteDataStream(context.Background(), &%s.IndicesDeleteDataStreamReq{Name: []string{dsName}})
 	})`, c, corePkg, c, corePkg, c, corePkg, c, corePkg)
 }
 
-func buildIntegParams(op *ir.Operation, pkg string) string {
+func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 	var fields []string
 
 	// Cat and list APIs need format=json to get JSON instead of plain text.
+	// Format lives in the embedded DebugParams, accessible via field promotion.
 	if (strings.HasPrefix(op.Group, "cat.") || strings.HasPrefix(op.Group, "list.")) && !op.IsNoBody {
-		for _, p := range op.QueryParams {
-			if p.GoName == "Format" {
-				fields = append(fields, `Format: "json"`)
-				break
-			}
-		}
+		fields = append(fields, `DebugParams: `+corePkg+`.DebugParams{Format: "json"}`)
 	}
 
 	// field_caps requires the fields param even though spec marks it optional.
@@ -1247,7 +1387,7 @@ func buildIntegParams(op *ir.Operation, pkg string) string {
 	if len(fields) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("Params: %s.%sParams{%s}", pkg, op.TypePrefix, strings.Join(fields, ", "))
+	return fmt.Sprintf("Params: &%s.%sParams{%s}", pkg, op.TypePrefix, strings.Join(fields, ", "))
 }
 
 func addParamField(callExpr string, op *ir.Operation, pkg, paramStr string) string {
@@ -1352,4 +1492,95 @@ func hasExistingHelper(dir string) bool {
 		}
 	}
 	return false
+}
+
+func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, cfg BuildConfig) *RoundtripTestFragment {
+	if op.IsPlugin {
+		return nil
+	}
+
+	route := primaryRouteIR(op)
+	callPrefix := "client."
+	if route.FieldPath != "" {
+		callPrefix += route.FieldPath + "."
+	}
+	callPrefix += route.MethodName
+
+	errPrefix := "errClient."
+	if route.FieldPath != "" {
+		errPrefix += route.FieldPath + "."
+	}
+	errPrefix += route.MethodName
+
+	hasRequired := false
+	for _, f := range op.PathFields {
+		if f.Required {
+			hasRequired = true
+			break
+		}
+	}
+
+	primary := PrimaryMethod(op)
+	needsBody := op.HasBody && primary != http.MethodGet
+
+	var reqExpr string
+	if op.IsPointerReq {
+		if !hasRequired && !needsBody {
+			reqExpr = "nil"
+		} else {
+			reqExpr = "&" + buildRoundtripReqLiteral(op, pkg, needsBody)
+		}
+	} else {
+		reqExpr = buildRoundtripReqLiteral(op, pkg, needsBody)
+	}
+
+	callExpr := callPrefix + "(t.Context(), " + reqExpr + ")"
+	errCallExpr := errPrefix + "(t.Context(), " + reqExpr + ")"
+
+	needsStrings := strings.Contains(reqExpr, "strings.NewReader")
+
+	var fixture string
+	switch op.RespShape {
+	case ir.RespShapeArray:
+		fixture = "[]"
+	default:
+		fixture = "{}"
+	}
+	if op.IsNoBody {
+		fixture = ""
+	}
+
+	return &RoundtripTestFragment{
+		PkgName:      pkg,
+		ImportPath:   importPath,
+		TypePrefix:   op.TypePrefix,
+		RespFixture:  fixture,
+		IsNoBody:     op.IsNoBody,
+		CallExpr:     callExpr,
+		ErrCallExpr:  errCallExpr,
+		NeedsBody:    needsBody,
+		NeedsStrings: needsStrings,
+	}
+}
+
+func buildRoundtripReqLiteral(op *ir.Operation, pkg string, needsBody bool) string {
+	var fields []string
+	for _, f := range op.PathFields {
+		if !f.Required {
+			continue
+		}
+		if f.IsList {
+			fields = append(fields, fmt.Sprintf(`%s: []string{"test"}`, f.GoName))
+		} else {
+			fields = append(fields, fmt.Sprintf(`%s: "test"`, f.GoName))
+		}
+	}
+	if needsBody {
+		if op.HasTypedBody {
+			fields = append(fields, fmt.Sprintf(`%s: strings.NewReader("{}")`, BodyReaderField))
+		} else {
+			fields = append(fields, fmt.Sprintf(`%s: strings.NewReader("{}")`, BodyField))
+		}
+	}
+	return fmt.Sprintf("%s.%sReq{%s}", pkg, op.TypePrefix, strings.Join(fields, ", "))
 }

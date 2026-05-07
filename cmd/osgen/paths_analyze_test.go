@@ -80,7 +80,7 @@ func TestDeriveFields(t *testing.T) {
 			},
 			want: []builderField{
 				{Name: "index", Param: "index", Required: true, IsList: false},
-				{Name: "iD", Param: "id", Required: false, IsList: false},
+				{Name: "id", Param: "id", Required: false, IsList: false},
 			},
 		},
 	}
@@ -291,18 +291,6 @@ func TestCanonicalSegment(t *testing.T) {
 	}
 }
 
-func TestTrieDepth(t *testing.T) {
-	t.Parallel()
-
-	leaf := &pathTrie{}
-	require.Equal(t, 1, trieDepth(leaf))
-
-	parent := &pathTrie{
-		children: map[string]*pathTrie{"a": leaf},
-	}
-	require.Equal(t, 2, trieDepth(parent))
-}
-
 func TestOpKindString(t *testing.T) {
 	t.Parallel()
 
@@ -313,12 +301,13 @@ func TestOpKindString(t *testing.T) {
 		{opLit, "lit"},
 		{opField, "field"},
 		{opList, "list"},
-		{opIfList, "ifList"},
-		{opIfStr, "ifStr"},
-		{opElseIfList, "elseIfList"},
-		{opElseIfStr, "elseIfStr"},
-		{opElse, "else"},
-		{opEnd, "end"},
+		{opSwitch, "switch"},
+		{opCase, "case"},
+		{opDefault, "default"},
+		{opSwitchEnd, "switchEnd"},
+		{opIf, "if"},
+		{opIfEnd, "ifEnd"},
+		{opExplainCheck, "explainCheck"},
 		{opKind(99), "unknown"},
 	}
 
@@ -335,26 +324,27 @@ func TestEmitOpPredicates(t *testing.T) {
 
 	ops := []emitOp{
 		{Kind: opLit}, {Kind: opField}, {Kind: opList},
-		{Kind: opIfList}, {Kind: opIfStr},
-		{Kind: opElseIfList}, {Kind: opElseIfStr},
-		{Kind: opElse}, {Kind: opEnd},
+		{Kind: opSwitch}, {Kind: opCase}, {Kind: opDefault}, {Kind: opSwitchEnd},
+		{Kind: opIf}, {Kind: opIfEnd}, {Kind: opExplainCheck},
 	}
 
 	require.True(t, ops[0].IsLit())
 	require.True(t, ops[1].IsField())
 	require.True(t, ops[2].IsList())
-	require.True(t, ops[3].IsIfList())
-	require.True(t, ops[4].IsIfStr())
-	require.True(t, ops[5].IsElseIfList())
-	require.True(t, ops[6].IsElseIfStr())
-	require.True(t, ops[7].IsElse())
-	require.True(t, ops[8].IsEnd())
+	require.True(t, ops[3].IsSwitch())
+	require.True(t, ops[4].IsCase())
+	require.True(t, ops[5].IsDefault())
+	require.True(t, ops[6].IsSwitchEnd())
+	require.True(t, ops[7].IsIf())
+	require.True(t, ops[8].IsIfEnd())
+	require.True(t, ops[9].IsExplainCheck())
 }
 
 func TestAnalyzeGroup_OptionalStringParam(t *testing.T) {
 	t.Parallel()
 
-	// Tests ifStr/end guard branches for a non-list optional param.
+	// Optional non-list path param renders as a single if{} guard
+	// since writeReq() does not self-skip empty strings.
 	g := opGroup{
 		name: "cat.indices",
 		pathSpecs: []pathVariant{
@@ -369,19 +359,20 @@ func TestAnalyzeGroup_OptionalStringParam(t *testing.T) {
 	require.False(t, b.Fields[0].IsList)
 	require.False(t, b.Fields[0].Required)
 
-	// Should have ifStr and end ops.
-	hasIfStr := false
-	hasEnd := false
+	// Should have an opIf wrapping the field write.
+	var hasIf, hasIfEnd bool
 	for _, op := range b.Ops {
-		if op.Kind == opIfStr {
-			hasIfStr = true
+		if op.Kind == opIf {
+			hasIf = true
+			require.Len(t, op.Conditions, 1)
+			require.False(t, op.Conditions[0].IsList)
 		}
-		if op.Kind == opEnd {
-			hasEnd = true
+		if op.Kind == opIfEnd {
+			hasIfEnd = true
 		}
 	}
-	require.True(t, hasIfStr, "expected opIfStr for optional string field")
-	require.True(t, hasEnd, "expected opEnd to close the guard")
+	require.True(t, hasIf, "expected opIf for optional string field")
+	require.True(t, hasIfEnd, "expected opIfEnd to close the guard")
 }
 
 func TestAnalyzeGroup_DeprecatedAlias(t *testing.T) {
@@ -468,4 +459,77 @@ func TestAnalyzeGroup_DocsURL(t *testing.T) {
 	b, err := analyzeGroup(g)
 	require.NoError(t, err)
 	require.Equal(t, "https://opensearch.org/docs/latest/search/", b.DocsURL)
+}
+
+// TestDerivePositionalDeps_Bidirectional verifies that positional-dep
+// derivation considers both directions: a field can require another
+// field that is positionally LATER in the path, not just earlier.
+//
+// cluster.stats has variants:
+//
+//	/_cluster/stats
+//	/_cluster/stats/nodes/{node_id}
+//	/_cluster/stats/{metric}/nodes/{node_id}
+//	/_cluster/stats/{metric}/{index_metric}/nodes/{node_id}
+//
+// Field-order from longest path: [Metric, IndexMetric, NodeID].
+//
+// Without the bidirectional check, the loop only finds:
+//   - IndexMetric requires Metric (forward)
+//
+// and silently misses Metric requires NodeID -- producing a Build()
+// that emits /_cluster/stats/{metric} for {Metric: [m]} alone, which
+// is NOT a spec-valid path. With the fix, both deps are derived.
+func TestDerivePositionalDeps_Bidirectional(t *testing.T) {
+	t.Parallel()
+
+	paths := []pathVariant{
+		{path: "/_cluster/stats", pathParams: []string{}},
+		{path: "/_cluster/stats/nodes/{node_id}", pathParams: []string{"node_id"}},
+		{path: "/_cluster/stats/{metric}/nodes/{node_id}", pathParams: []string{"metric", "node_id"}},
+		{path: "/_cluster/stats/{metric}/{index_metric}/nodes/{node_id}", pathParams: []string{"metric", "index_metric", "node_id"}},
+	}
+	fields := []builderField{
+		{Name: "metric", Param: "metric", IsList: true},
+		{Name: "index_metric", Param: "index_metric", IsList: true},
+		{Name: "node_id", Param: "node_id", IsList: true},
+	}
+
+	deps := derivePositionalDeps(paths, fields)
+
+	depMap := make(map[string]string, len(deps))
+	for _, d := range deps {
+		depMap[d.Dependent.Param] = d.Predecessor.Param
+	}
+
+	require.Contains(t, depMap, "metric", "Metric must require some predecessor (transitively NodeID)")
+	require.Equal(t, "node_id", depMap["metric"], "Metric must require NodeID -- the spec has no /_cluster/stats/{metric} variant without nodes/{node_id}")
+	require.Contains(t, depMap, "index_metric", "IndexMetric must require some predecessor")
+}
+
+// TestDerivePositionalDeps_NoSpuriousDepForUnion verifies that
+// expandUnionPaths' synthetic single-segment variants prevent the
+// derivation from emitting a spurious "NodeID requires Metric" guard
+// for nodes.info, since the spec's /_nodes/{node_id_or_metric} path
+// (expanded into /_nodes/{node_id} and /_nodes/{metric}) makes both
+// fields independently reachable.
+func TestDerivePositionalDeps_NoSpuriousDepForUnion(t *testing.T) {
+	t.Parallel()
+
+	// Already-expanded variants -- this is what derivePositionalDeps
+	// sees after expandUnionPaths runs in analyzeGroup.
+	paths := []pathVariant{
+		{path: "/_nodes", pathParams: []string{}},
+		{path: "/_nodes/{node_id}", pathParams: []string{"node_id"}},
+		{path: "/_nodes/{metric}", pathParams: []string{"metric"}},
+		{path: "/_nodes/{node_id}/{metric}", pathParams: []string{"node_id", "metric"}},
+	}
+	fields := []builderField{
+		{Name: "node_id", Param: "node_id", IsList: true},
+		{Name: "metric", Param: "metric", IsList: true},
+	}
+
+	deps := derivePositionalDeps(paths, fields)
+
+	require.Empty(t, deps, "union expansion makes both fields independently reachable; no positional dep should be derived")
 }

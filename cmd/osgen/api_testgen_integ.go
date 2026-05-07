@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"strings"
 	"text/template"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 )
 
 var integTestTmpl = template.Must(template.New("integ_test").Funcs(template.FuncMap{
@@ -23,6 +25,9 @@ var integTestTmpl = template.Must(template.New("integ_test").Funcs(template.Func
 package {{.Pkg}}_test
 
 import (
+{{- if .NeedImportContext}}
+	"context"
+{{- end}}
 {{- if .NeedImportStrings}}
 	"strings"
 {{- end}}
@@ -72,9 +77,9 @@ func Test{{.TypePrefix}}(t *testing.T) {
 	index := testutil.MustUniqueString(t, {{quote .IndexPrefix}})
 	t.Cleanup(func() {
 {{- if .IsPlugin}}
-		_, _ = osClient.Indices.Delete(t.Context(), &{{.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &{{.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
 {{- else}}
-		_, _ = client.Indices.Delete(t.Context(), &{{.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &{{.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
 {{- end}}
 	})
 {{- end}}
@@ -136,6 +141,7 @@ type integTestConfig struct {
 	FailCallExpr        string
 	NeedIndex           bool
 	NeedOsClient        bool
+	NeedImportContext   bool
 	NeedImportPkg       bool
 	NeedImportCore      bool
 	NeedImportStrings   bool
@@ -179,6 +185,10 @@ func classifyOperation(op apiOperation, pkg, corePkg string, isPlugin bool) inte
 
 	if cfg.VersionAdded == "1.0.0" || cfg.VersionAdded == "1.0" {
 		cfg.VersionAdded = ""
+	}
+
+	if override, ok := emit.TestVersionOverrides[op.Group]; ok {
+		cfg.VersionAdded = override
 	}
 
 	var callPrefix string
@@ -236,6 +246,9 @@ func classifyOperation(op apiOperation, pkg, corePkg string, isPlugin bool) inte
 	cfg.CallExpr = buildCallExpr(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, false)
 	cfg.FailCallExpr = buildCallExpr(callPrefix, op, pkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, true)
 
+	if cfg.NeedIndex {
+		cfg.NeedImportContext = true
+	}
 	cfg.NeedImportPkg = cfg.NeedIndex || cfg.FixtureCode != "" || !op.IsPointerReq || hasRequiredIndex || hasRequiredID || needsBody
 	cfg.NeedImportCore = isPlugin && cfg.NeedIndex
 	cfg.NeedOsClient = isPlugin && (cfg.NeedIndex || cfg.VersionAdded != "")

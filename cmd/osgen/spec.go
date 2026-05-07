@@ -33,9 +33,17 @@ const (
 	// extVersionDeprecated records the OpenSearch release that deprecated the operation.
 	extVersionDeprecated = "x-version-deprecated"
 
+	// extVersionRemoved records the OpenSearch release that removed the operation.
+	extVersionRemoved = "x-version-removed"
+
 	// extDistributionsExcluded lists distributions (e.g. "amazon-managed") where
 	// the operation is unavailable.
 	extDistributionsExcluded = "x-distributions-excluded"
+
+	// extGenericTypeParam marks a schema as a generic type parameter placeholder
+	// (e.g. _core.search___T). These have no concrete type and should be treated
+	// as json.RawMessage in generated code.
+	extGenericTypeParam = "x-is-generic-type-parameter"
 )
 
 // operationGroup reads the logical group name from an operation's extensions.

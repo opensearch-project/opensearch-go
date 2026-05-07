@@ -15,7 +15,7 @@ import (
 func TestDeleteAllPits(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	testutil.SkipIfVersion(t, client, "<", "2.4", "DeleteAllPits")
+	testutil.SkipIfVersion(t, client, "<", "2.7", "DeleteAllPits")
 
 	t.Run("success", func(t *testing.T) {
 		resp, err := client.DeleteAllPits(t.Context(), nil)

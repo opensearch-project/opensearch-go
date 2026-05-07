@@ -27,6 +27,7 @@ type builder struct {
 	ExcludedDistros    []string
 	Fields             []builderField
 	Ops                []emitOp
+	PositionalDeps     []positionalDep
 }
 
 // builderField represents a field in the generated struct.
@@ -37,18 +38,48 @@ type builderField struct {
 	IsList   bool
 }
 
+// positionalDep records that field Dependent may only be set when field
+// Predecessor is also set: every spec path that contains Dependent also
+// contains Predecessor. Setting Dependent without Predecessor would shift
+// the dependent value into the predecessor's positional slot on the wire,
+// silently corrupting the request. Build() rejects such combinations
+// with errRequired.
+type positionalDep struct {
+	Dependent   builderField
+	Predecessor builderField
+}
+
 type opKind uint8
 
 const (
 	opLit opKind = iota
 	opField
 	opList
-	opIfList
-	opIfStr
-	opElseIfList
-	opElseIfStr
-	opElse
-	opEnd
+	// opSwitch opens a switch{} block that dispatches across path variants.
+	// The Value field is unused; conditions live on subsequent opCase ops.
+	opSwitch
+	// opCase opens one case label of the surrounding switch. Conditions
+	// are carried in the .Conditions slice (ANDed together) and rendered
+	// as a hasNonEmpty(...)/!= "" expression chain.
+	opCase
+	// opDefault opens the default: branch of the surrounding switch.
+	// Used for the empty-fields variant when its body is non-empty (no
+	// shared prefix factored its writes away).
+	opDefault
+	// opSwitchEnd closes a switch{} block opened by opSwitch.
+	opSwitchEnd
+	// opIf opens a single-condition if{} block. Used when a path has
+	// exactly one optional variant body and a switch would be overkill.
+	// Condition lives in the single-element .Conditions slice.
+	opIf
+	// opIfEnd closes an if{} block opened by opIf.
+	opIfEnd
+	// opExplainCheck emits inside a default: case the
+	// "if any-optional-set { return explainErr }" guard that
+	// distinguishes the valid empty-fields combination from invalid
+	// field combinations the spec doesn't support. Conditions are the
+	// OR'd presence checks for every optional field on the builder.
+	opExplainCheck
 )
 
 func (k opKind) String() string {
@@ -59,38 +90,49 @@ func (k opKind) String() string {
 		return "field"
 	case opList:
 		return "list"
-	case opIfList:
-		return "ifList"
-	case opIfStr:
-		return "ifStr"
-	case opElseIfList:
-		return "elseIfList"
-	case opElseIfStr:
-		return "elseIfStr"
-	case opElse:
-		return "else"
-	case opEnd:
-		return "end"
+	case opSwitch:
+		return "switch"
+	case opCase:
+		return "case"
+	case opDefault:
+		return "default"
+	case opSwitchEnd:
+		return "switchEnd"
+	case opIf:
+		return "if"
+	case opIfEnd:
+		return "ifEnd"
+	case opExplainCheck:
+		return "explainCheck"
 	default:
 		return "unknown"
 	}
 }
 
-// emitOp is one instruction in the generated Build() method body.
-type emitOp struct {
-	Kind  opKind
-	Value string
+// caseCondition is a single field-presence test inside an opCase. ANDed
+// with sibling conditions on the same case to form the case label.
+type caseCondition struct {
+	Field  string // exported Go identifier
+	IsList bool   // true => hasNonEmpty(p.Field); false => p.Field != ""
 }
 
-func (op emitOp) IsLit() bool        { return op.Kind == opLit }
-func (op emitOp) IsField() bool      { return op.Kind == opField }
-func (op emitOp) IsList() bool       { return op.Kind == opList }
-func (op emitOp) IsIfList() bool     { return op.Kind == opIfList }
-func (op emitOp) IsIfStr() bool      { return op.Kind == opIfStr }
-func (op emitOp) IsElseIfList() bool { return op.Kind == opElseIfList }
-func (op emitOp) IsElseIfStr() bool  { return op.Kind == opElseIfStr }
-func (op emitOp) IsElse() bool       { return op.Kind == opElse }
-func (op emitOp) IsEnd() bool        { return op.Kind == opEnd }
+// emitOp is one instruction in the generated Build() method body.
+type emitOp struct {
+	Kind       opKind
+	Value      string
+	Conditions []caseCondition // populated for opCase and opIf
+}
+
+func (op emitOp) IsLit() bool       { return op.Kind == opLit }
+func (op emitOp) IsField() bool     { return op.Kind == opField }
+func (op emitOp) IsList() bool      { return op.Kind == opList }
+func (op emitOp) IsSwitch() bool    { return op.Kind == opSwitch }
+func (op emitOp) IsCase() bool      { return op.Kind == opCase }
+func (op emitOp) IsDefault() bool   { return op.Kind == opDefault }
+func (op emitOp) IsSwitchEnd() bool { return op.Kind == opSwitchEnd }
+func (op emitOp) IsIf() bool           { return op.Kind == opIf }
+func (op emitOp) IsIfEnd() bool        { return op.Kind == opIfEnd }
+func (op emitOp) IsExplainCheck() bool { return op.Kind == opExplainCheck }
 
 var pathParamRE = regexp.MustCompile(`\{([^}]+)\}`)
 
@@ -100,8 +142,14 @@ func analyzeGroup(g opGroup) (builder, error) {
 		return builder{}, fmt.Errorf("no path variants")
 	}
 
+	expandUnionPaths(&g)
+
 	fields := deriveFields(g.pathSpecs)
-	ops := buildOps(g.pathSpecs, fields)
+	deps := derivePositionalDeps(g.pathSpecs, fields)
+	ops, err := buildOps(g.pathSpecs, fields, deps)
+	if err != nil {
+		return builder{}, fmt.Errorf("operation group %q: %w", g.name, err)
+	}
 	name := pathBuilderName(g.name)
 
 	deprecated, msg := groupDeprecation(g.pathSpecs)
@@ -120,6 +168,7 @@ func analyzeGroup(g opGroup) (builder, error) {
 		ExcludedDistros:    distros,
 		Fields:             fields,
 		Ops:                ops,
+		PositionalDeps:     deps,
 	}, nil
 }
 
@@ -200,99 +249,109 @@ func (b *builder) export() {
 
 	for i, op := range b.Ops {
 		switch op.Kind {
-		case opField, opList, opIfList, opIfStr, opElseIfList, opElseIfStr:
+		case opField, opList:
 			if newName, ok := rename[op.Value]; ok {
 				b.Ops[i].Value = newName
 			}
-		}
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Path trie construction and DFS
-// ---------------------------------------------------------------------------
-
-type pathTrie struct {
-	children   map[string]*pathTrie
-	wilds      []*wildChild
-	terminal   bool
-	deprecated bool
-	methods    map[string]struct{} // HTTP methods at this terminal (nil for non-terminals)
-}
-
-type wildChild struct {
-	param string
-	node  *pathTrie
-}
-
-func (t *pathTrie) insert(segments []string, deprecated bool, methods map[string]struct{}) {
-	node := t
-	for _, seg := range segments {
-		if m := pathParamRE.FindStringSubmatch(seg); m != nil {
-			paramName := m[1]
-			var child *pathTrie
-			for _, wc := range node.wilds {
-				if wc.param == paramName {
-					child = wc.node
-					break
+		case opCase, opIf, opExplainCheck:
+			for j, c := range op.Conditions {
+				if newName, ok := rename[c.Field]; ok {
+					b.Ops[i].Conditions[j].Field = newName
 				}
 			}
-			if child == nil {
-				child = &pathTrie{deprecated: deprecated}
-				node.wilds = append(node.wilds, &wildChild{param: paramName, node: child})
-			} else if !deprecated {
-				child.deprecated = false
-			}
-			node = child
+		}
+	}
+
+	for i, dep := range b.PositionalDeps {
+		if newName, ok := rename[dep.Dependent.Name]; ok {
+			b.PositionalDeps[i].Dependent.Name = newName
+		}
+		if newName, ok := rename[dep.Predecessor.Name]; ok {
+			b.PositionalDeps[i].Predecessor.Name = newName
+		}
+	}
+}
+
+// derivePositionalDeps records pairs (dependent, predecessor) where every
+// spec path containing dependent also contains predecessor. The check
+// considers all field pairs in both directions because a dependency can
+// run in either positional direction: cluster.state's Index requires the
+// earlier-positioned Metric (forward dep), while cluster.stats's Metric
+// requires the later-positioned NodeID (backward dep, since the spec has
+// no /_cluster/stats/{metric} variant without /nodes/{node_id}).
+// Required fields are skipped because the existing required-empty guard
+// already covers them. Dependents emit one predecessor; transitively the
+// chain still rejects every invalid combination.
+//
+// Example: cluster.state has paths /_cluster/state, /_cluster/state/{metric},
+// and /_cluster/state/{metric}/{index}. No spec path contains {index} without
+// {metric}, so derivePositionalDeps yields {Dependent: index, Predecessor:
+// metric} and Build() rejects ClusterStatePath{Index: []string{"myidx"}} with
+// errRequired. Without this guard, writeSegments would shift "myidx" into the
+// {metric} slot and the server would silently match against /_cluster/state/myidx.
+func derivePositionalDeps(paths []pathVariant, fields []builderField) []positionalDep {
+	if len(fields) < 2 {
+		return nil
+	}
+	var deps []positionalDep
+	for j := 0; j < len(fields); j++ {
+		fj := fields[j]
+		if fj.Required {
 			continue
 		}
-
-		seg = canonicalSegment(seg)
-		if node.children == nil {
-			node.children = make(map[string]*pathTrie)
+		for i := 0; i < len(fields); i++ {
+			if i == j {
+				continue
+			}
+			fi := fields[i]
+			if fi.Required {
+				continue
+			}
+			if !alwaysImplies(paths, fj.Param, fi.Param) {
+				continue
+			}
+			deps = append(deps, positionalDep{Dependent: fj, Predecessor: fi})
+			break // one predecessor per dependent is enough; further deps chain through it
 		}
-		child, ok := node.children[seg]
-		if !ok {
-			child = &pathTrie{deprecated: deprecated}
-			node.children[seg] = child
-		} else if !deprecated {
-			child.deprecated = false
-		}
-		node = child
 	}
-	node.terminal = true
-	if node.methods == nil {
-		node.methods = make(map[string]struct{}, len(methods))
-	}
-	for m := range methods {
-		node.methods[m] = struct{}{}
-	}
+	return deps
 }
 
-func buildOps(paths []pathVariant, fields []builderField) []emitOp {
-	fieldByParam := make(map[string]builderField)
-	for _, f := range fields {
-		fieldByParam[f.Param] = f
-	}
-
-	root := &pathTrie{}
+// alwaysImplies reports whether every spec path containing dependent also
+// contains predecessor. If no path contains dependent at all, the relation
+// is trivially true and the caller treats it as a no-op (handled upstream).
+func alwaysImplies(paths []pathVariant, dependent, predecessor string) bool {
+	any := false
 	for _, pv := range paths {
-		segments := splitPath(pv.path)
-		root.insert(segments, pv.deprecated, pv.methods)
+		hasDep := false
+		hasPred := false
+		for _, p := range pv.pathParams {
+			if p == dependent {
+				hasDep = true
+			}
+			if p == predecessor {
+				hasPred = true
+			}
+		}
+		if hasDep {
+			any = true
+			if !hasPred {
+				return false
+			}
+		}
 	}
-
-	var ops []emitOp
-	emitTrie(root, fieldByParam, &ops)
-	return ops
+	return any
 }
 
-type routeScore int
+// ---------------------------------------------------------------------------
+// Variant-enumeration emit
+// ---------------------------------------------------------------------------
 
-const (
-	scoreDeprecated routeScore = 1
-	scorePreferred  routeScore = 100
-)
-
+// segmentAlias normalizes spec path segments that the documentation
+// website renders without their underscores (e.g. "hotthreads" appears
+// in some doc URLs but the OpenSearch endpoint is "/_nodes/{node_id}/hot_threads").
+//
+//nolint:gochecknoglobals // small immutable lookup table
 var segmentAlias = map[string]string{
 	"hotthreads": "hot_threads",
 }
@@ -304,248 +363,346 @@ func canonicalSegment(seg string) string {
 	return seg
 }
 
-func preferredLiteral(children map[string]*pathTrie) (string, *pathTrie) {
-	type entry struct {
-		seg   string
-		node  *pathTrie
-		score routeScore
-	}
-	entries := make([]entry, 0, len(children))
-	for seg, child := range children {
-		s := scorePreferred
-		if child.deprecated {
-			s = scoreDeprecated
-		}
-		entries = append(entries, entry{seg: seg, node: child, score: s})
-	}
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].score != entries[j].score {
-			return entries[i].score > entries[j].score
-		}
-		return entries[i].seg < entries[j].seg
-	})
-	return entries[0].seg, entries[0].node
-}
-
-func emitTrie(node *pathTrie, fields map[string]builderField, ops *[]emitOp) {
-	if len(node.children) == 1 && len(node.wilds) == 0 {
-		for seg, child := range node.children {
-			// If the literal's subtree only leads to terminals through wild
-			// params (no terminal reachable via literals alone), guard the
-			// literal on the first wild param it leads to. Otherwise the
-			// literal is always emitted even when all fields are empty.
-			if !terminalViaLiterals(child) && !terminalViaRequired(child, fields) {
-				if guardField, ok := firstWildField(child, fields); ok && !guardField.Required {
-					emitGuardOpen(guardField, ops, "if")
-					*ops = append(*ops, emitOp{Kind: opLit, Value: seg})
-					emitTrie(child, fields, ops)
-					*ops = append(*ops, emitOp{Kind: opEnd})
-					return
-				}
-			}
-			*ops = append(*ops, emitOp{Kind: opLit, Value: seg})
-			emitTrie(child, fields, ops)
-		}
-		return
+// buildOps converts the path variants of an operation group into a flat
+// stream of emitOps that the template renders as a Build() body. The
+// output has up to three regions:
+//
+//  1. Shared prefix: ops common to every variant in positional order.
+//  2. Dispatch: a switch{} with one case per variant body, OR a single
+//     if{} when only one variant has a non-empty body, OR nothing when
+//     every variant collapses to prefix+suffix (e.g. a single-variant
+//     path or all-required paths).
+//  3. Shared suffix: ops common to every variant after the dispatch.
+//
+// Each switch case label expresses the exact field combination required
+// by one spec path variant: every valid URL the spec defines becomes a
+// case whose conditions match nothing else. Required fields and
+// positional dependencies (e.g. ClusterStatePath.Index requires Metric)
+// are guarded upfront, outside this function, so the switch only sees
+// valid combinations.
+func buildOps(paths []pathVariant, fields []builderField, deps []positionalDep) ([]emitOp, error) {
+	fieldByParam := make(map[string]builderField, len(fields))
+	for _, f := range fields {
+		fieldByParam[f.Param] = f
 	}
 
-	if len(node.children) > 1 && len(node.wilds) == 0 {
-		seg, child := preferredLiteral(node.children)
-		*ops = append(*ops, emitOp{Kind: opLit, Value: seg})
-		emitTrie(child, fields, ops)
-		return
+	// Multiple spec paths can map to the same variant fingerprint and
+	// differ only in literal segment text (e.g. /{index}/_alias/{name}
+	// and /{index}/_aliases/{name} are interchangeable URL forms of
+	// indices.delete_alias). Defer canonical-form selection to the
+	// spec via deprecated:true; reject ambiguous specs.
+	paths, err := dedupeEquivalentVariants(paths)
+	if err != nil {
+		return nil, err
 	}
 
-	if len(node.children) == 0 && len(node.wilds) == 1 {
-		wc := node.wilds[0]
-		f := fields[wc.param]
-		if f.Required {
-			emitField(f, ops)
-			emitTrie(wc.node, fields, ops)
-			return
-		}
-		if f.IsList {
-			emitField(f, ops)
-			emitTrie(wc.node, fields, ops)
-			return
-		}
-		emitGuardOpen(f, ops, "if")
-		emitField(f, ops)
-		emitTrie(wc.node, fields, ops)
-		*ops = append(*ops, emitOp{Kind: opEnd})
-		return
+	variantOps := make([][]emitOp, len(paths))
+	variantOpts := make([][]builderField, len(paths))
+	for i, pv := range paths {
+		variantOps[i], variantOpts[i] = opsForVariant(pv, fieldByParam)
 	}
 
-	if len(node.wilds) == 1 {
-		wc := node.wilds[0]
-		f := fields[wc.param]
-		if literalsSubsumed(node.children, wc.node) {
-			if f.IsList {
-				emitField(f, ops)
-			} else {
-				emitGuardOpen(f, ops, "if")
-				emitField(f, ops)
-				*ops = append(*ops, emitOp{Kind: opEnd})
-			}
-			emitTrie(wc.node, fields, ops)
-			return
+	prefixLen, suffixLen := commonPrefixSuffix(variantOps)
+
+	type body struct {
+		ops    []emitOp
+		fields []builderField
+	}
+	bodies := make([]body, len(paths))
+	for i, ops := range variantOps {
+		bodies[i] = body{
+			ops:    append([]emitOp(nil), ops[prefixLen:len(ops)-suffixLen]...),
+			fields: variantOpts[i],
 		}
 	}
 
-	type branch struct {
-		isLiteral bool
-		litSeg    string
-		litNode   *pathTrie
-		wc        *wildChild
-		depth     int
+	out := make([]emitOp, 0, 8)
+	if prefixLen > 0 {
+		out = append(out, variantOps[0][:prefixLen]...)
 	}
 
-	var branches []branch
-	for seg, child := range node.children {
-		branches = append(branches, branch{isLiteral: true, litSeg: seg, litNode: child, depth: trieDepth(child)})
+	type liveCase struct {
+		ops    []emitOp
+		fields []builderField
 	}
-	for _, wc := range node.wilds {
-		branches = append(branches, branch{wc: wc, depth: trieDepth(wc.node)})
+	var cases []liveCase
+	var defaultBody []emitOp
+	for _, b := range bodies {
+		if len(b.ops) == 0 {
+			continue
+		}
+		if len(b.fields) == 0 {
+			defaultBody = b.ops
+			continue
+		}
+		cases = append(cases, liveCase{ops: b.ops, fields: b.fields})
 	}
-	sort.Slice(branches, func(i, j int) bool {
-		return branches[i].depth > branches[j].depth
-	})
 
-	first := true
-	for _, br := range branches {
-		if br.isLiteral {
-			if !first {
-				*ops = append(*ops, emitOp{Kind: opElse})
-			}
-			*ops = append(*ops, emitOp{Kind: opLit, Value: br.litSeg})
-			emitTrie(br.litNode, fields, ops)
-			if !first {
-				*ops = append(*ops, emitOp{Kind: opEnd})
-			}
+	switch len(cases) {
+	case 0:
+		// No optional bodies; either everything is shared, or only a
+		// default body remains (a no-fields variant whose body wasn't
+		// captured by the prefix/suffix). Emit defaultBody directly.
+		out = append(out, defaultBody...)
+
+	case 1:
+		// writeSegments self-skips empty input, so an if guard
+		// around `writeSegments(p.X)` for the same list field X is
+		// redundant. Drop it; emit the body directly.
+		body := cases[0].ops
+		if len(body) == 1 && body[0].Kind == opList &&
+			len(cases[0].fields) == 1 &&
+			cases[0].fields[0].IsList &&
+			cases[0].fields[0].Name == body[0].Value {
+			out = append(out, body...)
 		} else {
-			f := fields[br.wc.param]
-			kind := "if"
-			if !first {
-				kind = "elseIf"
+			out = append(out, emitOp{Kind: opIf, Conditions: conditionsFor(cases[0].fields)})
+			out = append(out, body...)
+			out = append(out, emitOp{Kind: opIfEnd})
+		}
+		out = append(out, defaultBody...)
+
+	default:
+		sort.SliceStable(cases, func(a, b int) bool {
+			if len(cases[a].fields) != len(cases[b].fields) {
+				return len(cases[a].fields) > len(cases[b].fields)
 			}
-			emitGuardOpen(f, ops, kind)
-			emitField(f, ops)
-			emitTrie(br.wc.node, fields, ops)
+			return joinFieldNames(cases[a].fields) < joinFieldNames(cases[b].fields)
+		})
+		out = append(out, emitOp{Kind: opSwitch})
+		for _, c := range cases {
+			out = append(out, emitOp{Kind: opCase, Conditions: conditionsFor(c.fields)})
+			out = append(out, c.ops...)
 		}
-		first = false
-	}
-
-	if len(branches) > 0 && !branches[len(branches)-1].isLiteral {
-		*ops = append(*ops, emitOp{Kind: opEnd})
-	}
-}
-
-func literalsSubsumed(currentLiterals map[string]*pathTrie, wildChildNode *pathTrie) bool {
-	for seg := range currentLiterals {
-		if _, ok := wildChildNode.children[seg]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
-// terminalViaLiterals returns true if node (or a descendant reachable only
-// through literal children) is terminal. In other words, there exists a valid
-// path that ends at or below this node without needing any wild parameters.
-func terminalViaLiterals(node *pathTrie) bool {
-	if node.terminal {
-		return true
-	}
-	for _, child := range node.children {
-		if terminalViaLiterals(child) {
-			return true
-		}
-	}
-	return false
-}
-
-// terminalViaRequired reports whether a terminal is reachable from node
-// by traversing literals and required wild parameters (but not optional
-// ones). This prevents wrapping shared literal prefixes inside an
-// optional-field guard when the subtree has a valid path that doesn't
-// depend on the optional field.
-func terminalViaRequired(node *pathTrie, fields map[string]builderField) bool {
-	if node.terminal {
-		return true
-	}
-	for _, child := range node.children {
-		if terminalViaRequired(child, fields) {
-			return true
-		}
-	}
-	for _, wc := range node.wilds {
-		if f, ok := fields[wc.param]; ok && f.Required {
-			if terminalViaRequired(wc.node, fields) {
-				return true
+		needDefault := len(defaultBody) > 0 || len(deps) > 0
+		if needDefault {
+			out = append(out, emitOp{Kind: opDefault})
+			// When deps exist, distinguish "valid empty combo" from
+			// "invalid combo" before writing the empty-variant body:
+			// the explain helper fires only when at least one optional
+			// field is set, so the empty path falls through to the
+			// body (or to nothing) cleanly.
+			if len(deps) > 0 {
+				out = append(out, emitOp{Kind: opExplainCheck, Conditions: optionalConditions(fields)})
 			}
+			out = append(out, defaultBody...)
 		}
+		out = append(out, emitOp{Kind: opSwitchEnd})
 	}
-	return false
+
+	if suffixLen > 0 {
+		out = append(out, variantOps[0][len(variantOps[0])-suffixLen:]...)
+	}
+	return out, nil
 }
 
-// firstWildField finds the first wild parameter reachable from node by
-// traversing only literal children and single wilds. Returns the corresponding
-// builderField for use as a guard condition.
-func firstWildField(node *pathTrie, fields map[string]builderField) (builderField, bool) {
-	for {
-		if len(node.wilds) > 0 {
-			f, ok := fields[node.wilds[0].param]
-			return f, ok
-		}
-		if len(node.children) == 1 {
-			for _, child := range node.children {
-				node = child
+// opsForVariant produces the linear op stream for one path variant and
+// returns the optional fields it consumes (in path-segment order).
+// Required fields are emitted but excluded from the optional list since
+// they're guarded upfront and never appear in a case condition.
+func opsForVariant(pv pathVariant, fields map[string]builderField) ([]emitOp, []builderField) {
+	segs := splitPath(pv.path)
+	ops := make([]emitOp, 0, len(segs))
+	var optFields []builderField
+	for _, seg := range segs {
+		if m := pathParamRE.FindStringSubmatch(seg); m != nil {
+			f, ok := fields[m[1]]
+			if !ok {
+				continue
+			}
+			if f.IsList {
+				ops = append(ops, emitOp{Kind: opList, Value: f.Name})
+			} else {
+				ops = append(ops, emitOp{Kind: opField, Value: f.Name})
+			}
+			if !f.Required {
+				optFields = append(optFields, f)
 			}
 			continue
 		}
-		return builderField{}, false
+		ops = append(ops, emitOp{Kind: opLit, Value: canonicalSegment(seg)})
 	}
+	return ops, optFields
 }
 
-func emitField(f builderField, ops *[]emitOp) {
-	if f.IsList {
-		*ops = append(*ops, emitOp{Kind: opList, Value: f.Name})
-	} else {
-		*ops = append(*ops, emitOp{Kind: opField, Value: f.Name})
+// commonPrefixSuffix returns the length of the longest common prefix
+// and the longest common suffix shared by every variant op stream. The
+// two regions never overlap: prefixLen + suffixLen <= min(len(variant)).
+func commonPrefixSuffix(variantOps [][]emitOp) (prefixLen, suffixLen int) {
+	if len(variantOps) == 0 {
+		return 0, 0
 	}
+	minLen := len(variantOps[0])
+	for _, v := range variantOps[1:] {
+		if len(v) < minLen {
+			minLen = len(v)
+		}
+	}
+	for prefixLen < minLen {
+		ref := variantOps[0][prefixLen]
+		match := true
+		for _, v := range variantOps[1:] {
+			if !opsEqual(v[prefixLen], ref) {
+				match = false
+				break
+			}
+		}
+		if !match {
+			break
+		}
+		prefixLen++
+	}
+	for prefixLen+suffixLen < minLen {
+		ref := variantOps[0][len(variantOps[0])-1-suffixLen]
+		match := true
+		for _, v := range variantOps[1:] {
+			if !opsEqual(v[len(v)-1-suffixLen], ref) {
+				match = false
+				break
+			}
+		}
+		if !match {
+			break
+		}
+		suffixLen++
+	}
+	return prefixLen, suffixLen
 }
 
-func emitGuardOpen(f builderField, ops *[]emitOp, kind string) {
-	if f.IsList {
-		switch kind {
-		case "if":
-			*ops = append(*ops, emitOp{Kind: opIfList, Value: f.Name})
-		case "elseIf":
-			*ops = append(*ops, emitOp{Kind: opElseIfList, Value: f.Name})
-		}
-	} else {
-		switch kind {
-		case "if":
-			*ops = append(*ops, emitOp{Kind: opIfStr, Value: f.Name})
-		case "elseIf":
-			*ops = append(*ops, emitOp{Kind: opElseIfStr, Value: f.Name})
-		}
-	}
+func opsEqual(a, b emitOp) bool {
+	return a.Kind == b.Kind && a.Value == b.Value
 }
 
-func trieDepth(node *pathTrie) int {
-	max := 0
-	for _, child := range node.children {
-		if d := trieDepth(child); d > max {
-			max = d
+func conditionsFor(fs []builderField) []caseCondition {
+	out := make([]caseCondition, 0, len(fs))
+	for _, f := range fs {
+		out = append(out, caseCondition{Field: f.Name, IsList: f.IsList})
+	}
+	return out
+}
+
+// optionalConditions returns one case condition per non-required field
+// in the builder. The opExplainCheck op renders these as an OR-chain to
+// distinguish "user set no fields" (valid) from "user set fields but no
+// case matched" (invalid combination).
+func optionalConditions(fields []builderField) []caseCondition {
+	out := make([]caseCondition, 0, len(fields))
+	for _, f := range fields {
+		if f.Required {
+			continue
+		}
+		out = append(out, caseCondition{Field: f.Name, IsList: f.IsList})
+	}
+	return out
+}
+
+// joinFieldNames returns a sorted, comma-separated list of field names
+// for stable case-ordering tie-breaks.
+func joinFieldNames(fs []builderField) string {
+	names := make([]string, 0, len(fs))
+	for _, f := range fs {
+		names = append(names, f.Name)
+	}
+	sort.Strings(names)
+	return strings.Join(names, ",")
+}
+
+// dedupeEquivalentVariants collapses spec path variants that share a
+// structural fingerprint -- the same ordered sequence of (literal,
+// param-name, array-ness) -- to a single representative. The selection
+// rule defers to the spec: when a fingerprint group has exactly one
+// non-deprecated variant, that variant is the canonical form. The
+// generator does not invent canonicalness; the spec must declare it
+// via deprecated:true on the redundant URL forms.
+//
+// When a fingerprint group has multiple non-deprecated equivalents,
+// dedupeEquivalentVariants returns an error naming the offending
+// paths. The fix is upstream: mark all but one variant as
+// deprecated:true so the canonical URL is explicit.
+//
+// When every variant in a fingerprint group is deprecated, the whole
+// builder will be flagged deprecated by groupDeprecation; emitting any
+// one (alphabetically first for determinism) is sufficient since users
+// already get the deprecation signal.
+//
+// Fingerprint encoding: ordered sequence of "L" for literal segments
+// and "p:<name>" or "p:<name>[]" for param segments. Two variants
+// agreeing on this fingerprint differ only in literal text and are
+// interchangeable URLs of the same operation.
+func dedupeEquivalentVariants(paths []pathVariant) ([]pathVariant, error) {
+	if len(paths) <= 1 {
+		return paths, nil
+	}
+
+	type key struct{ s string }
+	fingerprint := func(pv pathVariant) key {
+		var b strings.Builder
+		for _, seg := range splitPath(pv.path) {
+			if m := pathParamRE.FindStringSubmatch(seg); m != nil {
+				b.WriteString("p:")
+				b.WriteString(m[1])
+				if pv.arrayParams[m[1]] {
+					b.WriteString("[]")
+				}
+				b.WriteByte('|')
+				continue
+			}
+			b.WriteString("L|")
+		}
+		return key{b.String()}
+	}
+
+	groups := make(map[key][]int)
+	order := make([]key, 0, len(paths))
+	for i, pv := range paths {
+		k := fingerprint(pv)
+		if _, seen := groups[k]; !seen {
+			order = append(order, k)
+		}
+		groups[k] = append(groups[k], i)
+	}
+
+	out := make([]pathVariant, 0, len(order))
+	for _, k := range order {
+		idxs := groups[k]
+		if len(idxs) == 1 {
+			out = append(out, paths[idxs[0]])
+			continue
+		}
+		var live []int
+		var deprecatedPaths []string
+		for _, i := range idxs {
+			if paths[i].deprecated {
+				deprecatedPaths = append(deprecatedPaths, paths[i].path)
+				continue
+			}
+			live = append(live, i)
+		}
+		switch len(live) {
+		case 1:
+			out = append(out, paths[live[0]])
+		case 0:
+			// Whole-group deprecation: groupDeprecation will flag the
+			// builder, so users see the deprecation. Pick the
+			// alphabetically first path for determinism.
+			sort.SliceStable(idxs, func(a, b int) bool {
+				return paths[idxs[a]].path < paths[idxs[b]].path
+			})
+			out = append(out, paths[idxs[0]])
+		default:
+			conflictPaths := make([]string, 0, len(live))
+			for _, i := range live {
+				conflictPaths = append(conflictPaths, paths[i].path)
+			}
+			return nil, fmt.Errorf(
+				"spec has %d non-deprecated structurally-equivalent path variants in the same operation group; "+
+					"mark all but one as deprecated:true so the canonical URL form is explicit "+
+					"(non-deprecated: %v; deprecated: %v)",
+				len(live), conflictPaths, deprecatedPaths,
+			)
 		}
 	}
-	for _, wc := range node.wilds {
-		if d := trieDepth(wc.node); d > max {
-			max = d
-		}
-	}
-	return max + 1
+	return out, nil
 }
 
 func splitPath(path string) []string {
