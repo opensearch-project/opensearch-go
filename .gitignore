@@ -1,5 +1,7 @@
 tmp/
 *.test
+coverage.out
+test-*.log
 
 # editors
 .idea
@@ -10,9 +12,6 @@ bin/
 # Admin certificates for testing
 admin.pem
 admin.key
-
-# Downloaded OpenAPI spec (fetched by `make fetch-opensearch-spec`)
-opensearch-openapi.yaml
 
 # Compiled generator binaries
 cmd/osgen/osgen
