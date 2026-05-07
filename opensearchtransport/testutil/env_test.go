@@ -31,13 +31,13 @@ func TestIsSecure(t *testing.T) {
 		envValue string
 		want     bool
 	}{
-		{name: "unset defaults to false", envSet: false, want: false},
+		{name: "unset defaults to true", envSet: false, want: true},
 		{name: "true returns true", envSet: true, envValue: "true", want: true},
 		{name: "false returns false", envSet: true, envValue: "false", want: false},
-		{name: "garbage returns false", envSet: true, envValue: "notabool", want: false},
+		{name: "garbage defaults to true", envSet: true, envValue: "notabool", want: true},
 		{name: "1 returns true", envSet: true, envValue: "1", want: true},
 		{name: "0 returns false", envSet: true, envValue: "0", want: false},
-		{name: "empty string returns false", envSet: true, envValue: "", want: false},
+		{name: "empty string defaults to true", envSet: true, envValue: "", want: true},
 	}
 
 	for _, tt := range tests {
@@ -65,10 +65,10 @@ func TestGetScheme(t *testing.T) {
 		require.Equal(t, "http", testutil.GetScheme(t))
 	})
 
-	t.Run("unset returns http", func(t *testing.T) {
+	t.Run("unset returns https", func(t *testing.T) {
 		t.Setenv("SECURE_INTEGRATION", "")
 		unsetEnv(t, "SECURE_INTEGRATION")
-		require.Equal(t, "http", testutil.GetScheme(t))
+		require.Equal(t, "https", testutil.GetScheme(t))
 	})
 }
 

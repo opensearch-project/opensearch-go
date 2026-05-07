@@ -91,6 +91,7 @@ jobs:
         env:
           OPENSEARCH_GO_SKIP_JSON_COMPARE: true
           OPENSEARCH_NODE_COUNT: 1
+          SECURE_INTEGRATION: false
 
       - name: Save server logs
         if: failure()
