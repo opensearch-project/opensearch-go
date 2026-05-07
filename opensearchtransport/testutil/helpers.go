@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -313,39 +314,83 @@ func WaitForCluster(t *testing.T) {
 	t.Fatalf("WaitForCluster: cluster not ready after %d attempts (url=%s)", maxAttempts, healthURL.String())
 }
 
-// versionAllSupported is the version expression matching all supported OpenSearch versions.
-const versionAllSupported = ">=v1.0.0"
+// ignoredFieldRule pairs a compiled regexp with a version expression.
+type ignoredFieldRule struct {
+	Pattern *regexp.Regexp
+	Version string // operator+version expression, e.g. ">=v1.0.0"
+}
 
-// ignoredFieldPatterns contains field patterns that should be ignored during JSON comparison
-// Map of field patterns to their version requirements using operator+version syntax
-// Format: {operator}{version}(,{operator}{version})*
-// Examples: ">=v1.0.0", ">=v1.0.0,<v2.0.0", "=v2.1.0"
+// ignoredFieldRules contains patterns for JSON pointer paths that should be
+// ignored during JSON round-trip comparison. Each pattern is a regexp matched
+// against the full path from a JSON diff "remove" operation.
+//
+// Version expressions use operator+version syntax: ">=v1.0.0", ">=v2.0.0,<v3.0.0"
 //
 //nolint:gochecknoglobals // This is a test utility package
-var ignoredFieldPatterns = map[string]string{
-	// Dynamic IO statistics that change between calls - present in all supported versions
-	"/io_stats/":         versionAllSupported,
-	"/io_time_in_millis": versionAllSupported,
-	"/queue_size":        versionAllSupported,
-	"/read_time":         versionAllSupported,
-	"/write_time":        versionAllSupported,
+var ignoredFieldRules = []ignoredFieldRule{
+	// Dynamic IO statistics that change between calls
+	{regexp.MustCompile(`/io_stats/`), ">=v1.0.0"},
+	{regexp.MustCompile(`/io_time_in_millis$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/queue_size$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/read_time$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/write_time$`), ">=v1.0.0"},
 
-	// Optional script/template metadata - present in all supported versions
-	"/options":                  versionAllSupported,
-	"/metadata/stored_scripts/": versionAllSupported,
+	// Optional script/template metadata
+	{regexp.MustCompile(`/options$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/metadata/stored_scripts/`), ">=v1.0.0"},
 
-	// Dynamic cluster/node fields - present in all supported versions
-	"/target_node":   versionAllSupported,
-	"/relocation_id": versionAllSupported,
+	// Dynamic cluster/node fields
+	{regexp.MustCompile(`/target_node$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/relocation_id$`), ">=v1.0.0"},
 
-	// Dynamic task-related fields - present in all supported versions
-	"/cancellation_time_millis": versionAllSupported,
+	// Dynamic task-related fields
+	{regexp.MustCompile(`/cancellation_time_millis$`), ">=v1.0.0"},
 
 	// Version-specific or environment-dependent fields
-	"/build_flavor":   versionAllSupported,
-	"/build_type":     versionAllSupported,
-	"/build_snapshot": versionAllSupported,
-	"/lucene_version": versionAllSupported,
+	{regexp.MustCompile(`/build_flavor$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/build_type$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/build_snapshot$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/lucene_version$`), ">=v1.0.0"},
+
+	// Fields present in server responses but not yet in the OpenAPI spec
+	{regexp.MustCompile(`/max_last_index_request_timestamp$`), ">=v2.0.0"},
+	{regexp.MustCompile(`/merges/warmer$`), ">=v2.0.0"},
+	{regexp.MustCompile(`/search/query_failed$`), ">=v2.0.0"},
+	{regexp.MustCompile(`/startree_query_`), ">=v3.0.0"},
+
+	// Search hit underscore fields not in SearchResult's hits item schema
+	{regexp.MustCompile(`/hits/hits/\d+/_`), ">=v1.0.0"},
+
+	// Deprecated _type field in ingest simulate responses (removed in 2.0+)
+	{regexp.MustCompile(`/_type$`), ">=v1.0.0"},
+
+	// Index-level settings/index/replication not in spec
+	{regexp.MustCompile(`/settings/index/replication$`), ">=v1.0.0"},
+
+	// Segment merge_id (transient during background merges)
+	{regexp.MustCompile(`/segments/[^/]+/merge_id$`), ">=v1.0.0"},
+
+	// Shard stores embed node IDs as dynamic object keys
+	{regexp.MustCompile(`/stores/\d+/[A-Za-z0-9_-]{20,}$`), ">=v1.0.0"},
+
+	// Transport SSL settings in nodes info response
+	{regexp.MustCompile(`/nodes/[^/]+/settings/transport/ssl$`), ">=v1.0.0"},
+
+	// System-generated search pipeline fields
+	{regexp.MustCompile(`/search_pipeline/system_generated_`), ">=v2.0.0"},
+
+	// Node-level indices/status_counter not in spec
+	{regexp.MustCompile(`/nodes/[^/]+/indices/status_counter$`), ">=v2.0.0"},
+
+	// Mapping property/field attributes not fully modeled in the spec schema.
+	// Covers nested properties, multi-fields, and all per-field settings.
+	{regexp.MustCompile(`/mappings/properties/`), ">=v1.0.0"},
+
+	// Node-level search_pipelines/processors not in spec
+	{regexp.MustCompile(`/nodes/[^/]+/search_pipelines/processors$`), ">=v2.7.0"},
+
+	// Cluster state metadata fields not in spec
+	{regexp.MustCompile(`/metadata/search_pipeline$`), ">=v2.0.0"},
 }
 
 // ShouldIgnoreField returns true if the given JSON path represents a field
@@ -353,9 +398,9 @@ var ignoredFieldPatterns = map[string]string{
 // cause test failures when missing from Go client structs.
 func ShouldIgnoreField(t *testing.T, path string, serverVersion string) bool {
 	t.Helper()
-	for pattern, versionExpr := range ignoredFieldPatterns {
-		if strings.Contains(path, pattern) {
-			return EvaluateVersionExpression(t, serverVersion, versionExpr)
+	for _, rule := range ignoredFieldRules {
+		if rule.Pattern.MatchString(path) {
+			return EvaluateVersionExpression(t, serverVersion, rule.Version)
 		}
 	}
 	return false

@@ -44,9 +44,9 @@ import (
 {{if .HasRequired}}
 var errRequired = errors.New("required path segment is empty")
 {{end}}
-// ListSep is the separator for multi-value path segments (e.g. index lists).
-// Use with strings.Join when a spec-bug workaround requires manual joining.
-const ListSep = ","
+// listSep is the separator OpenSearch uses to join multi-value path
+// segments (e.g. index lists rendered as "/a,b,c").
+const listSep = ","
 
 type buf struct {
 	b []byte
@@ -107,7 +107,7 @@ func writeSegments(pb *buf, segments []string) {
 			pb.b = append(pb.b, '/')
 			first = false
 		} else {
-			pb.b = append(pb.b, ListSep...)
+			pb.b = append(pb.b, listSep...)
 		}
 		pb.b = append(pb.b, encSeg(seg)...)
 	}

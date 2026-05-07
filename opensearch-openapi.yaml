@@ -18317,8 +18317,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.aliases___query.h:
       name: h
       in: query
@@ -18376,8 +18375,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.all_pit_segments___query.h:
       name: h
       in: query
@@ -18443,8 +18441,7 @@ components:
       in: query
       description: A short version of the HTTP `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the HTTP `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.allocation___query.h:
       name: h
       in: query
@@ -18512,8 +18509,7 @@ components:
       in: query
       description: A short version of the HTTP `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the HTTP `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.cluster_manager___query.h:
       name: h
       in: query
@@ -18584,8 +18580,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.count___query.h:
       name: h
       in: query
@@ -18653,8 +18648,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.fielddata___query.h:
       name: h
       in: query
@@ -18698,8 +18692,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.health___query.h:
       name: h
       in: query
@@ -18788,8 +18781,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.indices___query.h:
       name: h
       in: query
@@ -18887,8 +18879,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.master___query.h:
       name: h
       in: query
@@ -18956,8 +18947,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.nodeattrs___query.h:
       name: h
       in: query
@@ -19032,8 +19022,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.nodes___query.full_id:
       in: query
       name: full_id
@@ -19118,8 +19107,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.pending_tasks___query.h:
       name: h
       in: query
@@ -19192,8 +19180,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.pit_segments___query.h:
       name: h
       in: query
@@ -19244,8 +19231,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.plugins___query.h:
       name: h
       in: query
@@ -19339,8 +19325,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.recovery___query.h:
       name: h
       in: query
@@ -19412,8 +19397,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.repositories___query.h:
       name: h
       in: query
@@ -19483,6 +19467,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     cat.segment_replication___query.active_only:
       name: active_only
       in: query
@@ -19530,8 +19515,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.segment_replication___query.h:
       name: h
       in: query
@@ -19652,8 +19636,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.segments___query.h:
       name: h
       in: query
@@ -19727,8 +19710,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.shards___query.h:
       name: h
       in: query
@@ -19813,8 +19795,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.snapshots___query.h:
       name: h
       in: query
@@ -19909,8 +19890,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.tasks___query.h:
       name: h
       in: query
@@ -19998,8 +19978,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.templates___query.h:
       name: h
       in: query
@@ -20077,8 +20056,7 @@ components:
       in: query
       description: A short version of the `Accept` header, such as `json` or `yaml`.
       schema:
-        type: string
-        description: A short version of the `Accept` header, such as `json` or `yaml`.
+        $ref: '#/components/schemas/_common___CatResponseFormat'
     cat.thread_pool___query.h:
       name: h
       in: query
@@ -20932,6 +20910,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     create_pit___query.allow_partial_pit_creation:
       name: allow_partial_pit_creation
       in: query
@@ -22018,6 +21997,7 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/_common___StringOrStringArray'
+      style: simple
     geospatial.put_ip2geo_datasource_settings___path.name:
       name: name
       in: path
@@ -23633,6 +23613,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     indices.get_upgrade___query.allow_no_indices:
       name: allow_no_indices
       in: query
@@ -24716,6 +24697,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     indices.upgrade___query.allow_no_indices:
       name: allow_no_indices
       in: query
@@ -25542,6 +25524,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     knn.stats___path.stat:
       name: stat
       in: path
@@ -25554,6 +25537,7 @@ components:
             items:
               $ref: '#/components/schemas/knn._common___KnnStatName'
       required: true
+      style: simple
     knn.stats___query.timeout:
       name: timeout
       in: query
@@ -25585,6 +25569,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     list.indices___path.index:
       in: path
       name: index
@@ -25621,8 +25606,7 @@ components:
       in: query
       description: A short version of the Accept header, such as `JSON`, `YAML`.
       schema:
-        type: string
-        description: A short version of the Accept header, such as `JSON`, `YAML`.
+        $ref: '#/components/schemas/_common___ListResponseFormat'
     list.indices___query.h:
       name: h
       in: query
@@ -25760,8 +25744,7 @@ components:
       in: query
       description: A short version of the Accept header, such as `JSON`, `YAML`.
       schema:
-        type: string
-        description: A short version of the Accept header, such as `JSON`, `YAML`.
+        $ref: '#/components/schemas/_common___ListResponseFormat'
     list.shards___query.h:
       name: h
       in: query
@@ -26220,6 +26203,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     ltr.stats___path.stat:
       name: stat
       in: path
@@ -26232,6 +26216,7 @@ components:
             items:
               $ref: '#/components/schemas/ltr._common___LtrStatName'
       required: true
+      style: simple
     ltr.stats___query.timeout:
       name: timeout
       in: query
@@ -26658,6 +26643,7 @@ components:
           - type: array
             items:
               $ref: '#/components/schemas/ml._common___MlStatName'
+      style: simple
     ml.get_task___path.task_id:
       name: task_id
       in: path
@@ -27059,6 +27045,7 @@ components:
             items:
               $ref: '#/components/schemas/neural._common___NeuralStatName'
       required: true
+      style: simple
     neural.stats___query.flat_stat_paths:
       in: query
       name: flat_stat_paths
@@ -27123,6 +27110,7 @@ components:
         items:
           type: string
       required: true
+      style: simple
     nodes.hot_threads___query.ignore_idle_threads:
       name: ignore_idle_threads
       in: query
@@ -27636,7 +27624,7 @@ components:
       in: query
       description: Specifies the response format (JSON, YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___PPLResponseFormat'
     ppl.explain___query.sanitize:
       name: sanitize
       in: query
@@ -27649,7 +27637,7 @@ components:
       in: query
       description: Specifies the response format (JSON, YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___PPLResponseFormat'
     ppl.get_stats___query.sanitize:
       name: sanitize
       in: query
@@ -27662,7 +27650,7 @@ components:
       in: query
       description: Specifies the response format (JSON, YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___PPLResponseFormat'
     ppl.post_stats___query.sanitize:
       name: sanitize
       in: query
@@ -27675,7 +27663,7 @@ components:
       in: query
       description: Specifies the response format (JSON OR YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___PPLResponseFormat'
     ppl.query___query.sanitize:
       name: sanitize
       in: query
@@ -29958,7 +29946,7 @@ components:
       in: query
       description: Specifies the response format (JSON or YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___SQLResponseFormat'
     sql.close___query.sanitize:
       name: sanitize
       in: query
@@ -29971,7 +29959,7 @@ components:
       in: query
       description: Specifies the response format (JSON or YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___SQLResponseFormat'
     sql.explain___query.sanitize:
       name: sanitize
       in: query
@@ -29984,7 +29972,7 @@ components:
       in: query
       description: Specifies the response format (JSON or YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___SQLResponseFormat'
     sql.get_stats___query.sanitize:
       name: sanitize
       in: query
@@ -29997,7 +29985,7 @@ components:
       in: query
       description: Specifies the response format (JSON or YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___SQLResponseFormat'
     sql.post_stats___query.sanitize:
       name: sanitize
       in: query
@@ -30010,7 +29998,7 @@ components:
       in: query
       description: Specifies the response format (JSON or YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___SQLResponseFormat'
     sql.query___query.sanitize:
       name: sanitize
       in: query
@@ -30023,7 +30011,7 @@ components:
       in: query
       description: Specifies the response format (JSON or YAML).
       schema:
-        type: string
+        $ref: '#/components/schemas/_common___SQLResponseFormat'
     tasks.cancel___path.task_id:
       in: path
       name: task_id
@@ -38796,6 +38784,14 @@ components:
           enum:
             - pb
             - p
+    _common___CatResponseFormat:
+      type: string
+      enum: [text, json, yaml, cbor, smile]
+      default: text
+      description: |
+        Selects the response format returned by cat operations. Equivalent to
+        the HTTP `Accept` header but expressed as a query parameter. The
+        server's omit-the-param behavior is `text`.
     _common___ClusterStatistics:
       type: object
       properties:
@@ -39735,6 +39731,14 @@ components:
         - cluster
         - indices
         - shards
+    _common___ListResponseFormat:
+      type: string
+      enum: [text, json, yaml, cbor, smile]
+      default: text
+      description: |
+        Selects the response format returned by list operations. Equivalent
+        to the HTTP `Accept` header but expressed as a query parameter. The
+        server's omit-the-param behavior is `text`.
     _common___MergesStats:
       type: object
       description: The statistics about merge operations.
@@ -40141,6 +40145,14 @@ components:
         - name
         - opensearch_version
         - version
+    _common___PPLResponseFormat:
+      type: string
+      enum: [jdbc, csv, raw, viz, json, yaml, simple, standard, extended, cost]
+      default: jdbc
+      description: |
+        Response format selector for PPL plugin operations. The valid set is
+        the union of values accepted across `_plugins/_ppl/*` endpoints;
+        defaults and per-endpoint subsets mirror the SQL plugin.
     _common___QueryCacheStats:
       type: object
       description: The statistics about query cache usage.
@@ -41085,6 +41097,16 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/_common___FieldValue'
+    _common___SQLResponseFormat:
+      type: string
+      enum: [jdbc, csv, raw, viz, json, yaml, simple, standard, extended, cost]
+      default: jdbc
+      description: |
+        Response format selector for SQL plugin operations. The valid set
+        is the union of values accepted across `_plugins/_sql/*` endpoints:
+        query responses use `jdbc` (default), `csv`, `raw`, or `viz`; explain
+        responses use `json`, `yaml`, `simple`, `standard`, `extended`, or
+        `cost`. Not every endpoint accepts every value.
     _common___StoredScript:
       type: object
       description: The definition of a stored script.

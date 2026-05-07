@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"
 )
 
 // Config represents the client configuration
@@ -67,16 +68,9 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 	return resp, nil
 }
 
-// formatDuration converts duration to a string in the format accepted by OpenSearch.
+// formatDuration converts duration to a string in the format accepted by
+// OpenSearch. Delegates to apiutil.FormatDuration so the encoding lives in a
+// single place; generated plugin packages reference apiutil directly.
 func formatDuration(d time.Duration) string {
-	if d < time.Millisecond {
-		return strconv.FormatInt(int64(d), 10) + "nanos"
-	}
-
-	return strconv.FormatInt(int64(d)/int64(time.Millisecond), 10) + "ms"
-}
-
-// ToPointer converts any value to a pointer, mainly used for request parameters
-func ToPointer[V any](value V) *V {
-	return &value
+	return apiutil.FormatDuration(d)
 }

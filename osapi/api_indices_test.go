@@ -9,6 +9,7 @@
 package osapi_test
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"testing"
@@ -26,7 +27,7 @@ func TestManual_IndicesCreate(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-create")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(t.Context(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	t.Run("create and verify", func(t *testing.T) {
@@ -55,7 +56,7 @@ func TestManual_IndicesExists(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-exists")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(t.Context(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
@@ -116,7 +117,7 @@ func TestManual_Index(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-index-doc")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(t.Context(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	tests := []struct {
@@ -172,14 +173,14 @@ func TestManual_Search(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-search")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(t.Context(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	_, err = client.Index(t.Context(), osapi.IndexReq{
 		Index:  index,
 		ID:     "doc-1",
 		Body:   strings.NewReader(`{"title":"Hello World","count":1}`),
-		Params: osapi.IndexParams{Refresh: "true"},
+		Params: &osapi.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)
 
@@ -195,8 +196,8 @@ func TestManual_Search(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := client.Search(t.Context(), &osapi.SearchReq{
-				Index: []string{index},
-				Body:  strings.NewReader(tt.body),
+				Index:      []string{index},
+				BodyReader: strings.NewReader(tt.body),
 			})
 			require.NoError(t, err)
 			require.NotNil(t, resp.Hits.Total)
@@ -214,7 +215,7 @@ func TestManual_Search(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.Search(t.Context(), &osapi.SearchReq{
-			Body: strings.NewReader(`{"query":{"match_all":{}}}`),
+			BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
 		})
 		require.Error(t, err)
 		require.NotNil(t, res)

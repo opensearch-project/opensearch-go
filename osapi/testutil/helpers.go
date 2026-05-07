@@ -18,7 +18,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/wI2L/jsondiff"
@@ -58,7 +57,7 @@ var (
 	GetPassword       = tptestutil.GetPassword
 	GetTestTransport  = tptestutil.GetTestTransport
 	SkipIfNotSecure   = tptestutil.SkipIfNotSecure
-	SkipIfSingleNode  = tptestutil.SkipIfSingleNode
+	RequireMinNodes   = tptestutil.RequireMinNodes
 	ShouldIgnoreField = tptestutil.ShouldIgnoreField
 	PollUntil         = tptestutil.PollUntil
 )
@@ -190,8 +189,9 @@ func ExtendedReadinessCheck(t *testing.T, ctx context.Context, client *osapi.Cli
 }
 
 // NewClient returns a shared osapi.Client that is safe for concurrent
-// use across tests within the same package. The client is created once with
-// full cluster readiness checking; subsequent calls return immediately.
+// use across tests within the same package. The client is constructed
+// once; each caller re-verifies cluster readiness so partial-startup
+// failures from earlier tests don't yield a half-broken shared client.
 func NewClient(t *testing.T) (*osapi.Client, error) {
 	t.Helper()
 	sharedClientOnce.Do(func() {
@@ -204,12 +204,11 @@ func NewClient(t *testing.T) (*osapi.Client, error) {
 			errSharedClient = err
 			return
 		}
-
-		errSharedClient = WaitForClusterReady(t, sharedClient)
 	})
 	if errSharedClient != nil {
-		return nil, fmt.Errorf("shared client initialization failed: %w", errSharedClient)
+		return nil, fmt.Errorf("shared client construction failed: %w", errSharedClient)
 	}
+	WaitForClusterReady(t, sharedClient)
 	return sharedClient, nil
 }
 
@@ -223,101 +222,45 @@ func InitClient(t *testing.T) (*osapi.Client, error) {
 		return nil, err
 	}
 
-	err = WaitForClusterReady(t, client)
-	if err != nil {
-		return nil, err
-	}
-
+	WaitForClusterReady(t, client)
 	return client, nil
 }
 
-func classifyConnError(err error, everConnected bool, eofCount *int) error {
-	errMsg := err.Error()
-
-	if strings.Contains(errMsg, "invalid character 'U'") ||
-		strings.Contains(errMsg, "Unauthorized") {
-		return fmt.Errorf("cluster returned Unauthorized (SECURE_INTEGRATION=%s, OPENSEARCH_VERSION=%s); "+
-			"verify credentials are correct: %w",
-			os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"), err)
-	}
-
-	if strings.Contains(errMsg, "EOF") && !everConnected {
-		*eofCount++
-		if *eofCount >= 5 {
-			return fmt.Errorf("cluster returned EOF on %d consecutive attempts (SECURE_INTEGRATION=%s); "+
-				"verify the cluster scheme matches this setting: %w",
-				*eofCount, os.Getenv("SECURE_INTEGRATION"), err)
-		}
-	} else {
-		*eofCount = 0
-	}
-
-	return nil
-}
-
-// WaitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
-func WaitForClusterReady(t *testing.T, client *osapi.Client) error {
+// WaitForClusterReady blocks until the OpenSearch cluster responds to
+// GET / using the layered readiness FSM in internal/test/readiness. The
+// readinessSem caps concurrent setups across tests so a stampede of
+// goroutines doesn't overload a small CI cluster.
+func WaitForClusterReady(t *testing.T, client *osapi.Client) {
+// goroutines doesn't overload a small CI cluster.
+func WaitForClusterReady(t *testing.T, client *osapi.Client) {
 	t.Helper()
-
 	if err := readinessSem.Acquire(t.Context(), 1); err != nil {
-		return fmt.Errorf("readiness semaphore acquire: %w", err)
+		require.NoError(t, err, "readiness semaphore acquire")
+		return
 	}
 	defer readinessSem.Release(1)
+	readiness.Wait(t, t.Context(), readiness.LayerHTTP, readiness.WithCluster(client))
+}
 
-	const (
-		maxAttempts          = 25
-		delayBetweenAttempts = 5 * time.Second
-		requestTimeout       = 2 * time.Second
-	)
-
-	var (
-		major, minor, patch int64
-		eofCount            int
-		everConnected       bool
-	)
-
-	for attempt := range maxAttempts {
-		ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
-
-		var err error
-		major, minor, patch, err = GetVersion(t, ctx, client)
-		if err != nil {
-			cancel()
-
-			if fatalErr := classifyConnError(err, everConnected, &eofCount); fatalErr != nil {
-				return fatalErr
+// WaitForAllNodesReady polls /_cat/nodes until every node reports non-nil cpu
+// and heap.percent metrics. This prevents flakes from nodes that haven't fully
+// initialized in CI (e.g. stats not yet collected after a fresh cluster start).
+func WaitForAllNodesReady(t *testing.T, client *osapi.Client) {
+	t.Helper()
+	require.Eventually(t, func() bool {
+		resp, err := client.Cat.Nodes(t.Context(), &osapi.CatNodesReq{
+			Params: &osapi.CatNodesParams{DebugParams: osapi.DebugParams{Format: "json"}},
+		})
+		if err != nil || resp == nil || len(resp.Records) == 0 {
+			return false
+		}
+		for _, node := range resp.Records {
+			if node.Cpu == nil || node.HeapPercent == nil {
+				return false
 			}
-
-			t.Logf("Waiting %s for cluster readiness (attempt %d/%d): %v", delayBetweenAttempts, attempt+1, maxAttempts, err)
-			time.Sleep(delayBetweenAttempts)
-			continue
 		}
-		eofCount = 0
-		everConnected = true
-
-		resp, err := client.Cluster.Health(ctx, nil)
-		if err != nil || resp == nil {
-			cancel()
-			t.Logf("Waiting %s for cluster readiness (attempt %d/%d)...", delayBetweenAttempts, attempt+1, maxAttempts)
-			time.Sleep(delayBetweenAttempts)
-			continue
-		}
-
-		readyErr := ExtendedReadinessCheck(t, ctx, client)
-		if readyErr == nil {
-			cancel()
-			if attempt > 0 {
-				t.Logf("Cluster ready after %d attempts (version %d.%d.%d)", attempt+1, major, minor, patch)
-			}
-			return nil
-		}
-
-		t.Logf("Cluster health OK but readiness validation failed (attempt %d/%d): %v", attempt+1, maxAttempts, readyErr)
-		cancel()
-		time.Sleep(delayBetweenAttempts)
-	}
-
-	return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+		return true
+	}, 60*time.Second, 1*time.Second, "not all nodes reporting stats (cpu/heap.percent nil)")
 }
 
 // CompareRawJSONwithParsedJSON is a helper function to determine the difference between the parsed JSON and the raw JSON.

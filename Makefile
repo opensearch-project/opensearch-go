@@ -271,6 +271,7 @@ godoc: ## Display documentation for the package
 	@printf "\033[2m-> Generating documentation...\033[0m\n"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchapi"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/osapi"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchtransport"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchutil"
 	@printf "\n"

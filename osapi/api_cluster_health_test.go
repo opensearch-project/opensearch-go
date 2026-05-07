@@ -29,7 +29,7 @@ func TestManual_ClusterHealth(t *testing.T) {
 		{name: "nil request", req: nil},
 		{name: "empty request", req: &osapi.ClusterHealthReq{}},
 		{name: "level indices", req: &osapi.ClusterHealthReq{
-			Params: osapi.ClusterHealthParams{Level: "indices"},
+			Params: &osapi.ClusterHealthParams{Level: "indices"},
 		}},
 	}
 
