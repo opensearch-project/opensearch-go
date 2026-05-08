@@ -325,8 +325,6 @@ type ignoredFieldRule struct {
 // against the full path from a JSON diff "remove" operation.
 //
 // Version expressions use operator+version syntax: ">=v1.0.0", ">=v2.0.0,<v3.0.0"
-//
-//nolint:gochecknoglobals // This is a test utility package
 var ignoredFieldRules = []ignoredFieldRule{
 	// Dynamic IO statistics that change between calls
 	{regexp.MustCompile(`/io_stats/`), ">=v1.0.0"},
@@ -597,4 +595,97 @@ func NormalizeVersion(t *testing.T, version string) string {
 		return "v" + version
 	}
 	return version
+}
+
+// preReleaseRank assigns ordering to known pre-release tags. Lower rank
+// = earlier in the release cycle. Per OpenSearch convention:
+//
+//	snapshot < alpha < beta < rc < (release, i.e. no suffix)
+//
+// Standard semver (golang.org/x/mod/semver) orders alpha < beta < rc <
+// release correctly via lexicographic compare on pre-release identifiers,
+// but it places "SNAPSHOT" after "rc" because alphabetic ordering puts
+// upper-case 'S' beyond lower-case 'r'. Maven/Gradle SNAPSHOT builds
+// represent "in-development past the last release", and treating them
+// as later than rc over-skips nightly CI builds that contain the fix.
+//
+
+var preReleaseRank = map[string]int{
+	"snapshot": 0,
+	"alpha":    1,
+	"beta":     2,
+	"rc":       3,
+}
+
+// compareVersion orders two normalized "vX.Y.Z[-pre]" strings using the
+// pre-release ranking above. Returns -1 if a < b, 0 if equal, +1 if
+// a > b.
+func compareVersion(a, b string) int {
+	aBase, aPre := splitPrerelease(a)
+	bBase, bPre := splitPrerelease(b)
+
+	if cmp := semver.Compare(aBase, bBase); cmp != 0 {
+		return cmp
+	}
+	return comparePrerelease(aPre, bPre)
+}
+
+// splitPrerelease returns the base "vX.Y.Z" portion and the lower-cased
+// pre-release tag (without the leading "-"). Empty pre-release means
+// "is a release version".
+func splitPrerelease(v string) (string, string) {
+	if before, after, ok := strings.Cut(v, "-"); ok {
+		return before, strings.ToLower(after)
+	}
+	return v, ""
+}
+
+// comparePrerelease compares two lower-cased pre-release strings. The
+// empty string represents "release" (no pre-release suffix) and ranks
+// highest. Known tags use preReleaseRank; tied ranks fall through to
+// lexicographic compare so e.g. "rc.1" < "rc.2".
+func comparePrerelease(a, b string) int {
+	if a == b {
+		return 0
+	}
+	if a == "" {
+		return +1 // release beats any pre-release
+	}
+	if b == "" {
+		return -1
+	}
+
+	aRank, aKnown := preReleaseRank[preReleaseHead(a)]
+	bRank, bKnown := preReleaseRank[preReleaseHead(b)]
+
+	switch {
+	case aKnown && bKnown:
+		if aRank != bRank {
+			if aRank < bRank {
+				return -1
+			}
+			return +1
+		}
+	case aKnown:
+		return -1 // known tag sorts before unknown
+	case bKnown:
+		return +1
+	}
+
+	if a < b {
+		return -1
+	}
+	return +1
+}
+
+// preReleaseHead returns the leading alpha tag of a pre-release string,
+// stripping any trailing numeric or punctuation suffix. "rc.1" -> "rc",
+// "alpha-2" -> "alpha", "snapshot" -> "snapshot".
+func preReleaseHead(s string) string {
+	for i, r := range s {
+		if r == '.' || r == '-' || (r >= '0' && r <= '9') {
+			return s[:i]
+		}
+	}
+	return s
 }

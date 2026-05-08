@@ -34,12 +34,7 @@ import (
 	"time"
 )
 
-// Cluster health status values returned by the OpenSearch _cluster/health API.
-const (
-	clusterStatusGreen  = "green"
-	clusterStatusYellow = "yellow"
-	clusterStatusRed    = "red"
-)
+const clusterStatusRed = "red"
 
 // NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool.
 // Only the "nodes" map is used; the top-level "_nodes" and "cluster_name" fields are ignored.

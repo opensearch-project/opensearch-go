@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 # Tool versions
-GOLANGCI_LINT_VERSION := v2.11.4
+GOLANGCI_LINT_VERSION := v2.12.2
 
 GOLANGCI_LINT_BUILD_TAGS := "integration core plugins plugin_security plugin_index_management multinode"
 
@@ -189,6 +189,9 @@ test-gen: regen  ## Regen then run unit + integration tests (ensures tests use f
 
 lint:  ## Run lint on the package
 	@$(MAKE) linters
+
+lint.headers:  ## Check license headers on all Go files (same check as CI)
+	@.github/check-license-headers.sh
 
 lint.local:  ## Run lint locally (not in Docker) with all build tags
 	@printf "\033[2m-> Running golangci-lint locally with all build tags...\033[0m\n"

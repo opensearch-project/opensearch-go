@@ -29,7 +29,7 @@ linters:
     - godox
     - goheader
     - gomoddirectives
-    - gomodguard
+    - gomodguard_v2
     - goprintffuncname
     - gosec
     - govet
@@ -127,7 +127,7 @@ linters:
           - gochecknoinits
           - goconst
           - noctx
-        path: (_test\.go|internal/)
+        path: (_test\.go|internal/|opensearchtransport/testutil/)
       - linters:
           - gosec
         path: _test\.go
@@ -155,7 +155,13 @@ linters:
         path: opensearchtransport/opensearchtransport.go
       - linters:
           - dupl
-        path: (-params\.go|api_indices|api_dangling\.go|api_point_in_time\.go|rethrottle\.go|api_cat-.*\.go|plugins/security/api_\w+.go|plugins/security/api_.*-patch.go)
+        path: (-params\.go|api_indices|api_dangling\.go|api_point_in_time\.go|rethrottle\.go|api_cat-.*\.go|plugins/security/api_\w+.go|plugins/security/api_.*-patch.go|_gen\.go)
+      # Generated code emits long lines from upstream spec descriptions, table
+      # rows, and inline struct literals that lose readability if wrapped at the
+      # template level.
+      - linters:
+          - lll
+        path: _integ_gen_test\.go|internal/path/builders_gen(_test)?\.go|osapi/.*_gen\.go
     paths:
       - third_party$
       - builtin$
