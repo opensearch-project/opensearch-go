@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,6 +29,9 @@ func TestTasksClient(t *testing.T) {
 	t.Parallel()
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
+	// .tasks index mapping lacked cancellation_time_millis and resource_stats fields;
+	// cancelled tasks could never persist completion (opensearch-project/OpenSearch#16201).
+	testutil.SkipIfVersion(t, client, "<", "2.18", "TestTasksClient")
 	failingClient, err := osapitest.CreateFailingClient(t)
 	require.NoError(t, err)
 
@@ -120,16 +124,6 @@ func TestTasksClient(t *testing.T) {
 
 		// Create unique indices for this test
 		destIndex := testutil.MustUniqueString(t, "test-tasks-dest")
-		testIndices := []string{sourceIndex, destIndex}
-		t.Cleanup(func() {
-			client.Indices.Delete(
-				context.Background(),
-				opensearchapi.IndicesDeleteReq{
-					Indices: testIndices,
-					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
-				},
-			)
-		})
 
 		// Create destination index
 		client.Indices.Create(
@@ -140,6 +134,20 @@ func TestTasksClient(t *testing.T) {
 				Params: opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
 			},
 		)
+
+		// Index cleanup must run regardless of how Reindex fares below;
+		// the task-cancel cleanup registers separately once we have a
+		// taskID. Splitting them ensures Goexit from a require failure
+		// in the task-cancel cleanup doesn't skip the index delete.
+		t.Cleanup(func() {
+			client.Indices.Delete(
+				context.Background(),
+				opensearchapi.IndicesDeleteReq{
+					Indices: []string{destIndex},
+					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+				},
+			)
+		})
 
 		// Create reindex task
 		resp, err := client.Reindex(
@@ -156,6 +164,14 @@ func TestTasksClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, resp)
 		taskID := resp.Task
+
+		t.Cleanup(func() {
+			client.Tasks.Cancel(context.Background(), opensearchapi.TasksCancelReq{TaskID: taskID})
+			require.Eventually(t, func() bool {
+				resp, err := client.Tasks.Get(context.Background(), opensearchapi.TasksGetReq{TaskID: taskID})
+				return err == nil && resp.Completed
+			}, 30*time.Second, 100*time.Millisecond, "reindex task did not complete after cancel")
+		})
 
 		testCases := []tasksTests{
 			{
@@ -204,16 +220,6 @@ func TestTasksClient(t *testing.T) {
 
 		// Create unique indices for this test
 		destIndex := testutil.MustUniqueString(t, "test-tasks-dest")
-		testIndices := []string{sourceIndex, destIndex}
-		t.Cleanup(func() {
-			client.Indices.Delete(
-				context.Background(),
-				opensearchapi.IndicesDeleteReq{
-					Indices: testIndices,
-					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
-				},
-			)
-		})
 
 		// Create destination index
 		client.Indices.Create(
@@ -224,6 +230,20 @@ func TestTasksClient(t *testing.T) {
 				Params: opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
 			},
 		)
+
+		// Index cleanup must run regardless of how Reindex fares below;
+		// the task-cancel cleanup registers separately once we have a
+		// taskID. Splitting them ensures Goexit from a require failure
+		// in the task-cancel cleanup doesn't skip the index delete.
+		t.Cleanup(func() {
+			client.Indices.Delete(
+				context.Background(),
+				opensearchapi.IndicesDeleteReq{
+					Indices: []string{destIndex},
+					Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+				},
+			)
+		})
 
 		// Create reindex task
 		resp, err := client.Reindex(
@@ -240,6 +260,14 @@ func TestTasksClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, resp)
 		taskID := resp.Task
+
+		t.Cleanup(func() {
+			client.Tasks.Cancel(context.Background(), opensearchapi.TasksCancelReq{TaskID: taskID})
+			require.Eventually(t, func() bool {
+				resp, err := client.Tasks.Get(context.Background(), opensearchapi.TasksGetReq{TaskID: taskID})
+				return err == nil && resp.Completed
+			}, 30*time.Second, 100*time.Millisecond, "reindex task did not complete after cancel")
+		})
 
 		testCases := []tasksTests{
 			{

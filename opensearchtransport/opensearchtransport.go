@@ -1677,11 +1677,17 @@ func (c *Client) signRequest(req *http.Request) error {
 }
 
 func (c *Client) setReqUserAgent(req *http.Request) {
+	if req.Header == nil {
+		req.Header = make(http.Header, 1)
+	}
 	req.Header.Set("User-Agent", c.userAgent)
 }
 
 func (c *Client) setReqGlobalHeader(req *http.Request) {
 	if len(c.header) > 0 {
+		if req.Header == nil {
+			req.Header = make(http.Header, len(c.header))
+		}
 		for k, v := range c.header {
 			if req.Header.Get(k) != k {
 				for _, vv := range v {
