@@ -33,6 +33,10 @@ import (
 func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	testutil.WaitForCluster(t)
 
+	// Shard routing verification requires routing_num_shards from
+	// _cluster/state/metadata, which was introduced in OpenSearch 2.0.
+	testutil.SkipIfVersion(t, "<", "2.0", "murmur3 shard routing (routing_num_shards unavailable)")
+
 	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
 	// serialization race (java.io.OptionalDataException) during inter-node
 	// transport. Fixed in 2.2.0 by opensearch-project/security#1970.
@@ -62,7 +66,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	// Retry index creation — transient HTTP 500 can occur while the cluster
 	// is still settling after heavy discovery/warmup activity.
 	var createResp *http.Response
-	require.Eventually(t, func() bool {
+	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes, func() bool {
 		createReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPut,
 			fmt.Sprintf("/%s", index),
 			bytes.NewReader([]byte(createBody)))
@@ -80,7 +84,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 		}
 		createResp = resp
 		return true
-	}, 30*time.Second, 500*time.Millisecond, "failed to create index %s", index)
+	}, nil)
 	require.Equal(t, http.StatusOK, createResp.StatusCode,
 		"failed to create index %s", index)
 	createResp.Body.Close()
@@ -217,26 +221,11 @@ func indexDoc(t *testing.T, transport *Client, ctx context.Context, index, docID
 		"indexDoc failed for %s/%s: %d %s", index, docID, resp.StatusCode, string(respBody))
 }
 
-// waitForGreen polls the cluster health for the index until it turns green.
-func waitForGreen(t *testing.T, transport *Client, ctx context.Context, index string) {
+// waitForGreen polls discovery and cluster health until the index is green.
+func waitForGreen(t *testing.T, transport *Client, ctx context.Context, indexName string) {
 	t.Helper()
-
-	require.Eventually(t, func() bool {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet,
-			fmt.Sprintf("/_cluster/health/%s?wait_for_status=green&timeout=1s", url.PathEscape(index)),
-			nil)
-		if err != nil {
-			return false
-		}
-		resp, err := transport.Perform(req)
-		if err != nil {
-			return false
-		}
-		defer resp.Body.Close()
-		io.ReadAll(resp.Body)
-		return resp.StatusCode == http.StatusOK
-	}, 30*time.Second, 500*time.Millisecond,
-		"index %s did not reach green status", index)
+	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes,
+		selectorIndexGreen(transport, ctx, indexName), nil)
 }
 
 // TestShardExactRouting_FullPipeline_Integration verifies the complete
@@ -252,7 +241,11 @@ func waitForGreen(t *testing.T, transport *Client, ctx context.Context, index st
 //     c. The selected node actually hosts the target shard (cross-referenced)
 func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	testutil.WaitForCluster(t)
-	testutil.RequireMinNodes(t, 2) // 1 replica requires at least 2 nodes for green health
+	testutil.RequireMinNodes(t, t.Context(), 2) // 1 replica requires at least 2 nodes for green health
+
+	// Shard-exact routing requires routing_num_shards from _cluster/state/metadata,
+	// which was introduced in OpenSearch 2.0.
+	testutil.SkipIfVersion(t, "<", "2.0", "shard-exact routing (routing_num_shards unavailable)")
 
 	// OpenSearch < 2.2.0 with the security plugin returns HTTP 500 on
 	// shard-routed requests due to non-thread-safe User serialization
@@ -289,19 +282,8 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	// On slower clusters (e.g. v2.0.1 with security plugin), more cycles may be
 	// needed. Poll until a probe request produces a RouteEvent, which proves the
 	// pool router's sortedConns is populated and the observer pipeline works.
-	require.Eventually(t, func() bool {
-		if err := transport.DiscoverNodes(ctx); err != nil {
-			return false
-		}
-		obs.reset()
-		probeReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
-		resp, err := transport.Perform(probeReq)
-		if err != nil {
-			return false
-		}
-		resp.Body.Close()
-		return obs.lastEvent() != nil
-	}, 30*time.Second, 200*time.Millisecond, "router did not stabilize: no RouteEvent after repeated DiscoverNodes")
+	testutil.RequireMinConns(t, ctx, 2, transport.DiscoverNodes,
+		selectorRouteObserved(transport, ctx, obs), nil)
 	obs.reset()
 
 	const numShards = 5
@@ -320,7 +302,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	// Retry index creation — transient HTTP 500 can occur while the cluster
 	// is still settling after heavy discovery/warmup activity.
 	var createResp *http.Response
-	require.Eventually(t, func() bool {
+	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes, func() bool {
 		createReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPut,
 			fmt.Sprintf("/%s", index),
 			bytes.NewReader([]byte(createBody)))
@@ -338,7 +320,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		}
 		createResp = resp
 		return true
-	}, 30*time.Second, 500*time.Millisecond, "failed to create index %s", index)
+	}, nil)
 	require.Equal(t, http.StatusOK, createResp.StatusCode,
 		"failed to create index %s", index)
 	createResp.Body.Close()
@@ -374,49 +356,16 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	require.NoError(t, err)
 	warmResp.Body.Close()
 
-	// --- Run DiscoverNodes until shard-exact routing works end-to-end ---
-	// The shard map, connection Name fields, and needsCatUpdate flags all
-	// need to converge before calcSingleKeyCost returns matches. Rather
-	// than checking each piece individually, issue a probe search with a
-	// routing value and verify ShardExactMatch via the observer. This tests
-	// the full pipeline: shard map populated, routing_num_shards fetched,
-	// connection names populated, and no connections filtered by needsCatUpdate.
-	routerPolicy, ok := transport.router.(Policy)
-	require.True(t, ok, "router does not implement Policy")
-	cache := findRouterCache(routerPolicy)
+	// Wait for all cluster nodes to be active, named, and shard-ready in the router.
+	nodeCount := clusterNodeCount(t, transport, ctx)
+	requireMinReadyConns(t, transport, ctx, nodeCount)
+
+	// Wait for the shard map to be fully populated for this index.
+	cache := findRouterCache(transport.router.(Policy))
 	require.NotNil(t, cache, "router has no indexSlotCache")
 
-	require.Eventually(t, func() bool {
-		if err := transport.DiscoverNodes(ctx); err != nil {
-			return false
-		}
-		// Quick structural check: shard map must have all shards populated.
-		slot := cache.slotFor(index)
-		if slot == nil {
-			return false
-		}
-		sm := slot.shardMap.Load()
-		if sm == nil || sm.RoutingNumShards == 0 || len(sm.Shards) < numShards {
-			return false
-		}
-
-		// End-to-end probe: issue a routed search and verify ShardExactMatch.
-		// Use a fixed routing value as the canary. If it gets shard-exact
-		// routing, the full pipeline is working.
-		obs.reset()
-		probeReq, _ := http.NewRequestWithContext(ctx, http.MethodPost,
-			fmt.Sprintf("/%s/_search?routing=%s", url.PathEscape(index), url.QueryEscape("probe-canary")),
-			bytes.NewReader([]byte(`{"query":{"match_all":{}},"size":0}`)))
-		probeReq.Header.Set("Content-Type", "application/json")
-		resp, err := transport.Perform(probeReq)
-		if err != nil {
-			return false
-		}
-		resp.Body.Close()
-		event := obs.lastEvent()
-		return event != nil && event.ShardExactMatch
-	}, 30*time.Second, 500*time.Millisecond,
-		"shard-exact routing for index %q not working after repeated DiscoverNodes", index)
+	testutil.RequireMinConns(t, ctx, 2, transport.DiscoverNodes,
+		selectorShardMapReady(cache, index, numShards), nil)
 
 	// Build a plain transport (no router) for ground truth queries.
 	plainCfg := getTestConfig(t, []*url.URL{u})
@@ -443,6 +392,12 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 			t.Logf("ground truth: routing=%q -> shard %d nodes=%v", routing, shard, nodes)
 		}
 	}
+
+	// Ensure all connections are shard-ready before the assertion loop.
+	// Ground-truth queries above may have triggered transient errors that
+	// set needsCatUpdate on connections, which would cause ShardExactMatch
+	// to be false even though the shard map is fully populated.
+	requireMinReadyConns(t, transport, ctx, nodeCount)
 
 	// --- Issue requests through the full pipeline ---
 	// For each routing value, issue a /{index}/_search?routing=X request
@@ -592,16 +547,14 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 //
 // Early OpenSearch versions (e.g. 2.0.1) can return HTTP 500 with
 // java.io.OptionalDataException when the cluster state is still settling
-// after index creation. The function retries on 5xx to tolerate this.
+// after index creation. The function polls discovery between retries to
+// keep connections fresh.
 func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.Context, index string) int {
 	t.Helper()
 
 	var routingNumShards int
-	require.Eventually(t, func() bool {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet,
-			fmt.Sprintf("/_cluster/state/metadata/%s?filter_path=metadata.indices.*.routing_num_shards",
-				url.PathEscape(index)),
-			nil)
+	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes, func() bool {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 		if err != nil {
 			return false
 		}
@@ -617,8 +570,6 @@ func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.C
 			return false
 		}
 
-		// Retry on 5xx -- server may still be settling cluster state
-		// (e.g. OptionalDataException on OpenSearch 2.0.x).
 		if resp.StatusCode >= http.StatusInternalServerError {
 			if testutil.IsDebugEnabled(t) {
 				t.Logf("_cluster/state/metadata/%s returned %d, retrying: %s",
@@ -633,7 +584,6 @@ func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.C
 			return false
 		}
 
-		// Response: {"metadata":{"indices":{"<index>":{"routing_num_shards":N}}}}
 		var result struct {
 			Metadata struct {
 				Indices map[string]struct {
@@ -652,8 +602,7 @@ func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.C
 
 		routingNumShards = idx.RoutingNumShards
 		return true
-	}, 30*time.Second, 500*time.Millisecond,
-		"_cluster/state/metadata for %s did not return routing_num_shards", index)
+	}, nil)
 
 	return routingNumShards
 }

@@ -254,7 +254,7 @@ func TestStandbyRotation(t *testing.T) {
 	require.NoError(t, err)
 
 	// These tests require a multi-node cluster (3 nodes) for standby rotation.
-	testutil.RequireMinNodes(t, 3)
+	testutil.RequireMinNodes(t, t.Context(), 3)
 
 	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
 	// serialization race (java.io.OptionalDataException) during inter-node
@@ -406,7 +406,7 @@ func TestStandbyRotation(t *testing.T) {
 		// Use GET / instead of /_cluster/health because the cluster health endpoint
 		// can return 500 transiently when the cluster is under heavy discovery load
 		// (as seen in CI after 7+ rapid discovery+warmup cycles).
-		require.Eventually(t, func() bool {
+		tptestutil.RequireMinConns(t, t.Context(), 1, transport.DiscoverNodes, func() bool {
 			req, reqErr := http.NewRequest(http.MethodGet, "/", nil)
 			if reqErr != nil {
 				return false
@@ -418,7 +418,7 @@ func TestStandbyRotation(t *testing.T) {
 			ok := res.StatusCode == http.StatusOK
 			res.Body.Close()
 			return ok
-		}, 5*time.Second, 100*time.Millisecond, "active node should serve healthy responses")
+		}, nil)
 
 		// Once stabilized, confirm 5 consecutive requests succeed
 		for range 5 {

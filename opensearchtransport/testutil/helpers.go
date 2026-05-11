@@ -151,7 +151,7 @@ func SkipIfNotSecure(t *testing.T) {
 //
 // When OPENSEARCH_NODE_COUNT is unset, the function polls and uses stability
 // detection (consecutive identical counts) to decide when to stop waiting.
-func RequireMinNodes(t *testing.T, minNodes int) {
+func RequireMinNodes(t *testing.T, ctx context.Context, minNodes int) {
 	t.Helper()
 
 	// Fast path: if we know the cluster size from the environment, skip
@@ -181,7 +181,7 @@ func RequireMinNodes(t *testing.T, minNodes int) {
 
 	var lastTotal, stableCount int
 	for attempt := range maxAttempts {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, nodesURL.String(), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodesURL.String(), nil)
 		if err != nil {
 			t.Fatalf("RequireMinNodes: failed to create request: %v", err)
 		}
@@ -236,6 +236,98 @@ func RequireMinNodes(t *testing.T, minNodes int) {
 	// Cluster is reachable but doesn't have enough nodes — skip.
 	t.Skipf("Skipping %s: cluster has %d node(s) after %d attempts, need at least %d",
 		t.Name(), lastTotal, maxAttempts, minNodes)
+}
+
+// ConnPollOpts configures the polling behavior of RequireMinConns.
+type ConnPollOpts struct {
+	Timeout  time.Duration
+	Interval time.Duration
+}
+
+// DefaultConnPollOpts returns polling defaults suitable for most integration tests.
+func DefaultConnPollOpts() ConnPollOpts {
+	return ConnPollOpts{
+		Timeout:  30 * time.Second,
+		Interval: 500 * time.Millisecond,
+	}
+}
+
+// RequireMinConns ensures at least minConns transport connections satisfy the
+// selector predicate after node discovery completes. It first calls
+// RequireMinNodes to verify raw cluster reachability, then polls discoverFn
+// until the selector returns true.
+//
+// The selector is a caller-provided predicate that returns true when the
+// transport's connection pool meets the caller's readiness criteria (e.g.,
+// "at least N connections exist", "no connection has needsCatUpdate set",
+// "all connections have names"). If nil, defaults to always-true (any
+// successful discovery is sufficient).
+//
+// Polling behavior is controlled by opts. Pass nil to use DefaultConnPollOpts.
+//
+// Parameters:
+//   - discoverFn: triggers node + shard discovery (e.g., transport.DiscoverNodes)
+//   - selector: predicate returning true when connections are acceptable;
+//     nil means any successful discovery satisfies the requirement.
+//   - opts: polling configuration (timeout, interval); nil uses defaults.
+//
+// Example (wait for shard-ready connections):
+//
+//	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes,
+//	    func() bool {
+//	        m, err := transport.Metrics()
+//	        if err != nil { return false }
+//	        var ready int
+//	        for _, c := range m.Connections {
+//	            cm := c.(opensearchtransport.ConnectionMetric)
+//	            if cm.NeedsCatUpdate { return false }
+//	            if !cm.IsDead { ready++ }
+//	        }
+//	        return ready >= 1
+//	    },
+//	    nil, // use default polling opts
+//	)
+func RequireMinConns(
+	t *testing.T, ctx context.Context, minConns int,
+	discoverFn func(context.Context) error,
+	selector func() bool,
+	opts *ConnPollOpts,
+) {
+	t.Helper()
+
+	RequireMinNodes(t, ctx, minConns)
+
+	if selector == nil {
+		selector = func() bool { return true }
+	}
+
+	o := DefaultConnPollOpts()
+	if opts != nil {
+		if opts.Timeout > 0 {
+			o.Timeout = opts.Timeout
+		}
+		if opts.Interval > 0 {
+			o.Interval = opts.Interval
+		}
+	}
+
+	deadline := time.Now().Add(o.Timeout)
+	for {
+		if err := discoverFn(ctx); err == nil && selector() {
+			return
+		}
+
+		if time.Now().After(deadline) {
+			t.Fatalf("RequireMinConns: selector not satisfied "+
+				"after %v of discovery polling (minConns=%d)", o.Timeout, minConns)
+		}
+
+		select {
+		case <-ctx.Done():
+			t.Fatalf("RequireMinConns: context cancelled: %v", ctx.Err())
+		case <-time.After(o.Interval):
+		}
+	}
 }
 
 // WaitForCluster waits for the OpenSearch cluster to be reachable and responding to HTTP requests.
@@ -462,7 +554,7 @@ func EvaluateVersionCondition(t *testing.T, serverVersion, condition string) boo
 		panic(fmt.Sprintf("invalid version format in condition: %q", condition))
 	}
 
-	comparison := semver.Compare(serverVersion, normalizedVersion)
+	comparison := compareVersion(serverVersion, normalizedVersion)
 
 	switch operator {
 	case ">=":
@@ -560,7 +652,7 @@ func SkipIfVersion(t *testing.T, operator string, version string, testName strin
 	case operator == "!=" && !hasPatch:
 		matches = semver.MajorMinor(serverVersion) != semver.MajorMinor(constraintSemver)
 	default:
-		cmp := semver.Compare(serverVersion, constraintSemver)
+		cmp := compareVersion(serverVersion, constraintSemver)
 		switch operator {
 		case "=":
 			matches = cmp == 0
