@@ -20,6 +20,7 @@ import (
 )
 
 func TestDeleteAllPits(t *testing.T) {
+	t.Skip("malformed error body when no PITs exist (OpenSearch#11711)") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.12", "DeleteAllPits")

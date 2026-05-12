@@ -22,6 +22,7 @@ import (
 func TestNodesInfo(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
+	testutil.WaitForAllNodesReady(t, client)
 
 	t.Run("success", func(t *testing.T) {
 		resp, err := client.Nodes.Info(t.Context(), nil)

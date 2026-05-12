@@ -23,6 +23,7 @@ import (
 func TestCatNodes(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
+	testutil.WaitForAllNodesReady(t, client)
 
 	t.Run("success", func(t *testing.T) {
 		resp, err := client.Cat.Nodes(t.Context(), &osapi.CatNodesReq{Params: &osapi.CatNodesParams{DebugParams: osapi.DebugParams{Format: "json"}}})

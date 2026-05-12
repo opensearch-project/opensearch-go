@@ -20,6 +20,7 @@ import (
 )
 
 func TestGetScriptLanguages(t *testing.T) {
+	t.Skip("KNN plugin NPE in getSupportedContexts (k-NN#560)") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "GetScriptLanguages")
