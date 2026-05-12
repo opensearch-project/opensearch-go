@@ -224,6 +224,10 @@ type IntegTestConfig struct {
 	// Empty string means the operation exists in all supported versions.
 	VersionAdded string
 
+	// Flags is the combined TestFlag bitfield from matching TestRules.
+	// Controls generated test behavior (skip, wait-ready, retry).
+	Flags TestFlag
+
 	// ResourcePrefix is the kebab-case prefix passed to MustUniqueString for
 	// generating unique resource names (index, docID, name). Derived from
 	// TypePrefix (e.g. "test-cluster-health"). Empty means the test creates
@@ -279,6 +283,16 @@ type IntegTestConfig struct {
 	CorePkgName string
 }
 
+// HasFlag returns true if the given flag is set in this config's Flags field.
+func (c IntegTestConfig) HasFlag(f TestFlag) bool {
+	return c.Flags&f != 0
+}
+
+// WaitReady returns true if TestWaitReady is set.
+func (c IntegTestConfig) WaitReady() bool {
+	return c.Flags&TestWaitReady != 0
+}
+
 // IntegTestFragment renders one integration test function.
 type IntegTestFragment struct {
 	PkgName    string
@@ -323,7 +337,7 @@ func (f *IntegTestFragment) Imports() []Import {
 	}
 
 	needTestutil := !cfg.IsPlugin || cfg.VersionAdded != "" || !cfg.IsNoBody || cfg.FixtureCode != "" ||
-		cfg.NeedsIndex || cfg.NeedsDocID || cfg.NeedsName
+		cfg.NeedsIndex || cfg.NeedsDocID || cfg.NeedsName || cfg.HasFlag(TestWaitReady)
 	if needTestutil {
 		imps = append(imps, Import{Path: f.ModulePath + "/" + f.CorePkg + "/testutil"})
 	}
@@ -355,7 +369,7 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 	client, err := testutil.NewClient(t)
 {{- end}}
 	require.NoError(t, err)
-{{- if and .Config.IsPlugin (or (ne .Config.VersionAdded "") .Config.FixtureCode)}}
+{{- if and .Config.IsPlugin (or (ne .Config.VersionAdded "") .Config.FixtureCode .Config.WaitReady)}}
 
 	osClient, err := testutil.NewClient(t)
 	require.NoError(t, err)
@@ -366,6 +380,14 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 	testutil.SkipIfVersion(t, osClient, "<", {{quote .Config.VersionAdded}}, {{quote .Config.TypePrefix}})
 {{- else}}
 	testutil.SkipIfVersion(t, client, "<", {{quote .Config.VersionAdded}}, {{quote .Config.TypePrefix}})
+{{- end}}
+{{- end}}
+{{- if .Config.WaitReady}}
+
+{{- if .Config.IsPlugin}}
+	testutil.WaitForAllNodesReady(t, osClient)
+{{- else}}
+	testutil.WaitForAllNodesReady(t, client)
 {{- end}}
 {{- end}}
 {{- if .Config.NeedsIndex}}

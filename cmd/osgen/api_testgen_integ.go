@@ -72,6 +72,14 @@ func Test{{.TypePrefix}}(t *testing.T) {
 	testutil.SkipIfVersion(t, client, "<", {{quote .VersionAdded}}, {{quote .TypePrefix}})
 {{- end}}
 {{- end}}
+{{- if .WaitReady}}
+
+{{- if .IsPlugin}}
+	testutil.WaitForAllNodesReady(t, osClient)
+{{- else}}
+	testutil.WaitForAllNodesReady(t, client)
+{{- end}}
+{{- end}}
 {{- if .NeedIndex}}
 
 	index := testutil.MustUniqueString(t, {{quote .IndexPrefix}})
@@ -149,6 +157,7 @@ type integTestConfig struct {
 	NeedImportOsapitest bool
 	IsPlugin            bool
 	IsNoBody            bool
+	WaitReady           bool
 }
 
 // renderIntegTest generates an integration test file for one operation.
@@ -187,8 +196,15 @@ func classifyOperation(op apiOperation, pkg, corePkg string, isPlugin bool) inte
 		cfg.VersionAdded = ""
 	}
 
-	if override, ok := emit.TestVersionOverrides[op.Group]; ok {
-		cfg.VersionAdded = override
+	flags, skipReason, skipVersion := emit.MatchRules(op.Group)
+	if skipReason != "" {
+		cfg.SkipReason = skipReason
+	}
+	if skipVersion != "" {
+		cfg.VersionAdded = skipVersion
+	}
+	if flags&emit.TestWaitReady != 0 {
+		cfg.WaitReady = true
 	}
 
 	var callPrefix string
@@ -228,10 +244,6 @@ func classifyOperation(op apiOperation, pkg, corePkg string, isPlugin bool) inte
 
 	needsBody := op.HasBody && len(op.HTTPMethods) > 0 && op.HTTPMethods[0] != http.MethodGet
 
-	if skipReason := manualSetupReason(op.Group); skipReason != "" {
-		cfg.SkipReason = skipReason
-	}
-
 	cfg.IndexPrefix = "test-" + kebabCase(op.TypePrefix)
 	if hasRequiredIndex {
 		cfg.NeedIndex = true
@@ -251,8 +263,8 @@ func classifyOperation(op apiOperation, pkg, corePkg string, isPlugin bool) inte
 	}
 	cfg.NeedImportPkg = cfg.NeedIndex || cfg.FixtureCode != "" || !op.IsPointerReq || hasRequiredIndex || hasRequiredID || needsBody
 	cfg.NeedImportCore = isPlugin && cfg.NeedIndex
-	cfg.NeedOsClient = isPlugin && (cfg.NeedIndex || cfg.VersionAdded != "")
-	cfg.NeedImportTestutil = !isPlugin || cfg.NeedOsClient || !op.IsNoBody || cfg.NeedIndex
+	cfg.NeedOsClient = isPlugin && (cfg.NeedIndex || cfg.VersionAdded != "" || cfg.WaitReady)
+	cfg.NeedImportTestutil = !isPlugin || cfg.NeedOsClient || !op.IsNoBody || cfg.NeedIndex || cfg.WaitReady
 	cfg.NeedImportOsapitest = !op.IsNoBody
 	cfg.NeedImportStrings = needsBody || hasRequiredID
 
@@ -390,44 +402,6 @@ func primaryRoute(op apiOperation) struct {
 		FieldPath  string
 		MethodName string
 	}{MethodName: op.TypePrefix}
-}
-
-// manualSetupReason returns a skip reason for operations that need complex
-// cluster state not achievable in an automated test.
-func manualSetupReason(group string) string {
-	switch {
-	case strings.HasPrefix(group, "dangling_indices"):
-		return "requires dangling index state from node failure"
-	case strings.HasPrefix(group, "snapshot"):
-		return "requires snapshot repository configuration"
-	case group == "reindex":
-		return "requires source index with documents"
-	case group == "reindex_rethrottle":
-		return "requires active reindex task"
-	case strings.HasPrefix(group, "tasks"):
-		return "requires active long-running task"
-	case group == "bulk" || group == "bulk_stream":
-		return "requires NDJSON body with action metadata"
-	case group == "msearch" || group == "msearch_template":
-		return "requires NDJSON multi-search body"
-	case group == "scroll.get" || group == "scroll.delete":
-		return "requires active scroll context"
-	case group == "clear_scroll":
-		return "requires active scroll context"
-	case strings.HasPrefix(group, "pit."):
-		return "requires point-in-time context"
-	case group == "rank_eval":
-		return "requires rank evaluation body with rated documents"
-	case group == "scripts_painless.execute":
-		return "requires painless script body"
-	case group == "render_search_template":
-		return "requires search template body"
-	case group == "field_caps":
-		return "requires index with mapped fields"
-	case group == "termvectors" || group == "mtermvectors":
-		return "requires index with term vectors enabled"
-	}
-	return ""
 }
 
 // kebabCase converts PascalCase to kebab-case for test index prefixes.

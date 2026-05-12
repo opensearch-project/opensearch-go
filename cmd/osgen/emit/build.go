@@ -17,21 +17,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
-// TestVersionOverrides maps operation groups to minimum server versions required
-// for integration tests to pass. Use this when the spec's x-version-added is
-// technically correct (the endpoint exists) but a server or plugin bug prevents
-// the test from succeeding on older versions.
-var TestVersionOverrides = map[string]string{
-	// DELETE /_search/point_in_time/_all returns a malformed error body (HTTP 200
-	// with {"error":{...}}) when no PITs exist. Fixed in 2.12 by
-	// opensearch-project/OpenSearch#11711 (backport #11713).
-	"delete_all_pits": "2.12",
-
-	// k-NN plugin's KNNScoringScriptEngine.getSupportedContexts() returned null,
-	// causing NPE in ScriptService.getScriptLanguages() (opensearch-project/k-NN#560).
-	"get_script_languages": "2.4",
-}
-
 // Path field name constants used in test generation to identify fields that
 // require special handling (dedicated test indices, valid enum values, etc.).
 const (
@@ -550,10 +535,16 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 	if versionAdded == "1.0.0" || versionAdded == "1.0" {
 		versionAdded = ""
 	}
-	if override, ok := TestVersionOverrides[op.Group]; ok {
-		versionAdded = override
-	}
 	cfg.VersionAdded = versionAdded
+
+	flags, skipReason, skipVersion := MatchRules(op.Group)
+	cfg.Flags = flags
+	if skipReason != "" {
+		cfg.SkipReason = skipReason
+	}
+	if skipVersion != "" {
+		cfg.VersionAdded = skipVersion
+	}
 
 	var callPrefix string
 	if isPlugin {
@@ -605,10 +596,6 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 		primary == http.MethodPatch
 
 	needsBody := op.HasBody && primary != http.MethodGet
-
-	if skipReason := integSkipReason(op.Group); skipReason != "" {
-		cfg.SkipReason = skipReason
-	}
 
 	cfg.ResourcePrefix = "test-" + kebabCaseIR(op.TypePrefix)
 
@@ -840,198 +827,6 @@ func buildDocFixtureIR(corePkg string, isPlugin bool) string {
 		Params: &%s.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)`, c, corePkg, c, corePkg, corePkg)
-}
-
-func integSkipReason(group string) string {
-	switch {
-	case strings.HasPrefix(group, "dangling_indices"):
-		return "requires dangling index state from node failure"
-	case strings.HasPrefix(group, "snapshot"):
-		return "requires snapshot repository configuration"
-	case group == "reindex":
-		return "requires source index with documents"
-	case group == "reindex_rethrottle":
-		return "requires active reindex task"
-	case strings.HasPrefix(group, "tasks"):
-		return "requires active long-running task"
-	case group == "bulk" || group == "bulk_stream":
-		return "requires NDJSON body with action metadata"
-	case group == "msearch" || group == "msearch_template":
-		return "requires NDJSON multi-search body"
-	case group == "scroll.get" || group == "scroll.delete":
-		return "requires active scroll context"
-	case group == "clear_scroll":
-		return "requires active scroll context"
-	case strings.HasPrefix(group, "pit."):
-		return "requires point-in-time context"
-	case group == "rank_eval":
-		return "requires rank evaluation body with rated documents"
-	case group == "scripts_painless.execute" || group == "scripts_painless_execute":
-		return "requires painless script body"
-	case group == "render_search_template":
-		return "requires search template body"
-	case group == "termvectors" || group == "mtermvectors":
-		return "requires index with term vectors enabled"
-	case group == "indices.clone":
-		return "requires read-only source index"
-	case group == "indices.split":
-		return "requires source index with number_of_routing_shards > number_of_shards"
-	case group == "indices.shrink":
-		return "requires source index on single node with read-only"
-	case group == "cluster.allocation_explain":
-		return "requires unassigned shards"
-	case group == "cluster.post_voting_config_exclusions" ||
-		group == "cluster.delete_voting_config_exclusions":
-		return "requires multi-node cluster with voting configuration"
-	case group == "cluster.put_decommission_awareness" ||
-		group == "cluster.delete_decommission_awareness" ||
-		group == "cluster.get_decommission_awareness":
-		return "requires awareness attributes configured"
-	case group == "cluster.put_weighted_routing" ||
-		group == "cluster.get_weighted_routing" ||
-		group == "cluster.delete_weighted_routing":
-		return "requires awareness attributes and weighted routing setup"
-	case group == "remote_store.restore":
-		return "requires remote store configuration"
-	case group == "cluster.stats":
-		return "path builder emits /nodes segment unconditionally"
-	case group == "_core.create" || group == "create":
-		return "op_type=create conflicts with doc fixture"
-	case group == "indices.add_block":
-		return "requires valid block name (write/read/read_only/metadata)"
-	case group == "indices.create_data_stream":
-		return "requires matching index template with data_stream"
-	case group == "indices.delete_data_stream":
-		return "requires existing data stream"
-	case group == "scroll":
-		return "requires active scroll context"
-	case group == "delete_by_query_rethrottle" ||
-		group == "update_by_query_rethrottle":
-		return "requires active long-running query task"
-	case group == "delete_pit":
-		return "requires active point-in-time context"
-	case group == "nodes.hot_threads":
-		return "returns plain text, not JSON"
-	case group == "cat.all_pit_segments" || group == "cat.pit_segments":
-		return "requires active point-in-time context"
-	case group == "cat.segment_replication":
-		return "requires segment replication enabled"
-	case group == "cat.help":
-		return "returns plain text, not JSON"
-	case group == "search_pipeline.get":
-		return "requires search pipeline to exist"
-	case group == "search_pipeline.delete":
-		return "requires search pipeline to exist"
-	case group == "cat.snapshots":
-		return "requires snapshot repository configuration"
-	case group == "list.help":
-		return "returns plain text, not JSON"
-	case strings.HasPrefix(group, "list."):
-		return "response struct does not match cat-style response format"
-
-	// Async search operations require a valid async search ID from a prior submit.
-	case group == "asynchronous_search.delete" ||
-		group == "asynchronous_search.get":
-		return "requires async search ID from submit"
-	case group == "asynchronous_search.stats" ||
-		group == "asynchronous_search.search":
-		return "response struct does not match actual response format"
-
-	// Flow framework operations require workflow IDs from prior create.
-	case strings.HasPrefix(group, "flow_framework"):
-		return "requires workflow ID from prior create"
-
-	// Geospatial operations require external network access or datasource setup.
-	case strings.HasPrefix(group, "geospatial"):
-		return "requires IP2Geo datasource or external network access"
-
-	// Insights top_queries requires valid metric type.
-	case group == "insights.top_queries":
-		return "requires valid metric type (cpu, memory, latency)"
-
-	// ISM operations require existing policies or policy-attached indices.
-	case group == "ism.add_policy" || group == "ism.change_policy":
-		return "requires policy_id in request body"
-	case group == "ism.remove_policy" || group == "ism.retry_index":
-		return "requires index with ISM policy attached"
-	case group == "ism.put_policy" || group == "ism.put_policies":
-		return "requires valid ISM policy document body"
-	case group == "ism.delete_policy" || group == "ism.exists_policy" || group == "ism.get_policy":
-		return "requires existing ISM policy"
-	case group == "ism.explain_policy" || group == "ism.refresh_search_analyzers":
-		return "response struct does not match actual response format"
-	case group == "ism.get_policies":
-		return "response struct does not match actual response format"
-
-	// KNN operations require model training infrastructure.
-	case strings.HasPrefix(group, "knn"):
-		return "requires KNN model training data and infrastructure"
-
-	// LTR operations require Learning to Rank store setup.
-	case strings.HasPrefix(group, "ltr"):
-		return "requires LTR feature store"
-
-	// ML operations require model/connector registration and deployment.
-	case strings.HasPrefix(group, "ml"):
-		return "requires ML model or connector registration"
-
-	// Neural operations require neural search model deployment.
-	case strings.HasPrefix(group, "neural"):
-		return "requires deployed neural search model"
-
-	// Notifications operations require config objects.
-	case strings.HasPrefix(group, "notifications"):
-		return "requires notification channel or config"
-
-	// Observability operations require saved objects.
-	case strings.HasPrefix(group, "observability"):
-		return "requires observability saved object"
-
-	// PPL/SQL operations require valid query bodies.
-	case strings.HasPrefix(group, "ppl"):
-		return "requires valid PPL query body"
-	case strings.HasPrefix(group, "sql"):
-		return "requires valid SQL query body"
-	case strings.HasPrefix(group, "query"):
-		return "requires valid query DSL body"
-
-	// Replication requires cross-cluster setup.
-	case strings.HasPrefix(group, "replication"):
-		return "requires cross-cluster replication setup"
-
-	// Rollups require rollup job definition.
-	case strings.HasPrefix(group, "rollups"):
-		return "requires rollup job configuration"
-
-	// Security plugin operations require security resources.
-	case strings.HasPrefix(group, "security"):
-		return "requires security plugin resources"
-
-	// Snapshot management requires SM policy.
-	case strings.HasPrefix(group, "sm"):
-		return "requires snapshot management policy"
-
-	// Transforms require transform job.
-	case strings.HasPrefix(group, "transforms"):
-		return "requires transform job configuration"
-
-	// UBI plugin requires initialization state not available in test clusters.
-	case strings.HasPrefix(group, "ubi"):
-		return "requires UBI plugin initialization"
-
-	// Ingestion operations require an index with pull-based ingestion source (e.g. Kafka).
-	case strings.HasPrefix(group, "ingestion"):
-		return "requires index with pull-based ingestion source configured"
-
-	// Search relevance operations require existing resources (experiments, query sets).
-	case strings.HasPrefix(group, "search_relevance"):
-		return "requires search relevance resources (experiments, query sets)"
-
-	// WLM operations require workload group setup.
-	case strings.HasPrefix(group, "wlm"):
-		return "requires workload management query group"
-	}
-	return ""
 }
 
 type fixtureType int
@@ -1286,7 +1081,7 @@ func buildWriteAliasFixtureIR(corePkg string, isPlugin bool) string {
 	if isPlugin {
 		c = "osClient"
 	}
-	return fmt.Sprintf(`index = index + "-000001"
+	return fmt.Sprintf(`index += "-000001"
 	_, err = %s.Indices.Create(t.Context(), %s.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
