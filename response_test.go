@@ -36,25 +36,25 @@ import (
 
 func TestResponse(t *testing.T) {
 	t.Run("empty response", func(t *testing.T) {
-		resp := opensearch.Response{}
+		resp := opensearch.NewResponse(0, nil, nil)
 		assert.Equal(t, "[0 <nil>]", resp.Status())
 		assert.Equal(t, "[0 <nil>]", resp.String())
 	})
 
 	t.Run("with StatusCode", func(t *testing.T) {
-		resp := opensearch.Response{StatusCode: http.StatusOK}
+		resp := opensearch.NewResponse(http.StatusOK, nil, nil)
 		assert.Equal(t, "[200 OK]", resp.Status())
 		assert.Equal(t, "[200 OK]", resp.String())
 	})
 
 	t.Run("with StatusCode and Body", func(t *testing.T) {
-		resp := opensearch.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("{\"test\": true}"))}
+		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(strings.NewReader("{\"test\": true}")), nil)
 		assert.Equal(t, "[200 OK]", resp.Status())
 		assert.Equal(t, "[200 OK] {\"test\": true}", resp.String())
 	})
 
 	t.Run("with StatusCode and failing Body", func(t *testing.T) {
-		resp := opensearch.Response{StatusCode: http.StatusOK, Body: io.NopCloser(iotest.ErrReader(errors.New("io reader test")))}
+		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(iotest.ErrReader(errors.New("io reader test"))), nil)
 		assert.Equal(t, "[200 OK]", resp.Status())
 		assert.Equal(t, "[200 OK] <error reading response body: io reader test>", resp.String())
 	})

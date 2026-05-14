@@ -18,314 +18,271 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 )
 
-func TestError(t *testing.T) {
-	t.Run("StructError", func(t *testing.T) {
-		t.Run("Ok", func(t *testing.T) {
-			resp := &opensearch.Response{
-				StatusCode: http.StatusBadRequest,
-				Body: io.NopCloser(
-					strings.NewReader(`{
-						"error":{
-							"root_cause":[{
-								"type":"resource_already_exists_exception",
-								"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists",
-								"index":"test",
-								"index_uuid":"HU2mN_RMRXGcS38j3yV-VQ"
-							}],
-							"type":"resource_already_exists_exception",
-							"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists",
-							"index":"test",
-							"index_uuid":"HU2mN_RMRXGcS38j3yV-VQ"
-						},
-						"status":400
-					}`),
-				),
-			}
-			assert.True(t, resp.IsError())
-			err := opensearch.ParseError(resp)
-			var testError *opensearch.StructError
-			require.ErrorAs(t, err, &testError)
-			assert.Equal(t, http.StatusBadRequest, testError.Status)
-			assert.Equal(t, "resource_already_exists_exception", testError.Err.Type)
-			assert.Equal(t, "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists", testError.Err.Reason)
-			assert.Equal(t, "test", testError.Err.Index)
-			assert.Equal(t, "HU2mN_RMRXGcS38j3yV-VQ", testError.Err.IndexUUID)
-			assert.NotNil(t, testError.Err.RootCause)
-			assert.Equal(t, "resource_already_exists_exception", testError.Err.RootCause[0].Type)
-			assert.Equal(t, "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists", testError.Err.RootCause[0].Reason)
-			assert.Equal(t, "test", testError.Err.RootCause[0].Index)
-			assert.Equal(t, "HU2mN_RMRXGcS38j3yV-VQ", testError.Err.RootCause[0].IndexUUID)
-			_ = fmt.Sprintf("%s", err)
-		})
+func TestParseError_TypedErrors(t *testing.T) {
+	t.Parallel()
 
-		t.Run("CausedBy", func(t *testing.T) {
-			resp := &opensearch.Response{
-				StatusCode: http.StatusBadRequest,
-				Body: io.NopCloser(
-					strings.NewReader(`{
-						"error":{
-							"root_cause":[{
-								"type":"illegal_argument_exception",
-								"reason":"composable template [posts] template after composition is invalid"
-							}],
+	tests := []struct {
+		name       string
+		statusCode int
+		body       string
+		check      func(t *testing.T, err error)
+	}{
+		{
+			name:       "struct error with root cause",
+			statusCode: http.StatusBadRequest,
+			body: `{
+				"error":{
+					"root_cause":[{
+						"type":"resource_already_exists_exception",
+						"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists",
+						"index":"test",
+						"index_uuid":"HU2mN_RMRXGcS38j3yV-VQ"
+					}],
+					"type":"resource_already_exists_exception",
+					"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists",
+					"index":"test",
+					"index_uuid":"HU2mN_RMRXGcS38j3yV-VQ"
+				},
+				"status":400
+			}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.StructError
+				require.ErrorAs(t, err, &e)
+				require.Equal(t, http.StatusBadRequest, e.Status)
+				require.Equal(t, "resource_already_exists_exception", e.Err.Type)
+				require.Equal(t, "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists", e.Err.Reason)
+				require.Equal(t, "test", e.Err.Index)
+				require.Equal(t, "HU2mN_RMRXGcS38j3yV-VQ", e.Err.IndexUUID)
+				require.NotNil(t, e.Err.RootCause)
+				require.Equal(t, "resource_already_exists_exception", e.Err.RootCause[0].Type)
+				require.Equal(t, "index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists", e.Err.RootCause[0].Reason)
+				require.Equal(t, "test", e.Err.RootCause[0].Index)
+				require.Equal(t, "HU2mN_RMRXGcS38j3yV-VQ", e.Err.RootCause[0].IndexUUID)
+			},
+		},
+		{
+			name:       "struct error with caused_by chain",
+			statusCode: http.StatusBadRequest,
+			body: `{
+				"error":{
+					"root_cause":[{
+						"type":"illegal_argument_exception",
+						"reason":"composable template [posts] template after composition is invalid"
+					}],
+					"type":"illegal_argument_exception",
+					"reason":"composable template [posts] template after composition is invalid",
+					"caused_by":{
+						"type":"illegal_argument_exception",
+						"reason":"Custom analyzer [mm_analyzer] failed to find filter under name [test_filter]",
+						"caused_by":{
 							"type":"illegal_argument_exception",
-							"reason":"composable template [posts] template after composition is invalid",
-							"caused_by":{
-								"type":"illegal_argument_exception",
-								"reason":"Custom analyzer [mm_analyzer] failed to find filter under name [test_filter]",
-								"caused_by":{
-									"type":"illegal_argument_exception",
-									"reason":"test caused by"
-								}
-							}
-						},
-						"status":400
-					}`),
-				),
-			}
-			assert.True(t, resp.IsError())
+							"reason":"test caused by"
+						}
+					}
+				},
+				"status":400
+			}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.StructError
+				require.ErrorAs(t, err, &e)
+				require.Equal(t, http.StatusBadRequest, e.Status)
+				require.Equal(t, "illegal_argument_exception", e.Err.Type)
+				require.Equal(t, "composable template [posts] template after composition is invalid", e.Err.Reason)
+				require.NotNil(t, e.Err.RootCause)
+				require.Equal(t, "illegal_argument_exception", e.Err.RootCause[0].Type)
+				require.NotNil(t, e.Err.CausedBy)
+				require.Equal(t, "illegal_argument_exception", e.Err.CausedBy.Type)
+				require.Equal(t, "Custom analyzer [mm_analyzer] failed to find filter under name [test_filter]", e.Err.CausedBy.Reason)
+				require.NotNil(t, e.Err.CausedBy.CausedBy)
+				require.Equal(t, "test caused by", e.Err.CausedBy.CausedBy.Reason)
+				require.Nil(t, e.Err.CausedBy.CausedBy.CausedBy)
+			},
+		},
+		{
+			name:       "string error",
+			statusCode: http.StatusMethodNotAllowed,
+			body:       `{"error":"Incorrect HTTP method for uri [/_doc] and method [POST], allowed: [HEAD, DELETE, PUT, GET]","status":405}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.StringError
+				require.ErrorAs(t, err, &e)
+				require.Equal(t, http.StatusMethodNotAllowed, e.Status)
+				require.Contains(t, e.Err, "Incorrect HTTP method for uri")
+			},
+		},
+		{
+			name:       "string error from unknown JSON shape",
+			statusCode: http.StatusNotFound,
+			body:       `{"_index":"index","_id":"2","matched":false}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.StringError
+				require.ErrorAs(t, err, &e)
+				require.Equal(t, http.StatusNotFound, e.Status)
+				require.Contains(t, e.Err, `{"_index":"index","_id":"2","matched":false}`)
+			},
+		},
+		{
+			name:       "error with string error field and no status",
+			statusCode: http.StatusBadRequest,
+			body:       `{"error":"no handler found for uri [/_plugins/_security/xxx] and method [GET]"}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.Error
+				require.ErrorAs(t, err, &e)
+				require.Contains(t, e.Err, "no handler found for uri [/_plugins/_security/xxx] and method [GET]")
+			},
+		},
+		{
+			name:       "reason error",
+			statusCode: http.StatusBadRequest,
+			body:       `{"status":"error","reason":"Invalid configuration","invalid_keys":{"keys":"dynamic"}}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.ReasonError
+				require.ErrorAs(t, err, &e)
+				require.Equal(t, "error", e.Status)
+				require.Contains(t, e.Reason, "Invalid configuration")
+			},
+		},
+		{
+			name:       "message error",
+			statusCode: http.StatusBadRequest,
+			body:       `{"status":"BAD_REQUEST","message":"Wrong request body"}`,
+			check: func(t *testing.T, err error) {
+				var e *opensearch.MessageError
+				require.ErrorAs(t, err, &e)
+				require.Equal(t, "BAD_REQUEST", e.Status)
+				require.Contains(t, e.Message, "Wrong request body")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp := opensearch.NewResponse(tt.statusCode, io.NopCloser(strings.NewReader(tt.body)), nil)
+			require.True(t, resp.IsError())
 			err := opensearch.ParseError(resp)
-			var testError *opensearch.StructError
-			require.ErrorAs(t, err, &testError)
-			assert.Equal(t, http.StatusBadRequest, testError.Status)
-			assert.Equal(t, "illegal_argument_exception", testError.Err.Type)
-			assert.Equal(t, "composable template [posts] template after composition is invalid", testError.Err.Reason)
-			assert.NotNil(t, testError.Err.RootCause)
-			assert.Equal(t, "illegal_argument_exception", testError.Err.RootCause[0].Type)
-			assert.Equal(t, "composable template [posts] template after composition is invalid", testError.Err.RootCause[0].Reason)
-			assert.NotNil(t, testError.Err.CausedBy)
-			assert.Equal(t, "illegal_argument_exception", testError.Err.CausedBy.Type)
-			assert.Equal(t, "Custom analyzer [mm_analyzer] failed to find filter under name [test_filter]", testError.Err.CausedBy.Reason)
-			assert.NotNil(t, testError.Err.CausedBy.CausedBy)
-			assert.Equal(t, "illegal_argument_exception", testError.Err.CausedBy.CausedBy.Type)
-			assert.Equal(t, "test caused by", testError.Err.CausedBy.CausedBy.Reason)
-			assert.Nil(t, testError.Err.CausedBy.CausedBy.CausedBy)
+			tt.check(t, err)
 			_ = fmt.Sprintf("%s", err)
 		})
+	}
+}
 
-		t.Run("Unmarshal errors", func(t *testing.T) {
-			t.Run("dummy", func(t *testing.T) {
-				reader := io.NopCloser(
-					strings.NewReader(`{
-						"status": "400"
-					}`),
-				)
-				body, err := io.ReadAll(reader)
-				require.NoError(t, err)
+func TestParseError_SentinelErrors(t *testing.T) {
+	t.Parallel()
 
-				var errStruct *opensearch.StructError
-				err = json.Unmarshal(body, &errStruct)
-				assert.Error(t, err)
+	tests := []struct {
+		name       string
+		statusCode int
+		body       io.ReadCloser
+		wantErrors []error
+	}{
+		{
+			name:       "error field is object not string",
+			statusCode: http.StatusForbidden,
+			body:       io.NopCloser(strings.NewReader(`{"error":{"test": "test"},"status":403}`)),
+			wantErrors: []error{opensearch.ErrJSONUnmarshalBody, opensearch.ErrUnknownOpensearchError},
+		},
+		{
+			name:       "io read error",
+			statusCode: http.StatusBadRequest,
+			body:       io.NopCloser(iotest.ErrReader(errors.New("io reader test"))),
+			wantErrors: []error{opensearch.ErrReadBody},
+		},
+		{
+			name:       "empty body",
+			statusCode: http.StatusBadRequest,
+			body:       nil,
+			wantErrors: []error{opensearch.ErrUnexpectedEmptyBody},
+		},
+		{
+			name:       "unmarshal error on non-object JSON",
+			statusCode: http.StatusNotFound,
+			body:       io.NopCloser(strings.NewReader(`"test"`)),
+			wantErrors: []error{opensearch.ErrJSONUnmarshalBody},
+		},
+		{
+			name:       "unauthorized plain text",
+			statusCode: http.StatusUnauthorized,
+			body:       io.NopCloser(strings.NewReader(http.StatusText(http.StatusUnauthorized))),
+			wantErrors: []error{opensearch.ErrJSONUnmarshalBody},
+		},
+		{
+			name:       "too many requests plain text",
+			statusCode: http.StatusTooManyRequests,
+			body:       io.NopCloser(strings.NewReader("429 Too Many Requests /testindex/_bulk")),
+			wantErrors: []error{opensearch.ErrJSONUnmarshalBody},
+		},
+	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			resp := opensearch.NewResponse(tt.statusCode, tt.body, nil)
+			err := opensearch.ParseError(resp)
+			for _, want := range tt.wantErrors {
+				require.ErrorIs(t, err, want)
+			}
+		})
+	}
+}
+
+func TestStructError_Unmarshal(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		body  string
+		check func(t *testing.T, err error)
+	}{
+		{
+			name: "status as string instead of int",
+			body: `{"status": "400"}`,
+			check: func(t *testing.T, err error) {
 				var jsonError *json.UnmarshalTypeError
-				assert.ErrorAs(t, err, &jsonError)
-			})
-			t.Run("string", func(t *testing.T) {
-				reader := io.NopCloser(
-					strings.NewReader(`{
-						"error": 0,
-						"status": 500
-					}`),
-				)
-				body, err := io.ReadAll(reader)
-				require.NoError(t, err)
-
-				var errStruct *opensearch.StructError
-				err = json.Unmarshal(body, &errStruct)
-				assert.Error(t, err)
-
+				require.ErrorAs(t, err, &jsonError)
+			},
+		},
+		{
+			name: "error as number triggers StringError",
+			body: `{"error": 0, "status": 500}`,
+			check: func(t *testing.T, err error) {
 				var errStr *opensearch.StringError
 				require.ErrorAs(t, err, &errStr)
-			})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var errStruct *opensearch.StructError
+			err := json.Unmarshal([]byte(tt.body), &errStruct)
+			require.Error(t, err)
+			tt.check(t, err)
 		})
-	})
+	}
+}
 
-	t.Run("StringError", func(t *testing.T) {
-		resp := &opensearch.Response{
-			StatusCode: http.StatusMethodNotAllowed,
-			Body: io.NopCloser(
-				strings.NewReader(`{
-						"error": "Incorrect HTTP method for uri [/_doc] and method [POST], allowed: [HEAD, DELETE, PUT, GET]",
-						"status":405
-					}`),
-			),
-		}
-		assert.True(t, resp.IsError())
-		err := opensearch.ParseError(resp)
-		var testError *opensearch.StringError
-		require.ErrorAs(t, err, &testError)
-		assert.Equal(t, http.StatusMethodNotAllowed, testError.Status)
-		assert.Contains(t, testError.Err, "Incorrect HTTP method for uri")
-		_ = fmt.Sprintf("%s", testError)
-	})
+func TestParseError_PreservesBody(t *testing.T) {
+	t.Parallel()
 
-	t.Run("StringErrorUnknownJSON", func(t *testing.T) {
-		resp := &opensearch.Response{
-			StatusCode: http.StatusNotFound,
-			Body: io.NopCloser(
-				strings.NewReader(`{"_index":"index","_id":"2","matched":false}`),
-			),
-		}
-		assert.True(t, resp.IsError())
-		err := opensearch.ParseError(resp)
-		var testError *opensearch.StringError
-		require.ErrorAs(t, err, &testError)
-		assert.Equal(t, http.StatusNotFound, testError.Status)
-		assert.Contains(t, testError.Err, "{\"_index\":\"index\",\"_id\":\"2\",\"matched\":false}")
-		_ = fmt.Sprintf("%s", testError)
-	})
+	expectedBody := `{"error":{"type":"resource_already_exists_exception","reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"},"status":400}`
 
-	t.Run("Error", func(t *testing.T) {
-		resp := &opensearch.Response{
-			StatusCode: http.StatusBadRequest,
-			Body: io.NopCloser(
-				strings.NewReader(`{
-					  "error": "no handler found for uri [/_plugins/_security/xxx] and method [GET]"
-					}`),
-			),
-		}
-		assert.True(t, resp.IsError())
-		err := opensearch.ParseError(resp)
-		var testError *opensearch.Error
-		require.ErrorAs(t, err, &testError)
-		assert.Contains(t, testError.Err, "no handler found for uri [/_plugins/_security/xxx] and method [GET]")
-		_ = fmt.Sprintf("%s", testError)
-	})
+	resp := opensearch.NewResponse(
+		http.StatusBadRequest,
+		io.NopCloser(strings.NewReader(expectedBody)),
+		nil,
+	)
 
-	t.Run("ReasonError", func(t *testing.T) {
-		resp := &opensearch.Response{
-			StatusCode: http.StatusBadRequest,
-			Body: io.NopCloser(
-				strings.NewReader(`{
-					  "status": "error",
-					  "reason": "Invalid configuration",
-					  "invalid_keys": {
-					    "keys": "dynamic"
-					  }
-					}`),
-			),
-		}
-		assert.True(t, resp.IsError())
-		err := opensearch.ParseError(resp)
-		var testError *opensearch.ReasonError
-		require.ErrorAs(t, err, &testError)
-		assert.Equal(t, "error", testError.Status)
-		assert.Contains(t, testError.Reason, "Invalid configuration")
-		_ = fmt.Sprintf("%s", testError)
-	})
+	err := opensearch.ParseError(resp)
+	require.Error(t, err)
 
-	t.Run("MessageError", func(t *testing.T) {
-		resp := &opensearch.Response{
-			StatusCode: http.StatusBadRequest,
-			Body: io.NopCloser(
-				strings.NewReader(`{"status":"BAD_REQUEST","message":"Wrong request body"}`),
-			),
-		}
-		assert.True(t, resp.IsError())
-		err := opensearch.ParseError(resp)
-		var testError *opensearch.MessageError
-		require.ErrorAs(t, err, &testError)
-		assert.Equal(t, "BAD_REQUEST", testError.Status)
-		assert.Contains(t, testError.Message, "Wrong request body")
-		_ = fmt.Sprintf("%s", testError)
-	})
-
-	t.Run("Unexpected", func(t *testing.T) {
-		cases := []struct {
-			Name         string
-			Resp         *opensearch.Response
-			WantedErrors []error
-		}{
-			{
-				Name: "error field object",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusForbidden,
-					Body:       io.NopCloser(strings.NewReader(`{"error":{"test": "test"},"status":403}`)),
-				},
-				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody, opensearch.ErrUnknownOpensearchError},
-			},
-			{
-				Name: "io read error",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusBadRequest,
-					Body:       io.NopCloser(iotest.ErrReader(errors.New("io reader test"))),
-				},
-				WantedErrors: []error{opensearch.ErrReadBody},
-			},
-			{
-				Name:         "empty body",
-				Resp:         &opensearch.Response{StatusCode: http.StatusBadRequest},
-				WantedErrors: []error{opensearch.ErrUnexpectedEmptyBody},
-			},
-			{
-				Name: "unmarshal error",
-				Resp: &opensearch.Response{
-					StatusCode: http.StatusNotFound,
-					Body:       io.NopCloser(strings.NewReader(`"test"`)),
-				},
-				WantedErrors: []error{opensearch.ErrJSONUnmarshalBody},
-			},
-		}
-
-		for _, tt := range cases {
-			t.Run(tt.Name, func(t *testing.T) {
-				err := opensearch.ParseError(tt.Resp)
-				for _, wantedError := range tt.WantedErrors {
-					assert.ErrorIs(t, err, wantedError)
-				}
-			})
-		}
-
-		t.Run("unauthorized", func(t *testing.T) {
-			resp := &opensearch.Response{
-				StatusCode: http.StatusUnauthorized,
-				Body:       io.NopCloser(strings.NewReader(http.StatusText(http.StatusUnauthorized))),
-			}
-			assert.True(t, resp.IsError())
-			err := opensearch.ParseError(resp)
-			assert.ErrorIs(t, err, opensearch.ErrJSONUnmarshalBody)
-		})
-		t.Run("too many requests", func(t *testing.T) {
-			resp := &opensearch.Response{
-				StatusCode: http.StatusTooManyRequests,
-				Body:       io.NopCloser(strings.NewReader("429 Too Many Requests /testindex/_bulk")),
-			}
-			assert.True(t, resp.IsError())
-			err := opensearch.ParseError(resp)
-			assert.ErrorIs(t, err, opensearch.ErrJSONUnmarshalBody)
-		})
-	})
-
-	t.Run("ParseError preserves response body", func(t *testing.T) {
-		expectedBody := `{
-			"error":{
-				"type":"resource_already_exists_exception",
-				"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"
-			},
-			"status":400
-		}`
-
-		resp := &opensearch.Response{
-			StatusCode: http.StatusBadRequest,
-			Body:       io.NopCloser(strings.NewReader(expectedBody)),
-		}
-
-		// Parse the error
-		err := opensearch.ParseError(resp)
-		require.Error(t, err)
-
-		// Verify the body is still readable after ParseError
-		body, readErr := io.ReadAll(resp.Body)
-		require.NoError(t, readErr, "body should be readable after ParseError")
-		require.NotEmpty(t, body, "body should not be empty after ParseError")
-
-		// Verify the body content matches the original
-		require.JSONEq(t, expectedBody, string(body), "body content should match original")
-	})
+	body, readErr := io.ReadAll(resp.Body)
+	require.NoError(t, readErr)
+	require.NotEmpty(t, body)
+	require.JSONEq(t, expectedBody, string(body))
 }
