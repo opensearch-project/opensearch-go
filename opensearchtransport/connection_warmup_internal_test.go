@@ -695,9 +695,7 @@ func TestWarmupConcurrentSkip(t *testing.T) {
 
 			const goroutines = 16
 			for range goroutines {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					for {
 						switch conn.tryWarmupSkip() {
 						case warmupSkipped:
@@ -708,7 +706,7 @@ func TestWarmupConcurrentSkip(t *testing.T) {
 							return
 						}
 					}
-				}()
+				})
 			}
 
 			wg.Wait()

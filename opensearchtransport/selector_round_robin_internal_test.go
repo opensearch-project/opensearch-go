@@ -123,9 +123,7 @@ func TestRoundRobinSelectorConcurrency(t *testing.T) {
 
 	// Start multiple goroutines selecting connections
 	for range numGoroutines {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range selectionsPerGoroutine {
 				selected, err := selector.Select(connections)
 				if err != nil {
@@ -134,7 +132,7 @@ func TestRoundRobinSelectorConcurrency(t *testing.T) {
 				}
 				results <- selected
 			}
-		}()
+		})
 	}
 
 	wg.Wait()
