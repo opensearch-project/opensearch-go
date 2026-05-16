@@ -55,6 +55,15 @@ jobs:
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
 
+      - name: Pre-pull OpenSearch image
+        run: |
+          echo "Pre-pulling opensearchproject/opensearch:${{ matrix.entry.opensearch_version }}..."
+          for attempt in $(seq 30); do
+            docker pull opensearchproject/opensearch:${{ matrix.entry.opensearch_version }} && break
+            echo "Pull attempt ${attempt}/30 failed, retrying in 10s..."
+            sleep 10
+          done
+
       - name: Launch OpenSearch cluster
         run: |
           export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
