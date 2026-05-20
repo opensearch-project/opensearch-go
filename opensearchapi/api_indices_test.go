@@ -658,7 +658,7 @@ func TestIndicesClient(t *testing.T) {
 					opensearchapi.IndicesExistsReq{Indices: []string{srcIndex}},
 				)
 				require.NoError(t, err)
-				require.Equal(t, 200, resp.StatusCode, "Index must exist before blocking")
+				require.Equal(t, http.StatusOK, resp.StatusCode, "Index must exist before blocking")
 
 				_, err = client.Indices.Block(
 					t.Context(),

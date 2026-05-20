@@ -10,6 +10,7 @@ package opensearchapi_test
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -93,7 +94,7 @@ func TestClusterClient(t *testing.T) {
 
 		// Verify we got a successful HTTP response
 		response := res.Inspect().Response
-		require.Equal(t, 200, response.StatusCode, "Expected 200 OK for successful allocation explanation")
+		require.Equal(t, http.StatusOK, response.StatusCode, "Expected 200 OK for successful allocation explanation")
 	}
 
 	// Validation function for expected error cases
