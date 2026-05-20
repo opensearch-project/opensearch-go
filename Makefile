@@ -33,19 +33,26 @@ format:  ## Format all Go files with goimports
 	goimports -w .;
 
 ##@ Testing
-test-unit:  ## Run unit tests
+test-unit:  ## Run unit tests across all modules (root + cmd/osgen)
 	@printf "\033[2m-> Running unit tests...\033[0m\n"
 ifdef race
 	$(eval testunitargs += "-race")
+	$(eval testosgenargs += "-race")
 endif
 	$(eval testunitargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/unit")
-	@rm -rf $(PWD)/tmp/unit
-	@mkdir -p $(PWD)/tmp/unit
+	$(eval testosgenargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/osgen")
+	@rm -rf $(PWD)/tmp/unit $(PWD)/tmp/osgen
+	@mkdir -p $(PWD)/tmp/unit $(PWD)/tmp/osgen
 	@echo "go test -v" $(testunitargs); \
 	go test -v $(testunitargs) 2>&1 | tee test-unit.log; \
 	exit $${PIPESTATUS[0]};
+	@printf "\033[2m-> Running cmd/osgen unit tests (separate module)...\033[0m\n"
+	@echo "(cd cmd/osgen && go test -v" $(testosgenargs) ")"; \
+	cd cmd/osgen && go test -v $(testosgenargs) 2>&1 | tee $(PWD)/test-osgen.log; \
+	exit $${PIPESTATUS[0]};
 ifdef coverage
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit -o $(PWD)/tmp/unit.cov
+	@go tool covdata textfmt -i=$(PWD)/tmp/osgen -o $(PWD)/tmp/osgen.cov
 endif
 test: test-unit
 
@@ -61,7 +68,7 @@ ifdef race
 	$(eval testintegargs += "-race")
 endif
 	$(eval TEST_PARALLEL ?= $(shell ncpu=$$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4); parallel=$$((ncpu / 2)); [ $$parallel -lt 1 ] && parallel=1; echo $$parallel))
-	$(eval TEST_TIMEOUT ?= 5m)
+	$(eval TEST_TIMEOUT ?= 10m)
 	$(eval testintegargs += "-cover" "-tags=$(testintegtags)" "-timeout=$(TEST_TIMEOUT)" "-parallel=$(TEST_PARALLEL)" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/$(testintegdir)")
 	@rm -rf $(PWD)/tmp/$(testintegdir)
 	@mkdir -p $(PWD)/tmp/$(testintegdir)

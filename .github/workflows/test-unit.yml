@@ -25,7 +25,7 @@ jobs:
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: tmp/unit.cov
+          files: tmp/unit.cov,tmp/osgen.cov
           flags: unit
         if: matrix.os == 'ubuntu-latest'
 
