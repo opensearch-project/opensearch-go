@@ -1,5 +1,7 @@
 # Error Handling and Partial Failures
 
+> **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](security.md#request-body-construction) for details.
+
 ## Overview
 
 OpenSearch is a distributed system in which operations may partially succeed. Understanding how to detect and handle partial failures is essential for building reliable applications.

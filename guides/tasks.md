@@ -1,5 +1,7 @@
 # Tasks
 
+> **Note:** Examples in this guide use `opensearchutil.NewJSONReader` for request bodies that contain dynamic values. See [Security](security.md#request-body-construction) for details on safe body construction.
+
 In this guide, you'll learn how to use the OpenSearch Golang Client API to manage asynchronous tasks. You'll learn how to submit long-running operations asynchronously, poll for their completion, and inspect task status.
 
 ## Setup
@@ -17,6 +19,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
 func main() {
@@ -64,10 +67,10 @@ Long-running operations like reindex, delete_by_query, and update_by_query can b
 
 ```go
 	reindexResp, err := client.Reindex(ctx, opensearchapi.ReindexReq{
-		Body: strings.NewReader(fmt.Sprintf(
-			`{"source":{"index":"%s"},"dest":{"index":"%s"}}`,
-			sourceIndex, destIndex,
-		)),
+		Body: opensearchutil.NewJSONReader(map[string]any{
+			"source": map[string]any{"index": sourceIndex},
+			"dest":   map[string]any{"index": destIndex},
+		}),
 		Params: opensearchapi.ReindexParams{
 			WaitForCompletion: opensearchapi.ToPointer(false),
 		},
@@ -81,9 +84,12 @@ Long-running operations like reindex, delete_by_query, and update_by_query can b
 
 ## Polling for Completion
 
-Use `Tasks.Get` to poll a task by ID. The `Completed` field indicates whether the task has finished.
+Use `Tasks.Get` to poll a task by ID. The `Completed` field indicates whether the task has finished. Use `require.Eventually` or a context deadline rather than a fixed sleep to avoid flaky behavior:
 
 ```go
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	var taskResp *opensearchapi.TasksGetResp
 	for {
 		taskResp, err = client.Tasks.Get(ctx, opensearchapi.TasksGetReq{TaskID: taskID})
@@ -93,7 +99,11 @@ Use `Tasks.Get` to poll a task by ID. The `Completed` field indicates whether th
 		if taskResp.Completed {
 			break
 		}
-		time.Sleep(500 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timed out waiting for task %s", taskID)
+		case <-time.After(500 * time.Millisecond):
+		}
 	}
 	fmt.Printf("Task completed: action=%s\n", taskResp.Task.Action)
 ```

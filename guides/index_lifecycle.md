@@ -1,5 +1,7 @@
 # Index Lifecycle
 
+> **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](security.md#request-body-construction) for details.
+
 This guide covers OpenSearch Golang Client API actions for Index Lifecycle. You'll learn how to create, get, update settings, update mapping, and delete indices in your OpenSearch cluster. We will also leverage index templates to create default settings and mappings for indices of certain patterns.
 
 ## Setup
