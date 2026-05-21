@@ -303,9 +303,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				bi, _ := NewBulkIndexer(cfg)
 
 				for i := 1; i <= 6; i++ {
-					wg.Add(1)
-					go func(i int) {
-						defer wg.Done()
+					wg.Go(func() {
 						err := bi.Add(context.Background(), BulkIndexerItem{
 							Action:     "foo",
 							DocumentID: strconv.Itoa(i),
@@ -314,7 +312,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						if err != nil {
 							t.Errorf("Unexpected error: %s", err)
 						}
-					}(i)
+					})
 				}
 				wg.Wait()
 
@@ -437,9 +435,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				bi, _ := NewBulkIndexer(biCfg)
 
 				for i := 1; i <= 2; i++ {
-					wg.Add(1)
-					go func() {
-						defer wg.Done()
+					wg.Go(func() {
 						err := bi.Add(context.Background(), BulkIndexerItem{
 							Action: "foo",
 							Body:   strings.NewReader(`{"title":"foo"}`),
@@ -447,7 +443,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						if err != nil {
 							t.Errorf("Unexpected error: %s", err)
 						}
-					}()
+					})
 				}
 				wg.Wait()
 
@@ -475,8 +471,8 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 
 func TestBulkIndexerContext(t *testing.T) {
 	tests := []struct {
-		name  string
-		run   func(t *testing.T)
+		name string
+		run  func(t *testing.T)
 	}{
 		{
 			name: "Add returns error on expired context",
@@ -533,8 +529,8 @@ func TestBulkIndexerContext(t *testing.T) {
 
 func TestBulkIndexerCallbacks(t *testing.T) {
 	tests := []struct {
-		name  string
-		run   func(t *testing.T)
+		name string
+		run  func(t *testing.T)
 	}{
 		{
 			name: "OnError called on transport failure",
@@ -758,8 +754,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 							},
 						},
 					},
-					})
-
+				})
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,

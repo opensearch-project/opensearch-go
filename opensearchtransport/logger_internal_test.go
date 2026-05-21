@@ -73,10 +73,7 @@ func TestTransportLogger(t *testing.T) {
 		})
 
 		for range 100 {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-
+			wg.Go(func() {
 				req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 				resp, err := tp.Perform(req)
 				if err != nil {
@@ -84,7 +81,7 @@ func TestTransportLogger(t *testing.T) {
 					return
 				}
 				defer resp.Body.Close()
-			}()
+			})
 		}
 		wg.Wait()
 	})
