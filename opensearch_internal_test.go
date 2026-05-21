@@ -77,6 +77,8 @@ type testReq struct {
 	Headers http.Header
 }
 
+func boolPtr(v bool) *bool { return &v }
+
 func (r testReq) GetRequest() (*http.Request, error) {
 	if r.Error {
 		return nil, fmt.Errorf("test error")
@@ -173,7 +175,7 @@ func TestClientConfiguration(t *testing.T) {
 			Config{
 				Addresses:            []string{"http://localhost:8080//"},
 				Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
-				DiscoverNodesOnStart: true,
+				DiscoverNodesOnStart: boolPtr(true),
 			},
 		)
 		require.NoError(t, err)

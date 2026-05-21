@@ -40,6 +40,12 @@ func main() {
 
 func example() error {
 	// Initialize the client with SSL/TLS enabled.
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		return err
+	}
+
+	discoverOnStart := true
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
@@ -49,11 +55,11 @@ func example() error {
 				Password:           "myStrongPassword123!",
 
 				// Optional: Enable node discovery
-				DiscoverNodesOnStart:  true,
+				DiscoverNodesOnStart:  &discoverOnStart,
 				DiscoverNodesInterval: 5 * time.Minute,
 
 				// Optional: Enable intelligent request routing
-				Router: opensearchtransport.NewDefaultRouter(),
+				Router: router,
 			},
 		},
 	)

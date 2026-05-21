@@ -7,23 +7,75 @@ This guide covers OpenSearch node discovery and role-based node management in th
 ### Enabling Node Discovery
 
 ```go
+discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://localhost:9200"},
-    DiscoverNodesOnStart:  true,
+    DiscoverNodesOnStart:  &discoverOnStart, // In Go >=1.26, callers can use the updated syntax: new(true)
     DiscoverNodesInterval: 5 * time.Minute,
 })
 ```
 
+`DiscoverNodesOnStart` is a `*bool`. When set to a non-nil pointer to `true`, the client starts an asynchronous discovery cycle immediately after construction. When `nil` (the default), the client inherits the value from the `OPENSEARCH_GO_ROUTER` environment variable: if `OPENSEARCH_GO_ROUTER=true` auto-enables the router, `DiscoverNodesOnStart` is also set to `true` so that discovery begins as soon as the client is created.
+
+Because on-start discovery is asynchronous, the client uses the seed URLs for any requests sent before discovery completes. To guarantee topology data is available before the first request, call `client.DiscoverNodes(ctx)` after construction — see [Blocking Until Discovery Completes](#blocking-until-discovery-completes) below for an example. Set the pointer to `false` to skip on-start discovery; the client will not have topology data until the first periodic discovery cycle fires (controlled by `DiscoverNodesInterval`) or until `client.DiscoverNodes(ctx)` is called explicitly.
+
 When discovery is enabled, the client calls `/_nodes/http` to retrieve the full node list with roles and HTTP publish addresses. Hardware info (`allocated_processors`) is obtained separately: when a new node appears with `lcNeedsHardware` set, or when a node fails and may have been replaced with a different instance type, the next health check for that connection substitutes `/_nodes/_local/http,os` to discover the node's core count. This avoids fetching OS info on every discovery cycle; the info is requested only on transitions where it may have changed.
+
+### Blocking Until Discovery Completes
+
+The on-start discovery runs asynchronously — `NewClient` returns immediately while discovery proceeds in the background. If your application needs topology data before sending the first request, call `DiscoverNodes` after construction:
+
+```go
+discoverOnStart := true
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:             []string{"https://localhost:9200"},
+    DiscoverNodesOnStart:  &discoverOnStart, // In Go >=1.26, callers can use the updated syntax: new(true)
+    DiscoverNodesInterval: 5 * time.Minute,
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Block until the in-flight discovery completes (or timeout).
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := client.DiscoverNodes(ctx); err != nil {
+    log.Printf("Initial discovery failed: %s (client will use seed URLs)", err)
+}
+```
+
+If on-start discovery is already running, `DiscoverNodes` waits for it to finish rather than starting a second cycle. If no discovery is in-flight, it starts one and blocks until it completes. The context controls the timeout for the wait.
+
+### Automatic Discovery with the Router
+
+When using the `OPENSEARCH_GO_ROUTER` environment variable to enable the router, `DiscoverNodesOnStart` is set automatically — no code changes needed:
+
+```bash
+export OPENSEARCH_GO_ROUTER=true
+```
+
+```go
+// DiscoverNodesOnStart defaults to true because OPENSEARCH_GO_ROUTER=true.
+// No need to set it explicitly.
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:             []string{"https://localhost:9200"},
+    DiscoverNodesInterval: 5 * time.Minute,
+})
+```
 
 ### Manual Node Discovery
 
+Trigger a discovery cycle at any time. `DiscoverNodes` is blocking — it returns after discovery completes or the context is cancelled:
+
 ```go
-err := client.DiscoverNodes()
-if err != nil {
-    log.Printf("Error discovering nodes: %s", err)
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+if err := client.DiscoverNodes(ctx); err != nil {
+    log.Printf("Discovery failed: %s", err)
 }
 ```
+
+To take full control of when discovery runs, leave `DiscoverNodesInterval` at `0` (the default) and `DiscoverNodesOnStart` at `nil` or a pointer to `false`. This disables all automatic discovery — the client will only discover nodes when the caller explicitly calls `client.DiscoverNodes(ctx)`.
 
 ## Node Roles
 
@@ -92,9 +144,10 @@ These nodes are INCLUDED (they have data-serving capabilities):
 - Pure `remote_cluster_client` nodes (effectively coordinating-only)
 
 ```go
+discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:            []string{"https://localhost:9200"},
-    DiscoverNodesOnStart: true,
+    DiscoverNodesOnStart: &discoverOnStart,
 
     // Default: false (excludes dedicated cluster managers)
     IncludeDedicatedClusterManagers: false,
@@ -200,13 +253,17 @@ import (
 )
 
 func main() {
-    router := opensearchtransport.NewDefaultRouter()
+    router, err := opensearchtransport.NewDefaultRouter()
+    if err != nil {
+        log.Fatal(err)
+    }
 
+    discoverOnStart := true
     client, err := opensearch.NewClient(opensearch.Config{
         Addresses:             []string{"https://localhost:9200"},
         Username:              "admin",
         Password:              "changeme",
-        DiscoverNodesOnStart:  true,
+        DiscoverNodesOnStart:  &discoverOnStart,
         DiscoverNodesInterval: 5 * time.Minute,
         Router:                router,
     })

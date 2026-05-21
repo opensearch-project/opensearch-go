@@ -45,15 +45,21 @@ For high-throughput bulk operations, you can configure the client to automatical
 
 ```go
 	// Advanced client setup with connection scoring for mixed workloads
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		return err
+	}
+
+	discoverOnStart := true
 	advancedClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		// Enable node discovery to find all cluster nodes
-		DiscoverNodesOnStart:  true,
+		DiscoverNodesOnStart:  &discoverOnStart,
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure routing: bulk operations go to ingest nodes, searches go to data nodes
-		Router: opensearchtransport.NewDefaultRouter(),
+		Router: router,
 	})
 	if err != nil {
 		return err
@@ -346,15 +352,21 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 
 ```go
 	// Create a client optimized for bulk operations
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		return err
+	}
+
+	discoverOnStart := true
 	bulkClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		// Enable node discovery
-		DiscoverNodesOnStart:  true,
+		DiscoverNodesOnStart:  &discoverOnStart,
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Use default router for automatic operation routing (recommended)
-		Router: opensearchtransport.NewDefaultRouter(),
+		Router: router,
 	})
 	if err != nil {
 		return err
@@ -395,7 +407,10 @@ You can choose different routing strategies based on your cluster setup:
 	// Option 3: Automatically detect operation type and route appropriately (recommended)
 	// NewDefaultRouter() includes connection scoring.
 	// Use NewMuxRouter() for role-based routing without connection scoring.
-	defaultRouter := opensearchtransport.NewDefaultRouter()
+	defaultRouter, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		return err
+	}
 
 	// Option 4: Custom policy for specific requirements
 	// Note: In practice, avoid excluding cluster managers as they're excluded by default

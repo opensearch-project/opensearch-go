@@ -47,16 +47,22 @@ For search-heavy applications, you can configure the client to automatically rou
 
 ```go
 	// Advanced client setup optimized for search operations
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		return err
+	}
+
+	discoverOnStart := true
 	searchClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		// Enable node discovery to find all data nodes
-		DiscoverNodesOnStart:  true,
+		DiscoverNodesOnStart:  &discoverOnStart,
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure automatic routing to data nodes for search operations
 		Transport: &opensearchtransport.Client{
-			Router: opensearchtransport.NewDefaultRouter(),
+			Router: router,
 		},
 	})
 	if err != nil {
@@ -278,11 +284,12 @@ For production search workloads, you can optimize performance by ensuring search
 
 ```go
 	// Create a search-optimized client
+	discoverOnStart := true
 	optimizedSearchClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		// Enable node discovery
-		DiscoverNodesOnStart:  true,
+		DiscoverNodesOnStart:  &discoverOnStart,
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Use data-preferred router for search optimization
@@ -323,14 +330,20 @@ The router automatically detects operation types and routes them to the most app
 
 ```go
 	// Routing: automatically detects search vs ingest operations
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		return err
+	}
+
+	discoverOnStart := true
 	client, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
-		DiscoverNodesOnStart:  true,
+		DiscoverNodesOnStart:  &discoverOnStart,
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		Transport: &opensearchtransport.Client{
-			Router: opensearchtransport.NewDefaultRouter(),
+			Router: router,
 		},
 	})
 	if err != nil {

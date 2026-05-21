@@ -19,11 +19,15 @@ When set to a truthy value and no programmatic `Config.Router` is provided, the 
 ```go
 import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 
-router := opensearchtransport.NewDefaultRouter()
+router, err := opensearchtransport.NewDefaultRouter()
+if err != nil {
+    log.Fatal(err)
+}
 
+discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://node1:9200", "https://node2:9200"},
-    DiscoverNodesOnStart:  true,
+    DiscoverNodesOnStart:  &discoverOnStart,
     DiscoverNodesInterval: 5 * time.Minute,
     Router:                router,
 })
@@ -1505,11 +1509,15 @@ Affinity routing amplifies the benefits of right-sized shards. A 1.5 TiB index:
 ```go
 import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 
-router := opensearchtransport.NewDefaultRouter()
+router, err := opensearchtransport.NewDefaultRouter()
+if err != nil {
+    log.Fatal(err)
+}
 
+discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://node1:9200", "https://node2:9200"},
-    DiscoverNodesOnStart:  true,
+    DiscoverNodesOnStart:  &discoverOnStart,
     DiscoverNodesInterval: 5 * time.Minute,
     Router:                router,
 })
@@ -1842,7 +1850,7 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 `NewDefaultRouter()` accepts functional options for tuning fan-out and index slot behavior:
 
 ```go
-router := opensearchtransport.NewDefaultRouter(
+router, err := opensearchtransport.NewDefaultRouter(
     opensearchtransport.WithMinFanOut(3),                    // Minimum nodes per index slot
     opensearchtransport.WithMaxFanOut(10),                   // Maximum nodes per index slot
     opensearchtransport.WithDecayFactor(0.999),              // Decay factor for fan-out counters
@@ -1853,6 +1861,9 @@ router := opensearchtransport.NewDefaultRouter(
         "small-index": 2,
     }),
 )
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 | Option                                    | Default | Description                                                                                      |
@@ -1982,9 +1993,12 @@ OPENSEARCH_GO_DISCOVERY_CONFIG=-cat_shards,-routing_num_shards,-cluster_health,-
 **Programmatic equivalent:**
 
 ```go
-router := opensearchtransport.NewDefaultRouter(
+router, err := opensearchtransport.NewDefaultRouter(
     opensearchtransport.WithShardCosts("r:base=0.90,r:amplify=2.5"),
 )
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 Or via the top-level client config (passthrough). Only applied when the DefaultRouter is auto-constructed via `OPENSEARCH_GO_ROUTER=true`; the field is silently ignored when `Config.Router` is set (the router was already built without it) or when no router is configured:
