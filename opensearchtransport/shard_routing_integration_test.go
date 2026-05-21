@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 )
 
@@ -66,9 +67,10 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	// Retry index creation — transient HTTP 500 can occur while the cluster
 	// is still settling after heavy discovery/warmup activity.
 	var createResp *http.Response
+	createPath, _ := ospath.IndicesCreatePath{Index: index}.Build()
 	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes, func() bool {
 		createReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPut,
-			fmt.Sprintf("/%s", index),
+			createPath,
 			bytes.NewReader([]byte(createBody)))
 		if reqErr != nil {
 			return false
@@ -90,8 +92,9 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	createResp.Body.Close()
 
 	t.Cleanup(func() {
+		delPath, _ := ospath.IndicesDeletePath{Index: []string{index}}.Build()
 		delReq, _ := http.NewRequestWithContext(context.Background(), http.MethodDelete,
-			fmt.Sprintf("/%s", index), nil)
+			delPath, nil)
 		resp, _ := transport.Perform(delReq)
 		if resp != nil {
 			resp.Body.Close()
@@ -163,9 +166,12 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 func querySearchShardsForRouting(t *testing.T, transport *Client, ctx context.Context, index, routing string) int {
 	t.Helper()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		fmt.Sprintf("/%s/_search_shards?routing=%s", index, url.QueryEscape(routing)),
-		nil)
+	p, _ := ospath.SearchShardsPath{Index: []string{index}}.Build()
+	endpoint := url.URL{
+		Path:     p,
+		RawQuery: url.Values{"routing": {routing}}.Encode(),
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), nil)
 	require.NoError(t, err)
 
 	resp, err := transport.Perform(req)
@@ -206,8 +212,8 @@ func querySearchShardsForRouting(t *testing.T, transport *Client, ctx context.Co
 func indexDoc(t *testing.T, transport *Client, ctx context.Context, index, docID, body string) {
 	t.Helper()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut,
-		fmt.Sprintf("/%s/_doc/%s", index, url.PathEscape(docID)),
+	p, _ := ospath.IndexPath{Index: index, ID: docID}.Build()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, p,
 		bytes.NewReader([]byte(body)))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -302,9 +308,10 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	// Retry index creation — transient HTTP 500 can occur while the cluster
 	// is still settling after heavy discovery/warmup activity.
 	var createResp *http.Response
+	createPath, _ := ospath.IndicesCreatePath{Index: index}.Build()
 	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes, func() bool {
 		createReq, reqErr := http.NewRequestWithContext(ctx, http.MethodPut,
-			fmt.Sprintf("/%s", index),
+			createPath,
 			bytes.NewReader([]byte(createBody)))
 		if reqErr != nil {
 			return false
@@ -326,8 +333,9 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	createResp.Body.Close()
 
 	t.Cleanup(func() {
+		delPath, _ := ospath.IndicesDeletePath{Index: []string{index}}.Build()
 		delReq, _ := http.NewRequestWithContext(context.Background(), http.MethodDelete,
-			fmt.Sprintf("/%s", index), nil)
+			delPath, nil)
 		resp, _ := transport.Perform(delReq)
 		if resp != nil {
 			resp.Body.Close()
@@ -347,8 +355,9 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	// The router cache creates index slots lazily (on first request).
 	// We need the slot to exist before DiscoverNodes so that
 	// fetchAndUpdateShardPlacement can populate its shardMap.
+	warmPath, _ := ospath.SearchPath{Index: []string{index}}.Build()
 	warmReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		fmt.Sprintf("/%s/_search", index),
+		warmPath,
 		bytes.NewReader([]byte(`{"query":{"match_all":{}},"size":0}`)))
 	require.NoError(t, err)
 	warmReq.Header.Set("Content-Type", "application/json")
@@ -416,8 +425,13 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 			// cleared by a discovery race), not a timing issue.
 			obs.reset()
 
+			searchPath, _ := ospath.SearchPath{Index: []string{index}}.Build()
+			searchEndpoint := url.URL{
+				Path:     searchPath,
+				RawQuery: url.Values{"routing": {routing}}.Encode(),
+			}
 			searchReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
-				fmt.Sprintf("/%s/_search?routing=%s", index, url.QueryEscape(routing)),
+				searchEndpoint.String(),
 				bytes.NewReader([]byte(`{"query":{"match_all":{}}}`)))
 			require.NoError(t, err)
 			searchReq.Header.Set("Content-Type", "application/json")
@@ -497,9 +511,12 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 ) (shardNum int, nodeNames map[string]struct{}) {
 	t.Helper()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		fmt.Sprintf("/%s/_search_shards?routing=%s", index, url.QueryEscape(routing)),
-		nil)
+	p, _ := ospath.SearchShardsPath{Index: []string{index}}.Build()
+	endpoint := url.URL{
+		Path:     p,
+		RawQuery: url.Values{"routing": {routing}}.Encode(),
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), nil)
 	require.NoError(t, err)
 
 	resp, err := transport.Perform(req)
@@ -551,6 +568,12 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 // keep connections fresh.
 func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, ctx context.Context, index string) int {
 	t.Helper()
+
+	p, _ := ospath.ClusterStatePath{Metric: []string{"metadata"}, Index: []string{index}}.Build()
+	endpoint := url.URL{
+		Path:     p,
+		RawQuery: url.Values{"filter_path": {"metadata.indices.*.routing_num_shards"}}.Encode(),
+	}
 
 	var routingNumShards int
 	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes, func() bool {
