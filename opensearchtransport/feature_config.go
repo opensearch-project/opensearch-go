@@ -8,6 +8,7 @@ package opensearchtransport
 
 import (
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -67,7 +68,37 @@ const (
 	//   OPENSEARCH_GO_SHARD_REQUESTS=10:512       # min=10, max=512
 	//   OPENSEARCH_GO_SHARD_REQUESTS=:512         # default min, max=512
 	envShardRequests = "OPENSEARCH_GO_SHARD_REQUESTS"
+
+	// envRouter controls whether the DefaultRouter is created automatically
+	// when no programmatic Config.Router is set. Parsed as strconv.ParseBool.
+	//
+	// In v4 the router is off by default; set to "true" to enable scored,
+	// role-aware request routing without code changes. Programmatic
+	// Config.Router always takes precedence: if already set, this env var
+	// is ignored.
+	//
+	// In v5 the default will flip: the router will be on by default, and
+	// setting this to "false" will disable it.
+	//
+	// This variable is transitional: it will be removed in v6, where the
+	// router is unconditionally on (disable individual policies via
+	// OPENSEARCH_GO_POLICY_* instead).
+	//
+	// Example: OPENSEARCH_GO_ROUTER=true
+	envRouter = "OPENSEARCH_GO_ROUTER"
 )
+
+// envBool reports whether the named environment variable is set to a
+// strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy
+// values all return false.
+func envBool(name string) bool {
+	val, ok := os.LookupEnv(name)
+	if !ok || val == "" {
+		return false
+	}
+	b, err := strconv.ParseBool(val)
+	return err == nil && b
+}
 
 // routingFeatures is a bitfield where zero-value means all features are
 // enabled. Each bit, when set, disables a specific feature.

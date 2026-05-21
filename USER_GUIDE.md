@@ -499,7 +499,10 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 | ----------------------------------- | ------------- | --------------------------------------------------- |
 | `OPENSEARCH_GO_REQUEST_TIMEOUT`     | 0 (none)      | Per-attempt HTTP request timeout (duration or secs) |
 | `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                             |
+| `OPENSEARCH_GO_ROUTER`              | `false`       | Auto-construct DefaultRouter when no Router is set  |
 | `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                |
+| `OPENSEARCH_GO_SHARD_REQUESTS`      | `true`        | Adaptive `max_concurrent_shard_requests` bounds     |
+| `OPENSEARCH_GO_SHARD_COST`          | (defaults)    | Shard cost multipliers for connection scoring       |
 | `OPENSEARCH_GO_DISCOVERY_CONFIG`    | (all enabled) | Skip specific discovery calls                       |
 | `OPENSEARCH_GO_FALLBACK`            | `true`        | Seed URL fallback when all pools exhausted          |
 | `OPENSEARCH_GO_NODE_STATS_INTERVAL` | auto (5s-30s) | Stats polling interval                              |

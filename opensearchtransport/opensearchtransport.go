@@ -334,15 +334,23 @@ type Config struct {
 	Router    Router             // Optional router for cluster-aware request routing
 	Observer  ConnectionObserver // Optional observer for connection lifecycle events
 
-	// ShardCostConfig overrides shard cost multipliers used for connection scoring.
-	// Passed through to the router via [WithShardCosts] when constructing the
-	// default router. Format: bare numeric (sets r:base, the primary read cost
-	// at idle) or comma-separated key=value items. Dynamic keys are prefixed
-	// with "r:" (r:base, r:amplify, r:exponent) and control the read-primary
-	// cost curve. Static keys (unknown, relocating, initializing, replica,
-	// write_primary, write_replica) override shard state costs in the lookup
-	// tables.
-	// Can also be set via OPENSEARCH_GO_SHARD_COST (env var takes precedence).
+	// ShardCostConfig configures shard cost multipliers for the router's
+	// connection scoring. Consumed only when a router is being constructed:
+	//
+	//   - When Config.Router is set, this field is ignored (the user's router
+	//     was already constructed with its own configuration).
+	//   - When Config.Router is nil and OPENSEARCH_GO_ROUTER=true triggers
+	//     auto-construction, this field is applied via [WithShardCosts].
+	//   - Otherwise (no router), this field has no effect.
+	//
+	// When a router is constructed, OPENSEARCH_GO_SHARD_COST takes precedence
+	// over this field for the same-named parameters.
+	//
+	// Format: bare numeric (sets r:base, the primary read cost at idle) or
+	// comma-separated key=value items. Dynamic keys are prefixed with "r:"
+	// (r:base, r:amplify, r:exponent) and control the read-primary cost curve.
+	// Static keys (unknown, relocating, initializing, replica, write_primary,
+	// write_replica) override shard state costs in the lookup tables.
 	ShardCostConfig string
 
 	// Context for background operations (node discovery, health checks, stats polling).
@@ -759,12 +767,16 @@ func New(cfg Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(parent)
 
 	router := cfg.Router
-	if router == nil && cfg.ShardCostConfig != "" {
-		var err error
-		router, err = NewDefaultRouter(WithShardCosts(cfg.ShardCostConfig))
-		if err != nil {
+	if router == nil && envvars.Truthy(envRouter) {
+		var opts []RouterOption
+		if cfg.ShardCostConfig != "" {
+			opts = append(opts, WithShardCosts(cfg.ShardCostConfig))
+		}
+		var newErr error
+		router, newErr = NewDefaultRouter(opts...)
+		if newErr != nil {
 			cancel()
-			return nil, fmt.Errorf("shard cost config: %w", err)
+			return nil, newErr
 		}
 	}
 

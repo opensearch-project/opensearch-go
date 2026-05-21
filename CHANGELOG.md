@@ -11,6 +11,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add dynamic read cost scoring: primary shard cost scales with write-pool utilization via `connScoreFunc`, preferring primaries at idle and shedding reads to replicas under write load
 - Add `OPENSEARCH_GO_SHARD_COST` environment variable and `WithShardCosts()` router option with `r:base`/`r:amplify`/`r:exponent` curve keys and static cost overrides
 - Add `ShardCostConfig` field to `Config` struct for programmatic shard cost override passthrough
+- Add `OPENSEARCH_GO_ROUTER` environment variable to enable the DefaultRouter without code changes; set to `true` to opt in (off by default in v4, on by default in v5, removed in v6) ([#815](https://github.com/opensearch-project/opensearch-go/pull/815))
 - Add `InsecureSkipVerify` config option to disable TLS certificate verification without constructing a custom `http.Transport`, preserving `DefaultTransport` connection pooling, HTTP/2, and timeout defaults ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add `DisableResponseBuffering` config option to skip eager `io.ReadAll` buffering of response bodies in `Perform()`, reducing per-request allocations and TTFB for proxy and streaming use cases ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add per-attempt `RequestTimeout` to bound individual HTTP round-trips, preventing indefinite hangs on stalled connections ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))

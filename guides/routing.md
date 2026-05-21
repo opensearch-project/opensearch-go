@@ -6,6 +6,16 @@ This document covers the scoring formula and its three input signals, the policy
 
 ## Quick Start
 
+### Via environment variable (no code changes)
+
+```bash
+export OPENSEARCH_GO_ROUTER=true
+```
+
+When set to a truthy value and no programmatic `Config.Router` is provided, the client automatically creates a `NewDefaultRouter()` and sets `DiscoverNodesOnStart` to `true` (async). The client uses the seed URLs until discovery completes; call `client.DiscoverNodes(ctx)` after construction to block until topology data is available. In v4 the router is off by default; in v5 the default will flip (on unless `=false`). This environment variable is transitional and will be removed in v6, where the router is unconditionally enabled. Use `OPENSEARCH_GO_POLICY_*` to disable individual policies if needed.
+
+### Via code
+
 ```go
 import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 
@@ -1872,6 +1882,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 | Variable                         | Format                          | Default        | Description                                                                                  |
 | -------------------------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTER`           | Bool                            | `false`        | Auto-construct the DefaultRouter when no programmatic `Config.Router` is set                 |
 | `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`)             |
 | `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`   |
 | `OPENSEARCH_GO_SHARD_COST`       | See format below                | (defaults)     | Override shard cost multipliers used in connection scoring                                   |
