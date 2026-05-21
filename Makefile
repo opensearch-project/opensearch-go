@@ -337,9 +337,10 @@ cluster.docker-build:
 	))
 	@echo "Building OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role), secure: $(SECURE_INTEGRATION)"
 	@echo "Pre-pulling base image opensearchproject/opensearch:$(OPENSEARCH_VERSION)..."
-	@for attempt in $$(seq 30); do \
+	@for attempt in $$(seq $(DOCKER_PULL_RETRIES)); do \
 		docker pull opensearchproject/opensearch:$(OPENSEARCH_VERSION) && break; \
-		echo "Pull attempt $$attempt/30 failed, retrying in 10s..."; \
+		echo "Pull attempt $$attempt/$(DOCKER_PULL_RETRIES) failed, retrying in 10s..."; \
+		[ "$$attempt" -eq $(DOCKER_PULL_RETRIES) ] && { echo "All $(DOCKER_PULL_RETRIES) pull attempts failed, aborting."; exit 1; }; \
 		sleep 10; \
 	done
 	OPENSEARCH_MANAGER_ROLE=$(manager_role) OPENSEARCH_MANAGER_SETTING=$(manager_role) \
