@@ -54,7 +54,7 @@ type IndexRouter struct {
 	config      policyConfig
 }
 
-func (p *IndexRouter) policyTypeName() string      { return "index_router" }
+func (p *IndexRouter) policyTypeName() string      { return policyTypeNameIndexRouter }
 func (p *IndexRouter) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewIndexRouter creates a standalone IndexRouter configured by

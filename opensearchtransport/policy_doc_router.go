@@ -52,7 +52,7 @@ type DocRouter struct {
 	config      policyConfig
 }
 
-func (p *DocRouter) policyTypeName() string { return "document_router" }
+func (p *DocRouter) policyTypeName() string { return policyTypeNameDocumentRouter }
 func (p *DocRouter) setEnvOverride(enabled bool) {
 	psSetEnvOverride(&p.policyState, enabled)
 }

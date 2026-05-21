@@ -624,8 +624,8 @@ func (cp *multiServerPool) removeFromReadyWithLock(c *Connection) {
 func (cp *multiServerPool) removeFromDeadWithLock(c *Connection) {
 	idx := -1
 	// Search backward -- recently appended items are at the tail
-	for i := len(cp.mu.dead) - 1; i >= 0; i-- {
-		if cp.mu.dead[i] == c {
+	for i, v := range slices.Backward(cp.mu.dead) {
+		if v == c {
 			idx = i
 			break
 		}

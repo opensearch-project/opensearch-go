@@ -57,7 +57,7 @@ type poolRouter struct {
 	}
 }
 
-func (p *poolRouter) policyTypeName() string { return "router" }
+func (p *poolRouter) policyTypeName() string { return policyTypeNameRouter }
 func (p *poolRouter) setEnvOverride(enabled bool) {
 	psSetEnvOverride(&p.policyState, enabled)
 }
@@ -250,7 +250,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// data nodes) when available. Falls back to the selected connection's
 	// per-node cwnd before the first poll cycle completes.
 	var adaptiveMCSR int
-	if p.poolName == "search" && best != nil {
+	if p.poolName == poolSearch && best != nil {
 		cwnd := loadClusterSearchCwnd(p.clusterSearchCwnd)
 		if cwnd <= 0 {
 			cwnd = best.loadCwnd(p.poolName, loadPoolInfoReady(p.poolInfoReady))
@@ -403,13 +403,13 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 
 	// Register the MCSR metric callback for the search pool so that
 	// ConnectionMetric snapshots include the current per-node value.
-	if p.poolName == "search" && config.metrics != nil && p.cache.features.adaptiveConcurrencyEnabled() {
+	if p.poolName == poolSearch && config.metrics != nil && p.cache.features.adaptiveConcurrencyEnabled() {
 		cache := p.cache
 		poolInfoReady := p.poolInfoReady
 		config.metrics.connMetricCallbacks = append(config.metrics.connMetricCallbacks,
 			func(conns []*Connection, cms []ConnectionMetric) error {
 				for i, conn := range conns {
-					cwnd := conn.loadCwnd("search", loadPoolInfoReady(poolInfoReady))
+					cwnd := conn.loadCwnd(poolSearch, loadPoolInfoReady(poolInfoReady))
 					mcsr := computeAdaptiveConcurrency(cwnd, cache.adaptiveConcurrency, cache.features)
 					cms[i].MCSR = &mcsr
 				}

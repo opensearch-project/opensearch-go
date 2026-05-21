@@ -98,7 +98,7 @@ type RolePolicy struct {
 	policyState     atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (p *RolePolicy) policyTypeName() string      { return "role" }
+func (p *RolePolicy) policyTypeName() string      { return policyTypeNameRole }
 func (p *RolePolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewRolePolicy creates a new role-based routing policy.

@@ -195,7 +195,7 @@ type MuxPolicy struct {
 	policyState    atomic.Int32        // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (p *MuxPolicy) policyTypeName() string      { return "mux" }
+func (p *MuxPolicy) policyTypeName() string      { return policyTypeNameMux }
 func (p *MuxPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewMuxPolicy creates a new policy multiplexer with the given routes.

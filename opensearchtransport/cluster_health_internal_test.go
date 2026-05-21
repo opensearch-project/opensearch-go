@@ -1163,7 +1163,7 @@ func TestEvaluateOverload(t *testing.T) {
 		c := makeClient()
 		conn := makeConn()
 		conn.mu.Lock()
-		conn.mu.clusterHealth = &ClusterHealthLocal{Status: "red"}
+		conn.mu.clusterHealth = &ClusterHealthLocal{Status: clusterStatusRed}
 		conn.mu.Unlock()
 
 		stats := &NodeStats{
@@ -1205,7 +1205,7 @@ func TestEvaluateOverload(t *testing.T) {
 		c := makeClient()
 		conn := makeConn()
 		conn.mu.Lock()
-		conn.mu.clusterHealth = &ClusterHealthLocal{Status: "red"}
+		conn.mu.clusterHealth = &ClusterHealthLocal{Status: clusterStatusRed}
 		conn.mu.Unlock()
 
 		stats := &NodeStats{
@@ -1669,7 +1669,7 @@ func TestEvaluateOverload_DebugLogging(t *testing.T) {
 		c := makeClient()
 		conn := makeConn()
 		conn.mu.Lock()
-		conn.mu.clusterHealth = &ClusterHealthLocal{Status: "red"}
+		conn.mu.clusterHealth = &ClusterHealthLocal{Status: clusterStatusRed}
 		conn.mu.Unlock()
 
 		stats := &NodeStats{

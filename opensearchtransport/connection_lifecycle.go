@@ -286,23 +286,39 @@ func (lc connLifecycle) hasAny(flags connLifecycle) bool {
 	return lc&flags != 0
 }
 
+// Lifecycle state name constants used by connLifecycleBits and test assertions.
+const (
+	lcNameReady                  = "ready"
+	lcNameUnknown                = "unknown"
+	lcNameActive                 = "active"
+	lcNameStandby                = "standby"
+	lcNameNeedsWarmup            = "needsWarmup"
+	lcNameOverloaded             = "overloaded"
+	lcNameHealthChecking         = "healthChecking"
+	lcNameDraining               = "draining"
+	lcNameNeedsHardware          = "needsHardware"
+	lcNameNeedsCatUpdate         = "needsCatUpdate"
+	lcNameClusterHealthProbed    = "clusterHealthProbed"
+	lcNameClusterHealthAvailable = "clusterHealthAvailable"
+)
+
 // connLifecycleBits maps each bit to its human-readable name.
 var connLifecycleBits = [12]struct { //nolint:gochecknoglobals // lookup table, not mutable state
 	bit  connLifecycle
 	name string
 }{
-	{lcReady, "ready"},
-	{lcUnknown, "unknown"},
-	{lcActive, "active"},
-	{lcStandby, "standby"},
-	{lcNeedsWarmup, "needsWarmup"},
-	{lcOverloaded, "overloaded"},
-	{lcHealthChecking, "healthChecking"},
-	{lcDraining, "draining"},
-	{lcNeedsHardware, "needsHardware"},
-	{lcNeedsCatUpdate, "needsCatUpdate"},
-	{lcClusterHealthProbed, "clusterHealthProbed"},
-	{lcClusterHealthAvailable, "clusterHealthAvailable"},
+	{lcReady, lcNameReady},
+	{lcUnknown, lcNameUnknown},
+	{lcActive, lcNameActive},
+	{lcStandby, lcNameStandby},
+	{lcNeedsWarmup, lcNameNeedsWarmup},
+	{lcOverloaded, lcNameOverloaded},
+	{lcHealthChecking, lcNameHealthChecking},
+	{lcDraining, lcNameDraining},
+	{lcNeedsHardware, lcNameNeedsHardware},
+	{lcNeedsCatUpdate, lcNameNeedsCatUpdate},
+	{lcClusterHealthProbed, lcNameClusterHealthProbed},
+	{lcClusterHealthAvailable, lcNameClusterHealthAvailable},
 }
 
 // String returns a human-readable name for the lifecycle.

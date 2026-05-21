@@ -84,6 +84,21 @@ func psSetEnvOverride(s *atomic.Int32, enabled bool) {
 
 const policyTypeNameUnknown = "unknown"
 
+// Policy type name constants used by policyTypeName() methods and
+// the policyTypeNames slice for env-var override matching.
+const (
+	policyTypeNameChain          = "chain"
+	policyTypeNameMux            = "mux"
+	policyTypeNameIfEnabled      = "ifenabled"
+	policyTypeNameRouter         = "router"
+	policyTypeNameRole           = "role"
+	policyTypeNameRoundRobin     = "roundrobin"
+	policyTypeNameCoordinator    = "coordinator"
+	policyTypeNameNull           = "null"
+	policyTypeNameIndexRouter    = "index_router"
+	policyTypeNameDocumentRouter = "document_router"
+)
+
 // policySortKey returns a structural identity string for a policy that
 // encodes its type name plus distinguishing configuration and children.
 // Used as a deterministic sort key when sibling policies share the same
@@ -160,16 +175,16 @@ type pathMatcher struct {
 //
 //nolint:gochecknoglobals // Package-level constant list used by parsePolicyOverrides.
 var policyTypeNames = []string{
-	"chain",
-	"mux",
-	"ifenabled",
-	"router",
-	"role",
-	"roundrobin",
-	"coordinator",
-	"null",
-	"index_router",
-	"document_router",
+	policyTypeNameChain,
+	policyTypeNameMux,
+	policyTypeNameIfEnabled,
+	policyTypeNameRouter,
+	policyTypeNameRole,
+	policyTypeNameRoundRobin,
+	policyTypeNameCoordinator,
+	policyTypeNameNull,
+	policyTypeNameIndexRouter,
+	policyTypeNameDocumentRouter,
 }
 
 // parsePolicyOverrides reads OPENSEARCH_GO_POLICY_* environment variables

@@ -62,7 +62,7 @@ type PolicyChain struct {
 	policyState atomic.Int32 // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (r *PolicyChain) policyTypeName() string      { return "chain" }
+func (r *PolicyChain) policyTypeName() string      { return policyTypeNameChain }
 func (r *PolicyChain) setEnvOverride(enabled bool) { psSetEnvOverride(&r.policyState, enabled) }
 
 // NewRouter creates a router that tries policies in order.
@@ -731,7 +731,7 @@ func buildStandaloneRouterConfig(opts []RouterOption) (routerConfig, *shardCostC
 
 	costCfg, costErr := parseShardCostConfig(shardCostSpec)
 	if costErr != nil {
-		return cfg, nil, fmt.Errorf("shard cost config %q: %w", shardCostSpec, costErr)
+		return cfg, nil, fmt.Errorf("parsing %q: %w", shardCostSpec, costErr)
 	}
 
 	return cfg, costCfg, nil

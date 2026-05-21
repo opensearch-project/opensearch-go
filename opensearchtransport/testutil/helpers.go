@@ -313,6 +313,9 @@ func WaitForCluster(t *testing.T) {
 	t.Fatalf("WaitForCluster: cluster not ready after %d attempts (url=%s)", maxAttempts, healthURL.String())
 }
 
+// versionAllSupported is the version expression matching all supported OpenSearch versions.
+const versionAllSupported = ">=v1.0.0"
+
 // ignoredFieldPatterns contains field patterns that should be ignored during JSON comparison
 // Map of field patterns to their version requirements using operator+version syntax
 // Format: {operator}{version}(,{operator}{version})*
@@ -321,28 +324,28 @@ func WaitForCluster(t *testing.T) {
 //nolint:gochecknoglobals // This is a test utility package
 var ignoredFieldPatterns = map[string]string{
 	// Dynamic IO statistics that change between calls - present in all supported versions
-	"/io_stats/":         ">=v1.0.0",
-	"/io_time_in_millis": ">=v1.0.0",
-	"/queue_size":        ">=v1.0.0",
-	"/read_time":         ">=v1.0.0",
-	"/write_time":        ">=v1.0.0",
+	"/io_stats/":         versionAllSupported,
+	"/io_time_in_millis": versionAllSupported,
+	"/queue_size":        versionAllSupported,
+	"/read_time":         versionAllSupported,
+	"/write_time":        versionAllSupported,
 
 	// Optional script/template metadata - present in all supported versions
-	"/options":                  ">=v1.0.0",
-	"/metadata/stored_scripts/": ">=v1.0.0",
+	"/options":                  versionAllSupported,
+	"/metadata/stored_scripts/": versionAllSupported,
 
 	// Dynamic cluster/node fields - present in all supported versions
-	"/target_node":   ">=v1.0.0",
-	"/relocation_id": ">=v1.0.0",
+	"/target_node":   versionAllSupported,
+	"/relocation_id": versionAllSupported,
 
 	// Dynamic task-related fields - present in all supported versions
-	"/cancellation_time_millis": ">=v1.0.0",
+	"/cancellation_time_millis": versionAllSupported,
 
 	// Version-specific or environment-dependent fields
-	"/build_flavor":   ">=v1.0.0",
-	"/build_type":     ">=v1.0.0",
-	"/build_snapshot": ">=v1.0.0",
-	"/lucene_version": ">=v1.0.0",
+	"/build_flavor":   versionAllSupported,
+	"/build_type":     versionAllSupported,
+	"/build_snapshot": versionAllSupported,
+	"/lucene_version": versionAllSupported,
 }
 
 // ShouldIgnoreField returns true if the given JSON path represents a field

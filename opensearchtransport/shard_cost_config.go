@@ -13,26 +13,54 @@ import (
 	"strings"
 )
 
+// shardCostValidKeysHint is appended to "unknown key" messages to enumerate
+// the parser's accepted key set in a consistent order.
+const shardCostValidKeysHint = "valid keys: r:base, r:amplify, r:exponent, unknown, " +
+	"relocating, initializing, replica, write_primary, write_replica"
+
+// Shard cost config error message constants.
+const (
+	shardCostMessageMissing    = "missing value"
+	shardCostMessageInvalid    = "invalid value"
+	shardCostMessageUnknownKey = "unknown key"
+	shardCostMessageNotFinite  = "value must be a finite non-negative number"
+)
+
+// Shard cost config key constants for the dynamic read curve.
+const (
+	shardCostKeyBase     = "r:base"
+	shardCostKeyAmplify  = "r:amplify"
+	shardCostKeyExponent = "r:exponent"
+)
+
+// Shard cost config key constants for static overrides.
+const (
+	shardCostKeyUnknown      = "unknown"
+	shardCostKeyRelocating   = "relocating"
+	shardCostKeyInitializing = "initializing"
+	shardCostKeyReplica      = "replica"
+	shardCostKeyWritePrimary = "write_primary"
+	shardCostKeyWriteReplica = "write_replica"
+)
+
 // ShardCostConfigError is returned when [parseShardCostConfig] encounters
-// an invalid shard cost configuration string.
+// an invalid shard cost configuration string. Use errors.As to recover the
+// type; use Error() for the human-readable message and errors.Unwrap (or
+// errors.Is) to reach the underlying parse error if any.
 type ShardCostConfigError struct {
-	// Key is the config key that caused the error (may be empty for bare values).
+	// Key is the config key that caused the error, when applicable
+	// (empty for bare-numeric specs and similar context-free failures).
 	Key string
-	// Reason classifies the failure: "unknown key", "invalid value", or "missing value".
-	Reason string
-	// Detail provides additional context (e.g. valid keys, wrapped parse error).
-	Detail string
+	// Message is the human-readable description of the failure.
+	Message string
 	// Err is the underlying error, if any (e.g. strconv.ErrSyntax).
 	Err error
 }
 
 func (e *ShardCostConfigError) Error() string {
-	msg := "shard cost config: " + e.Reason
+	msg := "shard cost config: " + e.Message
 	if e.Key != "" {
 		msg += " for key " + strconv.Quote(e.Key)
-	}
-	if e.Detail != "" {
-		msg += ": " + e.Detail
 	}
 	if e.Err != nil {
 		msg += ": " + e.Err.Error()
@@ -375,9 +403,10 @@ func parseShardCostConfig(spec string) (*shardCostConfig, error) {
 
 	// Try bare numeric first: sets r:base (primary read cost at idle).
 	if v, parseErr := strconv.ParseFloat(spec, 64); parseErr == nil {
-		if v > 0 && !math.IsInf(v, 0) && !math.IsNaN(v) {
-			curveBase = v
+		if v <= 0 || math.IsInf(v, 0) || math.IsNaN(v) {
+			return nil, &ShardCostConfigError{Message: shardCostMessageNotFinite}
 		}
+		curveBase = v
 		cfg.scoreFunc = newReadScoreFunc(curveBase, curveAmplify, curveExponent)
 		return &cfg, nil
 	}
@@ -391,60 +420,77 @@ func parseShardCostConfig(spec string) (*shardCostConfig, error) {
 
 		key, valStr, hasEq := strings.Cut(item, "=")
 		if !hasEq {
-			return nil, &ShardCostConfigError{Key: key, Reason: "missing value"}
+			return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageMissing}
 		}
 
 		v, parseErr := strconv.ParseFloat(valStr, 64)
 		if parseErr != nil {
-			return nil, &ShardCostConfigError{Key: key, Reason: "invalid value", Err: parseErr}
+			return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageInvalid, Err: parseErr}
 		}
 
 		switch key {
-		case "r:base", "r:amplify", "r:exponent":
-			// Curve keys allow zero. r:amplify=0 disables dynamic
-			// amplification (static-only mode). r:exponent=0 holds dynamic
-			// cost at max regardless of utilization. r:base=0 makes
-			// primaries free at idle. All three are mathematically defined;
-			// only NaN, Inf, and negative values are rejected.
-			if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 {
+		case shardCostKeyBase, shardCostKeyAmplify, shardCostKeyExponent:
+			// r:amplify=0 disables dynamic amplification (static-only mode).
+			// r:exponent=0 holds dynamic cost at max regardless of utilization.
+			// r:base must be strictly positive: r:base=0 makes primaries free at
+			// idle, and the bare-numeric form (which sets r:base) rejects v<=0,
+			// so the key=value form must match.
+			if math.IsNaN(v) || math.IsInf(v, 0) || v < 0 || (key == shardCostKeyBase && v == 0) {
 				return nil, &ShardCostConfigError{
-					Key:    key,
-					Reason: "value must be a finite non-negative number",
+					Key:     key,
+					Message: shardCostMessageNotFinite,
 				}
 			}
 			switch key {
-			case "r:base":
+			case shardCostKeyBase:
 				curveBase = v
-			case "r:amplify":
+			case shardCostKeyAmplify:
 				curveAmplify = v
-			case "r:exponent":
+			case shardCostKeyExponent:
 				curveExponent = v
 			}
 
 		// Static costs: shared (both tables).
-		case "unknown":
+		case shardCostKeyUnknown:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
 			cfg.reads[shardCostUnknown] = v
 			cfg.writes[shardCostUnknown] = v
-		case "relocating":
+		case shardCostKeyRelocating:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
 			cfg.reads[shardCostRelocating] = v
 			cfg.writes[shardCostRelocating] = v
-		case "initializing":
+		case shardCostKeyInitializing:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
 			cfg.reads[shardCostInitializing] = v
 			cfg.writes[shardCostInitializing] = v
 
 		// Static costs: table-specific.
-		case "replica":
+		case shardCostKeyReplica:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
 			cfg.reads[shardCostReplica] = v
-		case "write_primary":
+		case shardCostKeyWritePrimary:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
 			cfg.writes[shardCostPrimary] = v
-		case "write_replica":
+		case shardCostKeyWriteReplica:
+			if math.IsNaN(v) || math.IsInf(v, 0) {
+				return nil, &ShardCostConfigError{Key: key, Message: shardCostMessageNotFinite}
+			}
 			cfg.writes[shardCostReplica] = v
 
 		default:
 			return nil, &ShardCostConfigError{
-				Key:    key,
-				Reason: "unknown key",
-				Detail: "valid keys: r:base, r:amplify, r:exponent, unknown, relocating, initializing, replica, write_primary, write_replica",
+				Key:     key,
+				Message: shardCostMessageUnknownKey + ": " + shardCostValidKeysHint,
 			}
 		}
 	}
