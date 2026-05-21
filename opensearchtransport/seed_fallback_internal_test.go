@@ -27,6 +27,7 @@ func TestSeedFallback(t *testing.T) {
 			URLs:                  []*url.URL{seedURL},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,
+			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
 			}),
@@ -68,6 +69,7 @@ func TestSeedFallback(t *testing.T) {
 			URLs:                  []*url.URL{seedURL},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,
+			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Router:                &emptyRouter{},
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
@@ -94,6 +96,7 @@ func TestSeedFallback(t *testing.T) {
 			URLs:                  []*url.URL{seedURL},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,
+			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Router:                &emptyRouter{},
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
@@ -117,6 +120,7 @@ func TestSeedFallback(t *testing.T) {
 			URLs:                  []*url.URL{seedURL},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,
+			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Router:                &emptyRouter{},
 			DisableRetry:          true,
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
@@ -146,6 +150,7 @@ func TestSeedFallback(t *testing.T) {
 			URLs:                  []*url.URL{seedURL},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,
+			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
 			}),
@@ -175,6 +180,7 @@ func TestSeedFallback(t *testing.T) {
 			URLs:                  []*url.URL{url1, url2},
 			SkipConnectionShuffle: true,
 			HealthCheck:           NoOpHealthCheck,
+			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Router:                &emptyRouter{},
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				attempted.Add(1)

@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -134,12 +135,33 @@ func SkipIfNotSecure(t *testing.T) {
 	}
 }
 
-// SkipIfSingleNode skips a test if the cluster has fewer than minNodes nodes.
-// Queries /_nodes/http to count nodes and skips if the cluster is too small.
-// This is useful for tests that require multi-node features like standby rotation
-// or role-based routing, which may run in CI against single-node clusters.
-func SkipIfSingleNode(t *testing.T, minNodes int) {
+// RequireMinNodes polls until the cluster has at least minNodes nodes, then
+// returns. If the node count stabilizes below the threshold (same count on
+// consecutive checks), the test is skipped immediately rather than burning
+// the full timeout — this handles single-node CI clusters that will never
+// grow.
+//
+// When the OPENSEARCH_NODE_COUNT environment variable is set (e.g., by CI or
+// the Makefile), the function uses it as the expected cluster size:
+//   - If the expected count < minNodes, the test is skipped immediately
+//     with no network calls.
+//   - Otherwise, the function polls until minNodes are present (the cluster
+//     may still be forming).
+//
+// When OPENSEARCH_NODE_COUNT is unset, the function polls and uses stability
+// detection (consecutive identical counts) to decide when to stop waiting.
+func RequireMinNodes(t *testing.T, minNodes int) {
 	t.Helper()
+
+	// Fast path: if we know the cluster size from the environment, skip
+	// immediately when it's too small.
+	if envCount := os.Getenv("OPENSEARCH_NODE_COUNT"); envCount != "" {
+		expected, err := strconv.Atoi(envCount)
+		if err == nil && expected < minNodes {
+			t.Skipf("Skipping %s: OPENSEARCH_NODE_COUNT=%d, need at least %d",
+				t.Name(), expected, minNodes)
+		}
+	}
 
 	u := GetTestURL(t)
 	nodesURL := *u
@@ -150,33 +172,69 @@ func SkipIfSingleNode(t *testing.T, minNodes int) {
 		Timeout:   5 * time.Second,
 	}
 
-	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, nodesURL.String(), nil)
-	if err != nil {
-		t.Fatalf("SkipIfSingleNode: failed to create request: %v", err)
-	}
-	if IsSecure(t) {
-		req.SetBasicAuth("admin", GetPassword(t))
+	const (
+		maxAttempts     = 30
+		pollDelay       = 2 * time.Second
+		stableSkipAfter = 3 // skip after this many consecutive identical counts
+	)
+
+	var lastTotal, stableCount int
+	for attempt := range maxAttempts {
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, nodesURL.String(), nil)
+		if err != nil {
+			t.Fatalf("RequireMinNodes: failed to create request: %v", err)
+		}
+		if IsSecure(t) {
+			req.SetBasicAuth("admin", GetPassword(t))
+		}
+
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Logf("RequireMinNodes: attempt %d/%d: %v", attempt+1, maxAttempts, err)
+			time.Sleep(pollDelay)
+			continue
+		}
+
+		var result struct {
+			Nodes struct {
+				Total int `json:"total"`
+			} `json:"_nodes"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			resp.Body.Close()
+			t.Fatalf("RequireMinNodes: failed to decode /_nodes/http response: %v", err)
+		}
+		resp.Body.Close()
+
+		total := result.Nodes.Total
+		if total >= minNodes {
+			if attempt > 0 {
+				t.Logf("RequireMinNodes: %d node(s) ready after %d attempts", total, attempt+1)
+			}
+			return
+		}
+
+		// Detect stable (non-growing) cluster and skip early.
+		if total == lastTotal {
+			stableCount++
+		} else {
+			stableCount = 1
+		}
+		lastTotal = total
+
+		if stableCount >= stableSkipAfter {
+			t.Skipf("Skipping %s: cluster stable at %d node(s) for %d checks, need at least %d",
+				t.Name(), lastTotal, stableCount, minNodes)
+		}
+
+		t.Logf("RequireMinNodes: attempt %d/%d: %d node(s), waiting for %d",
+			attempt+1, maxAttempts, total, minNodes)
+		time.Sleep(pollDelay)
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		t.Skipf("Skipping %s: cannot reach cluster to check node count: %v", t.Name(), err)
-	}
-	defer resp.Body.Close()
-
-	// Parse just the _nodes.total field from the response
-	var result struct {
-		Nodes struct {
-			Total int `json:"total"`
-		} `json:"_nodes"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		t.Fatalf("SkipIfSingleNode: failed to decode /_nodes/http response: %v", err)
-	}
-
-	if result.Nodes.Total < minNodes {
-		t.Skipf("Skipping %s: cluster has %d node(s), need at least %d", t.Name(), result.Nodes.Total, minNodes)
-	}
+	// Cluster is reachable but doesn't have enough nodes — skip.
+	t.Skipf("Skipping %s: cluster has %d node(s) after %d attempts, need at least %d",
+		t.Name(), lastTotal, maxAttempts, minNodes)
 }
 
 // WaitForCluster waits for the OpenSearch cluster to be reachable and responding to HTTP requests.

@@ -169,7 +169,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		pool := makeTestPool("test", conns, 3, sel)
 
 		pool.mu.RLock()
-		got := pool.getNextActiveConnWithLock()
+		got, _ := pool.getNextActiveConnWithLock()
 		pool.mu.RUnlock()
 
 		require.Same(t, conns[1], got)
@@ -182,7 +182,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		pool := makeTestPool("test", conns, 2, sel)
 
 		pool.mu.RLock()
-		got := pool.getNextActiveConnWithLock()
+		got, _ := pool.getNextActiveConnWithLock()
 		pool.mu.RUnlock()
 
 		require.Nil(t, got)
@@ -198,7 +198,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		pool := makeTestPool("test", conns, 2, sel)
 
 		pool.mu.RLock()
-		got := pool.getNextActiveConnWithLock()
+		got, _ := pool.getNextActiveConnWithLock()
 		pool.mu.RUnlock()
 
 		require.Same(t, conns[0], got)
@@ -216,9 +216,9 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		pool := makeTestPool("test", conns, 3, nil)
 
 		pool.mu.RLock()
-		c1 := pool.getNextActiveConnWithLock()
-		c2 := pool.getNextActiveConnWithLock()
-		c3 := pool.getNextActiveConnWithLock()
+		c1, _ := pool.getNextActiveConnWithLock()
+		c2, _ := pool.getNextActiveConnWithLock()
+		c3, _ := pool.getNextActiveConnWithLock()
 		pool.mu.RUnlock()
 
 		// Round-robin should cycle through all connections

@@ -68,6 +68,12 @@ type RouteEvent struct {
 	// rendezvous hashing (e.g., shard map not yet loaded).
 	ShardExactMatch bool
 
+	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
+	// from the selected connection's search pool cwnd. Zero when adaptive
+	// concurrency does not apply (shard-exact routing, non-search pool,
+	// feature disabled, or pre-existing caller override).
+	MaxConcurrentShardRequests int
+
 	// Timestamp is when the routing decision was made.
 	Timestamp time.Time
 }
@@ -183,46 +189,54 @@ func newRouteCandidate(
 	}
 }
 
+// routeEventParams collects the inputs for [buildRouteEvent].
+// Using a struct avoids a 16-parameter positional function signature.
+type routeEventParams struct {
+	indexName           string
+	key                 string
+	fanOut              int
+	totalNodes          int
+	candidates          []*Connection
+	best                *Connection
+	slot                *indexSlot
+	shard               *shardNodes
+	costs               *shardCostMultiplier
+	poolName            string
+	routingValue        string
+	effectiveRoutingKey string
+	targetShard         int
+	shardExactMatch     bool
+	poolInfoReady       bool
+	adaptiveMCSR        int
+}
+
 // buildRouteEvent constructs a RouteEvent from a completed
 // routing decision. Called after the best candidate is selected.
-func buildRouteEvent(
-	indexName, key string,
-	fanOut, totalNodes int,
-	candidates []*Connection,
-	best *Connection,
-	slot *indexSlot,
-	shard *shardNodes,
-	costs *shardCostMultiplier,
-	poolName string,
-	routingValue string,
-	effectiveRoutingKey string,
-	targetShard int,
-	shardExactMatch bool,
-	poolInfoReady bool,
-) RouteEvent {
-	cs := make([]RouteCandidate, len(candidates))
+func buildRouteEvent(p routeEventParams) RouteEvent {
+	cs := make([]RouteCandidate, len(p.candidates))
 	var selected RouteCandidate
-	for i, c := range candidates {
-		cs[i] = newRouteCandidate(c, slot, shard, costs, poolName, poolInfoReady)
-		if c == best {
+	for i, c := range p.candidates {
+		cs[i] = newRouteCandidate(c, p.slot, p.shard, p.costs, p.poolName, p.poolInfoReady)
+		if c == p.best {
 			selected = cs[i]
 		}
 	}
 
 	return RouteEvent{
-		IndexName:           indexName,
-		Key:                 key,
-		FanOut:              fanOut,
-		TotalNodes:          totalNodes,
-		CandidateCount:      len(candidates),
-		Selected:            selected,
-		Candidates:          cs,
-		ShardMapLoaded:      slot != nil && slot.shardNodeNames.Load() != nil,
-		RoutingValue:        routingValue,
-		EffectiveRoutingKey: effectiveRoutingKey,
-		TargetShard:         targetShard,
-		ShardExactMatch:     shardExactMatch,
-		Timestamp:           time.Now().UTC(),
+		IndexName:                  p.indexName,
+		Key:                        p.key,
+		FanOut:                     p.fanOut,
+		TotalNodes:                 p.totalNodes,
+		CandidateCount:             len(p.candidates),
+		Selected:                   selected,
+		Candidates:                 cs,
+		ShardMapLoaded:             p.slot != nil && p.slot.shardNodeNames.Load() != nil,
+		RoutingValue:               p.routingValue,
+		EffectiveRoutingKey:        p.effectiveRoutingKey,
+		TargetShard:                p.targetShard,
+		ShardExactMatch:            p.shardExactMatch,
+		MaxConcurrentShardRequests: p.adaptiveMCSR,
+		Timestamp:                  time.Now().UTC(),
 	}
 }
 

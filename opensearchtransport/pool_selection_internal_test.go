@@ -311,7 +311,7 @@ func TestEvictExternallyDemotedWithLock(t *testing.T) {
 	})
 }
 
-func TestDeferredCapEnforcement(t *testing.T) {
+func TestEnforceActiveCap(t *testing.T) {
 	t.Run("reduces active to cap", func(t *testing.T) {
 		a1 := newActiveConn("a1")
 		a2 := newActiveConn("a2")
@@ -319,7 +319,9 @@ func TestDeferredCapEnforcement(t *testing.T) {
 		pool := newStandbyPool([]*Connection{a1, a2, a3}, nil)
 		pool.activeListCap = 2
 
-		pool.deferredCapEnforcement()
+		pool.mu.Lock()
+		pool.enforceActiveCapWithLock()
+		pool.mu.Unlock()
 
 		require.Equal(t, 2, pool.mu.activeCount)
 		require.Len(t, pool.mu.ready, 3)

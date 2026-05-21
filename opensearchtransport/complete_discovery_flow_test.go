@@ -34,7 +34,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Discovery uses seed URLs including port 9201; skip if only 1 node is available.
-	testutil.SkipIfSingleNode(t, 2)
+	testutil.RequireMinNodes(t, 2)
 
 	// OpenSearch < 2.2.0 with the security plugin has a non-thread-safe User
 	// serialization race (java.io.OptionalDataException) during inter-node

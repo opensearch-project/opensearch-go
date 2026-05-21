@@ -899,6 +899,50 @@ Each connection holds a `poolRegistry` -- a `sync.Map` of pool name to congestio
 
 OpenSearch maintains separate thread pools for search, write, get, management, and other operation types. A node can be overloaded for writes (full bulk queue) while having ample search capacity. Per-pool tracking lets the scoring formula reflect this: a node with a saturated write pool scores `MaxFloat64` for writes but remains eligible for searches at its normal score.
 
+### Adaptive `max_concurrent_shard_requests`
+
+When the client routes a search through a coordinator node (non-shard-exact path), OpenSearch fans out to data nodes using `max_concurrent_shard_requests` as the per-node concurrency limit. The client automatically tunes this parameter based on cluster-wide search thread pool pressure.
+
+**Why cluster-wide, not per-node.** Per-node AIMD drives _connection scoring_ — which coordinator to pick. But `max_concurrent_shard_requests` controls _data-node fan-out_ from the coordinator. A single coordinator's search pool pressure doesn't reflect the capacity of the data nodes it fans out to. The cluster-wide aggregate does.
+
+```
+    pollNodeStats()
+      for each conn:
+        updatePoolCongestion(conn)     ◄── per-node AIMD (connection scoring)
+        collect search pool sample     ◄── {completed, wait_time, maxCwnd}
+      clusterSearch.update(samples)    ◄── cluster-wide AIMD (MCSR)
+
+    poolRouter.Eval()                  ◄── hot path
+      cwnd = clusterSearch.cwnd        ◄── one atomic.Int32 load
+      if cwnd <= 0:
+        cwnd = best.loadCwnd("search") ◄── fallback to per-node
+      mcsr = clamp(cwnd, floor, cap)   ◄── default [5, 256]
+```
+
+**Signal.** After each stats poll cycle, `clusterSearchAIMD` computes:
+
+1. Per-node deltas: `delta(completed)` and `delta(total_wait_time_in_nanos)` for the search pool
+2. Cluster aggregate: sum all node deltas
+3. Congestion signal: `waitPerCompleted = totalDeltaWait / totalDeltaCompleted >= 1ms`
+4. AIMD: same state machine as per-node (slow start / congestion avoidance / multiplicative decrease)
+
+**Ceiling.** `clusterMaxCwnd` is the max of per-node search pool sizes (not the sum). Although `max_concurrent_shard_requests` is a coordinator-side global semaphore — it limits the total number of concurrent shard operations across all data nodes for a single search request — all those operations could land on a single node if it hosts enough shards. Using the max single-node pool size as the ceiling prevents a coordinator from dispatching more concurrent shard requests than the busiest data node can absorb in its search thread pool.
+
+**Hot-shard resilience.** A single overloaded node is diluted by healthy peers in the aggregate. MCSR only drops when cluster-wide search pressure rises. Hot shards are a data distribution problem handled by the server's shard allocator, not a client fan-out knob.
+
+**Node churn.** New nodes skip the first poll cycle (no baseline for deltas). Disappeared nodes are evicted from the epoch map. Failed polls exclude the node from that cycle's samples.
+
+**Fallback.** Before the first successful poll cycle, `clusterSearch.cwnd` is 0. The client falls back to the selected coordinator's per-node search pool cwnd.
+
+**Configuration:**
+
+| Option                                        | Default        | Description                           |
+| --------------------------------------------- | -------------- | ------------------------------------- |
+| `WithAdaptiveConcurrency(bool)`               | `true`         | Enable/disable adaptive MCSR          |
+| `WithAdaptiveConcurrencyLimits(min, max)`     | `5, 256`       | Clamp range for the adaptive value    |
+| `OPENSEARCH_GO_SHARD_REQUESTS`                | `true` (5:256) | Env var: `true`/`false`, or `min:max` |
+| `OPENSEARCH_GO_ROUTING_CONFIG=-adaptive_mcsr` | enabled        | Disable via feature flag              |
+
 ---
 
 ## 8. Connection Pool Lifecycle
@@ -1758,15 +1802,17 @@ router := opensearchtransport.NewDefaultRouter(
 )
 ```
 
-| Option                     | Default | Description                                                              |
-| -------------------------- | ------- | ------------------------------------------------------------------------ |
-| `WithMinFanOut(n)`         | 1       | Minimum nodes in an index slot. Floor for fan-out.                       |
-| `WithMaxFanOut(n)`         | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.     |
-| `WithDecayFactor(d)`       | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory. |
-| `WithFanOutPerRequest(f)`  | 500     | Decay counter value that maps to +1 fan-out node.                        |
-| `WithIdleEvictionTTL(d)`   | 90 min  | How long an idle index slot persists before eviction.                    |
-| `WithIndexFanOut(m)`       | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.               |
-| `WithShardExactRouting(b)` | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.           |
+| Option                                    | Default | Description                                                                                      |
+| ----------------------------------------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `WithMinFanOut(min)`                      | 1       | Minimum nodes in an index slot. Floor for fan-out.                                               |
+| `WithMaxFanOut(max)`                      | 32      | Maximum nodes in an index slot. Caps pathologically sharded indexes.                             |
+| `WithDecayFactor(decay)`                  | 0.999   | Fan-out counter decay factor. Must be in (0, 1). Higher = longer memory.                         |
+| `WithFanOutPerRequest(count)`             | 500     | Decay counter value that maps to +1 fan-out node.                                                |
+| `WithIdleEvictionTTL(ttl)`                | 90 min  | How long an idle index slot persists before eviction.                                            |
+| `WithIndexFanOut(overrides)`              | nil     | Per-index fan-out overrides. Bypasses dynamic calculation.                                       |
+| `WithShardExactRouting(bool)`             | true    | Enable/disable murmur3 shard-exact routing. Env var overrides.                                   |
+| `WithAdaptiveConcurrency(bool)`           | true    | Enable/disable adaptive `max_concurrent_shard_requests` on search requests.                      |
+| `WithAdaptiveConcurrencyLimits(min, max)` | 5, 256  | Set min/max for adaptive shard concurrency. `(0,0)` = enable with defaults, `(-1,-1)` = disable. |
 
 ### Feature Environment Variables
 
@@ -1780,17 +1826,19 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 #### Routing and Discovery
 
-| Variable                         | Format                          | Default       | Description                                                                                  |
-| -------------------------------- | ------------------------------- | ------------- | -------------------------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled) | Toggle shard-exact routing (`-shard_exact`)                                                  |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled) | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`        | Seed URL fallback when all pools exhausted. `false` = disable                                |
+| Variable                         | Format                          | Default        | Description                                                                                  |
+| -------------------------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`)             |
+| `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`   |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags           | (all enabled)  | Skip discovery calls: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats` |
+| `OPENSEARCH_GO_FALLBACK`         | Bool                            | `true`         | Seed URL fallback when all pools exhausted. `false` = disable                                |
 
 `OPENSEARCH_GO_ROUTING_CONFIG` flags:
 
-| Flag          | Default | `-` effect                                     |
-| ------------- | ------- | ---------------------------------------------- |
-| `shard_exact` | enabled | Disable murmur3 shard-exact connection routing |
+| Flag            | Default | `-` effect                                                          |
+| --------------- | ------- | ------------------------------------------------------------------- |
+| `shard_exact`   | enabled | Disable murmur3 shard-exact connection routing                      |
+| `adaptive_mcsr` | enabled | Disable adaptive `max_concurrent_shard_requests` on search requests |
 
 `OPENSEARCH_GO_DISCOVERY_CONFIG` flags:
 
@@ -1806,6 +1854,21 @@ Examples:
 ```bash
 # Disable shard-exact routing
 OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact
+
+# Disable adaptive max_concurrent_shard_requests
+OPENSEARCH_GO_ROUTING_CONFIG=-adaptive_mcsr
+
+# Disable both shard-exact and adaptive MCSR
+OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact,-adaptive_mcsr
+
+# Adaptive shard concurrency with custom floor=10, cap=512
+OPENSEARCH_GO_SHARD_REQUESTS=10:512
+
+# Adaptive shard concurrency with custom floor only (cap uses default 256)
+OPENSEARCH_GO_SHARD_REQUESTS=10:
+
+# Disable adaptive shard concurrency via env var
+OPENSEARCH_GO_SHARD_REQUESTS=false
 
 # Skip metadata fetch and node stats (reduces server calls)
 OPENSEARCH_GO_DISCOVERY_CONFIG=-routing_num_shards,-node_stats

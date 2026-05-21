@@ -67,8 +67,9 @@ func TestTransportLogger(t *testing.T) {
 		var wg sync.WaitGroup
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
 			// Logger: io.Discard,
 		})
 
@@ -91,9 +92,10 @@ func TestTransportLogger(t *testing.T) {
 
 	t.Run("Nil", func(t *testing.T) {
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    nil,
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            nil,
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
@@ -106,7 +108,8 @@ func TestTransportLogger(t *testing.T) {
 
 	t.Run("No HTTP response", func(t *testing.T) {
 		tp, _ := New(Config{
-			URLs: []*url.URL{{Scheme: "http", Host: "foo"}},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return nil, errors.New("Mock error")
 			}),
@@ -128,9 +131,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &TextLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &TextLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
@@ -160,9 +164,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &TextLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &TextLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
@@ -206,9 +211,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &ColorLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &ColorLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
@@ -261,9 +267,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &CurlLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &CurlLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
@@ -298,9 +305,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &JSONLogger{Output: &dst},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &JSONLogger{Output: &dst},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
@@ -336,9 +344,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &JSONLogger{Output: &dst, EnableRequestBody: true},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &JSONLogger{Output: &dst, EnableRequestBody: true},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
@@ -380,9 +389,10 @@ func TestTransportLogger(t *testing.T) {
 		var dst strings.Builder
 
 		tp, _ := New(Config{
-			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-			Transport: newRoundTripper(),
-			Logger:    &CustomLogger{Output: &dst},
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			NodeStatsInterval: -1,
+			Transport:         newRoundTripper(),
+			Logger:            &CustomLogger{Output: &dst},
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)

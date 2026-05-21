@@ -104,7 +104,8 @@ func TestTransport(t *testing.T) {
 	t.Run("Custom", func(t *testing.T) {
 		tp, _ := New(
 			Config{
-				URLs: []*url.URL{{}},
+				URLs:              []*url.URL{{}},
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					return &http.Response{Status: "MOCK"}, nil
 				}),
@@ -313,8 +314,9 @@ func TestTransportPerform(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs:      []*url.URL{u},
-				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
+				URLs:              []*url.URL{u},
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
+				Transport:         mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
 
@@ -470,6 +472,7 @@ func TestTransportPerformRetries(t *testing.T) {
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
 				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				NodeStatsInterval:     -1,              // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					i++
 					fmt.Printf("Request #%d", i)
@@ -512,6 +515,7 @@ func TestTransportPerformRetries(t *testing.T) {
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
 				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				NodeStatsInterval:     -1,              // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					i++
 					fmt.Printf("Request #%d", i)
@@ -554,6 +558,7 @@ func TestTransportPerformRetries(t *testing.T) {
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
 				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				NodeStatsInterval:     -1,              // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					i++
 					fmt.Printf("Request #%d", i)
@@ -593,8 +598,9 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(
 			Config{
-				URLs:       []*url.URL{u, u, u},
-				MaxRetries: numReqs,
+				URLs:              []*url.URL{u, u, u},
+				MaxRetries:        numReqs,
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					i++
 					fmt.Printf("Request #%d", i)
@@ -641,6 +647,7 @@ func TestTransportPerformRetries(t *testing.T) {
 				MaxRetries:            numReqs,         // Explicitly set MaxRetries to match test expectation
 				SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
 				HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+				NodeStatsInterval:     -1,              // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					i++
 					fmt.Printf("Request #%d", i)
@@ -673,8 +680,9 @@ func TestTransportPerformRetries(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
 			Config{
-				URLs:       []*url.URL{u},
-				MaxRetries: 3, // Set to 3 retries to get 4 total requests (1 original + 3 retries)
+				URLs:              []*url.URL{u},
+				MaxRetries:        3,  // Set to 3 retries to get 4 total requests (1 original + 3 retries)
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					body, err := io.ReadAll(req.Body)
 					if err != nil {
@@ -712,6 +720,7 @@ func TestTransportPerformRetries(t *testing.T) {
 				URLs:                []*url.URL{u},
 				MaxRetries:          3, // Set to 3 retries to get 4 total requests
 				CompressRequestBody: true,
+				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					body, err := io.ReadAll(req.Body)
 					if err != nil {
@@ -763,9 +772,10 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		tp, _ := New(
 			Config{
-				URLs:       []*url.URL{u},
-				MaxRetries: 3, // Set to 3 retries to get 4 total requests
-				Signer:     &signer,
+				URLs:              []*url.URL{u},
+				MaxRetries:        3, // Set to 3 retries to get 4 total requests
+				Signer:            &signer,
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway}, nil
 				}),
@@ -792,6 +802,7 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				NodeStatsInterval:     -1,   // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					count := i.Add(1)
 					fmt.Printf("Request #%d", count)
@@ -826,6 +837,7 @@ func TestTransportPerformRetries(t *testing.T) {
 			Config{
 				URLs:                  []*url.URL{u, u, u},
 				SkipConnectionShuffle: true, // Disable shuffling for predictable test results
+				NodeStatsInterval:     -1,   // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					count := i.Add(1)
 					fmt.Printf("Request #%d", count)
@@ -856,9 +868,10 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries:  numReqs,
-			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
-			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			MaxRetries:        numReqs,
+			URLs:              []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck:       NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			NodeStatsInterval: -1,              // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				i++
 				fmt.Printf("Request #%d", i)
@@ -909,6 +922,7 @@ func TestTransportPerformRetries(t *testing.T) {
 			MaxRetries:           100,
 			RetryBackoff:         func(i int) time.Duration { return time.Hour },
 			URLs:                 []*url.URL{u},
+			NodeStatsInterval:    -1, // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				i.Add(1)
 				<-req.Context().Done()
@@ -941,9 +955,10 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		u, _ := url.Parse("http://foo.bar")
 		tp, _ := New(Config{
-			MaxRetries:  numRetries,
-			URLs:        []*url.URL{u},   // Use single URL to avoid connection resurrection
-			HealthCheck: NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			MaxRetries:        numRetries,
+			URLs:              []*url.URL{u},   // Use single URL to avoid connection resurrection
+			HealthCheck:       NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
+			NodeStatsInterval: -1,              // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				i++
 				fmt.Printf("Request #%d", i)
@@ -1060,8 +1075,9 @@ func TestMaxRetries(t *testing.T) {
 						Status:     "MOCK",
 					}, nil
 				}),
-				MaxRetries:   test.maxRetries,
-				DisableRetry: test.disableRetry,
+				MaxRetries:        test.maxRetries,
+				DisableRetry:      test.disableRetry,
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 			})
 
 			//nolint:bodyclose // Mock response does not have a body to close
@@ -1097,6 +1113,7 @@ func TestRequestCompression(t *testing.T) {
 			tp, _ := New(Config{
 				URLs:                []*url.URL{{}},
 				CompressRequestBody: test.compressionFlag,
+				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					if req.Body == nil || req.Body == http.NoBody {
 						return nil, fmt.Errorf("unexpected body: %v", req.Body)
@@ -1154,7 +1171,8 @@ func TestResponseBuffering(t *testing.T) {
 
 		u, _ := url.Parse("http://localhost:9200")
 		tp, _ := New(Config{
-			URLs: []*url.URL{u},
+			URLs:              []*url.URL{u},
+			NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -1201,6 +1219,7 @@ func TestResponseBuffering(t *testing.T) {
 		tp, _ := New(Config{
 			URLs:                     []*url.URL{u},
 			DisableResponseBuffering: true,
+			NodeStatsInterval:        -1, // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -1250,6 +1269,7 @@ func TestResponseBuffering(t *testing.T) {
 		tp, _ := New(Config{
 			URLs:                     []*url.URL{u},
 			DisableResponseBuffering: true,
+			NodeStatsInterval:        -1, // Disable stats poller to avoid background requests through mock transport
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{StatusCode: http.StatusNoContent}, nil
 			}),
@@ -1297,6 +1317,7 @@ func TestRequestSigning(t *testing.T) {
 				Signer: &mockSigner{
 					ReturnError: true,
 				},
+				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 					return &http.Response{Status: "MOCK"}, nil
 				}),

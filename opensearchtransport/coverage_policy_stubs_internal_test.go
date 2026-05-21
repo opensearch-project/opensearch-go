@@ -17,7 +17,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// Policy stub methods: CheckDead, RotateStandby, poolSnapshots, etc.
+// Policy stub methods: CheckDead, RotateStandby, etc.
 // ---------------------------------------------------------------------------
 
 func TestDocRouterStubs(t *testing.T) {
@@ -39,12 +39,6 @@ func TestDocRouterStubs(t *testing.T) {
 		n, err := p.RotateStandby(context.Background(), 1)
 		require.NoError(t, err)
 		require.Zero(t, n)
-	})
-
-	t.Run("routerSnapshot", func(t *testing.T) {
-		t.Parallel()
-		snap := p.routerSnapshot()
-		require.NotZero(t, snap.Config)
 	})
 
 	t.Run("routerCache", func(t *testing.T) {
@@ -101,19 +95,6 @@ func TestPoolRouterStubs(t *testing.T) {
 		require.Zero(t, n)
 	})
 
-	t.Run("poolSnapshots", func(t *testing.T) {
-		t.Parallel()
-		snaps := p.poolSnapshots()
-		// Inner RoundRobinPolicy returns a named snapshot even with nil pool
-		require.Len(t, snaps, 1)
-		require.Equal(t, "roundrobin", snaps[0].Name)
-	})
-
-	t.Run("routerSnapshot", func(t *testing.T) {
-		t.Parallel()
-		snap := p.routerSnapshot()
-		require.NotZero(t, snap.Config)
-	})
 }
 
 func TestMuxPolicyStubs(t *testing.T) {
@@ -132,12 +113,6 @@ func TestMuxPolicyStubs(t *testing.T) {
 		require.Zero(t, n)
 	})
 
-	t.Run("poolSnapshots", func(t *testing.T) {
-		t.Parallel()
-		snaps := p.poolSnapshots()
-		// Route has a RoundRobinPolicy which returns its snapshot
-		require.NotNil(t, snaps)
-	})
 }
 
 func TestIfEnabledPolicyStubs(t *testing.T) {
@@ -153,12 +128,6 @@ func TestIfEnabledPolicyStubs(t *testing.T) {
 		require.Zero(t, n)
 	})
 
-	t.Run("poolSnapshots", func(t *testing.T) {
-		t.Parallel()
-		snaps := p.poolSnapshots()
-		// RoundRobinPolicy truePolicy has its own pool
-		require.NotNil(t, snaps)
-	})
 }
 
 func TestCoordinatorPolicyStubs(t *testing.T) {
@@ -179,9 +148,9 @@ func TestRolePolicyStubs(t *testing.T) {
 	require.NoError(t, err)
 	p := policy.(*RolePolicy)
 
-	t.Run("PoolSnapshot nil pool", func(t *testing.T) {
+	t.Run("PolicySnapshot nil pool", func(t *testing.T) {
 		t.Parallel()
-		snap := p.PoolSnapshot()
+		snap := p.PolicySnapshot()
 		require.Equal(t, "role:data", snap.Name)
 		require.Zero(t, snap.ActiveCount)
 	})

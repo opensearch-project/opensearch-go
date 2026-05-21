@@ -101,32 +101,40 @@ func (cp *multiServerPool) poolCtx() context.Context {
 }
 
 // getNextActiveConnWithLock returns the next active connection using the pool's
-// selector strategy. Falls back to the legacy round-robin counter when no
-// selector is configured.
+// selector strategy and a boolean indicating whether cap enforcement is needed.
+// Falls back to the legacy round-robin counter when no selector is configured.
+//
+// When needsCapEnforce is true, the caller must arrange for cap enforcement
+// after releasing the read lock (triggerCapEnforcement uses TryLock, which
+// fails while any read lock is held). Callers that already hold the write lock
+// can call enforceActiveCapWithLock directly.
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool read or write lock
 //   - Caller must ensure cp.mu.activeCount > 0 before calling
-func (cp *multiServerPool) getNextActiveConnWithLock() *Connection {
+func (cp *multiServerPool) getNextActiveConnWithLock() (*Connection, bool) {
 	if cp.selector != nil {
 		conn, activeCap, _, err := cp.selector.selectNext(cp.mu.ready, cp.mu.activeCount)
 		if err != nil {
-			return nil
+			return nil, false
 		}
-		// Handle cap adjustment signal asynchronously (don't block the read path).
+		// Handle cap adjustment signals from the selector.
+		// capGrow (standby promotion) stays async -- adding a connection is safe.
+		// capShrink is signaled back to the caller, which must call
+		// triggerCapEnforcement after releasing the read lock.
 		switch activeCap {
 		case capGrow:
 			go cp.deferredStandbyPromotion()
 		case capShrink:
-			go cp.deferredCapEnforcement()
+			return conn, true
 		}
-		return conn
+		return conn, false
 	}
 
 	// Legacy round-robin fallback.
 	next := cp.nextReady.Add(1)
 	idx := int(next-1) % cp.mu.activeCount
-	return cp.mu.ready[idx]
+	return cp.mu.ready[idx], false
 }
 
 // deferredStandbyPromotion acquires the pool write lock and promotes one
@@ -161,13 +169,36 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 	}
 }
 
-// snapshot returns a point-in-time PoolSnapshot of this pool's partitions and counters.
-func (cp *multiServerPool) snapshot() PoolSnapshot {
+// triggerCapEnforcement attempts to start asynchronous cap enforcement.
+//
+// Cap enforcement trims the active partition when activeCount > activeListCap
+// by demoting fully-warmed connections to standby. Triggered by warmup
+// completion in Next() and selector capShrink signals.
+//
+// TryLock keeps enforcement off the Next() hot path: if the write lock is
+// available, we acquire it and launch a goroutine that runs enforcement and
+// releases the lock on exit. If the lock is held (by another enforcement
+// goroutine, discovery, etc.), the call is a no-op. Self-heals because
+// Next() re-checks activeCount > cap on every warmup completion and
+// capShrink signal.
+func (cp *multiServerPool) triggerCapEnforcement() {
+	if !cp.mu.TryLock() {
+		return
+	}
+
+	go func() {
+		defer cp.mu.Unlock()
+		cp.enforceActiveCapWithLock()
+	}()
+}
+
+// snapshot returns a point-in-time PolicySnapshot of this pool's partitions and counters.
+func (cp *multiServerPool) snapshot() PolicySnapshot {
 	cp.mu.RLock()
 	counts := cp.countByLifecycleWithLock()
 	cp.mu.RUnlock()
 
-	return PoolSnapshot{
+	return PolicySnapshot{
 		Name:                cp.name,
 		ActiveCount:         counts.active,
 		StandbyCount:        counts.standby,

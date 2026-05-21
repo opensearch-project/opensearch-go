@@ -8,6 +8,7 @@ package opensearchtransport
 
 import (
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -42,6 +43,30 @@ const (
 	//
 	// Example: OPENSEARCH_GO_DISCOVERY_CONFIG=-routing_num_shards,-node_stats
 	envDiscoveryConfig = "OPENSEARCH_GO_DISCOVERY_CONFIG"
+
+	// envShardRequests controls adaptive max_concurrent_shard_requests.
+	// Format: bool | min:max
+	//
+	// Boolean values (parsed via strconv.ParseBool):
+	//   "true"  / "1" -- enable with default min (5) and max (256)
+	//   "false" / "0" -- disable entirely
+	//
+	// Numeric min:max pairs (either may be omitted for defaults):
+	//   "10:512"  -- min=10, max=512
+	//   "10:"     -- min=10, max=default (256)
+	//   ":512"    -- min=default (5), max=512
+	//
+	// The env var takes precedence over programmatic RouterOption
+	// configuration, following the same override convention as
+	// OPENSEARCH_GO_ROUTING_CONFIG.
+	//
+	// Default (unset): enabled with min=5, max=256.
+	//
+	// Examples:
+	//   OPENSEARCH_GO_SHARD_REQUESTS=false       # disable entirely
+	//   OPENSEARCH_GO_SHARD_REQUESTS=10:512       # min=10, max=512
+	//   OPENSEARCH_GO_SHARD_REQUESTS=:512         # default min, max=512
+	envShardRequests = "OPENSEARCH_GO_SHARD_REQUESTS"
 )
 
 // routingFeatures is a bitfield where zero-value means all features are
@@ -53,6 +78,12 @@ const (
 	// When set, shardExactCandidates returns nil and shard-exact
 	// routing is bypassed.
 	routingSkipShardExact routingFeatures = 1 << iota
+
+	// routingSkipAdaptiveConcurrency disables adaptive
+	// max_concurrent_shard_requests injection on search requests.
+	// When set, the transport does not derive the shard fan-out limit
+	// from the connection's search pool congestion window.
+	routingSkipAdaptiveConcurrency
 )
 
 // shardExactEnabled returns true when murmur3 shard-exact routing is active.
@@ -60,11 +91,18 @@ func (f routingFeatures) shardExactEnabled() bool {
 	return f&routingSkipShardExact == 0
 }
 
+// adaptiveConcurrencyEnabled returns true when adaptive
+// max_concurrent_shard_requests injection is active.
+func (f routingFeatures) adaptiveConcurrencyEnabled() bool {
+	return f&routingSkipAdaptiveConcurrency == 0
+}
+
 // routingFlagNames maps flag name strings to their bit constants.
 //
 //nolint:gochecknoglobals // Package-level constant map for config parsing.
 var routingFlagNames = map[string]routingFeatures{
-	"shard_exact": routingSkipShardExact,
+	"shard_exact":   routingSkipShardExact,
+	"adaptive_mcsr": routingSkipAdaptiveConcurrency,
 }
 
 // discoveryFeatures is a bitfield where zero-value means all discovery
@@ -231,4 +269,94 @@ func parseDiscoveryConfig(value string) discoveryFeatures {
 	}
 
 	return features
+}
+
+// adaptiveConcurrencyConfig holds the min and max for adaptive
+// max_concurrent_shard_requests. Zero values mean "use the compile-time
+// default" (minVal=5, maxVal=256). Stored immutably after client init.
+type adaptiveConcurrencyConfig struct {
+	minVal int // 0 = use adaptiveConcurrencyMinDefault
+	maxVal int // 0 = use adaptiveConcurrencyMaxDefault
+}
+
+const (
+	// adaptiveConcurrencyMinDefault is the minimum value for adaptive
+	// max_concurrent_shard_requests. Matches the OpenSearch server default
+	// so the client never reduces concurrency below what a plain request
+	// would use.
+	adaptiveConcurrencyMinDefault = 5
+
+	// adaptiveConcurrencyMaxDefault is the default absolute maximum for
+	// adaptive max_concurrent_shard_requests. Can be overridden higher or
+	// lower via WithAdaptiveConcurrencyLimits or OPENSEARCH_GO_SHARD_REQUESTS.
+	adaptiveConcurrencyMaxDefault = 256
+)
+
+// effectiveMin returns the configured min, falling back to the default.
+func (c adaptiveConcurrencyConfig) effectiveMin() int {
+	if c.minVal > 0 {
+		return c.minVal
+	}
+	return adaptiveConcurrencyMinDefault
+}
+
+// effectiveMax returns the configured max, falling back to the default.
+func (c adaptiveConcurrencyConfig) effectiveMax() int {
+	if c.maxVal > 0 {
+		return c.maxVal
+	}
+	return adaptiveConcurrencyMaxDefault
+}
+
+// parseShardRequests parses the OPENSEARCH_GO_SHARD_REQUESTS env var value.
+// Returns the parsed config and an updated routingFeatures bitfield. The
+// features parameter is the caller's current bitfield; it is returned with
+// routingSkipAdaptiveConcurrency set or cleared based on the parsed value.
+//
+// Format: bool | min:max (see envShardRequests doc).
+func parseShardRequests(value string, features routingFeatures) (adaptiveConcurrencyConfig, routingFeatures) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return adaptiveConcurrencyConfig{}, features
+	}
+
+	// Try boolean first.
+	if b, err := strconv.ParseBool(value); err == nil {
+		if !b {
+			features |= routingSkipAdaptiveConcurrency
+		} else {
+			features &^= routingSkipAdaptiveConcurrency
+		}
+		return adaptiveConcurrencyConfig{}, features
+	}
+
+	// Parse as min:max. Presence of a colon distinguishes from a bare
+	// integer (which ParseBool would have already handled for "0"/"1").
+	minStr, maxStr, hasColon := strings.Cut(value, ":")
+	if !hasColon {
+		// Bare integer without colon: treat as minVal only.
+		if v, err := strconv.Atoi(value); err == nil && v > 0 {
+			features &^= routingSkipAdaptiveConcurrency
+			return adaptiveConcurrencyConfig{minVal: v}, features
+		}
+		// Unparseable: ignore (forward-compatible).
+		return adaptiveConcurrencyConfig{}, features
+	}
+
+	var cfg adaptiveConcurrencyConfig
+	if minStr != "" {
+		if v, err := strconv.Atoi(minStr); err == nil && v > 0 {
+			cfg.minVal = v
+		}
+	}
+	if maxStr != "" {
+		if v, err := strconv.Atoi(maxStr); err == nil && v > 0 {
+			cfg.maxVal = v
+		}
+	}
+
+	// Providing numeric limits implies enabling.
+	features &^= routingSkipAdaptiveConcurrency
+
+	return cfg, features
 }

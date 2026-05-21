@@ -348,3 +348,201 @@ func TestDocRouterConsistency(t *testing.T) {
 			"different document IDs should spread across multiple nodes")
 	})
 }
+
+// --- Additional DocRouter coverage ---
+
+func TestNewDocRouter_InvalidDecay(t *testing.T) {
+	t.Parallel()
+
+	t.Run("zero decay uses default", func(t *testing.T) {
+		t.Parallel()
+		cache := newIndexSlotCache(indexSlotCacheConfig{})
+		p := NewDocRouter(cache, 0)
+		require.NotNil(t, p)
+		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
+	})
+
+	t.Run("negative decay uses default", func(t *testing.T) {
+		t.Parallel()
+		cache := newIndexSlotCache(indexSlotCacheConfig{})
+		p := NewDocRouter(cache, -0.5)
+		require.NotNil(t, p)
+		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
+	})
+
+	t.Run("decay >= 1 uses default", func(t *testing.T) {
+		t.Parallel()
+		cache := newIndexSlotCache(indexSlotCacheConfig{})
+		p := NewDocRouter(cache, 1.0)
+		require.NotNil(t, p)
+		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
+	})
+
+	t.Run("decay > 1 uses default", func(t *testing.T) {
+		t.Parallel()
+		cache := newIndexSlotCache(indexSlotCacheConfig{})
+		p := NewDocRouter(cache, 1.5)
+		require.NotNil(t, p)
+		require.InDelta(t, defaultDecayFactor, p.decay, 0.001)
+	})
+}
+
+func TestDocRouterEval_EnvDisabled(t *testing.T) {
+	t.Parallel()
+
+	p, _ := newDocRouterTestPolicy(t, 3)
+
+	// Set env-disabled flag.
+	psSetEnvOverride(&p.policyState, false)
+
+	req, err := http.NewRequest(http.MethodGet, "/my-index/_doc/123", nil)
+	require.NoError(t, err)
+
+	hop, evalErr := p.Eval(context.Background(), req)
+	require.NoError(t, evalErr)
+	require.Nil(t, hop.Conn, "env-disabled should return nil conn")
+}
+
+func TestDocRouterEval_ShardExactPath(t *testing.T) {
+	t.Parallel()
+
+	// Create a cache with shard-exact routing enabled.
+	cache := newIndexSlotCache(indexSlotCacheConfig{
+		minFanOut: 1,
+		maxFanOut: 32,
+	})
+	p := NewDocRouter(cache, defaultDecayFactor)
+
+	// Create connections with Names matching shard placement data.
+	conns := make([]*Connection, 3)
+	for i := range conns {
+		u, err := url.Parse(fmt.Sprintf("https://node%d:9200", i))
+		require.NoError(t, err)
+		conns[i] = &Connection{
+			URL:       u,
+			URLString: u.String(),
+			ID:        fmt.Sprintf("node%d", i),
+			Name:      fmt.Sprintf("node%d", i),
+			rttRing:   newRTTRing(4),
+		}
+		conns[i].rttRing.add(200 * time.Microsecond)
+		conns[i].weight.Store(1)
+		conns[i].state.Store(int64(newConnState(lcActive)))
+	}
+
+	err := p.DiscoveryUpdate(conns, nil, nil)
+	require.NoError(t, err)
+
+	// Set up shard placement data on the index slot.
+	slot := cache.getOrCreate("my-index")
+	sm := &indexShardMap{
+		NumberOfPrimaryShards: 3,
+		RoutingNumShards:      384, // 3 * 128 (typical routing factor)
+		Shards: map[int]*shardNodes{
+			0: {Primary: "node0", Replicas: []string{"node1"}},
+			1: {Primary: "node1", Replicas: []string{"node2"}},
+			2: {Primary: "node2", Replicas: []string{"node0"}},
+		},
+	}
+	slot.shardMap.Store(sm)
+
+	// Store shard node name data for rendezvous partitioning.
+	nodeNames := map[string]*shardNodeInfo{
+		"node0": {Primaries: 1, Replicas: 1},
+		"node1": {Primaries: 1, Replicas: 1},
+		"node2": {Primaries: 1, Replicas: 1},
+	}
+	slot.shardNodeNames.Store(&nodeNames)
+
+	req, err := http.NewRequest(http.MethodGet, "/my-index/_doc/test-doc-123", nil)
+	require.NoError(t, err)
+
+	hop, evalErr := p.Eval(context.Background(), req)
+	require.NoError(t, evalErr)
+	require.NotNil(t, hop.Conn, "shard-exact path should return a connection")
+
+	// The connection should be one of the shard-hosting nodes.
+	connName := hop.Conn.Name
+	require.Contains(t, []string{"node0", "node1", "node2"}, connName,
+		"connection should be from a shard-hosting node")
+}
+
+func TestDocRouterEval_LargeCandidateBuffer(t *testing.T) {
+	t.Parallel()
+
+	// Create more than 8 connections to exercise the > len(scoresBuf) path.
+	p, _ := newDocRouterTestPolicy(t, 12)
+
+	req, err := http.NewRequest(http.MethodGet, "/my-index/_doc/abc", nil)
+	require.NoError(t, err)
+
+	hop, evalErr := p.Eval(context.Background(), req)
+	require.NoError(t, evalErr)
+	require.NotNil(t, hop.Conn, "large candidate set should still return a connection")
+}
+
+func TestDocRouterEval_ShardExactWithObserver(t *testing.T) {
+	t.Parallel()
+
+	// Create a cache with shard-exact routing enabled.
+	cache := newIndexSlotCache(indexSlotCacheConfig{
+		minFanOut: 1,
+		maxFanOut: 32,
+	})
+	p := NewDocRouter(cache, defaultDecayFactor)
+
+	// Create connections with Names matching shard placement data.
+	conns := make([]*Connection, 3)
+	for i := range conns {
+		u, err := url.Parse(fmt.Sprintf("https://node%d:9200", i))
+		require.NoError(t, err)
+		conns[i] = &Connection{
+			URL:       u,
+			URLString: u.String(),
+			ID:        fmt.Sprintf("node%d", i),
+			Name:      fmt.Sprintf("node%d", i),
+			rttRing:   newRTTRing(4),
+		}
+		conns[i].rttRing.add(200 * time.Microsecond)
+		conns[i].weight.Store(1)
+		conns[i].state.Store(int64(newConnState(lcActive)))
+	}
+
+	err := p.DiscoveryUpdate(conns, nil, nil)
+	require.NoError(t, err)
+
+	// Set up observer to exercise the observer path in shard-exact routing.
+	obs := newRecordingObserver()
+	var obsIface ConnectionObserver = obs
+	p.observer.Store(&obsIface)
+
+	// Set up shard placement data.
+	slot := cache.getOrCreate("my-index")
+	sm := &indexShardMap{
+		NumberOfPrimaryShards: 3,
+		RoutingNumShards:      384,
+		Shards: map[int]*shardNodes{
+			0: {Primary: "node0", Replicas: []string{"node1"}},
+			1: {Primary: "node1", Replicas: []string{"node2"}},
+			2: {Primary: "node2", Replicas: []string{"node0"}},
+		},
+	}
+	slot.shardMap.Store(sm)
+
+	nodeNames := map[string]*shardNodeInfo{
+		"node0": {Primaries: 1, Replicas: 1},
+		"node1": {Primaries: 1, Replicas: 1},
+		"node2": {Primaries: 1, Replicas: 1},
+	}
+	slot.shardNodeNames.Store(&nodeNames)
+
+	req, err := http.NewRequest(http.MethodGet, "/my-index/_doc/test-doc-123", nil)
+	require.NoError(t, err)
+
+	hop, evalErr := p.Eval(context.Background(), req)
+	require.NoError(t, evalErr)
+	require.NotNil(t, hop.Conn)
+
+	// Verify observer was called.
+	require.NotEmpty(t, obs.getRouteEvents(), "observer should have been called")
+}

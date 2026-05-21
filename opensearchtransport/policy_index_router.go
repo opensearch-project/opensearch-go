@@ -87,6 +87,66 @@ var shardCostForWrites = shardCostMultiplier{
 	shardCostRelocating:   costRelocating,   // shard moving, may proxy
 }
 
+// scoreSliceInitialCap is the starting capacity for pooled score buffers.
+// Covers the common case (shard-exact: 1-3 replicas, rendezvous fan-out: 1-3)
+// without ratcheting. The cluster-lookup path (all active connections) will
+// ratchet up on its first request.
+const scoreSliceInitialCap = 4
+
+// scoreSlicePool provides reusable []float64 buffers for [connScoreSelect].
+// The target capacity starts at [scoreSliceInitialCap] and ratchets up via
+// atomic CAS when larger pools are encountered. On put, slices whose capacity
+// doesn't match the current target are discarded so the pool converges on
+// the working set size.
+//
+//nolint:gochecknoglobals // Package-level pool shared by all scoring call sites.
+var scoreSlicePool struct {
+	pool     sync.Pool
+	capacity atomic.Int32
+}
+
+//nolint:gochecknoinits // One-time pool initialization.
+func init() {
+	scoreSlicePool.capacity.Store(scoreSliceInitialCap)
+	scoreSlicePool.pool.New = func() any {
+		s := make([]float64, 0, int(scoreSlicePool.capacity.Load()))
+		return &s
+	}
+}
+
+// acquireScoreSlice returns a []float64 of length n from the pool, growing the
+// pool's target capacity as needed. The returned pointer must be passed to
+// [releaseScoreSlice] when scoring is complete.
+func acquireScoreSlice(n int) *[]float64 {
+	for {
+		cur := scoreSlicePool.capacity.Load()
+		if int(cur) >= n {
+			break
+		}
+		if scoreSlicePool.capacity.CompareAndSwap(cur, int32(n)) { //nolint:gosec // n is a connection slice length, bounded well below int32 max
+			break
+		}
+	}
+
+	bp := scoreSlicePool.pool.Get().(*[]float64)
+	if cap(*bp) < n {
+		*bp = make([]float64, n)
+	} else {
+		*bp = (*bp)[:n]
+	}
+	return bp
+}
+
+// releaseScoreSlice returns a score buffer to the pool. Buffers whose capacity
+// doesn't match the current target are discarded (GC'd) so the pool
+// converges to a uniform size.
+func releaseScoreSlice(bp *[]float64) {
+	if cap(*bp) != int(scoreSlicePool.capacity.Load()) {
+		return
+	}
+	scoreSlicePool.pool.Put(bp)
+}
+
 // forNode returns the shard cost multiplier for a node based on its shard
 // composition for the target index.
 //
@@ -194,6 +254,17 @@ func (p *IndexRouter) configurePolicySettings(config policyConfig) error {
 	if config.observer != nil {
 		p.observer.Store(config.observer)
 	}
+	if config.metrics != nil {
+		cache := p.cache
+		config.metrics.snapshotCallbacks = append(config.metrics.snapshotCallbacks,
+			func(m *Metrics) error {
+				if m.Router == nil {
+					snap := cache.snapshot()
+					m.Router = &snap
+				}
+				return nil
+			})
+	}
 	return nil
 }
 
@@ -221,12 +292,9 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 			return NextHop{}, nil
 		}
 
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(conns)]
-		if len(conns) > len(scoresBuf) {
-			scores = make([]float64, len(conns))
-		}
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		scoreBuf := acquireScoreSlice(len(conns))
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+		releaseScoreSlice(scoreBuf)
 		if best == nil {
 			return NextHop{}, nil
 		}
@@ -249,20 +317,32 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, routingValue, conns)
 	if len(shardCandidates) > 0 {
 		// Shard-exact path: score the shard-hosting candidates directly.
-		var scoresBuf [8]float64
-		scores := scoresBuf[:len(shardCandidates)]
-		if len(shardCandidates) > len(scoresBuf) {
-			scores = make([]float64, len(shardCandidates))
-		}
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+		scoreBuf := acquireScoreSlice(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+		releaseScoreSlice(scoreBuf)
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
-			obs.OnRoute(buildRouteEvent(
-				indexName, indexName, len(shardCandidates), len(conns), shardCandidates, best, slot, shard, p.shardCosts, "",
-				routingValue, routingValue, shardNum, true, loadPoolInfoReady(p.config.poolInfoReady),
-			))
+			obs.OnRoute(buildRouteEvent(routeEventParams{
+				indexName:           indexName,
+				key:                 indexName,
+				fanOut:              len(shardCandidates),
+				totalNodes:          len(conns),
+				candidates:          shardCandidates,
+				best:                best,
+				slot:                slot,
+				shard:               shard,
+				costs:               p.shardCosts,
+				routingValue:        routingValue,
+				effectiveRoutingKey: routingValue,
+				targetShard:         shardNum,
+				shardExactMatch:     true,
+				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+			}))
 		}
 
+		if best == nil {
+			return NextHop{}, nil
+		}
 		return NextHop{Conn: best}, nil
 	}
 
@@ -291,22 +371,32 @@ func (p *IndexRouter) Eval(_ context.Context, req *http.Request) (NextHop, error
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	var scoresBuf [8]float64
-	scores := scoresBuf[:len(candidates)]
-	if len(candidates) > len(scoresBuf) {
-		scores = make([]float64, len(candidates))
-	}
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), scores)
+	scoreBuf := acquireScoreSlice(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, "", loadPoolInfoReady(p.config.poolInfoReady), *scoreBuf)
+	releaseScoreSlice(scoreBuf)
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
-		obs.OnRoute(buildRouteEvent(
-			indexName, indexName, fanOut, len(conns), candidates, best, slot, nil, p.shardCosts, "",
-			routingValue, routingValue, shardNum, false, loadPoolInfoReady(p.config.poolInfoReady),
-		))
+		obs.OnRoute(buildRouteEvent(routeEventParams{
+			indexName:           indexName,
+			key:                 indexName,
+			fanOut:              fanOut,
+			totalNodes:          len(conns),
+			candidates:          candidates,
+			best:                best,
+			slot:                slot,
+			costs:               p.shardCosts,
+			routingValue:        routingValue,
+			effectiveRoutingKey: routingValue,
+			targetShard:         shardNum,
+			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
+		}))
 	}
 
 	putConnSlice(bp)
 
+	if best == nil {
+		return NextHop{}, nil
+	}
 	return NextHop{Conn: best}, nil
 }
 
@@ -319,11 +409,6 @@ func (p *IndexRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error {
 // RotateStandby is a no-op. Lifecycle is managed by the underlying pool.
 func (p *IndexRouter) RotateStandby(_ context.Context, _ int) (int, error) {
 	return 0, nil
-}
-
-// routerSnapshot implements routerSnapshotProvider.
-func (p *IndexRouter) routerSnapshot() RouterSnapshot {
-	return p.cache.snapshot()
 }
 
 // routerCache implements [routerCacheProvider].
@@ -410,6 +495,17 @@ func (p *IndexRouter) DiscoveryUpdate(added, removed, _ []*Connection) error {
 // e.g. in unit tests that construct policies directly.
 func loadPoolInfoReady(p *atomic.Bool) bool {
 	return p != nil && p.Load()
+}
+
+// loadClusterSearchCwnd returns the cluster-wide search cwnd from the atomic
+// pointer. Nil-safe: returns 0 when no Client is wired up (e.g., tests
+// without a full Client). A return value <= 0 signals the cluster aggregate
+// is not yet available.
+func loadClusterSearchCwnd(p *atomic.Int32) int32 {
+	if p == nil {
+		return 0
+	}
+	return p.Load()
 }
 
 // calcConnScore computes the node selection score for a connection.
@@ -615,4 +711,38 @@ func extractIndexFromPath(path string) string {
 		return before
 	}
 	return path
+}
+
+// computeAdaptiveConcurrency derives max_concurrent_shard_requests from the
+// selected connection's congestion window for the search thread pool.
+//
+// The cwnd reflects queue-pressure-informed capacity: AIMD halves cwnd when
+// per-request queue wait-time exceeds 1ms, well before the thread pool
+// rejects requests. Since max_concurrent_shard_requests controls the
+// coordinator's fan-out across the cluster (shard requests land on many
+// data nodes' thread pools), the cwnd of the coordinator node -- not any
+// single data node's thread pool size -- is the right scaling signal.
+//
+// The returned value is clamped to [minVal, maxVal] from the config.
+//
+// Parameters:
+//   - cwnd: the connection's current cwnd for the search pool
+//   - cfg: adaptive concurrency config (min/max overrides)
+//   - features: routing feature flags (checked for adaptiveConcurrencyEnabled)
+//
+// Returns 0 when the feature is disabled, meaning Perform() should not inject
+// the query parameter.
+func computeAdaptiveConcurrency(cwnd int32, cfg adaptiveConcurrencyConfig, features routingFeatures) int {
+	if !features.adaptiveConcurrencyEnabled() {
+		return 0
+	}
+
+	minVal := cfg.effectiveMin()
+	maxVal := cfg.effectiveMax()
+
+	value := int(cwnd)
+	value = min(value, maxVal)
+	value = max(value, minVal)
+
+	return value
 }

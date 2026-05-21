@@ -418,6 +418,7 @@ func TestPerform_GzipCompression(t *testing.T) {
 		HealthCheck:         NoOpHealthCheck,
 		CompressRequestBody: true,
 		DisableRetry:        true,
+		NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 			require.Equal(t, "gzip", req.Header.Get("Content-Encoding"))
 			return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
@@ -440,10 +441,11 @@ func TestPerform_MetricsEnabled(t *testing.T) {
 
 	seedURL, _ := url.Parse("http://localhost:9200")
 	tp, err := New(Config{
-		URLs:          []*url.URL{seedURL},
-		HealthCheck:   NoOpHealthCheck,
-		DisableRetry:  true,
-		EnableMetrics: true,
+		URLs:              []*url.URL{seedURL},
+		HealthCheck:       NoOpHealthCheck,
+		DisableRetry:      true,
+		EnableMetrics:     true,
+		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
 		}),
@@ -465,10 +467,11 @@ func TestPerform_SignError(t *testing.T) {
 
 	seedURL, _ := url.Parse("http://localhost:9200")
 	tp, err := New(Config{
-		URLs:         []*url.URL{seedURL},
-		HealthCheck:  NoOpHealthCheck,
-		DisableRetry: true,
-		Signer:       &mockSigner{ReturnError: true},
+		URLs:              []*url.URL{seedURL},
+		HealthCheck:       NoOpHealthCheck,
+		DisableRetry:      true,
+		Signer:            &mockSigner{ReturnError: true},
+		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
 		}),
@@ -487,9 +490,10 @@ func TestPerform_TransportError(t *testing.T) {
 
 	seedURL, _ := url.Parse("http://localhost:9200")
 	tp, err := New(Config{
-		URLs:         []*url.URL{seedURL},
-		HealthCheck:  NoOpHealthCheck,
-		DisableRetry: true,
+		URLs:              []*url.URL{seedURL},
+		HealthCheck:       NoOpHealthCheck,
+		DisableRetry:      true,
+		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 			return nil, fmt.Errorf("connection refused")
 		}),
@@ -510,9 +514,10 @@ func TestPerform_NetworkErrorRetry(t *testing.T) {
 	callCount := 0
 	seedURL, _ := url.Parse("http://localhost:9200")
 	tp, err := New(Config{
-		URLs:        []*url.URL{seedURL},
-		HealthCheck: NoOpHealthCheck,
-		MaxRetries:  1,
+		URLs:              []*url.URL{seedURL},
+		HealthCheck:       NoOpHealthCheck,
+		MaxRetries:        1,
+		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 			callCount++
 			if callCount == 1 {

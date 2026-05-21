@@ -53,10 +53,15 @@ type policyConfig struct {
 	healthCheck                  HealthCheckFunc
 	observer                     *ConnectionObserver // nil means no observer
 	poolInfoReady                *atomic.Bool        // nil-safe; true once thread pool quorum is reached
+	clusterSearchCwnd            *atomic.Int32       // nil-safe; cluster-wide search cwnd for MCSR
 
 	// Standby pool configuration
 	activeListCap          *int  // nil = auto-scale; non-nil = user-specified cap value
 	standbyPromotionChecks int64 // consecutive health checks before standby->ready
+
+	// Metrics (nil when EnableMetrics is false). Policies may register
+	// metric callbacks during configurePolicySettings.
+	metrics *metrics
 }
 
 // Policy is a routing strategy that selects a connection for a request.
@@ -101,38 +106,19 @@ type Policy interface {
 type NextHop struct {
 	Conn     *Connection
 	PoolName string // Thread pool name for in-flight tracking; empty for non-scored routes.
+
+	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
+	// from the selected connection's search pool congestion window. When > 0,
+	// Perform() injects it as the max_concurrent_shard_requests query parameter
+	// on search requests routed through a coordinator node. Zero means "not set"
+	// (shard-exact routing, non-search request, or feature disabled).
+	MaxConcurrentShardRequests int
 }
 
 // policyConfigurable is a package-internal interface for policies that need configuration.
 // This allows injecting client-specific pool settings (like timeout settings) after policy creation.
 type policyConfigurable interface {
 	configurePolicySettings(config policyConfig) error
-}
-
-// PoolReporter is implemented by leaf policies that own a multiServerPool.
-// It returns a point-in-time snapshot of the pool's partitions and request counters.
-type PoolReporter interface {
-	PoolSnapshot() PoolSnapshot
-}
-
-// poolSnapshotCollector is an internal interface for policies that recursively
-// collect pool snapshots from their children. Wrapper policies (PolicyChain,
-// MuxPolicy, IfEnabledPolicy) implement this to walk the tree.
-type poolSnapshotCollector interface {
-	poolSnapshots() []PoolSnapshot
-}
-
-// collectPoolSnapshots walks a policy (or any value) and collects pool snapshots.
-// Leaf policies implement PoolReporter; wrapper policies implement poolSnapshotCollector.
-func collectPoolSnapshots(v any) []PoolSnapshot {
-	var result []PoolSnapshot
-	if reporter, ok := v.(PoolReporter); ok {
-		result = append(result, reporter.PoolSnapshot())
-	}
-	if collector, ok := v.(poolSnapshotCollector); ok {
-		result = append(result, collector.poolSnapshots()...)
-	}
-	return result
 }
 
 // createPoolFromConfig creates a new multiServerPool with the given configuration.

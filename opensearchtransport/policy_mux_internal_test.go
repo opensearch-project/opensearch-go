@@ -389,3 +389,107 @@ func (r *unsupportedRoute) Attrs() routeAttr {
 func (r *unsupportedRoute) PoolName() string {
 	return ""
 }
+
+// testMCSRPolicy is a test stub that always returns a NextHop with the
+// given connection and MaxConcurrentShardRequests value. Used to verify
+// that MuxPolicy.Eval gates MCSR based on route attributes.
+type testMCSRPolicy struct {
+	conn *Connection
+	mcsr int
+	NullPolicy
+}
+
+func (p *testMCSRPolicy) Eval(_ context.Context, _ *http.Request) (NextHop, error) {
+	return NextHop{Conn: p.conn, MaxConcurrentShardRequests: p.mcsr}, nil
+}
+
+func (p *testMCSRPolicy) IsEnabled() bool { return true }
+
+func TestMuxPolicyAdaptiveMCSRGating(t *testing.T) {
+	t.Parallel()
+
+	conn := createTestConnection("http://localhost:9200")
+	const mcsrValue = 42
+
+	tests := []struct {
+		name     string
+		pattern  string
+		method   string
+		path     string
+		adaptive bool // route has InjectAdaptiveMCSR attr
+		wantMCSR int
+	}{
+		{
+			name:     "search with attr preserves MCSR",
+			pattern:  "GET /{index}/_search",
+			method:   http.MethodGet,
+			path:     "/my-index/_search",
+			adaptive: true,
+			wantMCSR: mcsrValue,
+		},
+		{
+			name:     "msearch with attr preserves MCSR",
+			pattern:  "POST /_msearch",
+			method:   http.MethodPost,
+			path:     "/_msearch",
+			adaptive: true,
+			wantMCSR: mcsrValue,
+		},
+		{
+			name:     "count without attr zeros MCSR",
+			pattern:  "GET /{index}/_count",
+			method:   http.MethodGet,
+			path:     "/my-index/_count",
+			adaptive: false,
+			wantMCSR: 0,
+		},
+		{
+			name:     "delete_by_query without attr zeros MCSR",
+			pattern:  "POST /{index}/_delete_by_query",
+			method:   http.MethodPost,
+			path:     "/my-index/_delete_by_query",
+			adaptive: false,
+			wantMCSR: 0,
+		},
+		{
+			name:     "system search with attr preserves MCSR",
+			pattern:  "POST /_search",
+			method:   http.MethodPost,
+			path:     "/_search",
+			adaptive: true,
+			wantMCSR: mcsrValue,
+		},
+		{
+			name:     "system count without attr zeros MCSR",
+			pattern:  "POST /_count",
+			method:   http.MethodPost,
+			path:     "/_count",
+			adaptive: false,
+			wantMCSR: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			stub := &testMCSRPolicy{conn: conn, mcsr: mcsrValue}
+			builder := NewRoute(tt.pattern, stub)
+			if tt.adaptive {
+				builder = builder.InjectAdaptiveMCSR()
+			}
+			route := builder.MustBuild()
+
+			policy := NewMuxPolicy([]Route{route}).(*MuxPolicy)
+			// Force enabled state so Eval proceeds.
+			psSetEnabled(&policy.policyState, true)
+
+			req, _ := http.NewRequest(tt.method, tt.path, nil)
+			hop, err := policy.Eval(context.Background(), req)
+
+			require.NoError(t, err)
+			require.NotNil(t, hop.Conn, "expected a connection")
+			require.Equal(t, tt.wantMCSR, hop.MaxConcurrentShardRequests)
+		})
+	}
+}
