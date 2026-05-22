@@ -27,9 +27,12 @@ type multiServerPool struct {
 
 	// ctx is the lifecycle context for async pool operations (health checks,
 	// resurrection, RTT probes). Derived from Client.ctx during pool construction
-	// so that Client.Close() cancels all background goroutines.
+	// so that Client.Close() cancels all background goroutines. cancel is the
+	// pool's own cancel func for early cleanup on multi-to-single demotion; see
+	// [Client.demoteConnectionPoolWithLock].
 	//nolint:containedctx // Long-lived context required for background worker lifecycle
-	ctx context.Context
+	ctx    context.Context
+	cancel context.CancelFunc
 
 	mu struct {
 		sync.RWMutex

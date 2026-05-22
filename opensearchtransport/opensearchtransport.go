@@ -841,6 +841,10 @@ func New(cfg Config) (*Client, error) {
 			seedConns[i] = conn
 		}
 
+		// seed-fallback has no demotion path (it lives in c.seedFallbackPool, not
+		// c.mu.connectionPool), so it doesn't need its own cancel func — its
+		// goroutines are cleaned up transitively when Client.Close() cancels the
+		// root context.
 		seedPool := &multiServerPool{
 			name:                         "seed-fallback",
 			ctx:                          ctx,
@@ -888,9 +892,11 @@ func New(cfg Config) (*Client, error) {
 		if len(conns) == 1 {
 			client.mu.connectionPool = &singleServerPool{connection: conns[0]}
 		} else {
+			poolCtx, poolCancel := context.WithCancel(ctx)
 			pool := &multiServerPool{
 				name:                         "client",
-				ctx:                          ctx,
+				ctx:                          poolCtx,
+				cancel:                       poolCancel,
 				resurrectTimeoutInitial:      resurrectTimeoutInitial,
 				resurrectTimeoutMax:          resurrectTimeoutMax,
 				resurrectTimeoutFactorCutoff: resurrectTimeoutFactorCutoff,
@@ -2245,9 +2251,11 @@ func initUserAgent() string {
 //
 // Caller must hold c.mu.Lock().
 func (c *Client) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
+	ctx, cancel := context.WithCancel(c.ctx)
 	pool := &multiServerPool{
 		name:                         name,
-		ctx:                          c.ctx,
+		ctx:                          ctx,
+		cancel:                       cancel,
 		resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
 		resurrectTimeoutMax:          c.resurrectTimeoutMax,
 		resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
@@ -2329,6 +2337,11 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *multiServerPool:
+		// Cancel the old pool's context to clean up stale background goroutines.
+		if currentPool.cancel != nil {
+			currentPool.cancel()
+		}
+
 		// Demote from multi-node to single-node pool
 		metrics := currentPool.metrics
 
