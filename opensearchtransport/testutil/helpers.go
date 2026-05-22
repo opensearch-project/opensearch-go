@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"golang.org/x/mod/semver"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
 )
 
 // Common timeouts for testing
@@ -238,98 +240,6 @@ func RequireMinNodes(t *testing.T, ctx context.Context, minNodes int) {
 		t.Name(), lastTotal, maxAttempts, minNodes)
 }
 
-// ConnPollOpts configures the polling behavior of RequireMinConns.
-type ConnPollOpts struct {
-	Timeout  time.Duration
-	Interval time.Duration
-}
-
-// DefaultConnPollOpts returns polling defaults suitable for most integration tests.
-func DefaultConnPollOpts() ConnPollOpts {
-	return ConnPollOpts{
-		Timeout:  30 * time.Second,
-		Interval: 500 * time.Millisecond,
-	}
-}
-
-// RequireMinConns ensures at least minConns transport connections satisfy the
-// selector predicate after node discovery completes. It first calls
-// RequireMinNodes to verify raw cluster reachability, then polls discoverFn
-// until the selector returns true.
-//
-// The selector is a caller-provided predicate that returns true when the
-// transport's connection pool meets the caller's readiness criteria (e.g.,
-// "at least N connections exist", "no connection has needsCatUpdate set",
-// "all connections have names"). If nil, defaults to always-true (any
-// successful discovery is sufficient).
-//
-// Polling behavior is controlled by opts. Pass nil to use DefaultConnPollOpts.
-//
-// Parameters:
-//   - discoverFn: triggers node + shard discovery (e.g., transport.DiscoverNodes)
-//   - selector: predicate returning true when connections are acceptable;
-//     nil means any successful discovery satisfies the requirement.
-//   - opts: polling configuration (timeout, interval); nil uses defaults.
-//
-// Example (wait for shard-ready connections):
-//
-//	testutil.RequireMinConns(t, ctx, 1, transport.DiscoverNodes,
-//	    func() bool {
-//	        m, err := transport.Metrics()
-//	        if err != nil { return false }
-//	        var ready int
-//	        for _, c := range m.Connections {
-//	            cm := c.(opensearchtransport.ConnectionMetric)
-//	            if cm.NeedsCatUpdate { return false }
-//	            if !cm.IsDead { ready++ }
-//	        }
-//	        return ready >= 1
-//	    },
-//	    nil, // use default polling opts
-//	)
-func RequireMinConns(
-	t *testing.T, ctx context.Context, minConns int,
-	discoverFn func(context.Context) error,
-	selector func() bool,
-	opts *ConnPollOpts,
-) {
-	t.Helper()
-
-	RequireMinNodes(t, ctx, minConns)
-
-	if selector == nil {
-		selector = func() bool { return true }
-	}
-
-	o := DefaultConnPollOpts()
-	if opts != nil {
-		if opts.Timeout > 0 {
-			o.Timeout = opts.Timeout
-		}
-		if opts.Interval > 0 {
-			o.Interval = opts.Interval
-		}
-	}
-
-	deadline := time.Now().Add(o.Timeout)
-	for {
-		if err := discoverFn(ctx); err == nil && selector() {
-			return
-		}
-
-		if time.Now().After(deadline) {
-			t.Fatalf("RequireMinConns: selector not satisfied "+
-				"after %v of discovery polling (minConns=%d)", o.Timeout, minConns)
-		}
-
-		select {
-		case <-ctx.Done():
-			t.Fatalf("RequireMinConns: context cancelled: %v", ctx.Err())
-		case <-time.After(o.Interval):
-		}
-	}
-}
-
 // WaitForCluster waits for the OpenSearch cluster to be reachable and responding to HTTP requests.
 // Unlike WaitForClusterReady in opensearchapi/testutil, this uses raw HTTP requests and does not
 // require an opensearchapi.Client. This is useful for tests that need to wait for cluster
@@ -337,73 +247,23 @@ func RequireMinConns(
 func WaitForCluster(t *testing.T) {
 	t.Helper()
 
-	const (
-		maxAttempts          = 25
-		delayBetweenAttempts = 5 * time.Second
-		requestTimeout       = 2 * time.Second
-	)
-
 	u := GetTestURL(t)
 	healthURL := *u
 	healthURL.Path = "/"
 
-	client := &http.Client{Transport: GetTestTransport(t)}
+	httpClient := &http.Client{Transport: GetTestTransport(t)}
 
-	var eofCount int
-	for attempt := range maxAttempts {
-		ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL.String(), nil)
-		if err != nil {
-			cancel()
-			t.Fatalf("WaitForCluster: failed to create request: %v", err)
+	var prepareReq func(*http.Request)
+	if IsSecure(t) {
+		password := GetPassword(t)
+		prepareReq = func(req *http.Request) {
+			req.SetBasicAuth("admin", password)
 		}
-
-		if IsSecure(t) {
-			req.SetBasicAuth("admin", GetPassword(t))
-		}
-
-		resp, err := client.Do(req)
-		cancel()
-
-		if err != nil {
-			if strings.Contains(err.Error(), "EOF") {
-				eofCount++
-				if eofCount >= 3 {
-					t.Fatalf("WaitForCluster: cluster returned EOF on %d consecutive attempts "+
-						"(SECURE_INTEGRATION=%s); verify the cluster scheme matches this setting: %v",
-						eofCount, os.Getenv("SECURE_INTEGRATION"), err)
-				}
-			} else {
-				eofCount = 0
-			}
-			t.Logf("WaitForCluster: attempt %d/%d: %v", attempt+1, maxAttempts, err)
-			time.Sleep(delayBetweenAttempts)
-			continue
-		}
-
-		eofCount = 0
-		resp.Body.Close()
-
-		if resp.StatusCode == http.StatusOK {
-			if attempt > 0 {
-				t.Logf("WaitForCluster: cluster ready after %d attempts", attempt+1)
-			}
-			return
-		}
-
-		// Fail fast on authentication errors -- retrying with the same credentials won't help
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			t.Fatalf("WaitForCluster: cluster returned %d (SECURE_INTEGRATION=%s, OPENSEARCH_VERSION=%s); "+
-				"verify credentials are correct -- the admin password changed in OpenSearch 2.12.0+",
-				resp.StatusCode, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
-		}
-
-		t.Logf("WaitForCluster: attempt %d/%d: status %d", attempt+1, maxAttempts, resp.StatusCode)
-		time.Sleep(delayBetweenAttempts)
 	}
 
-	t.Fatalf("WaitForCluster: cluster not ready after %d attempts (url=%s)", maxAttempts, healthURL.String())
+	readiness.Wait(t, t.Context(), readiness.LayerHTTP,
+		readiness.WithExpectedNodes(1),
+		readiness.WithRawHTTP(&healthURL, httpClient, prepareReq))
 }
 
 // ignoredFieldRule pairs a compiled regexp with a version expression.

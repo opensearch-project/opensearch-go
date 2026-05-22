@@ -18,6 +18,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
@@ -406,19 +407,46 @@ func TestStandbyRotation(t *testing.T) {
 		// Use GET / instead of /_cluster/health because the cluster health endpoint
 		// can return 500 transiently when the cluster is under heavy discovery load
 		// (as seen in CI after 7+ rapid discovery+warmup cycles).
-		tptestutil.RequireMinConns(t, t.Context(), 1, transport.DiscoverNodes, func() bool {
-			req, reqErr := http.NewRequest(http.MethodGet, "/", nil)
-			if reqErr != nil {
-				return false
-			}
-			res, perfErr := transport.Perform(req)
-			if perfErr != nil {
-				return false
-			}
-			ok := res.StatusCode == http.StatusOK
-			res.Body.Close()
-			return ok
-		}, nil)
+		readiness.Wait(t, t.Context(), readiness.LayerConnReady,
+			readiness.WithMinNodes(1),
+			readiness.WithFSMCheck(func(ctx context.Context, cluster *readiness.Cluster) error {
+				if err := transport.DiscoverNodes(ctx); err != nil {
+					cluster.RecordError(err)
+				}
+				return nil
+			}),
+			readiness.WithFSMCheck(func(_ context.Context, cluster *readiness.Cluster) error {
+				metrics, err := transport.Metrics()
+				if err != nil {
+					cluster.RecordError(err)
+					return nil
+				}
+				for _, raw := range metrics.Connections {
+					cm, ok := raw.(opensearchtransport.ConnectionMetric)
+					if !ok || cm.IsDead || cm.IsStandby {
+						continue
+					}
+					id := cm.Meta.ID
+					if id == "" {
+						id = cm.URL
+					}
+					cluster.Node(id, cm.Meta.Name, cm.URL).Advance(readiness.LayerConnReady, "ready+active")
+				}
+				return nil
+			}),
+			readiness.WithReadyFunc(func() bool {
+				req, reqErr := http.NewRequest(http.MethodGet, "/", nil)
+				if reqErr != nil {
+					return false
+				}
+				res, perfErr := transport.Perform(req)
+				if perfErr != nil {
+					return false
+				}
+				ok := res.StatusCode == http.StatusOK
+				res.Body.Close()
+				return ok
+			}))
 
 		// Once stabilized, confirm 5 consecutive requests succeed
 		for range 5 {

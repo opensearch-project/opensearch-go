@@ -25,6 +25,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
 	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/osapi"
 )
@@ -231,36 +232,43 @@ func InitClient(t *testing.T) (*osapi.Client, error) {
 // readinessSem caps concurrent setups across tests so a stampede of
 // goroutines doesn't overload a small CI cluster.
 func WaitForClusterReady(t *testing.T, client *osapi.Client) {
-// goroutines doesn't overload a small CI cluster.
-func WaitForClusterReady(t *testing.T, client *osapi.Client) {
 	t.Helper()
 	if err := readinessSem.Acquire(t.Context(), 1); err != nil {
 		require.NoError(t, err, "readiness semaphore acquire")
 		return
 	}
 	defer readinessSem.Release(1)
-	readiness.Wait(t, t.Context(), readiness.LayerHTTP, readiness.WithCluster(client))
+	readiness.Wait(t, t.Context(), readiness.LayerHTTP,
+		readiness.WithFSMCheck(clusterLensFSMCheck(client, expectedNodeCount())))
 }
 
-// WaitForAllNodesReady polls /_cat/nodes until every node reports non-nil cpu
-// and heap.percent metrics. This prevents flakes from nodes that haven't fully
-// initialized in CI (e.g. stats not yet collected after a fresh cluster start).
+// WaitForAllNodesReady blocks until every node in the test cluster has
+// reached LayerStatsReady - i.e. cluster-health reports the expected
+// node count AND _cat/nodes returns non-nil cpu+heap.percent for each
+// node. It uses the layered readiness FSM in internal/test/readiness so
+// that timeouts produce a structured per-node diagnostic instead of a
+// "Condition never satisfied" stub.
+//
+// Expected node count comes from OPENSEARCH_NODE_COUNT (defaults to 1).
+// Per-layer budgets are tuned for CI pessimism (cold JVM startup is the
+// long pole); see readiness.DefaultBudgets for the exact values.
 func WaitForAllNodesReady(t *testing.T, client *osapi.Client) {
 	t.Helper()
-	require.Eventually(t, func() bool {
-		resp, err := client.Cat.Nodes(t.Context(), &osapi.CatNodesReq{
-			Params: &osapi.CatNodesParams{DebugParams: osapi.DebugParams{Format: "json"}},
-		})
-		if err != nil || resp == nil || len(resp.Records) == 0 {
-			return false
-		}
-		for _, node := range resp.Records {
-			if node.Cpu == nil || node.HeapPercent == nil {
-				return false
-			}
-		}
-		return true
-	}, 60*time.Second, 1*time.Second, "not all nodes reporting stats (cpu/heap.percent nil)")
+	readiness.Wait(t, t.Context(), readiness.TargetClusterReady,
+		readiness.WithFSMCheck(clusterLensFSMCheck(client, expectedNodeCount())))
+}
+
+// expectedNodeCount returns the OPENSEARCH_NODE_COUNT env value, defaulting to 1.
+func expectedNodeCount() int {
+	v := os.Getenv("OPENSEARCH_NODE_COUNT")
+	if v == "" {
+		return 1
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return 1
+	}
+	return n
 }
 
 // CompareRawJSONwithParsedJSON is a helper function to determine the difference between the parsed JSON and the raw JSON.

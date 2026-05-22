@@ -70,7 +70,7 @@ func (c *rawHTTPLensCheck) Probe(ctx context.Context, cluster *Cluster) error {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		if isPermanentAuthErr(err) {
+		if IsPermanentAuthErr(err) {
 			return AsTerminal(fmt.Errorf(
 				"authentication rejected (verify SECURE_INTEGRATION matches cluster scheme): %w", err))
 		}
@@ -96,18 +96,22 @@ func (c *rawHTTPLensCheck) Probe(ctx context.Context, cluster *Cluster) error {
 	return nil
 }
 
-// isPermanentAuthErr reports whether err signals an authentication
-// failure that will not heal under continued polling (Unauthorized,
-// 401, or the JSON-unmarshal "invalid character 'U'" sentinel produced
-// when an HTTP body of "Unauthorized" is decoded as JSON).
-func isPermanentAuthErr(err error) bool {
+// IsPermanentAuthErr reports whether err signals an authentication or
+// authorization failure that will not heal under continued polling.
+// Matches on "Unauthorized" and "Forbidden" substrings inside the error
+// message; deliberately conservative to avoid false positives. The
+// readiness package can't import opensearch's typed errors directly
+// without an import cycle (consumers like opensearchtransport tests
+// import readiness, and opensearch imports opensearchtransport), so
+// callers with access to typed errors should layer errors.As checks
+// on top of this fallback.
+func IsPermanentAuthErr(err error) bool {
 	if err == nil {
 		return false
 	}
 	msg := err.Error()
 	return strings.Contains(msg, "Unauthorized") ||
-		strings.Contains(msg, "401") ||
-		strings.Contains(msg, "invalid character 'U'")
+		strings.Contains(msg, "Forbidden")
 }
 
 // WithRawHTTP registers a layer check that advances one synthetic
