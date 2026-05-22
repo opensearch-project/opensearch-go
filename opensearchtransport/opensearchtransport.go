@@ -924,7 +924,7 @@ func New(cfg Config) (*Client, error) {
 	} else {
 		// Use client-configured timeout settings for the main connection pool
 		if len(conns) == 1 {
-			client.mu.connectionPool = &singleServerPool{connection: conns[0]}
+			client.mu.connectionPool = newSingleServerPool(conns[0], nil)
 		} else {
 			poolCtx, poolCancel := context.WithCancel(ctx)
 			pool := &multiServerPool{
@@ -2419,10 +2419,7 @@ func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
 
 		currentPool.mu.RUnlock()
 
-		return &singleServerPool{
-			connection: connection,
-			metrics:    metrics,
-		}
+		return newSingleServerPool(connection, metrics)
 
 	case *singleServerPool:
 		// Already a singleServerPool - return unchanged

@@ -871,10 +871,7 @@ func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections 
 		metrics = existingSinglePool.metrics
 	}
 
-	return &singleServerPool{
-		connection: connection,
-		metrics:    metrics,
-	}
+	return newSingleServerPool(connection, metrics)
 }
 
 // createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
