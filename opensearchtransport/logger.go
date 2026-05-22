@@ -39,6 +39,8 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 )
 
 var debugLoggerPtr atomic.Pointer[DebuggingLogger]
@@ -59,7 +61,7 @@ func storeDebugLogger(dl DebuggingLogger) {
 }
 
 func init() { //nolint:gochecknoinits // Only set implicitly once at startup
-	if enabled, _ := strconv.ParseBool(os.Getenv("OPENSEARCH_GO_DEBUG")); enabled {
+	if enabled, _ := strconv.ParseBool(os.Getenv(envvars.Debug)); enabled {
 		storeDebugLogger(&debuggingLogger{Output: os.Stderr})
 	}
 }

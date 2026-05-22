@@ -50,6 +50,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v4/internal/version"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
@@ -530,7 +531,7 @@ func New(cfg Config) (*Client, error) {
 	// RequestTimeout: 0 = no per-attempt timeout (default), >0 = explicit.
 	// OPENSEARCH_GO_REQUEST_TIMEOUT: time.ParseDuration format, integer seconds, or float seconds.
 	requestTimeout := cfg.RequestTimeout
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_REQUEST_TIMEOUT"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.RequestTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			requestTimeout = d
 		}
@@ -639,7 +640,7 @@ func New(cfg Config) (*Client, error) {
 	// 0 or unset = no override, <0 = disabled.
 	nodeStatsInterval := cfg.NodeStatsInterval
 	nodeStatsIntervalAuto := false
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_NODE_STATS_INTERVAL"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.NodeStatsInterval); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			nodeStatsInterval = d
 		}
@@ -656,7 +657,7 @@ func New(cfg Config) (*Client, error) {
 	// OverloadedHeapThreshold: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD: integer 0-100.
 	overloadedHeapThreshold := cfg.OverloadedHeapThreshold
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.OverloadedHeapThreshold); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil {
 			overloadedHeapThreshold = v
 		}
@@ -668,7 +669,7 @@ func New(cfg Config) (*Client, error) {
 	// OverloadedBreakerRatio: 0.0 = use default, >0.0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO: float 0.0-1.0.
 	overloadedBreakerRatio := cfg.OverloadedBreakerRatio
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.OverloadedBreakerRatio); ok && envVal != "" {
 		if v, err := strconv.ParseFloat(envVal, 64); err == nil && v > 0.0 && v <= 1.0 {
 			overloadedBreakerRatio = v
 		}
@@ -687,7 +688,7 @@ func New(cfg Config) (*Client, error) {
 	// ActiveListCap: 0 = auto-derive, >0 = explicit cap, <0 = disabled.
 	// OPENSEARCH_GO_ACTIVE_LIST_CAP: integer.
 	activeListCap := cfg.ActiveListCap
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_ACTIVE_LIST_CAP"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.ActiveListCap); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil {
 			activeListCap = v
 		}
@@ -718,7 +719,7 @@ func New(cfg Config) (*Client, error) {
 	// StandbyRotationInterval: 0 = use DiscoverNodesInterval, >0 = explicit, <0 = disabled.
 	// OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL: time.ParseDuration format or integer seconds.
 	standbyRotationInterval := cfg.StandbyRotationInterval
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.StandbyRotationInterval); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			standbyRotationInterval = d
 		}
@@ -727,7 +728,7 @@ func New(cfg Config) (*Client, error) {
 	// StandbyRotationCount: 0 = use default (1), >0 = explicit.
 	// OPENSEARCH_GO_STANDBY_ROTATION_COUNT: integer.
 	standbyRotationCount := cfg.StandbyRotationCount
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_ROTATION_COUNT"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.StandbyRotationCount); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil && v > 0 {
 			standbyRotationCount = v
 		}
@@ -739,7 +740,7 @@ func New(cfg Config) (*Client, error) {
 	// StandbyPromotionChecks: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS: integer.
 	standbyPromotionChecks := int64(cfg.StandbyPromotionChecks)
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.StandbyPromotionChecks); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil && v > 0 {
 			standbyPromotionChecks = int64(v)
 		}

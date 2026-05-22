@@ -41,6 +41,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v4/internal/version"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
@@ -65,8 +66,8 @@ const (
 	defaultURL         = defaultScheme + "://" + defaultHost + ":" + defaultPort
 	openSearch         = "opensearch"
 	unsupportedProduct = "the client noticed that the server is not a supported distribution"
-	envOpenSearchURL   = "OPENSEARCH_URL"
-	envRouter          = "OPENSEARCH_GO_ROUTER"
+	envOpenSearchURL   = envvars.OpenSearchURL
+	envRouter          = envvars.Router
 )
 
 // Version returns the package version as a string.

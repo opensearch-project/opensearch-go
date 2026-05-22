@@ -178,7 +178,7 @@ func TestIsDebugEnabled(t *testing.T) {
 		want     bool
 	}{
 		{name: "unset returns false", envSet: false, want: false},
-		{name: "empty string returns true", envSet: true, envValue: "", want: true},
+		{name: "empty string returns false", envSet: true, envValue: "", want: false},
 		{name: "true returns true", envSet: true, envValue: "true", want: true},
 		{name: "false returns false", envSet: true, envValue: "false", want: false},
 		{name: "1 returns true", envSet: true, envValue: "1", want: true},

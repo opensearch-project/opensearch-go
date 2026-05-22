@@ -8,9 +8,10 @@ package opensearchtransport
 
 import (
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 )
 
 // Environment variable names for feature configuration.
@@ -24,14 +25,14 @@ const (
 	//   +shard_exact   Explicitly re-enable (overrides programmatic disable)
 	//
 	// Example: OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact
-	envRoutingConfig = "OPENSEARCH_GO_ROUTING_CONFIG"
+	envRoutingConfig = envvars.RoutingConfig
 
 	// envFallbackConfig controls whether the client falls back to seed
 	// URLs when all router policies and connection pools are exhausted.
 	// Parsed as strconv.ParseBool. Default: true (fallback enabled).
 	//
 	// Example: OPENSEARCH_GO_FALLBACK=false
-	envFallbackConfig = "OPENSEARCH_GO_FALLBACK"
+	envFallbackConfig = envvars.Fallback
 
 	// envDiscoveryConfig controls which server calls are made during
 	// the discovery cycle.
@@ -43,7 +44,7 @@ const (
 	//   -node_stats          Skip GET /_nodes/_local/stats
 	//
 	// Example: OPENSEARCH_GO_DISCOVERY_CONFIG=-routing_num_shards,-node_stats
-	envDiscoveryConfig = "OPENSEARCH_GO_DISCOVERY_CONFIG"
+	envDiscoveryConfig = envvars.DiscoveryConfig
 
 	// envShardRequests controls adaptive max_concurrent_shard_requests.
 	// Format: bool | min:max
@@ -67,7 +68,7 @@ const (
 	//   OPENSEARCH_GO_SHARD_REQUESTS=false       # disable entirely
 	//   OPENSEARCH_GO_SHARD_REQUESTS=10:512       # min=10, max=512
 	//   OPENSEARCH_GO_SHARD_REQUESTS=:512         # default min, max=512
-	envShardRequests = "OPENSEARCH_GO_SHARD_REQUESTS"
+	envShardRequests = envvars.ShardRequests
 
 	// envRouter controls whether the DefaultRouter is created automatically
 	// when no programmatic Config.Router is set. Parsed as strconv.ParseBool.
@@ -85,20 +86,8 @@ const (
 	// OPENSEARCH_GO_POLICY_* instead).
 	//
 	// Example: OPENSEARCH_GO_ROUTER=true
-	envRouter = "OPENSEARCH_GO_ROUTER"
+	envRouter = envvars.Router
 )
-
-// envBool reports whether the named environment variable is set to a
-// strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy
-// values all return false.
-func envBool(name string) bool {
-	val, ok := os.LookupEnv(name)
-	if !ok || val == "" {
-		return false
-	}
-	b, err := strconv.ParseBool(val)
-	return err == nil && b
-}
 
 // routingFeatures is a bitfield where zero-value means all features are
 // enabled. Each bit, when set, disables a specific feature.

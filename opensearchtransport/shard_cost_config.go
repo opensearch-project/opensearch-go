@@ -11,6 +11,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 )
 
 // shardCostValidKeysHint is appended to "unknown key" messages to enumerate
@@ -102,7 +104,7 @@ func (e *ShardCostConfigError) Unwrap() error { return e.Err }
 //	OPENSEARCH_GO_SHARD_COST=1.0                                     # r:base=1.0 (equal with replicas at idle)
 //	OPENSEARCH_GO_SHARD_COST=r:base=0.9,r:amplify=2.5,r:exponent=1.5 # custom read curve
 //	OPENSEARCH_GO_SHARD_COST=r:base=1.0                              # equal at idle
-const envShardCost = "OPENSEARCH_GO_SHARD_COST"
+const envShardCost = envvars.ShardCost
 
 const (
 	// counterFloor is the minimum value used for the decay counter
