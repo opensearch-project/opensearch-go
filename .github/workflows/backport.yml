@@ -15,13 +15,13 @@ jobs:
     steps:
       - name: GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Backport
-        uses: VachaShah/backport@v1.1.4
+        uses: VachaShah/backport@28c49d91ceec57d7c9f625f1031c1a4d637251f5 # v1.1.4
         with:
           github_token: ${{ steps.app-token.outputs.token }}
           branch_name: backport/backport-${{ github.event.number }}
