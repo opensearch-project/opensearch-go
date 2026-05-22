@@ -1500,9 +1500,32 @@ func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardP
 	}
 
 	// Build index -> node placement, filtering to healthy shards only.
+	// allPrimaryShards tracks distinct primary shard numbers per index across
+	// ALL states (STARTED, RELOCATING, INITIALIZING, etc.) so a shard in flight
+	// still contributes to NumberOfPrimaryShards. Counting from ShardToNodes
+	// alone would undercount during a relocation window.
 	result := make(map[string]*indexShardPlacement)
+	allPrimaryShards := make(map[string]map[int]struct{})
 	for _, entry := range entries {
-		if entry.Index == "" || entry.Node == "" {
+		if entry.Index == "" {
+			continue
+		}
+
+		// Track distinct primary shard numbers regardless of state, so a
+		// relocating shard (RELOCATING source row + INITIALIZING destination
+		// row, neither STARTED) still appears in the count.
+		if entry.PriRep == shardTypePrimary {
+			if shardNum, shardErr := strconv.Atoi(entry.Shard); shardErr == nil {
+				perIndex, ok := allPrimaryShards[entry.Index]
+				if !ok {
+					perIndex = make(map[int]struct{})
+					allPrimaryShards[entry.Index] = perIndex
+				}
+				perIndex[shardNum] = struct{}{}
+			}
+		}
+
+		if entry.Node == "" {
 			continue // Unassigned shard (no node)
 		}
 		if entry.State != shardStateStarted {
@@ -1552,8 +1575,17 @@ func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardP
 		}
 	}
 
-	// Compute NumberOfPrimaryShards per index from the shard map.
-	for _, placement := range result {
+	// Compute NumberOfPrimaryShards per index from the cross-state primary set,
+	// not from ShardToNodes alone. ShardToNodes is filtered to STARTED entries
+	// (RELOCATING/INITIALIZING rows are excluded), so a relocating shard would
+	// be missing there but is still counted in allPrimaryShards.
+	for indexName, placement := range result {
+		if perIndex, ok := allPrimaryShards[indexName]; ok {
+			placement.NumberOfPrimaryShards = len(perIndex)
+			continue
+		}
+		// Fallback: nothing tracked across states (shouldn't happen for a
+		// healthy index, but stay defensible). Count from ShardToNodes.
 		primaryCount := 0
 		for _, copies := range placement.ShardToNodes {
 			if copies.Primary != "" {

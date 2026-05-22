@@ -7,6 +7,7 @@
 package opensearchtransport
 
 import (
+	"maps"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -310,22 +311,7 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 				nodes := placement.Nodes
 				slot.shardNodeCount.Store(int32(len(nodes))) //nolint:gosec // Node count bounded by cluster size.
 				slot.shardNodeNames.Store(&nodes)
-
-				// Update per-shard-number map for murmur3 routing.
-				// Only store a new map when placement data is complete.
-				// When ShardToNodes is empty (e.g., transient /_cat/shards
-				// response during shard relocation), preserve the existing
-				// map rather than niling it -- a stale shard map still
-				// routes correctly; a nil one disables shard-exact routing
-				// entirely until the next successful discovery cycle.
-				if len(placement.ShardToNodes) > 0 {
-					sm := &indexShardMap{
-						NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
-						RoutingNumShards:      placement.RoutingNumShards,
-						Shards:                placement.ShardToNodes,
-					}
-					slot.shardMap.Store(sm)
-				}
+				slot.mergeShardMap(placement)
 			} else {
 				// Index not in shard data -- may have been deleted or
 				// the /_cat/shards response was truncated/stale. Clear
@@ -377,6 +363,105 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 		// to reclaim internal hash table memory retained after deletes.
 		c.compactEntries(m, liveCount)
 	}
+}
+
+// mergeShardMap updates the cached per-shard placement map from a fresh
+// /_cat/shards-derived placement.
+//
+// /_cat/shards rows for RELOCATING (source) and INITIALIZING (destination)
+// shards are skipped during parsing, so a shard in flight between two nodes
+// is absent from placement.ShardToNodes for the duration of the relocation.
+// Replacing the cached map with a partial response would leave Shards[N] == nil
+// for the in-flight shard and disable shard-exact routing for it.
+//
+// Carry forward entries the new response is missing: a shard in RELOCATING
+// state still serves reads from the source node until the destination flips
+// to STARTED, so the prior entry remains a valid routing target for the
+// relocation window. New data wins where present; entries beyond the current
+// primary count are dropped so a shrunk index doesn't retain unreachable
+// high-numbered shards.
+//
+// The merge triggers whenever the prior map has any keys missing from the
+// new placement, regardless of relative size. A naive `len(old) > len(new)`
+// gate misses equal-length divergent maps (e.g. shard 3 RELOCATING out
+// concurrent with shard 4 appearing after a split or shrink) and silently
+// drops the in-flight entry.
+//
+// Empty placements are ignored to preserve the previous map across transient
+// /_cat/shards failures (a stale map still routes correctly; a nil one
+// disables shard-exact routing entirely).
+//
+// The CAS is retried on a bounded loop. The original implementation took the
+// loser's data as "stale enough to discard" because both racers derive from
+// near-simultaneous cat-shards responses, but a CAS loss can still drop a
+// strictly fresher in-flight observation; cheap retries beat that risk.
+func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
+	if len(placement.ShardToNodes) == 0 {
+		return
+	}
+
+	const maxRetries = 3
+	for range maxRetries {
+		old := slot.shardMap.Load()
+		merged := placement.ShardToNodes
+
+		if old != nil && carriesForward(old.Shards, placement.ShardToNodes) {
+			merged = make(map[int]*shardNodes, len(old.Shards)+len(placement.ShardToNodes))
+			maps.Copy(merged, old.Shards)
+			maps.Copy(merged, placement.ShardToNodes)
+		}
+
+		// Prune entries beyond the current primary count only when the new
+		// placement is complete, i.e. covers every primary shard. A partial
+		// placement (relocation in flight excludes RELOCATING/INITIALIZING
+		// rows from ShardToNodes) makes NumberOfPrimaryShards an undercount
+		// and would prune the very entry the carry-forward just preserved.
+		// On a real shrink, the new placement covers every shard at the new
+		// (smaller) count, so the prune still fires when needed.
+		isCompletePlacement := len(placement.ShardToNodes) >= placement.NumberOfPrimaryShards
+		if placement.NumberOfPrimaryShards > 0 && isCompletePlacement && len(merged) > placement.NumberOfPrimaryShards {
+			// Defensive copy when we're about to mutate a map we don't own
+			// (i.e. placement.ShardToNodes was assigned directly and now needs
+			// pruning after a shrink). Without this, the discovery code's
+			// caller would see its placement mutated underfoot. The
+			// carries-forward branch above produces a fresh map, so this
+			// only matters when carriesForward returned false.
+			if len(merged) == len(placement.ShardToNodes) {
+				clone := make(map[int]*shardNodes, len(merged))
+				maps.Copy(clone, merged)
+				merged = clone
+			}
+			for k := range merged {
+				if k >= placement.NumberOfPrimaryShards {
+					delete(merged, k)
+				}
+			}
+		}
+
+		if slot.shardMap.CompareAndSwap(old, &indexShardMap{
+			NumberOfPrimaryShards: placement.NumberOfPrimaryShards,
+			RoutingNumShards:      placement.RoutingNumShards,
+			Shards:                merged,
+		}) {
+			return
+		}
+	}
+	if dl := loadDebugLogger(); dl != nil {
+		dl.Logf("mergeShardMap: CAS exhausted after %d attempts (concurrent writer wins)\n", maxRetries)
+	}
+}
+
+// carriesForward reports whether old contains any shard keys absent from
+// next. When true, the merge must preserve those entries to keep
+// shard-exact routing alive across relocation windows and same-length
+// shard-set divergences (e.g. concurrent split/shrink).
+func carriesForward(old, next map[int]*shardNodes) bool {
+	for k := range old {
+		if _, ok := next[k]; !ok {
+			return true
+		}
+	}
+	return false
 }
 
 // shardNodeNameSet returns the set of node names hosting shards for an index,
