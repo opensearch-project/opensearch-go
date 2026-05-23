@@ -173,8 +173,8 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 		newRounds := rdMgr.rounds() - 1
 
 		if newRounds <= 0 {
-			// Warmup complete -- clear managers and lcNeedsWarmup.
-			lc := current.lifecycle() &^ lcNeedsWarmup
+			// Warmup complete -- clear lcNeedsWarmup, set lcReady.
+			lc := (current.lifecycle() &^ lcNeedsWarmup) | lcReady
 			if c.state.CompareAndSwap(raw, int64(newConnState(lc))) {
 				if dl := loadDebugLogger(); dl != nil {
 					dl.Logf("tryWarmupSkip: COMPLETE %s (warmup done)\n", c.URL)
