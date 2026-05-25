@@ -39,6 +39,7 @@ type IndicesForcemergeParams struct {
 	IgnoreUnavailable  *bool
 	MaxNumSegments     *int
 	OnlyExpungeDeletes *bool
+	WaitForCompletion  *bool
 
 	Pretty     bool
 	Human      bool
@@ -71,6 +72,10 @@ func (r IndicesForcemergeParams) get() map[string]string {
 
 	if r.OnlyExpungeDeletes != nil {
 		params["only_expunge_deletes"] = strconv.FormatBool(*r.OnlyExpungeDeletes)
+	}
+
+	if r.WaitForCompletion != nil {
+		params["wait_for_completion"] = strconv.FormatBool(*r.WaitForCompletion)
 	}
 
 	if r.Pretty {
