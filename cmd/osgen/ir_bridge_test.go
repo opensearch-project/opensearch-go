@@ -116,7 +116,7 @@ func TestClassifyParamKind(t *testing.T) {
 		want  ir.ParamKind
 	}{
 		{name: "string", param: apiQueryParam{GoType: "string"}, want: ir.ParamString},
-		{name: "bool", param: apiQueryParam{IsBool: true, GoType: "bool"}, want: ir.ParamBool},
+		{name: "bool", param: apiQueryParam{IsBool: true, GoType: "*bool"}, want: ir.ParamBool},
 		{name: "int", param: apiQueryParam{IsInt: true, GoType: "int"}, want: ir.ParamInt},
 		{name: "duration", param: apiQueryParam{IsDuration: true, GoType: "time.Duration"}, want: ir.ParamDuration},
 		{name: "list", param: apiQueryParam{IsList: true, GoType: "[]string"}, want: ir.ParamList},

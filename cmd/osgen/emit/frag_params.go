@@ -31,6 +31,8 @@ func (f *ParamsFragment) Imports() []Import {
 		switch p.Kind {
 		case ir.ParamDuration:
 			imps = append(imps, Import{Path: "time"})
+		case ir.ParamBool:
+			imps = append(imps, Import{Path: "strconv"})
 		case ir.ParamInt:
 			imps = append(imps, Import{Path: "strconv"})
 		case ir.ParamList:
@@ -164,8 +166,8 @@ func (r {{.TypePrefix}}Params) get() map[string]string {
 		set("{{.WireName}}", formatDuration(r.{{.GoName}}))
 	}
 {{- else if isBool .Kind}}
-	if r.{{.GoName}} {
-		set("{{.WireName}}", "true")
+	if r.{{.GoName}} != nil {
+		set("{{.WireName}}", strconv.FormatBool(*r.{{.GoName}}))
 	}
 {{- else if isList .Kind}}
 	if len(r.{{.GoName}}) > 0 {

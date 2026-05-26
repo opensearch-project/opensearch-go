@@ -701,16 +701,12 @@ func classifyParamSchema(s *openapi3.Schema, paramRef *openapi3.ParameterRef) (g
 		return "time.Duration", true, false, false, false
 	}
 	if s.Type != nil {
-		if s.Type.Is("boolean") {
-			return "bool", false, true, false, false
-		}
-		if s.Type.Is("integer") {
+		switch {
+		case s.Type.Is("boolean"):
+			return "*bool", false, true, false, false
+		case s.Type.Is("integer"), s.Type.Is("number"):
 			return "int", false, false, false, true
-		}
-		if s.Type.Is("number") {
-			return "int", false, false, false, true
-		}
-		if s.Type.Is("array") {
+		case s.Type.Is("array"):
 			return "[]string", false, false, true, false
 		}
 	}

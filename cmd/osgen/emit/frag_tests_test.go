@@ -20,7 +20,7 @@ func TestParamsTestFragment_Body(t *testing.T) {
 		HasDuration: true,
 		Cases: []ParamTestCase{
 			{Name: "timeout", FieldAssign: "Timeout: 5 * time.Second", WantAssign: `"timeout": "5000ms"`},
-			{Name: "local", FieldAssign: "Local: true", WantAssign: `"local": "true"`},
+			{Name: "local", FieldAssign: "Local: Ptr(true)", WantAssign: `"local": "true"`},
 		},
 	}
 
@@ -146,7 +146,7 @@ func TestNewParamsTestFile_BuildTag(t *testing.T) {
 
 	frag := &ParamsTestFragment{
 		TypePrefix: "ClusterHealth",
-		Cases:      []ParamTestCase{{Name: "x", FieldAssign: "X: true", WantAssign: `"x": "true"`}},
+		Cases:      []ParamTestCase{{Name: "x", FieldAssign: "X: Ptr(true)", WantAssign: `"x": "true"`}},
 	}
 
 	target := NewParamsTestFile("/tmp/test", "osapi", "api_cluster-health", frag)

@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
 	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
@@ -91,7 +90,7 @@ func TestPoliciesClient(t *testing.T) {
 															Require: map[string]string{"temp": "warm"},
 															Include: map[string]string{"test": "warm"},
 															Exclude: map[string]string{"test2": "warm"},
-															WaitFor: opensearch.ToPointer(true),
+															WaitFor: func(b bool) *bool { return &b }(true),
 														},
 													},
 												},

@@ -84,7 +84,7 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 		targets = append(targets, buildOperationFile(dir, filePkg, basename, op, spec.Registry))
 
 		// Params test file.
-		if paramsFrag := buildParamsTestFrag(op, filePkg); paramsFrag != nil {
+		if paramsFrag := buildParamsTestFrag(op); paramsFrag != nil {
 			targets = append(targets, NewParamsTestFile(dir, filePkg, basename, paramsFrag))
 		}
 
@@ -236,7 +236,7 @@ func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.Typ
 	}
 }
 
-func buildParamsTestFrag(op *ir.Operation, pkg string) *ParamsTestFragment {
+func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
 	if len(op.QueryParams) == 0 {
 		return nil
 	}
@@ -260,13 +260,17 @@ func buildParamsTestFrag(op *ir.Operation, pkg string) *ParamsTestFragment {
 	}
 }
 
+// paramTestValues returns the field assignment and expected map entry for one
+// query param case. White-box tests for both the core package and plugin
+// packages reference the package-local unexported `ptr` helper, defined per
+// package in compat_gen.go.
 func paramTestValues(p ir.QueryParam) (fieldAssign, wantAssign string) {
 	switch p.Kind {
 	case ir.ParamDuration:
 		fieldAssign = fmt.Sprintf("%s: 5 * time.Second", p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "5000ms")
 	case ir.ParamBool:
-		fieldAssign = fmt.Sprintf("%s: true", p.GoName)
+		fieldAssign = fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "true")
 	case ir.ParamList:
 		fieldAssign = fmt.Sprintf(`%s: []string{"a", "b"}`, p.GoName)
@@ -1169,7 +1173,8 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 		case ir.ParamDuration:
 			fields = append(fields, p.GoName+": 5 * time.Minute")
 		case ir.ParamBool:
-			fields = append(fields, p.GoName+": true")
+			// Integ tests use a local bool var and pointer for required bool params.
+			fields = append(fields, fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName))
 		case ir.ParamInt:
 			fields = append(fields, p.GoName+": 1")
 		case ir.ParamList:

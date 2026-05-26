@@ -146,7 +146,7 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 		TypePrefix: "ClusterHealth",
 		QueryParams: []ir.QueryParam{
 			{GoName: "Timeout", WireName: "timeout", GoType: "time.Duration", Kind: ir.ParamDuration, Description: "Request timeout."},
-			{GoName: "Local", WireName: "local", GoType: "bool", Kind: ir.ParamBool},
+			{GoName: "Local", WireName: "local", GoType: "*bool", Kind: ir.ParamBool},
 			{GoName: "Level", WireName: "level", GoType: "string", Kind: ir.ParamString, Default: "cluster"},
 		},
 	}
@@ -158,7 +158,7 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 
 	require.Contains(t, body, "ClusterHealthParams")
 	require.Contains(t, body, `formatDuration(r.Timeout)`)
-	require.Contains(t, body, `set("local", "true")`)
+	require.Contains(t, body, `set("local", strconv.FormatBool(*r.Local))`)
 	require.Contains(t, body, `set("level", r.Level)`)
 	require.Contains(t, body, "// Default: cluster.")
 	require.Contains(t, body, "TimeoutParams")

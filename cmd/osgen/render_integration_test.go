@@ -184,7 +184,7 @@ func TestRenderAPIFile_Params(t *testing.T) {
 		QueryParams: []apiQueryParam{
 			{GoName: "Size", ParamName: "size", GoType: "int", IsInt: true},
 			{GoName: "Timeout", ParamName: "timeout", GoType: "time.Duration", IsDuration: true},
-			{GoName: "AllowPartialResults", ParamName: "allow_partial_results", GoType: "bool", IsBool: true},
+			{GoName: "AllowPartialResults", ParamName: "allow_partial_results", GoType: "*bool", IsBool: true},
 			{GoName: "ExpandWildcards", ParamName: "expand_wildcards", GoType: "[]string", IsList: true},
 			{GoName: "Q", ParamName: "q", GoType: "string"},
 		},

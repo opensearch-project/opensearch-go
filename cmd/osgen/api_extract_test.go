@@ -137,7 +137,7 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 
 	// Boolean param.
 	require.True(t, paramMap["allow_partial_results"].IsBool)
-	require.Equal(t, "bool", paramMap["allow_partial_results"].GoType)
+	require.Equal(t, "*bool", paramMap["allow_partial_results"].GoType)
 
 	// Integer param.
 	require.True(t, paramMap["size"].IsInt)
@@ -270,7 +270,7 @@ func TestClassifyParamSchema(t *testing.T) {
 			case tt.isDuration:
 				require.Equal(t, "time.Duration", goType)
 			case tt.isBool:
-				require.Equal(t, "bool", goType)
+				require.Equal(t, "*bool", goType)
 			case tt.isInt:
 				require.Equal(t, "int", goType)
 			case tt.isList:
