@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,7 +72,6 @@ func runAPI() error {
 	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc)
 }
 
-// generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
 // generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
 //
 // bc filters which version-range exclusions render as breadcrumb comments.
@@ -133,32 +133,75 @@ func generateAPI(
 
 	targets := emit.Build(irSpec, cfg)
 
-	written := make(map[string]struct{})
-	var wrote int
-
+	// Render and write targets in parallel. Each target writes to a unique
+	// path, so workers can both render and write without coordination beyond
+	// the shared written-set, log slice, and first-error capture.
+	written := make(map[string]struct{}, len(targets))
+	var (
+		mu       sync.Mutex
+		writeLog []string
+		wrote    int
+		firstErr error
+	)
+	setErr := func(err error) {
+		mu.Lock()
+		if firstErr == nil {
+			firstErr = err
+		}
+		mu.Unlock()
+	}
+	jobs := make(chan emit.Target, len(targets))
 	for _, t := range targets {
-		absPath, err := filepath.Abs(t.Path())
-		if err != nil {
-			return fmt.Errorf("resolving path: %w", err)
-		}
+		jobs <- t
+	}
+	close(jobs)
 
-		dir := filepath.Dir(absPath)
-		if err := os.MkdirAll(dir, 0o755); err != nil {
-			return fmt.Errorf("creating %q: %w", dir, err)
-		}
+	workerCount := runtime.NumCPU()
+	if workerCount > len(targets) {
+		workerCount = len(targets)
+	}
+	var wg sync.WaitGroup
+	for range workerCount {
+		wg.Go(func() {
+			for t := range jobs {
+				absPath, err := filepath.Abs(t.Path())
+				if err != nil {
+					setErr(fmt.Errorf("resolving path: %w", err))
+					continue
+				}
+				dir := filepath.Dir(absPath)
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					setErr(fmt.Errorf("creating %q: %w", dir, err))
+					continue
+				}
+				src, err := t.Render()
+				if err != nil {
+					setErr(fmt.Errorf("render %q: %w", absPath, err))
+					continue
+				}
+				changed, werr := writeIfChanged(absPath, src)
+				if werr != nil {
+					setErr(werr)
+					continue
+				}
+				mu.Lock()
+				written[absPath] = struct{}{}
+				if changed {
+					writeLog = append(writeLog, repoRelPath(absPath))
+					wrote++
+				}
+				mu.Unlock()
+			}
+		})
+	}
+	wg.Wait()
+	if firstErr != nil {
+		return firstErr
+	}
 
-		src, err := t.Render()
-		if err != nil {
-			return fmt.Errorf("render %q: %w", absPath, err)
-		}
-
-		if changed, werr := writeIfChanged(absPath, src); werr != nil {
-			return werr
-		} else if changed {
-			fmt.Fprintf(os.Stderr, "  -> %s\n", repoRelPath(absPath))
-			wrote++
-		}
-		written[absPath] = struct{}{}
+	sort.Strings(writeLog)
+	for _, p := range writeLog {
+		fmt.Fprintf(os.Stderr, "  -> %s\n", p)
 	}
 
 	removed, err := removeStaleGenFiles(outDir, written)

@@ -166,7 +166,7 @@ clean-gen:  ## Remove all generated Go files (osapi, osapi/plugins, internal/pat
 	@rm -f $(GEN_OSAPI_DIR)/*_gen.go $(GEN_OSAPI_DIR)/*_gen_test.go
 	@find $(GEN_PLUGINS_DIR) -name '*_gen.go' -o -name '*_gen_test.go' | xargs rm -f 2>/dev/null || true
 
-gen: fetch-opensearch-spec  ## Regenerate all code from OpenAPI spec
+gen-paths: fetch-opensearch-spec  ## Regenerate path builders only
 	@printf "\033[2m-> Regenerating path builders...\033[0m\n"
 	cd $(REPO_ROOT)/cmd/osgen && go run . paths \
 		-spec $(OPENAPI_SPEC) \
@@ -176,6 +176,8 @@ gen: fetch-opensearch-spec  ## Regenerate all code from OpenAPI spec
 		-min-version=$(GEN_MIN_VERSION) \
 		-max-version=$(GEN_MAX_VERSION) \
 		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
+
+gen-api: fetch-opensearch-spec  ## Regenerate API consumer files only
 	@printf "\033[2m-> Regenerating API consumer files...\033[0m\n"
 	cd $(REPO_ROOT)/cmd/osgen && go run . api \
 		-spec $(OPENAPI_SPEC) \
@@ -185,6 +187,8 @@ gen: fetch-opensearch-spec  ## Regenerate all code from OpenAPI spec
 		-min-version=$(GEN_MIN_VERSION) \
 		-max-version=$(GEN_MAX_VERSION) \
 		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
+
+gen: gen-paths gen-api  ## Regenerate all code from OpenAPI spec (run gen-paths and gen-api in parallel with `make -j gen`)
 
 regen: clean-gen gen  ## Clean generated files then regenerate from spec
 
