@@ -7,6 +7,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
+- Add `osapi/` package: regenerated v5-track API surface produced by `cmd/osgen` from the OpenAPI spec. Fully typed Req/Resp/Params structs, sub-clients matching OpenSearch namespaces (`client.Cat`, `client.Cluster`, `client.Indices`, etc.), and a `plugins/` subtree for ML/k-NN/security/ISM/etc. Coexists with `opensearchapi/` during the v4 -> v5 transition; see `osapi/README.md` for usage and `UPGRADING.md` for migration guidance ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling. Includes `opensearch.NoBody` marker type for calls that expect no response body, unifying all internal dispatch through a single generic path ([#809](https://github.com/opensearch-project/opensearch-go/pull/809))
 - Add dynamic read cost scoring: primary shard cost scales with write-pool utilization via `connScoreFunc`, preferring primaries at idle and shedding reads to replicas under write load
@@ -177,6 +178,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 
 - Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
+- Mark `opensearch.ToPointer` and `opensearchapi.ToPointer` as deprecated; they remain fully functional but will be removed in v5. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
 
 ### Removed
 
