@@ -378,8 +378,8 @@ func TestAnalyzeGroup_OptionalStringParam(t *testing.T) {
 func TestAnalyzeGroup_DeprecatedAlias(t *testing.T) {
 	t.Parallel()
 
-	// Two literal paths for the same group - one deprecated alias.
-	// This exercises preferredLiteral() via multiple children at same trie node.
+	// Two literal paths for the same group, one deprecated. Exercises
+	// dedupeEquivalentVariants' deprecation-aware selection.
 	g := opGroup{
 		name: "nodes.hot_threads",
 		pathSpecs: []pathVariant{
