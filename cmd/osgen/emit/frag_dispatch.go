@@ -57,8 +57,9 @@ func (f *DispatchFragment) Body() (string, error) {
 
 //nolint:gochecknoglobals // const-ish read-only template
 var dispatchTmpl = template.Must(template.New("dispatch").Funcs(template.FuncMap{
-	"methodConst":   HTTPMethodConst,
-	"primaryMethod": PrimaryMethod,
+	"methodConst":      HTTPMethodConst,
+	"primaryMethod":    PrimaryMethod,
+	"bodyMethodSwitch": bodyMethodSwitch,
 	"opMethodComment": func(methodName string, op *ir.Operation) string {
 		return MethodComment(MethodDocData{
 			MethodName:        methodName,
@@ -80,8 +81,7 @@ var dispatchTmpl = template.Must(template.New("dispatch").Funcs(template.FuncMap
 {{- else}}
 {{opMethodComment .MethodName $.Operation}}
 {{- end}}
-func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{- ""}}
-	{{- if $.IsPointerReq}} *{{end}}{{- $.TypePrefix}}Req) ({{- ""}}
+func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $.IsPointerReq}}*{{end}}{{$.TypePrefix}}Req) ({{- ""}}
 	{{- if $.IsNoBody}}*opensearch.Response{{else}}*{{$.TypePrefix}}Resp{{end}}, error) {
 {{- if $.IsPointerReq}}
 	if req == nil {
@@ -95,6 +95,20 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{- ""}}
 		data {{$.TypePrefix}}Resp
 		err  error
 	)
+{{- if bodyMethodSwitch $.Operation}}
+	method := {{methodConst (primaryMethod $.Operation)}}
+	if req.Body != nil{{if $.HasTypedBody}} || req.BodyReader != nil{{end}} {
+		method = {{methodConst (bodyMethodSwitch $.Operation)}}
+	}
+	if data.response, err = do( {{- ""}}
+		ctx,
+		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
+		method,
+		req, &data,
+	); err != nil {
+		return &data, err
+	}
+{{- else}}
 	if data.response, err = do( {{- ""}}
 		ctx,
 		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
@@ -103,6 +117,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{- ""}}
 	); err != nil {
 		return &data, err
 	}
+{{- end}}
 
 	return &data, nil
 {{- end}}

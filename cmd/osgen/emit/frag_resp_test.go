@@ -62,65 +62,113 @@ func TestRespFragment_NoBody(t *testing.T) {
 	require.Empty(t, imps)
 }
 
-func TestDispatchFragment_Body(t *testing.T) {
+func TestDispatchFragment(t *testing.T) {
 	t.Parallel()
 
-	op := &ir.Operation{
-		TypePrefix:   "ClusterHealth",
-		IsPointerReq: true,
-		DispatchRoutes: []ir.DispatchRoute{
-			{ReceiverType: "clusterClient", MethodName: "Health", TopLevel: false},
+	tests := []struct {
+		name           string
+		op             *ir.Operation
+		wantContains   []string
+		wantNotContain []string
+	}{
+		{
+			name: "pointer req, sub-client",
+			op: &ir.Operation{
+				TypePrefix:   "ClusterHealth",
+				IsPointerReq: true,
+				DispatchRoutes: []ir.DispatchRoute{
+					{ReceiverType: "clusterClient", MethodName: "Health", TopLevel: false},
+				},
+			},
+			wantContains: []string{
+				"func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq)",
+				"if req == nil",
+				"c.apiClient",
+			},
+		},
+		{
+			name: "top-level client",
+			op: &ir.Operation{
+				TypePrefix:   "Info",
+				IsPointerReq: true,
+				DispatchRoutes: []ir.DispatchRoute{
+					{ReceiverType: "Client", MethodName: "Info", TopLevel: true},
+				},
+			},
+			wantContains: []string{"&c"},
+		},
+		{
+			name: "no-body op",
+			op: &ir.Operation{
+				TypePrefix:   "IndicesExists",
+				IsNoBody:     true,
+				IsPointerReq: true,
+				DispatchRoutes: []ir.DispatchRoute{
+					{ReceiverType: "indicesClient", MethodName: "Exists", TopLevel: false},
+				},
+			},
+			wantContains: []string{"*opensearch.Response", "noBody"},
+		},
+		{
+			// Dual-method (GET, POST) with body: dispatch must emit a runtime
+			// switch so non-nil bodies issue POST. Without this, search and
+			// peers silently issue GET-with-body, which most proxies drop per
+			// RFC 7231 4.3.1.
+			name: "dual-method body: switches GET to POST when body present",
+			op: &ir.Operation{
+				TypePrefix:   "Search",
+				IsPointerReq: true,
+				HasBody:      true,
+				HasTypedBody: true,
+				HTTPMethods:  []string{"GET", "POST"},
+				DispatchRoutes: []ir.DispatchRoute{
+					{ReceiverType: "Client", MethodName: "Search", TopLevel: true},
+				},
+			},
+			wantContains: []string{
+				"method := http.MethodGet",
+				"if req.Body != nil || req.BodyReader != nil",
+				"method = http.MethodPost",
+			},
+			wantNotContain: []string{
+				// The do() call must use the computed method, not a constant.
+				"http.MethodGet,\n\t\treq, &data",
+			},
+		},
+		{
+			// Value-receiver path (IsPointerReq: false) had no unit coverage
+			// before; commit 8a48b432 fixed a reqXxxReq concatenation bug here.
+			name: "value receiver: no nil-check, no type concat glitch",
+			op: &ir.Operation{
+				TypePrefix:   "Bulk",
+				IsPointerReq: false,
+				HasBody:      true,
+				HasTypedBody: true,
+				HTTPMethods:  []string{"POST"},
+				DispatchRoutes: []ir.DispatchRoute{
+					{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true},
+				},
+			},
+			wantContains:   []string{"func (c Client) Bulk(ctx context.Context, req BulkReq)"},
+			wantNotContain: []string{"if req == nil", "reqBulkReq"},
 		},
 	}
 
-	frag := &emit.DispatchFragment{Op: op}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	body, err := frag.Body()
-	require.NoError(t, err)
+			body, err := (&emit.DispatchFragment{Op: tt.op}).Body()
+			require.NoError(t, err)
 
-	require.Contains(t, body, "func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq)")
-	require.Contains(t, body, "if req == nil")
-	require.Contains(t, body, "c.apiClient")
-}
-
-func TestDispatchFragment_TopLevel(t *testing.T) {
-	t.Parallel()
-
-	op := &ir.Operation{
-		TypePrefix:   "Info",
-		IsPointerReq: true,
-		DispatchRoutes: []ir.DispatchRoute{
-			{ReceiverType: "Client", MethodName: "Info", TopLevel: true},
-		},
+			for _, sub := range tt.wantContains {
+				require.Contains(t, body, sub)
+			}
+			for _, sub := range tt.wantNotContain {
+				require.NotContains(t, body, sub)
+			}
+		})
 	}
-
-	frag := &emit.DispatchFragment{Op: op}
-
-	body, err := frag.Body()
-	require.NoError(t, err)
-
-	require.Contains(t, body, "&c")
-}
-
-func TestDispatchFragment_NoBody(t *testing.T) {
-	t.Parallel()
-
-	op := &ir.Operation{
-		TypePrefix:   "IndicesExists",
-		IsNoBody:     true,
-		IsPointerReq: true,
-		DispatchRoutes: []ir.DispatchRoute{
-			{ReceiverType: "indicesClient", MethodName: "Exists", TopLevel: false},
-		},
-	}
-
-	frag := &emit.DispatchFragment{Op: op}
-
-	body, err := frag.Body()
-	require.NoError(t, err)
-
-	require.Contains(t, body, "*opensearch.Response")
-	require.Contains(t, body, "noBody")
 }
 
 func TestSiblingTypesFragment_Body(t *testing.T) {
