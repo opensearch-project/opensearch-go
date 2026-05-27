@@ -207,6 +207,8 @@ lint.headers:  ## Check license headers on all Go files (same check as CI)
 lint.local:  ## Run lint locally (not in Docker) with all build tags
 	@printf "\033[2m-> Running golangci-lint locally with all build tags...\033[0m\n"
 	golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
+	@printf "\033[2m-> Running golangci-lint in cmd/osgen (separate Go module)...\033[0m\n"
+	cd cmd/osgen && golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
 
 package := "prettier"
 lint.markdown:

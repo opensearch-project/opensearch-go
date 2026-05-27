@@ -128,6 +128,13 @@ linters:
           - goconst
           - noctx
         path: (_test\.go|internal/|opensearchtransport/testutil/)
+      # cmd/osgen is a code-gen tool that uses many short, repeated literal
+      # strings as identifiers/keywords/import paths in template input. Most
+      # would not benefit from extraction to consts; skip goconst here.
+      # TODO: revisit goconst extraction in cmd/osgen.
+      - linters:
+          - goconst
+        path: cmd/osgen/
       - linters:
           - gosec
         path: _test\.go
