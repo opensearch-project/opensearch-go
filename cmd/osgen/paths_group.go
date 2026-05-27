@@ -64,8 +64,26 @@ func groupFromSpec(spec *openapi3.T, filter map[string]bool, vrange VersionRange
 	grouped := make(map[string]*opGroup)
 	var excluded []ExclusionReason
 
-	for urlPath, pathItem := range spec.Paths.Map() {
-		for method, op := range pathItem.Operations() {
+	// Iterate paths and methods in sorted order so that when a single URL
+	// serves multiple HTTP methods, the metadata captured from the first
+	// op (description, versionAdded, docsURL) is deterministic instead of
+	// depending on Go's randomized map iteration.
+	pathKeys := make([]string, 0, len(spec.Paths.Map()))
+	for k := range spec.Paths.Map() {
+		pathKeys = append(pathKeys, k)
+	}
+	sort.Strings(pathKeys)
+
+	for _, urlPath := range pathKeys {
+		pathItem := spec.Paths.Map()[urlPath]
+		ops := pathItem.Operations()
+		methods := make([]string, 0, len(ops))
+		for m := range ops {
+			methods = append(methods, m)
+		}
+		sort.Strings(methods)
+		for _, method := range methods {
+			op := ops[method]
 			if extensionBool(op.Extensions, extIgnorable) {
 				continue
 			}

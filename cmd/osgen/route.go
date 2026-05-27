@@ -7,6 +7,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"path"
 	"sort"
@@ -281,6 +282,8 @@ func methodNameFromSuffix(suffix string) string {
 }
 
 // httpMethodConst converts a method string to the Go net/http constant name.
+// Panics on an unknown method so a spec typo or a new HTTP verb fails the
+// generator loudly instead of silently emitting MethodGet.
 func httpMethodConst(method string) string {
 	switch strings.ToUpper(method) {
 	case http.MethodGet:
@@ -302,7 +305,7 @@ func httpMethodConst(method string) string {
 	case http.MethodConnect:
 		return "http.MethodConnect"
 	default:
-		return "http.MethodGet"
+		panic(fmt.Sprintf("osgen: unknown HTTP method %q in spec; add a case to httpMethodConst", method))
 	}
 }
 

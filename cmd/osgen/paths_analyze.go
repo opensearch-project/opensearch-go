@@ -318,8 +318,10 @@ func derivePositionalDeps(paths []pathVariant, fields []builderField) []position
 }
 
 // alwaysImplies reports whether every spec path containing dependent also
-// contains predecessor. If no path contains dependent at all, the relation
-// is trivially true and the caller treats it as a no-op (handled upstream).
+// contains predecessor. Returns false in the vacuous case (no path contains
+// dependent at all) so callers do not record a positional dependency for a
+// field that never appears in practice; treat the relation as undefined
+// rather than universally true.
 func alwaysImplies(paths []pathVariant, dependent, predecessor string) bool {
 	any := false
 	for _, pv := range paths {
@@ -438,14 +440,14 @@ func buildOps(paths []pathVariant, fields []builderField, deps []positionalDep) 
 		cases = append(cases, liveCase{ops: b.ops, fields: b.fields})
 	}
 
-	switch len(cases) {
-	case 0:
+	switch {
+	case len(cases) == 0:
 		// No optional bodies; either everything is shared, or only a
 		// default body remains (a no-fields variant whose body wasn't
 		// captured by the prefix/suffix). Emit defaultBody directly.
 		out = append(out, defaultBody...)
 
-	case 1:
+	case len(cases) == 1 && len(deps) == 0:
 		// writeSegments self-skips empty input, so an if guard
 		// around `writeSegments(p.X)` for the same list field X is
 		// redundant. Drop it; emit the body directly.

@@ -125,17 +125,19 @@ func hasNonEmpty(ss []string) bool {
 	return false
 }
 
-// Builder is implemented by every generated path type. It exists so the
+// builder is implemented by every generated path type. It exists so the
 // compiler enforces a uniform Build() (string, error) signature: any new
 // path type whose method drifts (renamed, return type changed, etc.) fails
 // the compile-time assertions below instead of escaping to runtime.
-type Builder interface {
+// Unexported because the assertions are intra-package; no external caller
+// needs to write path.Builder.
+type builder interface {
 	Build() (string, error)
 }
 
 var (
 {{- range .Builders}}
-	_ Builder = {{.StructName}}{}
+	_ builder = {{.StructName}}{}
 {{- end}}
 )
 {{range .Builders}}
