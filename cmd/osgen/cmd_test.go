@@ -24,8 +24,8 @@ var generateSuiteMu sync.Mutex
 type GenerateSuite struct {
 	suite.Suite
 
-	tmpDir      string
-	origRootFn  func() (string, error)
+	tmpDir     string
+	origRootFn func() (string, error)
 }
 
 func TestGenerateSuite(t *testing.T) {
@@ -96,7 +96,7 @@ func (s *GenerateSuite) TestGenerateAPI() {
 	outDir := filepath.Join(s.tmpDir, "api")
 	pluginsDir := filepath.Join(s.tmpDir, "plugins")
 
-	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, nil, outDir, pluginsDir, "osapi", VersionRange{}, BreadcrumbConfig{})
 	require.NoError(s.T(), err)
 
 	entries, err := os.ReadDir(outDir)
@@ -121,7 +121,7 @@ func (s *GenerateSuite) TestGenerateAPI_Filter() {
 	outDir := filepath.Join(s.tmpDir, "api-filter")
 
 	filter := map[string]bool{"cluster.health": true}
-	err := generateAPI(specPath, filter, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, filter, outDir, "", "osapi", VersionRange{}, BreadcrumbConfig{})
 	require.NoError(s.T(), err)
 
 	entries, err := os.ReadDir(outDir)
@@ -136,7 +136,7 @@ func (s *GenerateSuite) TestGenerateAPI_Filter() {
 }
 
 func (s *GenerateSuite) TestGenerateAPI_InvalidSpec() {
-	err := generateAPI("/nonexistent/spec.yaml", nil, filepath.Join(s.tmpDir, "invalid"), "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI("/nonexistent/spec.yaml", nil, filepath.Join(s.tmpDir, "invalid"), "", "osapi", VersionRange{}, BreadcrumbConfig{})
 	require.Error(s.T(), err)
 }
 
@@ -145,7 +145,7 @@ func (s *GenerateSuite) TestGenerateAPI_WithPlugins() {
 	outDir := filepath.Join(s.tmpDir, "api-plugins")
 	pluginsDir := filepath.Join(s.tmpDir, "plugins-with")
 
-	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, nil, outDir, pluginsDir, "osapi", VersionRange{}, BreadcrumbConfig{})
 	require.NoError(s.T(), err)
 
 	pluginDir := filepath.Join(pluginsDir, "knn")
@@ -169,9 +169,9 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 
 	// Plant a stale generated file.
 	staleFile := filepath.Join(outDir, "old-operation_gen.go")
-	require.NoError(s.T(), os.WriteFile(staleFile, []byte("package opensearchapi\n"), 0o644))
+	require.NoError(s.T(), os.WriteFile(staleFile, []byte("package osapi\n"), 0o644))
 
-	err := generateAPI(specPath, nil, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, nil, outDir, "", "osapi", VersionRange{}, BreadcrumbConfig{})
 	require.NoError(s.T(), err)
 
 	// Stale file should be removed.

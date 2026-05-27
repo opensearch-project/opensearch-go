@@ -154,7 +154,7 @@ go run . api \
 
 1. Extracts operations from the spec, resolving HTTP methods, path patterns, query parameters, and request bodies.
 2. Classifies query parameters into Go types (string, int, bool, duration, list) based on schema analysis.
-3. Routes each operation to either the core `opensearchapi` package or a plugin package based on the operation group prefix.
+3. Routes each operation to either the core `osapi` package or a plugin package based on the operation group prefix.
 4. Renders Req structs (with path builder embedding, optional body, and header support), Params structs (with typed encode methods), and Resp stubs.
 5. Annotates generated code with availability (`x-version-added`), deprecation (`x-version-deprecated`, `x-deprecation-message`), and distribution exclusion metadata.
 
