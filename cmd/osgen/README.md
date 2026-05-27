@@ -37,22 +37,22 @@ Generates path builder structs into `internal/path/`.
 
 #### Flags
 
-| Flag                             | Default  | Description                                                          |
-| -------------------------------- | -------- | -------------------------------------------------------------------- |
-| `-spec`                          | required | Path to the combined OpenAPI spec YAML                               |
-| `-pkg`                           | `path`   | Output package name                                                  |
-| `-o`                             | stdout   | Output file for builder structs                                      |
-| `-test-out`                      | (none)   | Output file for golden tests                                         |
-| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                           |
-| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                  |
-| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                  |
-| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed     |
+| Flag                             | Default  | Description                                                             |
+| -------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                  |
+| `-pkg`                           | `path`   | Output package name                                                     |
+| `-o`                             | stdout   | Output file for builder structs                                         |
+| `-test-out`                      | (none)   | Output file for golden tests                                            |
+| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                              |
+| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                     |
+| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                     |
+| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed        |
 | `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them |
-| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`       |
-| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`            |
-| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`    |
-| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`    |
-| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer` |
+| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`          |
+| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`               |
+| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`       |
+| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`       |
+| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`    |
 
 #### Examples
 
@@ -80,25 +80,26 @@ go run . paths \
 
 ### api
 
-Generates API consumer files into `opensearchapi/` and plugin directories.
+Generates API consumer files into `osapi/` and plugin directories.
 
 #### Flags
 
-| Flag                             | Default  | Description                                                          |
-| -------------------------------- | -------- | -------------------------------------------------------------------- |
-| `-spec`                          | required | Path to the combined OpenAPI spec YAML                               |
-| `-out`                           | required | Output directory for core API files (opensearchapi/)                 |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (plugins/)                         |
-| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                           |
-| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                  |
-| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                  |
-| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed     |
+| Flag                             | Default  | Description                                                             |
+| -------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                  |
+| `-out`                           | required | Output directory for core API files (e.g. `osapi/`)                     |
+| `-pkg`                           | required | Go package name for generated files (e.g. `osapi`)                      |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `osapi/plugins/`)               |
+| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                              |
+| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                     |
+| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                     |
+| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed        |
 | `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them |
-| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`       |
-| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`            |
-| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`    |
-| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`    |
-| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer` |
+| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`          |
+| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`               |
+| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`       |
+| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`       |
+| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`    |
 
 #### Examples
 
@@ -108,8 +109,9 @@ Regenerate all API consumer files:
 cd cmd/osgen
 go run . api \
   -spec ../../opensearch-openapi.yaml \
-  -out ../../opensearchapi \
-  -plugins-out ../../plugins
+  -out ../../osapi \
+  -pkg osapi \
+  -plugins-out ../../osapi/plugins
 ```
 
 Generate a single operation:
@@ -118,7 +120,8 @@ Generate a single operation:
 cd cmd/osgen
 go run . api \
   -spec ../../opensearch-openapi.yaml \
-  -out ../../opensearchapi \
+  -out ../../osapi \
+  -pkg osapi \
   -groups cluster.health
 ```
 
