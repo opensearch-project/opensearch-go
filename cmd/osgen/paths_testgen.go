@@ -26,10 +26,36 @@ var testTmpl = template.Must(template.New("tests").Funcs(template.FuncMap{
 package {{.Pkg}} //nolint:testpackage // generated table-driven tests share the production package; the .Fields literals reference unqualified type names
 
 import (
+	"net/url"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+// assertPathRoundTrip verifies every segment of a built path is
+// URL-decode-safe and that re-encoding the decoded form yields the
+// original segment. Catches double-encoding and dropped/extra escapes
+// in the path-builder writers. Multi-value segments are written as a
+// comma-joined list of independently-escaped sub-values; the round-trip
+// splits on ',' before decoding so encoded commas in user values stay
+// distinguishable from list separators.
+func assertPathRoundTrip(t *testing.T, raw string) {
+	t.Helper()
+	if raw == "" || raw == "/" {
+		return
+	}
+	for _, seg := range strings.Split(strings.TrimPrefix(raw, "/"), "/") {
+		parts := strings.Split(seg, ",")
+		encoded := make([]string, len(parts))
+		for i, p := range parts {
+			decoded, err := url.PathUnescape(p)
+			require.NoErrorf(t, err, "sub-segment %q must decode cleanly", p)
+			encoded[i] = strings.ReplaceAll(url.PathEscape(decoded), "/", "%2F")
+		}
+		require.Equalf(t, seg, strings.Join(encoded, ","), "segment %q must round-trip stably", seg)
+	}
+}
 {{range .Builders}}
 func Test{{.StructName}}_Build(t *testing.T) {
 	t.Parallel()
@@ -48,11 +74,12 @@ func Test{{.StructName}}_Build(t *testing.T) {
 			t.Parallel()
 			gotPath, err := tt.path.Build()
 			if tt.wantErr {
-				require.Error(t, err)
+				require.ErrorIs(t, err, errRequired)
 				return
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.wantPath, gotPath)
+			assertPathRoundTrip(t, gotPath)
 		})
 	}
 }
@@ -105,13 +132,13 @@ func generateTests(builders []builder, pkg string) (string, error) {
 func synthesizeTestCases(b builder) []testCase {
 	var cases []testCase
 
-	hasRequired := false
+	var requiredFields []builderField
 	for _, f := range b.Fields {
 		if f.Required {
-			hasRequired = true
-			break
+			requiredFields = append(requiredFields, f)
 		}
 	}
+	hasRequired := len(requiredFields) > 0
 
 	emptyFields := b.StructName + "{}"
 	if hasRequired {
@@ -129,6 +156,27 @@ func synthesizeTestCases(b builder) []testCase {
 			WantPath: path,
 			WantErr:  "false",
 		})
+	}
+
+	// Builders with 2+ required fields: emit a "missing <Field>" case per
+	// required field where every other required field is set. Each case
+	// must reject with errRequired so partial-population bugs are caught.
+	if len(requiredFields) > 1 {
+		for i, missing := range requiredFields {
+			partial := make(map[string][]string, len(requiredFields)-1)
+			for j, rf := range requiredFields {
+				if i == j {
+					continue
+				}
+				partial[rf.Name] = []string{"req-" + strings.ToLower(rf.Name)}
+			}
+			cases = append(cases, testCase{
+				Name:     "missing " + missing.Name,
+				Fields:   buildStructLiteral(b, partial),
+				WantPath: "",
+				WantErr:  "true",
+			})
+		}
 	}
 
 	values := make(map[string][]string)
@@ -169,33 +217,36 @@ func synthesizeTestCases(b builder) []testCase {
 		}
 	}
 
+	// Multi-value cases: one per list field, not just the first. Each case
+	// holds every required field steady and replaces the list field with a
+	// 3-element slice so writeSegments() join behavior is exercised.
 	for _, f := range b.Fields {
-		if f.IsList {
-			multiValue := make(map[string][]string)
-			for _, rf := range b.Fields {
-				if rf.Required {
-					multiValue[rf.Name] = []string{"req-" + strings.ToLower(rf.Name)}
-				}
+		if !f.IsList {
+			continue
+		}
+		multiValue := make(map[string][]string)
+		for _, rf := range b.Fields {
+			if rf.Required {
+				multiValue[rf.Name] = []string{"req-" + strings.ToLower(rf.Name)}
 			}
-			multiValue[f.Name] = []string{"a", "b", "c"}
-			if violatesPositional(b, multiValue) {
-				cases = append(cases, testCase{
-					Name:     f.Name + " multi-value",
-					Fields:   buildStructLiteral(b, multiValue),
-					WantPath: "",
-					WantErr:  "true",
-				})
-				break
-			}
-			path := simulateBuild(b, multiValue)
+		}
+		multiValue[f.Name] = []string{"a", "b", "c"}
+		if violatesPositional(b, multiValue) {
 			cases = append(cases, testCase{
 				Name:     f.Name + " multi-value",
 				Fields:   buildStructLiteral(b, multiValue),
-				WantPath: path,
-				WantErr:  "false",
+				WantPath: "",
+				WantErr:  "true",
 			})
-			break
+			continue
 		}
+		path := simulateBuild(b, multiValue)
+		cases = append(cases, testCase{
+			Name:     f.Name + " multi-value",
+			Fields:   buildStructLiteral(b, multiValue),
+			WantPath: path,
+			WantErr:  "false",
+		})
 	}
 
 	return cases

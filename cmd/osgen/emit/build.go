@@ -247,9 +247,7 @@ func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
 		if p.Kind == ir.ParamDuration {
 			hasDuration = true
 		}
-		tc := ParamTestCase{Name: p.WireName}
-		tc.FieldAssign, tc.WantAssign = paramTestValues(p)
-		cases = append(cases, tc)
+		cases = append(cases, paramTestCases(p)...)
 	}
 
 	return &ParamsTestFragment{
@@ -258,6 +256,33 @@ func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
 		HasDuration:    hasDuration,
 		Cases:          cases,
 	}
+}
+
+// paramTestCases returns one or more table rows for a query param. Most kinds
+// produce a single happy-path case; *bool params emit both true and false so
+// the wire-level encoding of `false` is exercised (a sentinel-pointer regression
+// would silently drop the param when nil-pointer means "absent").
+//
+// White-box tests for both the core package and plugin packages reference the
+// package-local `func(b bool) *bool { return &b }(...)` literal.
+func paramTestCases(p ir.QueryParam) []ParamTestCase {
+	if p.Kind == ir.ParamBool {
+		return []ParamTestCase{
+			{
+				Name:        p.WireName + "=true",
+				FieldAssign: fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName),
+				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "true"),
+			},
+			{
+				Name:        p.WireName + "=false",
+				FieldAssign: fmt.Sprintf("%s: func(b bool) *bool { return &b }(false)", p.GoName),
+				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "false"),
+			},
+		}
+	}
+	tc := ParamTestCase{Name: p.WireName}
+	tc.FieldAssign, tc.WantAssign = paramTestValues(p)
+	return []ParamTestCase{tc}
 }
 
 // paramTestValues returns the field assignment and expected map entry for one
