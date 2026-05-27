@@ -97,15 +97,13 @@ func TestClientTransport(t *testing.T) {
 		client, err := testutil.InitClient(t)
 		require.NoError(t, err)
 
-		for i := range 101 {
-			wg.Add(1)
+		for range 101 {
 			time.Sleep(10 * time.Millisecond)
 
-			go func(_ int) {
-				defer wg.Done()
+			wg.Go(func() {
 				_, err := client.Info(t.Context(), nil)
 				require.NoError(t, err)
-			}(i)
+			})
 		}
 		wg.Wait()
 	})

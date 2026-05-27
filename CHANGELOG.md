@@ -163,6 +163,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **BREAKING**: Replace `[]json.RawMessage` with typed `[]BulkByScrollFailure` for `Failures` field in `DocumentDeleteByQueryResp`, `UpdateByQueryResp`, and `ReindexResp` ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). This is a compile-time change only — callers that were not accessing `.Failures` are unaffected, and callers that were manually unmarshaling `json.RawMessage` can now access typed fields directly.
 - Replace inline `_shards` struct with `ResponseShards` in `IndexResp`, `DocumentCreateResp`, `DocumentDeleteResp`, `UpdateResp`, `IndicesRefreshResp`, and `IndicesCountResp` to expose shard `Failures` and `Skipped` fields ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). Code accessing `resp.Shards.Total`, `resp.Shards.Successful`, or `resp.Shards.Failed` compiles unchanged.
 - Add `omitempty` to all deprecated `_type` JSON tags so empty values are omitted during marshaling
+- Modernize tests to use Go 1.25's `WaitGroup.Go()` ([#834](https://github.com/opensearch-project/opensearch-go/pull/834))
 
 ### Deprecated
 
