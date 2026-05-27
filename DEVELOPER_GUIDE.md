@@ -385,7 +385,9 @@ make gh.checks.failed     # Only failed checks
 
 ## Code Generation
 
-The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`opensearchapi/`, `plugins/`) from the published [OpenSearch OpenAPI specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, and `x-version-removed` extensions from the spec to produce version-aware Go source.
+The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`osapi/`, `osapi/plugins/`) from the published [OpenSearch OpenAPI specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, and `x-version-removed` extensions from the spec to produce version-aware Go source.
+
+The `osapi/` package is the v5-track API surface and coexists with the hand-written `opensearchapi/` package during the v4 -> v5 transition. New code should target `osapi/`; see `osapi/README.md` for usage and `UPGRADING.md` for migration guidance.
 
 To regenerate (downloads the spec automatically if not cached):
 
@@ -404,11 +406,11 @@ make gen
 
 By default, `make gen` includes all operations and fields across every OpenSearch version. Three Makefile variables scope the generated output to a version window:
 
-| Variable                | Default  | Effect                                                    |
-| ----------------------- | -------- | --------------------------------------------------------- |
-| `GEN_MIN_VERSION`       | `epoch`  | Exclude operations removed before this floor              |
-| `GEN_MAX_VERSION`       | `latest` | Exclude operations added after this ceiling               |
-| `GEN_REMOVE_DEPRECATED` | `epoch`  | Treat operations deprecated at or before this as removed  |
+| Variable                | Default  | Effect                                                   |
+| ----------------------- | -------- | -------------------------------------------------------- |
+| `GEN_MIN_VERSION`       | `epoch`  | Exclude operations removed before this floor             |
+| `GEN_MAX_VERSION`       | `latest` | Exclude operations added after this ceiling              |
+| `GEN_REMOVE_DEPRECATED` | `epoch`  | Treat operations deprecated at or before this as removed |
 
 Override on the command line:
 
