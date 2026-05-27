@@ -4,18 +4,20 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 )
 
 func TestImportSetAdd(t *testing.T) {
 	t.Parallel()
 
-	var s importSet
+	var s emit.ImportSet
 	s.Add("net/http")
 	s.Add("context")
 	s.Add("net/http") // duplicate
@@ -29,7 +31,7 @@ func TestImportSetAdd(t *testing.T) {
 func TestImportSetAddAlias(t *testing.T) {
 	t.Parallel()
 
-	var s importSet
+	var s emit.ImportSet
 	s.AddAlias("github.com/opensearch-project/opensearch-go/v4/internal/path", "ospath")
 
 	sorted := s.Sorted()
@@ -40,7 +42,7 @@ func TestImportSetAddAlias(t *testing.T) {
 func TestImportSetEmpty(t *testing.T) {
 	t.Parallel()
 
-	var s importSet
+	var s emit.ImportSet
 	sorted := s.Sorted()
 	require.Nil(t, sorted)
 }
@@ -48,7 +50,7 @@ func TestImportSetEmpty(t *testing.T) {
 func TestImportSetHas(t *testing.T) {
 	t.Parallel()
 
-	var s importSet
+	var s emit.ImportSet
 	require.False(t, s.Has("net/http"))
 	s.Add("net/http")
 	require.True(t, s.Has("net/http"))
@@ -57,7 +59,7 @@ func TestImportSetHas(t *testing.T) {
 func TestImportSetGrouped(t *testing.T) {
 	t.Parallel()
 
-	var s importSet
+	var s emit.ImportSet
 	s.Add("context")
 	s.Add("net/http")
 	s.Add("github.com/stretchr/testify/require")
@@ -99,7 +101,7 @@ func TestImportGroup(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, importGroup(tt.path))
+			require.Equal(t, tt.want, emit.ImportGroup(tt.path))
 		})
 	}
 }

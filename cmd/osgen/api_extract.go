@@ -8,6 +8,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"net/http"
 	"sort"
 	"strings"
@@ -42,7 +43,7 @@ type apiOperation struct {
 
 	PrimaryPath string // canonical URL path pattern (e.g. "/{index}/_refresh")
 
-	Description string
+	Description       string
 	VersionAdded      string
 	VersionDeprecated string
 	Deprecated        bool
@@ -58,9 +59,9 @@ type apiOperation struct {
 	// used to walk inline schemas that aren't in Components.Schemas.
 	ResponseSchemaRef *openapi3.SchemaRef
 
-	RequestRef       string             // schema key for request body (e.g. "ml.register_model___Body")
+	RequestRef       string              // schema key for request body (e.g. "ml.register_model___Body")
 	RequestSchemaRef *openapi3.SchemaRef // resolved request body schema
-	IsNDJSON         bool               // true for application/x-ndjson request bodies
+	IsNDJSON         bool                // true for application/x-ndjson request bodies
 
 	// Dispatch routes for this operation (primary flat + optional deprecated nested).
 	DispatchRoutes []dispatchRoute
@@ -72,17 +73,17 @@ type apiOperation struct {
 	PathBuilder builder
 
 	// Populated after schema walking.
-	RespFields    []goField      // fields for the top-level Resp struct
-	SiblingTypes  []*goType      // operation-specific types emitted alongside Resp
-	RespShape     ir.RespShape   // overall response body structure (struct/map/array/raw)
-	RespElemType  *goType        // element type for map/array shapes (the T in map[string]T or []T)
+	RespFields   []goField    // fields for the top-level Resp struct
+	SiblingTypes []*goType    // operation-specific types emitted alongside Resp
+	RespShape    ir.RespShape // overall response body structure (struct/map/array/raw)
+	RespElemType *goType      // element type for map/array shapes (the T in map[string]T or []T)
 
 	// Populated after request body schema walking.
-	ReqBodyFields    []goField  // fields for the top-level Body struct
-	ReqBodySiblings  []*goType  // operation-specific types from request body
-	ReqBodyTypeName  string     // Go type name for the body struct (e.g. "MlRegisterModelBody")
-	ReqBodyIsShared  bool       // true when body type is shared (emitted in types_gen.go)
-	HasTypedBody     bool       // true when body has properties (typed struct, not io.Reader)
+	ReqBodyFields   []goField // fields for the top-level Body struct
+	ReqBodySiblings []*goType // operation-specific types from request body
+	ReqBodyTypeName string    // Go type name for the body struct (e.g. "MlRegisterModelBody")
+	ReqBodyIsShared bool      // true when body type is shared (emitted in types_gen.go)
+	HasTypedBody    bool      // true when body has properties (typed struct, not io.Reader)
 }
 
 // apiPathField is one path parameter exposed as a struct field on the Req.
@@ -451,9 +452,7 @@ func collectUnionParams(ops []struct {
 ) map[string][]string {
 	out := map[string][]string{}
 	for _, o := range ops {
-		for k, v := range unionPathParams(o.path, o.op) {
-			out[k] = v
-		}
+		maps.Copy(out, unionPathParams(o.path, o.op))
 	}
 	if len(out) == 0 {
 		return nil
@@ -500,61 +499,6 @@ func extractPathParams(pathItem *openapi3.PathItem, op *openapi3.Operation, urlP
 		}
 	}
 	return result
-}
-
-// extractQueryParams collects query parameters from both path-level and
-// operation-level definitions, deduplicates by wire name, and classifies
-// each into its Go type.
-func extractQueryParams(pathItem *openapi3.PathItem, op *openapi3.Operation, spec *openapi3.T) []apiQueryParam {
-	seen := make(map[string]bool)
-	var params []apiQueryParam
-
-	collect := func(refs openapi3.Parameters) {
-		for _, ref := range refs {
-			p := ref.Value
-			if p == nil || p.In != "query" {
-				continue
-			}
-			if isGlobalParam(p.Name) {
-				continue
-			}
-			if seen[p.Name] {
-				continue
-			}
-			seen[p.Name] = true
-
-			qp := apiQueryParam{
-				GoName:            pathFieldName(p.Name),
-				ParamName:         p.Name,
-				Description:       p.Description,
-				Required:          p.Required,
-				Deprecated:        p.Deprecated,
-				VersionAdded:      extensionString(p.Extensions, extVersionAdded),
-				VersionDeprecated: extensionString(p.Extensions, extVersionDeprecated),
-				DeprecationMsg:    extensionString(p.Extensions, extDeprecationMessage),
-			}
-
-			if p.Schema != nil && p.Schema.Value != nil {
-				s := p.Schema.Value
-				qp.GoType, qp.IsDuration, qp.IsBool, qp.IsList, qp.IsInt = classifyParamSchema(s, ref)
-				if s.Default != nil {
-					qp.Default = fmt.Sprintf("%v", s.Default)
-				}
-			} else {
-				qp.GoType = "string"
-			}
-
-			params = append(params, qp)
-		}
-	}
-
-	collect(pathItem.Parameters)
-	collect(op.Parameters)
-
-	sort.Slice(params, func(i, j int) bool {
-		return params[i].ParamName < params[j].ParamName
-	})
-	return params
 }
 
 // extractQueryParamsUnion merges query parameters from all operation variants
@@ -695,8 +639,9 @@ func sharedParamGroup(name string) ir.ParamGroup {
 }
 
 // classifyParamSchema maps an OpenAPI schema to its Go type and type flags.
-// It handles duration patterns, booleans, integers, and array types.
-func classifyParamSchema(s *openapi3.Schema, paramRef *openapi3.ParameterRef) (goType string, isDuration, isBool, isList, isInt bool) {
+// It handles duration patterns, booleans, integers, and array types. Returns
+// (goType, isDuration, isBool, isList, isInt).
+func classifyParamSchema(s *openapi3.Schema, paramRef *openapi3.ParameterRef) (string, bool, bool, bool, bool) {
 	if isDurationSchema(s, paramRef) {
 		return "time.Duration", true, false, false, false
 	}

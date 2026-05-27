@@ -9,10 +9,10 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/google/renameio/v2/maybe"
 	"github.com/stretchr/testify/require"
 )
 
@@ -217,16 +217,16 @@ func TestClassifyParamSchema(t *testing.T) {
 			isBool: true,
 		},
 		{
-			name:  "integer type",
+			name:   "integer type",
 			schema: &openapi3.Schema{Type: &openapi3.Types{"integer"}},
-			ref:   &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
-			isInt: true,
+			ref:    &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
+			isInt:  true,
 		},
 		{
-			name:  "number type",
+			name:   "number type",
 			schema: &openapi3.Schema{Type: &openapi3.Types{"number"}},
-			ref:   &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
-			isInt: true,
+			ref:    &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
+			isInt:  true,
 		},
 		{
 			name:   "array type",
@@ -422,7 +422,7 @@ func buildTestSpecWithIgnorable(t *testing.T) string {
 			"/_ignorable": map[string]any{
 				"get": map[string]any{
 					"x-operation-group": "ignorable.endpoint",
-					"x-ignorable":      true,
+					"x-ignorable":       true,
 					"responses":         map[string]any{"200": map[string]any{"description": "OK"}},
 				},
 			},
@@ -439,12 +439,12 @@ func buildTestSpecWithDeprecated(t *testing.T) string {
 		"paths": map[string]any{
 			"/_old": map[string]any{
 				"get": map[string]any{
-					"x-operation-group":    "old.api",
-					"x-version-added":      "1.0",
-					"x-version-deprecated": "2.0",
+					"x-operation-group":     "old.api",
+					"x-version-added":       "1.0",
+					"x-version-deprecated":  "2.0",
 					"x-deprecation-message": "Use new.api instead.",
-					"deprecated":           true,
-					"responses":            map[string]any{"200": map[string]any{"description": "OK"}},
+					"deprecated":            true,
+					"responses":             map[string]any{"200": map[string]any{"description": "OK"}},
 				},
 			},
 		},
@@ -562,9 +562,9 @@ func buildTestSpecWithResponseSchema(t *testing.T) string {
 				"cluster.health___HealthResponseBody": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"cluster_name": map[string]any{"type": "string"},
-						"status":       map[string]any{"type": "string"},
-						"timed_out":    map[string]any{"type": "boolean"},
+						"cluster_name":    map[string]any{"type": "string"},
+						"status":          map[string]any{"type": "string"},
+						"timed_out":       map[string]any{"type": "boolean"},
 						"number_of_nodes": map[string]any{"type": "integer"},
 					},
 					"required": []any{"cluster_name", "status"},
@@ -586,15 +586,58 @@ func buildTestSpecWithQueryParams(t *testing.T) string {
 					"x-operation-group": "search",
 					"x-version-added":   "1.0",
 					"parameters": []any{
-						map[string]any{"name": "allow_partial_results", "in": "query", "schema": map[string]any{"type": "boolean"}},
-						map[string]any{"name": "size", "in": "query", "schema": map[string]any{"type": "integer"}},
-						map[string]any{"name": "timeout", "in": "query", "schema": map[string]any{"type": "string", "pattern": "([0-9]+)(?:d|h|m|s|ms|micros|nanos)", "x-data-type": "time"}},
-						map[string]any{"name": "scroll", "in": "query", "schema": map[string]any{"type": "string", "pattern": "([0-9]+)(?:d|h|m|s|ms|micros|nanos)", "x-data-type": "time"}},
-						map[string]any{"name": "expand_wildcards", "in": "query", "schema": map[string]any{"oneOf": []any{map[string]any{"type": "string"}, map[string]any{"type": "array", "items": map[string]any{"type": "string"}}}}},
-						map[string]any{"name": "pretty", "in": "query", "schema": map[string]any{"type": "boolean"}},
+						map[string]any{
+							"name":   "allow_partial_results",
+							"in":     "query",
+							"schema": map[string]any{"type": "boolean"},
+						},
+						map[string]any{
+							"name":   "size",
+							"in":     "query",
+							"schema": map[string]any{"type": "integer"},
+						},
+						map[string]any{
+							"name": "timeout",
+							"in":   "query",
+							"schema": map[string]any{
+								"type":        "string",
+								"pattern":     "([0-9]+)(?:d|h|m|s|ms|micros|nanos)",
+								"x-data-type": "time",
+							},
+						},
+						map[string]any{
+							"name": "scroll",
+							"in":   "query",
+							"schema": map[string]any{
+								"type":        "string",
+								"pattern":     "([0-9]+)(?:d|h|m|s|ms|micros|nanos)",
+								"x-data-type": "time",
+							},
+						},
+						map[string]any{
+							"name": "expand_wildcards",
+							"in":   "query",
+							"schema": map[string]any{
+								"oneOf": []any{
+									map[string]any{"type": "string"},
+									map[string]any{"type": "array", "items": map[string]any{"type": "string"}},
+								},
+							},
+						},
+						map[string]any{
+							"name":   "pretty",
+							"in":     "query",
+							"schema": map[string]any{"type": "boolean"},
+						},
 					},
-					"requestBody": map[string]any{"content": map[string]any{"application/json": map[string]any{"schema": map[string]any{"type": "object"}}}},
-					"responses":   map[string]any{"200": map[string]any{"description": "OK"}},
+					"requestBody": map[string]any{
+						"content": map[string]any{
+							"application/json": map[string]any{
+								"schema": map[string]any{"type": "object"},
+							},
+						},
+					},
+					"responses": map[string]any{"200": map[string]any{"description": "OK"}},
 				},
 			},
 		},
@@ -608,6 +651,6 @@ func writeTestSpec(t *testing.T, spec map[string]any) string {
 	require.NoError(t, err)
 
 	path := t.TempDir() + "/spec.json"
-	require.NoError(t, os.WriteFile(path, data, 0o644))
+	require.NoError(t, maybe.WriteFile(path, data, 0o600))
 	return path
 }

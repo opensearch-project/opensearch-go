@@ -31,6 +31,7 @@ type ParamsTestFragment struct {
 	Cases          []ParamTestCase
 }
 
+// Imports returns the imports the Params-test fragment needs.
 func (f *ParamsTestFragment) Imports() []Import {
 	imps := []Import{
 		{Path: "testing"},
@@ -42,6 +43,7 @@ func (f *ParamsTestFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders a test that exercises the Params struct's apply() method.
 func (f *ParamsTestFragment) Body() (string, error) {
 	if len(f.Cases) == 0 && f.TypePrefix == "" {
 		return "", nil
@@ -54,6 +56,7 @@ func (f *ParamsTestFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var paramsTestFragTmpl = template.Must(template.New("paramsTest").Funcs(template.FuncMap{
 	"quote": func(s string) string { return fmt.Sprintf("%q", s) },
 }).Parse(`func Test{{.TypePrefix}}Params_get(t *testing.T) {
@@ -103,6 +106,7 @@ type ReqTestFragment struct {
 	Cases        []ReqTestCase
 }
 
+// Imports returns the imports the Req-test fragment needs.
 func (f *ReqTestFragment) Imports() []Import {
 	imps := []Import{
 		{Path: "testing"},
@@ -115,6 +119,7 @@ func (f *ReqTestFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the Req struct's path/builder unit test.
 func (f *ReqTestFragment) Body() (string, error) {
 	if len(f.Cases) == 0 {
 		return "", nil
@@ -127,6 +132,7 @@ func (f *ReqTestFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var reqTestFragTmpl = template.Must(template.New("reqTest").Funcs(template.FuncMap{
 	"quote": func(s string) string { return fmt.Sprintf("%q", s) },
 }).Parse(`func Test{{.TypePrefix}}Req_GetRequest(t *testing.T) {
@@ -180,6 +186,7 @@ type DispatchTestFragment struct {
 	Entries    []DispatchEntry
 }
 
+// Imports returns the imports the dispatch-test fragment needs.
 func (f *DispatchTestFragment) Imports() []Import {
 	return []Import{
 		{Path: "context"},
@@ -189,6 +196,7 @@ func (f *DispatchTestFragment) Imports() []Import {
 	}
 }
 
+// Body renders the client-method dispatch unit test for the operation.
 func (f *DispatchTestFragment) Body() (string, error) {
 	if len(f.Entries) == 0 {
 		return "", nil
@@ -201,13 +209,15 @@ func (f *DispatchTestFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var dispatchTestFragTmpl = template.Must(template.New("dispatchTest").Parse(`// suppress unused import
 var _ = (*opensearch.Response)(nil)
 {{range .Entries}}
 func TestDispatch_{{.TestName}}(t *testing.T) {
 	// Compile-time signature assertion.
 	var c {{$.PkgName}}.Client
-	var _ func(context.Context, {{.ReqType}}) ({{.RespType}}, error) = {{if .FieldPath}}c.{{.FieldPath}}.{{.MethodName}}{{else}}c.{{.MethodName}}{{end}}
+	var _ func(context.Context, {{.ReqType}}) ({{.RespType}}, error) = {{- ""}}
+		{{- if .FieldPath}}c.{{.FieldPath}}.{{.MethodName}}{{else}}c.{{.MethodName}}{{end}}
 }
 {{end}}`))
 
@@ -302,6 +312,7 @@ type IntegTestFragment struct {
 	Config     IntegTestConfig
 }
 
+// Imports returns the imports the integration-test fragment needs.
 func (f *IntegTestFragment) Imports() []Import {
 	cfg := f.Config
 	var imps []Import
@@ -349,6 +360,8 @@ func (f *IntegTestFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the integration test (build-tagged "integration") for the
+// operation.
 func (f *IntegTestFragment) Body() (string, error) {
 	var sb strings.Builder
 	if err := integTestFragTmpl.Execute(&sb, f); err != nil {
@@ -357,6 +370,7 @@ func (f *IntegTestFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.FuncMap{
 	"quote": func(s string) string { return fmt.Sprintf("%q", s) },
 }).Parse(`func Test{{.Config.TypePrefix}}(t *testing.T) {
@@ -451,29 +465,29 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 // NewParamsTestFile builds a Target for <basename>_internal_gen_test.go.
 func NewParamsTestFile(outDir, pkg, basename string, frag *ParamsTestFragment) Target {
 	return &File{
-		FilePath:   outDir + "/" + basename + "_internal_gen_test.go",
-		Package:    pkg,
-		BuildTag:   "!integration",
-		Fragments:  []Fragment{frag},
+		FilePath:  outDir + "/" + basename + "_internal_gen_test.go",
+		Package:   pkg,
+		BuildTag:  "!integration",
+		Fragments: []Fragment{frag},
 	}
 }
 
 // NewDispatchTestFile builds a Target for dispatch_gen_test.go.
 func NewDispatchTestFile(outDir, pkg string, frag *DispatchTestFragment) Target {
 	return &File{
-		FilePath:   outDir + "/dispatch_gen_test.go",
-		Package:    pkg + "_test",
-		BuildTag:   "!integration",
-		Fragments:  []Fragment{frag},
+		FilePath:  outDir + "/dispatch_gen_test.go",
+		Package:   pkg + "_test",
+		BuildTag:  "!integration",
+		Fragments: []Fragment{frag},
 	}
 }
 
 // NewIntegTestFile builds a Target for <basename>_integ_gen_test.go.
 func NewIntegTestFile(outDir, pkg, basename string, frag *IntegTestFragment) Target {
 	return &File{
-		FilePath:   outDir + "/" + basename + "_integ_gen_test.go",
-		Package:    pkg + "_test",
-		BuildTag:   "integration",
-		Fragments:  []Fragment{frag},
+		FilePath:  outDir + "/" + basename + "_integ_gen_test.go",
+		Package:   pkg + "_test",
+		BuildTag:  "integration",
+		Fragments: []Fragment{frag},
 	}
 }

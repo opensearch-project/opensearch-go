@@ -9,17 +9,22 @@ package emit
 // CompatInspectFragment renders the Inspect type alias.
 type CompatInspectFragment struct{}
 
+// Imports returns the imports the Inspect type-alias fragment needs.
 func (f *CompatInspectFragment) Imports() []Import {
 	return []Import{{Path: "github.com/opensearch-project/opensearch-go/v4/internal/apiutil"}}
 }
 
+// Body renders the Inspect type-alias declaration.
 func (f *CompatInspectFragment) Body() (string, error) {
-	return "// Inspect represents the struct returned by Inspect(), its main use is to return the opensearch.Response to the user.\ntype Inspect = apiutil.Inspect\n", nil
+	return "// Inspect represents the struct returned by Inspect(), " +
+		"its main use is to return the opensearch.Response to the user.\n" +
+		"type Inspect = apiutil.Inspect\n", nil
 }
 
 // CompatDurationFragment renders the formatDuration helper.
 type CompatDurationFragment struct{}
 
+// Imports returns the imports the formatDuration fragment needs.
 func (f *CompatDurationFragment) Imports() []Import {
 	return []Import{
 		{Path: "time"},
@@ -27,6 +32,7 @@ func (f *CompatDurationFragment) Imports() []Import {
 	}
 }
 
+// Body renders the formatDuration helper function.
 func (f *CompatDurationFragment) Body() (string, error) {
 	return "func formatDuration(d time.Duration) string { return apiutil.FormatDuration(d) }\n", nil
 }

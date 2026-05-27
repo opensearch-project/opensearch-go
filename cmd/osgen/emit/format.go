@@ -14,8 +14,10 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
-const commentLineWidth = 72
-const commentContentWidth = commentLineWidth - len("// ")
+const (
+	commentLineWidth    = 72
+	commentContentWidth = commentLineWidth - len("// ")
+)
 
 // CommentWrap wraps a description for use as a type-level doc comment.
 // Prefixes each line with "// " and includes a leading "//\n" paragraph separator.
@@ -26,7 +28,7 @@ func CommentWrap(s string) string {
 	}
 	var sb strings.Builder
 	sb.WriteString("//\n")
-	for _, line := range strings.Split(s, "\n") {
+	for line := range strings.SplitSeq(s, "\n") {
 		line = strings.TrimRight(line, " \t")
 		if line == "" {
 			sb.WriteString("//\n")
@@ -259,13 +261,13 @@ func lowerFirst(s string) string {
 // splitFirstLine splits a description into its first paragraph line and
 // the remainder. It splits on the first blank line (paragraph separator)
 // or the first newline if there are no blank lines.
-func splitFirstLine(s string) (first, rest string) {
+func splitFirstLine(s string) (string, string) {
 	s = strings.TrimSpace(s)
-	if i := strings.Index(s, "\n\n"); i >= 0 {
-		return strings.TrimSpace(s[:i]), strings.TrimSpace(s[i+2:])
+	if before, after, ok := strings.Cut(s, "\n\n"); ok {
+		return strings.TrimSpace(before), strings.TrimSpace(after)
 	}
-	if i := strings.IndexByte(s, '\n'); i >= 0 {
-		return strings.TrimSpace(s[:i]), strings.TrimSpace(s[i+1:])
+	if before, after, ok := strings.Cut(s, "\n"); ok {
+		return strings.TrimSpace(before), strings.TrimSpace(after)
 	}
 	return s, ""
 }
@@ -341,7 +343,7 @@ func isCrossPackageType(goType string, reg *ir.TypeRegistry) bool {
 
 // unwrapGoType splits a Go type expression into its prefix (pointer/slice/map wrappers)
 // and the base type name.
-func unwrapGoType(goType string) (prefix, base string) {
+func unwrapGoType(goType string) (string, string) {
 	i := 0
 	for i < len(goType) {
 		switch {

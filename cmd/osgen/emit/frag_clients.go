@@ -25,6 +25,7 @@ type ClientsFragment struct {
 	SubClients []SubClient
 }
 
+// Imports returns the imports the Clients fragment needs.
 func (f *ClientsFragment) Imports() []Import {
 	return []Import{
 		{Path: "github.com/opensearch-project/opensearch-go/v4"},
@@ -32,6 +33,8 @@ func (f *ClientsFragment) Imports() []Import {
 	}
 }
 
+// Body renders the Client struct, sub-client types, clientInit, and the
+// Inspect alias as Go source.
 func (f *ClientsFragment) Body() (string, error) {
 	if len(f.SubClients) == 0 {
 		return "", nil
@@ -104,6 +107,7 @@ func nestedFields(hierarchy []SubClient, parent string) []SubClient {
 	return result
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var clientsFragTmpl = template.Must(template.New("clients").Funcs(template.FuncMap{
 	"nestedFields": nestedFields,
 }).Parse(`// Inspect represents the struct returned by Inspect(), its main use is to return the opensearch.Response to the user.

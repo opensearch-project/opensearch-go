@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"unicode"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"golang.org/x/mod/semver"
@@ -103,63 +102,8 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		return unionBranch{}
 	}
 
-	// Named $ref branch.
 	if ref.Ref != "" {
-		key := refToSchemaKey(ref.Ref)
-		if goType, ok := isScalarAlias(key); ok {
-			return unionBranch{
-				Name:       primitiveBranchName(goType),
-				GoType:     goType,
-				TokenClass: tokenClassForPrimitive(goType),
-			}
-		}
-
-		// Walk the referenced schema to register it.
-		goTypeName := w.walkSchema(ref, parentKey, group, false)
-		if goTypeName == "" || goTypeName == "json.RawMessage" {
-			return unionBranch{}
-		}
-
-		// If the $ref resolved to a primitive type (e.g., a named string schema),
-		// treat it as a primitive branch with proper exported naming.
-		if isPrimitiveType(goTypeName) {
-			return unionBranch{
-				Name:       primitiveBranchName(goTypeName),
-				GoType:     goTypeName,
-				TokenClass: tokenClassForPrimitive(goTypeName),
-			}
-		}
-
-		// If the $ref resolved to a map or slice type (from a named schema
-		// with additionalProperties or type:array), use fixed field names.
-		if strings.HasPrefix(goTypeName, "map[") {
-			return unionBranch{
-				Name:       "Map",
-				GoType:     goTypeName,
-				TokenClass: "object",
-			}
-		}
-		if strings.HasPrefix(goTypeName, "[]") {
-			return unionBranch{
-				Name:       "Array",
-				GoType:     goTypeName,
-				TokenClass: "array",
-			}
-		}
-
-		branchName := deriveBranchName(ref, goTypeName)
-		var required []string
-		if ref.Value != nil {
-			required = ref.Value.Required
-		}
-
-		return unionBranch{
-			Name:       branchName,
-			GoType:     goTypeName,
-			TokenClass: tokenClassForSchemaValue(ref.Value),
-			Required:   required,
-			IsRef:      true,
-		}
+		return w.classifyRefBranch(ref, parentKey, group)
 	}
 
 	// Inline branch.
@@ -224,6 +168,54 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	}
 
 	return unionBranch{}
+}
+
+// classifyRefBranch resolves a $ref-bearing union branch into its unionBranch.
+// Handles aliases (scalar primitives), primitive results from named schemas,
+// map and slice composite types, and named object refs.
+func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group string) unionBranch {
+	key := refToSchemaKey(ref.Ref)
+	if goType, ok := isScalarAlias(key); ok {
+		return unionBranch{
+			Name:       primitiveBranchName(goType),
+			GoType:     goType,
+			TokenClass: tokenClassForPrimitive(goType),
+		}
+	}
+
+	goTypeName := w.walkSchema(ref, parentKey, group, false)
+	if goTypeName == "" || goTypeName == "json.RawMessage" {
+		return unionBranch{}
+	}
+
+	if isPrimitiveType(goTypeName) {
+		return unionBranch{
+			Name:       primitiveBranchName(goTypeName),
+			GoType:     goTypeName,
+			TokenClass: tokenClassForPrimitive(goTypeName),
+		}
+	}
+
+	if strings.HasPrefix(goTypeName, "map[") {
+		return unionBranch{Name: "Map", GoType: goTypeName, TokenClass: "object"}
+	}
+	if strings.HasPrefix(goTypeName, "[]") {
+		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: "array"}
+	}
+
+	branchName := deriveBranchName(ref, goTypeName)
+	var required []string
+	if ref.Value != nil {
+		required = ref.Value.Required
+	}
+
+	return unionBranch{
+		Name:       branchName,
+		GoType:     goTypeName,
+		TokenClass: tokenClassForSchemaValue(ref.Value),
+		Required:   required,
+		IsRef:      true,
+	}
 }
 
 // tokenClassForSchemaValue returns the JSON token class for a resolved schema.
@@ -361,16 +353,6 @@ func isPrimitiveType(goType string) bool {
 		return true
 	}
 	return false
-}
-
-// lcFirst returns s with the first character lowercased.
-func lcFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	r := []rune(s)
-	r[0] = unicode.ToLower(r[0])
-	return string(r)
 }
 
 // deduplicateBranches removes branches with duplicate GoType values,

@@ -4,13 +4,14 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
@@ -31,7 +32,7 @@ func TestRespFragment_Body(t *testing.T) {
 		},
 	}
 
-	frag := &RespFragment{Op: op}
+	frag := &emit.RespFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -51,7 +52,7 @@ func TestRespFragment_NoBody(t *testing.T) {
 		IsNoBody:   true,
 	}
 
-	frag := &RespFragment{Op: op}
+	frag := &emit.RespFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -72,7 +73,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 		},
 	}
 
-	frag := &DispatchFragment{Op: op}
+	frag := &emit.DispatchFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -93,7 +94,7 @@ func TestDispatchFragment_TopLevel(t *testing.T) {
 		},
 	}
 
-	frag := &DispatchFragment{Op: op}
+	frag := &emit.DispatchFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -113,7 +114,7 @@ func TestDispatchFragment_NoBody(t *testing.T) {
 		},
 	}
 
-	frag := &DispatchFragment{Op: op}
+	frag := &emit.DispatchFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -136,7 +137,7 @@ func TestSiblingTypesFragment_Body(t *testing.T) {
 		},
 	}
 
-	frag := &SiblingTypesFragment{Op: op, Types: types}
+	frag := &emit.SiblingTypesFragment{Op: op, Types: types}
 
 	body, err := frag.Body()
 	require.NoError(t, err)

@@ -16,15 +16,15 @@ func TestParseVersionRange(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name            string
-		minFlag         string
-		maxFlag         string
-		preserveOpt     bool
-		wantMinVer      string
-		wantMinOp       string
-		wantMaxVer      string
-		wantMaxOp       string
-		wantErr         bool
+		name        string
+		minFlag     string
+		maxFlag     string
+		preserveOpt bool
+		wantMinVer  string
+		wantMinOp   string
+		wantMaxVer  string
+		wantMaxOp   string
+		wantErr     bool
 	}{
 		{
 			name:       "defaults epoch/latest",
@@ -301,8 +301,12 @@ func TestVersionRange_Exclusion(t *testing.T) {
 			wantReason:   "requires OpenSearch >= 3.0.0",
 		},
 		{
-			name:              "deprecated treated as removed",
-			vr:                VersionRange{Min: VersionBound{Version: "2.0.0", Operator: ">="}, Max: VersionBound{Operator: "<="}, RemoveDeprecated: VersionBound{Version: "2.0.0", Operator: "<="}},
+			name: "deprecated treated as removed",
+			vr: VersionRange{
+				Min:              VersionBound{Version: "2.0.0", Operator: ">="},
+				Max:              VersionBound{Operator: "<="},
+				RemoveDeprecated: VersionBound{Version: "2.0.0", Operator: "<="},
+			},
 			itemName:          "Qux",
 			versionDeprecated: "1.5.0",
 			wantIsOlder:       true,
@@ -385,4 +389,3 @@ func TestParseBreadcrumbMode(t *testing.T) {
 		})
 	}
 }
-

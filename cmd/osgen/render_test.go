@@ -38,8 +38,10 @@ func TestWrapLine(t *testing.T) {
 		},
 		{
 			name: "long line wraps at word boundary",
-			text: "Availability: >= 1.0.0; <= 3.0.0. This endpoint has been replaced by the newer version which provides better performance and additional features.",
-			want: "//\n// Availability: >= 1.0.0; <= 3.0.0. This endpoint has been replaced by\n// the newer version which provides better performance and additional\n// features.",
+			text: "Availability: >= 1.0.0; <= 3.0.0. This endpoint has been replaced by " +
+				"the newer version which provides better performance and additional features.",
+			want: "//\n// Availability: >= 1.0.0; <= 3.0.0. This endpoint has been replaced by\n" +
+				"// the newer version which provides better performance and additional\n// features.",
 		},
 		{
 			name: "single very long word",
@@ -86,14 +88,17 @@ func TestDeprecComment(t *testing.T) {
 		{
 			name:   "long single-line message wraps",
 			prefix: "Availability: >= 1.0.0; <= 3.0.0.",
-			msg:    "This endpoint has been superseded by the v2 API which provides improved consistency and better error handling.",
-			want:   "//\n// Availability: >= 1.0.0; <= 3.0.0. This endpoint has been superseded\n// by the v2 API which provides improved consistency and better error\n// handling.",
+			msg: "This endpoint has been superseded by the v2 API which " +
+				"provides improved consistency and better error handling.",
+			want: "//\n// Availability: >= 1.0.0; <= 3.0.0. This endpoint has been superseded\n" +
+				"// by the v2 API which provides improved consistency and better error\n// handling.",
 		},
 		{
 			name:   "multi-line message preserves formatting",
 			prefix: "Deprecated: >= 2.4.0.",
 			msg:    "Use the replacement API:\n  POST /_plugins/_new/endpoint\n  GET  /_plugins/_new/endpoint/{id}",
-			want:   "//\n// Deprecated: >= 2.4.0.\n//\n//\tUse the replacement API:\n//\t  POST /_plugins/_new/endpoint\n//\t  GET  /_plugins/_new/endpoint/{id}",
+			want: "//\n// Deprecated: >= 2.4.0.\n//\n//\tUse the replacement API:\n" +
+				"//\t  POST /_plugins/_new/endpoint\n//\t  GET  /_plugins/_new/endpoint/{id}",
 		},
 		{
 			name:   "multi-line with blank lines",

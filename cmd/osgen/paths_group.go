@@ -8,6 +8,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 
@@ -178,14 +179,12 @@ func (g *opGroup) findPath(path string) *pathVariant {
 
 // pathParamInfo extracts path parameter names and identifies which are array-typed.
 func pathParamInfo(pathItem *openapi3.PathItem, op *openapi3.Operation, urlPath string) ([]string, map[string]bool) {
-	paramSet := make(map[string]bool)
 	arraySet := make(map[string]bool)
 
 	for _, p := range pathItem.Parameters {
 		if p.Value == nil || p.Value.In != openapi3.ParameterInPath {
 			continue
 		}
-		paramSet[p.Value.Name] = true
 		if isArrayParam(p.Value) {
 			arraySet[p.Value.Name] = true
 		}
@@ -194,7 +193,6 @@ func pathParamInfo(pathItem *openapi3.PathItem, op *openapi3.Operation, urlPath 
 		if p.Value == nil || p.Value.In != openapi3.ParameterInPath {
 			continue
 		}
-		paramSet[p.Value.Name] = true
 		if isArrayParam(p.Value) {
 			arraySet[p.Value.Name] = true
 		}
@@ -367,9 +365,7 @@ func expandUnionPaths(g *opGroup) {
 				}
 			}
 			syn.methods = make(map[string]struct{}, len(pv.methods))
-			for k, v := range pv.methods {
-				syn.methods[k] = v
-			}
+			maps.Copy(syn.methods, pv.methods)
 			expanded = append(expanded, syn)
 		}
 	}

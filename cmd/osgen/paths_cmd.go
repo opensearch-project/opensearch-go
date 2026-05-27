@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/google/renameio/v2/maybe"
 )
 
 // runPaths implements the "osgen paths" subcommand. It parses flags and
@@ -24,17 +26,23 @@ func runPaths() error {
 	testFile := fs.String("test-out", "", "output file for tests (empty = no tests)")
 	minVer := fs.String("min-version", versionEpoch, "minimum OpenSearch version (default operator: >=)")
 	maxVer := fs.String("max-version", versionLatest, "maximum OpenSearch version (default operator: <=)")
-	removeDepr := fs.String("remove-deprecated", versionEpoch, "treat operations deprecated at or before this version as removed (default: epoch, meaning keep all)")
-	preserveOpt := fs.Bool("min-version-preserve-optional", false, "keep version-gated fields as pointers even when min-version guarantees their presence")
+	removeDepr := fs.String("remove-deprecated", versionEpoch,
+		"treat operations deprecated at or before this version as removed (default: epoch, meaning keep all)")
+	preserveOpt := fs.Bool("min-version-preserve-optional", false,
+		"keep version-gated fields as pointers even when min-version guarantees their presence")
 	bcOpsFlag := fs.String("version-breadcrumb-operations", breadcrumbModeAll, "emit comments for excluded operations: all, older, newer")
 	bcTypesFlag := fs.String("version-breadcrumb-types", breadcrumbModeAll, "emit comments for excluded types: all, older, newer")
 	bcFieldsFlag := fs.String("version-breadcrumb-fields", breadcrumbModeAll, "emit comments for excluded struct fields: all, older, newer")
 	bcPathsFlag := fs.String("version-breadcrumb-paths", breadcrumbModeAll, "emit comments for excluded path builders: all, older, newer")
 	bcParamsFlag := fs.String("version-breadcrumb-params", breadcrumbModeAll, "emit comments for excluded query parameters: all, older, newer")
-	fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		return err
+	}
 
 	if *specPath == "" {
-		return fmt.Errorf("usage: osgen paths -spec <openapi-spec.yaml> [-groups group1,group2] [-pkg path] [-o builders.go] [-test-out builders_test.go]")
+		return fmt.Errorf(
+			"usage: osgen paths -spec <openapi-spec.yaml> " +
+				"[-groups group1,group2] [-pkg path] [-o builders.go] [-test-out builders_test.go]")
 	}
 
 	var filter map[string]bool
@@ -61,7 +69,13 @@ func runPaths() error {
 // generatePaths loads the spec, analyzes operation groups, and writes path
 // builder source and optional test files. This is the testable core of the
 // "paths" subcommand.
-func generatePaths(specPath string, filter map[string]bool, pkg, outFile, testFile string, vrange VersionRange, bc BreadcrumbConfig) error {
+func generatePaths(
+	specPath string,
+	filter map[string]bool,
+	pkg, outFile, testFile string,
+	vrange VersionRange,
+	bc BreadcrumbConfig,
+) error {
 	grouped, exclusions, err := loadAndGroup(specPath, filter, vrange)
 	if err != nil {
 		return err
@@ -96,7 +110,7 @@ func generatePaths(specPath string, filter map[string]bool, pkg, outFile, testFi
 	}
 
 	if outFile != "" {
-		if err := os.WriteFile(outFile, []byte(out), 0o644); err != nil {
+		if err := maybe.WriteFile(outFile, []byte(out), 0o644); err != nil {
 			return fmt.Errorf("writing %q: %w", outFile, err)
 		}
 	} else {
@@ -108,7 +122,7 @@ func generatePaths(specPath string, filter map[string]bool, pkg, outFile, testFi
 		if err != nil {
 			return fmt.Errorf("test generation: %w", err)
 		}
-		if err := os.WriteFile(testFile, []byte(testOut), 0o644); err != nil {
+		if err := maybe.WriteFile(testFile, []byte(testOut), 0o644); err != nil {
 			return fmt.Errorf("writing %q: %w", testFile, err)
 		}
 	}

@@ -9,6 +9,7 @@ package emit
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -21,6 +22,7 @@ type ReqFragment struct {
 	Registry *ir.TypeRegistry
 }
 
+// Imports returns the imports the Req fragment needs.
 func (f *ReqFragment) Imports() []Import {
 	imps := []Import{
 		{Path: "net/http"},
@@ -43,16 +45,18 @@ func (f *ReqFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the Req struct (and its associated path/body builders) for
+// the operation.
 func (f *ReqFragment) Body() (string, error) {
 	qualify := qualifierFunc(f.Op.IsPlugin, f.Registry)
 
 	tmpl := template.Must(template.New("req").Funcs(template.FuncMap{
-		"join":              strings.Join,
-		"comment":           CommentWrap,
-		"wrapLine":          WrapLine,
-		"availabilityNote":  AvailabilityNote,
-		"qualify":           qualify,
-		"hasSensitiveBody":  hasSensitiveBody,
+		"join":             strings.Join,
+		"comment":          CommentWrap,
+		"wrapLine":         WrapLine,
+		"availabilityNote": AvailabilityNote,
+		"qualify":          qualify,
+		"hasSensitiveBody": hasSensitiveBody,
 	}).Parse(reqTmplStr))
 
 	var sb strings.Builder
@@ -95,10 +99,8 @@ func bodyMethodSwitch(op *ir.Operation) string {
 	if primary != http.MethodGet {
 		return ""
 	}
-	for _, m := range op.HTTPMethods {
-		if m == http.MethodPost {
-			return http.MethodPost
-		}
+	if slices.Contains(op.HTTPMethods, http.MethodPost) {
+		return http.MethodPost
 	}
 	return ""
 }

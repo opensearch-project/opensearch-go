@@ -33,14 +33,17 @@ type Target interface {
 
 // File is the standard Target implementation that assembles fragments.
 type File struct {
-	FilePath   string
-	Package    string
-	BuildTag   string // e.g. "!integration" or "integration"
-	Fragments  []Fragment
+	FilePath  string
+	Package   string
+	BuildTag  string // e.g. "!integration" or "integration"
+	Fragments []Fragment
 }
 
+// Path returns the absolute path the rendered file should be written to.
 func (f *File) Path() string { return f.FilePath }
 
+// Render produces the formatted Go source for this file by concatenating each
+// fragment's imports and body.
 func (f *File) Render() ([]byte, error) {
 	// Collect imports from all fragments.
 	var imps importSet

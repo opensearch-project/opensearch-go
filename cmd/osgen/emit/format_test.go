@@ -4,12 +4,14 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 )
 
 func TestLowerFirst(t *testing.T) {
@@ -33,7 +35,7 @@ func TestLowerFirst(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, lowerFirst(tt.input))
+			require.Equal(t, tt.want, emit.LowerFirst(tt.input))
 		})
 	}
 }
@@ -48,7 +50,12 @@ func TestSplitFirstLine(t *testing.T) {
 		wantRest  string
 	}{
 		{name: "single line", input: "Hello world.", wantFirst: "Hello world.", wantRest: ""},
-		{name: "blank line separator", input: "First paragraph.\n\nSecond paragraph.", wantFirst: "First paragraph.", wantRest: "Second paragraph."},
+		{
+			name:      "blank line separator",
+			input:     "First paragraph.\n\nSecond paragraph.",
+			wantFirst: "First paragraph.",
+			wantRest:  "Second paragraph.",
+		},
 		{name: "newline no blank", input: "Line one.\nLine two.", wantFirst: "Line one.", wantRest: "Line two."},
 		{name: "multiple paragraphs", input: "First.\n\nSecond.\n\nThird.", wantFirst: "First.", wantRest: "Second.\n\nThird."},
 		{name: "trailing whitespace", input: "  First.  \n\n  Second.  ", wantFirst: "First.", wantRest: "Second."},
@@ -57,7 +64,7 @@ func TestSplitFirstLine(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			gotFirst, gotRest := splitFirstLine(tt.input)
+			gotFirst, gotRest := emit.SplitFirstLine(tt.input)
 			require.Equal(t, tt.wantFirst, gotFirst)
 			require.Equal(t, tt.wantRest, gotRest)
 		})
@@ -69,20 +76,20 @@ func TestMethodComment(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		data   MethodDocData
+		data   emit.MethodDocData
 		checks []string
 	}{
 		{
 			name: "full metadata",
-			data: MethodDocData{
-				MethodName:    "GetRole",
-				Group:         "security.get_role",
-				Description:   "Retrieves one role.",
-				HTTPMethods:   []string{"GET"},
-				PrimaryPath:   "/_plugins/_security/api/roles/{role}",
-				VersionAdded:  "1.0.0",
+			data: emit.MethodDocData{
+				MethodName:      "GetRole",
+				Group:           "security.get_role",
+				Description:     "Retrieves one role.",
+				HTTPMethods:     []string{"GET"},
+				PrimaryPath:     "/_plugins/_security/api/roles/{role}",
+				VersionAdded:    "1.0.0",
 				ExcludedDistros: []string{"amazon-managed", "amazon-serverless"},
-				DocsURL:       "https://opensearch.org/docs/latest/security/access-control/api/#get-role",
+				DocsURL:         "https://opensearch.org/docs/latest/security/access-control/api/#get-role",
 			},
 			checks: []string{
 				"// GetRole retrieves one role.",
@@ -94,7 +101,7 @@ func TestMethodComment(t *testing.T) {
 		},
 		{
 			name: "no description fallback",
-			data: MethodDocData{
+			data: emit.MethodDocData{
 				MethodName:  "Health",
 				Group:       "security.health",
 				HTTPMethods: []string{"GET"},
@@ -107,7 +114,7 @@ func TestMethodComment(t *testing.T) {
 		},
 		{
 			name: "multiple HTTP methods",
-			data: MethodDocData{
+			data: emit.MethodDocData{
 				MethodName:  "Search",
 				Group:       "search",
 				Description: "Returns results matching a query.",
@@ -122,7 +129,7 @@ func TestMethodComment(t *testing.T) {
 		},
 		{
 			name: "deprecated operation",
-			data: MethodDocData{
+			data: emit.MethodDocData{
 				MethodName:        "OldGet",
 				Group:             "old.get",
 				Description:       "Fetches a resource.",
@@ -140,7 +147,7 @@ func TestMethodComment(t *testing.T) {
 		},
 		{
 			name: "minimal",
-			data: MethodDocData{
+			data: emit.MethodDocData{
 				MethodName: "Ping",
 				Group:      "ping",
 			},
@@ -150,12 +157,13 @@ func TestMethodComment(t *testing.T) {
 		},
 		{
 			name: "multi-line description",
-			data: MethodDocData{
-				MethodName:  "Create",
-				Group:       "create",
-				Description: "Creates a new document in the index.\n\nReturns a 409 response when a document with a same ID already exists in the index.",
-				HTTPMethods: []string{"PUT"},
-				PrimaryPath: "/{index}/_create/{id}",
+			data: emit.MethodDocData{
+				MethodName: "Create",
+				Group:      "create",
+				Description: "Creates a new document in the index.\n\n" +
+					"Returns a 409 response when a document with a same ID already exists in the index.",
+				HTTPMethods:  []string{"PUT"},
+				PrimaryPath:  "/{index}/_create/{id}",
 				VersionAdded: "1.0",
 			},
 			checks: []string{
@@ -170,7 +178,7 @@ func TestMethodComment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := MethodComment(tt.data)
+			got := emit.MethodComment(tt.data)
 			for _, want := range tt.checks {
 				require.Contains(t, got, want)
 			}

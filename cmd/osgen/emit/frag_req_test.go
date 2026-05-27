@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"strings"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
@@ -27,7 +28,7 @@ func TestReqFragment_SimpleOp(t *testing.T) {
 		PathBuilder: ir.PathBuilder{StructName: "ClusterHealthPath"},
 	}
 
-	frag := &ReqFragment{Op: op}
+	frag := &emit.ReqFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -58,7 +59,7 @@ func TestReqFragment_WithBodyAndPathFields(t *testing.T) {
 		},
 	}
 
-	frag := &ReqFragment{Op: op}
+	frag := &emit.ReqFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -75,12 +76,12 @@ func TestReqFragment_WithTypedBody(t *testing.T) {
 	t.Parallel()
 
 	op := &ir.Operation{
-		Group:       "ml.register_model",
-		TypePrefix:  "MlRegisterModel",
-		Description: "Registers a model.",
-		HTTPMethods: []string{"POST"},
-		PrimaryPath: "/_plugins/_ml/models/_register",
-		HasBody:     true,
+		Group:        "ml.register_model",
+		TypePrefix:   "MlRegisterModel",
+		Description:  "Registers a model.",
+		HTTPMethods:  []string{"POST"},
+		PrimaryPath:  "/_plugins/_ml/models/_register",
+		HasBody:      true,
 		HasTypedBody: true,
 		RequestBody: &ir.Type{
 			Name: "MlRegisterModelBody",
@@ -93,7 +94,7 @@ func TestReqFragment_WithTypedBody(t *testing.T) {
 		PathBuilder: ir.PathBuilder{StructName: "MlRegisterModelPath"},
 	}
 
-	frag := &ReqFragment{Op: op}
+	frag := &emit.ReqFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -125,7 +126,7 @@ func TestReqFragment_Imports(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			op := &ir.Operation{HasBody: tt.hasBody, HasTypedBody: tt.hasTypedBody}
-			frag := &ReqFragment{Op: op}
+			frag := &emit.ReqFragment{Op: op}
 			imps := frag.Imports()
 
 			paths := make(map[string]bool)
@@ -151,7 +152,7 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 		},
 	}
 
-	frag := &ParamsFragment{Op: op}
+	frag := &emit.ParamsFragment{Op: op}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -178,7 +179,7 @@ func TestParamsFragment_Imports(t *testing.T) {
 		},
 	}
 
-	frag := &ParamsFragment{Op: op}
+	frag := &emit.ParamsFragment{Op: op}
 	imps := frag.Imports()
 
 	paths := make(map[string]bool)
@@ -186,7 +187,7 @@ func TestParamsFragment_Imports(t *testing.T) {
 		paths[imp.Path] = true
 	}
 
-	require.True(t, paths[LocalModule+"/internal/params"], "missing internal/params import")
+	require.True(t, paths[emit.LocalModule+"/internal/params"], "missing internal/params import")
 	require.True(t, paths["time"], "missing time import for Duration param")
 	require.True(t, paths["strconv"], "missing strconv import for Int param")
 	require.True(t, paths["strings"], "missing strings import for List param")
@@ -207,10 +208,10 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 		},
 	}
 
-	f := &File{
+	f := &emit.File{
 		FilePath:  "/tmp/test/cluster-health_gen.go",
 		Package:   "osapi",
-		Fragments: []Fragment{&ReqFragment{Op: op}, &ParamsFragment{Op: op}},
+		Fragments: []emit.Fragment{&emit.ReqFragment{Op: op}, &emit.ParamsFragment{Op: op}},
 	}
 
 	src, err := f.Render()
@@ -221,8 +222,8 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 
 	netIdx := strings.Index(output, `"net/http"`)
 	buildIdx := strings.Index(output, `"github.com/opensearch-project/opensearch-go/v4/internal/build"`)
-	require.Greater(t, netIdx, 0, "missing net/http import")
-	require.Greater(t, buildIdx, 0, "missing internal/build import")
+	require.Positive(t, netIdx, "missing net/http import")
+	require.Positive(t, buildIdx, "missing internal/build import")
 	require.Less(t, netIdx, buildIdx, "stdlib imports should precede local module imports")
 
 	require.Contains(t, output, "type ClusterHealthReq struct")

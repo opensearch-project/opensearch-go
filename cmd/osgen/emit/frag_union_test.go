@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"strings"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
@@ -29,7 +30,7 @@ func TestUnionFragment_Strict(t *testing.T) {
 		},
 	}
 
-	frag := &UnionFragment{Types: types}
+	frag := &emit.UnionFragment{Types: types}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -60,7 +61,7 @@ func TestUnionFragment_TryEach(t *testing.T) {
 		},
 	}
 
-	frag := &UnionFragment{Types: types}
+	frag := &emit.UnionFragment{Types: types}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -97,7 +98,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			frag := &UnionFragment{Types: tt.types}
+			frag := &emit.UnionFragment{Types: tt.types}
 			imps := frag.Imports()
 
 			hasFmt := false
@@ -131,7 +132,7 @@ func TestUnionFragment_FileAssembly(t *testing.T) {
 		},
 	}
 
-	target := NewUnionTypesFile("/tmp/test", "osapi", types)
+	target := emit.NewUnionTypesFile("/tmp/test", "osapi", types)
 	require.NotNil(t, target)
 
 	src, err := target.Render()
@@ -144,8 +145,8 @@ func TestUnionFragment_FileAssembly(t *testing.T) {
 
 	jsonIdx := strings.Index(output, `"encoding/json"`)
 	fmtIdx := strings.Index(output, `"fmt"`)
-	require.Greater(t, jsonIdx, 0)
-	require.Greater(t, fmtIdx, 0)
+	require.Positive(t, jsonIdx)
+	require.Positive(t, fmtIdx)
 }
 
 func TestSharedTypesFragment_Body(t *testing.T) {
@@ -163,7 +164,7 @@ func TestSharedTypesFragment_Body(t *testing.T) {
 		},
 	}
 
-	frag := &SharedTypesFragment{Types: types}
+	frag := &emit.SharedTypesFragment{Types: types}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -181,7 +182,7 @@ func TestNewSharedTypesFile_FiltersStructs(t *testing.T) {
 		{Name: "UnionType", Kind: ir.TypeUnion, Scope: ir.ScopeShared},
 	}
 
-	target := NewSharedTypesFile("/tmp/test", "osapi", types)
+	target := emit.NewSharedTypesFile("/tmp/test", "osapi", types)
 	require.NotNil(t, target)
 
 	src, err := target.Render()

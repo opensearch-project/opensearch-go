@@ -38,6 +38,7 @@ type RoundtripTestFragment struct {
 	NeedsStrings bool
 }
 
+// Imports returns the imports the round-trip test fragment needs.
 func (f *RoundtripTestFragment) Imports() []Import {
 	imps := []Import{
 		{Path: "io"},
@@ -54,6 +55,7 @@ func (f *RoundtripTestFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the round-trip test function for the operation.
 func (f *RoundtripTestFragment) Body() (string, error) {
 	var sb strings.Builder
 	if err := roundtripTestFragTmpl.Execute(&sb, f); err != nil {
@@ -62,6 +64,7 @@ func (f *RoundtripTestFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var roundtripTestFragTmpl = template.Must(template.New("roundtripTest").Funcs(template.FuncMap{
 	"quote": func(s string) string { return fmt.Sprintf("%q", s) },
 }).Parse(`func Test{{.TypePrefix}}_Roundtrip(t *testing.T) {

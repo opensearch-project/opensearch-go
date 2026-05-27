@@ -4,20 +4,24 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package ir
+package ir_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+)
 
 func TestTypeRegistryRegisterAndLookup(t *testing.T) {
 	t.Parallel()
 
-	reg := NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
+	reg := ir.NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
 
-	typ := &Type{
+	typ := &ir.Type{
 		Name:      "ClusterHealthResp",
 		SchemaRef: "cluster.health___HealthResponseBody",
-		Kind:      TypeStruct,
-		Scope:     ScopeResponse,
+		Kind:      ir.TypeStruct,
+		Scope:     ir.ScopeResponse,
 	}
 
 	got, ok := reg.Register(typ)
@@ -56,11 +60,11 @@ func TestTypeRegistryRegisterAndLookup(t *testing.T) {
 func TestTypeRegistryShared(t *testing.T) {
 	t.Parallel()
 
-	reg := NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
+	reg := ir.NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
 
-	shared := &Type{Name: "ShardStatistics", SchemaRef: "_common___ShardStatistics", Scope: ScopeShared}
-	local := &Type{Name: "IndexHealthStats", SchemaRef: "cluster.health___IndexHealthStats", Scope: ScopeLocal}
-	resp := &Type{Name: "ClusterHealthResp", SchemaRef: "cluster.health___HealthResponseBody", Scope: ScopeResponse}
+	shared := &ir.Type{Name: "ShardStatistics", SchemaRef: "_common___ShardStatistics", Scope: ir.ScopeShared}
+	local := &ir.Type{Name: "IndexHealthStats", SchemaRef: "cluster.health___IndexHealthStats", Scope: ir.ScopeLocal}
+	resp := &ir.Type{Name: "ClusterHealthResp", SchemaRef: "cluster.health___HealthResponseBody", Scope: ir.ScopeResponse}
 
 	reg.Register(shared)
 	reg.Register(local)
@@ -78,19 +82,19 @@ func TestTypeRegistryShared(t *testing.T) {
 func TestTypeRegistryPromoteSharedDeps(t *testing.T) {
 	t.Parallel()
 
-	reg := NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
+	reg := ir.NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
 
-	parent := &Type{
+	parent := &ir.Type{
 		Name:      "SharedParent",
 		SchemaRef: "shared___Parent",
-		Scope:     ScopeShared,
+		Scope:     ir.ScopeShared,
 		Package:   "osapi",
-		Fields:    []Field{{GoName: "Child", GoType: "LocalChild"}},
+		Fields:    []ir.Field{{GoName: "Child", GoType: "LocalChild"}},
 	}
-	child := &Type{
+	child := &ir.Type{
 		Name:      "LocalChild",
 		SchemaRef: "op___LocalChild",
-		Scope:     ScopeLocal,
+		Scope:     ir.ScopeLocal,
 	}
 
 	reg.Register(parent)
@@ -98,7 +102,7 @@ func TestTypeRegistryPromoteSharedDeps(t *testing.T) {
 
 	reg.PromoteSharedDeps()
 
-	if child.Scope != ScopeShared {
+	if child.Scope != ir.ScopeShared {
 		t.Fatal("PromoteSharedDeps did not promote child to shared")
 	}
 }
@@ -123,7 +127,7 @@ func TestUnwrapTypeName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := unwrapTypeName(tt.input)
+			got := ir.UnwrapTypeName(tt.input)
 			if got != tt.want {
 				t.Errorf("unwrapTypeName(%q) = %q, want %q", tt.input, got, tt.want)
 			}
@@ -135,7 +139,7 @@ func TestParamKindConstants(t *testing.T) {
 	t.Parallel()
 
 	// Verify the enum values are distinct and ordered.
-	kinds := []ParamKind{ParamString, ParamBool, ParamInt, ParamDuration, ParamList}
+	kinds := []ir.ParamKind{ir.ParamString, ir.ParamBool, ir.ParamInt, ir.ParamDuration, ir.ParamList}
 	for i := range kinds {
 		if int(kinds[i]) != i {
 			t.Errorf("ParamKind %d has value %d, want %d", i, int(kinds[i]), i)
@@ -146,7 +150,7 @@ func TestParamKindConstants(t *testing.T) {
 func TestTypeKindConstants(t *testing.T) {
 	t.Parallel()
 
-	kinds := []TypeKind{TypeStruct, TypeUnion, TypeLazyUnion}
+	kinds := []ir.TypeKind{ir.TypeStruct, ir.TypeUnion, ir.TypeLazyUnion}
 	for i := range kinds {
 		if int(kinds[i]) != i {
 			t.Errorf("TypeKind %d has value %d, want %d", i, int(kinds[i]), i)

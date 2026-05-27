@@ -39,25 +39,28 @@ const (
 )
 
 // coreGroups are operation-group prefixes that belong in opensearchapi/.
+// Keys are sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var coreGroups = map[string]bool{
 	"":                 true,
-	"_core":            true,
 	"_common":          true,
+	"_core":            true,
 	"cat":              true,
 	"cluster":          true,
+	"dangling_indices": true,
 	"indices":          true,
+	"ingest":           true,
 	"nodes":            true,
+	"remote_store":     true,
+	"scroll":           true,
+	"search_pipeline":  true,
 	"snapshot":         true,
 	"tasks":            true,
-	"ingest":           true,
-	"dangling_indices": true,
-	"search_pipeline":  true,
-	"scroll":           true,
-	"remote_store":     true,
 }
 
 // routeOperation determines the Go package and output directory for an operation.
-func routeOperation(group, outDir, pluginsDir string) (pkg, dir string) {
+func routeOperation(group, outDir, pluginsDir string) (string, string) {
 	prefix := groupPrefix(group)
 	if coreGroups[prefix] {
 		return opensearchAPIPkgName, outDir
@@ -65,13 +68,9 @@ func routeOperation(group, outDir, pluginsDir string) (pkg, dir string) {
 	return prefix, path.Join(pluginsDir, prefix)
 }
 
-// importPath returns the full Go import path for the package that owns a
-// given operation group. When corePkg differs from opensearchAPIPkgName, it
+// importPathForPkg returns the full Go import path for the package that owns
+// a given operation group. When corePkg differs from opensearchAPIPkgName, it
 // uses that as the core package path segment.
-func importPath(group string) string {
-	return importPathForPkg(group, opensearchAPIPkgName)
-}
-
 func importPathForPkg(group, corePkg string) string {
 	prefix := groupPrefix(group)
 	if coreGroups[prefix] {
@@ -88,8 +87,8 @@ func importPathForPkg(group, corePkg string) string {
 
 // groupPrefix returns the part before the first dot, or "" for unprefixed groups.
 func groupPrefix(group string) string {
-	if idx := strings.IndexByte(group, '.'); idx >= 0 {
-		return group[:idx]
+	if before, _, ok := strings.Cut(group, "."); ok {
+		return before
 	}
 	return ""
 }
@@ -118,8 +117,8 @@ func operationFilename(group string) string {
 		}
 		return group
 	}
-	if idx := strings.IndexByte(group, '.'); idx >= 0 {
-		return group[idx+1:]
+	if _, after, ok := strings.Cut(group, "."); ok {
+		return after
 	}
 	return group
 }
@@ -142,25 +141,32 @@ type subClientInfo struct {
 // nestedSubClientOverrides maps operation group names to deprecated sub-client
 // forwarding methods. These are the nested sub-client methods that provide
 // backward compatibility (e.g. client.Indices.Alias.Get) alongside the
-// canonical flat methods (e.g. client.Indices.GetAlias).
+// canonical flat methods (e.g. client.Indices.GetAlias). Keys are sorted
+// alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var nestedSubClientOverrides = map[string]dispatchRoute{
-	"indices.get_alias":            {ReceiverType: "aliasClient", MethodName: "Get", Deprecated: true},
-	"indices.put_alias":            {ReceiverType: "aliasClient", MethodName: "Put", Deprecated: true},
-	"indices.delete_alias":         {ReceiverType: "aliasClient", MethodName: "Delete", Deprecated: true},
-	"indices.exists_alias":         {ReceiverType: "aliasClient", MethodName: "Exists", Deprecated: true},
-	"indices.get_mapping":          {ReceiverType: "mappingClient", MethodName: "Get", Deprecated: true},
-	"indices.put_mapping":          {ReceiverType: "mappingClient", MethodName: "Put", Deprecated: true},
-	"indices.get_field_mapping":    {ReceiverType: "mappingClient", MethodName: "Field", Deprecated: true},
-	"indices.get_settings":         {ReceiverType: "settingsClient", MethodName: "Get", Deprecated: true},
-	"indices.put_settings":         {ReceiverType: "settingsClient", MethodName: "Put", Deprecated: true},
-	"snapshot.create_repository":   {ReceiverType: "repositoryClient", MethodName: "Create", Deprecated: true},
-	"snapshot.delete_repository":   {ReceiverType: "repositoryClient", MethodName: "Delete", Deprecated: true},
-	"snapshot.get_repository":      {ReceiverType: "repositoryClient", MethodName: "Get", Deprecated: true},
-	"snapshot.verify_repository":   {ReceiverType: "repositoryClient", MethodName: "Verify", Deprecated: true},
-	"snapshot.cleanup_repository":  {ReceiverType: "repositoryClient", MethodName: "Cleanup", Deprecated: true},
+	"indices.delete_alias":        {ReceiverType: "aliasClient", MethodName: "Delete", Deprecated: true},
+	"indices.exists_alias":        {ReceiverType: "aliasClient", MethodName: "Exists", Deprecated: true},
+	"indices.get_alias":           {ReceiverType: "aliasClient", MethodName: "Get", Deprecated: true},
+	"indices.get_field_mapping":   {ReceiverType: "mappingClient", MethodName: "Field", Deprecated: true},
+	"indices.get_mapping":         {ReceiverType: "mappingClient", MethodName: "Get", Deprecated: true},
+	"indices.get_settings":        {ReceiverType: "settingsClient", MethodName: "Get", Deprecated: true},
+	"indices.put_alias":           {ReceiverType: "aliasClient", MethodName: "Put", Deprecated: true},
+	"indices.put_mapping":         {ReceiverType: "mappingClient", MethodName: "Put", Deprecated: true},
+	"indices.put_settings":        {ReceiverType: "settingsClient", MethodName: "Put", Deprecated: true},
+	"snapshot.cleanup_repository": {ReceiverType: "repositoryClient", MethodName: "Cleanup", Deprecated: true},
+	"snapshot.create_repository":  {ReceiverType: "repositoryClient", MethodName: "Create", Deprecated: true},
+	"snapshot.delete_repository":  {ReceiverType: "repositoryClient", MethodName: "Delete", Deprecated: true},
+	"snapshot.get_repository":     {ReceiverType: "repositoryClient", MethodName: "Get", Deprecated: true},
+	"snapshot.verify_repository":  {ReceiverType: "repositoryClient", MethodName: "Verify", Deprecated: true},
 }
 
-// subClientHierarchy defines the sub-client types and their nesting.
+// subClientHierarchy defines the sub-client types and their nesting. The
+// order is significant: parents must precede children since dispatch
+// resolution walks the slice once.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var subClientHierarchy = []subClientInfo{
 	{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
 	{TypeName: "clusterClient", FieldName: "Cluster", Parent: "Client"},
@@ -185,27 +191,48 @@ var subClientHierarchy = []subClientInfo{
 	{TypeName: "repositoryClient", FieldName: "Repository", Parent: "snapshotClient"},
 }
 
-// prefixToReceiverType maps a group prefix to its primary (flat) receiver type.
+// resolveFieldPath translates a sub-client receiver type name into the
+// dotted field path used to access it from a *Client. e.g.
+// "clusterClient" -> "Cluster", "aliasClient" -> "Indices.Alias".
+func resolveFieldPath(receiverType string) string {
+	for _, sc := range subClientHierarchy {
+		if sc.TypeName == receiverType {
+			if sc.Parent == "Client" {
+				return sc.FieldName
+			}
+			return resolveFieldPath(sc.Parent) + "." + sc.FieldName
+		}
+	}
+	return receiverType
+}
+
+// prefixToReceiverType maps a group prefix to its primary (flat) receiver
+// type. Keys are sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var prefixToReceiverType = map[string]string{
 	"cat":              "catClient",
 	"cluster":          "clusterClient",
 	"dangling_indices": "danglingClient",
 	"indices":          "indicesClient",
+	"ingest":           "ingestClient",
 	"nodes":            "nodesClient",
+	"remote_store":     "Client",
+	"scroll":           "scrollClient",
+	"search_pipeline":  "searchPipelineClient",
 	"snapshot":         "snapshotClient",
 	"tasks":            "tasksClient",
-	"ingest":           "ingestClient",
-	"search_pipeline":  "searchPipelineClient",
-	"scroll":           "scrollClient",
-	"remote_store":     "Client",
 }
 
 // unprefixedGroupOverrides routes prefix-less operation groups (no dot) that
 // would otherwise resolve to top-level Client methods, to a specific sub-client
 // to avoid field/method name collisions or maintain backward compatibility.
+// Keys are sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var unprefixedGroupOverrides = map[string]dispatchRoute{
-	"scroll":       {ReceiverType: "scrollClient", MethodName: "Get", TopLevel: false},
 	"clear_scroll": {ReceiverType: "scrollClient", MethodName: "Delete", TopLevel: false},
+	"scroll":       {ReceiverType: "scrollClient", MethodName: "Get", TopLevel: false},
 }
 
 // resolveDispatchRoutes returns all dispatch routes for an operation group.
@@ -257,8 +284,8 @@ func resolvePrimaryDispatch(group, prefix string) dispatchRoute {
 	}
 
 	suffix := group
-	if idx := strings.IndexByte(group, '.'); idx >= 0 {
-		suffix = group[idx+1:]
+	if _, after, ok := strings.Cut(group, "."); ok {
+		suffix = after
 	}
 
 	return dispatchRoute{
@@ -339,8 +366,8 @@ func resolvePluginSubClients(groups []string) pluginSubClientResult {
 
 	for _, g := range groups {
 		suffix := g
-		if idx := strings.IndexByte(g, '.'); idx >= 0 {
-			suffix = g[idx+1:]
+		if _, after, ok := strings.Cut(g, "."); ok {
+			suffix = after
 		}
 
 		resource := extractResourceNoun(suffix)
@@ -391,7 +418,10 @@ func resolvePluginSubClients(groups []string) pluginSubClientResult {
 }
 
 // verbPrefixes are common verb prefixes in operation suffixes, ordered
-// longest-first so longer prefixes match before shorter ones.
+// longest-first so longer prefixes match before shorter ones (so the
+// order is significant; alphabetizing would be wrong).
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var verbPrefixes = []string{
 	"create_update_",
 	"get_all_",
@@ -489,10 +519,13 @@ func singularize(word string) string {
 // irregularSingulars maps plural English words to their singular form for
 // cases where suffix-based rules produce the wrong result. Keep this list
 // minimal and limited to nouns that appear in OpenAPI resource paths.
+// Keys are sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var irregularSingulars = map[string]string{
 	"caches":  "cache",
-	"niches":  "niche",
 	"indices": "index",
+	"niches":  "niche",
 }
 
 // resourceToTypeName converts a resource noun to an unexported Go client type

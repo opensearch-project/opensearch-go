@@ -385,9 +385,9 @@ func TestExpandUnionPaths(t *testing.T) {
 				},
 			},
 			wantPaths: []string{
-				"/_p/{a}",       // original
-				"/_p/{b}",       // synthetic from union member b
-				"/_p/{a}/{b}",   // original
+				"/_p/{a}",     // original
+				"/_p/{b}",     // synthetic from union member b
+				"/_p/{a}/{b}", // original
 			},
 			wantParams: map[string][]string{
 				"/_p/{a}":     {"a"},

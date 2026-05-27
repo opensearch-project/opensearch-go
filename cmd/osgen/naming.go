@@ -14,12 +14,27 @@ import (
 )
 
 // acronyms maps lowercase segments to their Go-idiomatic uppercase form.
+// Keys are sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var acronyms = map[string]string{
-	"id": "ID", "uuid": "UUID", "uri": "URI", "url": "URL",
-	"http": "HTTP", "https": "HTTPS", "ttl": "TTL", "ip": "IP",
-	"tcp": "TCP", "tls": "TLS", "ssl": "SSL", "api": "API",
-	"json": "JSON", "xml": "XML", "sql": "SQL", "dsl": "DSL",
-	"pit": "PIT",
+	"api":   "API",
+	"dsl":   "DSL",
+	"http":  "HTTP",
+	"https": "HTTPS",
+	"id":    "ID",
+	"ip":    "IP",
+	"json":  "JSON",
+	"pit":   "PIT",
+	"sql":   "SQL",
+	"ssl":   "SSL",
+	"tcp":   "TCP",
+	"tls":   "TLS",
+	"ttl":   "TTL",
+	"uri":   "URI",
+	"url":   "URL",
+	"uuid":  "UUID",
+	"xml":   "XML",
 }
 
 // titleSegment capitalizes a segment with full acronym expansion.
@@ -125,20 +140,7 @@ func baseGoName(jsonName string) string {
 // ("knn.stats" -> "Stats" within package knn).
 func pkgScopedName(group string) string {
 	prefix := groupPrefix(group)
-	var name string
-	if coreGroups[prefix] {
-		if prefix == "_core" {
-			name = group[len("_core."):]
-		} else {
-			name = group
-		}
-	} else {
-		if idx := strings.IndexByte(group, '.'); idx >= 0 {
-			name = group[idx+1:]
-		} else {
-			name = group
-		}
-	}
+	name := scopedNameForPkg(group, prefix)
 
 	parts := strings.FieldsFunc(name, func(r rune) bool {
 		return r == '.' || r == '_'
@@ -148,6 +150,22 @@ func pkgScopedName(group string) string {
 		sb.WriteString(titleSegment(p))
 	}
 	return sb.String()
+}
+
+// scopedNameForPkg returns the input to titleSegment-ize for pkgScopedName.
+// Core groups keep their prefix (or strip "_core."); plugin groups drop
+// the plugin prefix.
+func scopedNameForPkg(group, prefix string) string {
+	if coreGroups[prefix] {
+		if prefix == "_core" {
+			return group[len("_core."):]
+		}
+		return group
+	}
+	if _, after, ok := strings.Cut(group, "."); ok {
+		return after
+	}
+	return group
 }
 
 // isPredeclaredIdent reports whether s shadows a Go predeclared identifier
@@ -178,8 +196,8 @@ func schemaTypeName(schemaKey string, isRespBody bool) string {
 	}
 
 	// Handle group._common (e.g. "nodes._common___NodesResponseBase").
-	if strings.HasSuffix(groupPart, "._common") {
-		parentGroup := strings.TrimSuffix(groupPart, "._common")
+	if before, ok0 := strings.CutSuffix(groupPart, "._common"); ok0 {
+		parentGroup := before
 		prefix := pascalFromSegments(parentGroup)
 		local := pascalFromSegments(localPart)
 		return deStutterPrefix(prefix, local, parentGroup)
@@ -245,72 +263,75 @@ func pascalFromSegments(s string) string {
 
 // scalarAliases maps OpenAPI spec $ref suffixes to their Go primitive types.
 // Schemas matching these are inlined as the primitive type rather than
-// generating a named Go type.
+// generating a named Go type. Keys are sorted alphabetically; keep them
+// that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var scalarAliases = map[string]string{
-	"_common___Name":                    "string",
-	"_common___Names":                   "[]string",
-	"_common___Field":                   "string",
-	"_common___Fields":                  "string",
-	"_common___Id":                      "string",
-	"_common___Ids":                     "string",
-	"_common___IndexName":               "string",
-	"_common___IndexAlias":              "string",
-	"_common___Indices":                 "[]string",
+	"_common___BuiltinScriptLanguage":   "string",
+	"_common___ByteCount":               "int64",
+	"_common___ClusterSearchStatus":     "string",
 	"_common___DataStreamName":          "string",
 	"_common___DataStreamNames":         "string",
-	"_common___Host":                    "string",
-	"_common___ScrollId":                "string",
-	"_common___Fuzziness":               "string",
-	"_common___Routing":                 "string",
-	"_common___Uri":                     "string",
-	"_common___Uuid":                    "string",
-	"_common___NodeId":                  "string",
-	"_common___NodeName":                "string",
-	"_common___Password":                "string",
-	"_common___PipelineName":            "string",
-	"_common___RelationName":            "string",
-	"_common___TaskId":                  "string",
-	"_common___TimeZone":                "string",
-	"_common___TransportAddress":        "string",
-	"_common___Type":                    "string",
-	"_common___Username":                "string",
-	"_common___Ip":                      "string",
-	"_common___Distance":                "string",
-	"_common___GeoHash":                 "string",
-	"_common___ResourceType":            "string",
-	"_common___SortOrder":               "string",
-	"_common___SuggestMode":             "string",
-	"_common___BuiltinScriptLanguage":   "string",
-	"_common___ClusterSearchStatus":     "string",
-	"_common___VersionString":           "string",
-	"_common___VersionNumber":           "int64",
-	"_common___SequenceNumber":          "int64",
-	"_common___uint":                    "int",
-	"_common___short":                   "int",
-	"_common___byte":                    "int",
-	"_common___long":                    "int64",
-	"_common___integer":                 "int",
-	"_common___double":                  "float64",
-	"_common___float":                   "float64",
-	"_common___PercentageNumber":        "float64",
-	"_common___PercentageString":        "string",
-	"_common___ByteCount":               "int64",
-	"_common___HumanReadableByteCount":  "string",
-	"_common___EpochTimeUnitMillis":     "int64",
-	"_common___EpochTimeUnitSeconds":    "int64",
-	"_common___Duration":                "string",
-	"_common___DurationLarge":           "string",
-	"_common___DurationValueUnitMillis": "int64",
-	"_common___DurationValueUnitNanos":  "int64",
-	"_common___DurationValueUnitMicros": "int64",
 	"_common___DateFormat":              "string",
 	"_common___DateMath":                "string",
 	"_common___DateTime":                "string",
+	"_common___Distance":                "string",
+	"_common___Duration":                "string",
+	"_common___DurationLarge":           "string",
+	"_common___DurationValueUnitMicros": "int64",
+	"_common___DurationValueUnitMillis": "int64",
+	"_common___DurationValueUnitNanos":  "int64",
+	"_common___EmptyObject":             "struct{}",
+	"_common___EpochTimeUnitMillis":     "int64",
+	"_common___EpochTimeUnitSeconds":    "int64",
+	"_common___Field":                   "string",
+	"_common___Fields":                  "string",
+	"_common___Fuzziness":               "string",
+	"_common___GeoHash":                 "string",
+	"_common___Host":                    "string",
+	"_common___HumanReadableByteCount":  "string",
+	"_common___Id":                      "string",
+	"_common___Ids":                     "string",
+	"_common___IndexAlias":              "string",
+	"_common___IndexName":               "string",
+	"_common___Indices":                 "[]string",
+	"_common___Ip":                      "string",
+	"_common___Name":                    "string",
+	"_common___Names":                   "[]string",
+	"_common___NodeId":                  "string",
+	"_common___NodeName":                "string",
+	"_common___Password":                "string",
+	"_common___PercentageNumber":        "float64",
+	"_common___PercentageString":        "string",
+	"_common___PipelineName":            "string",
+	"_common___RelationName":            "string",
+	"_common___ResourceType":            "string",
+	"_common___Routing":                 "string",
+	"_common___ScrollId":                "string",
+	"_common___SequenceNumber":          "int64",
+	"_common___SortOrder":               "string",
 	"_common___StringifiedBoolean":      "string",
 	"_common___StringifiedDouble":       "string",
 	"_common___StringifiedInteger":      "string",
 	"_common___StringifiedLong":         "string",
-	"_common___EmptyObject":             "struct{}",
+	"_common___SuggestMode":             "string",
+	"_common___TaskId":                  "string",
+	"_common___TimeZone":                "string",
+	"_common___TransportAddress":        "string",
+	"_common___Type":                    "string",
+	"_common___Uri":                     "string",
+	"_common___Username":                "string",
+	"_common___Uuid":                    "string",
+	"_common___VersionNumber":           "int64",
+	"_common___VersionString":           "string",
+	"_common___byte":                    "int",
+	"_common___double":                  "float64",
+	"_common___float":                   "float64",
+	"_common___integer":                 "int",
+	"_common___long":                    "int64",
+	"_common___short":                   "int",
+	"_common___uint":                    "int",
 }
 
 // isScalarAlias returns the Go primitive type for schema references that are

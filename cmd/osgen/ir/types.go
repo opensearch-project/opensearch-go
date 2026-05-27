@@ -124,6 +124,7 @@ type QueryParam struct {
 // ParamGroup classifies a query parameter into a shared embedding group.
 type ParamGroup int
 
+// ParamGroup values: which shared params struct a parameter belongs to.
 const (
 	ParamGroupOperation ParamGroup = iota
 	ParamGroupTimeout
@@ -132,6 +133,8 @@ const (
 
 func (g ParamGroup) String() string {
 	switch g {
+	case ParamGroupOperation:
+		return "operation"
 	case ParamGroupTimeout:
 		return "timeout"
 	case ParamGroupDebug:
@@ -144,6 +147,7 @@ func (g ParamGroup) String() string {
 // ParamKind classifies query parameter serialization behavior.
 type ParamKind int
 
+// ParamKind values: how a query parameter is serialized on the wire.
 const (
 	ParamString   ParamKind = iota // default string parameter
 	ParamBool                      // serialized as "true"/"false"
@@ -157,6 +161,7 @@ const (
 // custom UnmarshalJSON/MarshalJSON to correctly capture the response data.
 type RespShape int
 
+// RespShape values: the top-level shape of a response body.
 const (
 	RespShapeStruct RespShape = iota // struct with explicit fields (default)
 	RespShapeMap                     // map[string]T (additionalProperties with no named properties)
@@ -181,19 +186,21 @@ type Type struct {
 // TypeKind discriminates between struct and union type forms.
 type TypeKind int
 
+// TypeKind values: shape category for a generated Go type.
 const (
 	TypeStruct    TypeKind = iota // plain struct with fields
-	TypeUnion                    // byte-prefix discriminated union (token class dispatch)
-	TypeLazyUnion                // lazy-decode union (stores raw JSON, decodes on accessor)
+	TypeUnion                     // byte-prefix discriminated union (token class dispatch)
+	TypeLazyUnion                 // lazy-decode union (stores raw JSON, decodes on accessor)
 )
 
 // TypeScope determines where a type is emitted.
 type TypeScope int
 
+// TypeScope values: which file a type is emitted into.
 const (
 	ScopeLocal    TypeScope = iota // emitted in the operation's file
-	ScopeShared                   // emitted in types_gen.go (shared across operations)
-	ScopeResponse                 // top-level Resp struct (emitted in operation's file)
+	ScopeShared                    // emitted in types_gen.go (shared across operations)
+	ScopeResponse                  // top-level Resp struct (emitted in operation's file)
 )
 
 // Field represents a struct field in a generated Go type.
@@ -223,6 +230,7 @@ type UnionBranch struct {
 // TokenClass identifies the JSON token that triggers a union branch.
 type TokenClass int
 
+// TokenClass values: JSON tokens used to discriminate union branches.
 const (
 	TokenObject TokenClass = iota
 	TokenArray
@@ -274,17 +282,18 @@ type PathCaseCondition struct {
 // PathOpKind classifies path-building operations.
 type PathOpKind uint8
 
+// PathOpKind values: instruction kinds emitted into the path Build() method body.
 const (
-	PathOpLit       PathOpKind = iota // literal path segment
-	PathOpField                       // single-value field interpolation
-	PathOpList                        // comma-joined list interpolation
-	PathOpSwitch                      // open switch{} block
-	PathOpCase                        // case <conditions>: label
-	PathOpDefault                     // default: label
-	PathOpSwitchEnd                   // close switch{} block
-	PathOpIf                          // open if{} block
-	PathOpIfEnd                       // close if{} block
-	PathOpExplainCheck                // emit "if any-optional-set { return explain<T>(p) }"
+	PathOpLit          PathOpKind = iota // literal path segment
+	PathOpField                          // single-value field interpolation
+	PathOpList                           // comma-joined list interpolation
+	PathOpSwitch                         // open switch{} block
+	PathOpCase                           // case <conditions>: label
+	PathOpDefault                        // default: label
+	PathOpSwitchEnd                      // close switch{} block
+	PathOpIf                             // open if{} block
+	PathOpIfEnd                          // close if{} block
+	PathOpExplainCheck                   // emit "if any-optional-set { return explain<T>(p) }"
 )
 
 // DispatchRoute describes how an operation maps to a client method.

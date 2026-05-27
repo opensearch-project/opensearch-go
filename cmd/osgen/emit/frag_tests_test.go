@@ -4,21 +4,23 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 )
 
 func TestParamsTestFragment_Body(t *testing.T) {
 	t.Parallel()
 
-	frag := &ParamsTestFragment{
+	frag := &emit.ParamsTestFragment{
 		TypePrefix:  "ClusterHealth",
 		HasDuration: true,
-		Cases: []ParamTestCase{
+		Cases: []emit.ParamTestCase{
 			{Name: "timeout", FieldAssign: "Timeout: 5 * time.Second", WantAssign: `"timeout": "5000ms"`},
 			{Name: "local=true", FieldAssign: "Local: func(b bool) *bool { return &b }(true)", WantAssign: `"local": "true"`},
 			{Name: "local=false", FieldAssign: "Local: func(b bool) *bool { return &b }(false)", WantAssign: `"local": "false"`},
@@ -65,7 +67,7 @@ func TestParamsTestFragment_Imports(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			frag := &ParamsTestFragment{TypePrefix: "X", HasDuration: tt.hasDuration}
+			frag := &emit.ParamsTestFragment{TypePrefix: "X", HasDuration: tt.hasDuration}
 			imps := frag.Imports()
 
 			hasTime := false
@@ -82,11 +84,11 @@ func TestParamsTestFragment_Imports(t *testing.T) {
 func TestReqTestFragment_Body(t *testing.T) {
 	t.Parallel()
 
-	frag := &ReqTestFragment{
+	frag := &emit.ReqTestFragment{
 		PkgName:    "osapi",
 		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
 		TypePrefix: "ClusterHealth",
-		Cases: []ReqTestCase{
+		Cases: []emit.ReqTestCase{
 			{Name: "empty request", WantMethod: "GET", WantPath: "/_cluster/health", WantErr: "false"},
 		},
 	}
@@ -115,11 +117,17 @@ func TestReqTestFragment_Body(t *testing.T) {
 func TestDispatchTestFragment_Body(t *testing.T) {
 	t.Parallel()
 
-	frag := &DispatchTestFragment{
+	frag := &emit.DispatchTestFragment{
 		PkgName:    "osapi",
 		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
-		Entries: []DispatchEntry{
-			{TestName: "ClusterHealth", FieldPath: "Cluster", MethodName: "Health", ReqType: "*osapi.ClusterHealthReq", RespType: "*osapi.ClusterHealthResp"},
+		Entries: []emit.DispatchEntry{
+			{
+				TestName:   "ClusterHealth",
+				FieldPath:  "Cluster",
+				MethodName: "Health",
+				ReqType:    "*osapi.ClusterHealthReq",
+				RespType:   "*osapi.ClusterHealthResp",
+			},
 			{TestName: "Info", FieldPath: "", MethodName: "Info", ReqType: "*osapi.InfoReq", RespType: "*osapi.InfoResp"},
 		},
 	}
@@ -147,12 +155,12 @@ func TestDispatchTestFragment_Body(t *testing.T) {
 func TestNewParamsTestFile_BuildTag(t *testing.T) {
 	t.Parallel()
 
-	frag := &ParamsTestFragment{
+	frag := &emit.ParamsTestFragment{
 		TypePrefix: "ClusterHealth",
-		Cases:      []ParamTestCase{{Name: "x", FieldAssign: "X: func(b bool) *bool { return &b }(true)", WantAssign: `"x": "true"`}},
+		Cases:      []emit.ParamTestCase{{Name: "x", FieldAssign: "X: func(b bool) *bool { return &b }(true)", WantAssign: `"x": "true"`}},
 	}
 
-	target := NewParamsTestFile("/tmp/test", "osapi", "api_cluster-health", frag)
+	target := emit.NewParamsTestFile("/tmp/test", "osapi", "api_cluster-health", frag)
 	src, err := target.Render()
 	require.NoError(t, err)
 
@@ -164,18 +172,18 @@ func TestNewParamsTestFile_BuildTag(t *testing.T) {
 func TestReqTestFile_BlackBox(t *testing.T) {
 	t.Parallel()
 
-	frag := &ReqTestFragment{
+	frag := &emit.ReqTestFragment{
 		PkgName:    "osapi",
 		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
 		TypePrefix: "ClusterHealth",
-		Cases:      []ReqTestCase{{Name: "empty", WantMethod: "GET", WantPath: "/", WantErr: "false"}},
+		Cases:      []emit.ReqTestCase{{Name: "empty", WantMethod: "GET", WantPath: "/", WantErr: "false"}},
 	}
 
-	target := &File{
+	target := &emit.File{
 		FilePath:  "/tmp/test/api_cluster-health_gen_test.go",
 		Package:   "osapi_test",
 		BuildTag:  "!integration",
-		Fragments: []Fragment{frag},
+		Fragments: []emit.Fragment{frag},
 	}
 	src, err := target.Render()
 	require.NoError(t, err)
@@ -188,12 +196,12 @@ func TestReqTestFile_BlackBox(t *testing.T) {
 func TestNewIntegTestFile_BuildTag(t *testing.T) {
 	t.Parallel()
 
-	frag := &IntegTestFragment{
+	frag := &emit.IntegTestFragment{
 		PkgName:    "osapi",
 		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
 		ModulePath: "github.com/opensearch-project/opensearch-go/v4",
 		CorePkg:    "osapi",
-		Config: IntegTestConfig{
+		Config: emit.IntegTestConfig{
 			TypePrefix:   "ClusterHealth",
 			CallExpr:     "client.Cluster.Health(t.Context(), nil)",
 			FailCallExpr: "failingClient.Cluster.Health(t.Context(), nil)",
@@ -201,7 +209,7 @@ func TestNewIntegTestFile_BuildTag(t *testing.T) {
 		},
 	}
 
-	target := NewIntegTestFile("/tmp/test", "osapi", "api_cluster-health", frag)
+	target := emit.NewIntegTestFile("/tmp/test", "osapi", "api_cluster-health", frag)
 	src, err := target.Render()
 	require.NoError(t, err)
 

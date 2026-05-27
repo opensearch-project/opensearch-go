@@ -8,6 +8,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -19,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/renameio/v2/maybe"
@@ -38,14 +40,18 @@ func runAPI() error {
 	pkg := fs.String("pkg", opensearchAPIPkgName, "Go package name for core API output")
 	minVer := fs.String("min-version", versionEpoch, "minimum OpenSearch version (default operator: >=)")
 	maxVer := fs.String("max-version", versionLatest, "maximum OpenSearch version (default operator: <=)")
-	removeDepr := fs.String("remove-deprecated", versionEpoch, "treat operations deprecated at or before this version as removed (default: epoch, meaning keep all)")
-	preserveOpt := fs.Bool("min-version-preserve-optional", false, "keep version-gated fields as pointers even when min-version guarantees their presence")
+	removeDepr := fs.String("remove-deprecated", versionEpoch,
+		"treat operations deprecated at or before this version as removed (default: epoch, meaning keep all)")
+	preserveOpt := fs.Bool("min-version-preserve-optional", false,
+		"keep version-gated fields as pointers even when min-version guarantees their presence")
 	bcOpsFlag := fs.String("version-breadcrumb-operations", breadcrumbModeAll, "emit comments for excluded operations: all, older, newer")
 	bcTypesFlag := fs.String("version-breadcrumb-types", breadcrumbModeAll, "emit comments for excluded types: all, older, newer")
 	bcFieldsFlag := fs.String("version-breadcrumb-fields", breadcrumbModeAll, "emit comments for excluded struct fields: all, older, newer")
 	bcPathsFlag := fs.String("version-breadcrumb-paths", breadcrumbModeAll, "emit comments for excluded path builders: all, older, newer")
 	bcParamsFlag := fs.String("version-breadcrumb-params", breadcrumbModeAll, "emit comments for excluded query parameters: all, older, newer")
-	fs.Parse(os.Args[1:])
+	if err := fs.Parse(os.Args[1:]); err != nil {
+		return err
+	}
 
 	if *specPath == "" || *outDir == "" {
 		return fmt.Errorf("usage: osgen api -spec <openapi-spec.yaml> -out <dir/> [-pkg <name>] -plugins-out <osapi/plugins/>")
@@ -156,10 +162,7 @@ func generateAPI(
 	}
 	close(jobs)
 
-	workerCount := runtime.NumCPU()
-	if workerCount > len(targets) {
-		workerCount = len(targets)
-	}
+	workerCount := min(runtime.NumCPU(), len(targets))
 	var wg sync.WaitGroup
 	for range workerCount {
 		wg.Go(func() {
@@ -300,31 +303,20 @@ func removeStaleGenFiles(root string, written map[string]struct{}) (int, error) 
 	return removed, err
 }
 
-var (
-	gitTopOnce  sync.Once
-	gitTopValue string
-	gitTopErr   error
-)
-
-// repoRoot returns the absolute path of the git working tree root,
-// cached for the lifetime of the process. Tests may override
-// repoRootFunc to bypass the git check.
-var repoRootFunc = repoRootGit
-
-func repoRoot() (string, error) {
-	return repoRootFunc()
-}
+// repoRoot returns the absolute path of the git working tree root.
+// Tests may swap the implementation via the repoRoot var.
+//
+//nolint:gochecknoglobals // function var swapped by tests
+var repoRoot = repoRootGit
 
 func repoRootGit() (string, error) {
-	gitTopOnce.Do(func() {
-		out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
-		if err != nil {
-			gitTopErr = fmt.Errorf("not inside a git repository: %w", err)
-			return
-		}
-		gitTopValue = strings.TrimSpace(string(out))
-	})
-	return gitTopValue, gitTopErr
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return "", fmt.Errorf("not inside a git repository: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }
 
 // resolveGenRoot cleans and resolves root to an absolute path, then verifies
@@ -361,8 +353,8 @@ func resolveGenRoot(root string) (string, error) {
 // skipGitCheck returns true when envSkipGitCheck is set to a truthy value
 // (per strconv.ParseBool: 1, t, true, yes, on).
 func skipGitCheck() bool {
-	v, _ := strconv.ParseBool(os.Getenv(envSkipGitCheck))
-	return v
+	v, err := strconv.ParseBool(os.Getenv(envSkipGitCheck))
+	return err == nil && v
 }
 
 // writeIfChanged compares data against the existing file at path. If the
@@ -375,7 +367,7 @@ func writeIfChanged(path string, data []byte) (bool, error) {
 	if err == nil && bytes.Equal(existing, data) {
 		return false, nil
 	}
-	if err := maybe.WriteFile(path, data, 0o644); err != nil {
+	if err := maybe.WriteFile(path, data, 0o600); err != nil {
 		return false, fmt.Errorf("writing %q: %w", path, err)
 	}
 	return true, nil
@@ -466,33 +458,7 @@ func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeR
 		}
 
 		if !ok {
-			// No registered Resp struct. Classify the response shape from the
-			// schema to determine if it's a map, array, or raw response.
-			classifyRespShape(&ops[i], spec, registry)
-
-			// Collect sibling types that belong to this operation's group.
-			for _, st := range registry.forOperation(ops[i].Group) {
-				if !st.IsResp && !st.IsShared && !claimed[st.SchemaRef] {
-					ops[i].SiblingTypes = append(ops[i].SiblingTypes, st)
-					claimed[st.SchemaRef] = true
-				}
-			}
-
-			// For map/array shapes, ensure the element type and its transitive
-			// deps are included as siblings (they may belong to a different group).
-			if ops[i].RespElemType != nil && !ops[i].RespElemType.IsShared {
-				et := ops[i].RespElemType
-				if !claimed[et.SchemaRef] {
-					ops[i].SiblingTypes = append(ops[i].SiblingTypes, et)
-					claimed[et.SchemaRef] = true
-				}
-				for _, dep := range registry.reachableFrom(et.SchemaRef) {
-					if !claimed[dep.SchemaRef] {
-						ops[i].SiblingTypes = append(ops[i].SiblingTypes, dep)
-						claimed[dep.SchemaRef] = true
-					}
-				}
-			}
+			classifyUnregisteredResp(&ops[i], spec, registry, claimed)
 			continue
 		}
 		ops[i].RespFields = respType.Fields
@@ -506,6 +472,35 @@ func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeR
 		}
 	}
 	return w.excludedFields
+}
+
+// classifyUnregisteredResp handles operations whose Resp struct is not in the
+// registry: classifies the response shape (map/array/raw) and gathers the
+// sibling types that belong with it.
+func classifyUnregisteredResp(op *apiOperation, spec *openapi3.T, registry *typeRegistry, claimed map[string]bool) {
+	classifyRespShape(op, spec, registry)
+
+	for _, st := range registry.forOperation(op.Group) {
+		if !st.IsResp && !st.IsShared && !claimed[st.SchemaRef] {
+			op.SiblingTypes = append(op.SiblingTypes, st)
+			claimed[st.SchemaRef] = true
+		}
+	}
+
+	if op.RespElemType == nil || op.RespElemType.IsShared {
+		return
+	}
+	et := op.RespElemType
+	if !claimed[et.SchemaRef] {
+		op.SiblingTypes = append(op.SiblingTypes, et)
+		claimed[et.SchemaRef] = true
+	}
+	for _, dep := range registry.reachableFrom(et.SchemaRef) {
+		if !claimed[dep.SchemaRef] {
+			op.SiblingTypes = append(op.SiblingTypes, dep)
+			claimed[dep.SchemaRef] = true
+		}
+	}
 }
 
 // populateRequestBodyTypes walks request body schemas for all operations,

@@ -21,6 +21,7 @@ type SiblingTypesFragment struct {
 	Registry *ir.TypeRegistry
 }
 
+// Imports returns the imports the sibling-types fragment needs.
 func (f *SiblingTypesFragment) Imports() []Import {
 	var imps []Import
 	hasJSON := false
@@ -44,6 +45,7 @@ func (f *SiblingTypesFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the sibling type definitions co-located with an operation.
 func (f *SiblingTypesFragment) Body() (string, error) {
 	if len(f.Types) == 0 {
 		return "", nil

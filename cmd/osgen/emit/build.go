@@ -24,7 +24,7 @@ const (
 	fieldID             = "ID"
 	fieldDocumentID     = "DocumentID"
 	fieldNewIndex       = "NewIndex"
-	fieldContext         = "Context"
+	fieldContext        = "Context"
 	fieldMetric         = "Metric"
 	fieldIndexMetric    = "IndexMetric"
 	fieldNodeIDOrMetric = "NodeIDOrMetric"
@@ -287,9 +287,11 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 
 // paramTestValues returns the field assignment and expected map entry for one
 // query param case. White-box tests for both the core package and plugin
-// packages reference the package-local unexported `ptr` helper, defined per
-// package in compat_gen.go.
-func paramTestValues(p ir.QueryParam) (fieldAssign, wantAssign string) {
+// packages use the inline `func(b bool) *bool { return &b }(...)` literal
+// emitted directly into the test source for *bool params, so no per-package
+// helper is required.
+func paramTestValues(p ir.QueryParam) (string, string) {
+	var fieldAssign, wantAssign string
 	switch p.Kind {
 	case ir.ParamDuration:
 		fieldAssign = fmt.Sprintf("%s: 5 * time.Second", p.GoName)
@@ -303,6 +305,8 @@ func paramTestValues(p ir.QueryParam) (fieldAssign, wantAssign string) {
 	case ir.ParamInt:
 		fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "42")
+	case ir.ParamString:
+		fallthrough
 	default:
 		fieldAssign = fmt.Sprintf("%s: %q", p.GoName, "test-value")
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "test-value")
@@ -539,6 +543,53 @@ func buildDispatchTestFrag(ops []*ir.Operation, corePkg, coreImport string) *Dis
 	}
 }
 
+// buildIntegCallPrefix returns the qualified function/method expression that
+// the integration test should call to invoke the operation.
+func buildIntegCallPrefix(op *ir.Operation, buildCfg BuildConfig, isPlugin bool) string {
+	if !isPlugin {
+		route := primaryRouteIR(op)
+		prefix := testClientVar
+		if route.FieldPath != "" {
+			prefix += route.FieldPath + "."
+		}
+		return prefix + route.MethodName
+	}
+	suffix := op.Group
+	if idx := strings.IndexByte(suffix, '.'); idx >= 0 {
+		suffix = suffix[idx+1:]
+	}
+	methodName := PluginMethodName(suffix)
+	prefix := groupPrefixIR(op.Group)
+	if sc := buildCfg.PluginSubClients[prefix][op.Group]; sc != nil {
+		return testClientVar + sc.FieldName + "." + methodName
+	}
+	return testClientVar + methodName
+}
+
+// optionalPathFieldAssign builds the field-assignment expression for an
+// optional path field in an integration test. Returns "" when the field
+// should be left unset (skip-list, or fields whose values must come from
+// fixtures the test does not create).
+func optionalPathFieldAssign(f ir.PathBuilderField, skip map[string]bool) string {
+	if skip[f.Name] {
+		return ""
+	}
+	switch f.Name {
+	case fieldIndex:
+		if f.IsList {
+			return "Index: []string{index}"
+		}
+		return "Index: index"
+	case fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
+		fieldMetric, fieldIndexMetric, fieldNodeIDOrMetric:
+		return ""
+	}
+	if f.IsList {
+		return fmt.Sprintf("%s: []string{name}", f.Name)
+	}
+	return fmt.Sprintf("%s: name", f.Name)
+}
+
 func buildIntegTestFrag(op *ir.Operation, pkg, importPath string, cfg BuildConfig) *IntegTestFragment {
 	isPlugin := op.IsPlugin
 	config := classifyOpIR(op, pkg, cfg.CorePkg, isPlugin, cfg)
@@ -575,27 +626,7 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 		cfg.VersionAdded = skipVersion
 	}
 
-	var callPrefix string
-	if isPlugin {
-		suffix := op.Group
-		if idx := strings.IndexByte(suffix, '.'); idx >= 0 {
-			suffix = suffix[idx+1:]
-		}
-		methodName := PluginMethodName(suffix)
-		prefix := groupPrefixIR(op.Group)
-		if sc := buildCfg.PluginSubClients[prefix][op.Group]; sc != nil {
-			callPrefix = testClientVar + sc.FieldName + "." + methodName
-		} else {
-			callPrefix = testClientVar + methodName
-		}
-	} else {
-		route := primaryRouteIR(op)
-		callPrefix = testClientVar
-		if route.FieldPath != "" {
-			callPrefix += route.FieldPath + "."
-		}
-		callPrefix += route.MethodName
-	}
+	callPrefix := buildIntegCallPrefix(op, buildCfg, isPlugin)
 
 	hasRequiredIndex := false
 	hasRequiredID := false
@@ -656,14 +687,15 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 		cfg.FixtureCode = buildScriptFixtureIR(corePkg, isPlugin)
 	case fixtureDataStream:
 		cfg.FixtureCode = buildDataStreamFixtureIR(corePkg, isPlugin)
+	case fixtureNone:
+		// no fixture needed
 	}
 
 	// Determine which unique-string variables the test needs, based on
 	// operation structure and fixture kind.
-	switch fixtureKind {
-	case fixtureNone:
+	if fixtureKind == fixtureNone {
 		cfg.NeedsIndex = hasRequiredIndex
-	default:
+	} else {
 		cfg.NeedsIndex = true
 	}
 	cfg.NeedsDocID = hasRequiredID || fixtureUsesDocID(fixtureKind)
@@ -676,10 +708,19 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 	if !op.IsPointerReq {
 		willBuildReq = true
 	}
-	cfg.NeedsName = hasOtherRequired || fixtureNeedsName(fixtureKind) || hasRequiredStringParam(op) || (willBuildReq && hasOptionalNameField(op))
+	cfg.NeedsName = hasOtherRequired || fixtureNeedsName(fixtureKind) ||
+		hasRequiredStringParam(op) || (willBuildReq && hasOptionalNameField(op))
 
-	cfg.CallExpr = buildCallExprIR(callPrefix, op, pkg, corePkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, false)
-	cfg.FailCallExpr = buildCallExprIR(callPrefix, op, pkg, corePkg, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating, bodyOverride, true)
+	cfg.CallExpr = buildCallExprIR(
+		callPrefix, op, pkg, corePkg,
+		hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex,
+		needsBody, isMutating, bodyOverride, false,
+	)
+	cfg.FailCallExpr = buildCallExprIR(
+		callPrefix, op, pkg, corePkg,
+		hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex,
+		needsBody, isMutating, bodyOverride, true,
+	)
 
 	// Build all necessary query params (required params + cat format=json).
 	if paramStr := buildIntegParams(op, pkg, corePkg); paramStr != "" {
@@ -698,7 +739,15 @@ func primaryRouteIR(op *ir.Operation) ir.DispatchRoute {
 	return ir.DispatchRoute{MethodName: op.TypePrefix}
 }
 
-func buildCallExprIR(callPrefix string, op *ir.Operation, pkg, corePkg string, hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex, needsBody, isMutating bool, bodyOverride string, isFailing bool) string {
+func buildCallExprIR(
+	callPrefix string,
+	op *ir.Operation,
+	pkg, corePkg string,
+	hasRequiredIndex, hasRequiredID, hasOtherRequired, hasOptionalIndex bool,
+	needsBody, isMutating bool,
+	bodyOverride string,
+	isFailing bool,
+) string {
 	prefix := callPrefix
 	if isFailing {
 		prefix = strings.Replace(callPrefix, testClientVar, testFailingClientVar, 1)
@@ -708,12 +757,19 @@ func buildCallExprIR(callPrefix string, op *ir.Operation, pkg, corePkg string, h
 		if !hasRequiredIndex && !hasRequiredID && !hasOtherRequired && !hasOptionalIndex && !needsBody && bodyOverride == "" {
 			return prefix + "(t.Context(), nil)"
 		}
-		return prefix + "(t.Context(), &" + buildReqLiteralIR(op, pkg, corePkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
+		return prefix + "(t.Context(), &" +
+			buildReqLiteralIR(op, pkg, corePkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
 	}
-	return prefix + "(t.Context(), " + buildReqLiteralIR(op, pkg, corePkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
+	return prefix + "(t.Context(), " +
+		buildReqLiteralIR(op, pkg, corePkg, hasRequiredIndex, hasRequiredID, needsBody, isMutating, bodyOverride) + ")"
 }
 
-func buildReqLiteralIR(op *ir.Operation, pkg, corePkg string, hasRequiredIndex, hasRequiredID, needsBody, isMutating bool, bodyOverride string) string {
+func buildReqLiteralIR(
+	op *ir.Operation,
+	pkg, corePkg string,
+	hasRequiredIndex, hasRequiredID, needsBody, isMutating bool,
+	bodyOverride string,
+) string {
 	var fields []string
 
 	// Populate all path fields in the test request for a comprehensive happy-path
@@ -727,25 +783,8 @@ func buildReqLiteralIR(op *ir.Operation, pkg, corePkg string, hasRequiredIndex, 
 
 	for _, f := range op.PathBuilder.Fields {
 		if !f.Required {
-			if skip[f.Name] {
-				continue
-			}
-			switch f.Name {
-			case fieldIndex:
-				if f.IsList {
-					fields = append(fields, "Index: []string{index}")
-				} else {
-					fields = append(fields, "Index: index")
-				}
-			case fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
-				fieldMetric, fieldIndexMetric, fieldNodeIDOrMetric:
-				// not populated: these require specific valid values
-			default:
-				if f.IsList {
-					fields = append(fields, fmt.Sprintf("%s: []string{name}", f.Name))
-				} else {
-					fields = append(fields, fmt.Sprintf("%s: name", f.Name))
-				}
+			if v := optionalPathFieldAssign(f, skip); v != "" {
+				fields = append(fields, v)
 			}
 			continue
 		}
@@ -767,18 +806,8 @@ func buildReqLiteralIR(op *ir.Operation, pkg, corePkg string, hasRequiredIndex, 
 		}
 	}
 
-	if bodyOverride != "" {
-		if op.HasTypedBody {
-			fields = append(fields, BodyReaderField+": "+bodyOverride)
-		} else {
-			fields = append(fields, BodyField+": "+bodyOverride)
-		}
-	} else if needsBody {
-		if op.HasTypedBody {
-			fields = append(fields, fmt.Sprintf("%s: &%s", BodyField, qualifiedBodyLiteral(op, pkg, corePkg)))
-		} else {
-			fields = append(fields, BodyField+`: strings.NewReader("{}")`)
-		}
+	if v := integBodyAssign(op, pkg, corePkg, bodyOverride, needsBody); v != "" {
+		fields = append(fields, v)
 	}
 
 	if isMutating && hasRequiredIndex && !hasRequiredID && hasRefreshParamIR(op) {
@@ -795,6 +824,22 @@ func hasRefreshParamIR(op *ir.Operation) bool {
 		}
 	}
 	return false
+}
+
+// integBodyAssign returns the field-assignment expression for the request
+// body in an integration test, or "" when no body field is needed.
+func integBodyAssign(op *ir.Operation, pkg, corePkg, bodyOverride string, needsBody bool) string {
+	switch {
+	case bodyOverride != "" && op.HasTypedBody:
+		return BodyReaderField + ": " + bodyOverride
+	case bodyOverride != "":
+		return BodyField + ": " + bodyOverride
+	case needsBody && op.HasTypedBody:
+		return fmt.Sprintf("%s: &%s", BodyField, qualifiedBodyLiteral(op, pkg, corePkg))
+	case needsBody:
+		return BodyField + `: strings.NewReader("{}")`
+	}
+	return ""
 }
 
 // unsatisfiedPositionalDeps returns the set of optional dependent fields
@@ -884,6 +929,9 @@ func fixtureNeedsName(kind fixtureType) bool {
 	case fixtureComponentTemplate, fixtureIndexTemplate, fixtureLegacyTemplate,
 		fixtureAlias, fixtureWriteAlias:
 		return true
+	case fixtureNone, fixtureIndex, fixtureIndexOnly, fixtureDoc,
+		fixturePipeline, fixtureScript, fixtureDataStream:
+		return false
 	}
 	return false
 }
@@ -900,7 +948,7 @@ func hasRequiredStringParam(op *ir.Operation) bool {
 		switch p.Kind {
 		case ir.ParamDuration, ir.ParamBool, ir.ParamInt:
 			continue
-		default:
+		case ir.ParamString, ir.ParamList:
 			return true
 		}
 	}
@@ -912,6 +960,10 @@ func fixtureUsesDocID(kind fixtureType) bool {
 	switch kind {
 	case fixtureDoc, fixturePipeline, fixtureScript:
 		return true
+	case fixtureNone, fixtureIndex, fixtureIndexOnly, fixtureComponentTemplate,
+		fixtureIndexTemplate, fixtureLegacyTemplate, fixtureAlias,
+		fixtureWriteAlias, fixtureDataStream:
+		return false
 	}
 	return false
 }
@@ -1036,7 +1088,9 @@ func integBodyOverride(group string) string {
 	case "mget":
 		return `strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")`
 	case "ingest.simulate":
-		return `strings.NewReader("{\"pipeline\":{\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]},\"docs\":[{\"_source\":{\"title\":\"hello\"}}]}")`
+		return `strings.NewReader("{` +
+			`\"pipeline\":{\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]},` +
+			`\"docs\":[{\"_source\":{\"title\":\"hello\"}}]}")`
 	case "ingest.put_pipeline":
 		return `strings.NewReader("{\"description\":\"test\",\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]}")`
 	case "put_script":
@@ -1067,7 +1121,8 @@ func buildIndexTemplateFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.Indices.PutIndexTemplate(t.Context(), %s.IndicesPutIndexTemplateReq{
 		Name: name,
-		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["` + "`" + ` + name + ` + "`" + `-*"],"template":{"settings":{"number_of_shards":"1"}}}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["`+"`"+` + name + `+"`"+
+		`-*"],"template":{"settings":{"number_of_shards":"1"}}}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -1082,7 +1137,7 @@ func buildLegacyTemplateFixtureIR(corePkg string, isPlugin bool) string {
 	}
 	return fmt.Sprintf(`_, err = %s.Indices.PutTemplate(t.Context(), %s.IndicesPutTemplateReq{
 		Name: name,
-		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["` + "`" + ` + name + ` + "`" + `-*"]}`+"`"+`),
+		BodyReader: strings.NewReader(`+"`"+`{"index_patterns":["`+"`"+` + name + `+"`"+`-*"]}`+"`"+`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -1204,6 +1259,8 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 			fields = append(fields, p.GoName+": 1")
 		case ir.ParamList:
 			fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
+		case ir.ParamString:
+			fallthrough
 		default:
 			fields = append(fields, fmt.Sprintf("%s: name", p.GoName))
 		}
@@ -1245,24 +1302,29 @@ func kebabCaseIR(s string) string {
 
 // Routing helpers (mirror main package route.go logic).
 
+// coreGroupPrefixes are operation-group prefixes that belong in the core
+// package (mirrors the main package's coreGroups). Keys are sorted
+// alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var coreGroupPrefixes = map[string]bool{
 	"":                 true,
-	"_core":            true,
 	"_common":          true,
+	"_core":            true,
 	"cat":              true,
 	"cluster":          true,
+	"dangling_indices": true,
 	"indices":          true,
+	"ingest":           true,
 	"nodes":            true,
+	"remote_store":     true,
+	"scroll":           true,
+	"search_pipeline":  true,
 	"snapshot":         true,
 	"tasks":            true,
-	"ingest":           true,
-	"dangling_indices": true,
-	"search_pipeline":  true,
-	"scroll":           true,
-	"remote_store":     true,
 }
 
-func routeOp(group, outDir, pluginsDir string) (pkg, dir string) {
+func routeOp(group, outDir, pluginsDir string) (string, string) {
 	prefix := groupPrefixIR(group)
 	if coreGroupPrefixes[prefix] {
 		return "opensearchapi", outDir
@@ -1279,8 +1341,8 @@ func importPathForGroup(group, corePkg, modulePath string) string {
 }
 
 func groupPrefixIR(group string) string {
-	if idx := strings.IndexByte(group, '.'); idx >= 0 {
-		return group[:idx]
+	if before, _, ok := strings.Cut(group, "."); ok {
+		return before
 	}
 	return ""
 }
@@ -1296,8 +1358,8 @@ func opFilename(group string) string {
 		}
 		return group
 	}
-	if idx := strings.IndexByte(group, '.'); idx >= 0 {
-		return group[idx+1:]
+	if _, after, ok := strings.Cut(group, "."); ok {
+		return after
 	}
 	return group
 }
@@ -1319,7 +1381,7 @@ func hasExistingHelper(dir string) bool {
 	return false
 }
 
-func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, cfg BuildConfig) *RoundtripTestFragment {
+func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, _ BuildConfig) *RoundtripTestFragment {
 	if op.IsPlugin {
 		return nil
 	}
@@ -1368,7 +1430,7 @@ func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, cfg BuildC
 	switch op.RespShape {
 	case ir.RespShapeArray:
 		fixture = "[]"
-	default:
+	case ir.RespShapeStruct, ir.RespShapeMap, ir.RespShapeRaw:
 		fixture = "{}"
 	}
 	if op.IsNoBody {

@@ -12,12 +12,14 @@ package emit
 // and osapi.DebugParams in composite literals.
 type SharedParamsFragment struct{}
 
+// Imports returns the imports the shared-params fragment needs.
 func (f *SharedParamsFragment) Imports() []Import {
 	return []Import{
 		{Path: LocalModule + "/internal/params", Alias: "osparams"},
 	}
 }
 
+// Body renders the TimeoutParams/DebugParams type aliases.
 func (f *SharedParamsFragment) Body() (string, error) {
 	return sharedParamsBody, nil
 }

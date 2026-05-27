@@ -20,6 +20,7 @@ type RespFragment struct {
 	Registry *ir.TypeRegistry
 }
 
+// Imports returns the imports the Resp fragment needs.
 func (f *RespFragment) Imports() []Import {
 	if f.Op.IsNoBody {
 		return nil
@@ -53,6 +54,7 @@ func (f *RespFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the Resp struct (and its UnmarshalJSON when needed).
 func (f *RespFragment) Body() (string, error) {
 	if f.Op.IsNoBody || f.Op.Response == nil {
 		return "", nil
@@ -66,6 +68,8 @@ func (f *RespFragment) Body() (string, error) {
 		return f.renderArrayResp()
 	case ir.RespShapeRaw:
 		return f.renderRawResp()
+	case ir.RespShapeStruct:
+		// fall through to the default struct template
 	}
 
 	qualify := qualifierFunc(f.Op.IsPlugin, f.Registry)

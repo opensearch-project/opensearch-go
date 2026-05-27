@@ -20,6 +20,7 @@ type ParamsFragment struct {
 	Registry *ir.TypeRegistry
 }
 
+// Imports returns the imports the Params fragment needs.
 func (f *ParamsFragment) Imports() []Import {
 	imps := []Import{
 		{Path: LocalModule + "/internal/params", Alias: "osparams"},
@@ -37,6 +38,8 @@ func (f *ParamsFragment) Imports() []Import {
 			imps = append(imps, Import{Path: "strconv"})
 		case ir.ParamList:
 			imps = append(imps, Import{Path: "strings"})
+		case ir.ParamString:
+			// no extra import
 		}
 	}
 	return imps
@@ -51,7 +54,10 @@ func (f *ParamsFragment) Imports() []Import {
 // default response format that the SDK cannot decode (cat/list default to
 // text/plain), or that does not match the SDK's typed response struct.
 // Each entry mirrors the corresponding `_common___<X>ResponseFormat`
-// schema defined in the spec.
+// schema defined in the spec. Keys are sorted alphabetically; keep them
+// that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var prefixFormatOverrides = map[string]string{
 	"cat":  "json",
 	"list": "json",
@@ -62,7 +68,10 @@ var prefixFormatOverrides = map[string]string{
 // groupFormatOverrides holds per-operation overrides consulted before
 // prefixFormatOverrides. Used where the family default does not apply,
 // for example explain endpoints whose typed response matches the `json`
-// shape rather than the JDBC envelope used by query endpoints.
+// shape rather than the JDBC envelope used by query endpoints. Keys are
+// sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
 var groupFormatOverrides = map[string]string{
 	"ppl.explain": "json",
 	"sql.explain": "json",
@@ -89,6 +98,8 @@ func HasFormatOverride(group string) string {
 	return prefixFormatOverrides[prefix]
 }
 
+// Body renders the Params struct (and its associated apply method) for the
+// operation.
 func (f *ParamsFragment) Body() (string, error) {
 	corePkg := ""
 	if f.Op.IsPlugin && f.Registry != nil {

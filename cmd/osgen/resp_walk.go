@@ -15,59 +15,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
-// walkResponseSchema resolves the 200 response schema for an operation and
-// registers all reachable types in the registry. Returns the top-level
-// response type name (e.g. "ClusterHealthResp").
-func walkResponseSchema(group string, ops []struct {
-	method string
-	op     *openapi3.Operation
-	path   *openapi3.PathItem
-	url    string
-}, registry *typeRegistry, spec *openapi3.T) string {
-	var respSchema *openapi3.SchemaRef
-	for _, o := range ops {
-		if o.op.Responses == nil {
-			continue
-		}
-		resp := o.op.Responses.Value("200")
-		if resp == nil {
-			continue
-		}
-		if resp.Value == nil || resp.Value.Content == nil {
-			continue
-		}
-		mt := resp.Value.Content.Get(contentJSON)
-		if mt == nil || mt.Schema == nil {
-			continue
-		}
-		respSchema = mt.Schema
-		break
-	}
-	if respSchema == nil {
-		return ""
-	}
-
-	typePrefix := pkgScopedName(group)
-	respTypeName := typePrefix + "Resp"
-
-	schemaKey := refToSchemaKey(respSchema.Ref)
-	if schemaKey == "" {
-		schemaKey = group + respBodySuffix
-	}
-
-	w := &walker{
-		registry: registry,
-		spec:     spec,
-		inFlight: make(map[string]struct{}),
-	}
-
-	respType := w.walkSchema(respSchema, schemaKey, group, true)
-	if respType == "" {
-		respType = respTypeName
-	}
-	return respType
-}
-
 type walker struct {
 	registry *typeRegistry
 	spec     *openapi3.T
@@ -90,32 +37,8 @@ func (w *walker) walkSchema(ref *openapi3.SchemaRef, schemaKey, group string, is
 		return "json.RawMessage"
 	}
 
-	// Named $ref: use the ref string to derive the schema key.
 	if ref.Ref != "" {
-		key := refToSchemaKey(ref.Ref)
-		if goType, ok := isScalarAlias(key); ok {
-			return goType
-		}
-		if existing, ok := w.registry.lookup(key); ok {
-			return existing.Name
-		}
-		if _, cycling := w.inFlight[key]; cycling {
-			return schemaTypeName(key, false)
-		}
-
-		// If the referenced schema is a pure oneOf/anyOf (no properties),
-		// generate a parent-scoped union type using the CALLER's schemaKey.
-		// This attaches the union to its parent field context.
-		if ref.Value != nil && len(ref.Value.Properties) == 0 {
-			if len(ref.Value.OneOf) > 0 || len(ref.Value.AnyOf) > 0 {
-				if resolvedGoType := resolveOneOfGoType(ref.Value); resolvedGoType != "" {
-					return resolvedGoType
-				}
-				return w.resolveUnionType(ref.Value, schemaKey, group)
-			}
-		}
-
-		return w.resolveNamedSchema(key, ref.Value, group, isRespBody)
+		return w.walkRef(ref, schemaKey, group, isRespBody)
 	}
 
 	// Inline schema.
@@ -125,31 +48,50 @@ func (w *walker) walkSchema(ref *openapi3.SchemaRef, schemaKey, group string, is
 	return w.resolveInlineSchema(ref.Value, schemaKey, group, isRespBody)
 }
 
+// walkRef resolves a $ref schema, including alias/cycle detection and the
+// special-case for parent-scoped oneOf/anyOf unions.
+func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRespBody bool) string {
+	key := refToSchemaKey(ref.Ref)
+	if goType, ok := isScalarAlias(key); ok {
+		return goType
+	}
+	if existing, ok := w.registry.lookup(key); ok {
+		return existing.Name
+	}
+	if _, cycling := w.inFlight[key]; cycling {
+		return schemaTypeName(key, false)
+	}
+
+	if resolved, ok := w.resolveParentScopedUnion(ref, schemaKey, group); ok {
+		return resolved
+	}
+
+	return w.resolveNamedSchema(key, ref.Value, group, isRespBody)
+}
+
+// resolveParentScopedUnion handles the case where a $ref points to a pure
+// oneOf/anyOf schema (no properties). The union is generated using the
+// CALLER's schemaKey so it attaches to its parent field context.
+func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
+	if ref.Value == nil || len(ref.Value.Properties) != 0 {
+		return "", false
+	}
+	if len(ref.Value.OneOf) == 0 && len(ref.Value.AnyOf) == 0 {
+		return "", false
+	}
+	if resolvedGoType := resolveOneOfGoType(ref.Value); resolvedGoType != "" {
+		return resolvedGoType, true
+	}
+	return w.resolveUnionType(ref.Value, schemaKey, group), true
+}
+
 func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group string, isRespBody bool) string {
 	if schema != nil && extensionBool(schema.Extensions, extGenericTypeParam) {
 		return "json.RawMessage"
 	}
 
-	if schema != nil && len(schema.Properties) == 0 {
-		if len(schema.AllOf) == 0 && !isRespBody {
-			if goType := primitiveGoType(schema); goType != "" {
-				return goType
-			}
-			if schema.Type != nil && schema.Type.Is("array") {
-				elemType := "json.RawMessage"
-				if schema.Items != nil {
-					elemType = w.walkSchema(schema.Items, key+"Item", group, false)
-				}
-				return "[]" + elemType
-			}
-			if schema.AdditionalProperties.Schema != nil {
-				valType := w.walkSchema(schema.AdditionalProperties.Schema, key+"Value", group, false)
-				return "map[string]" + valType
-			}
-			if schema.AdditionalProperties.Has != nil && *schema.AdditionalProperties.Has {
-				return "map[string]json.RawMessage"
-			}
-		}
+	if got, ok := w.resolvePropertylessSchema(schema, key, group, isRespBody); ok {
+		return got
 	}
 
 	name := schemaTypeName(key, isRespBody)

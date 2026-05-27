@@ -123,13 +123,13 @@ type emitOp struct {
 	Conditions []caseCondition // populated for opCase and opIf
 }
 
-func (op emitOp) IsLit() bool       { return op.Kind == opLit }
-func (op emitOp) IsField() bool     { return op.Kind == opField }
-func (op emitOp) IsList() bool      { return op.Kind == opList }
-func (op emitOp) IsSwitch() bool    { return op.Kind == opSwitch }
-func (op emitOp) IsCase() bool      { return op.Kind == opCase }
-func (op emitOp) IsDefault() bool   { return op.Kind == opDefault }
-func (op emitOp) IsSwitchEnd() bool { return op.Kind == opSwitchEnd }
+func (op emitOp) IsLit() bool          { return op.Kind == opLit }
+func (op emitOp) IsField() bool        { return op.Kind == opField }
+func (op emitOp) IsList() bool         { return op.Kind == opList }
+func (op emitOp) IsSwitch() bool       { return op.Kind == opSwitch }
+func (op emitOp) IsCase() bool         { return op.Kind == opCase }
+func (op emitOp) IsDefault() bool      { return op.Kind == opDefault }
+func (op emitOp) IsSwitchEnd() bool    { return op.Kind == opSwitchEnd }
 func (op emitOp) IsIf() bool           { return op.Kind == opIf }
 func (op emitOp) IsIfEnd() bool        { return op.Kind == opIfEnd }
 func (op emitOp) IsExplainCheck() bool { return op.Kind == opExplainCheck }
@@ -186,7 +186,14 @@ func groupDeprecation(paths []pathVariant) (bool, string) {
 	return allDeprecated, msg
 }
 
-func groupMetadata(paths []pathVariant) (desc, docsURL, versionAdded, versionDeprecated string, distros []string) {
+func groupMetadata(paths []pathVariant) (string, string, string, string, []string) {
+	var (
+		desc              string
+		docsURL           string
+		versionAdded      string
+		versionDeprecated string
+		distros           []string
+	)
 	for _, pv := range paths {
 		if pv.deprecated {
 			if versionDeprecated == "" {
@@ -235,7 +242,7 @@ func groupMetadata(paths []pathVariant) (desc, docsURL, versionAdded, versionDep
 		}
 		sort.Strings(distros)
 	}
-	return
+	return desc, docsURL, versionAdded, versionDeprecated, distros
 }
 
 // export converts builder fields to exported identifiers.
@@ -259,6 +266,8 @@ func (b *builder) export() {
 					b.Ops[i].Conditions[j].Field = newName
 				}
 			}
+		case opLit, opSwitch, opDefault, opSwitchEnd, opIfEnd:
+			// no field references to rewrite
 		}
 	}
 
@@ -294,12 +303,12 @@ func derivePositionalDeps(paths []pathVariant, fields []builderField) []position
 		return nil
 	}
 	var deps []positionalDep
-	for j := 0; j < len(fields); j++ {
+	for j := range fields {
 		fj := fields[j]
 		if fj.Required {
 			continue
 		}
-		for i := 0; i < len(fields); i++ {
+		for i := range fields {
 			if i == j {
 				continue
 			}
@@ -323,7 +332,7 @@ func derivePositionalDeps(paths []pathVariant, fields []builderField) []position
 // field that never appears in practice; treat the relation as undefined
 // rather than universally true.
 func alwaysImplies(paths []pathVariant, dependent, predecessor string) bool {
-	any := false
+	anyMatch := false
 	for _, pv := range paths {
 		hasDep := false
 		hasPred := false
@@ -336,13 +345,13 @@ func alwaysImplies(paths []pathVariant, dependent, predecessor string) bool {
 			}
 		}
 		if hasDep {
-			any = true
+			anyMatch = true
 			if !hasPred {
 				return false
 			}
 		}
 	}
-	return any
+	return anyMatch
 }
 
 // ---------------------------------------------------------------------------
@@ -437,7 +446,7 @@ func buildOps(paths []pathVariant, fields []builderField, deps []positionalDep) 
 			defaultBody = b.ops
 			continue
 		}
-		cases = append(cases, liveCase{ops: b.ops, fields: b.fields})
+		cases = append(cases, liveCase(b))
 	}
 
 	switch {
@@ -530,10 +539,11 @@ func opsForVariant(pv pathVariant, fields map[string]builderField) ([]emitOp, []
 // commonPrefixSuffix returns the length of the longest common prefix
 // and the longest common suffix shared by every variant op stream. The
 // two regions never overlap: prefixLen + suffixLen <= min(len(variant)).
-func commonPrefixSuffix(variantOps [][]emitOp) (prefixLen, suffixLen int) {
+func commonPrefixSuffix(variantOps [][]emitOp) (int, int) {
 	if len(variantOps) == 0 {
 		return 0, 0
 	}
+	var prefixLen, suffixLen int
 	minLen := len(variantOps[0])
 	for _, v := range variantOps[1:] {
 		if len(v) < minLen {

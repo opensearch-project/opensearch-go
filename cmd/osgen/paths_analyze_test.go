@@ -186,7 +186,13 @@ func TestAnalyzeGroup_DeprecatedVariant(t *testing.T) {
 		name: "nodes.hot_threads",
 		pathSpecs: []pathVariant{
 			{path: "/_nodes/hot_threads", pathParams: []string{}, arrayParams: map[string]bool{}, description: "Current desc."},
-			{path: "/_nodes/hotthreads", pathParams: []string{}, arrayParams: map[string]bool{}, deprecated: true, deprecationMessage: "Use hot_threads."},
+			{
+				path:               "/_nodes/hotthreads",
+				pathParams:         []string{},
+				arrayParams:        map[string]bool{},
+				deprecated:         true,
+				deprecationMessage: "Use hot_threads.",
+			},
 		},
 	}
 
@@ -202,7 +208,14 @@ func TestAnalyzeGroup_AllDeprecated(t *testing.T) {
 	g := opGroup{
 		name: "old.endpoint",
 		pathSpecs: []pathVariant{
-			{path: "/_old", pathParams: []string{}, arrayParams: map[string]bool{}, deprecated: true, deprecationMessage: "Removed.", versionDeprecated: "2.0"},
+			{
+				path:               "/_old",
+				pathParams:         []string{},
+				arrayParams:        map[string]bool{},
+				deprecated:         true,
+				deprecationMessage: "Removed.",
+				versionDeprecated:  "2.0",
+			},
 		},
 	}
 
@@ -323,9 +336,16 @@ func TestEmitOpPredicates(t *testing.T) {
 	t.Parallel()
 
 	ops := []emitOp{
-		{Kind: opLit}, {Kind: opField}, {Kind: opList},
-		{Kind: opSwitch}, {Kind: opCase}, {Kind: opDefault}, {Kind: opSwitchEnd},
-		{Kind: opIf}, {Kind: opIfEnd}, {Kind: opExplainCheck},
+		{Kind: opLit},
+		{Kind: opField},
+		{Kind: opList},
+		{Kind: opSwitch},
+		{Kind: opCase},
+		{Kind: opDefault},
+		{Kind: opSwitchEnd},
+		{Kind: opIf},
+		{Kind: opIfEnd},
+		{Kind: opExplainCheck},
 	}
 
 	require.True(t, ops[0].IsLit())
@@ -414,7 +434,11 @@ func TestAnalyzeGroup_MultipleOptionalParams(t *testing.T) {
 		pathSpecs: []pathVariant{
 			{path: "/_cluster/state", pathParams: []string{}, arrayParams: map[string]bool{}},
 			{path: "/_cluster/state/{metric}", pathParams: []string{"metric"}, arrayParams: map[string]bool{"metric": true}},
-			{path: "/_cluster/state/{metric}/{index}", pathParams: []string{"metric", "index"}, arrayParams: map[string]bool{"metric": true, "index": true}},
+			{
+				path:        "/_cluster/state/{metric}/{index}",
+				pathParams:  []string{"metric", "index"},
+				arrayParams: map[string]bool{"metric": true, "index": true},
+			},
 		},
 	}
 
@@ -503,7 +527,8 @@ func TestDerivePositionalDeps_Bidirectional(t *testing.T) {
 	}
 
 	require.Contains(t, depMap, "metric", "Metric must require some predecessor (transitively NodeID)")
-	require.Equal(t, "node_id", depMap["metric"], "Metric must require NodeID -- the spec has no /_cluster/stats/{metric} variant without nodes/{node_id}")
+	require.Equal(t, "node_id", depMap["metric"],
+		"Metric must require NodeID -- the spec has no /_cluster/stats/{metric} variant without nodes/{node_id}")
 	require.Contains(t, depMap, "index_metric", "IndexMetric must require some predecessor")
 }
 

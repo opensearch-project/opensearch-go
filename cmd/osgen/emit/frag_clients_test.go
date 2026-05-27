@@ -4,25 +4,26 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 )
 
 func TestClientsFragment_Body(t *testing.T) {
 	t.Parallel()
 
-	clients := []SubClient{
+	clients := []emit.SubClient{
 		{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
 		{TypeName: "indicesClient", FieldName: "Indices", Parent: "Client"},
 		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
 	}
 
-	frag := &ClientsFragment{SubClients: clients}
+	frag := &emit.ClientsFragment{SubClients: clients}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -52,9 +53,9 @@ func TestClientsFragment_Body(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			if tc.absent {
-				require.False(t, strings.Contains(body, tc.want), "should not contain %q", tc.want)
+				require.NotContains(t, body, tc.want, "should not contain %q", tc.want)
 			} else {
-				require.True(t, strings.Contains(body, tc.want), "missing %q", tc.want)
+				require.Contains(t, body, tc.want, "missing %q", tc.want)
 			}
 		})
 	}
@@ -63,7 +64,7 @@ func TestClientsFragment_Body(t *testing.T) {
 func TestClientsFragment_Imports(t *testing.T) {
 	t.Parallel()
 
-	frag := &ClientsFragment{SubClients: []SubClient{
+	frag := &emit.ClientsFragment{SubClients: []emit.SubClient{
 		{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
 	}}
 
@@ -74,13 +75,13 @@ func TestClientsFragment_Imports(t *testing.T) {
 func TestNewClientsFile_Render(t *testing.T) {
 	t.Parallel()
 
-	clients := []SubClient{
+	clients := []emit.SubClient{
 		{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
 		{TypeName: "indicesClient", FieldName: "Indices", Parent: "Client"},
 		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
 	}
 
-	target := NewClientsFile("/tmp/test", "osapi", clients)
+	target := emit.NewClientsFile("/tmp/test", "osapi", clients)
 	require.NotNil(t, target)
 
 	src, err := target.Render()
@@ -95,6 +96,6 @@ func TestNewClientsFile_Render(t *testing.T) {
 func TestNewClientsFile_NilWhenEmpty(t *testing.T) {
 	t.Parallel()
 
-	target := NewClientsFile("/tmp/test", "osapi", nil)
+	target := emit.NewClientsFile("/tmp/test", "osapi", nil)
 	require.Nil(t, target)
 }

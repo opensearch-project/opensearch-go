@@ -47,6 +47,7 @@ type PluginClientFragment struct {
 	SubClients []PluginSubClient
 }
 
+// Imports returns the imports the plugin Client fragment needs.
 func (f *PluginClientFragment) Imports() []Import {
 	return []Import{
 		{Path: "context"},
@@ -56,6 +57,7 @@ func (f *PluginClientFragment) Imports() []Import {
 	}
 }
 
+// Body renders the plugin Client struct, its sub-clients, and dispatch methods.
 func (f *PluginClientFragment) Body() (string, error) {
 	if len(f.Ops) == 0 {
 		return "", nil
@@ -119,6 +121,7 @@ func pluginMethodComment(op PluginClientOp) string {
 	})
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var pluginClientFragTmpl = template.Must(template.New("pluginClient").Funcs(template.FuncMap{
 	"methodComment": pluginMethodComment,
 }).Parse(`// Client provides methods for this plugin API.
@@ -166,7 +169,8 @@ type {{.TypeName}} struct {
 {{- range .RootOps}}
 {{- if .IsPointerReq}}
 {{methodComment .}}
-func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{- ""}}
+	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 	if req == nil {
 		req = &{{.TypePrefix}}Req{}
 	}
@@ -182,7 +186,8 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) (
 }
 {{- else}}
 {{methodComment .}}
-func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{- ""}}
+	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 {{- if .IsNoBody}}
 	return do(ctx, c, {{.HTTPMethod}}, req, noBody)
 {{- else}}
@@ -198,7 +203,8 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({
 {{- range .SubClientOps}}
 {{- if .IsPointerReq}}
 {{methodComment .}}
-func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{- ""}}
+	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 	if req == nil {
 		req = &{{.TypePrefix}}Req{}
 	}
@@ -214,7 +220,8 @@ func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.Ty
 }
 {{- else}}
 {{methodComment .}}
-func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{- ""}}
+	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 {{- if .IsNoBody}}
 	return do(ctx, c.client, {{.HTTPMethod}}, req, noBody)
 {{- else}}
@@ -230,12 +237,14 @@ func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req {{.Typ
 {{- range .DeprecatedForwards}}
 {{- if .IsPointerReq}}
 // Deprecated: use Client.{{.SubClientField}}.{{.MethodName}} instead.
-func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) ({{- ""}}
+	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 	return c.{{.SubClientField}}.{{.MethodName}}(ctx, req)
 }
 {{- else}}
 // Deprecated: use Client.{{.SubClientField}}.{{.MethodName}} instead.
-func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
+func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{- ""}}
+	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 	return c.{{.SubClientField}}.{{.MethodName}}(ctx, req)
 }
 {{- end}}
@@ -253,6 +262,7 @@ type PluginTestHelperFragment struct {
 	CorePkg      string
 }
 
+// Imports returns the imports the plugin test-helper fragment needs.
 func (f *PluginTestHelperFragment) Imports() []Import {
 	return []Import{
 		{Path: "io"},
@@ -268,6 +278,8 @@ func (f *PluginTestHelperFragment) Imports() []Import {
 	}
 }
 
+// Body renders the plugin's test-helper functions (NewClient,
+// CreateFailingClient).
 func (f *PluginTestHelperFragment) Body() (string, error) {
 	var sb strings.Builder
 	if err := pluginTestHelperFragTmpl.Execute(&sb, f); err != nil {
@@ -276,7 +288,9 @@ func (f *PluginTestHelperFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
-var pluginTestHelperFragTmpl = template.Must(template.New("pluginTestHelper").Parse(`// NewClient returns a plugin client connected to the integration test cluster.
+//nolint:gochecknoglobals // const-ish read-only template
+var pluginTestHelperFragTmpl = template.Must(template.New("pluginTestHelper").Parse(
+	`// NewClient returns a plugin client connected to the integration test cluster.
 func NewClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	t.Helper()
 	config := testutil.ClientConfig(t)

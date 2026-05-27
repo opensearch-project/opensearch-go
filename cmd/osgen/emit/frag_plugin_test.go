@@ -4,26 +4,27 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package emit
+package emit_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 func TestPluginClientFragment_Body(t *testing.T) {
 	t.Parallel()
 
-	ops := []PluginClientOp{
+	ops := []emit.PluginClientOp{
 		{MethodName: "GetRoles", TypePrefix: "SecurityGetRoles", IsPointerReq: true},
 		{MethodName: "CreateRole", TypePrefix: "SecurityCreateRole", IsPointerReq: false},
 		{MethodName: "DeleteRole", TypePrefix: "SecurityDeleteRole", IsPointerReq: true, IsNoBody: true},
 	}
 
-	frag := &PluginClientFragment{Ops: ops}
+	frag := &emit.PluginClientFragment{Ops: ops}
 
 	body, err := frag.Body()
 	require.NoError(t, err)
@@ -54,7 +55,7 @@ func TestPluginClientFragment_Body(t *testing.T) {
 func TestPluginClientFragment_Imports(t *testing.T) {
 	t.Parallel()
 
-	frag := &PluginClientFragment{Ops: []PluginClientOp{{MethodName: "Get", TypePrefix: "X"}}}
+	frag := &emit.PluginClientFragment{Ops: []emit.PluginClientOp{{MethodName: "Get", TypePrefix: "X"}}}
 	imps := frag.Imports()
 
 	paths := make(map[string]bool)
@@ -70,7 +71,7 @@ func TestPluginClientFragment_Imports(t *testing.T) {
 func TestPluginTestHelperFragment_Body(t *testing.T) {
 	t.Parallel()
 
-	frag := &PluginTestHelperFragment{
+	frag := &emit.PluginTestHelperFragment{
 		Pkg:          "ossecurity",
 		PluginImport: "github.com/opensearch-project/opensearch-go/v4/plugins/security",
 		CoreImport:   "github.com/opensearch-project/opensearch-go/v4",
@@ -106,7 +107,7 @@ func TestNewPluginClientFile_Render(t *testing.T) {
 		{Group: "security.create_role", TypePrefix: "SecurityCreateRole", IsPointerReq: false},
 	}
 
-	target := NewPluginClientFile("/tmp/test", "ossecurity", ops, nil)
+	target := emit.NewPluginClientFile("/tmp/test", "ossecurity", ops, nil)
 	require.NotNil(t, target)
 
 	src, err := target.Render()
@@ -121,18 +122,25 @@ func TestNewPluginClientFile_Render(t *testing.T) {
 func TestPluginClientFragment_WithSubClients(t *testing.T) {
 	t.Parallel()
 
-	roleSC := &PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
+	roleSC := &emit.PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
 
-	ops := []PluginClientOp{
+	ops := []emit.PluginClientOp{
 		{MethodName: "FlushCache", TypePrefix: "SecurityFlushCache", IsPointerReq: true, IsNoBody: true, HTTPMethod: "http.MethodDelete"},
 		{MethodName: "GetRole", TypePrefix: "SecurityGetRole", IsPointerReq: true, HTTPMethod: "http.MethodGet", SubClient: roleSC},
 		{MethodName: "CreateRole", TypePrefix: "SecurityCreateRole", IsPointerReq: false, HTTPMethod: "http.MethodPut", SubClient: roleSC},
-		{MethodName: "DeleteRole", TypePrefix: "SecurityDeleteRole", IsPointerReq: true, IsNoBody: true, HTTPMethod: "http.MethodDelete", SubClient: roleSC},
+		{
+			MethodName:   "DeleteRole",
+			TypePrefix:   "SecurityDeleteRole",
+			IsPointerReq: true,
+			IsNoBody:     true,
+			HTTPMethod:   "http.MethodDelete",
+			SubClient:    roleSC,
+		},
 	}
 
-	frag := &PluginClientFragment{
+	frag := &emit.PluginClientFragment{
 		Ops:        ops,
-		SubClients: []PluginSubClient{*roleSC},
+		SubClients: []emit.PluginSubClient{*roleSC},
 	}
 
 	body, err := frag.Body()
@@ -166,7 +174,7 @@ func TestPluginClientFragment_WithSubClients(t *testing.T) {
 func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 	t.Parallel()
 
-	roleSC := &PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
+	roleSC := &emit.PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
 
 	ops := []*ir.Operation{
 		{Group: "security.flush_cache", TypePrefix: "SecurityFlushCache", IsPointerReq: true, IsNoBody: true, HTTPMethods: []string{"DELETE"}},
@@ -174,12 +182,12 @@ func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 		{Group: "security.create_role", TypePrefix: "SecurityCreateRole", IsPointerReq: false, HTTPMethods: []string{"PUT"}},
 	}
 
-	byGroup := map[string]*PluginSubClient{
+	byGroup := map[string]*emit.PluginSubClient{
 		"security.get_role":    roleSC,
 		"security.create_role": roleSC,
 	}
 
-	target := NewPluginClientFile("/tmp/test", "ossecurity", ops, byGroup)
+	target := emit.NewPluginClientFile("/tmp/test", "ossecurity", ops, byGroup)
 	require.NotNil(t, target)
 
 	src, err := target.Render()
@@ -209,7 +217,7 @@ func TestPluginMethodName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
 			t.Parallel()
-			require.Equal(t, tt.want, PluginMethodName(tt.input))
+			require.Equal(t, tt.want, emit.PluginMethodName(tt.input))
 		})
 	}
 }

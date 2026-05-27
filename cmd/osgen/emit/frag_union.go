@@ -19,6 +19,7 @@ type UnionFragment struct {
 	Types []*ir.Type
 }
 
+// Imports returns the imports the union-types fragment needs.
 func (f *UnionFragment) Imports() []Import {
 	if len(f.Types) == 0 {
 		return nil
@@ -31,6 +32,7 @@ func (f *UnionFragment) Imports() []Import {
 	}
 }
 
+// Body renders the union type definitions (and their UnmarshalJSON methods).
 func (f *UnionFragment) Body() (string, error) {
 	if len(f.Types) == 0 {
 		return "", nil
@@ -64,6 +66,7 @@ func unionConstNameIR(unionName, branchName string) string {
 	return unionName + branchName + "Type"
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var unionFragTmpl = template.Must(template.New("union").Funcs(template.FuncMap{
 	"comment":   CommentWrap,
 	"constName": unionConstNameIR,

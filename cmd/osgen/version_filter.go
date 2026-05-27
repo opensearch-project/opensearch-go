@@ -37,18 +37,18 @@ const (
 	versionEpoch = "epoch"
 
 	// Breadcrumb mode flag values.
-	breadcrumbModeAll    = "all"
-	breadcrumbModeOlder  = "older"
-	breadcrumbModeNewer  = "newer"
+	breadcrumbModeAll   = "all"
+	breadcrumbModeOlder = "older"
+	breadcrumbModeNewer = "newer"
 )
 
 // BreadcrumbMode controls which excluded items get breadcrumb comments.
 type BreadcrumbMode int
 
 const (
-	BreadcrumbAll    BreadcrumbMode = iota // emit for all excluded items
-	BreadcrumbOlder                        // only items excluded by min-version (removed before floor)
-	BreadcrumbNewer                        // only items excluded by max-version (added after ceiling)
+	BreadcrumbAll   BreadcrumbMode = iota // emit for all excluded items
+	BreadcrumbOlder                       // only items excluded by min-version (removed before floor)
+	BreadcrumbNewer                       // only items excluded by max-version (added after ceiling)
 )
 
 // BreadcrumbConfig holds breadcrumb mode settings for each category.
@@ -81,7 +81,10 @@ func ParseBreadcrumbMode(s string) (BreadcrumbMode, error) {
 	case breadcrumbModeNewer:
 		return BreadcrumbNewer, nil
 	default:
-		return BreadcrumbAll, fmt.Errorf("invalid breadcrumb mode %q: must be %s, %s, or %s", s, breadcrumbModeAll, breadcrumbModeOlder, breadcrumbModeNewer)
+		return BreadcrumbAll, fmt.Errorf(
+			"invalid breadcrumb mode %q: must be %s, %s, or %s",
+			s, breadcrumbModeAll, breadcrumbModeOlder, breadcrumbModeNewer,
+		)
 	}
 }
 
@@ -323,7 +326,7 @@ func parseBound(s string, defaultOp string) (VersionBound, error) {
 	}, nil
 }
 
-func splitOperator(s string) (op, version string) {
+func splitOperator(s string) (string, string) {
 	if strings.HasPrefix(s, ">=") {
 		return ">=", s[2:]
 	}

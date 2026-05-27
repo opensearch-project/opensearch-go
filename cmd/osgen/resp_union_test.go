@@ -411,7 +411,7 @@ func TestClassifyBranchNilRef(t *testing.T) {
 	w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
 
 	b := w.classifyBranch(nil, "test___Parent", "test", 0)
-	require.Equal(t, "", b.GoType)
+	require.Empty(t, b.GoType)
 }
 
 func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {

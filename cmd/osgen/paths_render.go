@@ -14,6 +14,9 @@ import (
 	"text/template"
 )
 
+// codeTmpl is the path-builder template, parsed once at startup.
+//
+//nolint:gochecknoglobals // const-ish read-only template
 var codeTmpl = template.Must(template.New("builders").Funcs(template.FuncMap{
 	"join":          strings.Join,
 	"comment":       commentWrap,
@@ -22,7 +25,9 @@ var codeTmpl = template.Must(template.New("builders").Funcs(template.FuncMap{
 	"printf":        fmt.Sprintf,
 	"goStr":         strconv.Quote,
 	"sanitizeURL":   sanitizeCommentURL,
-}).Parse(`// SPDX-License-Identifier: Apache-2.0
+}).Parse(codeTmplSrc))
+
+const codeTmplSrc = `// SPDX-License-Identifier: Apache-2.0
 //
 // The OpenSearch Contributors require contributions made to
 // this file be licensed under the Apache-2.0 license or a
@@ -192,17 +197,26 @@ func (p {{.StructName}}) {{$.MethodName}}() (string, error) {
 {{- else if $op.IsSwitch}}
 	switch {
 {{- else if $op.IsCase}}
-	case {{range $j, $c := $op.Conditions}}{{if $j}} && {{end}}{{if $c.IsList}}hasNonEmpty(p.{{$c.Field}}){{else}}p.{{$c.Field}} != ""{{end}}{{end}}:
+	case {{range $j, $c := $op.Conditions -}}
+		{{- if $j}} && {{end -}}
+		{{- if $c.IsList}}hasNonEmpty(p.{{$c.Field}}){{else}}p.{{$c.Field}} != ""{{end -}}
+	{{- end}}:
 {{- else if $op.IsDefault}}
 	default:
 {{- else if $op.IsExplainCheck}}
-		if {{range $j, $c := $op.Conditions}}{{if $j}} || {{end}}{{if $c.IsList}}hasNonEmpty(p.{{$c.Field}}){{else}}p.{{$c.Field}} != ""{{end}}{{end}} {
+		if {{range $j, $c := $op.Conditions -}}
+			{{- if $j}} || {{end -}}
+			{{- if $c.IsList}}hasNonEmpty(p.{{$c.Field}}){{else}}p.{{$c.Field}} != ""{{end -}}
+		{{- end}} {
 			return "", explain{{$structName}}(p)
 		}
 {{- else if $op.IsSwitchEnd}}
 	}
 {{- else if $op.IsIf}}
-	if {{range $j, $c := $op.Conditions}}{{if $j}} && {{end}}{{if $c.IsList}}hasNonEmpty(p.{{$c.Field}}){{else}}p.{{$c.Field}} != ""{{end}}{{end}} {
+	if {{range $j, $c := $op.Conditions -}}
+		{{- if $j}} && {{end -}}
+		{{- if $c.IsList}}hasNonEmpty(p.{{$c.Field}}){{else}}p.{{$c.Field}} != ""{{end -}}
+	{{- end}} {
 {{- else if $op.IsIfEnd}}
 	}
 {{- end}}
@@ -219,7 +233,8 @@ func (p {{.StructName}}) {{$.MethodName}}() (string, error) {
 // default: case after confirming at least one optional field is set.
 func explain{{.StructName}}(p {{.StructName}}) error {
 {{- range .PositionalDeps}}
-	if {{if .Dependent.IsList}}hasNonEmpty(p.{{.Dependent.Name}}){{else}}p.{{.Dependent.Name}} != ""{{end}} && {{if .Predecessor.IsList}}!hasNonEmpty(p.{{.Predecessor.Name}}){{else}}p.{{.Predecessor.Name}} == ""{{end}} {
+	if {{if .Dependent.IsList}}hasNonEmpty(p.{{.Dependent.Name}}){{else}}p.{{.Dependent.Name}} != ""{{end}} &&
+		{{- if .Predecessor.IsList}} !hasNonEmpty(p.{{.Predecessor.Name}}){{else}} p.{{.Predecessor.Name}} == ""{{end}} {
 		return fmt.Errorf("{{$structName}}.{{.Dependent.Name}} requires {{$structName}}.{{.Predecessor.Name}}: %w", errRequired)
 	}
 {{- end}}
@@ -228,7 +243,7 @@ func explain{{.StructName}}(p {{.StructName}}) error {
 {{- end}}
 {{end}}{{range .Breadcrumbs}}
 // {{.}}
-{{end}}`))
+{{end}}`
 
 type renderData struct {
 	Pkg         string
@@ -265,7 +280,7 @@ func commentWrap(s string) string {
 	}
 	var sb strings.Builder
 	sb.WriteString("//\n")
-	for _, line := range strings.Split(s, "\n") {
+	for line := range strings.SplitSeq(s, "\n") {
 		line = strings.TrimRight(line, " \t")
 		if line == "" {
 			sb.WriteString("//\n")
@@ -321,7 +336,6 @@ func wrapLine(text string) string {
 	return sb.String()
 }
 
-
 // deprecComment renders a deprecation or availability annotation with its
 // message. The prefix is the structured part (e.g. "Deprecated: >= 3.0.0."
 // or "Availability: >= 2.0.0; <= 3.0.0.").
@@ -349,7 +363,7 @@ func deprecComment(prefix, msg string) string {
 	sb.WriteString("// ")
 	sb.WriteString(prefix)
 	sb.WriteString("\n//\n")
-	for _, line := range strings.Split(msg, "\n") {
+	for line := range strings.SplitSeq(msg, "\n") {
 		line = strings.TrimRight(line, " \t")
 		if line == "" {
 			sb.WriteString("//\n")
@@ -382,8 +396,7 @@ func render(builders []builder, pkg string, exported bool, breadcrumbs []string)
 	formatted, err := format.Source([]byte(sb.String()))
 	if err != nil {
 		lineNum := 0
-		fmt.Sscanf(err.Error(), "%d:", &lineNum)
-		if lineNum > 0 {
+		if _, scanErr := fmt.Sscanf(err.Error(), "%d:", &lineNum); scanErr == nil && lineNum > 0 {
 			return "", fmt.Errorf("%w\n%s", err, extractLines(sb.String(), lineNum-5, lineNum+10))
 		}
 		return "", err

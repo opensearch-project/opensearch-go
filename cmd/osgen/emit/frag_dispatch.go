@@ -19,6 +19,7 @@ type DispatchFragment struct {
 	Op *ir.Operation
 }
 
+// Imports returns the imports the dispatch-method fragment needs.
 func (f *DispatchFragment) Imports() []Import {
 	if len(f.Op.DispatchRoutes) == 0 {
 		return nil
@@ -33,6 +34,7 @@ func (f *DispatchFragment) Imports() []Import {
 	return imps
 }
 
+// Body renders the client method that dispatches a request to the operation.
 func (f *DispatchFragment) Body() (string, error) {
 	if len(f.Op.DispatchRoutes) == 0 {
 		return "", nil
@@ -53,6 +55,7 @@ func (f *DispatchFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var dispatchTmpl = template.Must(template.New("dispatch").Funcs(template.FuncMap{
 	"methodConst":   HTTPMethodConst,
 	"primaryMethod": PrimaryMethod,
@@ -77,7 +80,9 @@ var dispatchTmpl = template.Must(template.New("dispatch").Funcs(template.FuncMap
 {{- else}}
 {{opMethodComment .MethodName $.Operation}}
 {{- end}}
-func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $.IsPointerReq}}*{{end}}{{$.TypePrefix}}Req) ({{if $.IsNoBody}}*opensearch.Response{{else}}*{{$.TypePrefix}}Resp{{end}}, error) {
+func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{- ""}}
+	{{- if $.IsPointerReq}} *{{end}}{{- $.TypePrefix}}Req) ({{- ""}}
+	{{- if $.IsNoBody}}*opensearch.Response{{else}}*{{$.TypePrefix}}Resp{{end}}, error) {
 {{- if $.IsPointerReq}}
 	if req == nil {
 		req = &{{$.TypePrefix}}Req{}
@@ -90,7 +95,12 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $.IsPoi
 		data {{$.TypePrefix}}Resp
 		err  error
 	)
-	if data.response, err = do(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $.Operation)}}, req, &data); err != nil {
+	if data.response, err = do( {{- ""}}
+		ctx,
+		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
+		{{methodConst (primaryMethod $.Operation)}},
+		req, &data,
+	); err != nil {
 		return &data, err
 	}
 

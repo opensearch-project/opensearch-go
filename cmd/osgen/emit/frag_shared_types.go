@@ -19,6 +19,7 @@ type SharedTypesFragment struct {
 	Types []*ir.Type
 }
 
+// Imports returns the imports the shared-types fragment needs.
 func (f *SharedTypesFragment) Imports() []Import {
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
@@ -30,6 +31,7 @@ func (f *SharedTypesFragment) Imports() []Import {
 	return nil
 }
 
+// Body renders the shared type definitions emitted into the core package.
 func (f *SharedTypesFragment) Body() (string, error) {
 	if len(f.Types) == 0 {
 		return "", nil
@@ -42,6 +44,7 @@ func (f *SharedTypesFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
+//nolint:gochecknoglobals // const-ish read-only template
 var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
