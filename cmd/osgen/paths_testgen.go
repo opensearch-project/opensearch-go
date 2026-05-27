@@ -33,24 +33,64 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// assertPathRoundTrip verifies every segment of a built path is
-// URL-decode-safe and that re-encoding the decoded form yields the
-// original segment. Catches double-encoding and dropped/extra escapes
-// in the path-builder writers. Multi-value segments are written as a
-// comma-joined list of independently-escaped sub-values; the round-trip
-// splits on ',' before decoding so encoded commas in user values stay
-// distinguishable from list separators.
+// assertPathRoundTrip verifies that a built path is a valid URI path
+// with no structural anomalies and that every segment round-trips
+// cleanly through url.PathUnescape -> url.PathEscape. Catches:
+//
+//   - Double-encoding (a literal "%XX" surviving into the decoded
+//     form, meaning we encoded an already-encoded value).
+//   - Empty segments ("//"), the original bug class behind #650.
+//   - URL-parse failures, which would indicate malformed encoding.
+//   - Routing metacharacters ("/", "?", "#") that escaped into the
+//     decoded form, the path-injection class the encoder is meant to
+//     prevent.
+//
+// Multi-value segments are written as a comma-joined list of
+// independently-escaped sub-values; the round-trip splits on "," before
+// decoding so encoded commas in user values stay distinguishable from
+// list separators.
 func assertPathRoundTrip(t *testing.T, raw string) {
 	t.Helper()
 	if raw == "" || raw == "/" {
 		return
 	}
+
+	require.Truef(t, strings.HasPrefix(raw, "/"), "path %q must be rooted at /", raw)
+	require.NotContainsf(t, raw, "//", "path %q must not contain empty segments (#650)", raw)
+
+	if _, err := url.ParseRequestURI(raw); err != nil {
+		t.Fatalf("path %q must be a valid request-URI: %v", raw, err)
+	}
+
 	for _, seg := range strings.Split(strings.TrimPrefix(raw, "/"), "/") {
+		require.NotEmptyf(t, seg, "path %q must not contain empty segments", raw)
+
 		parts := strings.Split(seg, ",")
 		encoded := make([]string, len(parts))
 		for i, p := range parts {
 			decoded, err := url.PathUnescape(p)
 			require.NoErrorf(t, err, "sub-segment %q must decode cleanly", p)
+
+			// Double-encoding check: a clean decoded value should not
+			// contain any further percent-triplets. If a second
+			// PathUnescape would change the value, decoded still
+			// carries encoded data, which means the writer escaped an
+			// already-escaped input.
+			if again, err := url.PathUnescape(decoded); err == nil {
+				require.Equalf(t, decoded, again,
+					"sub-segment %q decodes to %q which still decodes further to %q (double-encoded)",
+					p, decoded, again)
+			}
+
+			// Routing metacharacters must not survive into the decoded
+			// form unencoded. If they did, a caller could inject path
+			// segments or query strings via a field value (#650).
+			for _, bad := range []string{"/", "?", "#"} {
+				require.NotContainsf(t, decoded, bad,
+					"sub-segment %q decodes to %q which contains routing metacharacter %q",
+					p, decoded, bad)
+			}
+
 			encoded[i] = strings.ReplaceAll(url.PathEscape(decoded), "/", "%2F")
 		}
 		require.Equalf(t, seg, strings.Join(encoded, ","), "segment %q must round-trip stably", seg)
