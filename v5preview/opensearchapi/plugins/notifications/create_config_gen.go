@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateConfigReq represents the request for the notifications.create_config operation.
@@ -34,7 +34,7 @@ type CreateConfigReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.NotificationsConfig
+	Body *opensearchapi.NotificationsConfig
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -81,8 +81,8 @@ func (r CreateConfigReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateConfigParams represents query parameters for the CreateConfigReq.
 type CreateConfigParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateConfigParams) get() map[string]string {

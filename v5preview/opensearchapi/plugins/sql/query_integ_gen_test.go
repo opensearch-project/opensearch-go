@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/sql"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/sql/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/sql"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/sql/internal/sqltest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestQuery(t *testing.T) {
@@ -27,7 +27,7 @@ func TestQuery(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Query(t.Context(), &sql.QueryReq{Body: &osapi.SQLQuery{}})
+		resp, err := client.Query(t.Context(), &sql.QueryReq{Body: &opensearchapi.SQLQuery{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestQuery(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Query(t.Context(), &sql.QueryReq{Body: &osapi.SQLQuery{}})
+		res, err := failingClient.Query(t.Context(), &sql.QueryReq{Body: &opensearchapi.SQLQuery{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

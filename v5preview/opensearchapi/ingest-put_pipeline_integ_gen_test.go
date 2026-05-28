@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIngestPutPipeline(t *testing.T) {
@@ -29,22 +29,22 @@ func TestIngestPutPipeline(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-ingest-put-pipeline")
 	docID := testutil.MustUniqueString(t, "test-ingest-put-pipeline")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), osapi.IndexReq{
+	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
-		Params: &osapi.IndexParams{Refresh: "true"},
+		Params: &opensearchapi.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Ingest.PutPipeline(t.Context(), osapi.IngestPutPipelineReq{ID: docID, BodyReader: strings.NewReader("{\"description\":\"test\",\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]}")})
+		resp, err := client.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{ID: docID, BodyReader: strings.NewReader("{\"description\":\"test\",\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -54,7 +54,7 @@ func TestIngestPutPipeline(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Ingest.PutPipeline(t.Context(), osapi.IngestPutPipelineReq{ID: docID, BodyReader: strings.NewReader("{\"description\":\"test\",\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]}")})
+		res, err := failingClient.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{ID: docID, BodyReader: strings.NewReader("{\"description\":\"test\",\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

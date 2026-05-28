@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCatPITSegments(t *testing.T) {
@@ -27,7 +27,7 @@ func TestCatPITSegments(t *testing.T) {
 	testutil.SkipIfVersion(t, client, "<", "2.4", "CatPITSegments")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.PITSegments(t.Context(), &osapi.CatPITSegmentsReq{Params: &osapi.CatPITSegmentsParams{DebugParams: osapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.PITSegments(t.Context(), &opensearchapi.CatPITSegmentsReq{Params: &opensearchapi.CatPITSegmentsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

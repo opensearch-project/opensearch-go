@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAuditConfigurationReq represents the request for the security.get_audit_configuration operation.
@@ -63,8 +63,8 @@ func (r GetAuditConfigurationReq) GetRequest(method string) (*http.Request, erro
 
 // GetAuditConfigurationParams represents query parameters for the GetAuditConfigurationReq.
 type GetAuditConfigurationParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetAuditConfigurationParams) get() map[string]string {
@@ -89,8 +89,8 @@ func (r GetAuditConfigurationParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#audit-logs
 type GetAuditConfigurationResp struct {
-	Readonly []string                   `json:"_readonly,omitempty"`
-	Config   *osapi.SecurityAuditConfig `json:"config,omitempty"`
+	Readonly []string                           `json:"_readonly,omitempty"`
+	Config   *opensearchapi.SecurityAuditConfig `json:"config,omitempty"`
 
 	response *opensearch.Response
 }

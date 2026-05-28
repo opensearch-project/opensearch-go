@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/wlm"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/wlm/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/wlm"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/wlm/internal/wlmtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCreateQueryGroup(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCreateQueryGroup(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "2.17", "CreateQueryGroup")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.QueryGroup.CreateQueryGroup(t.Context(), &wlm.CreateQueryGroupReq{Body: &osapi.WlmQueryGroupCreate{}})
+		resp, err := client.QueryGroup.CreateQueryGroup(t.Context(), &wlm.CreateQueryGroupReq{Body: &opensearchapi.WlmQueryGroupCreate{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestCreateQueryGroup(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.QueryGroup.CreateQueryGroup(t.Context(), &wlm.CreateQueryGroupReq{Body: &osapi.WlmQueryGroupCreate{}})
+		res, err := failingClient.QueryGroup.CreateQueryGroup(t.Context(), &wlm.CreateQueryGroupReq{Body: &opensearchapi.WlmQueryGroupCreate{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

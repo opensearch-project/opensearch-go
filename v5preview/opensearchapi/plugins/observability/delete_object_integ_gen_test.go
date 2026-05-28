@@ -15,9 +15,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/observability"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/observability/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/observability"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/observability/internal/observabilitytest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestDeleteObject(t *testing.T) {

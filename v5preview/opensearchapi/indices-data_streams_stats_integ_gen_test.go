@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesDataStreamsStats(t *testing.T) {
@@ -28,24 +28,24 @@ func TestIndicesDataStreamsStats(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-data-streams-stats")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	dsTemplate := index + "-tpl"
 	dsName := index + "-ds"
-	_, err = client.Indices.PutIndexTemplate(t.Context(), osapi.IndicesPutIndexTemplateReq{
+	_, err = client.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{
 		Name:       dsTemplate,
 		BodyReader: strings.NewReader(`{"index_patterns":["` + dsName + `"],"data_stream":{}}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Indices.DeleteIndexTemplate(context.Background(), osapi.IndicesDeleteIndexTemplateReq{Name: dsTemplate})
+		_, _ = client.Indices.DeleteIndexTemplate(context.Background(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: dsTemplate})
 	})
 
-	_, err = client.Indices.CreateDataStream(t.Context(), osapi.IndicesCreateDataStreamReq{Name: dsName})
+	_, err = client.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: dsName})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Indices.DeleteDataStream(context.Background(), &osapi.IndicesDeleteDataStreamReq{Name: []string{dsName}})
+		_, _ = client.Indices.DeleteDataStream(context.Background(), &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{dsName}})
 	})
 
 	t.Run("success", func(t *testing.T) {

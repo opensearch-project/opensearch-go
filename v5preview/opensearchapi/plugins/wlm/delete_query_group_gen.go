@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteQueryGroupReq represents the request for the wlm.delete_query_group operation.
@@ -63,8 +63,8 @@ func (r DeleteQueryGroupReq) GetRequest(method string) (*http.Request, error) {
 
 // DeleteQueryGroupParams represents query parameters for the DeleteQueryGroupReq.
 type DeleteQueryGroupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteQueryGroupParams) get() map[string]string {

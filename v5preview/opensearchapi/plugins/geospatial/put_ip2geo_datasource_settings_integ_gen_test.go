@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/geospatial"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/geospatial/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/geospatial"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/geospatial/internal/geospatialtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestPutIp2geoDatasourceSettings(t *testing.T) {
@@ -32,7 +32,7 @@ func TestPutIp2geoDatasourceSettings(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-put-ip2geo-datasource-settings")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.PutIp2geoDatasourceSettings(t.Context(), geospatial.PutIp2geoDatasourceSettingsReq{Name: name, Body: &osapi.GeospatialPutIP2GeoDataSourceRequest{}})
+		resp, err := client.PutIp2geoDatasourceSettings(t.Context(), geospatial.PutIp2geoDatasourceSettingsReq{Name: name, Body: &opensearchapi.GeospatialPutIP2GeoDataSourceRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -42,7 +42,7 @@ func TestPutIp2geoDatasourceSettings(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.PutIp2geoDatasourceSettings(t.Context(), geospatial.PutIp2geoDatasourceSettingsReq{Name: name, Body: &osapi.GeospatialPutIP2GeoDataSourceRequest{}})
+		res, err := failingClient.PutIp2geoDatasourceSettings(t.Context(), geospatial.PutIp2geoDatasourceSettingsReq{Name: name, Body: &opensearchapi.GeospatialPutIP2GeoDataSourceRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

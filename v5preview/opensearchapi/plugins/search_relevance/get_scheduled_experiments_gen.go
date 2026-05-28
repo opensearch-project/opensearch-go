@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetScheduledExperimentsReq represents the request for the search_relevance.get_scheduled_experiments operation.
@@ -63,8 +63,8 @@ func (r GetScheduledExperimentsReq) GetRequest(method string) (*http.Request, er
 
 // GetScheduledExperimentsParams represents query parameters for the GetScheduledExperimentsReq.
 type GetScheduledExperimentsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetScheduledExperimentsParams) get() map[string]string {
@@ -87,27 +87,27 @@ func (r GetScheduledExperimentsParams) get() map[string]string {
 //
 // Available: >= 3.4.0.
 type GetScheduledExperimentsResp struct {
-	Clusters        *osapi.ClusterStatistics                       `json:"_clusters,omitempty"`
-	ScrollID        *string                                        `json:"_scroll_id,omitempty"`
-	Shards          osapi.ShardStatistics                          `json:"_shards"`
-	Aggregations    map[string]osapi.SearchResultAggregationsValue `json:"aggregations,omitempty"`
-	Hits            osapi.SearchResultHits                         `json:"hits"`
-	NumReducePhases *int                                           `json:"num_reduce_phases,omitempty"`
+	Clusters        *opensearchapi.ClusterStatistics                       `json:"_clusters,omitempty"`
+	ScrollID        *string                                                `json:"_scroll_id,omitempty"`
+	Shards          opensearchapi.ShardStatistics                          `json:"_shards"`
+	Aggregations    map[string]opensearchapi.SearchResultAggregationsValue `json:"aggregations,omitempty"`
+	Hits            opensearchapi.SearchResultHits                         `json:"hits"`
+	NumReducePhases *int                                                   `json:"num_reduce_phases,omitempty"`
 
 	// The time taken by different phases of the search.
-	PhaseTook *osapi.PhaseTook `json:"phase_took,omitempty"`
+	PhaseTook *opensearchapi.PhaseTook `json:"phase_took,omitempty"`
 
 	// The unique identifier for a resource.
 	PITID *string `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.
-	ProcessorResults []osapi.SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
+	ProcessorResults []opensearchapi.SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *osapi.SearchProfile                            `json:"profile,omitempty"`
-	Suggest         map[string][]osapi.SearchResultSuggestValueItem `json:"suggest,omitempty"`
-	TerminatedEarly *bool                                           `json:"terminated_early,omitempty"`
-	TimedOut        bool                                            `json:"timed_out"`
-	Took            int64                                           `json:"took"`
+	Profile         *opensearchapi.SearchProfile                            `json:"profile,omitempty"`
+	Suggest         map[string][]opensearchapi.SearchResultSuggestValueItem `json:"suggest,omitempty"`
+	TerminatedEarly *bool                                                   `json:"terminated_early,omitempty"`
+	TimedOut        bool                                                    `json:"timed_out"`
+	Took            int64                                                   `json:"took"`
 
 	response *opensearch.Response
 }

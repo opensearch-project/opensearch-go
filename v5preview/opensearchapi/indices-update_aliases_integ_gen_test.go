@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesUpdateAliases(t *testing.T) {
@@ -29,20 +29,20 @@ func TestIndicesUpdateAliases(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-update-aliases")
 	name := testutil.MustUniqueString(t, "test-indices-update-aliases")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Indices.PutAlias(t.Context(), osapi.IndicesPutAliasReq{
+	_, err = client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{
 		Index: []string{index},
 		Name:  name,
 	})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.UpdateAliases(t.Context(), &osapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{\"actions\":[{\"add\":{\"index\":\"" + index + "\",\"alias\":\"test-alias-2\"}}]}")})
+		resp, err := client.Indices.UpdateAliases(t.Context(), &opensearchapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{\"actions\":[{\"add\":{\"index\":\"" + index + "\",\"alias\":\"test-alias-2\"}}]}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestIndicesUpdateAliases(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.UpdateAliases(t.Context(), &osapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{\"actions\":[{\"add\":{\"index\":\"" + index + "\",\"alias\":\"test-alias-2\"}}]}")})
+		res, err := failingClient.Indices.UpdateAliases(t.Context(), &opensearchapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{\"actions\":[{\"add\":{\"index\":\"" + index + "\",\"alias\":\"test-alias-2\"}}]}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetToolReq represents the request for the ml.get_tool operation.
@@ -63,8 +63,8 @@ func (r GetToolReq) GetRequest(method string) (*http.Request, error) {
 
 // GetToolParams represents query parameters for the GetToolReq.
 type GetToolParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetToolParams) get() map[string]string {
@@ -87,7 +87,7 @@ func (r GetToolParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetToolResp struct {
-	Attributes *osapi.MlToolAttributes `json:"attributes,omitempty"`
+	Attributes *opensearchapi.MlToolAttributes `json:"attributes,omitempty"`
 
 	// The tool description.
 	Description *string `json:"description,omitempty"`

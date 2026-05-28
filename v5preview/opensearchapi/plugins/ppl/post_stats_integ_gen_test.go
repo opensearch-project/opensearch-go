@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ppl"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ppl/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ppl"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ppl/internal/ppltest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestPostStats(t *testing.T) {
@@ -27,7 +27,7 @@ func TestPostStats(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Stat.PostStats(t.Context(), &ppl.PostStatsReq{Body: &osapi.SQLStats{}})
+		resp, err := client.Stat.PostStats(t.Context(), &ppl.PostStatsReq{Body: &opensearchapi.SQLStats{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestPostStats(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Stat.PostStats(t.Context(), &ppl.PostStatsReq{Body: &osapi.SQLStats{}})
+		res, err := failingClient.Stat.PostStats(t.Context(), &ppl.PostStatsReq{Body: &opensearchapi.SQLStats{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

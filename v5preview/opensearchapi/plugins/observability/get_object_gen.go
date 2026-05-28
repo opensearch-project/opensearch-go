@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetObjectReq represents the request for the observability.get_object operation.
@@ -63,8 +63,8 @@ func (r GetObjectReq) GetRequest(method string) (*http.Request, error) {
 
 // GetObjectParams represents query parameters for the GetObjectReq.
 type GetObjectParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetObjectParams) get() map[string]string {
@@ -88,7 +88,7 @@ func (r GetObjectParams) get() map[string]string {
 // Available: >= 1.1.0.
 type GetObjectResp struct {
 	// The list of observability objects.
-	ObservabilityObjectList []osapi.ObservabilityObject `json:"observabilityObjectList"`
+	ObservabilityObjectList []opensearchapi.ObservabilityObject `json:"observabilityObjectList"`
 
 	// The starting index of the returned objects.
 	StartIndex int `json:"startIndex"`

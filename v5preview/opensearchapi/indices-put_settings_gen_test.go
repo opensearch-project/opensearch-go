@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesPutSettingsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesPutSettingsReq
+		req        opensearchapi.IndicesPutSettingsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.IndicesPutSettingsReq{},
+			req:        opensearchapi.IndicesPutSettingsReq{},
 			wantMethod: "PUT",
 			wantPath:   "/_settings",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesPutSettingsReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesPutSettingsReq{Index: []string{"a", "b"}},
 			wantMethod: "PUT",
 			wantPath:   "/a,b/_settings",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestIndicesPutSettings_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.PutSettings(t.Context(), &osapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.Indices.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestIndicesPutSettings_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.PutSettings(t.Context(), &osapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Indices.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

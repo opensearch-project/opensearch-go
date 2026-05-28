@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GenerateUserTokenReq represents the request for the security.generate_user_token operation.
@@ -66,8 +66,8 @@ func (r GenerateUserTokenReq) GetRequest(method string) (*http.Request, error) {
 
 // GenerateUserTokenParams represents query parameters for the GenerateUserTokenReq.
 type GenerateUserTokenParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GenerateUserTokenParams) get() map[string]string {

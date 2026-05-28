@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExecuteAgentReq represents the request for the ml.execute_agent operation.
@@ -83,8 +83,8 @@ func (r ExecuteAgentReq) GetRequest(method string) (*http.Request, error) {
 
 // ExecuteAgentParams represents query parameters for the ExecuteAgentReq.
 type ExecuteAgentParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ExecuteAgentParams) get() map[string]string {
@@ -107,8 +107,8 @@ func (r ExecuteAgentParams) get() map[string]string {
 //
 // Available: >= 2.13.0.
 type ExecuteAgentResp struct {
-	InferenceResults []osapi.MlInferenceResults `json:"inference_results,omitempty"`
-	PredictionResult *osapi.MlPredictionResult  `json:"prediction_result,omitempty"`
+	InferenceResults []opensearchapi.MlInferenceResults `json:"inference_results,omitempty"`
+	PredictionResult *opensearchapi.MlPredictionResult  `json:"prediction_result,omitempty"`
 
 	// The status.
 	Status *string `json:"status,omitempty"`
@@ -132,7 +132,7 @@ func (r ExecuteAgentResp) RawBody() io.Reader {
 
 // MlExecuteAgentBody is a typed component of the ml.execute_agent operation.
 type MlExecuteAgentBody struct {
-	Parameters osapi.MlParameters `json:"parameters"`
+	Parameters opensearchapi.MlParameters `json:"parameters"`
 
 	// Whether to provide verbose output.
 	ParametersVerbose *bool `json:"parameters.verbose,omitempty"`

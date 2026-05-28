@@ -14,7 +14,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExistsPolicyReq represents the request for the ism.exists_policy operation.
@@ -60,8 +60,8 @@ func (r ExistsPolicyReq) GetRequest(method string) (*http.Request, error) {
 
 // ExistsPolicyParams represents query parameters for the ExistsPolicyReq.
 type ExistsPolicyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ExistsPolicyParams) get() map[string]string {

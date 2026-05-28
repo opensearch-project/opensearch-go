@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/observability"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/observability/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/observability"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/observability/internal/observabilitytest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestUpdateObject(t *testing.T) {
@@ -32,7 +32,7 @@ func TestUpdateObject(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-update-object")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Object.UpdateObject(t.Context(), observability.UpdateObjectReq{ObjectID: name, Body: &osapi.ObservabilityObject{}})
+		resp, err := client.Object.UpdateObject(t.Context(), observability.UpdateObjectReq{ObjectID: name, Body: &opensearchapi.ObservabilityObject{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -42,7 +42,7 @@ func TestUpdateObject(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Object.UpdateObject(t.Context(), observability.UpdateObjectReq{ObjectID: name, Body: &osapi.ObservabilityObject{}})
+		res, err := failingClient.Object.UpdateObject(t.Context(), observability.UpdateObjectReq{ObjectID: name, Body: &opensearchapi.ObservabilityObject{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

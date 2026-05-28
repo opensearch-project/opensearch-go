@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchAgentsReq represents the request for the ml.search_agents operation.
@@ -81,8 +81,8 @@ func (r SearchAgentsReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchAgentsParams represents query parameters for the SearchAgentsReq.
 type SearchAgentsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchAgentsParams) get() map[string]string {
@@ -142,7 +142,7 @@ func (r SearchAgentsResp) RawBody() io.Reader {
 
 // MlSearchAgentsBody is a typed component of the ml.search_agents operation.
 type MlSearchAgentsBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of agents to return.
 	Size *int64 `json:"size,omitempty"`

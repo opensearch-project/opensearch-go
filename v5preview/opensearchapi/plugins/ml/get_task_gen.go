@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetTaskReq represents the request for the ml.get_task operation.
@@ -63,8 +63,8 @@ func (r GetTaskReq) GetRequest(method string) (*http.Request, error) {
 
 // GetTaskParams represents query parameters for the GetTaskReq.
 type GetTaskParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetTaskParams) get() map[string]string {
@@ -102,7 +102,7 @@ type GetTaskResp struct {
 	// Task type.
 	TaskType *string `json:"task_type,omitempty"`
 
-	WorkerNode []osapi.MlTaskWorkerNodeItem `json:"worker_node,omitempty"`
+	WorkerNode []opensearchapi.MlTaskWorkerNodeItem `json:"worker_node,omitempty"`
 
 	response *opensearch.Response
 }

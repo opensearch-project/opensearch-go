@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // RegisterModelMetaReq represents the request for the ml.register_model_meta operation.
@@ -79,8 +79,8 @@ func (r RegisterModelMetaReq) GetRequest(method string) (*http.Request, error) {
 
 // RegisterModelMetaParams represents query parameters for the RegisterModelMetaReq.
 type RegisterModelMetaParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r RegisterModelMetaParams) get() map[string]string {
@@ -131,7 +131,7 @@ type MlRegisterModelMetaBody struct {
 	// The function name.
 	FunctionName *string `json:"function_name,omitempty"`
 
-	ModelConfig osapi.MlModelConfig `json:"model_config"`
+	ModelConfig opensearchapi.MlModelConfig `json:"model_config"`
 
 	// The model content hash value.
 	ModelContentHashValue string `json:"model_content_hash_value"`

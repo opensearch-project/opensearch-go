@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetUsersReq represents the request for the security.get_users operation.
@@ -64,8 +64,8 @@ func (r GetUsersReq) GetRequest(method string) (*http.Request, error) {
 
 // GetUsersParams represents query parameters for the GetUsersReq.
 type GetUsersParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetUsersParams) get() map[string]string {
@@ -89,7 +89,7 @@ func (r GetUsersParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-users
 type GetUsersResp struct {
-	Entries  map[string]osapi.SecurityUser `json:"-"`
+	Entries  map[string]opensearchapi.SecurityUser `json:"-"`
 	response *opensearch.Response
 }
 

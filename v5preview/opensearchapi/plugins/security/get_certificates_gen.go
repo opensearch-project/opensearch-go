@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetCertificatesReq represents the request for the security.get_certificates operation.
@@ -63,8 +63,8 @@ func (r GetCertificatesReq) GetRequest(method string) (*http.Request, error) {
 
 // GetCertificatesParams represents query parameters for the GetCertificatesReq.
 type GetCertificatesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetCertificatesParams) get() map[string]string {
@@ -89,8 +89,8 @@ func (r GetCertificatesParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-certificates
 type GetCertificatesResp struct {
-	HTTPCertificatesList      []osapi.SecurityCertificatesDetail `json:"http_certificates_list,omitempty"`
-	TransportCertificatesList []osapi.SecurityCertificatesDetail `json:"transport_certificates_list,omitempty"`
+	HTTPCertificatesList      []opensearchapi.SecurityCertificatesDetail `json:"http_certificates_list,omitempty"`
+	TransportCertificatesList []opensearchapi.SecurityCertificatesDetail `json:"transport_certificates_list,omitempty"`
 
 	response *opensearch.Response
 }

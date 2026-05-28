@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchConnectorsReq represents the request for the ml.search_connectors operation.
@@ -81,8 +81,8 @@ func (r SearchConnectorsReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchConnectorsParams represents query parameters for the SearchConnectorsReq.
 type SearchConnectorsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchConnectorsParams) get() map[string]string {
@@ -142,7 +142,7 @@ func (r SearchConnectorsResp) RawBody() io.Reader {
 
 // MlSearchConnectorsBody is a typed component of the ml.search_connectors operation.
 type MlSearchConnectorsBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of connectors to return.
 	Size *int64 `json:"size,omitempty"`

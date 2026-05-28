@@ -20,7 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // IndicesReq represents the request for the list.indices operation.
@@ -68,8 +68,8 @@ func (r IndicesReq) GetRequest(method string) (*http.Request, error) {
 
 // IndicesParams represents query parameters for the IndicesReq.
 type IndicesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The unit used to display byte values.
 	Bytes string
 
@@ -177,8 +177,8 @@ func (r IndicesParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-indices/
 type IndicesResp struct {
-	Indices   []osapi.CatIndicesRecord `json:"indices,omitempty"`
-	NextToken json.RawMessage          `json:"next_token"`
+	Indices   []opensearchapi.CatIndicesRecord `json:"indices,omitempty"`
+	NextToken json.RawMessage                  `json:"next_token"`
 
 	response *opensearch.Response
 }

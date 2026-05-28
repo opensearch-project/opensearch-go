@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteDefaultStoreReq represents the request for the ltr.delete_default_store operation.
@@ -59,8 +59,8 @@ func (r DeleteDefaultStoreReq) GetRequest(method string) (*http.Request, error) 
 
 // DeleteDefaultStoreParams represents query parameters for the DeleteDefaultStoreReq.
 type DeleteDefaultStoreParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteDefaultStoreParams) get() map[string]string {

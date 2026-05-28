@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // FollowerStatsReq represents the request for the replication.follower_stats operation.
@@ -61,8 +61,8 @@ func (r FollowerStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // FollowerStatsParams represents query parameters for the FollowerStatsReq.
 type FollowerStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r FollowerStatsParams) get() map[string]string {
@@ -96,7 +96,7 @@ type FollowerStatsResp struct {
 	// The current checkpoint of the follower index.
 	FollowerCheckpoint *float64 `json:"follower_checkpoint,omitempty"`
 
-	IndexStats map[string]osapi.ReplicationIndexFollowerStatus `json:"index_stats,omitempty"`
+	IndexStats map[string]opensearchapi.ReplicationIndexFollowerStatus `json:"index_stats,omitempty"`
 
 	// The current checkpoint of the leader index.
 	LeaderCheckpoint *float64 `json:"leader_checkpoint,omitempty"`
@@ -136,7 +136,7 @@ type FollowerStatsResp struct {
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	TotalWriteTimeMillis *osapi.ReplicationFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	TotalWriteTimeMillis *opensearchapi.ReplicationFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
 
 	response *opensearch.Response
 }

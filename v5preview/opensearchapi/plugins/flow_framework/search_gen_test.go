@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/flow_framework"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/flow_framework"
 )
 
 func TestSearchReq_GetRequest(t *testing.T) {

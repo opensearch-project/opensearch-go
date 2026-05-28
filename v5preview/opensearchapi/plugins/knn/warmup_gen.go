@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // WarmupReq represents the request for the knn.warmup operation.
@@ -65,8 +65,8 @@ func (r WarmupReq) GetRequest(method string) (*http.Request, error) {
 
 // WarmupParams represents query parameters for the WarmupReq.
 type WarmupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r WarmupParams) get() map[string]string {
@@ -91,7 +91,7 @@ func (r WarmupParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#warmup-operation
 type WarmupResp struct {
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	response *opensearch.Response
 }

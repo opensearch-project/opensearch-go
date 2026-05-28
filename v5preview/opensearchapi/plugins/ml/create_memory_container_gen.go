@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateMemoryContainerReq represents the request for the ml.create_memory_container operation.
@@ -79,8 +79,8 @@ func (r CreateMemoryContainerReq) GetRequest(method string) (*http.Request, erro
 
 // CreateMemoryContainerParams represents query parameters for the CreateMemoryContainerReq.
 type CreateMemoryContainerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateMemoryContainerParams) get() map[string]string {
@@ -125,8 +125,8 @@ func (r CreateMemoryContainerResp) RawBody() io.Reader {
 
 // MlCreateMemoryContainerBody is a typed component of the ml.create_memory_container operation.
 type MlCreateMemoryContainerBody struct {
-	Configuration osapi.MlMemoryContainerConfiguration `json:"configuration"`
-	Description   *string                              `json:"description,omitempty"`
+	Configuration opensearchapi.MlMemoryContainerConfiguration `json:"configuration"`
+	Description   *string                                      `json:"description,omitempty"`
 
 	// The name of a resource or configuration element.
 	Name string `json:"name"`

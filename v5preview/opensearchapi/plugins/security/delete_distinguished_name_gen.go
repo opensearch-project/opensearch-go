@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteDistinguishedNameReq represents the request for the security.delete_distinguished_name operation.
@@ -68,8 +68,8 @@ func (r DeleteDistinguishedNameReq) GetRequest(method string) (*http.Request, er
 
 // DeleteDistinguishedNameParams represents query parameters for the DeleteDistinguishedNameReq.
 type DeleteDistinguishedNameParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteDistinguishedNameParams) get() map[string]string {

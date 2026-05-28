@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestDanglingIndicesImportDanglingIndexReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.DanglingIndicesImportDanglingIndexReq
+		req        opensearchapi.DanglingIndicesImportDanglingIndexReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.DanglingIndicesImportDanglingIndexReq{},
+			req:        opensearchapi.DanglingIndicesImportDanglingIndexReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test-indexuuid"},
+			req:        opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test-indexuuid"},
 			wantMethod: "POST",
 			wantPath:   "/_dangling/test-indexuuid",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestDanglingIndicesImportDanglingIndex_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Dangling.ImportDanglingIndex(t.Context(), osapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test"})
+		resp, err := client.Dangling.ImportDanglingIndex(t.Context(), opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestDanglingIndicesImportDanglingIndex_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Dangling.ImportDanglingIndex(t.Context(), osapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test"})
+		resp, err := errClient.Dangling.ImportDanglingIndex(t.Context(), opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

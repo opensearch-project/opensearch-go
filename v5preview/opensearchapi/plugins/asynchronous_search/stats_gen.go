@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // StatsReq represents the request for the asynchronous_search.stats operation.
@@ -61,8 +61,8 @@ func (r StatsReq) GetRequest(method string) (*http.Request, error) {
 
 // StatsParams represents query parameters for the StatsReq.
 type StatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r StatsParams) get() map[string]string {
@@ -87,9 +87,9 @@ func (r StatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#monitor-stats
 type StatsResp struct {
-	osapi.NodesResponseBase
-	ClusterName *string                                       `json:"cluster_name,omitempty"`
-	Nodes       map[string]osapi.AsynchronousSearchNodesStats `json:"nodes,omitempty"`
+	opensearchapi.NodesResponseBase
+	ClusterName *string                                               `json:"cluster_name,omitempty"`
+	Nodes       map[string]opensearchapi.AsynchronousSearchNodesStats `json:"nodes,omitempty"`
 
 	response *opensearch.Response
 }

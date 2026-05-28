@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchReq represents the request for the asynchronous_search.search operation.
@@ -35,7 +35,7 @@ type SearchReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.AsynchronousSearchSearch
+	Body *opensearchapi.AsynchronousSearchSearch
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -82,8 +82,8 @@ func (r SearchReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchParams represents query parameters for the SearchReq.
 type SearchParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The name of the index to be searched. Can be an individual name, a
 	// comma-separated list of indexes, or a wildcard expression of index
 	// names.
@@ -145,12 +145,12 @@ func (r SearchParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#rest-api
 type SearchResp struct {
-	ExpirationTimeInMillis *float64              `json:"expiration_time_in_millis,omitempty"`
-	ID                     *string               `json:"id,omitempty"`
-	Response               *osapi.SearchResponse `json:"response,omitempty"`
-	StartTimeInMillis      *float64              `json:"start_time_in_millis,omitempty"`
-	State                  *string               `json:"state,omitempty"`
-	Took                   *float64              `json:"took,omitempty"`
+	ExpirationTimeInMillis *float64                      `json:"expiration_time_in_millis,omitempty"`
+	ID                     *string                       `json:"id,omitempty"`
+	Response               *opensearchapi.SearchResponse `json:"response,omitempty"`
+	StartTimeInMillis      *float64                      `json:"start_time_in_millis,omitempty"`
+	State                  *string                       `json:"state,omitempty"`
+	Took                   *float64                      `json:"took,omitempty"`
 
 	response *opensearch.Response
 }

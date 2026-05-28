@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // HealthReq represents the request for the security.health operation.
@@ -66,8 +66,8 @@ func (r HealthReq) GetRequest(method string) (*http.Request, error) {
 
 // HealthParams represents query parameters for the HealthReq.
 type HealthParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// A flag that determines whether to consider the security status before
 	// returning a response for a health query response. For example, `strict`
 	// mode indicates service should check the Security plugin status.

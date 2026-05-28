@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/sm/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/sm/internal/smtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestGetPolicies(t *testing.T) {

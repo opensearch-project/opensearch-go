@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetFindingsReq represents the request for the security_analytics.get_findings operation.
@@ -62,8 +62,8 @@ func (r GetFindingsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetFindingsParams represents query parameters for the GetFindingsReq.
 type GetFindingsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The detection type that dictates the retrieval type for the findings.
 	// When the detection type is `threat`, it fetches threat intelligence
 	// feeds. When the detection type is `rule`, findings are fetched based on

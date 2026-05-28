@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCatSnapshots(t *testing.T) {
@@ -27,7 +27,7 @@ func TestCatSnapshots(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-cat-snapshots")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Snapshots(t.Context(), &osapi.CatSnapshotsReq{Params: &osapi.CatSnapshotsParams{DebugParams: osapi.DebugParams{Format: "json"}, Repository: []string{name}}})
+		resp, err := client.Cat.Snapshots(t.Context(), &opensearchapi.CatSnapshotsReq{Params: &opensearchapi.CatSnapshotsParams{DebugParams: opensearchapi.DebugParams{Format: "json"}, Repository: []string{name}}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

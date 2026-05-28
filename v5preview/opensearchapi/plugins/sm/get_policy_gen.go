@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetPolicyReq represents the request for the sm.get_policy operation.
@@ -63,8 +63,8 @@ func (r GetPolicyReq) GetRequest(method string) (*http.Request, error) {
 
 // GetPolicyParams represents query parameters for the GetPolicyReq.
 type GetPolicyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetPolicyParams) get() map[string]string {
@@ -100,7 +100,7 @@ type GetPolicyResp struct {
 	Version int `json:"_version"`
 
 	// The complete snapshot management policy configuration.
-	SmPolicy osapi.SmSMPolicy `json:"sm_policy"`
+	SmPolicy opensearchapi.SmSMPolicy `json:"sm_policy"`
 
 	response *opensearch.Response
 }

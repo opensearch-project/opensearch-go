@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateConnectorReq represents the request for the ml.create_connector operation.
@@ -77,8 +77,8 @@ func (r CreateConnectorReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateConnectorParams represents query parameters for the CreateConnectorReq.
 type CreateConnectorParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateConnectorParams) get() map[string]string {
@@ -120,12 +120,12 @@ func (r CreateConnectorResp) RawBody() io.Reader {
 
 // MlCreateConnectorBody is a typed component of the ml.create_connector operation.
 type MlCreateConnectorBody struct {
-	Actions      []osapi.MlAction      `json:"actions"`
-	ClientConfig *osapi.MlClientConfig `json:"client_config,omitempty"`
-	Credential   osapi.MlCredential    `json:"credential"`
-	Description  string                `json:"description"`
-	Name         string                `json:"name"`
-	Parameters   osapi.MlParameters    `json:"parameters"`
+	Actions      []opensearchapi.MlAction      `json:"actions"`
+	ClientConfig *opensearchapi.MlClientConfig `json:"client_config,omitempty"`
+	Credential   opensearchapi.MlCredential    `json:"credential"`
+	Description  string                        `json:"description"`
+	Name         string                        `json:"name"`
+	Parameters   opensearchapi.MlParameters    `json:"parameters"`
 
 	// The connector protocol.
 	Protocol string `json:"protocol"`

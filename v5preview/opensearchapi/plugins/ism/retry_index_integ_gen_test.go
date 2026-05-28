@@ -16,10 +16,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ism"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ism/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ism"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ism/internal/ismtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestRetryIndex(t *testing.T) {
@@ -33,14 +33,14 @@ func TestRetryIndex(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-retry-index")
 	name := testutil.MustUniqueString(t, "test-retry-index")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = osClient.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.RetryIndex(t.Context(), &ism.RetryIndexReq{Params: &ism.RetryIndexParams{Index: []string{name}}, Index: []string{index}, Body: &osapi.IsmRetryIndexRequest{}})
+		resp, err := client.RetryIndex(t.Context(), &ism.RetryIndexReq{Params: &ism.RetryIndexParams{Index: []string{name}}, Index: []string{index}, Body: &opensearchapi.IsmRetryIndexRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -50,7 +50,7 @@ func TestRetryIndex(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.RetryIndex(t.Context(), &ism.RetryIndexReq{Index: []string{index}, Body: &osapi.IsmRetryIndexRequest{}})
+		res, err := failingClient.RetryIndex(t.Context(), &ism.RetryIndexReq{Index: []string{index}, Body: &opensearchapi.IsmRetryIndexRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

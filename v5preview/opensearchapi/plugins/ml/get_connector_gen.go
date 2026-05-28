@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetConnectorReq represents the request for the ml.get_connector operation.
@@ -63,8 +63,8 @@ func (r GetConnectorReq) GetRequest(method string) (*http.Request, error) {
 
 // GetConnectorParams represents query parameters for the GetConnectorReq.
 type GetConnectorParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetConnectorParams) get() map[string]string {
@@ -87,7 +87,7 @@ func (r GetConnectorParams) get() map[string]string {
 //
 // Available: >= 2.11.0.
 type GetConnectorResp struct {
-	Actions []osapi.MlAction `json:"actions,omitempty"`
+	Actions []opensearchapi.MlAction `json:"actions,omitempty"`
 
 	// The created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
@@ -101,7 +101,7 @@ type GetConnectorResp struct {
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	Parameters *osapi.MlParameters `json:"parameters,omitempty"`
+	Parameters *opensearchapi.MlParameters `json:"parameters,omitempty"`
 
 	// The connector protocol.
 	Protocol *string `json:"protocol,omitempty"`

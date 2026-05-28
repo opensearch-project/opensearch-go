@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DatasourcesListReq represents the request for the query.datasources_list operation.
@@ -60,8 +60,8 @@ func (r DatasourcesListReq) GetRequest(method string) (*http.Request, error) {
 
 // DatasourcesListParams represents query parameters for the DatasourcesListReq.
 type DatasourcesListParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DatasourcesListParams) get() map[string]string {
@@ -83,7 +83,7 @@ func (r DatasourcesListParams) get() map[string]string {
 //
 // Retrieves a list of all available data sources.
 type DatasourcesListResp struct {
-	Records  []osapi.QueryDataSource `json:"-"`
+	Records  []opensearchapi.QueryDataSource `json:"-"`
 	response *opensearch.Response
 }
 

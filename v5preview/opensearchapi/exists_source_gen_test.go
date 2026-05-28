@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestExistsSourceReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ExistsSourceReq
+		req        opensearchapi.ExistsSourceReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.ExistsSourceReq{},
+			req:        opensearchapi.ExistsSourceReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.ExistsSourceReq{Index: "test-index", ID: "test-id"},
+			req:        opensearchapi.ExistsSourceReq{Index: "test-index", ID: "test-id"},
 			wantMethod: "HEAD",
 			wantPath:   "/test-index/_source/test-id",
 			wantErr:    false,
@@ -71,12 +71,12 @@ func TestExistsSource_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.ExistsSource(t.Context(), osapi.ExistsSourceReq{Index: "test", ID: "test"})
+		resp, err := client.ExistsSource(t.Context(), opensearchapi.ExistsSourceReq{Index: "test", ID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)
@@ -90,12 +90,12 @@ func TestExistsSource_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.ExistsSource(t.Context(), osapi.ExistsSourceReq{Index: "test", ID: "test"})
+		resp, err := errClient.ExistsSource(t.Context(), opensearchapi.ExistsSourceReq{Index: "test", ID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

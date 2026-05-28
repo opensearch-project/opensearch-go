@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UpdateMessageReq represents the request for the ml.update_message operation.
@@ -83,8 +83,8 @@ func (r UpdateMessageReq) GetRequest(method string) (*http.Request, error) {
 
 // UpdateMessageParams represents query parameters for the UpdateMessageReq.
 type UpdateMessageParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UpdateMessageParams) get() map[string]string {
@@ -118,7 +118,7 @@ type UpdateMessageResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`

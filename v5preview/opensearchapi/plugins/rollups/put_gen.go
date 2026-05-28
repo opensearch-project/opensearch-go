@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PutReq represents the request for the rollups.put operation.
@@ -37,7 +37,7 @@ type PutReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.RollupsRollupEntity
+	Body *opensearchapi.RollupsRollupEntity
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -86,8 +86,8 @@ func (r PutReq) GetRequest(method string) (*http.Request, error) {
 
 // PutParams represents query parameters for the PutReq.
 type PutParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Only performs the operation if the document has the specified primary
 	// term.
 	IfPrimaryTerm int

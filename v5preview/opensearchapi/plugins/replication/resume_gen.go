@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ResumeReq represents the request for the replication.resume operation.
@@ -68,8 +68,8 @@ func (r ResumeReq) GetRequest(method string) (*http.Request, error) {
 
 // ResumeParams represents query parameters for the ResumeReq.
 type ResumeParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ResumeParams) get() map[string]string {

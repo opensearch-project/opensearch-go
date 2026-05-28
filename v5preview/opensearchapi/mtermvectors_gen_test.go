@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,35 +19,35 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestMtermvectorsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.MtermvectorsReq
+		req        opensearchapi.MtermvectorsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.MtermvectorsReq{},
+			req:        opensearchapi.MtermvectorsReq{},
 			wantMethod: "GET",
 			wantPath:   "/_mtermvectors",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.MtermvectorsReq{Index: "test-index"},
+			req:        opensearchapi.MtermvectorsReq{Index: "test-index"},
 			wantMethod: "GET",
 			wantPath:   "/test-index/_mtermvectors",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        osapi.MtermvectorsReq{Index: "test", Body: &osapi.MtermvectorsBody{}},
+			req:        opensearchapi.MtermvectorsReq{Index: "test", Body: &opensearchapi.MtermvectorsBody{}},
 			wantMethod: "POST",
 			wantPath:   "/test/_mtermvectors",
 			wantErr:    false,
@@ -79,12 +79,12 @@ func TestMtermvectors_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Mtermvectors(t.Context(), osapi.MtermvectorsReq{})
+		resp, err := client.Mtermvectors(t.Context(), opensearchapi.MtermvectorsReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -98,12 +98,12 @@ func TestMtermvectors_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Mtermvectors(t.Context(), osapi.MtermvectorsReq{})
+		resp, err := errClient.Mtermvectors(t.Context(), opensearchapi.MtermvectorsReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

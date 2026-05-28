@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExecuteAgentStreamReq represents the request for the ml.execute_agent_stream operation.
@@ -83,8 +83,8 @@ func (r ExecuteAgentStreamReq) GetRequest(method string) (*http.Request, error) 
 
 // ExecuteAgentStreamParams represents query parameters for the ExecuteAgentStreamReq.
 type ExecuteAgentStreamParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ExecuteAgentStreamParams) get() map[string]string {
@@ -126,5 +126,5 @@ func (r ExecuteAgentStreamResp) RawBody() io.Reader {
 
 // MlExecuteAgentStreamBody is a typed component of the ml.execute_agent_stream operation.
 type MlExecuteAgentStreamBody struct {
-	Parameters osapi.MlParameters `json:"parameters"`
+	Parameters opensearchapi.MlParameters `json:"parameters"`
 }

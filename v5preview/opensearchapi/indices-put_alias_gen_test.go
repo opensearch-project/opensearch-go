@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesPutAliasReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesPutAliasReq
+		req        opensearchapi.IndicesPutAliasReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.IndicesPutAliasReq{},
+			req:        opensearchapi.IndicesPutAliasReq{},
 			wantMethod: "PUT",
 			wantPath:   "/_alias",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesPutAliasReq{Name: "test-name", Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesPutAliasReq{Name: "test-name", Index: []string{"a", "b"}},
 			wantMethod: "PUT",
 			wantPath:   "/a,b/_alias/test-name",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestIndicesPutAlias_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.PutAlias(t.Context(), osapi.IndicesPutAliasReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestIndicesPutAlias_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.PutAlias(t.Context(), osapi.IndicesPutAliasReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

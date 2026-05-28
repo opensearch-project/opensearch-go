@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchModelGroupReq represents the request for the ml.search_model_group operation.
@@ -81,8 +81,8 @@ func (r SearchModelGroupReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchModelGroupParams represents query parameters for the SearchModelGroupReq.
 type SearchModelGroupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchModelGroupParams) get() map[string]string {
@@ -142,7 +142,7 @@ func (r SearchModelGroupResp) RawBody() io.Reader {
 
 // MlSearchModelGroupBody is a typed component of the ml.search_model_group operation.
 type MlSearchModelGroupBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of model groups to return.
 	Size *int64 `json:"size,omitempty"`

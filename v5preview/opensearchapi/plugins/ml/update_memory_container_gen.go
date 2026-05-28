@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UpdateMemoryContainerReq represents the request for the ml.update_memory_container operation.
@@ -83,8 +83,8 @@ func (r UpdateMemoryContainerReq) GetRequest(method string) (*http.Request, erro
 
 // UpdateMemoryContainerParams represents query parameters for the UpdateMemoryContainerReq.
 type UpdateMemoryContainerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UpdateMemoryContainerParams) get() map[string]string {
@@ -118,7 +118,7 @@ type UpdateMemoryContainerResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`
@@ -146,8 +146,8 @@ func (r UpdateMemoryContainerResp) RawBody() io.Reader {
 
 // MlUpdateMemoryContainerBody is a typed component of the ml.update_memory_container operation.
 type MlUpdateMemoryContainerBody struct {
-	Configuration *osapi.MlMemoryContainerConfiguration `json:"configuration,omitempty"`
-	Description   *string                               `json:"description,omitempty"`
+	Configuration *opensearchapi.MlMemoryContainerConfiguration `json:"configuration,omitempty"`
+	Description   *string                                       `json:"description,omitempty"`
 
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`

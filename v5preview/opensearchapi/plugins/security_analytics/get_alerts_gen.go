@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAlertsReq represents the request for the security_analytics.get_alerts operation.
@@ -63,8 +63,8 @@ func (r GetAlertsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetAlertsParams represents query parameters for the GetAlertsReq.
 type GetAlertsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Used to filter by alert state. Optional.
 	AlertState string
 

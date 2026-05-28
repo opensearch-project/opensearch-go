@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SettingsReq represents the request for the sql.settings operation.
@@ -65,8 +65,8 @@ func (r SettingsReq) GetRequest(method string) (*http.Request, error) {
 
 // SettingsParams represents query parameters for the SettingsReq.
 type SettingsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SettingsParams) get() map[string]string {
@@ -100,7 +100,7 @@ type SettingsResp struct {
 	// The permanent settings that persist through restarts.
 	Persistent json.RawMessage `json:"persistent"`
 
-	Transient *osapi.SQLTransient `json:"transient,omitempty"`
+	Transient *opensearchapi.SQLTransient `json:"transient,omitempty"`
 
 	response *opensearch.Response
 }

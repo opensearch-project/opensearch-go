@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAgentReq represents the request for the ml.get_agent operation.
@@ -63,8 +63,8 @@ func (r GetAgentReq) GetRequest(method string) (*http.Request, error) {
 
 // GetAgentParams represents query parameters for the GetAgentReq.
 type GetAgentParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetAgentParams) get() map[string]string {
@@ -102,7 +102,7 @@ type GetAgentResp struct {
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	Tools []osapi.MlToolItems `json:"tools,omitempty"`
+	Tools []opensearchapi.MlToolItems `json:"tools,omitempty"`
 
 	// The agent type.
 	Type *string `json:"type,omitempty"`

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PutIp2geoDatasourceReq represents the request for the geospatial.put_ip2geo_datasource operation.
@@ -39,7 +39,7 @@ type PutIp2geoDatasourceReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.GeospatialPutIP2GeoDataSourceRequest
+	Body *opensearchapi.GeospatialPutIP2GeoDataSourceRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -88,8 +88,8 @@ func (r PutIp2geoDatasourceReq) GetRequest(method string) (*http.Request, error)
 
 // PutIp2geoDatasourceParams represents query parameters for the PutIp2geoDatasourceReq.
 type PutIp2geoDatasourceParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PutIp2geoDatasourceParams) get() map[string]string {

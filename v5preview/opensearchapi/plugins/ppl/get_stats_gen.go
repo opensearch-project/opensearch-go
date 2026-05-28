@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetStatsReq represents the request for the ppl.get_stats operation.
@@ -62,8 +62,8 @@ func (r GetStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetStatsParams represents query parameters for the GetStatsReq.
 type GetStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Whether to escape special characters in the results.
 	//
 	// Default: true.

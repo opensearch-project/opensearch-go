@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CacheStatsReq represents the request for the ltr.cache_stats operation.
@@ -60,8 +60,8 @@ func (r CacheStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // CacheStatsParams represents query parameters for the CacheStatsReq.
 type CacheStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CacheStatsParams) get() map[string]string {
@@ -84,16 +84,16 @@ func (r CacheStatsParams) get() map[string]string {
 //
 // Available: >= 2.19.0.
 type CacheStatsResp struct {
-	osapi.NodesResponseBase
+	opensearchapi.NodesResponseBase
 
 	// Aggregate cache statistics across all nodes.
-	All *osapi.LtrCacheAllStats `json:"all,omitempty"`
+	All *opensearchapi.LtrCacheAllStats `json:"all,omitempty"`
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	// Cache statistics per node.
-	Nodes map[string]osapi.LtrNodeDetails `json:"nodes,omitempty"`
+	Nodes map[string]opensearchapi.LtrNodeDetails `json:"nodes,omitempty"`
 
 	// Cache statistics by store.
 	Stores json.RawMessage `json:"stores"`

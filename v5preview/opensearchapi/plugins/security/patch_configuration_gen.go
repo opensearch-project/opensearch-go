@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PatchConfigurationReq represents the request for the security.patch_configuration operation.
@@ -67,8 +67,8 @@ func (r PatchConfigurationReq) GetRequest(method string) (*http.Request, error) 
 
 // PatchConfigurationParams represents query parameters for the PatchConfigurationReq.
 type PatchConfigurationParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PatchConfigurationParams) get() map[string]string {

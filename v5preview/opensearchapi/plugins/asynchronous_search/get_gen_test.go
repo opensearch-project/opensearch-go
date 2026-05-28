@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/asynchronous_search"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/asynchronous_search"
 )
 
 func TestGetReq_GetRequest(t *testing.T) {

@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAllCertificatesReq represents the request for the security.get_all_certificates operation.
@@ -61,8 +61,8 @@ func (r GetAllCertificatesReq) GetRequest(method string) (*http.Request, error) 
 
 // GetAllCertificatesParams represents query parameters for the GetAllCertificatesReq.
 type GetAllCertificatesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The type of certificates (`HTTP`, `TRANSPORT`, or `ALL`) to retrieve
 	// from all nodes.
 	CertType string
@@ -92,12 +92,12 @@ func (r GetAllCertificatesParams) get() map[string]string {
 //
 // Available: >= 2.15.0.
 type GetAllCertificatesResp struct {
-	osapi.NodesResponseBase
+	opensearchapi.NodesResponseBase
 
 	// Name of this cluster.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	Nodes map[string]osapi.SecurityCertificatesPerNode `json:"nodes,omitempty"`
+	Nodes map[string]opensearchapi.SecurityCertificatesPerNode `json:"nodes,omitempty"`
 
 	response *opensearch.Response
 }

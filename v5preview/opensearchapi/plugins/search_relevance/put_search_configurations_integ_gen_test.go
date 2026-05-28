@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/search_relevance"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/search_relevance/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/search_relevance"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/search_relevance/internal/search_relevancetest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestPutSearchConfigurations(t *testing.T) {
@@ -31,7 +31,7 @@ func TestPutSearchConfigurations(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "3.1", "PutSearchConfigurations")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.SearchConfiguration.PutSearchConfigurations(t.Context(), &search_relevance.PutSearchConfigurationsReq{Body: &osapi.SearchRelevancePutSearchConfigurationRequest{}})
+		resp, err := client.SearchConfiguration.PutSearchConfigurations(t.Context(), &search_relevance.PutSearchConfigurationsReq{Body: &opensearchapi.SearchRelevancePutSearchConfigurationRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestPutSearchConfigurations(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.SearchConfiguration.PutSearchConfigurations(t.Context(), &search_relevance.PutSearchConfigurationsReq{Body: &osapi.SearchRelevancePutSearchConfigurationRequest{}})
+		res, err := failingClient.SearchConfiguration.PutSearchConfigurations(t.Context(), &search_relevance.PutSearchConfigurationsReq{Body: &opensearchapi.SearchRelevancePutSearchConfigurationRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

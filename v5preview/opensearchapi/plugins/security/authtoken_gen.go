@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // AuthtokenReq represents the request for the security.authtoken operation.
@@ -62,8 +62,8 @@ func (r AuthtokenReq) GetRequest(method string) (*http.Request, error) {
 
 // AuthtokenParams represents query parameters for the AuthtokenReq.
 type AuthtokenParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r AuthtokenParams) get() map[string]string {

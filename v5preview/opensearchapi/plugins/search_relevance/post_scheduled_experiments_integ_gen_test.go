@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/search_relevance"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/search_relevance/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/search_relevance"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/search_relevance/internal/search_relevancetest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestPostScheduledExperiments(t *testing.T) {
@@ -31,7 +31,7 @@ func TestPostScheduledExperiments(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "3.4", "PostScheduledExperiments")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.ScheduledExperiment.PostScheduledExperiments(t.Context(), &search_relevance.PostScheduledExperimentsReq{Body: &osapi.SearchRelevancePostScheduledExperimentsRequest{}})
+		resp, err := client.ScheduledExperiment.PostScheduledExperiments(t.Context(), &search_relevance.PostScheduledExperimentsReq{Body: &opensearchapi.SearchRelevancePostScheduledExperimentsRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestPostScheduledExperiments(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.ScheduledExperiment.PostScheduledExperiments(t.Context(), &search_relevance.PostScheduledExperimentsReq{Body: &osapi.SearchRelevancePostScheduledExperimentsRequest{}})
+		res, err := failingClient.ScheduledExperiment.PostScheduledExperiments(t.Context(), &search_relevance.PostScheduledExperimentsReq{Body: &opensearchapi.SearchRelevancePostScheduledExperimentsRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

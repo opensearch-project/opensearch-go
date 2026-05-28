@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/replication/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/replication/internal/replicationtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestFollowerStats(t *testing.T) {

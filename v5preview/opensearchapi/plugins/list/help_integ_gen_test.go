@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/list"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/list/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/list"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/list/internal/listtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestHelp(t *testing.T) {
@@ -31,7 +31,7 @@ func TestHelp(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "2.18", "Help")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Help(t.Context(), &list.HelpReq{Params: &list.HelpParams{DebugParams: osapi.DebugParams{Format: "json"}}})
+		resp, err := client.Help(t.Context(), &list.HelpReq{Params: &list.HelpParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExecuteAlgorithmReq represents the request for the ml.execute_algorithm operation.
@@ -83,8 +83,8 @@ func (r ExecuteAlgorithmReq) GetRequest(method string) (*http.Request, error) {
 
 // ExecuteAlgorithmParams represents query parameters for the ExecuteAlgorithmReq.
 type ExecuteAlgorithmParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ExecuteAlgorithmParams) get() map[string]string {
@@ -144,7 +144,7 @@ func (r ExecuteAlgorithmResp) RawBody() io.Reader {
 
 // MlExecuteAlgorithmBody is a typed component of the ml.execute_algorithm operation.
 type MlExecuteAlgorithmBody struct {
-	Aggregations []osapi.MlAggregation `json:"aggregations,omitempty"`
+	Aggregations []opensearchapi.MlAggregation `json:"aggregations,omitempty"`
 
 	// The attribute field names
 	AttributeFieldNames []string `json:"attribute_field_names,omitempty"`

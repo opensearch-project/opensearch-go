@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetProfileTasksReq represents the request for the ml.get_profile_tasks operation.
@@ -34,7 +34,7 @@ type GetProfileTasksReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.MlProfileRequest
+	Body *opensearchapi.MlProfileRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -83,8 +83,8 @@ func (r GetProfileTasksReq) GetRequest(method string) (*http.Request, error) {
 
 // GetProfileTasksParams represents query parameters for the GetProfileTasksReq.
 type GetProfileTasksParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetProfileTasksParams) get() map[string]string {
@@ -107,7 +107,7 @@ func (r GetProfileTasksParams) get() map[string]string {
 //
 // Available: >= 2.4.0.
 type GetProfileTasksResp struct {
-	Nodes map[string]osapi.MlNode `json:"nodes,omitempty"`
+	Nodes map[string]opensearchapi.MlNode `json:"nodes,omitempty"`
 
 	response *opensearch.Response
 }

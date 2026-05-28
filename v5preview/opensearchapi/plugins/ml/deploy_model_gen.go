@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeployModelReq represents the request for the ml.deploy_model operation.
@@ -63,8 +63,8 @@ func (r DeployModelReq) GetRequest(method string) (*http.Request, error) {
 
 // DeployModelParams represents query parameters for the DeployModelReq.
 type DeployModelParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeployModelParams) get() map[string]string {

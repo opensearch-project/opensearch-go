@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesCreate(t *testing.T) {
@@ -27,13 +27,13 @@ func TestIndicesCreate(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-create")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	// index variable defined above; the operation itself creates the resource.
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index, Body: &osapi.IndicesCreateBody{}})
+		resp, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index, Body: &opensearchapi.IndicesCreateBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -43,7 +43,7 @@ func TestIndicesCreate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index, Body: &osapi.IndicesCreateBody{}})
+		res, err := failingClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index, Body: &opensearchapi.IndicesCreateBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

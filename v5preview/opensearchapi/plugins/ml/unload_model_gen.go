@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UnloadModelReq represents the request for the ml.unload_model operation.
@@ -85,8 +85,8 @@ func (r UnloadModelReq) GetRequest(method string) (*http.Request, error) {
 
 // UnloadModelParams represents query parameters for the UnloadModelReq.
 type UnloadModelParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UnloadModelParams) get() map[string]string {
@@ -108,7 +108,7 @@ func (r UnloadModelParams) get() map[string]string {
 //
 // Unloads a model.
 type UnloadModelResp struct {
-	Entries  map[string]osapi.MlUnloadModelNode `json:"-"`
+	Entries  map[string]opensearchapi.MlUnloadModelNode `json:"-"`
 	response *opensearch.Response
 }
 

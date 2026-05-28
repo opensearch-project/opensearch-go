@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateMemoryReq represents the request for the ml.create_memory operation.
@@ -79,8 +79,8 @@ func (r CreateMemoryReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateMemoryParams represents query parameters for the CreateMemoryReq.
 type CreateMemoryParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateMemoryParams) get() map[string]string {

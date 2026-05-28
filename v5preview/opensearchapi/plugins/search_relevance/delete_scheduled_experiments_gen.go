@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteScheduledExperimentsReq represents the request for the search_relevance.delete_scheduled_experiments operation.
@@ -63,8 +63,8 @@ func (r DeleteScheduledExperimentsReq) GetRequest(method string) (*http.Request,
 
 // DeleteScheduledExperimentsParams represents query parameters for the DeleteScheduledExperimentsReq.
 type DeleteScheduledExperimentsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteScheduledExperimentsParams) get() map[string]string {
@@ -98,7 +98,7 @@ type DeleteScheduledExperimentsResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`

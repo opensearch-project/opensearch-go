@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PutPoliciesReq represents the request for the ism.put_policies operation.
@@ -63,8 +63,8 @@ func (r PutPoliciesReq) GetRequest(method string) (*http.Request, error) {
 
 // PutPoliciesParams represents query parameters for the PutPoliciesReq.
 type PutPoliciesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Only perform the operation if the document has this primary term.
 	IfPrimaryTerm int
 
@@ -106,8 +106,8 @@ func (r PutPoliciesParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#create-policy
 type PutPoliciesResp struct {
-	osapi.IsmMetadata
-	Policy *osapi.IsmPolicyEnvelope `json:"policy,omitempty"`
+	opensearchapi.IsmMetadata
+	Policy *opensearchapi.IsmPolicyEnvelope `json:"policy,omitempty"`
 
 	response *opensearch.Response
 }

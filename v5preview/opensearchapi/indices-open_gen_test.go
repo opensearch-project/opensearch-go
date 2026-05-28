@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesOpenReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesOpenReq
+		req        opensearchapi.IndicesOpenReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.IndicesOpenReq{},
+			req:        opensearchapi.IndicesOpenReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesOpenReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesOpenReq{Index: []string{"a", "b"}},
 			wantMethod: "POST",
 			wantPath:   "/a,b/_open",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestIndicesOpen_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Open(t.Context(), &osapi.IndicesOpenReq{Index: []string{"test"}})
+		resp, err := client.Indices.Open(t.Context(), &opensearchapi.IndicesOpenReq{Index: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestIndicesOpen_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Open(t.Context(), &osapi.IndicesOpenReq{Index: []string{"test"}})
+		resp, err := errClient.Indices.Open(t.Context(), &opensearchapi.IndicesOpenReq{Index: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

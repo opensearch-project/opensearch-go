@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PredictReq represents the request for the ml.predict operation.
@@ -87,8 +87,8 @@ func (r PredictReq) GetRequest(method string) (*http.Request, error) {
 
 // PredictParams represents query parameters for the PredictReq.
 type PredictParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PredictParams) get() map[string]string {
@@ -111,8 +111,8 @@ func (r PredictParams) get() map[string]string {
 //
 // Available: >= 1.3.0.
 type PredictResp struct {
-	InferenceResults []osapi.MlInferenceResults `json:"inference_results,omitempty"`
-	PredictionResult *osapi.MlPredictionResult  `json:"prediction_result,omitempty"`
+	InferenceResults []opensearchapi.MlInferenceResults `json:"inference_results,omitempty"`
+	PredictionResult *opensearchapi.MlPredictionResult  `json:"prediction_result,omitempty"`
 
 	// The status.
 	Status *string `json:"status,omitempty"`
@@ -139,7 +139,7 @@ type MlPredictBody struct {
 	// The input index.
 	InputIndex []string `json:"input_index,omitempty"`
 
-	InputQuery *osapi.MlInputQuery `json:"input_query,omitempty"`
+	InputQuery *opensearchapi.MlInputQuery `json:"input_query,omitempty"`
 
 	// Whether to return bytes in model output.
 	ReturnNumber *bool `json:"return_number,omitempty"`

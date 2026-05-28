@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCatTemplates(t *testing.T) {
@@ -26,7 +26,7 @@ func TestCatTemplates(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-cat-templates")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.Templates(t.Context(), osapi.CatTemplatesReq{Params: &osapi.CatTemplatesParams{DebugParams: osapi.DebugParams{Format: "json"}}, Name: name})
+		resp, err := client.Cat.Templates(t.Context(), opensearchapi.CatTemplatesReq{Params: &opensearchapi.CatTemplatesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -36,7 +36,7 @@ func TestCatTemplates(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Cat.Templates(t.Context(), osapi.CatTemplatesReq{Name: name})
+		res, err := failingClient.Cat.Templates(t.Context(), opensearchapi.CatTemplatesReq{Name: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

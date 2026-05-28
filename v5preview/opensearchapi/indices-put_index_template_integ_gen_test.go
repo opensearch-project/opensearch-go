@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"strings"
@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesPutIndexTemplate(t *testing.T) {
@@ -27,7 +27,7 @@ func TestIndicesPutIndexTemplate(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-indices-put-index-template")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.PutIndexTemplate(t.Context(), osapi.IndicesPutIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"" + name + "-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
+		resp, err := client.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"" + name + "-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestIndicesPutIndexTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.PutIndexTemplate(t.Context(), osapi.IndicesPutIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"" + name + "-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
+		res, err := failingClient.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"" + name + "-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

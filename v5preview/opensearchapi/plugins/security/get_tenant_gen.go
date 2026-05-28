@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetTenantReq represents the request for the security.get_tenant operation.
@@ -68,8 +68,8 @@ func (r GetTenantReq) GetRequest(method string) (*http.Request, error) {
 
 // GetTenantParams represents query parameters for the GetTenantReq.
 type GetTenantParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetTenantParams) get() map[string]string {
@@ -93,7 +93,7 @@ func (r GetTenantParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-tenant
 type GetTenantResp struct {
-	Entries  map[string]osapi.SecurityTenant `json:"-"`
+	Entries  map[string]opensearchapi.SecurityTenant `json:"-"`
 	response *opensearch.Response
 }
 

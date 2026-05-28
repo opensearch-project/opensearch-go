@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExplainReq represents the request for the sql.explain operation.
@@ -35,7 +35,7 @@ type ExplainReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.SQLExplain
+	Body *opensearchapi.SQLExplain
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -82,8 +82,8 @@ func (r ExplainReq) GetRequest(method string) (*http.Request, error) {
 
 // ExplainParams represents query parameters for the ExplainReq.
 type ExplainParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Whether to escape special characters in the results.
 	//
 	// Default: true.
@@ -119,7 +119,7 @@ func (r ExplainParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/sql-ppl-api/
 type ExplainResp struct {
-	Root *osapi.SQLExplainBody `json:"root,omitempty"`
+	Root *opensearchapi.SQLExplainBody `json:"root,omitempty"`
 
 	response *opensearch.Response
 }

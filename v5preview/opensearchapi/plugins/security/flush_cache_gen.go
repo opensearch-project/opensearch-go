@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // FlushCacheReq represents the request for the security.flush_cache operation.
@@ -64,8 +64,8 @@ func (r FlushCacheReq) GetRequest(method string) (*http.Request, error) {
 
 // FlushCacheParams represents query parameters for the FlushCacheReq.
 type FlushCacheParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r FlushCacheParams) get() map[string]string {

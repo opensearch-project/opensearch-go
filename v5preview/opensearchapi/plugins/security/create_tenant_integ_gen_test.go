@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/security"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/security/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security/internal/securitytest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCreateTenant(t *testing.T) {
@@ -28,7 +28,7 @@ func TestCreateTenant(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-create-tenant")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Tenant.CreateTenant(t.Context(), security.CreateTenantReq{Tenant: name, Body: &osapi.SecurityCreateTenantParams{}})
+		resp, err := client.Tenant.CreateTenant(t.Context(), security.CreateTenantReq{Tenant: name, Body: &opensearchapi.SecurityCreateTenantParams{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -38,7 +38,7 @@ func TestCreateTenant(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Tenant.CreateTenant(t.Context(), security.CreateTenantReq{Tenant: name, Body: &osapi.SecurityCreateTenantParams{}})
+		res, err := failingClient.Tenant.CreateTenant(t.Context(), security.CreateTenantReq{Tenant: name, Body: &opensearchapi.SecurityCreateTenantParams{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

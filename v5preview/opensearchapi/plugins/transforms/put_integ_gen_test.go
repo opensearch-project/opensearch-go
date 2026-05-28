@@ -17,10 +17,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/transforms"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/transforms/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/transforms"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/transforms/internal/transformstest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestPut(t *testing.T) {
@@ -34,22 +34,22 @@ func TestPut(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-put")
 	docID := testutil.MustUniqueString(t, "test-put")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = osClient.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = osClient.Index(t.Context(), osapi.IndexReq{
+	_, err = osClient.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
-		Params: &osapi.IndexParams{Refresh: "true"},
+		Params: &opensearchapi.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Put(t.Context(), transforms.PutReq{ID: docID, Body: &osapi.TransformsTransformRequest{}})
+		resp, err := client.Put(t.Context(), transforms.PutReq{ID: docID, Body: &opensearchapi.TransformsTransformRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -59,7 +59,7 @@ func TestPut(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Put(t.Context(), transforms.PutReq{ID: docID, Body: &osapi.TransformsTransformRequest{}})
+		res, err := failingClient.Put(t.Context(), transforms.PutReq{ID: docID, Body: &opensearchapi.TransformsTransformRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

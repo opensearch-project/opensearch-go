@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ShardsReq represents the request for the list.shards operation.
@@ -67,8 +67,8 @@ func (r ShardsReq) GetRequest(method string) (*http.Request, error) {
 
 // ShardsParams represents query parameters for the ShardsReq.
 type ShardsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The unit used to display byte values.
 	Bytes string
 
@@ -142,8 +142,8 @@ func (r ShardsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-shards/
 type ShardsResp struct {
-	NextToken json.RawMessage         `json:"next_token"`
-	Shards    []osapi.CatShardsRecord `json:"shards,omitempty"`
+	NextToken json.RawMessage                 `json:"next_token"`
+	Shards    []opensearchapi.CatShardsRecord `json:"shards,omitempty"`
 
 	response *opensearch.Response
 }

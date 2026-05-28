@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesSimulateIndexTemplateReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesSimulateIndexTemplateReq
+		req        opensearchapi.IndicesSimulateIndexTemplateReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.IndicesSimulateIndexTemplateReq{},
+			req:        opensearchapi.IndicesSimulateIndexTemplateReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesSimulateIndexTemplateReq{Name: "test-name"},
+			req:        opensearchapi.IndicesSimulateIndexTemplateReq{Name: "test-name"},
 			wantMethod: "POST",
 			wantPath:   "/_index_template/_simulate_index/test-name",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestIndicesSimulateIndexTemplate_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.SimulateIndexTemplate(t.Context(), osapi.IndicesSimulateIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Indices.SimulateIndexTemplate(t.Context(), opensearchapi.IndicesSimulateIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestIndicesSimulateIndexTemplate_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.SimulateIndexTemplate(t.Context(), osapi.IndicesSimulateIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Indices.SimulateIndexTemplate(t.Context(), opensearchapi.IndicesSimulateIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

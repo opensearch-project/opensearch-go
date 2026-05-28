@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchTasksReq represents the request for the ml.search_tasks operation.
@@ -81,8 +81,8 @@ func (r SearchTasksReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchTasksParams represents query parameters for the SearchTasksReq.
 type SearchTasksParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchTasksParams) get() map[string]string {
@@ -142,7 +142,7 @@ func (r SearchTasksResp) RawBody() io.Reader {
 
 // MlSearchTasksBody is a typed component of the ml.search_tasks operation.
 type MlSearchTasksBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of tasks to return.
 	Size *int64 `json:"size,omitempty"`

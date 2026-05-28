@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,35 +19,35 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestCountReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.CountReq
+		req        opensearchapi.CountReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.CountReq{},
+			req:        opensearchapi.CountReq{},
 			wantMethod: "GET",
 			wantPath:   "/_count",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.CountReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CountReq{Index: []string{"a", "b"}},
 			wantMethod: "GET",
 			wantPath:   "/a,b/_count",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        osapi.CountReq{Index: []string{"x"}, Body: &osapi.CountBody{}},
+			req:        opensearchapi.CountReq{Index: []string{"x"}, Body: &opensearchapi.CountBody{}},
 			wantMethod: "POST",
 			wantPath:   "/x/_count",
 			wantErr:    false,
@@ -79,7 +79,7 @@ func TestCount_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestCount_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetMessageTracesReq represents the request for the ml.get_message_traces operation.
@@ -64,8 +64,8 @@ func (r GetMessageTracesReq) GetRequest(method string) (*http.Request, error) {
 
 // GetMessageTracesParams represents query parameters for the GetMessageTracesReq.
 type GetMessageTracesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	MaxResults int
 
 	NextToken int
@@ -99,8 +99,8 @@ func (r GetMessageTracesParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetMessageTracesResp struct {
-	NextToken *int              `json:"next_token,omitempty"`
-	Traces    []osapi.MlMessage `json:"traces"`
+	NextToken *int                      `json:"next_token,omitempty"`
+	Traces    []opensearchapi.MlMessage `json:"traces"`
 
 	response *opensearch.Response
 }

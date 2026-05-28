@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAgenticMemoryReq represents the request for the ml.get_agentic_memory operation.
@@ -72,8 +72,8 @@ func (r GetAgenticMemoryReq) GetRequest(method string) (*http.Request, error) {
 
 // GetAgenticMemoryParams represents query parameters for the GetAgenticMemoryReq.
 type GetAgenticMemoryParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetAgenticMemoryParams) get() map[string]string {
@@ -122,7 +122,7 @@ type GetAgenticMemoryResp struct {
 	// The ID of the memory.
 	MemoryID *string `json:"memory_id,omitempty"`
 
-	Messages  []osapi.MlMessage          `json:"messages,omitempty"`
+	Messages  []opensearchapi.MlMessage  `json:"messages,omitempty"`
 	Metadata  map[string]json.RawMessage `json:"metadata,omitempty"`
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 

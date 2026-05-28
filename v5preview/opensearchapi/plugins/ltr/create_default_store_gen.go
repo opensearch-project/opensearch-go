@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateDefaultStoreReq represents the request for the ltr.create_default_store operation.
@@ -59,8 +59,8 @@ func (r CreateDefaultStoreReq) GetRequest(method string) (*http.Request, error) 
 
 // CreateDefaultStoreParams represents query parameters for the CreateDefaultStoreReq.
 type CreateDefaultStoreParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateDefaultStoreParams) get() map[string]string {

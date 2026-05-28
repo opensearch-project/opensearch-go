@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestBulkReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.BulkReq
+		req        opensearchapi.BulkReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.BulkReq{},
+			req:        opensearchapi.BulkReq{},
 			wantMethod: "POST",
 			wantPath:   "/_bulk",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.BulkReq{Index: "test-index"},
+			req:        opensearchapi.BulkReq{Index: "test-index"},
 			wantMethod: "POST",
 			wantPath:   "/test-index/_bulk",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestBulk_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Bulk(t.Context(), osapi.BulkReq{Body: strings.NewReader("{}")})
+		resp, err := client.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestBulk_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Bulk(t.Context(), osapi.BulkReq{Body: strings.NewReader("{}")})
+		resp, err := errClient.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

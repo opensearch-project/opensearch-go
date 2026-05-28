@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIngestPutPipelineReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IngestPutPipelineReq
+		req        opensearchapi.IngestPutPipelineReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.IngestPutPipelineReq{},
+			req:        opensearchapi.IngestPutPipelineReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IngestPutPipelineReq{ID: "test-id"},
+			req:        opensearchapi.IngestPutPipelineReq{ID: "test-id"},
 			wantMethod: "PUT",
 			wantPath:   "/_ingest/pipeline/test-id",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestIngestPutPipeline_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Ingest.PutPipeline(t.Context(), osapi.IngestPutPipelineReq{ID: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{ID: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestIngestPutPipeline_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Ingest.PutPipeline(t.Context(), osapi.IngestPutPipelineReq{ID: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{ID: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

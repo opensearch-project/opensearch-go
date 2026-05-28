@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ConfigUpgradePerformReq represents the request for the security.config_upgrade_perform operation.
@@ -36,7 +36,7 @@ type ConfigUpgradePerformReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.SecurityConfigUpgradePayload
+	Body *opensearchapi.SecurityConfigUpgradePayload
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -83,8 +83,8 @@ func (r ConfigUpgradePerformReq) GetRequest(method string) (*http.Request, error
 
 // ConfigUpgradePerformParams represents query parameters for the ConfigUpgradePerformReq.
 type ConfigUpgradePerformParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ConfigUpgradePerformParams) get() map[string]string {

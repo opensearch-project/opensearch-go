@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,35 +19,35 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestSearchReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.SearchReq
+		req        opensearchapi.SearchReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.SearchReq{},
+			req:        opensearchapi.SearchReq{},
 			wantMethod: "GET",
 			wantPath:   "/_search",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.SearchReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.SearchReq{Index: []string{"a", "b"}},
 			wantMethod: "GET",
 			wantPath:   "/a,b/_search",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        osapi.SearchReq{Index: []string{"x"}, Body: &osapi.SearchBody{}},
+			req:        opensearchapi.SearchReq{Index: []string{"x"}, Body: &opensearchapi.SearchBody{}},
 			wantMethod: "POST",
 			wantPath:   "/x/_search",
 			wantErr:    false,
@@ -79,7 +79,7 @@ func TestSearch_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
@@ -98,7 +98,7 @@ func TestSearch_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)

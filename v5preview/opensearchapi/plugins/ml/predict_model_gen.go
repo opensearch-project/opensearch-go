@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PredictModelReq represents the request for the ml.predict_model operation.
@@ -83,8 +83,8 @@ func (r PredictModelReq) GetRequest(method string) (*http.Request, error) {
 
 // PredictModelParams represents query parameters for the PredictModelReq.
 type PredictModelParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PredictModelParams) get() map[string]string {
@@ -107,7 +107,7 @@ func (r PredictModelParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type PredictModelResp struct {
-	InferenceResults []osapi.MlPredictModelResult `json:"inference_results,omitempty"`
+	InferenceResults []opensearchapi.MlPredictModelResult `json:"inference_results,omitempty"`
 
 	response *opensearch.Response
 }

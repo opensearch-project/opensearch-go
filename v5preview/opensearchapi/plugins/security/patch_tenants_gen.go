@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PatchTenantsReq represents the request for the security.patch_tenants operation.
@@ -67,8 +67,8 @@ func (r PatchTenantsReq) GetRequest(method string) (*http.Request, error) {
 
 // PatchTenantsParams represents query parameters for the PatchTenantsReq.
 type PatchTenantsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PatchTenantsParams) get() map[string]string {

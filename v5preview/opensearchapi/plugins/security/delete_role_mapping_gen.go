@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteRoleMappingReq represents the request for the security.delete_role_mapping operation.
@@ -68,8 +68,8 @@ func (r DeleteRoleMappingReq) GetRequest(method string) (*http.Request, error) {
 
 // DeleteRoleMappingParams represents query parameters for the DeleteRoleMappingReq.
 type DeleteRoleMappingParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteRoleMappingParams) get() map[string]string {

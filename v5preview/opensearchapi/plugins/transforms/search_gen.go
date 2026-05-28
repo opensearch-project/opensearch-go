@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchReq represents the request for the transforms.search operation.
@@ -62,8 +62,8 @@ func (r SearchReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchParams represents query parameters for the SearchReq.
 type SearchParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The starting transform to return. Default is `0`.
 	From int
 
@@ -123,8 +123,8 @@ func (r SearchParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-transforms/transforms-apis/#get-a-transform-jobs-details
 type SearchResp struct {
-	TotalTransforms *float64                            `json:"total_transforms,omitempty"`
-	Transforms      []osapi.TransformsTransformResponse `json:"transforms,omitempty"`
+	TotalTransforms *float64                                    `json:"total_transforms,omitempty"`
+	Transforms      []opensearchapi.TransformsTransformResponse `json:"transforms,omitempty"`
 
 	response *opensearch.Response
 }

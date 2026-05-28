@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/knn"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/knn/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/knn"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/knn/internal/knntest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestTrainModel(t *testing.T) {
@@ -28,7 +28,7 @@ func TestTrainModel(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-train-model")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Model.TrainModel(t.Context(), knn.TrainModelReq{ModelID: name, Body: &osapi.KnnTrainedModel{}})
+		resp, err := client.Model.TrainModel(t.Context(), knn.TrainModelReq{ModelID: name, Body: &opensearchapi.KnnTrainedModel{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -38,7 +38,7 @@ func TestTrainModel(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Model.TrainModel(t.Context(), knn.TrainModelReq{ModelID: name, Body: &osapi.KnnTrainedModel{}})
+		res, err := failingClient.Model.TrainModel(t.Context(), knn.TrainModelReq{ModelID: name, Body: &opensearchapi.KnnTrainedModel{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

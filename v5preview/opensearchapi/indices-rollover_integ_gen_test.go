@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesRollover(t *testing.T) {
@@ -29,14 +29,14 @@ func TestIndicesRollover(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-rollover")
 	name := testutil.MustUniqueString(t, "test-indices-rollover")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
 	index += "-000001"
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Indices.PutAlias(t.Context(), osapi.IndicesPutAliasReq{
+	_, err = client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{
 		Index:      []string{index},
 		Name:       name,
 		BodyReader: strings.NewReader(`{"is_write_index":true}`),
@@ -44,7 +44,7 @@ func TestIndicesRollover(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Rollover(t.Context(), osapi.IndicesRolloverReq{Alias: name, BodyReader: strings.NewReader("{\"conditions\":{\"max_docs\":1000}}")})
+		resp, err := client.Indices.Rollover(t.Context(), opensearchapi.IndicesRolloverReq{Alias: name, BodyReader: strings.NewReader("{\"conditions\":{\"max_docs\":1000}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -54,7 +54,7 @@ func TestIndicesRollover(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Rollover(t.Context(), osapi.IndicesRolloverReq{Alias: name, BodyReader: strings.NewReader("{\"conditions\":{\"max_docs\":1000}}")})
+		res, err := failingClient.Indices.Rollover(t.Context(), opensearchapi.IndicesRolloverReq{Alias: name, BodyReader: strings.NewReader("{\"conditions\":{\"max_docs\":1000}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

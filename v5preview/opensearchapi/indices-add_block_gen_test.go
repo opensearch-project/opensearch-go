@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesAddBlockReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesAddBlockReq
+		req        opensearchapi.IndicesAddBlockReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.IndicesAddBlockReq{},
+			req:        opensearchapi.IndicesAddBlockReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesAddBlockReq{Index: []string{"a", "b"}, Block: "test-block"},
+			req:        opensearchapi.IndicesAddBlockReq{Index: []string{"a", "b"}, Block: "test-block"},
 			wantMethod: "PUT",
 			wantPath:   "/a,b/_block/test-block",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestIndicesAddBlock_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.AddBlock(t.Context(), osapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
+		resp, err := client.Indices.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestIndicesAddBlock_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.AddBlock(t.Context(), osapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
+		resp, err := errClient.Indices.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

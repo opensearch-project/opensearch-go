@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestDanglingIndicesImportDanglingIndex(t *testing.T) {
@@ -27,7 +27,7 @@ func TestDanglingIndicesImportDanglingIndex(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-dangling-indices-import-dangling-index")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Dangling.ImportDanglingIndex(t.Context(), osapi.DanglingIndicesImportDanglingIndexReq{Params: &osapi.DanglingIndicesImportDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(true)}, IndexUUID: name})
+		resp, err := client.Dangling.ImportDanglingIndex(t.Context(), opensearchapi.DanglingIndicesImportDanglingIndexReq{Params: &opensearchapi.DanglingIndicesImportDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(true)}, IndexUUID: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestDanglingIndicesImportDanglingIndex(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Dangling.ImportDanglingIndex(t.Context(), osapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: name})
+		res, err := failingClient.Dangling.ImportDanglingIndex(t.Context(), opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

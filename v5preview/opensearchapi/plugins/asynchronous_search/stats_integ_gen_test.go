@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/asynchronous_search/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/asynchronous_search/internal/asynchronous_searchtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestStats(t *testing.T) {

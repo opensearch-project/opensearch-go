@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetUploadStatsReq represents the request for the geospatial.get_upload_stats operation.
@@ -59,8 +59,8 @@ func (r GetUploadStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetUploadStatsParams represents query parameters for the GetUploadStatsReq.
 type GetUploadStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetUploadStatsParams) get() map[string]string {
@@ -83,8 +83,8 @@ func (r GetUploadStatsParams) get() map[string]string {
 //
 // Available: >= 2.11.0.
 type GetUploadStatsResp struct {
-	Metrics []osapi.GeospatialUploadStatsMetric `json:"metrics"`
-	Total   osapi.GeospatialUploadStatsTotal    `json:"total"`
+	Metrics []opensearchapi.GeospatialUploadStatsMetric `json:"metrics"`
+	Total   opensearchapi.GeospatialUploadStatsTotal    `json:"total"`
 
 	response *opensearch.Response
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetReq represents the request for the asynchronous_search.get operation.
@@ -65,8 +65,8 @@ func (r GetReq) GetRequest(method string) (*http.Request, error) {
 
 // GetParams represents query parameters for the GetReq.
 type GetParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetParams) get() map[string]string {
@@ -91,12 +91,12 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#get-partial-results
 type GetResp struct {
-	ExpirationTimeInMillis *float64              `json:"expiration_time_in_millis,omitempty"`
-	ID                     *string               `json:"id,omitempty"`
-	Response               *osapi.SearchResponse `json:"response,omitempty"`
-	StartTimeInMillis      *float64              `json:"start_time_in_millis,omitempty"`
-	State                  *string               `json:"state,omitempty"`
-	Took                   *float64              `json:"took,omitempty"`
+	ExpirationTimeInMillis *float64                      `json:"expiration_time_in_millis,omitempty"`
+	ID                     *string                       `json:"id,omitempty"`
+	Response               *opensearchapi.SearchResponse `json:"response,omitempty"`
+	StartTimeInMillis      *float64                      `json:"start_time_in_millis,omitempty"`
+	State                  *string                       `json:"state,omitempty"`
+	Took                   *float64                      `json:"took,omitempty"`
 
 	response *opensearch.Response
 }

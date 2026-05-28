@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/transforms"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/transforms/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/transforms"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/transforms/internal/transformstest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestPreview(t *testing.T) {
@@ -27,7 +27,7 @@ func TestPreview(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Preview(t.Context(), &transforms.PreviewReq{Body: &osapi.TransformsTransformRequest{}})
+		resp, err := client.Preview(t.Context(), &transforms.PreviewReq{Body: &opensearchapi.TransformsTransformRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestPreview(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Preview(t.Context(), &transforms.PreviewReq{Body: &osapi.TransformsTransformRequest{}})
+		res, err := failingClient.Preview(t.Context(), &transforms.PreviewReq{Body: &opensearchapi.TransformsTransformRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

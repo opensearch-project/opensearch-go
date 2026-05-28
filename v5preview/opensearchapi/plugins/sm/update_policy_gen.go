@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UpdatePolicyReq represents the request for the sm.update_policy operation.
@@ -35,7 +35,7 @@ type UpdatePolicyReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.SmCreateUpdatePolicyRequest
+	Body *opensearchapi.SmCreateUpdatePolicyRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -84,8 +84,8 @@ func (r UpdatePolicyReq) GetRequest(method string) (*http.Request, error) {
 
 // UpdatePolicyParams represents query parameters for the UpdatePolicyReq.
 type UpdatePolicyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The primary term of the policy to update.
 	IfPrimaryTerm int
 
@@ -134,7 +134,7 @@ type UpdatePolicyResp struct {
 	Version int `json:"_version"`
 
 	// The complete snapshot management policy configuration.
-	SmPolicy osapi.SmSMPolicy `json:"sm_policy"`
+	SmPolicy opensearchapi.SmSMPolicy `json:"sm_policy"`
 
 	response *opensearch.Response
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetQueryGroupReq represents the request for the wlm.get_query_group operation.
@@ -63,8 +63,8 @@ func (r GetQueryGroupReq) GetRequest(method string) (*http.Request, error) {
 
 // GetQueryGroupParams represents query parameters for the GetQueryGroupReq.
 type GetQueryGroupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetQueryGroupParams) get() map[string]string {
@@ -87,7 +87,7 @@ func (r GetQueryGroupParams) get() map[string]string {
 //
 // Available: >= 2.17.0.
 type GetQueryGroupResp struct {
-	QueryGroups []osapi.WlmQueryGroupResponse `json:"query_groups,omitempty"`
+	QueryGroups []opensearchapi.WlmQueryGroupResponse `json:"query_groups,omitempty"`
 
 	response *opensearch.Response
 }

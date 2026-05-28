@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi
+package opensearchapi
 
 import (
 	"testing"

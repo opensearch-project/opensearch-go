@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestSnapshotCreateRepositoryReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.SnapshotCreateRepositoryReq
+		req        opensearchapi.SnapshotCreateRepositoryReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.SnapshotCreateRepositoryReq{},
+			req:        opensearchapi.SnapshotCreateRepositoryReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.SnapshotCreateRepositoryReq{Repository: "test-repository"},
+			req:        opensearchapi.SnapshotCreateRepositoryReq{Repository: "test-repository"},
 			wantMethod: "POST",
 			wantPath:   "/_snapshot/test-repository",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestSnapshotCreateRepository_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Snapshot.CreateRepository(t.Context(), osapi.SnapshotCreateRepositoryReq{Repository: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Snapshot.CreateRepository(t.Context(), opensearchapi.SnapshotCreateRepositoryReq{Repository: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestSnapshotCreateRepository_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Snapshot.CreateRepository(t.Context(), osapi.SnapshotCreateRepositoryReq{Repository: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Snapshot.CreateRepository(t.Context(), opensearchapi.SnapshotCreateRepositoryReq{Repository: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

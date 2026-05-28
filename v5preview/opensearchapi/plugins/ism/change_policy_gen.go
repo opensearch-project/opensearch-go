@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ChangePolicyReq represents the request for the ism.change_policy operation.
@@ -35,7 +35,7 @@ type ChangePolicyReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.IsmChangePolicyRequest
+	Body *opensearchapi.IsmChangePolicyRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -84,8 +84,8 @@ func (r ChangePolicyReq) GetRequest(method string) (*http.Request, error) {
 
 // ChangePolicyParams represents query parameters for the ChangePolicyReq.
 type ChangePolicyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	Index []string
 }
 
@@ -114,7 +114,7 @@ func (r ChangePolicyParams) get() map[string]string {
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#update-managed-index-policy
 type ChangePolicyResp struct {
 	// The list of indices that failed to update.
-	FailedIndices []osapi.IsmFailedIndex `json:"failed_indices,omitempty"`
+	FailedIndices []opensearchapi.IsmFailedIndex `json:"failed_indices,omitempty"`
 
 	// Whether there were any failures.
 	Failures *bool `json:"failures,omitempty"`

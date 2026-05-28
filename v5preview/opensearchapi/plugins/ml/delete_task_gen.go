@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteTaskReq represents the request for the ml.delete_task operation.
@@ -63,8 +63,8 @@ func (r DeleteTaskReq) GetRequest(method string) (*http.Request, error) {
 
 // DeleteTaskParams represents query parameters for the DeleteTaskReq.
 type DeleteTaskParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteTaskParams) get() map[string]string {
@@ -98,7 +98,7 @@ type DeleteTaskResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`

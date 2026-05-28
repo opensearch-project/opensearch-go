@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/replication"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/replication/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/replication"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/replication/internal/replicationtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestDeleteReplicationRule(t *testing.T) {
@@ -31,7 +31,7 @@ func TestDeleteReplicationRule(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "1.1", "DeleteReplicationRule")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.ReplicationRule.DeleteReplicationRule(t.Context(), &replication.DeleteReplicationRuleReq{Body: &osapi.ReplicationDeleteRule{}})
+		resp, err := client.ReplicationRule.DeleteReplicationRule(t.Context(), &replication.DeleteReplicationRuleReq{Body: &opensearchapi.ReplicationDeleteRule{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestDeleteReplicationRule(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.ReplicationRule.DeleteReplicationRule(t.Context(), &replication.DeleteReplicationRuleReq{Body: &osapi.ReplicationDeleteRule{}})
+		res, err := failingClient.ReplicationRule.DeleteReplicationRule(t.Context(), &replication.DeleteReplicationRuleReq{Body: &opensearchapi.ReplicationDeleteRule{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

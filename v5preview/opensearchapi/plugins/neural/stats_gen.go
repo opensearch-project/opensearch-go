@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // StatsReq represents the request for the neural.stats operation.
@@ -69,8 +69,8 @@ func (r StatsReq) GetRequest(method string) (*http.Request, error) {
 
 // StatsParams represents query parameters for the StatsReq.
 type StatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Whether to return stats in the flat form, which can improve readability,
 	// especially for heavily nested stats. For example, the flat form of
 	// `"processors": { "ingest": { "text_embedding_executions": 20181212 } }`

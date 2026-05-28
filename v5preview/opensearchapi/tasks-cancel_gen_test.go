@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestTasksCancelReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.TasksCancelReq
+		req        opensearchapi.TasksCancelReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.TasksCancelReq{},
+			req:        opensearchapi.TasksCancelReq{},
 			wantMethod: "POST",
 			wantPath:   "/_tasks/_cancel",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.TasksCancelReq{TaskID: "test-taskid"},
+			req:        opensearchapi.TasksCancelReq{TaskID: "test-taskid"},
 			wantMethod: "POST",
 			wantPath:   "/_tasks/test-taskid/_cancel",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestTasksCancel_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Tasks.Cancel(t.Context(), osapi.TasksCancelReq{})
+		resp, err := client.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestTasksCancel_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Tasks.Cancel(t.Context(), osapi.TasksCancelReq{})
+		resp, err := errClient.Tasks.Cancel(t.Context(), opensearchapi.TasksCancelReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

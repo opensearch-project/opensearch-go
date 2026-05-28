@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PostScheduledExperimentsReq represents the request for the search_relevance.post_scheduled_experiments operation.
@@ -32,7 +32,7 @@ type PostScheduledExperimentsReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.SearchRelevancePostScheduledExperimentsRequest
+	Body *opensearchapi.SearchRelevancePostScheduledExperimentsRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -79,8 +79,8 @@ func (r PostScheduledExperimentsReq) GetRequest(method string) (*http.Request, e
 
 // PostScheduledExperimentsParams represents query parameters for the PostScheduledExperimentsReq.
 type PostScheduledExperimentsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PostScheduledExperimentsParams) get() map[string]string {

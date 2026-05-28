@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // StatusReq represents the request for the replication.status operation.
@@ -65,8 +65,8 @@ func (r StatusReq) GetRequest(method string) (*http.Request, error) {
 
 // StatusParams represents query parameters for the StatusReq.
 type StatusParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r StatusParams) get() map[string]string {
@@ -104,7 +104,7 @@ type StatusResp struct {
 	// The current status of the replication process.
 	Status *string `json:"status,omitempty"`
 
-	SyncingDetails *osapi.ReplicationSyncingDetails `json:"syncing_details,omitempty"`
+	SyncingDetails *opensearchapi.ReplicationSyncingDetails `json:"syncing_details,omitempty"`
 
 	response *opensearch.Response
 }

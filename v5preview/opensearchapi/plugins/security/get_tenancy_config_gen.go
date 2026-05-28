@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetTenancyConfigReq represents the request for the security.get_tenancy_config operation.
@@ -63,8 +63,8 @@ func (r GetTenancyConfigReq) GetRequest(method string) (*http.Request, error) {
 
 // GetTenancyConfigParams represents query parameters for the GetTenancyConfigReq.
 type GetTenancyConfigParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetTenancyConfigParams) get() map[string]string {

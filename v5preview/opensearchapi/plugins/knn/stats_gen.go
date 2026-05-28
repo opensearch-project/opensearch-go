@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // StatsReq represents the request for the knn.stats operation.
@@ -69,8 +69,8 @@ func (r StatsReq) GetRequest(method string) (*http.Request, error) {
 
 // StatsParams represents query parameters for the StatsReq.
 type StatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r StatsParams) get() map[string]string {
@@ -95,14 +95,14 @@ func (r StatsParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#stats
 type StatsResp struct {
-	osapi.NodesResponseBase
+	opensearchapi.NodesResponseBase
 	CircuitBreakerTriggered *bool `json:"circuit_breaker_triggered,omitempty"`
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	ModelIndexStatus *string                       `json:"model_index_status"`
-	Nodes            map[string]osapi.KnnNodeStats `json:"nodes,omitempty"`
+	ModelIndexStatus *string                               `json:"model_index_status"`
+	Nodes            map[string]opensearchapi.KnnNodeStats `json:"nodes,omitempty"`
 
 	response *opensearch.Response
 }

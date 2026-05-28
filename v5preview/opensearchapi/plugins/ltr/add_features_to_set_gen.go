@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // AddFeaturesToSetReq represents the request for the ltr.add_features_to_set operation.
@@ -71,8 +71,8 @@ func (r AddFeaturesToSetReq) GetRequest(method string) (*http.Request, error) {
 
 // AddFeaturesToSetParams represents query parameters for the AddFeaturesToSetReq.
 type AddFeaturesToSetParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Whether to merge the feature list or append only.
 	//
 	// Default: false.
@@ -128,7 +128,7 @@ type AddFeaturesToSetResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`

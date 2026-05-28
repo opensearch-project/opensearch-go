@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/rollups"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/rollups"
 )
 
 func TestStartReq_GetRequest(t *testing.T) {

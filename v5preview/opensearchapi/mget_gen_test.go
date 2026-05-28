@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,35 +19,35 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestMgetReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.MgetReq
+		req        opensearchapi.MgetReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.MgetReq{},
+			req:        opensearchapi.MgetReq{},
 			wantMethod: "GET",
 			wantPath:   "/_mget",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.MgetReq{Index: "test-index"},
+			req:        opensearchapi.MgetReq{Index: "test-index"},
 			wantMethod: "GET",
 			wantPath:   "/test-index/_mget",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        osapi.MgetReq{Index: "test", Body: &osapi.MgetBody{}},
+			req:        opensearchapi.MgetReq{Index: "test", Body: &opensearchapi.MgetBody{}},
 			wantMethod: "POST",
 			wantPath:   "/test/_mget",
 			wantErr:    false,
@@ -79,12 +79,12 @@ func TestMget_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Mget(t.Context(), osapi.MgetReq{})
+		resp, err := client.Mget(t.Context(), opensearchapi.MgetReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -98,12 +98,12 @@ func TestMget_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Mget(t.Context(), osapi.MgetReq{})
+		resp, err := errClient.Mget(t.Context(), opensearchapi.MgetReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

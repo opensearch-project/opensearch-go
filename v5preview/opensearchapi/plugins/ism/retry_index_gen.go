@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // RetryIndexReq represents the request for the ism.retry_index operation.
@@ -35,7 +35,7 @@ type RetryIndexReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.IsmRetryIndexRequest
+	Body *opensearchapi.IsmRetryIndexRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -84,8 +84,8 @@ func (r RetryIndexReq) GetRequest(method string) (*http.Request, error) {
 
 // RetryIndexParams represents query parameters for the RetryIndexReq.
 type RetryIndexParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	Index []string
 }
 

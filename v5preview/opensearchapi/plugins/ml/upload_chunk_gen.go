@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UploadChunkReq represents the request for the ml.upload_chunk operation.
@@ -87,8 +87,8 @@ func (r UploadChunkReq) GetRequest(method string) (*http.Request, error) {
 
 // UploadChunkParams represents query parameters for the UploadChunkReq.
 type UploadChunkParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UploadChunkParams) get() map[string]string {

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UndeployModelReq represents the request for the ml.undeploy_model operation.
@@ -83,8 +83,8 @@ func (r UndeployModelReq) GetRequest(method string) (*http.Request, error) {
 
 // UndeployModelParams represents query parameters for the UndeployModelReq.
 type UndeployModelParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UndeployModelParams) get() map[string]string {
@@ -106,7 +106,7 @@ func (r UndeployModelParams) get() map[string]string {
 //
 // Undeploys a model.
 type UndeployModelResp struct {
-	Entries  map[string]osapi.MlUndeployModelNode `json:"-"`
+	Entries  map[string]opensearchapi.MlUndeployModelNode `json:"-"`
 	response *opensearch.Response
 }
 

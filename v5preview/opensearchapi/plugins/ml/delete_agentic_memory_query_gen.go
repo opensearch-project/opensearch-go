@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteAgenticMemoryQueryReq represents the request for the ml.delete_agentic_memory_query operation.
@@ -87,8 +87,8 @@ func (r DeleteAgenticMemoryQueryReq) GetRequest(method string) (*http.Request, e
 
 // DeleteAgenticMemoryQueryParams represents query parameters for the DeleteAgenticMemoryQueryReq.
 type DeleteAgenticMemoryQueryParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteAgenticMemoryQueryParams) get() map[string]string {
@@ -121,7 +121,7 @@ type DeleteAgenticMemoryQueryResp struct {
 	Deleted *int64 `json:"deleted,omitempty"`
 
 	// Any failures occurred during the operation.
-	Failures []osapi.MlDeleteAgenticMemoryResponseFailuresItem `json:"failures,omitempty"`
+	Failures []opensearchapi.MlDeleteAgenticMemoryResponseFailuresItem `json:"failures,omitempty"`
 
 	// Number of no-operation updates.
 	Noops *int64 `json:"noops,omitempty"`
@@ -133,7 +133,7 @@ type DeleteAgenticMemoryQueryResp struct {
 	Result *string `json:"result,omitempty"`
 
 	// The retry statistics for bulk and search operations.
-	Retries *osapi.Retries `json:"retries,omitempty"`
+	Retries *opensearchapi.Retries `json:"retries,omitempty"`
 
 	// Time that the request was throttled.
 	ThrottledMillis *int64 `json:"throttled_millis,omitempty"`
@@ -175,5 +175,5 @@ func (r DeleteAgenticMemoryQueryResp) RawBody() io.Reader {
 
 // MlDeleteAgenticMemoryQueryBody is a typed component of the ml.delete_agentic_memory_query operation.
 type MlDeleteAgenticMemoryQueryBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetPoliciesReq represents the request for the ism.get_policies operation.
@@ -59,8 +59,8 @@ func (r GetPoliciesReq) GetRequest(method string) (*http.Request, error) {
 
 // GetPoliciesParams represents query parameters for the GetPoliciesReq.
 type GetPoliciesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetPoliciesParams) get() map[string]string {
@@ -84,7 +84,7 @@ func (r GetPoliciesParams) get() map[string]string {
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#get-policy
 type GetPoliciesResp struct {
 	// The list of policies.
-	Policies []osapi.IsmPolicyWithMetadata `json:"policies,omitempty"`
+	Policies []opensearchapi.IsmPolicyWithMetadata `json:"policies,omitempty"`
 
 	// The total number of policies.
 	TotalPolicies *float64 `json:"total_policies,omitempty"`

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExecuteToolReq represents the request for the ml.execute_tool operation.
@@ -83,8 +83,8 @@ func (r ExecuteToolReq) GetRequest(method string) (*http.Request, error) {
 
 // ExecuteToolParams represents query parameters for the ExecuteToolReq.
 type ExecuteToolParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ExecuteToolParams) get() map[string]string {
@@ -107,7 +107,7 @@ func (r ExecuteToolParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type ExecuteToolResp struct {
-	InferenceResults []osapi.MlInferenceResults `json:"inference_results,omitempty"`
+	InferenceResults []opensearchapi.MlInferenceResults `json:"inference_results,omitempty"`
 
 	response *opensearch.Response
 }
@@ -128,5 +128,5 @@ func (r ExecuteToolResp) RawBody() io.Reader {
 
 // MlExecuteToolBody is a typed component of the ml.execute_tool operation.
 type MlExecuteToolBody struct {
-	Parameters *osapi.MlParameters `json:"parameters,omitempty"`
+	Parameters *opensearchapi.MlParameters `json:"parameters,omitempty"`
 }

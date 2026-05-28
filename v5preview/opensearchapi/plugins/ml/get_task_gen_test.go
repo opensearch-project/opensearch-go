@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ml"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ml"
 )
 
 func TestGetTaskReq_GetRequest(t *testing.T) {

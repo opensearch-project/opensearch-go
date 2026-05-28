@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateMessageReq represents the request for the ml.create_message operation.
@@ -83,8 +83,8 @@ func (r CreateMessageReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateMessageParams represents query parameters for the CreateMessageReq.
 type CreateMessageParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateMessageParams) get() map[string]string {

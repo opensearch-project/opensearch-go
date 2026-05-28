@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestClusterGetComponentTemplate(t *testing.T) {
@@ -29,20 +29,20 @@ func TestClusterGetComponentTemplate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-cluster-get-component-template")
 	name := testutil.MustUniqueString(t, "test-cluster-get-component-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Cluster.PutComponentTemplate(t.Context(), osapi.ClusterPutComponentTemplateReq{
+	_, err = client.Cluster.PutComponentTemplate(t.Context(), opensearchapi.ClusterPutComponentTemplateReq{
 		Name:       name,
 		BodyReader: strings.NewReader(`{"template":{"mappings":{"properties":{"title":{"type":"text"}}}}}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Cluster.DeleteComponentTemplate(context.Background(), osapi.ClusterDeleteComponentTemplateReq{Name: name})
+		_, _ = client.Cluster.DeleteComponentTemplate(context.Background(), opensearchapi.ClusterDeleteComponentTemplateReq{Name: name})
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cluster.GetComponentTemplate(t.Context(), osapi.ClusterGetComponentTemplateReq{Name: name})
+		resp, err := client.Cluster.GetComponentTemplate(t.Context(), opensearchapi.ClusterGetComponentTemplateReq{Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestClusterGetComponentTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Cluster.GetComponentTemplate(t.Context(), osapi.ClusterGetComponentTemplateReq{Name: name})
+		res, err := failingClient.Cluster.GetComponentTemplate(t.Context(), opensearchapi.ClusterGetComponentTemplateReq{Name: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/replication"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/replication"
 )
 
 func TestPauseReq_GetRequest(t *testing.T) {

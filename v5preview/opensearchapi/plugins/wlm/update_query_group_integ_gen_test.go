@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/wlm"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/wlm/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/wlm"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/wlm/internal/wlmtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestUpdateQueryGroup(t *testing.T) {
@@ -32,7 +32,7 @@ func TestUpdateQueryGroup(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-update-query-group")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.QueryGroup.UpdateQueryGroup(t.Context(), wlm.UpdateQueryGroupReq{Name: name, Body: &osapi.WlmQueryGroupUpdate{}})
+		resp, err := client.QueryGroup.UpdateQueryGroup(t.Context(), wlm.UpdateQueryGroupReq{Name: name, Body: &opensearchapi.WlmQueryGroupUpdate{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -42,7 +42,7 @@ func TestUpdateQueryGroup(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.QueryGroup.UpdateQueryGroup(t.Context(), wlm.UpdateQueryGroupReq{Name: name, Body: &osapi.WlmQueryGroupUpdate{}})
+		res, err := failingClient.QueryGroup.UpdateQueryGroup(t.Context(), wlm.UpdateQueryGroupReq{Name: name, Body: &opensearchapi.WlmQueryGroupUpdate{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

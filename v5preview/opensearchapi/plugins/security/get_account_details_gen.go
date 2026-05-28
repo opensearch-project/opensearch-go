@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAccountDetailsReq represents the request for the security.get_account_details operation.
@@ -64,8 +64,8 @@ func (r GetAccountDetailsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetAccountDetailsParams represents query parameters for the GetAccountDetailsReq.
 type GetAccountDetailsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetAccountDetailsParams) get() map[string]string {
@@ -90,15 +90,15 @@ func (r GetAccountDetailsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-account-details
 type GetAccountDetailsResp struct {
-	BackendRoles         []string                   `json:"backend_roles,omitempty"`
-	CustomAttributeNames []string                   `json:"custom_attribute_names,omitempty"`
-	IsHidden             *bool                      `json:"is_hidden,omitempty"`
-	IsInternalUser       *bool                      `json:"is_internal_user,omitempty"`
-	IsReserved           *bool                      `json:"is_reserved,omitempty"`
-	Roles                []string                   `json:"roles,omitempty"`
-	Tenants              *osapi.SecurityUserTenants `json:"tenants,omitempty"`
-	UserName             *string                    `json:"user_name,omitempty"`
-	UserRequestedTenant  json.RawMessage            `json:"user_requested_tenant"`
+	BackendRoles         []string                           `json:"backend_roles,omitempty"`
+	CustomAttributeNames []string                           `json:"custom_attribute_names,omitempty"`
+	IsHidden             *bool                              `json:"is_hidden,omitempty"`
+	IsInternalUser       *bool                              `json:"is_internal_user,omitempty"`
+	IsReserved           *bool                              `json:"is_reserved,omitempty"`
+	Roles                []string                           `json:"roles,omitempty"`
+	Tenants              *opensearchapi.SecurityUserTenants `json:"tenants,omitempty"`
+	UserName             *string                            `json:"user_name,omitempty"`
+	UserRequestedTenant  json.RawMessage                    `json:"user_requested_tenant"`
 
 	response *opensearch.Response
 }

@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetControllerReq represents the request for the ml.get_controller operation.
@@ -63,8 +63,8 @@ func (r GetControllerReq) GetRequest(method string) (*http.Request, error) {
 
 // GetControllerParams represents query parameters for the GetControllerReq.
 type GetControllerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetControllerParams) get() map[string]string {
@@ -90,7 +90,7 @@ type GetControllerResp struct {
 	// The name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	UserRateLimiter map[string]osapi.MlRateLimiter `json:"user_rate_limiter,omitempty"`
+	UserRateLimiter map[string]opensearchapi.MlRateLimiter `json:"user_rate_limiter,omitempty"`
 
 	response *opensearch.Response
 }

@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesResolveIndex(t *testing.T) {
@@ -26,7 +26,7 @@ func TestIndicesResolveIndex(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-indices-resolve-index")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.ResolveIndex(t.Context(), &osapi.IndicesResolveIndexReq{Name: []string{name}})
+		resp, err := client.Indices.ResolveIndex(t.Context(), &opensearchapi.IndicesResolveIndexReq{Name: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -36,7 +36,7 @@ func TestIndicesResolveIndex(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.ResolveIndex(t.Context(), &osapi.IndicesResolveIndexReq{Name: []string{name}})
+		res, err := failingClient.Indices.ResolveIndex(t.Context(), &opensearchapi.IndicesResolveIndexReq{Name: []string{name}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesShrinkReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesShrinkReq
+		req        opensearchapi.IndicesShrinkReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.IndicesShrinkReq{},
+			req:        opensearchapi.IndicesShrinkReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesShrinkReq{Index: "test-index", Target: "test-target"},
+			req:        opensearchapi.IndicesShrinkReq{Index: "test-index", Target: "test-target"},
 			wantMethod: "POST",
 			wantPath:   "/test-index/_shrink/test-target",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestIndicesShrink_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Shrink(t.Context(), osapi.IndicesShrinkReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestIndicesShrink_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Shrink(t.Context(), osapi.IndicesShrinkReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

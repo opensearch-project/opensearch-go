@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/sm"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/sm/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/sm"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/sm/internal/smtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestUpdatePolicy(t *testing.T) {
@@ -32,7 +32,7 @@ func TestUpdatePolicy(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-update-policy")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Policy.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{Params: &sm.UpdatePolicyParams{IfPrimaryTerm: 1, IfSeqNo: 1}, PolicyName: name, Body: &osapi.SmCreateUpdatePolicyRequest{}})
+		resp, err := client.Policy.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{Params: &sm.UpdatePolicyParams{IfPrimaryTerm: 1, IfSeqNo: 1}, PolicyName: name, Body: &opensearchapi.SmCreateUpdatePolicyRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -42,7 +42,7 @@ func TestUpdatePolicy(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Policy.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{PolicyName: name, Body: &osapi.SmCreateUpdatePolicyRequest{}})
+		res, err := failingClient.Policy.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{PolicyName: name, Body: &opensearchapi.SmCreateUpdatePolicyRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

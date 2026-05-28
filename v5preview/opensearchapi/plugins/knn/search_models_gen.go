@@ -20,7 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchModelsReq represents the request for the knn.search_models operation.
@@ -69,8 +69,8 @@ func (r SearchModelsReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchModelsParams represents query parameters for the SearchModelsReq.
 type SearchModelsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Set to `true` or `false` to return the `_source` field or not, or a list
 	// of fields to return.
 	Source []string
@@ -430,7 +430,7 @@ func (r SearchModelsParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#search-for-a-model
 type SearchModelsResp struct {
-	osapi.SearchResultJsonValue
+	opensearchapi.SearchResultJsonValue
 
 	response *opensearch.Response
 }

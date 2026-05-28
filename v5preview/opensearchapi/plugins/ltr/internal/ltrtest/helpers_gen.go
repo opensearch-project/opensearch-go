@@ -18,9 +18,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ltr"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ltr"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 // NewClient returns a plugin client connected to the integration test cluster.
@@ -62,7 +62,7 @@ func CreateFailingClient(t *testing.T) (*ltr.Client, error) {
 }
 
 // VerifyInspect asserts that a failing-client response has a populated Inspect value.
-func VerifyInspect(t *testing.T, inspect osapi.Inspect) {
+func VerifyInspect(t *testing.T, inspect opensearchapi.Inspect) {
 	t.Helper()
 	require.NotNil(t, inspect.Response, "Inspect().Response must not be nil")
 	require.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)

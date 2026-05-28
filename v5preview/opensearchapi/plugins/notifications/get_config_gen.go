@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetConfigReq represents the request for the notifications.get_config operation.
@@ -63,8 +63,8 @@ func (r GetConfigReq) GetRequest(method string) (*http.Request, error) {
 
 // GetConfigParams represents query parameters for the GetConfigReq.
 type GetConfigParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetConfigParams) get() map[string]string {
@@ -87,10 +87,10 @@ func (r GetConfigParams) get() map[string]string {
 //
 // Available: >= 2.0.0.
 type GetConfigResp struct {
-	ConfigList       []osapi.NotificationsConfigsOutputItem `json:"config_list,omitempty"`
-	StartIndex       *int64                                 `json:"start_index,omitempty"`
-	TotalHitRelation *string                                `json:"total_hit_relation,omitempty"`
-	TotalHits        *int64                                 `json:"total_hits,omitempty"`
+	ConfigList       []opensearchapi.NotificationsConfigsOutputItem `json:"config_list,omitempty"`
+	StartIndex       *int64                                         `json:"start_index,omitempty"`
+	TotalHitRelation *string                                        `json:"total_hit_relation,omitempty"`
+	TotalHits        *int64                                         `json:"total_hits,omitempty"`
 
 	response *opensearch.Response
 }

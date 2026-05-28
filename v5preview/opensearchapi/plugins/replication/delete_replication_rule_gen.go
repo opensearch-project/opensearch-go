@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteReplicationRuleReq represents the request for the replication.delete_replication_rule operation.
@@ -34,7 +34,7 @@ type DeleteReplicationRuleReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.ReplicationDeleteRule
+	Body *opensearchapi.ReplicationDeleteRule
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -81,8 +81,8 @@ func (r DeleteReplicationRuleReq) GetRequest(method string) (*http.Request, erro
 
 // DeleteReplicationRuleParams represents query parameters for the DeleteReplicationRuleReq.
 type DeleteReplicationRuleParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteReplicationRuleParams) get() map[string]string {

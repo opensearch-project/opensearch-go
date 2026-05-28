@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetPoliciesReq represents the request for the sm.get_policies operation.
@@ -60,8 +60,8 @@ func (r GetPoliciesReq) GetRequest(method string) (*http.Request, error) {
 
 // GetPoliciesParams represents query parameters for the GetPoliciesReq.
 type GetPoliciesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The starting index from which to retrieve snapshot management policies.
 	//
 	// Default: 0.
@@ -123,7 +123,7 @@ func (r GetPoliciesParams) get() map[string]string {
 // Available: >= 2.1.0.
 type GetPoliciesResp struct {
 	// A list of snapshot management policies.
-	Policies []osapi.SmListedPolicy `json:"policies"`
+	Policies []opensearchapi.SmListedPolicy `json:"policies"`
 
 	// The total number of policies found.
 	TotalPolicies int `json:"total_policies"`

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchMemoryReq represents the request for the ml.search_memory operation.
@@ -81,8 +81,8 @@ func (r SearchMemoryReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchMemoryParams represents query parameters for the SearchMemoryReq.
 type SearchMemoryParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchMemoryParams) get() map[string]string {
@@ -142,7 +142,7 @@ func (r SearchMemoryResp) RawBody() io.Reader {
 
 // MlSearchMemoryBody is a typed component of the ml.search_memory operation.
 type MlSearchMemoryBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of memories to return.
 	Size *int64 `json:"size,omitempty"`

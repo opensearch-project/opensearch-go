@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchFeaturesReq represents the request for the ltr.search_features operation.
@@ -64,8 +64,8 @@ func (r SearchFeaturesReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchFeaturesParams represents query parameters for the SearchFeaturesReq.
 type SearchFeaturesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The offset from the first result (for pagination).
 	//
 	// Default: 0.
@@ -112,7 +112,7 @@ func (r SearchFeaturesParams) get() map[string]string {
 //
 // Available: >= 2.19.0.
 type SearchFeaturesResp struct {
-	osapi.SearchResultJsonValue
+	opensearchapi.SearchResultJsonValue
 
 	response *opensearch.Response
 }

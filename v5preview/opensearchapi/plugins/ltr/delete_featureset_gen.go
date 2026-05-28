@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteFeaturesetReq represents the request for the ltr.delete_featureset operation.
@@ -67,8 +67,8 @@ func (r DeleteFeaturesetReq) GetRequest(method string) (*http.Request, error) {
 
 // DeleteFeaturesetParams represents query parameters for the DeleteFeaturesetReq.
 type DeleteFeaturesetParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteFeaturesetParams) get() map[string]string {
@@ -102,7 +102,7 @@ type DeleteFeaturesetResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`

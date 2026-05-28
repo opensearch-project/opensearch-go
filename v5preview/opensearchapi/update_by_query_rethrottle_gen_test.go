@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestUpdateByQueryRethrottleReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.UpdateByQueryRethrottleReq
+		req        opensearchapi.UpdateByQueryRethrottleReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.UpdateByQueryRethrottleReq{},
+			req:        opensearchapi.UpdateByQueryRethrottleReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.UpdateByQueryRethrottleReq{TaskID: "test-taskid"},
+			req:        opensearchapi.UpdateByQueryRethrottleReq{TaskID: "test-taskid"},
 			wantMethod: "POST",
 			wantPath:   "/_update_by_query/test-taskid/_rethrottle",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestUpdateByQueryRethrottle_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.UpdateByQueryRethrottle(t.Context(), osapi.UpdateByQueryRethrottleReq{TaskID: "test"})
+		resp, err := client.UpdateByQueryRethrottle(t.Context(), opensearchapi.UpdateByQueryRethrottleReq{TaskID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestUpdateByQueryRethrottle_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.UpdateByQueryRethrottle(t.Context(), osapi.UpdateByQueryRethrottleReq{TaskID: "test"})
+		resp, err := errClient.UpdateByQueryRethrottle(t.Context(), opensearchapi.UpdateByQueryRethrottleReq{TaskID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

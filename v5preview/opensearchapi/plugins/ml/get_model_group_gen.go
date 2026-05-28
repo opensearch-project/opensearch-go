@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetModelGroupReq represents the request for the ml.get_model_group operation.
@@ -61,8 +61,8 @@ func (r GetModelGroupReq) GetRequest(method string) (*http.Request, error) {
 
 // GetModelGroupParams represents query parameters for the GetModelGroupReq.
 type GetModelGroupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetModelGroupParams) get() map[string]string {
@@ -99,7 +99,7 @@ type GetModelGroupResp struct {
 	// The model group name.
 	Name string `json:"name"`
 
-	Owner *osapi.MlOwner `json:"owner,omitempty"`
+	Owner *opensearchapi.MlOwner `json:"owner,omitempty"`
 
 	response *opensearch.Response
 }

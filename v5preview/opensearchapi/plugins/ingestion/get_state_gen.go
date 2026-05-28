@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetStateReq represents the request for the ingestion.get_state operation.
@@ -66,8 +66,8 @@ func (r GetStateReq) GetRequest(method string) (*http.Request, error) {
 
 // GetStateParams represents query parameters for the GetStateReq.
 type GetStateParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Token to retrieve the next page of results.
 	NextToken string
 
@@ -105,10 +105,10 @@ func (r GetStateParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/docs/latest/api-reference/document-apis/pull-based-ingestion-management/
 type GetStateResp struct {
-	Shards *osapi.ShardStatistics `json:"_shards,omitempty"`
+	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 
 	// Ingestion state for a given index and its shards.
-	IngestionState map[string][]osapi.IngestionShardState `json:"ingestion_state,omitempty"`
+	IngestionState map[string][]opensearchapi.IngestionShardState `json:"ingestion_state,omitempty"`
 
 	// Specifies the next page token. Pass this token in the request to
 	// retrieve contents of the next page.

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchMemoryContainerReq represents the request for the ml.search_memory_container operation.
@@ -81,8 +81,8 @@ func (r SearchMemoryContainerReq) GetRequest(method string) (*http.Request, erro
 
 // SearchMemoryContainerParams represents query parameters for the SearchMemoryContainerReq.
 type SearchMemoryContainerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchMemoryContainerParams) get() map[string]string {
@@ -105,8 +105,8 @@ func (r SearchMemoryContainerParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type SearchMemoryContainerResp struct {
-	Shards *osapi.ShardStatistics `json:"_shards,omitempty"`
-	Hits   osapi.MlSearchHits     `json:"hits"`
+	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
+	Hits   opensearchapi.MlSearchHits     `json:"hits"`
 
 	// Whether the search timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
@@ -133,7 +133,7 @@ func (r SearchMemoryContainerResp) RawBody() io.Reader {
 
 // MlSearchMemoryContainerBody is a typed component of the ml.search_memory_container operation.
 type MlSearchMemoryContainerBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of memory containers to return.
 	Size *int64 `json:"size,omitempty"`

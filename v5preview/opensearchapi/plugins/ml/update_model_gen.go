@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UpdateModelReq represents the request for the ml.update_model operation.
@@ -83,8 +83,8 @@ func (r UpdateModelReq) GetRequest(method string) (*http.Request, error) {
 
 // UpdateModelParams represents query parameters for the UpdateModelReq.
 type UpdateModelParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UpdateModelParams) get() map[string]string {
@@ -118,7 +118,7 @@ type UpdateModelResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`
@@ -155,7 +155,7 @@ type MlUpdateModelBody struct {
 	// The model description.
 	Description *string `json:"description,omitempty"`
 
-	Guardrails *osapi.MlGuardrails `json:"guardrails,omitempty"`
+	Guardrails *opensearchapi.MlGuardrails `json:"guardrails,omitempty"`
 
 	// The model interface.
 	Interface json.RawMessage `json:"interface"`
@@ -163,10 +163,10 @@ type MlUpdateModelBody struct {
 	// Whether the model is enabled.
 	IsEnabled *bool `json:"is_enabled,omitempty"`
 
-	ModelConfig *osapi.MlModelConfig `json:"model_config,omitempty"`
+	ModelConfig *opensearchapi.MlModelConfig `json:"model_config,omitempty"`
 
 	// The model name.
 	Name *string `json:"name,omitempty"`
 
-	RateLimiter *osapi.MlRateLimiter `json:"rate_limiter,omitempty"`
+	RateLimiter *opensearchapi.MlRateLimiter `json:"rate_limiter,omitempty"`
 }

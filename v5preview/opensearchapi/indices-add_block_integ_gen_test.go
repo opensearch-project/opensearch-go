@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesAddBlock(t *testing.T) {
@@ -29,14 +29,14 @@ func TestIndicesAddBlock(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-add-block")
 	name := testutil.MustUniqueString(t, "test-indices-add-block")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.AddBlock(t.Context(), osapi.IndicesAddBlockReq{Index: []string{index}, Block: name})
+		resp, err := client.Indices.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{index}, Block: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -46,7 +46,7 @@ func TestIndicesAddBlock(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.AddBlock(t.Context(), osapi.IndicesAddBlockReq{Index: []string{index}, Block: name})
+		res, err := failingClient.Indices.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{index}, Block: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

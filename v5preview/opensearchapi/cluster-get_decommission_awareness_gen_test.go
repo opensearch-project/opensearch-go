@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestClusterGetDecommissionAwarenessReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ClusterGetDecommissionAwarenessReq
+		req        opensearchapi.ClusterGetDecommissionAwarenessReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.ClusterGetDecommissionAwarenessReq{},
+			req:        opensearchapi.ClusterGetDecommissionAwarenessReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test-awarenessattributename"},
+			req:        opensearchapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test-awarenessattributename"},
 			wantMethod: "GET",
 			wantPath:   "/_cluster/decommission/awareness/test-awarenessattributename/_status",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestClusterGetDecommissionAwareness_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Cluster.GetDecommissionAwareness(t.Context(), osapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test"})
+		resp, err := client.Cluster.GetDecommissionAwareness(t.Context(), opensearchapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestClusterGetDecommissionAwareness_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Cluster.GetDecommissionAwareness(t.Context(), osapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test"})
+		resp, err := errClient.Cluster.GetDecommissionAwareness(t.Context(), opensearchapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

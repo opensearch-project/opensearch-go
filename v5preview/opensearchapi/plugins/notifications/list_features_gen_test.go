@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/notifications"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/notifications"
 )
 
 func TestListFeaturesReq_GetRequest(t *testing.T) {

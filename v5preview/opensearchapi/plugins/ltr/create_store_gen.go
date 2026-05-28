@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateStoreReq represents the request for the ltr.create_store operation.
@@ -63,8 +63,8 @@ func (r CreateStoreReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateStoreParams represents query parameters for the CreateStoreReq.
 type CreateStoreParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateStoreParams) get() map[string]string {

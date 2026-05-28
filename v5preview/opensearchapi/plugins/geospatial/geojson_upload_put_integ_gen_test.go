@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/geospatial"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/geospatial/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/geospatial"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/geospatial/internal/geospatialtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestGeojsonUploadPut(t *testing.T) {
@@ -31,7 +31,7 @@ func TestGeojsonUploadPut(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "2.11", "GeojsonUploadPut")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.GeojsonUploadPut(t.Context(), &geospatial.GeojsonUploadPutReq{Body: &osapi.GeospatialGeoJSONRequest{}})
+		resp, err := client.GeojsonUploadPut(t.Context(), &geospatial.GeojsonUploadPutReq{Body: &opensearchapi.GeospatialGeoJSONRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestGeojsonUploadPut(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.GeojsonUploadPut(t.Context(), &geospatial.GeojsonUploadPutReq{Body: &osapi.GeospatialGeoJSONRequest{}})
+		res, err := failingClient.GeojsonUploadPut(t.Context(), &geospatial.GeojsonUploadPutReq{Body: &opensearchapi.GeospatialGeoJSONRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

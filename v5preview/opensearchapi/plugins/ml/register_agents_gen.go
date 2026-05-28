@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // RegisterAgentsReq represents the request for the ml.register_agents operation.
@@ -79,8 +79,8 @@ func (r RegisterAgentsReq) GetRequest(method string) (*http.Request, error) {
 
 // RegisterAgentsParams represents query parameters for the RegisterAgentsReq.
 type RegisterAgentsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r RegisterAgentsParams) get() map[string]string {
@@ -124,12 +124,12 @@ func (r RegisterAgentsResp) RawBody() io.Reader {
 
 // MlRegisterAgentsBody is a typed component of the ml.register_agents operation.
 type MlRegisterAgentsBody struct {
-	AppType     *string             `json:"app_type,omitempty"`
-	Description *string             `json:"description,omitempty"`
-	Llm         *osapi.MlLLM        `json:"llm,omitempty"`
-	Memory      *osapi.MlMemory     `json:"memory,omitempty"`
-	Name        string              `json:"name"`
-	Parameters  *osapi.MlParameters `json:"parameters,omitempty"`
-	Tools       []osapi.MlToolItems `json:"tools,omitempty"`
-	Type        string              `json:"type"`
+	AppType     *string                     `json:"app_type,omitempty"`
+	Description *string                     `json:"description,omitempty"`
+	Llm         *opensearchapi.MlLLM        `json:"llm,omitempty"`
+	Memory      *opensearchapi.MlMemory     `json:"memory,omitempty"`
+	Name        string                      `json:"name"`
+	Parameters  *opensearchapi.MlParameters `json:"parameters,omitempty"`
+	Tools       []opensearchapi.MlToolItems `json:"tools,omitempty"`
+	Type        string                      `json:"type"`
 }

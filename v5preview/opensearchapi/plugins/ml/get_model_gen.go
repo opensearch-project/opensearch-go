@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetModelReq represents the request for the ml.get_model operation.
@@ -63,8 +63,8 @@ func (r GetModelReq) GetRequest(method string) (*http.Request, error) {
 
 // GetModelParams represents query parameters for the GetModelReq.
 type GetModelParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetModelParams) get() map[string]string {
@@ -102,7 +102,7 @@ type GetModelResp struct {
 	// The last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	ModelConfig *osapi.MlModelConfig `json:"model_config,omitempty"`
+	ModelConfig *opensearchapi.MlModelConfig `json:"model_config,omitempty"`
 
 	// The model content hash value.
 	ModelContentHashValue *string `json:"model_content_hash_value,omitempty"`

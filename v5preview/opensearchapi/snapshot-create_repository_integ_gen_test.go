@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestSnapshotCreateRepository(t *testing.T) {
@@ -27,7 +27,7 @@ func TestSnapshotCreateRepository(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-snapshot-create-repository")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Snapshot.CreateRepository(t.Context(), osapi.SnapshotCreateRepositoryReq{Repository: name, Body: &osapi.SnapshotCreateRepositoryBody{}})
+		resp, err := client.Snapshot.CreateRepository(t.Context(), opensearchapi.SnapshotCreateRepositoryReq{Repository: name, Body: &opensearchapi.SnapshotCreateRepositoryBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestSnapshotCreateRepository(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Snapshot.CreateRepository(t.Context(), osapi.SnapshotCreateRepositoryReq{Repository: name, Body: &osapi.SnapshotCreateRepositoryBody{}})
+		res, err := failingClient.Snapshot.CreateRepository(t.Context(), opensearchapi.SnapshotCreateRepositoryReq{Repository: name, Body: &opensearchapi.SnapshotCreateRepositoryBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

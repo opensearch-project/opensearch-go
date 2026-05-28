@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestNodesReloadSecureSettingsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.NodesReloadSecureSettingsReq
+		req        opensearchapi.NodesReloadSecureSettingsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.NodesReloadSecureSettingsReq{},
+			req:        opensearchapi.NodesReloadSecureSettingsReq{},
 			wantMethod: "POST",
 			wantPath:   "/_nodes/reload_secure_settings",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.NodesReloadSecureSettingsReq{NodeID: []string{"a", "b"}},
+			req:        opensearchapi.NodesReloadSecureSettingsReq{NodeID: []string{"a", "b"}},
 			wantMethod: "POST",
 			wantPath:   "/_nodes/a,b/reload_secure_settings",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestNodesReloadSecureSettings_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Nodes.ReloadSecureSettings(t.Context(), &osapi.NodesReloadSecureSettingsReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.Nodes.ReloadSecureSettings(t.Context(), &opensearchapi.NodesReloadSecureSettingsReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestNodesReloadSecureSettings_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Nodes.ReloadSecureSettings(t.Context(), &osapi.NodesReloadSecureSettingsReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Nodes.ReloadSecureSettings(t.Context(), &opensearchapi.NodesReloadSecureSettingsReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

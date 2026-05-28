@@ -16,10 +16,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/list"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/list/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/list"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/list/internal/listtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndices(t *testing.T) {
@@ -33,14 +33,14 @@ func TestIndices(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = osClient.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices(t.Context(), &list.IndicesReq{Params: &list.IndicesParams{DebugParams: osapi.DebugParams{Format: "json"}}, Index: []string{index}})
+		resp, err := client.Indices(t.Context(), &list.IndicesReq{Params: &list.IndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Index: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

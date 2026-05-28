@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestClusterExistsComponentTemplate(t *testing.T) {
@@ -28,20 +28,20 @@ func TestClusterExistsComponentTemplate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-cluster-exists-component-template")
 	name := testutil.MustUniqueString(t, "test-cluster-exists-component-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Cluster.PutComponentTemplate(t.Context(), osapi.ClusterPutComponentTemplateReq{
+	_, err = client.Cluster.PutComponentTemplate(t.Context(), opensearchapi.ClusterPutComponentTemplateReq{
 		Name:       name,
 		BodyReader: strings.NewReader(`{"template":{"mappings":{"properties":{"title":{"type":"text"}}}}}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Cluster.DeleteComponentTemplate(context.Background(), osapi.ClusterDeleteComponentTemplateReq{Name: name})
+		_, _ = client.Cluster.DeleteComponentTemplate(context.Background(), opensearchapi.ClusterDeleteComponentTemplateReq{Name: name})
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cluster.ExistsComponentTemplate(t.Context(), osapi.ClusterExistsComponentTemplateReq{Name: name})
+		resp, err := client.Cluster.ExistsComponentTemplate(t.Context(), opensearchapi.ClusterExistsComponentTemplateReq{Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

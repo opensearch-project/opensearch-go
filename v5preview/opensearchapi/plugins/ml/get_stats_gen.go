@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetStatsReq represents the request for the ml.get_stats operation.
@@ -67,8 +67,8 @@ func (r GetStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetStatsParams represents query parameters for the GetStatsReq.
 type GetStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetStatsParams) get() map[string]string {
@@ -112,7 +112,7 @@ type GetStatsResp struct {
 	// The task index status.
 	MlTaskIndexStatus *string `json:"ml_task_index_status,omitempty"`
 
-	Nodes map[string]osapi.MlNodeStatsDetails `json:"nodes,omitempty"`
+	Nodes map[string]opensearchapi.MlNodeStatsDetails `json:"nodes,omitempty"`
 
 	response *opensearch.Response
 }

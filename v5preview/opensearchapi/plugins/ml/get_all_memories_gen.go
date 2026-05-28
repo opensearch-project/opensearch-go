@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAllMemoriesReq represents the request for the ml.get_all_memories operation.
@@ -60,8 +60,8 @@ func (r GetAllMemoriesReq) GetRequest(method string) (*http.Request, error) {
 
 // GetAllMemoriesParams represents query parameters for the GetAllMemoriesReq.
 type GetAllMemoriesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	MaxResults int
 
 	NextToken int
@@ -95,7 +95,7 @@ func (r GetAllMemoriesParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetAllMemoriesResp struct {
-	Memories []osapi.MlMemory `json:"memories"`
+	Memories []opensearchapi.MlMemory `json:"memories"`
 
 	// The index of the next memory after the last memory in the returned list.
 	NextToken *int `json:"next_token,omitempty"`

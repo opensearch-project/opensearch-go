@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCatThreadPool(t *testing.T) {
@@ -25,7 +25,7 @@ func TestCatThreadPool(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cat.ThreadPool(t.Context(), &osapi.CatThreadPoolReq{Params: &osapi.CatThreadPoolParams{DebugParams: osapi.DebugParams{Format: "json"}}})
+		resp, err := client.Cat.ThreadPool(t.Context(), &opensearchapi.CatThreadPoolReq{Params: &opensearchapi.CatThreadPoolParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

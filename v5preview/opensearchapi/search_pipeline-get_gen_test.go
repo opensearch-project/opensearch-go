@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestSearchPipelineGetReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.SearchPipelineGetReq
+		req        opensearchapi.SearchPipelineGetReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.SearchPipelineGetReq{},
+			req:        opensearchapi.SearchPipelineGetReq{},
 			wantMethod: "GET",
 			wantPath:   "/_search/pipeline",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.SearchPipelineGetReq{ID: "test-id"},
+			req:        opensearchapi.SearchPipelineGetReq{ID: "test-id"},
 			wantMethod: "GET",
 			wantPath:   "/_search/pipeline/test-id",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestSearchPipelineGet_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.SearchPipeline.Get(t.Context(), osapi.SearchPipelineGetReq{})
+		resp, err := client.SearchPipeline.Get(t.Context(), opensearchapi.SearchPipelineGetReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestSearchPipelineGet_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.SearchPipeline.Get(t.Context(), osapi.SearchPipelineGetReq{})
+		resp, err := errClient.SearchPipeline.Get(t.Context(), opensearchapi.SearchPipelineGetReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

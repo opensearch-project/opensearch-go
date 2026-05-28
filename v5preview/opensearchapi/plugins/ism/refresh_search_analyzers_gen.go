@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // RefreshSearchAnalyzersReq represents the request for the ism.refresh_search_analyzers operation.
@@ -63,8 +63,8 @@ func (r RefreshSearchAnalyzersReq) GetRequest(method string) (*http.Request, err
 
 // RefreshSearchAnalyzersParams represents query parameters for the RefreshSearchAnalyzersReq.
 type RefreshSearchAnalyzersParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r RefreshSearchAnalyzersParams) get() map[string]string {
@@ -87,10 +87,10 @@ func (r RefreshSearchAnalyzersParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/refresh-analyzer/
 type RefreshSearchAnalyzersResp struct {
-	Shards *osapi.ShardStatistics `json:"_shards,omitempty"`
+	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 
 	// The details of successful analyzer refreshes.
-	SuccessfulRefreshDetails []osapi.IsmRefreshSearchAnalyzersResponseDetails `json:"successful_refresh_details,omitempty"`
+	SuccessfulRefreshDetails []opensearchapi.IsmRefreshSearchAnalyzersResponseDetails `json:"successful_refresh_details,omitempty"`
 
 	response *opensearch.Response
 }

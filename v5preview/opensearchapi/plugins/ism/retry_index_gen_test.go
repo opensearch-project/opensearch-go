@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ism"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ism"
 )
 
 func TestRetryIndexReq_GetRequest(t *testing.T) {

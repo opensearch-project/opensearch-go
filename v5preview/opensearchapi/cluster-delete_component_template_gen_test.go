@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestClusterDeleteComponentTemplateReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ClusterDeleteComponentTemplateReq
+		req        opensearchapi.ClusterDeleteComponentTemplateReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.ClusterDeleteComponentTemplateReq{},
+			req:        opensearchapi.ClusterDeleteComponentTemplateReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.ClusterDeleteComponentTemplateReq{Name: "test-name"},
+			req:        opensearchapi.ClusterDeleteComponentTemplateReq{Name: "test-name"},
 			wantMethod: "DELETE",
 			wantPath:   "/_component_template/test-name",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestClusterDeleteComponentTemplate_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Cluster.DeleteComponentTemplate(t.Context(), osapi.ClusterDeleteComponentTemplateReq{Name: "test"})
+		resp, err := client.Cluster.DeleteComponentTemplate(t.Context(), opensearchapi.ClusterDeleteComponentTemplateReq{Name: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestClusterDeleteComponentTemplate_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Cluster.DeleteComponentTemplate(t.Context(), osapi.ClusterDeleteComponentTemplateReq{Name: "test"})
+		resp, err := errClient.Cluster.DeleteComponentTemplate(t.Context(), opensearchapi.ClusterDeleteComponentTemplateReq{Name: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

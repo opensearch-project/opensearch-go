@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ubi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ubi"
 )
 
 func TestInitializeReq_GetRequest(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetFeatureReq represents the request for the ltr.get_feature operation.
@@ -68,8 +68,8 @@ func (r GetFeatureReq) GetRequest(method string) (*http.Request, error) {
 
 // GetFeatureParams represents query parameters for the GetFeatureReq.
 type GetFeatureParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetFeatureParams) get() map[string]string {

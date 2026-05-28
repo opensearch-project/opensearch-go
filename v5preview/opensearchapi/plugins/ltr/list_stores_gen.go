@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ListStoresReq represents the request for the ltr.list_stores operation.
@@ -59,8 +59,8 @@ func (r ListStoresReq) GetRequest(method string) (*http.Request, error) {
 
 // ListStoresParams represents query parameters for the ListStoresReq.
 type ListStoresParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ListStoresParams) get() map[string]string {
@@ -84,7 +84,7 @@ func (r ListStoresParams) get() map[string]string {
 // Available: >= 2.17.1.
 type ListStoresResp struct {
 	// Map of available feature stores.
-	Stores map[string]osapi.LtrStoreDetails `json:"stores"`
+	Stores map[string]opensearchapi.LtrStoreDetails `json:"stores"`
 
 	response *opensearch.Response
 }

@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestDeleteByQueryReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.DeleteByQueryReq
+		req        opensearchapi.DeleteByQueryReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.DeleteByQueryReq{},
+			req:        opensearchapi.DeleteByQueryReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.DeleteByQueryReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.DeleteByQueryReq{Index: []string{"a", "b"}},
 			wantMethod: "POST",
 			wantPath:   "/a,b/_delete_by_query",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestDeleteByQuery_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.DeleteByQuery(t.Context(), &osapi.DeleteByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := client.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestDeleteByQuery_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.DeleteByQuery(t.Context(), &osapi.DeleteByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"strings"
@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestClusterPutSettings(t *testing.T) {
@@ -26,7 +26,7 @@ func TestClusterPutSettings(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cluster.PutSettings(t.Context(), &osapi.ClusterPutSettingsReq{BodyReader: strings.NewReader("{\"persistent\":{\"cluster.max_shards_per_node\":\"3000\"}}")})
+		resp, err := client.Cluster.PutSettings(t.Context(), &opensearchapi.ClusterPutSettingsReq{BodyReader: strings.NewReader("{\"persistent\":{\"cluster.max_shards_per_node\":\"3000\"}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -36,7 +36,7 @@ func TestClusterPutSettings(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Cluster.PutSettings(t.Context(), &osapi.ClusterPutSettingsReq{BodyReader: strings.NewReader("{\"persistent\":{\"cluster.max_shards_per_node\":\"3000\"}}")})
+		res, err := failingClient.Cluster.PutSettings(t.Context(), &opensearchapi.ClusterPutSettingsReq{BodyReader: strings.NewReader("{\"persistent\":{\"cluster.max_shards_per_node\":\"3000\"}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

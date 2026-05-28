@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchReq represents the request for the flow_framework.search operation.
@@ -83,8 +83,8 @@ func (r SearchReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchParams represents query parameters for the SearchReq.
 type SearchParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchParams) get() map[string]string {
@@ -147,5 +147,5 @@ func (r SearchResp) RawBody() io.Reader {
 // FlowFrameworkCommonSearchWorkflowRequest is a typed component of the flow_framework.search operation.
 type FlowFrameworkCommonSearchWorkflowRequest struct {
 	// The query used to search for workflows.
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 }

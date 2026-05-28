@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetStatsReq represents the request for the search_relevance.get_stats operation.
@@ -64,8 +64,8 @@ func (r GetStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetStatsParams represents query parameters for the GetStatsReq.
 type GetStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Requests flattened stat paths as keys
 	FlatStatPaths string
 
@@ -122,7 +122,7 @@ func (r GetStatsParams) get() map[string]string {
 //
 // Available: >= 3.1.0.
 type GetStatsResp struct {
-	osapi.NodesResponseBase
+	opensearchapi.NodesResponseBase
 	AllNodes json.RawMessage `json:"all_nodes"`
 
 	// The name of a resource or configuration element.

@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/security"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/security/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security/internal/securitytest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestUpdateDistinguishedName(t *testing.T) {
@@ -28,7 +28,7 @@ func TestUpdateDistinguishedName(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-update-distinguished-name")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.DistinguishedName.UpdateDistinguishedName(t.Context(), security.UpdateDistinguishedNameReq{ClusterName: name, Body: &osapi.SecurityDistinguishedNames{}})
+		resp, err := client.DistinguishedName.UpdateDistinguishedName(t.Context(), security.UpdateDistinguishedNameReq{ClusterName: name, Body: &opensearchapi.SecurityDistinguishedNames{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -38,7 +38,7 @@ func TestUpdateDistinguishedName(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.DistinguishedName.UpdateDistinguishedName(t.Context(), security.UpdateDistinguishedNameReq{ClusterName: name, Body: &osapi.SecurityDistinguishedNames{}})
+		res, err := failingClient.DistinguishedName.UpdateDistinguishedName(t.Context(), security.UpdateDistinguishedNameReq{ClusterName: name, Body: &opensearchapi.SecurityDistinguishedNames{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

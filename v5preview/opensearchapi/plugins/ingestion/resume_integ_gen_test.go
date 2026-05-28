@@ -16,10 +16,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ingestion"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ingestion/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ingestion"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ingestion/internal/ingestiontest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestResume(t *testing.T) {
@@ -33,14 +33,14 @@ func TestResume(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-resume")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = osClient.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Resume(t.Context(), ingestion.ResumeReq{Index: index, Body: &osapi.IngestionResumeRequest{}})
+		resp, err := client.Resume(t.Context(), ingestion.ResumeReq{Index: index, Body: &opensearchapi.IngestionResumeRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -50,7 +50,7 @@ func TestResume(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Resume(t.Context(), ingestion.ResumeReq{Index: index, Body: &osapi.IngestionResumeRequest{}})
+		res, err := failingClient.Resume(t.Context(), ingestion.ResumeReq{Index: index, Body: &opensearchapi.IngestionResumeRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

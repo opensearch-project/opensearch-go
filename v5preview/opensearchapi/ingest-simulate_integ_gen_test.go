@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIngestSimulate(t *testing.T) {
@@ -29,20 +29,20 @@ func TestIngestSimulate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-ingest-simulate")
 	docID := testutil.MustUniqueString(t, "test-ingest-simulate")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Ingest.PutPipeline(t.Context(), osapi.IngestPutPipelineReq{
+	_, err = client.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{
 		ID:         docID,
 		BodyReader: strings.NewReader(`{"description":"test","processors":[{"uppercase":{"field":"title"}}]}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Ingest.DeletePipeline(context.Background(), osapi.IngestDeletePipelineReq{ID: docID})
+		_, _ = client.Ingest.DeletePipeline(context.Background(), opensearchapi.IngestDeletePipelineReq{ID: docID})
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Ingest.Simulate(t.Context(), osapi.IngestSimulateReq{BodyReader: strings.NewReader("{\"pipeline\":{\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]},\"docs\":[{\"_source\":{\"title\":\"hello\"}}]}")})
+		resp, err := client.Ingest.Simulate(t.Context(), opensearchapi.IngestSimulateReq{BodyReader: strings.NewReader("{\"pipeline\":{\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]},\"docs\":[{\"_source\":{\"title\":\"hello\"}}]}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestIngestSimulate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Ingest.Simulate(t.Context(), osapi.IngestSimulateReq{BodyReader: strings.NewReader("{\"pipeline\":{\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]},\"docs\":[{\"_source\":{\"title\":\"hello\"}}]}")})
+		res, err := failingClient.Ingest.Simulate(t.Context(), opensearchapi.IngestSimulateReq{BodyReader: strings.NewReader("{\"pipeline\":{\"processors\":[{\"uppercase\":{\"field\":\"title\"}}]},\"docs\":[{\"_source\":{\"title\":\"hello\"}}]}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

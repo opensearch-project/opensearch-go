@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchAgenticMemoryReq represents the request for the ml.search_agentic_memory operation.
@@ -87,8 +87,8 @@ func (r SearchAgenticMemoryReq) GetRequest(method string) (*http.Request, error)
 
 // SearchAgenticMemoryParams represents query parameters for the SearchAgenticMemoryReq.
 type SearchAgenticMemoryParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchAgenticMemoryParams) get() map[string]string {
@@ -111,8 +111,8 @@ func (r SearchAgenticMemoryParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type SearchAgenticMemoryResp struct {
-	Shards *osapi.ShardStatistics `json:"_shards,omitempty"`
-	Hits   osapi.MlSearchHits     `json:"hits"`
+	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
+	Hits   opensearchapi.MlSearchHits     `json:"hits"`
 
 	// Whether the search timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
@@ -139,7 +139,7 @@ func (r SearchAgenticMemoryResp) RawBody() io.Reader {
 
 // MlSearchAgenticMemoryBody is a typed component of the ml.search_agentic_memory operation.
 type MlSearchAgenticMemoryBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of memory containers to return.
 	Size *int64 `json:"size,omitempty"`

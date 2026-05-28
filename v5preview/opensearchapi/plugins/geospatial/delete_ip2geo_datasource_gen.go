@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteIp2geoDatasourceReq represents the request for the geospatial.delete_ip2geo_datasource operation.
@@ -65,8 +65,8 @@ func (r DeleteIp2geoDatasourceReq) GetRequest(method string) (*http.Request, err
 
 // DeleteIp2geoDatasourceParams represents query parameters for the DeleteIp2geoDatasourceReq.
 type DeleteIp2geoDatasourceParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteIp2geoDatasourceParams) get() map[string]string {

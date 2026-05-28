@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // RegisterModelGroupReq represents the request for the ml.register_model_group operation.
@@ -77,8 +77,8 @@ func (r RegisterModelGroupReq) GetRequest(method string) (*http.Request, error) 
 
 // RegisterModelGroupParams represents query parameters for the RegisterModelGroupReq.
 type RegisterModelGroupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r RegisterModelGroupParams) get() map[string]string {

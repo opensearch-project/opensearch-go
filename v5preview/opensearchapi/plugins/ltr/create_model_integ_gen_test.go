@@ -17,10 +17,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ltr"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/ltr/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ltr"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/ltr/internal/ltrtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCreateModel(t *testing.T) {
@@ -36,17 +36,17 @@ func TestCreateModel(t *testing.T) {
 	docID := testutil.MustUniqueString(t, "test-create-model")
 	name := testutil.MustUniqueString(t, "test-create-model")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = osClient.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = osClient.Index(t.Context(), osapi.IndexReq{
+	_, err = osClient.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
-		Params: &osapi.IndexParams{Refresh: "true"},
+		Params: &opensearchapi.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)
 

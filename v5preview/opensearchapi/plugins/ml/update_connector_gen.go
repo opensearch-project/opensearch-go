@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UpdateConnectorReq represents the request for the ml.update_connector operation.
@@ -83,8 +83,8 @@ func (r UpdateConnectorReq) GetRequest(method string) (*http.Request, error) {
 
 // UpdateConnectorParams represents query parameters for the UpdateConnectorReq.
 type UpdateConnectorParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UpdateConnectorParams) get() map[string]string {
@@ -118,7 +118,7 @@ type UpdateConnectorResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`
@@ -149,12 +149,12 @@ type MlUpdateConnectorBody struct {
 	// The model group access mode.
 	AccessMode *string `json:"access_mode,omitempty"`
 
-	Actions []osapi.MlAction `json:"actions,omitempty"`
+	Actions []opensearchapi.MlAction `json:"actions,omitempty"`
 
 	// The backend roles.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	Credential *osapi.MlCredential `json:"credential,omitempty"`
+	Credential *opensearchapi.MlCredential `json:"credential,omitempty"`
 
 	// The connector description.
 	Description *string `json:"description,omitempty"`
@@ -162,7 +162,7 @@ type MlUpdateConnectorBody struct {
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	Parameters *osapi.MlParameters `json:"parameters,omitempty"`
+	Parameters *opensearchapi.MlParameters `json:"parameters,omitempty"`
 
 	// Whether to skip validating missing parameters.
 	ParametersSkipValidatingMissingParameters *bool `json:"parameters.skip_validating_missing_parameters,omitempty"`

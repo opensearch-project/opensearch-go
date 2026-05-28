@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DatasourcesCreateReq represents the request for the query.datasources_create operation.
@@ -32,7 +32,7 @@ type DatasourcesCreateReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.QueryDataSource
+	Body *opensearchapi.QueryDataSource
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -79,8 +79,8 @@ func (r DatasourcesCreateReq) GetRequest(method string) (*http.Request, error) {
 
 // DatasourcesCreateParams represents query parameters for the DatasourcesCreateReq.
 type DatasourcesCreateParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DatasourcesCreateParams) get() map[string]string {

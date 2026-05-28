@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/query"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/query/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/query"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/query/internal/querytest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestDatasourcesUpdate(t *testing.T) {
@@ -31,7 +31,7 @@ func TestDatasourcesUpdate(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "2.7", "DatasourcesUpdate")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.DatasourcesUpdate(t.Context(), &query.DatasourcesUpdateReq{Body: &osapi.QueryDataSource{}})
+		resp, err := client.DatasourcesUpdate(t.Context(), &query.DatasourcesUpdateReq{Body: &opensearchapi.QueryDataSource{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestDatasourcesUpdate(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.DatasourcesUpdate(t.Context(), &query.DatasourcesUpdateReq{Body: &osapi.QueryDataSource{}})
+		res, err := failingClient.DatasourcesUpdate(t.Context(), &query.DatasourcesUpdateReq{Body: &opensearchapi.QueryDataSource{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

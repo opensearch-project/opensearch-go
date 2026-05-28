@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestSnapshotCloneReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.SnapshotCloneReq
+		req        opensearchapi.SnapshotCloneReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.SnapshotCloneReq{},
+			req:        opensearchapi.SnapshotCloneReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.SnapshotCloneReq{Repository: "test-repository", Snapshot: "test-snapshot", TargetSnapshot: "test-targetsnapshot"},
+			req:        opensearchapi.SnapshotCloneReq{Repository: "test-repository", Snapshot: "test-snapshot", TargetSnapshot: "test-targetsnapshot"},
 			wantMethod: "PUT",
 			wantPath:   "/_snapshot/test-repository/test-snapshot/_clone/test-targetsnapshot",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestSnapshotClone_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Snapshot.Clone(t.Context(), osapi.SnapshotCloneReq{Repository: "test", Snapshot: "test", TargetSnapshot: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Snapshot.Clone(t.Context(), opensearchapi.SnapshotCloneReq{Repository: "test", Snapshot: "test", TargetSnapshot: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestSnapshotClone_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Snapshot.Clone(t.Context(), osapi.SnapshotCloneReq{Repository: "test", Snapshot: "test", TargetSnapshot: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Snapshot.Clone(t.Context(), opensearchapi.SnapshotCloneReq{Repository: "test", Snapshot: "test", TargetSnapshot: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

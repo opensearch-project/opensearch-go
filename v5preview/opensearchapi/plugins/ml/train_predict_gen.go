@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // TrainPredictReq represents the request for the ml.train_predict operation.
@@ -83,8 +83,8 @@ func (r TrainPredictReq) GetRequest(method string) (*http.Request, error) {
 
 // TrainPredictParams represents query parameters for the TrainPredictReq.
 type TrainPredictParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r TrainPredictParams) get() map[string]string {
@@ -107,7 +107,7 @@ func (r TrainPredictParams) get() map[string]string {
 //
 // Available: >= 1.3.0.
 type TrainPredictResp struct {
-	PredictionResult *osapi.MlPredictionResult `json:"prediction_result,omitempty"`
+	PredictionResult *opensearchapi.MlPredictionResult `json:"prediction_result,omitempty"`
 
 	// The status.
 	Status string `json:"status"`
@@ -131,11 +131,11 @@ func (r TrainPredictResp) RawBody() io.Reader {
 
 // MlTrainPredictBody is a typed component of the ml.train_predict operation.
 type MlTrainPredictBody struct {
-	InputData *osapi.MlPredictionResult `json:"input_data,omitempty"`
+	InputData *opensearchapi.MlPredictionResult `json:"input_data,omitempty"`
 
 	// The input index.
 	InputIndex []string `json:"input_index,omitempty"`
 
-	InputQuery *osapi.MlInputQuery      `json:"input_query,omitempty"`
-	Parameters *osapi.MlTrainParameters `json:"parameters,omitempty"`
+	InputQuery *opensearchapi.MlInputQuery      `json:"input_query,omitempty"`
+	Parameters *opensearchapi.MlTrainParameters `json:"parameters,omitempty"`
 }

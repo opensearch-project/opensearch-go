@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetMemoryContainerReq represents the request for the ml.get_memory_container operation.
@@ -63,8 +63,8 @@ func (r GetMemoryContainerReq) GetRequest(method string) (*http.Request, error) 
 
 // GetMemoryContainerParams represents query parameters for the GetMemoryContainerReq.
 type GetMemoryContainerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetMemoryContainerParams) get() map[string]string {
@@ -87,7 +87,7 @@ func (r GetMemoryContainerParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type GetMemoryContainerResp struct {
-	Configuration *osapi.MlMemoryContainerConfiguration `json:"configuration,omitempty"`
+	Configuration *opensearchapi.MlMemoryContainerConfiguration `json:"configuration,omitempty"`
 
 	// The created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
@@ -101,7 +101,7 @@ type GetMemoryContainerResp struct {
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	Owner *osapi.MlOwner `json:"owner,omitempty"`
+	Owner *opensearchapi.MlOwner `json:"owner,omitempty"`
 
 	response *opensearch.Response
 }

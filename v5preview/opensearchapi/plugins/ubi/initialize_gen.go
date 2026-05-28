@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // InitializeReq represents the request for the ubi.initialize operation.
@@ -59,8 +59,8 @@ func (r InitializeReq) GetRequest(method string) (*http.Request, error) {
 
 // InitializeParams represents query parameters for the InitializeReq.
 type InitializeParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r InitializeParams) get() map[string]string {

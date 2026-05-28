@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetProfileModelsReq represents the request for the ml.get_profile_models operation.
@@ -34,7 +34,7 @@ type GetProfileModelsReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.MlProfileRequest
+	Body *opensearchapi.MlProfileRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -83,8 +83,8 @@ func (r GetProfileModelsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetProfileModelsParams represents query parameters for the GetProfileModelsReq.
 type GetProfileModelsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetProfileModelsParams) get() map[string]string {
@@ -107,7 +107,7 @@ func (r GetProfileModelsParams) get() map[string]string {
 //
 // Available: >= 2.4.0.
 type GetProfileModelsResp struct {
-	Nodes map[string]osapi.MlNode `json:"nodes,omitempty"`
+	Nodes map[string]opensearchapi.MlNode `json:"nodes,omitempty"`
 
 	response *opensearch.Response
 }

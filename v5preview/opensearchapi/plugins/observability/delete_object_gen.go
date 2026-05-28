@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // DeleteObjectReq represents the request for the observability.delete_object operation.
@@ -63,8 +63,8 @@ func (r DeleteObjectReq) GetRequest(method string) (*http.Request, error) {
 
 // DeleteObjectParams represents query parameters for the DeleteObjectReq.
 type DeleteObjectParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r DeleteObjectParams) get() map[string]string {

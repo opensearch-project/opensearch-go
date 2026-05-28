@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/wlm"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/wlm"
 )
 
 func TestDeleteQueryGroupReq_GetRequest(t *testing.T) {

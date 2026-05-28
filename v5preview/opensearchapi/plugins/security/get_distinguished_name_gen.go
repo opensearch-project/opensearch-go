@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetDistinguishedNameReq represents the request for the security.get_distinguished_name operation.
@@ -69,8 +69,8 @@ func (r GetDistinguishedNameReq) GetRequest(method string) (*http.Request, error
 
 // GetDistinguishedNameParams represents query parameters for the GetDistinguishedNameReq.
 type GetDistinguishedNameParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Whether to include or exclude any static node's DN settings from the
 	// final result.
 	ShowAll *bool
@@ -101,7 +101,7 @@ func (r GetDistinguishedNameParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-distinguished-names
 type GetDistinguishedNameResp struct {
-	Entries  map[string]osapi.SecurityDistinguishedNames `json:"-"`
+	Entries  map[string]opensearchapi.SecurityDistinguishedNames `json:"-"`
 	response *opensearch.Response
 }
 

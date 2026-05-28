@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetIp2geoDatasourceReq represents the request for the geospatial.get_ip2geo_datasource operation.
@@ -65,8 +65,8 @@ func (r GetIp2geoDatasourceReq) GetRequest(method string) (*http.Request, error)
 
 // GetIp2geoDatasourceParams represents query parameters for the GetIp2geoDatasourceReq.
 type GetIp2geoDatasourceParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetIp2geoDatasourceParams) get() map[string]string {
@@ -91,7 +91,7 @@ func (r GetIp2geoDatasourceParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#sending-a-get-request
 type GetIp2geoDatasourceResp struct {
-	Datasources []osapi.GeospatialDataSource `json:"datasources"`
+	Datasources []opensearchapi.GeospatialDataSource `json:"datasources"`
 
 	response *opensearch.Response
 }

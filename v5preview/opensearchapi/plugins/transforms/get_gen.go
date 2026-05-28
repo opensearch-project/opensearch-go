@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetReq represents the request for the transforms.get operation.
@@ -65,8 +65,8 @@ func (r GetReq) GetRequest(method string) (*http.Request, error) {
 
 // GetParams represents query parameters for the GetReq.
 type GetParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetParams) get() map[string]string {
@@ -99,8 +99,8 @@ type GetResp struct {
 	// The sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
-	Version   *int64                     `json:"_version,omitempty"`
-	Transform *osapi.TransformsTransform `json:"transform,omitempty"`
+	Version   *int64                             `json:"_version,omitempty"`
+	Transform *opensearchapi.TransformsTransform `json:"transform,omitempty"`
 
 	response *opensearch.Response
 }

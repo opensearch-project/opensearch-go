@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestExistsSource(t *testing.T) {
@@ -28,22 +28,22 @@ func TestExistsSource(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-exists-source")
 	docID := testutil.MustUniqueString(t, "test-exists-source")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), osapi.IndexReq{
+	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
-		Params: &osapi.IndexParams{Refresh: "true"},
+		Params: &opensearchapi.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.ExistsSource(t.Context(), osapi.ExistsSourceReq{Index: index, ID: docID})
+		resp, err := client.ExistsSource(t.Context(), opensearchapi.ExistsSourceReq{Index: index, ID: docID})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

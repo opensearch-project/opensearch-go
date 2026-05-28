@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/transforms/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/transforms/internal/transformstest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestSearch(t *testing.T) {

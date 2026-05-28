@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // AddAgenticMemoryReq represents the request for the ml.add_agentic_memory operation.
@@ -83,8 +83,8 @@ func (r AddAgenticMemoryReq) GetRequest(method string) (*http.Request, error) {
 
 // AddAgenticMemoryParams represents query parameters for the AddAgenticMemoryReq.
 type AddAgenticMemoryParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r AddAgenticMemoryParams) get() map[string]string {
@@ -138,7 +138,7 @@ type MlAddAgenticMemoryBody struct {
 	// Whether to use LLM to extract key information.
 	Infer *bool `json:"infer,omitempty"`
 
-	Messages  []osapi.MlMessage          `json:"messages,omitempty"`
+	Messages  []opensearchapi.MlMessage  `json:"messages,omitempty"`
 	Metadata  map[string]json.RawMessage `json:"metadata,omitempty"`
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // UpdateControllerReq represents the request for the ml.update_controller operation.
@@ -83,8 +83,8 @@ func (r UpdateControllerReq) GetRequest(method string) (*http.Request, error) {
 
 // UpdateControllerParams represents query parameters for the UpdateControllerReq.
 type UpdateControllerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r UpdateControllerParams) get() map[string]string {
@@ -118,7 +118,7 @@ type UpdateControllerResp struct {
 	// The sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
-	Shards osapi.ShardStatistics `json:"_shards"`
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`
@@ -149,5 +149,5 @@ type MlUpdateControllerBody struct {
 	// The name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	UserRateLimiter map[string]osapi.MlRateLimiter `json:"user_rate_limiter,omitempty"`
+	UserRateLimiter map[string]opensearchapi.MlRateLimiter `json:"user_rate_limiter,omitempty"`
 }

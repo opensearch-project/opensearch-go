@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PutJudgmentsReq represents the request for the search_relevance.put_judgments operation.
@@ -62,8 +62,8 @@ func (r PutJudgmentsReq) GetRequest(method string) (*http.Request, error) {
 
 // PutJudgmentsParams represents query parameters for the PutJudgmentsReq.
 type PutJudgmentsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PutJudgmentsParams) get() map[string]string {

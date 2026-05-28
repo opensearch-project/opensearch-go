@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateQueryGroupReq represents the request for the wlm.create_query_group operation.
@@ -32,7 +32,7 @@ type CreateQueryGroupReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.WlmQueryGroupCreate
+	Body *opensearchapi.WlmQueryGroupCreate
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -79,8 +79,8 @@ func (r CreateQueryGroupReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateQueryGroupParams represents query parameters for the CreateQueryGroupReq.
 type CreateQueryGroupParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateQueryGroupParams) get() map[string]string {
@@ -114,7 +114,7 @@ type CreateQueryGroupResp struct {
 	ResiliencyMode string `json:"resiliency_mode"`
 
 	// The resource limits for query requests in the query group.
-	ResourceLimits osapi.WlmQueryGroupResponseResourceLimits `json:"resource_limits"`
+	ResourceLimits opensearchapi.WlmQueryGroupResponseResourceLimits `json:"resource_limits"`
 
 	// The time at which the query group was last updated.
 	UpdatedAt int64 `json:"updated_at"`

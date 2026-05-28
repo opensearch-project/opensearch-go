@@ -20,7 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetConfigsReq represents the request for the notifications.get_configs operation.
@@ -83,8 +83,8 @@ func (r GetConfigsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetConfigsParams represents query parameters for the GetConfigsReq.
 type GetConfigsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	ChimeURL string
 
 	ChimeURLKeyword string
@@ -351,10 +351,10 @@ func (r GetConfigsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#list-all-notification-configurations
 type GetConfigsResp struct {
-	ConfigList       []osapi.NotificationsConfigsOutputItem `json:"config_list,omitempty"`
-	StartIndex       *int64                                 `json:"start_index,omitempty"`
-	TotalHitRelation *string                                `json:"total_hit_relation,omitempty"`
-	TotalHits        *int64                                 `json:"total_hits,omitempty"`
+	ConfigList       []opensearchapi.NotificationsConfigsOutputItem `json:"config_list,omitempty"`
+	StartIndex       *int64                                         `json:"start_index,omitempty"`
+	TotalHitRelation *string                                        `json:"total_hit_relation,omitempty"`
+	TotalHits        *int64                                         `json:"total_hits,omitempty"`
 
 	response *opensearch.Response
 }

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateUpdateTenancyConfigReq represents the request for the security.create_update_tenancy_config operation.
@@ -36,7 +36,7 @@ type CreateUpdateTenancyConfigReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.SecurityMultiTenancyConfig
+	Body *opensearchapi.SecurityMultiTenancyConfig
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -83,8 +83,8 @@ func (r CreateUpdateTenancyConfigReq) GetRequest(method string) (*http.Request, 
 
 // CreateUpdateTenancyConfigParams represents query parameters for the CreateUpdateTenancyConfigReq.
 type CreateUpdateTenancyConfigParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateUpdateTenancyConfigParams) get() map[string]string {

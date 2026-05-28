@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetActionGroupsReq represents the request for the security.get_action_groups operation.
@@ -64,8 +64,8 @@ func (r GetActionGroupsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetActionGroupsParams represents query parameters for the GetActionGroupsReq.
 type GetActionGroupsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetActionGroupsParams) get() map[string]string {
@@ -89,7 +89,7 @@ func (r GetActionGroupsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-action-groups
 type GetActionGroupsResp struct {
-	Entries  map[string]osapi.SecurityActionGroup `json:"-"`
+	Entries  map[string]opensearchapi.SecurityActionGroup `json:"-"`
 	response *opensearch.Response
 }
 

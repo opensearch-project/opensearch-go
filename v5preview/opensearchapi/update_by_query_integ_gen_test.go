@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestUpdateByQuery(t *testing.T) {
@@ -28,14 +28,14 @@ func TestUpdateByQuery(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-update-by-query")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.UpdateByQuery(t.Context(), &osapi.UpdateByQueryReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &osapi.UpdateByQueryParams{Refresh: "true"}})
+		resp, err := client.UpdateByQuery(t.Context(), &opensearchapi.UpdateByQueryReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &opensearchapi.UpdateByQueryParams{Refresh: "true"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestUpdateByQuery(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.UpdateByQuery(t.Context(), &osapi.UpdateByQueryReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &osapi.UpdateByQueryParams{Refresh: "true"}})
+		res, err := failingClient.UpdateByQuery(t.Context(), &opensearchapi.UpdateByQueryReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &opensearchapi.UpdateByQueryParams{Refresh: "true"}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

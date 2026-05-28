@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ResumeReq represents the request for the ingestion.resume operation.
@@ -36,7 +36,7 @@ type ResumeReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *osapi.IngestionResumeRequest
+	Body *opensearchapi.IngestionResumeRequest
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -85,8 +85,8 @@ func (r ResumeReq) GetRequest(method string) (*http.Request, error) {
 
 // ResumeParams represents query parameters for the ResumeReq.
 type ResumeParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ResumeParams) get() map[string]string {
@@ -117,7 +117,7 @@ type ResumeResp struct {
 	Error *string `json:"error,omitempty"`
 
 	// Shard-level failures grouped by index name.
-	Failures map[string][]osapi.IngestionStateShardFailure `json:"failures,omitempty"`
+	Failures map[string][]opensearchapi.IngestionStateShardFailure `json:"failures,omitempty"`
 
 	// Indicates if the resume request has been acknowledged by individual
 	// shards.

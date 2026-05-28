@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // TopQueriesReq represents the request for the insights.top_queries operation.
@@ -59,8 +59,8 @@ func (r TopQueriesReq) GetRequest(method string) (*http.Request, error) {
 
 // TopQueriesParams represents query parameters for the TopQueriesReq.
 type TopQueriesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Get top n queries by a specific metric.
 	Type string
 }
@@ -89,7 +89,7 @@ func (r TopQueriesParams) get() map[string]string {
 //
 // Available: >= 1.0.0.
 type TopQueriesResp struct {
-	TopQueries []osapi.InsightsTopQuery `json:"top_queries"`
+	TopQueries []opensearchapi.InsightsTopQuery `json:"top_queries"`
 
 	response *opensearch.Response
 }

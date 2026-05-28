@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestClearScrollReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ClearScrollReq
+		req        opensearchapi.ClearScrollReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.ClearScrollReq{},
+			req:        opensearchapi.ClearScrollReq{},
 			wantMethod: "DELETE",
 			wantPath:   "/_search/scroll",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.ClearScrollReq{ScrollID: []string{"a", "b"}},
+			req:        opensearchapi.ClearScrollReq{ScrollID: []string{"a", "b"}},
 			wantMethod: "DELETE",
 			wantPath:   "/_search/scroll/a,b",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestClearScroll_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Scroll.Delete(t.Context(), &osapi.ClearScrollReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.Scroll.Delete(t.Context(), &opensearchapi.ClearScrollReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestClearScroll_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Scroll.Delete(t.Context(), &osapi.ClearScrollReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Scroll.Delete(t.Context(), &opensearchapi.ClearScrollReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

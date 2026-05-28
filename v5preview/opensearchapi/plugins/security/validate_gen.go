@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ValidateReq represents the request for the security.validate operation.
@@ -63,8 +63,8 @@ func (r ValidateReq) GetRequest(method string) (*http.Request, error) {
 
 // ValidateParams represents query parameters for the ValidateReq.
 type ValidateParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// Whether an invalid v6 configuration should be allowed.
 	AcceptInvalid *bool
 }

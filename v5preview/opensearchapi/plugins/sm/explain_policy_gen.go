@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ExplainPolicyReq represents the request for the sm.explain_policy operation.
@@ -63,8 +63,8 @@ func (r ExplainPolicyReq) GetRequest(method string) (*http.Request, error) {
 
 // ExplainPolicyParams represents query parameters for the ExplainPolicyReq.
 type ExplainPolicyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ExplainPolicyParams) get() map[string]string {
@@ -87,7 +87,7 @@ func (r ExplainPolicyParams) get() map[string]string {
 //
 // Available: >= 2.1.0.
 type ExplainPolicyResp struct {
-	Policies []osapi.SmExplainedPolicy `json:"policies,omitempty"`
+	Policies []opensearchapi.SmExplainedPolicy `json:"policies,omitempty"`
 
 	response *opensearch.Response
 }

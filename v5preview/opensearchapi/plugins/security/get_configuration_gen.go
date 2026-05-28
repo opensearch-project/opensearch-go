@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetConfigurationReq represents the request for the security.get_configuration operation.
@@ -63,8 +63,8 @@ func (r GetConfigurationReq) GetRequest(method string) (*http.Request, error) {
 
 // GetConfigurationParams represents query parameters for the GetConfigurationReq.
 type GetConfigurationParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetConfigurationParams) get() map[string]string {
@@ -89,7 +89,7 @@ func (r GetConfigurationParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-configuration
 type GetConfigurationResp struct {
-	Config *osapi.SecurityDynamicConfig `json:"config,omitempty"`
+	Config *opensearchapi.SecurityDynamicConfig `json:"config,omitempty"`
 
 	response *opensearch.Response
 }

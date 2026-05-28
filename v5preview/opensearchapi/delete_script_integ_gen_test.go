@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestDeleteScript(t *testing.T) {
@@ -29,20 +29,20 @@ func TestDeleteScript(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-delete-script")
 	docID := testutil.MustUniqueString(t, "test-delete-script")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.PutScript(t.Context(), osapi.PutScriptReq{
+	_, err = client.PutScript(t.Context(), opensearchapi.PutScriptReq{
 		ID:         docID,
 		BodyReader: strings.NewReader(`{"script":{"lang":"painless","source":"doc['title'].value"}}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.DeleteScript(context.Background(), osapi.DeleteScriptReq{ID: docID})
+		_, _ = client.DeleteScript(context.Background(), opensearchapi.DeleteScriptReq{ID: docID})
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.DeleteScript(t.Context(), osapi.DeleteScriptReq{ID: docID})
+		resp, err := client.DeleteScript(t.Context(), opensearchapi.DeleteScriptReq{ID: docID})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestDeleteScript(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.DeleteScript(t.Context(), osapi.DeleteScriptReq{ID: docID})
+		res, err := failingClient.DeleteScript(t.Context(), opensearchapi.DeleteScriptReq{ID: docID})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

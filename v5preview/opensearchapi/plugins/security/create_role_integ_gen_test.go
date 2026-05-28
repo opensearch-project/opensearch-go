@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/security"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/security/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security/internal/securitytest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCreateRole(t *testing.T) {
@@ -28,7 +28,7 @@ func TestCreateRole(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-create-role")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Role.CreateRole(t.Context(), security.CreateRoleReq{Role: name, Body: &osapi.SecurityRole{}})
+		resp, err := client.Role.CreateRole(t.Context(), security.CreateRoleReq{Role: name, Body: &opensearchapi.SecurityRole{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -38,7 +38,7 @@ func TestCreateRole(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Role.CreateRole(t.Context(), security.CreateRoleReq{Role: name, Body: &osapi.SecurityRole{}})
+		res, err := failingClient.Role.CreateRole(t.Context(), security.CreateRoleReq{Role: name, Body: &opensearchapi.SecurityRole{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

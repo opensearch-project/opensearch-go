@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // StatsReq represents the request for the ltr.stats operation.
@@ -67,8 +67,8 @@ func (r StatsReq) GetRequest(method string) (*http.Request, error) {
 
 // StatsParams represents query parameters for the StatsReq.
 type StatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r StatsParams) get() map[string]string {
@@ -91,14 +91,14 @@ func (r StatsParams) get() map[string]string {
 //
 // Available: >= 2.19.0.
 type StatsResp struct {
-	osapi.NodesResponseBase
+	opensearchapi.NodesResponseBase
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	Nodes  map[string]osapi.LtrNodeStats `json:"nodes,omitempty"`
-	Status *string                       `json:"status,omitempty"`
-	Stores map[string]osapi.LtrStoreStat `json:"stores,omitempty"`
+	Nodes  map[string]opensearchapi.LtrNodeStats `json:"nodes,omitempty"`
+	Status *string                               `json:"status,omitempty"`
+	Stores map[string]opensearchapi.LtrStoreStat `json:"stores,omitempty"`
 
 	response *opensearch.Response
 }

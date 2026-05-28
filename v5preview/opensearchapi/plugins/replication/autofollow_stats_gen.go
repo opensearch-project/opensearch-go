@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // AutofollowStatsReq represents the request for the replication.autofollow_stats operation.
@@ -61,8 +61,8 @@ func (r AutofollowStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // AutofollowStatsParams represents query parameters for the AutofollowStatsReq.
 type AutofollowStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r AutofollowStatsParams) get() map[string]string {
@@ -87,7 +87,7 @@ func (r AutofollowStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#get-auto-follow-stats
 type AutofollowStatsResp struct {
-	AutofollowStats []osapi.ReplicationAutoFollowStats `json:"autofollow_stats,omitempty"`
+	AutofollowStats []opensearchapi.ReplicationAutoFollowStats `json:"autofollow_stats,omitempty"`
 
 	// The list of indices that failed to replicate.
 	FailedIndices []string `json:"failed_indices,omitempty"`

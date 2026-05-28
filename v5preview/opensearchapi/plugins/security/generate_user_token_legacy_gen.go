@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GenerateUserTokenLegacyReq represents the request for the security.generate_user_token_legacy operation.
@@ -65,8 +65,8 @@ func (r GenerateUserTokenLegacyReq) GetRequest(method string) (*http.Request, er
 
 // GenerateUserTokenLegacyParams represents query parameters for the GenerateUserTokenLegacyReq.
 type GenerateUserTokenLegacyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GenerateUserTokenLegacyParams) get() map[string]string {

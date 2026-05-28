@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetUserLegacyReq represents the request for the security.get_user_legacy operation.
@@ -66,8 +66,8 @@ func (r GetUserLegacyReq) GetRequest(method string) (*http.Request, error) {
 
 // GetUserLegacyParams represents query parameters for the GetUserLegacyReq.
 type GetUserLegacyParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetUserLegacyParams) get() map[string]string {
@@ -89,7 +89,7 @@ func (r GetUserLegacyParams) get() map[string]string {
 //
 // Retrieve one user. Legacy API.
 type GetUserLegacyResp struct {
-	Entries  map[string]osapi.SecurityUser `json:"-"`
+	Entries  map[string]opensearchapi.SecurityUser `json:"-"`
 	response *opensearch.Response
 }
 

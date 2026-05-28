@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // TrainReq represents the request for the ml.train operation.
@@ -83,8 +83,8 @@ func (r TrainReq) GetRequest(method string) (*http.Request, error) {
 
 // TrainParams represents query parameters for the TrainReq.
 type TrainParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r TrainParams) get() map[string]string {
@@ -135,6 +135,6 @@ type MlTrainBody struct {
 	// The input index.
 	InputIndex []string `json:"input_index,omitempty"`
 
-	InputQuery *osapi.MlInputQuery      `json:"input_query,omitempty"`
-	Parameters *osapi.MlTrainParameters `json:"parameters,omitempty"`
+	InputQuery *opensearchapi.MlInputQuery      `json:"input_query,omitempty"`
+	Parameters *opensearchapi.MlTrainParameters `json:"parameters,omitempty"`
 }

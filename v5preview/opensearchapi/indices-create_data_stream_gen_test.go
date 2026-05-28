@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -20,28 +20,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestIndicesCreateDataStreamReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.IndicesCreateDataStreamReq
+		req        opensearchapi.IndicesCreateDataStreamReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.IndicesCreateDataStreamReq{},
+			req:        opensearchapi.IndicesCreateDataStreamReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.IndicesCreateDataStreamReq{Name: "test-name"},
+			req:        opensearchapi.IndicesCreateDataStreamReq{Name: "test-name"},
 			wantMethod: "PUT",
 			wantPath:   "/_data_stream/test-name",
 			wantErr:    false,
@@ -73,12 +73,12 @@ func TestIndicesCreateDataStream_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.CreateDataStream(t.Context(), osapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
+		resp, err := client.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -92,12 +92,12 @@ func TestIndicesCreateDataStream_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.CreateDataStream(t.Context(), osapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
+		resp, err := errClient.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

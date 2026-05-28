@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // CreateControllerReq represents the request for the ml.create_controller operation.
@@ -83,8 +83,8 @@ func (r CreateControllerReq) GetRequest(method string) (*http.Request, error) {
 
 // CreateControllerParams represents query parameters for the CreateControllerReq.
 type CreateControllerParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r CreateControllerParams) get() map[string]string {
@@ -132,5 +132,5 @@ func (r CreateControllerResp) RawBody() io.Reader {
 
 // MlCreateControllerBody is a typed component of the ml.create_controller operation.
 type MlCreateControllerBody struct {
-	UserRateLimiter map[string]osapi.MlRateLimiter `json:"user_rate_limiter,omitempty"`
+	UserRateLimiter map[string]opensearchapi.MlRateLimiter `json:"user_rate_limiter,omitempty"`
 }

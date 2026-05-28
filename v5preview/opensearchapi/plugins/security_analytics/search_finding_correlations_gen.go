@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchFindingCorrelationsReq represents the request for the security_analytics.search_finding_correlations operation.
@@ -63,8 +63,8 @@ func (r SearchFindingCorrelationsReq) GetRequest(method string) (*http.Request, 
 
 // SearchFindingCorrelationsParams represents query parameters for the SearchFindingCorrelationsReq.
 type SearchFindingCorrelationsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	// The log type of findings you want to correlate with the specified
 	// finding. Required.
 	DetectorType string

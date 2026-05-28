@@ -8,16 +8,16 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestClusterGetDecommissionAwareness(t *testing.T) {
@@ -27,7 +27,7 @@ func TestClusterGetDecommissionAwareness(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-cluster-get-decommission-awareness")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cluster.GetDecommissionAwareness(t.Context(), osapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: name})
+		resp, err := client.Cluster.GetDecommissionAwareness(t.Context(), opensearchapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestClusterGetDecommissionAwareness(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Cluster.GetDecommissionAwareness(t.Context(), osapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: name})
+		res, err := failingClient.Cluster.GetDecommissionAwareness(t.Context(), opensearchapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

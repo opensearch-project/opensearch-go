@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/replication"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/replication/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/replication"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/replication/internal/replicationtest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCreateReplicationRule(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCreateReplicationRule(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "1.1", "CreateReplicationRule")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.ReplicationRule.CreateReplicationRule(t.Context(), &replication.CreateReplicationRuleReq{Body: &osapi.ReplicationCreateRule{}})
+		resp, err := client.ReplicationRule.CreateReplicationRule(t.Context(), &replication.CreateReplicationRuleReq{Body: &opensearchapi.ReplicationCreateRule{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestCreateReplicationRule(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.ReplicationRule.CreateReplicationRule(t.Context(), &replication.CreateReplicationRuleReq{Body: &osapi.ReplicationCreateRule{}})
+		res, err := failingClient.ReplicationRule.CreateReplicationRule(t.Context(), &replication.CreateReplicationRuleReq{Body: &opensearchapi.ReplicationCreateRule{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

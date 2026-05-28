@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SendTestReq represents the request for the notifications.send_test operation.
@@ -67,8 +67,8 @@ func (r SendTestReq) GetRequest(method string) (*http.Request, error) {
 
 // SendTestParams represents query parameters for the SendTestReq.
 type SendTestParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SendTestParams) get() map[string]string {
@@ -93,8 +93,8 @@ func (r SendTestParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#send-test-notification
 type SendTestResp struct {
-	EventSource *osapi.NotificationsEventSource  `json:"event_source,omitempty"`
-	StatusList  []osapi.NotificationsEventStatus `json:"status_list,omitempty"`
+	EventSource *opensearchapi.NotificationsEventSource  `json:"event_source,omitempty"`
+	StatusList  []opensearchapi.NotificationsEventStatus `json:"status_list,omitempty"`
 
 	response *opensearch.Response
 }

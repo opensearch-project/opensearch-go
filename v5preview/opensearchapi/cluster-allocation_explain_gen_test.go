@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestClusterAllocationExplainReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ClusterAllocationExplainReq
+		req        opensearchapi.ClusterAllocationExplainReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        osapi.ClusterAllocationExplainReq{},
+			req:        opensearchapi.ClusterAllocationExplainReq{},
 			wantMethod: "GET",
 			wantPath:   "/_cluster/allocation/explain",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        osapi.ClusterAllocationExplainReq{Body: &osapi.ClusterAllocationExplainBody{}},
+			req:        opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{}},
 			wantMethod: "POST",
 			wantPath:   "/_cluster/allocation/explain",
 			wantErr:    false,
@@ -72,7 +72,7 @@ func TestClusterAllocationExplain_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
@@ -91,7 +91,7 @@ func TestClusterAllocationExplain_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)

@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // SearchMessageReq represents the request for the ml.search_message operation.
@@ -85,8 +85,8 @@ func (r SearchMessageReq) GetRequest(method string) (*http.Request, error) {
 
 // SearchMessageParams represents query parameters for the SearchMessageReq.
 type SearchMessageParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r SearchMessageParams) get() map[string]string {
@@ -146,7 +146,7 @@ func (r SearchMessageResp) RawBody() io.Reader {
 
 // MlSearchMessageBody is a typed component of the ml.search_message operation.
 type MlSearchMessageBody struct {
-	Query *osapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
+	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
 	// The number of messages to return.
 	Size *int64 `json:"size,omitempty"`

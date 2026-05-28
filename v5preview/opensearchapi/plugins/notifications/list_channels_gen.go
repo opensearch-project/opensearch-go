@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ListChannelsReq represents the request for the notifications.list_channels operation.
@@ -61,8 +61,8 @@ func (r ListChannelsReq) GetRequest(method string) (*http.Request, error) {
 
 // ListChannelsParams represents query parameters for the ListChannelsReq.
 type ListChannelsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ListChannelsParams) get() map[string]string {
@@ -87,10 +87,10 @@ func (r ListChannelsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#list-all-notification-channels
 type ListChannelsResp struct {
-	ChannelList      []osapi.NotificationsNotificationChannel `json:"channel_list,omitempty"`
-	StartIndex       *int64                                   `json:"start_index,omitempty"`
-	TotalHitRelation *string                                  `json:"total_hit_relation,omitempty"`
-	TotalHits        *int64                                   `json:"total_hits,omitempty"`
+	ChannelList      []opensearchapi.NotificationsNotificationChannel `json:"channel_list,omitempty"`
+	StartIndex       *int64                                           `json:"start_index,omitempty"`
+	TotalHitRelation *string                                          `json:"total_hit_relation,omitempty"`
+	TotalHits        *int64                                           `json:"total_hits,omitempty"`
 
 	response *opensearch.Response
 }

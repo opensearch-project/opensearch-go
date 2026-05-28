@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // PredictModelStreamReq represents the request for the ml.predict_model_stream operation.
@@ -83,8 +83,8 @@ func (r PredictModelStreamReq) GetRequest(method string) (*http.Request, error) 
 
 // PredictModelStreamParams represents query parameters for the PredictModelStreamReq.
 type PredictModelStreamParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r PredictModelStreamParams) get() map[string]string {
@@ -126,5 +126,5 @@ func (r PredictModelStreamResp) RawBody() io.Reader {
 
 // MlPredictModelStreamBody is a typed component of the ml.predict_model_stream operation.
 type MlPredictModelStreamBody struct {
-	Parameters osapi.MlParameters `json:"parameters"`
+	Parameters opensearchapi.MlParameters `json:"parameters"`
 }

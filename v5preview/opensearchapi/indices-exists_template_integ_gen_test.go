@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,8 +17,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesExistsTemplate(t *testing.T) {
@@ -28,20 +28,20 @@ func TestIndicesExistsTemplate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-exists-template")
 	name := testutil.MustUniqueString(t, "test-indices-exists-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.PutTemplate(t.Context(), osapi.IndicesPutTemplateReq{
+	_, err = client.Indices.PutTemplate(t.Context(), opensearchapi.IndicesPutTemplateReq{
 		Name:       name,
 		BodyReader: strings.NewReader(`{"index_patterns":["` + name + `-*"]}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Indices.DeleteTemplate(context.Background(), osapi.IndicesDeleteTemplateReq{Name: name})
+		_, _ = client.Indices.DeleteTemplate(context.Background(), opensearchapi.IndicesDeleteTemplateReq{Name: name})
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.ExistsTemplate(t.Context(), &osapi.IndicesExistsTemplateReq{Name: []string{name}})
+		resp, err := client.Indices.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

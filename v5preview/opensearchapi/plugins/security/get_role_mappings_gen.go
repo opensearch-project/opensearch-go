@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetRoleMappingsReq represents the request for the security.get_role_mappings operation.
@@ -64,8 +64,8 @@ func (r GetRoleMappingsReq) GetRequest(method string) (*http.Request, error) {
 
 // GetRoleMappingsParams represents query parameters for the GetRoleMappingsReq.
 type GetRoleMappingsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r GetRoleMappingsParams) get() map[string]string {
@@ -89,7 +89,7 @@ func (r GetRoleMappingsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-role-mappings
 type GetRoleMappingsResp struct {
-	Entries  map[string]osapi.SecurityRoleMapping `json:"-"`
+	Entries  map[string]opensearchapi.SecurityRoleMapping `json:"-"`
 	response *opensearch.Response
 }
 

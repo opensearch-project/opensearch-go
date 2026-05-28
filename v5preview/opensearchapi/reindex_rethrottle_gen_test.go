@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,28 +19,28 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestReindexRethrottleReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ReindexRethrottleReq
+		req        opensearchapi.ReindexRethrottleReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.ReindexRethrottleReq{},
+			req:        opensearchapi.ReindexRethrottleReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.ReindexRethrottleReq{TaskID: "test-taskid"},
+			req:        opensearchapi.ReindexRethrottleReq{TaskID: "test-taskid"},
 			wantMethod: "POST",
 			wantPath:   "/_reindex/test-taskid/_rethrottle",
 			wantErr:    false,
@@ -72,12 +72,12 @@ func TestReindexRethrottle_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.ReindexRethrottle(t.Context(), osapi.ReindexRethrottleReq{TaskID: "test"})
+		resp, err := client.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{TaskID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -91,12 +91,12 @@ func TestReindexRethrottle_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.ReindexRethrottle(t.Context(), osapi.ReindexRethrottleReq{TaskID: "test"})
+		resp, err := errClient.ReindexRethrottle(t.Context(), opensearchapi.ReindexRethrottleReq{TaskID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

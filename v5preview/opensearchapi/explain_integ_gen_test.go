@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestExplain(t *testing.T) {
@@ -29,22 +29,22 @@ func TestExplain(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-explain")
 	docID := testutil.MustUniqueString(t, "test-explain")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.Create(t.Context(), osapi.IndicesCreateReq{Index: index})
+	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), osapi.IndexReq{
+	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
-		Params: &osapi.IndexParams{Refresh: "true"},
+		Params: &opensearchapi.IndexParams{Refresh: "true"},
 	})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Explain(t.Context(), osapi.ExplainReq{Index: index, ID: docID, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
+		resp, err := client.Explain(t.Context(), opensearchapi.ExplainReq{Index: index, ID: docID, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -54,7 +54,7 @@ func TestExplain(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Explain(t.Context(), osapi.ExplainReq{Index: index, ID: docID, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
+		res, err := failingClient.Explain(t.Context(), opensearchapi.ExplainReq{Index: index, ID: docID, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

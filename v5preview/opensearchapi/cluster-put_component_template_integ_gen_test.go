@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"strings"
@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestClusterPutComponentTemplate(t *testing.T) {
@@ -27,7 +27,7 @@ func TestClusterPutComponentTemplate(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-cluster-put-component-template")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Cluster.PutComponentTemplate(t.Context(), osapi.ClusterPutComponentTemplateReq{Name: name, BodyReader: strings.NewReader("{\"template\":{\"mappings\":{\"properties\":{\"title\":{\"type\":\"text\"}}}}}")})
+		resp, err := client.Cluster.PutComponentTemplate(t.Context(), opensearchapi.ClusterPutComponentTemplateReq{Name: name, BodyReader: strings.NewReader("{\"template\":{\"mappings\":{\"properties\":{\"title\":{\"type\":\"text\"}}}}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestClusterPutComponentTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Cluster.PutComponentTemplate(t.Context(), osapi.ClusterPutComponentTemplateReq{Name: name, BodyReader: strings.NewReader("{\"template\":{\"mappings\":{\"properties\":{\"title\":{\"type\":\"text\"}}}}}")})
+		res, err := failingClient.Cluster.PutComponentTemplate(t.Context(), opensearchapi.ClusterPutComponentTemplateReq{Name: name, BodyReader: strings.NewReader("{\"template\":{\"mappings\":{\"properties\":{\"title\":{\"type\":\"text\"}}}}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

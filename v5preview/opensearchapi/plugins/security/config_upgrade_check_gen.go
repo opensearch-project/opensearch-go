@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // ConfigUpgradeCheckReq represents the request for the security.config_upgrade_check operation.
@@ -63,8 +63,8 @@ func (r ConfigUpgradeCheckReq) GetRequest(method string) (*http.Request, error) 
 
 // ConfigUpgradeCheckParams represents query parameters for the ConfigUpgradeCheckReq.
 type ConfigUpgradeCheckParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r ConfigUpgradeCheckParams) get() map[string]string {

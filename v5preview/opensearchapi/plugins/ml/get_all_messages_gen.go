@@ -18,7 +18,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // GetAllMessagesReq represents the request for the ml.get_all_messages operation.
@@ -64,8 +64,8 @@ func (r GetAllMessagesReq) GetRequest(method string) (*http.Request, error) {
 
 // GetAllMessagesParams represents query parameters for the GetAllMessagesReq.
 type GetAllMessagesParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 	MaxResults int
 
 	NextToken int
@@ -99,7 +99,7 @@ func (r GetAllMessagesParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetAllMessagesResp struct {
-	Messages []osapi.MlMessage `json:"messages"`
+	Messages []opensearchapi.MlMessage `json:"messages"`
 
 	// The index of the next message after the last message in the returned
 	// list.

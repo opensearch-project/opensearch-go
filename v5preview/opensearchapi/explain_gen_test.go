@@ -8,7 +8,7 @@
 
 //go:build !integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"io"
@@ -19,35 +19,35 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 func TestExplainReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        osapi.ExplainReq
+		req        opensearchapi.ExplainReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        osapi.ExplainReq{},
+			req:        opensearchapi.ExplainReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        osapi.ExplainReq{Index: "test-index", ID: "test-id"},
+			req:        opensearchapi.ExplainReq{Index: "test-index", ID: "test-id"},
 			wantMethod: "GET",
 			wantPath:   "/test-index/_explain/test-id",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        osapi.ExplainReq{Index: "test", ID: "test", Body: &osapi.ExplainBody{}},
+			req:        opensearchapi.ExplainReq{Index: "test", ID: "test", Body: &opensearchapi.ExplainBody{}},
 			wantMethod: "POST",
 			wantPath:   "/test/_explain/test",
 			wantErr:    false,
@@ -79,12 +79,12 @@ func TestExplain_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		client, err := osapi.NewClient(osapi.Config{
+		client, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Explain(t.Context(), osapi.ExplainReq{Index: "test", ID: "test"})
+		resp, err := client.Explain(t.Context(), opensearchapi.ExplainReq{Index: "test", ID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -98,12 +98,12 @@ func TestExplain_Roundtrip(t *testing.T) {
 		}))
 		t.Cleanup(ts.Close)
 
-		errClient, err := osapi.NewClient(osapi.Config{
+		errClient, err := opensearchapi.NewClient(opensearchapi.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Explain(t.Context(), osapi.ExplainReq{Index: "test", ID: "test"})
+		resp, err := errClient.Explain(t.Context(), opensearchapi.ExplainReq{Index: "test", ID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

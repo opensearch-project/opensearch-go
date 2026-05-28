@@ -17,7 +17,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
 // LeaderStatsReq represents the request for the replication.leader_stats operation.
@@ -61,8 +61,8 @@ func (r LeaderStatsReq) GetRequest(method string) (*http.Request, error) {
 
 // LeaderStatsParams represents query parameters for the LeaderStatsReq.
 type LeaderStatsParams struct {
-	osapi.TimeoutParams
-	osapi.DebugParams
+	opensearchapi.TimeoutParams
+	opensearchapi.DebugParams
 }
 
 func (r LeaderStatsParams) get() map[string]string {
@@ -90,7 +90,7 @@ type LeaderStatsResp struct {
 	// The size in bytes.
 	BytesRead *int64 `json:"bytes_read,omitempty"`
 
-	IndexStats map[string]osapi.ReplicationIndexStatus `json:"index_stats,omitempty"`
+	IndexStats map[string]opensearchapi.ReplicationIndexStatus `json:"index_stats,omitempty"`
 
 	// The number of indexes being replicated.
 	NumReplicatedIndices *float64 `json:"num_replicated_indices,omitempty"`
@@ -109,14 +109,14 @@ type LeaderStatsResp struct {
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	TotalReadTimeLuceneMillis *osapi.ReplicationLeaderStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
+	TotalReadTimeLuceneMillis *opensearchapi.ReplicationLeaderStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
 
 	// Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	TotalReadTimeTranslogMillis *osapi.ReplicationLeaderStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
+	TotalReadTimeTranslogMillis *opensearchapi.ReplicationLeaderStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
 
 	// The size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`

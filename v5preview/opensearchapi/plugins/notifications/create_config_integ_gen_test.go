@@ -15,10 +15,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/plugins/notifications"
-	plugintest "github.com/opensearch-project/opensearch-go/v4/osapi/plugins/notifications/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/notifications"
+	plugintest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/notifications/internal/notificationstest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestCreateConfig(t *testing.T) {
@@ -31,7 +31,7 @@ func TestCreateConfig(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "2.0", "CreateConfig")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Config.CreateConfig(t.Context(), &notifications.CreateConfigReq{Body: &osapi.NotificationsConfig{}})
+		resp, err := client.Config.CreateConfig(t.Context(), &notifications.CreateConfigReq{Body: &opensearchapi.NotificationsConfig{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestCreateConfig(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Config.CreateConfig(t.Context(), &notifications.CreateConfigReq{Body: &osapi.NotificationsConfig{}})
+		res, err := failingClient.Config.CreateConfig(t.Context(), &notifications.CreateConfigReq{Body: &opensearchapi.NotificationsConfig{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

@@ -8,7 +8,7 @@
 
 //go:build integration
 
-package osapi_test
+package opensearchapi_test
 
 import (
 	"context"
@@ -17,9 +17,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/osapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/osapi/internal/test"
-	"github.com/opensearch-project/opensearch-go/v4/osapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
 func TestIndicesDeleteIndexTemplate(t *testing.T) {
@@ -29,20 +29,20 @@ func TestIndicesDeleteIndexTemplate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-delete-index-template")
 	name := testutil.MustUniqueString(t, "test-indices-delete-index-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &osapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Indices.PutIndexTemplate(t.Context(), osapi.IndicesPutIndexTemplateReq{
+	_, err = client.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{
 		Name:       name,
 		BodyReader: strings.NewReader(`{"index_patterns":["` + name + `-*"],"template":{"settings":{"number_of_shards":"1"}}}`),
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		_, _ = client.Indices.DeleteIndexTemplate(context.Background(), osapi.IndicesDeleteIndexTemplateReq{Name: name})
+		_, _ = client.Indices.DeleteIndexTemplate(context.Background(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: name})
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.DeleteIndexTemplate(t.Context(), osapi.IndicesDeleteIndexTemplateReq{Name: name})
+		resp, err := client.Indices.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestIndicesDeleteIndexTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.DeleteIndexTemplate(t.Context(), osapi.IndicesDeleteIndexTemplateReq{Name: name})
+		res, err := failingClient.Indices.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
