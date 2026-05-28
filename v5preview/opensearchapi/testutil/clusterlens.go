@@ -73,8 +73,16 @@ func clusterLensFSMCheck(client *opensearchapi.Client, expected int) readiness.F
 
 		catReq := &opensearchapi.CatNodesReq{
 			Params: &opensearchapi.CatNodesParams{
-				DebugParams: opensearchapi.DebugParams{Format: "json"},
-				FullID:      "true",
+				// ?timeout= bounds the inner NodesInfo+NodesStats RPCs that
+				// cat-nodes fans out (RestNodesAction.java:128,140 in the
+				// server). Without it, a slow first stats cycle on a freshly
+				// joined node yields a row with cpu=null, heap.percent=null
+				// indefinitely, blocking LayerStatsReady. Set generously so
+				// readiness gating drives the retry cadence at the Go layer
+				// rather than truncating individual server-side polls.
+				TimeoutParams: opensearchapi.TimeoutParams{Timeout: 10 * time.Second},
+				DebugParams:   opensearchapi.DebugParams{Format: "json"},
+				FullID:        "true",
 			},
 		}
 		cat, err := client.Cat.Nodes(ctx, catReq)
