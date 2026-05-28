@@ -50,6 +50,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v4/internal/version"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
 )
@@ -334,6 +335,25 @@ type Config struct {
 	Router    Router             // Optional router for cluster-aware request routing
 	Observer  ConnectionObserver // Optional observer for connection lifecycle events
 
+	// ShardCostConfig configures shard cost multipliers for the router's
+	// connection scoring. Consumed only when a router is being constructed:
+	//
+	//   - When Config.Router is set, this field is ignored (the user's router
+	//     was already constructed with its own configuration).
+	//   - When Config.Router is nil and OPENSEARCH_GO_ROUTER=true triggers
+	//     auto-construction, this field is applied via [WithShardCosts].
+	//   - Otherwise (no router), this field has no effect.
+	//
+	// When a router is constructed, OPENSEARCH_GO_SHARD_COST takes precedence
+	// over this field for the same-named parameters.
+	//
+	// Format: bare numeric (sets r:base, the primary read cost at idle) or
+	// comma-separated key=value items. Dynamic keys are prefixed with "r:"
+	// (r:base, r:amplify, r:exponent) and control the read-primary cost curve.
+	// Static keys (unknown, relocating, initializing, replica, write_primary,
+	// write_replica) override shard state costs in the lookup tables.
+	ShardCostConfig string
+
 	// Context for background operations (node discovery, health checks, stats polling).
 	// If nil, context.Background() is used. The transport derives a child context from
 	// this, so canceling the parent automatically stops all background goroutines.
@@ -511,7 +531,7 @@ func New(cfg Config) (*Client, error) {
 	// RequestTimeout: 0 = no per-attempt timeout (default), >0 = explicit.
 	// OPENSEARCH_GO_REQUEST_TIMEOUT: time.ParseDuration format, integer seconds, or float seconds.
 	requestTimeout := cfg.RequestTimeout
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_REQUEST_TIMEOUT"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.RequestTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			requestTimeout = d
 		}
@@ -620,7 +640,7 @@ func New(cfg Config) (*Client, error) {
 	// 0 or unset = no override, <0 = disabled.
 	nodeStatsInterval := cfg.NodeStatsInterval
 	nodeStatsIntervalAuto := false
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_NODE_STATS_INTERVAL"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.NodeStatsInterval); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			nodeStatsInterval = d
 		}
@@ -637,7 +657,7 @@ func New(cfg Config) (*Client, error) {
 	// OverloadedHeapThreshold: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD: integer 0-100.
 	overloadedHeapThreshold := cfg.OverloadedHeapThreshold
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.OverloadedHeapThreshold); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil {
 			overloadedHeapThreshold = v
 		}
@@ -649,7 +669,7 @@ func New(cfg Config) (*Client, error) {
 	// OverloadedBreakerRatio: 0.0 = use default, >0.0 = explicit.
 	// OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO: float 0.0-1.0.
 	overloadedBreakerRatio := cfg.OverloadedBreakerRatio
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.OverloadedBreakerRatio); ok && envVal != "" {
 		if v, err := strconv.ParseFloat(envVal, 64); err == nil && v > 0.0 && v <= 1.0 {
 			overloadedBreakerRatio = v
 		}
@@ -668,7 +688,7 @@ func New(cfg Config) (*Client, error) {
 	// ActiveListCap: 0 = auto-derive, >0 = explicit cap, <0 = disabled.
 	// OPENSEARCH_GO_ACTIVE_LIST_CAP: integer.
 	activeListCap := cfg.ActiveListCap
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_ACTIVE_LIST_CAP"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.ActiveListCap); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil {
 			activeListCap = v
 		}
@@ -699,7 +719,7 @@ func New(cfg Config) (*Client, error) {
 	// StandbyRotationInterval: 0 = use DiscoverNodesInterval, >0 = explicit, <0 = disabled.
 	// OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL: time.ParseDuration format or integer seconds.
 	standbyRotationInterval := cfg.StandbyRotationInterval
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.StandbyRotationInterval); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			standbyRotationInterval = d
 		}
@@ -708,7 +728,7 @@ func New(cfg Config) (*Client, error) {
 	// StandbyRotationCount: 0 = use default (1), >0 = explicit.
 	// OPENSEARCH_GO_STANDBY_ROTATION_COUNT: integer.
 	standbyRotationCount := cfg.StandbyRotationCount
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_ROTATION_COUNT"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.StandbyRotationCount); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil && v > 0 {
 			standbyRotationCount = v
 		}
@@ -720,7 +740,7 @@ func New(cfg Config) (*Client, error) {
 	// StandbyPromotionChecks: 0 = use default, >0 = explicit.
 	// OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS: integer.
 	standbyPromotionChecks := int64(cfg.StandbyPromotionChecks)
-	if envVal, ok := os.LookupEnv("OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS"); ok && envVal != "" {
+	if envVal, ok := os.LookupEnv(envvars.StandbyPromotionChecks); ok && envVal != "" {
 		if v, err := strconv.Atoi(envVal); err == nil && v > 0 {
 			standbyPromotionChecks = int64(v)
 		}
@@ -746,6 +766,20 @@ func New(cfg Config) (*Client, error) {
 		parent = context.Background()
 	}
 	ctx, cancel := context.WithCancel(parent)
+
+	router := cfg.Router
+	if router == nil && envvars.Truthy(envRouter) {
+		var opts []RouterOption
+		if cfg.ShardCostConfig != "" {
+			opts = append(opts, WithShardCosts(cfg.ShardCostConfig))
+		}
+		var newErr error
+		router, newErr = NewDefaultRouter(opts...)
+		if newErr != nil {
+			cancel()
+			return nil, newErr
+		}
+	}
 
 	client := Client{
 		urls:     cfg.URLs,
@@ -803,7 +837,7 @@ func New(cfg Config) (*Client, error) {
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
-		router:     cfg.Router,
+		router:     router,
 		selector:   cfg.Selector,
 		poolFunc:   cfg.ConnectionPoolFunc,
 		ctx:        ctx,
@@ -2408,7 +2442,10 @@ func NoOpHealthCheck(_ context.Context, _ *Connection, _ *url.URL) (*http.Respon
 	return nil, nil //nolint:nilnil // Intentional no-op: nil response + nil error signals "healthy, no body".
 }
 
-const routingParam = "routing"
+const (
+	routingParam          = "routing"
+	routingValueSeparator = ","
+)
 
 // extractRouting returns the value of ?routing=X from the request's query
 // string, or "" if absent. Uses a zero-alloc linear scan to avoid
@@ -2478,6 +2515,45 @@ func appendAdaptiveConcurrency(req *http.Request, value int) {
 	} else {
 		req.URL.RawQuery = raw + "&" + param
 	}
+}
+
+// splitRoutingValues splits a comma-separated routing value into individual
+// keys, skipping empty segments. Writes into buf to avoid allocation on the
+// hot path; callers should use acquireRoutingValues/releaseRoutingValues.
+func splitRoutingValues(routingValue string, buf *[]string) []string {
+	s := (*buf)[:0]
+	for {
+		i := strings.Index(routingValue, routingValueSeparator)
+		if i < 0 {
+			if routingValue != "" {
+				s = append(s, routingValue)
+			}
+			break
+		}
+		if i > 0 {
+			s = append(s, routingValue[:i])
+		}
+		routingValue = routingValue[i+len(routingValueSeparator):]
+	}
+	*buf = s
+	return s
+}
+
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var routingValuesPool = sync.Pool{
+	New: func() any {
+		s := make([]string, 0, 8)
+		return &s
+	},
+}
+
+func acquireRoutingValues() *[]string {
+	return routingValuesPool.Get().(*[]string) //nolint:forcetypeassert // pool only stores *[]string
+}
+
+func releaseRoutingValues(buf *[]string) {
+	*buf = (*buf)[:0]
+	routingValuesPool.Put(buf)
 }
 
 // cancelOnCloseBody wraps a response body so that a context cancel function

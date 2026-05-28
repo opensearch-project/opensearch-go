@@ -337,8 +337,8 @@ func TestConnState_String(t *testing.T) {
 		cs := ConnState{packed: int64(newConnState(lcReady | lcActive))}
 		s := cs.String()
 		require.NotContains(t, s, "warmup:")
-		require.Contains(t, s, "ready")
-		require.Contains(t, s, "active")
+		require.Contains(t, s, lcNameReady)
+		require.Contains(t, s, lcNameActive)
 	})
 
 	t.Run("warming state", func(t *testing.T) {
@@ -412,11 +412,14 @@ func TestConnLifecycle_String(t *testing.T) {
 		contains []string
 	}{
 		{name: "zero value", lc: 0, contains: []string{"none"}},
-		{name: "ready+active", lc: lcReady | lcActive, contains: []string{"ready", "active"}},
-		{name: "unknown dead", lc: lcUnknown, contains: []string{"unknown"}},
-		{name: "warming", lc: lcReady | lcActive | lcNeedsWarmup, contains: []string{"ready", "active", "needsWarmup"}},
-		{name: "health checking", lc: lcReady | lcActive | lcHealthChecking, contains: []string{"healthChecking"}},
-		{name: "multiple metadata", lc: lcReady | lcStandby | lcOverloaded | lcDraining, contains: []string{"overloaded", "draining", "standby"}},
+		{name: "ready+active", lc: lcReady | lcActive, contains: []string{lcNameReady, lcNameActive}},
+		{name: "unknown dead", lc: lcUnknown, contains: []string{lcNameUnknown}},
+		{name: "warming", lc: lcReady | lcActive | lcNeedsWarmup, contains: []string{lcNameReady, lcNameActive, lcNameNeedsWarmup}},
+		{name: "health checking", lc: lcReady | lcActive | lcHealthChecking, contains: []string{lcNameHealthChecking}},
+		{
+			name: "multiple metadata", lc: lcReady | lcStandby | lcOverloaded | lcDraining,
+			contains: []string{lcNameOverloaded, lcNameDraining, lcNameStandby},
+		},
 	}
 
 	for _, tc := range tests {
@@ -629,14 +632,14 @@ func TestConnLifecycle_AllBitsNamed(t *testing.T) {
 		lc   connLifecycle
 		name string
 	}{
-		{lcReady, "ready"},
-		{lcUnknown, "unknown"},
-		{lcActive, "active"},
-		{lcStandby, "standby"},
-		{lcNeedsWarmup, "needsWarmup"},
-		{lcOverloaded, "overloaded"},
-		{lcHealthChecking, "healthChecking"},
-		{lcDraining, "draining"},
+		{lcReady, lcNameReady},
+		{lcUnknown, lcNameUnknown},
+		{lcActive, lcNameActive},
+		{lcStandby, lcNameStandby},
+		{lcNeedsWarmup, lcNameNeedsWarmup},
+		{lcOverloaded, lcNameOverloaded},
+		{lcHealthChecking, lcNameHealthChecking},
+		{lcDraining, lcNameDraining},
 		{lcNeedsHardware, "needsHardware"},
 		{lcNeedsCatUpdate, "needsCatUpdate"},
 	}

@@ -9,6 +9,7 @@ package opensearchtransport
 import (
 	"context"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -39,9 +40,9 @@ type poolRouter struct {
 	inner             Policy
 	cache             *indexSlotCache
 	shardCosts        *shardCostMultiplier
-	poolName          string // Thread pool name for congestion tracking (e.g., "search", "write")
+	scoreFunc         connScoreFunc // non-nil for read routes (search, get); nil for write routes
+	poolName          string        // Thread pool name for congestion tracking (e.g., "search", "write")
 	jitter            atomic.Int64
-	decay             float64
 	observer          atomic.Pointer[ConnectionObserver]
 	poolInfoReady     *atomic.Bool  // nil-safe; true once thread pool quorum is reached
 	clusterSearchCwnd *atomic.Int32 // nil-safe; cluster-wide search cwnd for MCSR
@@ -56,7 +57,7 @@ type poolRouter struct {
 	}
 }
 
-func (p *poolRouter) policyTypeName() string { return "router" }
+func (p *poolRouter) policyTypeName() string { return policyTypeNameRouter }
 func (p *poolRouter) setEnvOverride(enabled bool) {
 	psSetEnvOverride(&p.policyState, enabled)
 }
@@ -67,12 +68,15 @@ func (p *poolRouter) setEnvOverride(enabled bool) {
 // The poolName identifies the server-side thread pool for congestion
 // tracking (e.g., "search", "write", "get"); empty string uses the
 // default pool.
-func wrapWithRouter(inner Policy, cache *indexSlotCache, decay float64, costs *shardCostMultiplier, poolName string) Policy {
+func wrapWithRouter(
+	inner Policy, cache *indexSlotCache,
+	costs *shardCostMultiplier, poolName string, scoreFunc connScoreFunc,
+) Policy {
 	return &poolRouter{
 		inner:      inner,
 		cache:      cache,
-		decay:      decay,
 		shardCosts: costs,
+		scoreFunc:  scoreFunc,
 		poolName:   poolName,
 	}
 }
@@ -112,10 +116,10 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			return hop, nil
 		}
 
-		scoreBuf := acquireScoreSlice(len(conns))
+		scores := acquireFloats(len(conns))
 		pir := loadPoolInfoReady(p.poolInfoReady)
-		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, *scoreBuf)
-		releaseScoreSlice(scoreBuf)
+		best := connScoreSelect(conns, nil, nil, p.shardCosts, p.poolName, pir, scores.Slice(), p.scoreFunc, nil)
+		scores.Release()
 
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
 			return hop, nil
@@ -131,6 +135,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				poolName:      p.poolName,
 				targetShard:   -1,
 				poolInfoReady: pir,
+				scoreFunc:     p.scoreFunc,
 			}))
 		}
 
@@ -157,13 +162,25 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	if effectiveRoutingKey == "" && keyB != "" {
 		effectiveRoutingKey = keyB // OpenSearch default: _id is the routing value
 	}
-	shardCandidates, shardNum, shard := shardExactCandidates(p.cache.features, slot, effectiveRoutingKey, conns)
-	if len(shardCandidates) > 0 { //nolint:nestif // shard-exact path has scoring and observer notification
-		// Shard-exact: fan-out is 1 (single shard replica set), so adaptive
-		// MCSR is not applicable and intentionally skipped.
-		scoreBuf := acquireScoreSlice(len(shardCandidates))
-		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf)
-		releaseScoreSlice(scoreBuf)
+
+	var candidatesBuf pooledConns
+	var shardNum int
+	var shard *shardNodes
+	var extraCost pooledFloats
+
+	if !strings.Contains(routingValue, routingValueSeparator) {
+		candidatesBuf, shardNum, shard = calcSingleKeyCost(p.cache.features, slot, effectiveRoutingKey, conns)
+	} else {
+		candidatesBuf, extraCost = calcMultiKeyCost(p.cache.features, slot, routingValue, conns)
+		shardNum = -1
+	}
+
+	if shardCandidates := candidatesBuf.Slice(); len(shardCandidates) > 0 {
+		scores := acquireFloats(len(shardCandidates))
+		best := connScoreSelect(shardCandidates, slot, shard, p.shardCosts, p.poolName,
+			loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, extraCost.Slice())
+		scores.Release()
+		extraCost.Release()
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := keyA
@@ -186,8 +203,10 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				targetShard:         shardNum,
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
+				scoreFunc:           p.scoreFunc,
 			}))
 		}
+		candidatesBuf.Release()
 
 		// Verify the selected connection is still active.
 		if best == nil || best.loadConnState().lifecycle()&(lcActive|lcStandby) == 0 {
@@ -219,9 +238,10 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	slot.updateSmoothedMaxBucket(float64(maxBucket))
 
 	// Select best candidate with warmup-aware skip/accept.
-	scoreBuf := acquireScoreSlice(len(candidates))
-	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName, loadPoolInfoReady(p.poolInfoReady), *scoreBuf)
-	releaseScoreSlice(scoreBuf)
+	scores := acquireFloats(len(candidates))
+	best := connScoreSelect(candidates, slot, nil, p.shardCosts, p.poolName,
+		loadPoolInfoReady(p.poolInfoReady), scores.Slice(), p.scoreFunc, nil)
+	scores.Release()
 
 	// Compute adaptive max_concurrent_shard_requests for search requests
 	// routed through a coordinator (non-shard-exact).
@@ -230,7 +250,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 	// data nodes) when available. Falls back to the selected connection's
 	// per-node cwnd before the first poll cycle completes.
 	var adaptiveMCSR int
-	if p.poolName == "search" && best != nil {
+	if p.poolName == poolSearch && best != nil {
 		cwnd := loadClusterSearchCwnd(p.clusterSearchCwnd)
 		if cwnd <= 0 {
 			cwnd = best.loadCwnd(p.poolName, loadPoolInfoReady(p.poolInfoReady))
@@ -258,6 +278,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			targetShard:         shardNum,
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
+			scoreFunc:           p.scoreFunc,
 		}))
 	}
 
@@ -382,13 +403,13 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 
 	// Register the MCSR metric callback for the search pool so that
 	// ConnectionMetric snapshots include the current per-node value.
-	if p.poolName == "search" && config.metrics != nil && p.cache.features.adaptiveConcurrencyEnabled() {
+	if p.poolName == poolSearch && config.metrics != nil && p.cache.features.adaptiveConcurrencyEnabled() {
 		cache := p.cache
 		poolInfoReady := p.poolInfoReady
 		config.metrics.connMetricCallbacks = append(config.metrics.connMetricCallbacks,
 			func(conns []*Connection, cms []ConnectionMetric) error {
 				for i, conn := range conns {
-					cwnd := conn.loadCwnd("search", loadPoolInfoReady(poolInfoReady))
+					cwnd := conn.loadCwnd(poolSearch, loadPoolInfoReady(poolInfoReady))
 					mcsr := computeAdaptiveConcurrency(cwnd, cache.adaptiveConcurrency, cache.features)
 					cms[i].MCSR = &mcsr
 				}

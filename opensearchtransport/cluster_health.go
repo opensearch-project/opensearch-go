@@ -34,6 +34,13 @@ import (
 	"time"
 )
 
+// Cluster health status values returned by the OpenSearch _cluster/health API.
+const (
+	clusterStatusGreen  = "green"
+	clusterStatusYellow = "yellow"
+	clusterStatusRed    = "red"
+)
+
 // NodeStatsResponse represents the response from GET /_nodes/_local/stats/jvm,breaker,thread_pool.
 // Only the "nodes" map is used; the top-level "_nodes" and "cluster_name" fields are ignored.
 // All fields are present in OpenSearch 1.3.0+.
@@ -256,9 +263,9 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 
 	// Extract search pool stats for cluster-wide MCSR aggregation.
 	var ok bool
-	if searchTP, found := nodeStats.ThreadPools["search"]; found {
+	if searchTP, found := nodeStats.ThreadPools[poolSearch]; found {
 		var searchMaxCwnd int32
-		if searchPC := conn.pools.get("search"); searchPC != nil {
+		if searchPC := conn.pools.get(poolSearch); searchPC != nil {
 			searchPC.mu.Lock()
 			searchMaxCwnd = searchPC.mu.maxCwnd
 			searchPC.mu.Unlock()
@@ -317,7 +324,7 @@ func (c *Client) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	health := conn.mu.clusterHealth
 	conn.mu.RUnlock()
 
-	if health != nil && health.Status == "red" {
+	if health != nil && health.Status == clusterStatusRed {
 		if dl := loadDebugLogger(); dl != nil {
 			dl.Logf("Node %q overloaded: cluster status is red\n", conn.URL)
 		}

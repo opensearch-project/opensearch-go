@@ -24,9 +24,11 @@ import (
 // Resolution priority in IsEnabled():
 //
 //	psEnvDisabled -> false  (highest: operator says off)
-//	psEnvEnabled  -> true   (operator says on)
 //	psEnabled     -> true   (runtime: has connections)
 //	default       -> false
+//
+// psEnvEnabled is set when OPENSEARCH_GO_POLICY_*=true so observers can note
+// the origin of the value (vs defaults or user supplied configuration code).
 const (
 	psEnabled     int32 = 1 << 0 // Runtime: policy has connections / is active
 	psDisabled    int32 = 1 << 1 // Runtime: policy has no connections / is inactive
@@ -37,14 +39,15 @@ const (
 	psEnvMask     int32 = psEnvEnabled | psEnvDisabled
 )
 
-// psIsEnabled resolves the policyState bitfield into a boolean.
-// Priority: env disable -> false; otherwise dynamic enabled -> true; default false.
-// psEnvEnabled is recorded for observability but does not alter resolution --
-// setting =true is the same as allowing default behavior.
+// psIsEnabled resolves the policyState bitfield into a boolean, allowing
+// environment variable overrides to influence the result. See
+// [parsePolicyOverrides] and the policyState bit constants above for details.
 func psIsEnabled(state int32) bool {
+	// Env-set override takes precedence over runtime state.
 	if state&psEnvDisabled != 0 {
 		return false
 	}
+	// Otherwise honor the runtime bit set by DiscoveryUpdate.
 	return state&psEnabled != 0
 }
 
@@ -83,6 +86,21 @@ func psSetEnvOverride(s *atomic.Int32, enabled bool) {
 }
 
 const policyTypeNameUnknown = "unknown"
+
+// Policy type name constants used by policyTypeName() methods and
+// the policyTypeNames slice for env-var override matching.
+const (
+	policyTypeNameChain          = "chain"
+	policyTypeNameMux            = "mux"
+	policyTypeNameIfEnabled      = "ifenabled"
+	policyTypeNameRouter         = "router"
+	policyTypeNameRole           = "role"
+	policyTypeNameRoundRobin     = "roundrobin"
+	policyTypeNameCoordinator    = "coordinator"
+	policyTypeNameNull           = "null"
+	policyTypeNameIndexRouter    = "index_router"
+	policyTypeNameDocumentRouter = "document_router"
+)
 
 // policySortKey returns a structural identity string for a policy that
 // encodes its type name plus distinguishing configuration and children.
@@ -160,16 +178,16 @@ type pathMatcher struct {
 //
 //nolint:gochecknoglobals // Package-level constant list used by parsePolicyOverrides.
 var policyTypeNames = []string{
-	"chain",
-	"mux",
-	"ifenabled",
-	"router",
-	"role",
-	"roundrobin",
-	"coordinator",
-	"null",
-	"index_router",
-	"document_router",
+	policyTypeNameChain,
+	policyTypeNameMux,
+	policyTypeNameIfEnabled,
+	policyTypeNameRouter,
+	policyTypeNameRole,
+	policyTypeNameRoundRobin,
+	policyTypeNameCoordinator,
+	policyTypeNameNull,
+	policyTypeNameIndexRouter,
+	policyTypeNameDocumentRouter,
 }
 
 // parsePolicyOverrides reads OPENSEARCH_GO_POLICY_* environment variables

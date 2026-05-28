@@ -36,14 +36,15 @@
 package testutil
 
 import (
-	"os"
-	"strconv"
 	"testing"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 )
 
-// IsDebugEnabled returns true if OPENSEARCH_GO_DEBUG environment variable is set to true.
-// This function should be used consistently across all test files to determine
-// when to enable verbose logging or debug output.
+// IsDebugEnabled returns true when OPENSEARCH_GO_DEBUG is set to a
+// strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy
+// values all return false. This matches [envvars.Truthy] so the test
+// helper and the runtime debug logger agree on what "enabled" means.
 //
 // Usage:
 //
@@ -52,13 +53,5 @@ import (
 //	}
 func IsDebugEnabled(t *testing.T) bool {
 	t.Helper()
-	val, found := os.LookupEnv("OPENSEARCH_GO_DEBUG")
-	if found && val == "" { // preserve current behavior - empty OPENSEARCH_GO_DEBUG= enables debug
-		return true
-	}
-	debug, err := strconv.ParseBool(val)
-	if err != nil {
-		return false
-	}
-	return debug
+	return envvars.Truthy(envvars.Debug)
 }

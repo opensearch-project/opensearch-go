@@ -41,6 +41,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v4/internal/version"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/signer"
@@ -65,7 +66,8 @@ const (
 	defaultURL         = defaultScheme + "://" + defaultHost + ":" + defaultPort
 	openSearch         = "opensearch"
 	unsupportedProduct = "the client noticed that the server is not a supported distribution"
-	envOpenSearchURL   = "OPENSEARCH_URL"
+	envOpenSearchURL   = envvars.OpenSearchURL
+	envRouter          = envvars.Router
 )
 
 // Version returns the package version as a string.
@@ -122,7 +124,15 @@ type Config struct {
 	// read and close it. Useful for proxy and streaming use cases.
 	DisableResponseBuffering bool // Default: false.
 
-	DiscoverNodesOnStart  bool          // Discover nodes when initializing the client. Default: false.
+	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
+	// as NewClient returns. nil (the default) means "auto": if Router is
+	// also nil and OPENSEARCH_GO_ROUTER is truthy, this is treated as true
+	// so the client starts populating topology before the first request.
+	// Any explicitly set value (true or false) is respected as-is and
+	// suppresses the env-var inheritance. When Router is set programmatically
+	// the env var is ignored entirely; the caller is responsible for
+	// triggering discovery if desired.
+	DiscoverNodesOnStart  *bool
 	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
 
 	// Health check configuration
@@ -199,6 +209,10 @@ type Config struct {
 	Selector  opensearchtransport.Selector           // The selector object.
 	Router    opensearchtransport.Router             // Optional router for request-aware routing.
 	Observer  opensearchtransport.ConnectionObserver // Optional observer for connection lifecycle events.
+
+	// ShardCostConfig overrides shard cost multipliers for connection scoring.
+	// See [opensearchtransport.Config.ShardCostConfig] for format details.
+	ShardCostConfig string
 
 	// Context for background operations (node discovery, health checks, stats polling).
 	// If nil, context.Background() is used. The transport derives a child context from
@@ -310,6 +324,7 @@ func NewClient(cfg Config) (*Client, error) {
 		Selector:           cfg.Selector,
 		Router:             cfg.Router,
 		Observer:           cfg.Observer,
+		ShardCostConfig:    cfg.ShardCostConfig,
 		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
 		Context:            cfg.Context,
 	})
@@ -322,7 +337,17 @@ func NewClient(cfg Config) (*Client, error) {
 		config:    &cfg,
 	}
 
-	if cfg.DiscoverNodesOnStart {
+	// When the caller did not set DiscoverNodesOnStart and no programmatic
+	// Router was provided, inherit on-start discovery from OPENSEARCH_GO_ROUTER
+	// only when that variable is explicitly truthy. A non-truthy or unparseable
+	// value leaves DiscoverNodesOnStart nil so the documented "unset" semantics
+	// are preserved.
+	if cfg.DiscoverNodesOnStart == nil && cfg.Router == nil && envvars.Truthy(envRouter) {
+		t := true
+		cfg.DiscoverNodesOnStart = &t
+	}
+
+	if cfg.DiscoverNodesOnStart != nil && *cfg.DiscoverNodesOnStart {
 		// Use the provided context or fall back to background context.
 		// The transport has its own derived child context for scheduled discovery;
 		// this is only for the initial one-shot discovery on start.

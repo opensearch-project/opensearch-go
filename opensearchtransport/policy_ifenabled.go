@@ -52,7 +52,7 @@ type IfEnabledPolicy struct {
 	policyState atomic.Int32  // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (p *IfEnabledPolicy) policyTypeName() string      { return "ifenabled" }
+func (p *IfEnabledPolicy) policyTypeName() string      { return policyTypeNameIfEnabled }
 func (p *IfEnabledPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewIfEnabledPolicy creates a new conditional policy.

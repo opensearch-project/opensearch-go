@@ -128,7 +128,7 @@ func newE2EPolicy(t *testing.T, conns []*Connection) *IndexRouter {
 	t.Helper()
 	pir := &atomic.Bool{}
 	pir.Store(true) // E2E tests use post-quorum pool data
-	policy := NewIndexRouter(indexSlotCacheConfig{
+	policy := newIndexRouter(indexSlotCacheConfig{
 		minFanOut:    1,
 		maxFanOut:    32,
 		decayFactor:  defaultDecayFactor,
@@ -445,7 +445,7 @@ func TestRouterE2E_FanOutExpansion(t *testing.T) {
 	// With decay=0.999 and rate=1 per getOrCreate call, requestDecay
 	// approaches steady state ~1000. K = counter/50 + 1, clamped to
 	// activeNodeCount. So K grows: 1 -> 2 -> ... -> 6 over ~250 requests.
-	policy := NewIndexRouter(indexSlotCacheConfig{
+	policy := newIndexRouter(indexSlotCacheConfig{
 		minFanOut:    1,
 		maxFanOut:    32,
 		decayFactor:  defaultDecayFactor,

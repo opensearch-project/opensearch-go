@@ -269,7 +269,9 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 
 	// --- Build client with DefaultRouter + observer ---
 	cfg := getTestConfig(t, []*url.URL{u})
-	cfg.Router = NewDefaultRouter()
+	router, err := NewDefaultRouter()
+	require.NoError(t, err)
+	cfg.Router = router
 	cfg.Observer = obs
 
 	transport, err := New(cfg)
@@ -374,7 +376,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 
 	// --- Run DiscoverNodes until shard-exact routing works end-to-end ---
 	// The shard map, connection Name fields, and needsCatUpdate flags all
-	// need to converge before shardExactCandidates returns matches. Rather
+	// need to converge before calcSingleKeyCost returns matches. Rather
 	// than checking each piece individually, issue a probe search with a
 	// routing value and verify ShardExactMatch via the observer. This tests
 	// the full pipeline: shard map populated, routing_num_shards fetched,

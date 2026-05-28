@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 )
 
 // Environment variable names for feature configuration.
@@ -23,14 +25,14 @@ const (
 	//   +shard_exact   Explicitly re-enable (overrides programmatic disable)
 	//
 	// Example: OPENSEARCH_GO_ROUTING_CONFIG=-shard_exact
-	envRoutingConfig = "OPENSEARCH_GO_ROUTING_CONFIG"
+	envRoutingConfig = envvars.RoutingConfig
 
 	// envFallbackConfig controls whether the client falls back to seed
 	// URLs when all router policies and connection pools are exhausted.
 	// Parsed as strconv.ParseBool. Default: true (fallback enabled).
 	//
 	// Example: OPENSEARCH_GO_FALLBACK=false
-	envFallbackConfig = "OPENSEARCH_GO_FALLBACK"
+	envFallbackConfig = envvars.Fallback
 
 	// envDiscoveryConfig controls which server calls are made during
 	// the discovery cycle.
@@ -42,7 +44,7 @@ const (
 	//   -node_stats          Skip GET /_nodes/_local/stats
 	//
 	// Example: OPENSEARCH_GO_DISCOVERY_CONFIG=-routing_num_shards,-node_stats
-	envDiscoveryConfig = "OPENSEARCH_GO_DISCOVERY_CONFIG"
+	envDiscoveryConfig = envvars.DiscoveryConfig
 
 	// envShardRequests controls adaptive max_concurrent_shard_requests.
 	// Format: bool | min:max
@@ -66,7 +68,25 @@ const (
 	//   OPENSEARCH_GO_SHARD_REQUESTS=false       # disable entirely
 	//   OPENSEARCH_GO_SHARD_REQUESTS=10:512       # min=10, max=512
 	//   OPENSEARCH_GO_SHARD_REQUESTS=:512         # default min, max=512
-	envShardRequests = "OPENSEARCH_GO_SHARD_REQUESTS"
+	envShardRequests = envvars.ShardRequests
+
+	// envRouter controls whether the DefaultRouter is created automatically
+	// when no programmatic Config.Router is set. Parsed as strconv.ParseBool.
+	//
+	// In v4 the router is off by default; set to "true" to enable scored,
+	// role-aware request routing without code changes. Programmatic
+	// Config.Router always takes precedence: if already set, this env var
+	// is ignored.
+	//
+	// In v5 the default will flip: the router will be on by default, and
+	// setting this to "false" will disable it.
+	//
+	// This variable is transitional: it will be removed in v6, where the
+	// router is unconditionally on (disable individual policies via
+	// OPENSEARCH_GO_POLICY_* instead).
+	//
+	// Example: OPENSEARCH_GO_ROUTER=true
+	envRouter = envvars.Router
 )
 
 // routingFeatures is a bitfield where zero-value means all features are
@@ -75,8 +95,8 @@ type routingFeatures uint32
 
 const (
 	// routingSkipShardExact disables murmur3 shard-exact routing.
-	// When set, shardExactCandidates returns nil and shard-exact
-	// routing is bypassed.
+	// When set, calcSingleKeyCost and calcMultiKeyCost return nil and
+	// shard-exact routing is bypassed.
 	routingSkipShardExact routingFeatures = 1 << iota
 
 	// routingSkipAdaptiveConcurrency disables adaptive

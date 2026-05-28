@@ -46,7 +46,7 @@ type CoordinatorPolicy struct {
 	policyState atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (p *CoordinatorPolicy) policyTypeName() string      { return "coordinator" }
+func (p *CoordinatorPolicy) policyTypeName() string      { return policyTypeNameCoordinator }
 func (p *CoordinatorPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewCoordinatorPolicy creates a policy that routes to coordinating-only nodes.
@@ -60,7 +60,7 @@ func NewCoordinatorPolicy() Policy {
 func (p *CoordinatorPolicy) configurePolicySettings(config policyConfig) error {
 	// Create pool with proper settings if we don't have one yet
 	if p.pool == nil {
-		config.name = "coordinator"
+		config.name = policyTypeNameCoordinator
 		p.pool = createPoolFromConfig(config)
 	}
 	if config.metrics != nil {

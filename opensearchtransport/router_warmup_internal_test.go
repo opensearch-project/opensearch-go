@@ -71,7 +71,7 @@ func TestWarmupPenalty(t *testing.T) {
 	})
 }
 
-// --- calcConnScore is warmup-agnostic ---
+// --- calcConnDefaultScore is warmup-agnostic ---
 
 func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 	t.Parallel()
@@ -88,11 +88,11 @@ func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 		warming := scoreTestConn(t, "warming", rtt, load)
 		warming.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 8, 8)))
 
-		warmedScore := calcConnScore(warmed, shardCostForReads.forNode(node), "", true)
-		warmingScore := calcConnScore(warming, shardCostForReads.forNode(node), "", true)
+		warmedScore := calcConnDefaultScore(warmed, shardCostForReads.forNode(node), "", true)
+		warmingScore := calcConnDefaultScore(warming, shardCostForReads.forNode(node), "", true)
 
 		require.InDelta(t, warmedScore, warmingScore, 0.01,
-			"calcConnScore should not include warmup penalty")
+			"calcConnDefaultScore should not include warmup penalty")
 	})
 
 	t.Run("shard cost still differentiates", func(t *testing.T) {
@@ -104,8 +104,8 @@ func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 		conn.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 8, 8)))
 
 		// Unknown shard cost (32.0) vs replica shard cost (1.0)
-		scoreUnknown := calcConnScore(conn, shardCostForReads.forNode(nil), "", true)
-		scoreReplica := calcConnScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
+		scoreUnknown := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
+		scoreReplica := calcConnDefaultScore(conn, shardCostForReads.forNode(&shardNodeInfo{Replicas: 1}), "", true)
 
 		require.Greater(t, scoreUnknown, scoreReplica,
 			"unknown shard cost should score worse than replica")
@@ -218,7 +218,7 @@ func TestConnScoreSelect_WarmupGating(t *testing.T) {
 		// because connScoreSelect tries in score order and picks the
 		// first non-warming candidate.
 		scores := make([]float64, 2)
-		best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores)
+		best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores, nil, nil)
 		require.Equal(t, warmed, best,
 			"warmed connection should be preferred over warming")
 	})
@@ -250,7 +250,7 @@ func TestConnScoreSelect_WarmupGating(t *testing.T) {
 		accepted := 0
 		for range 50 {
 			scores := make([]float64, 2)
-			best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores)
+			best := connScoreSelect(candidates, slot, nil, &shardCostForReads, "", true, scores, nil, nil)
 			require.NotNil(t, best, "should always return a candidate")
 			accepted++
 		}

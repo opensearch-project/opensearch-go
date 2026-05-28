@@ -47,7 +47,7 @@ type NullPolicy struct {
 	policyState atomic.Int32 // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (p *NullPolicy) policyTypeName() string      { return "null" }
+func (p *NullPolicy) policyTypeName() string      { return policyTypeNameNull }
 func (p *NullPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewNullPolicy creates a new null policy that always returns no connections.

@@ -46,7 +46,7 @@ type RoundRobinPolicy struct {
 	policyState atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
 }
 
-func (p *RoundRobinPolicy) policyTypeName() string      { return "roundrobin" }
+func (p *RoundRobinPolicy) policyTypeName() string      { return policyTypeNameRoundRobin }
 func (p *RoundRobinPolicy) setEnvOverride(enabled bool) { psSetEnvOverride(&p.policyState, enabled) }
 
 // NewRoundRobinPolicy creates a new round-robin routing policy.
@@ -60,7 +60,7 @@ func NewRoundRobinPolicy() Policy {
 func (p *RoundRobinPolicy) configurePolicySettings(config policyConfig) error {
 	// Create pool with proper settings if we don't have one yet
 	if p.pool == nil {
-		config.name = "roundrobin"
+		config.name = policyTypeNameRoundRobin
 		p.pool = createPoolFromConfig(config)
 	}
 	if config.metrics != nil {

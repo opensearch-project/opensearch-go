@@ -13,37 +13,6 @@ import (
 	"sync/atomic"
 )
 
-// connSlicePool pools []*Connection buffers used by rendezvousTopK for
-// the result slots slice. sync.Pool clears entries every GC cycle, so
-// oversized buffers from transient spikes don't persist indefinitely.
-//
-//nolint:gochecknoglobals // sync.Pool must be package-level
-var connSlicePool = sync.Pool{
-	New: func() any {
-		s := make([]*Connection, 0, 32)
-		return &s
-	},
-}
-
-// getConnSlice returns a pooled []*Connection buffer with at least the
-// given capacity. Callers must call putConnSlice when done.
-func getConnSlice(minCap int) *[]*Connection {
-	bp := connSlicePool.Get().(*[]*Connection)
-	if cap(*bp) < minCap {
-		*bp = make([]*Connection, 0, minCap)
-	}
-	*bp = (*bp)[:0]
-	return bp
-}
-
-// putConnSlice clears pointer references and returns the buffer to the pool.
-func putConnSlice(bp *[]*Connection) {
-	s := *bp
-	clear(s[:cap(s)])
-	*bp = s[:0]
-	connSlicePool.Put(bp)
-}
-
 // weightMapPool pools map[*Connection]uint64 used by rankByHash for
 // pre-computed rendezvous hash weights during sort.
 //
