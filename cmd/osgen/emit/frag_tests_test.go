@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -90,7 +91,7 @@ func TestReqTestFragment_Body(t *testing.T) {
 		ImportPath: ir.DefaultCoreImportPath,
 		TypePrefix: "ClusterHealth",
 		Cases: []emit.ReqTestCase{
-			{Name: "empty request", WantMethod: "GET", WantPath: "/_cluster/health", WantErr: "false"},
+			{Name: "empty request", WantMethod: http.MethodGet, WantPath: "/_cluster/health", WantErr: "false"},
 		},
 	}
 
@@ -183,7 +184,7 @@ func TestReqTestFile_BlackBox(t *testing.T) {
 		PkgName:    ir.DefaultCorePkgName,
 		ImportPath: ir.DefaultCoreImportPath,
 		TypePrefix: "ClusterHealth",
-		Cases:      []emit.ReqTestCase{{Name: "empty", WantMethod: "GET", WantPath: "/", WantErr: "false"}},
+		Cases:      []emit.ReqTestCase{{Name: "empty", WantMethod: http.MethodGet, WantPath: "/", WantErr: "false"}},
 	}
 
 	target := &emit.File{

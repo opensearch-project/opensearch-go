@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -23,7 +24,7 @@ func TestReqFragment_SimpleOp(t *testing.T) {
 		Group:       "cluster.health",
 		TypePrefix:  "ClusterHealth",
 		Description: "Returns cluster health.",
-		HTTPMethods: []string{"GET"},
+		HTTPMethods: []string{http.MethodGet},
 		PrimaryPath: "/_cluster/health",
 		PathBuilder: ir.PathBuilder{StructName: "ClusterHealthPath"},
 	}
@@ -47,7 +48,7 @@ func TestReqFragment_WithBodyAndPathFields(t *testing.T) {
 		Group:       "index",
 		TypePrefix:  "Index",
 		Description: "Indexes a document.",
-		HTTPMethods: []string{"PUT", "POST"},
+		HTTPMethods: []string{http.MethodPut, http.MethodPost},
 		PrimaryPath: "/{index}/_doc/{id}",
 		HasBody:     true,
 		PathFields: []ir.PathField{
@@ -79,7 +80,7 @@ func TestReqFragment_WithTypedBody(t *testing.T) {
 		Group:        "ml.register_model",
 		TypePrefix:   "MlRegisterModel",
 		Description:  "Registers a model.",
-		HTTPMethods:  []string{"POST"},
+		HTTPMethods:  []string{http.MethodPost},
 		PrimaryPath:  "/_plugins/_ml/models/_register",
 		HasBody:      true,
 		HasTypedBody: true,
@@ -200,7 +201,7 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 		Group:       "cluster.health",
 		TypePrefix:  "ClusterHealth",
 		Description: "Returns cluster health.",
-		HTTPMethods: []string{"GET"},
+		HTTPMethods: []string{http.MethodGet},
 		PrimaryPath: "/_cluster/health",
 		PathBuilder: ir.PathBuilder{StructName: "ClusterHealthPath"},
 		QueryParams: []ir.QueryParam{

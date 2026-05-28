@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -85,7 +86,7 @@ func TestMethodComment(t *testing.T) {
 				MethodName:      "GetRole",
 				Group:           "security.get_role",
 				Description:     "Retrieves one role.",
-				HTTPMethods:     []string{"GET"},
+				HTTPMethods:     []string{http.MethodGet},
 				PrimaryPath:     "/_plugins/_security/api/roles/{role}",
 				VersionAdded:    "1.0.0",
 				ExcludedDistros: []string{"amazon-managed", "amazon-serverless"},
@@ -104,7 +105,7 @@ func TestMethodComment(t *testing.T) {
 			data: emit.MethodDocData{
 				MethodName:  "Health",
 				Group:       "security.health",
-				HTTPMethods: []string{"GET"},
+				HTTPMethods: []string{http.MethodGet},
 				PrimaryPath: "/_plugins/_security/health",
 			},
 			checks: []string{
@@ -118,7 +119,7 @@ func TestMethodComment(t *testing.T) {
 				MethodName:  "Search",
 				Group:       "search",
 				Description: "Returns results matching a query.",
-				HTTPMethods: []string{"GET", "POST"},
+				HTTPMethods: []string{http.MethodGet, http.MethodPost},
 				PrimaryPath: "/{index}/_search",
 			},
 			checks: []string{
@@ -133,7 +134,7 @@ func TestMethodComment(t *testing.T) {
 				MethodName:        "OldGet",
 				Group:             "old.get",
 				Description:       "Fetches a resource.",
-				HTTPMethods:       []string{"GET"},
+				HTTPMethods:       []string{http.MethodGet},
 				PrimaryPath:       "/old/{id}",
 				VersionAdded:      "1.0",
 				VersionDeprecated: "2.0",
@@ -162,7 +163,7 @@ func TestMethodComment(t *testing.T) {
 				Group:      "create",
 				Description: "Creates a new document in the index.\n\n" +
 					"Returns a 409 response when a document with a same ID already exists in the index.",
-				HTTPMethods:  []string{"PUT"},
+				HTTPMethods:  []string{http.MethodPut},
 				PrimaryPath:  "/{index}/_create/{id}",
 				VersionAdded: "1.0",
 			},
