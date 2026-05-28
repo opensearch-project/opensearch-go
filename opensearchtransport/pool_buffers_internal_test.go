@@ -167,20 +167,26 @@ func TestPooledConns(t *testing.T) {
 			},
 		},
 		{
-			name: "release clears pointer references across full capacity",
+			name: "clearConns covers full capacity",
 			do: func(t *testing.T) {
 				t.Helper()
-				b := acquireConns(4)
-				s := b.Slice()
-				// Capture the underlying array so we can inspect it after
-				// Release truncates the slice header.
+				// Verify the shared helper used by Release and putConnSlice
+				// clears all cap slots, not just the length-n window. This
+				// prevents *Connection retention across pool cycles.
+				//
+				// Tested directly (not via Release) so the test never reads
+				// the backing array after returning the buffer to the pool,
+				// which would race with parallel re-acquisition.
+				s := make([]*Connection, 0, 4)
+				s = append(s, conn, conn)
 				backing := s[:cap(s)]
 				for i := range backing {
 					backing[i] = conn
 				}
-				b.Release()
+				clearConns(&s)
+				require.Empty(t, s)
 				for i := range backing {
-					require.Nilf(t, backing[i], "index %d not cleared after Release", i)
+					require.Nilf(t, backing[i], "index %d not cleared by clearConns", i)
 				}
 			},
 		},
