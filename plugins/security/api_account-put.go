@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // AccountPutReq represents possible options for the account put request
@@ -22,14 +23,14 @@ type AccountPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r AccountPutReq) GetRequest() (*http.Request, error) {
+func (r AccountPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body) //nolint:gosec // G117: Password fields are intentional for this security API
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
+	return build.Request(
+		method,
 		"/_plugins/_security/api/account",
 		bytes.NewReader(body),
 		make(map[string]string),

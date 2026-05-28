@@ -21,17 +21,19 @@ const (
 	passwordStrong  = "myStrongPassword123!"
 )
 
-// IsSecure returns true when SECURE_INTEGRATION=true.
+// IsSecure returns true when SECURE_INTEGRATION is unset or set to a
+// truthy value. The default is true; set SECURE_INTEGRATION=false to opt
+// into testing against an HTTP cluster.
 // This is the canonical implementation -- all other packages should delegate here.
 func IsSecure(t *testing.T) bool {
 	t.Helper()
 	val, found := os.LookupEnv("SECURE_INTEGRATION")
 	if !found {
-		return false // Default to insecure to match Makefile and dev environments
+		return true
 	}
 	secure, err := strconv.ParseBool(val)
 	if err != nil {
-		return false // Default to insecure on parse error
+		return true
 	}
 	return secure
 }

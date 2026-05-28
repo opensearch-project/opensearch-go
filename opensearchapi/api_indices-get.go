@@ -8,11 +8,11 @@ package opensearchapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesGetReq represents possible options for the get indices request
@@ -24,14 +24,13 @@ type IndicesGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
-		fmt.Sprintf("/%s", strings.Join(r.Indices, ",")),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+func (r IndicesGetReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesGetPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesGetResp represents the returned struct of the get indices response

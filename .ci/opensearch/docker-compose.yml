@@ -9,7 +9,7 @@ services:
       context: .
       dockerfile: Dockerfile.opensearch
       args:
-        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-false}
+        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-true}
         - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
         - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
     environment:
@@ -55,7 +55,7 @@ services:
       context: .
       dockerfile: Dockerfile.opensearch
       args:
-        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-false}
+        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-true}
         - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
         - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
     environment:
@@ -101,7 +101,7 @@ services:
       context: .
       dockerfile: Dockerfile.opensearch
       args:
-        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-false}
+        - SECURE_INTEGRATION=${SECURE_INTEGRATION:-true}
         - OPENSEARCH_VERSION=${OPENSEARCH_VERSION:-latest}
         - OPENSEARCH_INITIAL_ADMIN_PASSWORD=myStrongPassword123!
     environment:

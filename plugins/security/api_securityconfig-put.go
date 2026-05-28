@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // ConfigPutReq represents possible options for the securityconfig get request
@@ -22,14 +23,14 @@ type ConfigPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ConfigPutReq) GetRequest() (*http.Request, error) {
+func (r ConfigPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
+	return build.Request(
+		method,
 		"/_plugins/_security/api/securityconfig/config",
 		bytes.NewReader(body),
 		make(map[string]string),

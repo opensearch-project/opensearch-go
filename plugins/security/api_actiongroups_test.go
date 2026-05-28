@@ -88,8 +88,8 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 									ActionGroup: testActionGroup,
 									Body: security.ActionGroupsPutBody{
 										AllowedActions: []string{"indices:data/read/msearch*", "indices:admin/mapping/put"},
-										Type:           opensearch.ToPointer("index"),
-										Description:    opensearch.ToPointer("Test"),
+										Type:           func(s string) *string { return &s }("index"),
+										Description:    func(s string) *string { return &s }("Test"),
 									},
 								},
 							)
@@ -121,7 +121,7 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Put(t.Context(), security.ActionGroupsPutReq{})
+						return failingClient.ActionGroups.Put(t.Context(), security.ActionGroupsPutReq{ActionGroup: "test"})
 					},
 				},
 			},
@@ -138,7 +138,7 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (ossectest.Response, error) {
-						return failingClient.ActionGroups.Delete(t.Context(), security.ActionGroupsDeleteReq{})
+						return failingClient.ActionGroups.Delete(t.Context(), security.ActionGroupsDeleteReq{ActionGroup: "test"})
 					},
 				},
 			},

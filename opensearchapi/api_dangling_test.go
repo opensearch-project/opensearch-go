@@ -22,7 +22,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 

@@ -11,9 +11,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // MTermvectors executes a /_mtermvectors request with the required MTermvectorsReq
@@ -22,7 +23,7 @@ func (c Client) MTermvectors(ctx context.Context, req MTermvectorsReq) (*MTermve
 		data MTermvectorsResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -40,21 +41,12 @@ type MTermvectorsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r MTermvectorsReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("//_mtermvectors") + len(r.Index))
-	if len(r.Index) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Index)
+func (r MTermvectorsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.MtermvectorsPath{Index: r.Index}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_mtermvectors")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MTermvectorsResp represents the returned struct of the /_mtermvectors response

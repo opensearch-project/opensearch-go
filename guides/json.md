@@ -54,13 +54,12 @@ First, define a request type that satisfies `opensearch.Request`:
 ```go
 	// customReq wraps opensearch.BuildRequest to satisfy the opensearch.Request interface.
 	type customReq struct {
-		method string
-		path   string
-		body   io.Reader
+		path string
+		body io.Reader
 	}
 
-	func (r customReq) GetRequest() (*http.Request, error) {
-		return opensearch.BuildRequest(r.method, r.path, r.body, nil, nil)
+	func (r customReq) GetRequest(method string) (*http.Request, error) {
+		return opensearch.BuildRequest(method, r.path, r.body, nil, nil)
 	}
 ```
 
@@ -76,8 +75,8 @@ Then use `opensearch.Do` to call the endpoint with a typed response:
 
 	// Preferred: opensearch.Do[T] enforces *T at compile time.
 	var pluginStatus PluginStatusResp
-	req := customReq{method: http.MethodGet, path: "/_plugins/my_plugin/status"}
-	resp, err := opensearch.Do(ctx, client.Client, req, &pluginStatus)
+	req := customReq{path: "/_plugins/my_plugin/status"}
+	resp, err := opensearch.Do(ctx, client.Client, http.MethodGet, req, &pluginStatus)
 	if err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ If you pass a non-pointer value to `opensearch.Do`, the compiler rejects it:
 ```go
 	// Compile error: cannot use pluginStatus (variable of type PluginStatusResp)
 	// as *PluginStatusResp value in argument to opensearch.Do
-	resp, err := opensearch.Do(ctx, client.Client, req, pluginStatus)
+	resp, err := opensearch.Do(ctx, client.Client, http.MethodGet, req, pluginStatus)
 ```
 
 The three levels of the client API, from lowest to highest:
@@ -97,7 +96,7 @@ The three levels of the client API, from lowest to highest:
 | Level | Function                                                           | Response handling                                         | When to use                                                |
 | ----- | ------------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------- |
 | Low   | `client.Perform(req)`                                              | Raw `*http.Response`; caller reads and closes body        | Proxying, streaming, full control needed                   |
-| Mid   | `opensearch.Do(ctx, client, req, &resp)`                           | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
+| Mid   | `opensearch.Do(ctx, client, method, req, &resp)`                   | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
 | High  | `client.Search(ctx, req)` / `client.Indices.Create(ctx, req)` etc. | Fully typed request and response                          | Standard OpenSearch APIs                                   |
 
 ## GET

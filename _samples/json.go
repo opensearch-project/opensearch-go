@@ -43,7 +43,7 @@ func example() error {
 
 	///
 
-	infoRequest, err := http.NewRequest("GET", "/", nil)
+	infoRequest, err := http.NewRequest(http.MethodGet, "/", nil)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func example() error {
     }
 }`)
 
-	createIndexRequest, err := http.NewRequest("PUT", "/movies", index_body)
+	createIndexRequest, err := http.NewRequest(http.MethodPut, "/movies", index_body)
 	if err != nil {
 		return err
 	}
@@ -106,7 +106,7 @@ func example() error {
         }
     }
 }`)
-	searchRequest, err := http.NewRequest("POST", "/movies/_search", query)
+	searchRequest, err := http.NewRequest(http.MethodPost, "/movies/_search", query)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func example() error {
 
 	///
 
-	deleteIndexRequest, err := http.NewRequest("DELETE", "/movies", nil)
+	deleteIndexRequest, err := http.NewRequest(http.MethodDelete, "/movies", nil)
 	if err != nil {
 		return err
 	}

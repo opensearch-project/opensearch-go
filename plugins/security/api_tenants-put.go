@@ -9,10 +9,11 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TenantsPutReq represents possible options for the tenants put request
@@ -24,19 +25,18 @@ type TenantsPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TenantsPutReq) GetRequest() (*http.Request, error) {
+func (r TenantsPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/tenants/%s", r.Tenant),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := ospath.SecurityCreateTenantPath{Tenant: r.Tenant}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // TenantsPutBody is the request body for the TenantsPutReq

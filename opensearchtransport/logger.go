@@ -167,11 +167,11 @@ func (l *ColorLogger) LogRoundTrip(req *http.Request, res *http.Response, err er
 
 	status = res.Status
 	switch {
-	case res.StatusCode > 0 && res.StatusCode < 300:
+	case res.StatusCode >= http.StatusContinue && res.StatusCode < http.StatusMultipleChoices:
 		color = "\x1b[32m"
-	case res.StatusCode > 299 && res.StatusCode < 500:
+	case res.StatusCode >= http.StatusMultipleChoices && res.StatusCode < http.StatusInternalServerError:
 		color = "\x1b[33m"
-	case res.StatusCode > 499:
+	case res.StatusCode >= http.StatusInternalServerError:
 		color = "\x1b[31m"
 	default:
 		status = "ERROR"

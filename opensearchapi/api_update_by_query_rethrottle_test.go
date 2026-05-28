@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
@@ -97,7 +97,7 @@ func TestUpdateByQueryRethrottle(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.UpdateByQueryRethrottle(t.Context(), opensearchapi.UpdateByQueryRethrottleReq{})
+		res, err := failingClient.UpdateByQueryRethrottle(t.Context(), opensearchapi.UpdateByQueryRethrottleReq{TaskID: "test"})
 		require.Error(t, err)
 		assert.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

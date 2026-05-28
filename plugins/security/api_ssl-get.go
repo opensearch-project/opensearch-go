@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // SSLGetReq represents possible options for the ssl/certs get request
@@ -19,9 +20,9 @@ type SSLGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SSLGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r SSLGetReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/api/ssl/certs",
 		nil,
 		make(map[string]string),

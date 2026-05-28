@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesStatsReq represents possible options for the index shrink request
@@ -24,28 +25,15 @@ type IndicesStatsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesStatsReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	metrics := strings.Join(r.Metrics, ",")
-
-	var path strings.Builder
-	path.Grow(9 + len(indices) + len(metrics))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+func (r IndicesStatsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesStatsPath{
+		Index:  r.Indices,
+		Metric: r.Metrics,
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_stats")
-	if len(metrics) > 0 {
-		path.WriteString("/")
-		path.WriteString(metrics)
-	}
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesStatsResp represents the returned struct of the index shrink response

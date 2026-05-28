@@ -32,6 +32,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
@@ -49,7 +50,7 @@ func ExampleNewBulkIndexer() {
 		Client: opensearch.Config{
 			// Retry on 429 TooManyRequests statuses
 			//
-			RetryOnStatus: []int{502, 503, 504, 429},
+			RetryOnStatus: []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusTooManyRequests},
 
 			// A simple incremental backoff function
 			//

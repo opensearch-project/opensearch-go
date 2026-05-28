@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // FlushCache executes a flush cache request with the optional FlushCacheReq
@@ -23,7 +24,7 @@ func (c Client) FlushCache(ctx context.Context, req *FlushCacheReq) (FlushCacheR
 		data FlushCacheResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodDelete, req, &data); err != nil {
 		return data, err
 	}
 
@@ -36,9 +37,9 @@ type FlushCacheReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r FlushCacheReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
+func (r FlushCacheReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/api/cache",
 		nil,
 		make(map[string]string),

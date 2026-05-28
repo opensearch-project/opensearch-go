@@ -7,10 +7,11 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ActionGroupsDeleteReq represents possible options for the actiongroups delete request
@@ -21,14 +22,13 @@ type ActionGroupsDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ActionGroupsDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/actiongroups/%s", r.ActionGroup),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+func (r ActionGroupsDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SecurityDeleteActionGroupPath{ActionGroup: r.ActionGroup}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // ActionGroupsDeleteResp represents the returned struct of the actiongroups delete response

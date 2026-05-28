@@ -519,6 +519,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 ## Guides by Topic
 
+- [**Security**](guides/security.md) - TLS, credentials, input validation, index patterns, error disclosure
 - [Index Lifecycle](guides/index_lifecycle.md)
 - [Document Lifecycle](guides/document_lifecycle.md)
 - [Search](guides/search.md)

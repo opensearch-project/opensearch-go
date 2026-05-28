@@ -6,6 +6,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
+- Add `v5preview/opensearchapi/` package: regenerated v5-track API surface produced by `cmd/osgen` from the OpenAPI spec. Fully typed Req/Resp/Params structs, sub-clients matching OpenSearch namespaces (`client.Cat`, `client.Cluster`, `client.Indices`, etc.), and a `plugins/` subtree for ML/k-NN/security/ISM/etc. Coexists with `opensearchapi/` during the v4 -> v5 transition; see `v5preview/opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling. Includes `opensearch.NoBody` marker type for calls that expect no response body, unifying all internal dispatch through a single generic path ([#809](https://github.com/opensearch-project/opensearch-go/pull/809))
 - Add dynamic read cost scoring: primary shard cost scales with write-pool utilization via `connScoreFunc`, preferring primaries at idle and shedding reads to replicas under write load
@@ -20,6 +22,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `Status` field (`json.RawMessage`) to `TasksGetResp`, `TasksListTask`, and `TaskCancelInfo` for polymorphic task status data; add typed status structs matching the OpenSearch API specification: `BulkByScrollTaskStatus`, `ReplicationTaskStatus`, `ResyncTaskStatus`, `PersistentTaskStatus`; add `Parse*` helpers and `BulkByScrollTaskStatusOrException` for sliced task status ([#788](https://github.com/opensearch-project/opensearch-go/issues/788))
 - Test parallelization support via TEST_PARALLEL environment variable (default: CPU cores - 1, minimum 1)
 - opensearchapi/testutil package with test suite, client helpers, and JSON comparison utilities
+- Add typed path builders in `internal/path/` generated from the OpenAPI spec via `cmd/osgen` for compile-time URL construction safety ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+  - `sync.Pool`-backed `[]byte` buffers eliminate per-request allocation churn; buffers over 4 KiB are discarded to bound pool growth
 - opensearchtransport/testutil package with PollUntil helper for eventual consistency testing (ISM policies, index readiness, cluster state changes)
 - Configuration option `IncludeDedicatedClusterManagers` for controlling cluster manager node routing ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
 - Policy-based routing system for improved request routing and service availability ([#771](https://github.com/opensearch-project/opensearch-go/pull/771))
@@ -135,6 +139,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- **BREAKING**: `opensearch.Request` interface signature changed from `GetRequest() (*http.Request, error)` to `GetRequest(method string) (*http.Request, error)`. The HTTP method is now caller-provided rather than hardcoded per operation, enabling correct method selection for operations that support multiple HTTP methods (e.g. search supports both GET and POST). This only affects code that implements or calls `GetRequest` directly; standard usage through client methods (e.g. `client.Search(ctx, req)`) is unaffected ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Bump CI and developer guide OpenSearch versions: compatibility matrix to 2.19.5, default integration test version to 3.6.0 ([#810](https://github.com/opensearch-project/opensearch-go/pull/810))
 - Include `_nodes.failures` detail in discovery error messages for diagnosing intermittent CI failures on older OpenSearch versions ([#823](https://github.com/opensearch-project/opensearch-go/pull/823))
 - Test against Opensearch 3.6.0 ([#817](https://github.com/opensearch-project/opensearch-go/pull/817))
@@ -149,6 +154,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Generate unique document IDs in tests for parallel test execution and eliminate known test flakes
 - Reduce integration test timeout from 1h to 10m per package with parallel execution support
 - Refactor transport code for improved maintainability (rename ErrInvalidRole -> InvalidRoleError, add response body cleanup, simplify initialization)
+- **BREAKING**: Change `CatTemplatesReq.Templates` and `IndexTemplateGetReq.IndexTemplates` from `[]string` to `string` to match the OpenSearch API specification, which types these path parameters as scalar name patterns (not comma-separated lists). This breakage will show up at compile time as a type mismatch and is easy to fix. Callers passing a single pattern only need to remove the slice literal (e.g. `[]string{"*"}` becomes `"*"`). Callers that relied on the old behavior of joining multiple patterns can use `strings.Join(patterns, ",")` to produce the comma-separated string themselves.
 - **BREAKING**: Enhanced node discovery to match OpenSearch server behavior ([#765](https://github.com/opensearch-project/opensearch-go/issues/765))
   - Dedicated cluster manager nodes are now excluded from client request routing by default (best practice)
   - Node selection logic now matches Java client `NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS` behavior
@@ -172,16 +178,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Deprecated
 
 - Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
+- Mark `opensearch.ToPointer` and `opensearchapi.ToPointer` as deprecated; they remain fully functional but will be removed in v5. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
 
 ### Removed
 
 ### Fixed
 
+- Add typed response-format defaults for `v5preview/opensearchapi/` cat, list, ppl, and sql operations: when the caller leaves `Format` unset, the SDK now emits the value the typed Resp struct expects (`json` for cat/list/explain, `jdbc` for ppl/sql query) instead of letting the server fall back to a default the JSON decoder cannot handle.
+- Replace `WaitForAllNodesReady` inline `require.Eventually` loop with a layered readiness FSM (`internal/test/readiness`) that observes per-node progression through `LayerTCP -> LayerHTTP -> LayerClusterJoin -> LayerStatsReady`, records transitions including regressions, and emits a structured per-node diagnostic with the full last cat-nodes response on timeout. Per-layer budgets are tuned for CI pessimism (cold JVM startup is the long pole); total budget for `TargetClusterReady` is 6.5 minutes. ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix bulk indexer HTML-escaping `_id` and `routing` values containing `<`, `>`, or `&` characters, causing OpenSearch to store escaped values (e.g., `\u003croot_account\u003e` stored instead of `<root_account>`), leading to duplicate documents, unreachable data on read-by-ID paths, and potential shard routing mismatches. Present since the `json.Marshal` migration in 2021 (commit `3da59092`). Replace `json.Marshal` with `json.NewEncoder` + `SetEscapeHTML(false)` in `opensearchutil.worker.writeMeta` and `opensearchutil.JSONReader`; replace per-worker `aux []byte` with `sync.Pool`-backed `*bytes.Buffer`; add table-driven test coverage for `writeMeta` edge cases and refactor remaining `TestBulkIndexer` subtests to table-driven `require`-based style ([#824](https://github.com/opensearch-project/opensearch-go/pull/824))
 - Fix pool replacement orphaning resurrection goroutines during node discovery, causing connections to become permanently dead with no active health checker ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Fix multi-to-single pool demotion leaking resurrection goroutines by giving each `multiServerPool` its own derived context and cancelling it on demotion ([#830](https://github.com/opensearch-project/opensearch-go/pull/830))
 - Extract `newMultiServerPoolFromClientWithLock` as single source of truth for Client-to-pool settings propagation ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
+- Fix URL path construction across 74 `GetRequest` methods where empty path segments produced a double-slash `//` that `http.NewRequest` misparsed as an RFC 3986 authority separator; replace manual `strings.Builder` paths with typed path builder structs that reject empty required segments ([#617](https://github.com/opensearch-project/opensearch-go/issues/617), [#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+- Eliminate per-request `url.Parse` overhead by constructing `*http.Request` directly with a coalesced struct; reduce per-request allocations from 8/2930B to 2/472B for typical operations ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+- Fix alias, mapping, settings, and block API URL path construction when Indices is empty, which caused `http.NewRequest` to misparse the double-slash as an authority separator ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Fix discovery pool wipe when all cluster nodes time out during `/_nodes/http` fan-out: parse `_nodes` metadata envelope and return `errDiscoveryEmpty` when `successful == 0`, preserving the existing connection pool for retry ([#821](https://github.com/opensearch-project/opensearch-go/pull/821))
 - Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix flaky `TestDefaultHealthCheck_RetryAfterMaxRetry`: replace wall-clock `time.Sleep` + `atomic.Int64` synchronization with context cancellation (`ctx.Done()`), and widen `maxRetryClusterHealth` to 5s so the baseline HTTP round-trip cannot race past the retry interval ([#787](https://github.com/opensearch-project/opensearch-go/pull/787))

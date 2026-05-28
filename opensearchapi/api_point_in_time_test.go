@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
@@ -88,7 +88,9 @@ func TestPointInTimeClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.PointInTime.Create(t.Context(), opensearchapi.PointInTimeCreateReq{})
+						return failingClient.PointInTime.Create(t.Context(), opensearchapi.PointInTimeCreateReq{
+							Indices: []string{index},
+						})
 					},
 				},
 			},

@@ -48,12 +48,12 @@ type portPoolConfig struct {
 
 // Track all allocated ports for the mock pool
 var (
-	mockPortPool   *portPoolConfig          //nolint:gochecknoglobals // Global test utility state
-	allocatedPorts = make(map[int]TestPort) //nolint:gochecknoglobals // Global test utility state
+	mockPortPool   *portPoolConfig
+	allocatedPorts = make(map[int]TestPort)
 )
 
 // init initializes the mock port pool to avoid race conditions
-func init() { //nolint:gochecknoinits // Required for test utility initialization
+func init() {
 	mockPortPool = &portPoolConfig{MockPortStart, MockPortEnd, &atomic.Uint32{}}
 }
 
@@ -83,7 +83,9 @@ func AllocatePort(poolName, owner string) (TestPort, error) {
 
 	pool := mockPortPool
 	poolSize := pool.end - pool.start + 1
-	startOffset := int(pool.counter.Add(1) % uint32(poolSize)) //nolint:gosec // Port numbers are safe for uint32
+	// poolSize is bounded by the test port range (a few thousand at most),
+	// so the int -> uint32 conversion cannot overflow.
+	startOffset := int(pool.counter.Add(1) % uint32(poolSize)) //nolint:gosec // G115: poolSize bounded by test port range
 
 	// Try ports starting from the counter position
 	for i := range poolSize {

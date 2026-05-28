@@ -8,9 +8,10 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ActionGroupsGetReq represents possible options for the actiongroups get request
@@ -20,22 +21,18 @@ type ActionGroupsGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ActionGroupsGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/actiongroups/") + len(r.ActionGroup))
-	path.WriteString("/_plugins/_security/api/actiongroups")
-	if len(r.ActionGroup) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.ActionGroup)
+func (r ActionGroupsGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.ActionGroup == "" {
+		path, err = ospath.SecurityGetActionGroupsPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetActionGroupPath{ActionGroup: r.ActionGroup}.Build()
 	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	if err != nil {
+		return nil, err
+	}
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // ActionGroupsGetResp represents the returned struct of the actiongroups get response

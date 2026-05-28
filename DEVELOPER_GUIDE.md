@@ -21,6 +21,7 @@
   - [Network Latency Simulation](#network-latency-simulation)
     - [Latency Profiles](#latency-profiles)
     - [Inspecting and Clearing Latency](#inspecting-and-clearing-latency)
+  - [Code Generation](#code-generation)
   - [Demo](#demo)
   - [Verification Matrix](#verification-matrix)
     - [Individual Verifications](#individual-verifications)
@@ -381,6 +382,54 @@ To find run IDs, list recent checks:
 make gh.checks            # All checks on the current branch
 make gh.checks.failed     # Only failed checks
 ```
+
+## Code Generation
+
+The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`v5preview/opensearchapi/`, `v5preview/opensearchapi/plugins/`) from the published [OpenSearch OpenAPI specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, and `x-version-removed` extensions from the spec to produce version-aware Go source.
+
+The `v5preview/opensearchapi/` package is the v5-track API surface and coexists with the hand-written `opensearchapi/` package during the v4 -> v5 transition. New code should target `v5preview/opensearchapi/`; see `v5preview/opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance.
+
+To regenerate (downloads the spec automatically if not cached):
+
+```
+make gen
+```
+
+To force a fresh spec download, remove the cached file first:
+
+```
+rm -f opensearch-openapi.yaml
+make gen
+```
+
+### Version-Scoped Generation
+
+By default, `make gen` includes all operations and fields across every OpenSearch version. Three Makefile variables scope the generated output to a version window:
+
+| Variable                | Default  | Effect                                                   |
+| ----------------------- | -------- | -------------------------------------------------------- |
+| `GEN_MIN_VERSION`       | `epoch`  | Exclude operations removed before this floor             |
+| `GEN_MAX_VERSION`       | `latest` | Exclude operations added after this ceiling              |
+| `GEN_REMOVE_DEPRECATED` | `epoch`  | Treat operations deprecated at or before this as removed |
+
+Override on the command line:
+
+```
+# Generate a client targeting only OpenSearch 2.x+, dropping deprecated APIs
+make gen GEN_MIN_VERSION=2.0 GEN_REMOVE_DEPRECATED=2.0
+
+# Generate a client for a specific version range
+make gen GEN_MIN_VERSION=2.0 GEN_MAX_VERSION=2.99
+
+# Strict less-than ceiling (excludes 3.0.0 itself)
+make gen GEN_MAX_VERSION="<3.0.0"
+```
+
+Version flags accept an optional operator prefix (`>=`, `>`, `<=`, `<`). When omitted, `--min-version` defaults to `>=` and `--max-version` defaults to `<=`. The magic values `epoch` (no floor) and `latest` (no ceiling) mean "include everything".
+
+When items are excluded by version filtering, breadcrumb comments are left in the generated code explaining the reason (e.g., `// cat.masterPath: deprecated in OpenSearch 2.0.0 (treated as removed).`). Breadcrumb visibility is configurable per category via `-version-breadcrumb-*` flags.
+
+See [`cmd/osgen/README.md`](cmd/osgen/README.md) for the full flag reference and subcommand details.
 
 ## Lint
 

@@ -9,10 +9,11 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ActionGroupsPutReq represents possible options for the actiongroups put request
@@ -24,19 +25,18 @@ type ActionGroupsPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ActionGroupsPutReq) GetRequest() (*http.Request, error) {
+func (r ActionGroupsPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/actiongroups/%s", r.ActionGroup),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := ospath.SecurityCreateActionGroupPath{ActionGroup: r.ActionGroup}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // ActionGroupsPutResp represents the returned struct of the actiongroups put response

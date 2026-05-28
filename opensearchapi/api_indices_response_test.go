@@ -10,597 +10,354 @@ package opensearchapi_test
 
 import (
 	"encoding/json"
+	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
-// TestMappingGetResp_GetIndices tests the GetIndices method for MappingGetResp
 func TestMappingGetResp_GetIndices(t *testing.T) {
-	t.Run("returns empty map for uninitialized response", func(t *testing.T) {
-		resp := &opensearchapi.MappingGetResp{}
-		indices := resp.GetIndices()
-		assert.Nil(t, indices)
-	})
+	t.Parallel()
 
-	t.Run("returns correct map after unmarshaling", func(t *testing.T) {
-		jsonData := `{
-			"test-index-1": {
-				"mappings": {
-					"properties": {
-						"field1": {"type": "text"}
-					}
-				}
+	tests := []struct {
+		name       string
+		json       string
+		wantNil    bool
+		wantLen    int
+		wantKeys   []string
+		checkField func(t *testing.T, indices map[string]opensearchapi.MappingGetRespIndex)
+	}{
+		{
+			name:    "uninitialized response",
+			wantNil: true,
+		},
+		{
+			name: "two indices",
+			json: `{
+				"test-index-1": {"mappings": {"properties": {"field1": {"type": "text"}}}},
+				"test-index-2": {"mappings": {"properties": {"field2": {"type": "keyword"}}}}
+			}`,
+			wantLen:  2,
+			wantKeys: []string{"test-index-1", "test-index-2"},
+			checkField: func(t *testing.T, indices map[string]opensearchapi.MappingGetRespIndex) {
+				require.Contains(t, string(indices["test-index-1"].Mappings), "field1")
 			},
-			"test-index-2": {
-				"mappings": {
-					"properties": {
-						"field2": {"type": "keyword"}
-					}
-				}
+		},
+		{
+			name:     "single index",
+			json:     `{"my-index": {"mappings": {}}}`,
+			wantLen:  1,
+			wantKeys: []string{"my-index"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var resp opensearchapi.MappingGetResp
+			if tt.json != "" {
+				require.NoError(t, json.Unmarshal([]byte(tt.json), &resp))
 			}
-		}`
-
-		var resp opensearchapi.MappingGetResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 2)
-		assert.Contains(t, indices, "test-index-1")
-		assert.Contains(t, indices, "test-index-2")
-
-		// Verify mappings are preserved as RawMessage
-		index1 := indices["test-index-1"]
-		assert.NotNil(t, index1.Mappings)
-		assert.Contains(t, string(index1.Mappings), "field1")
-	})
-
-	t.Run("returns single index", func(t *testing.T) {
-		jsonData := `{
-			"my-index": {
-				"mappings": {}
+			indices := resp.GetIndices()
+			if tt.wantNil {
+				require.Nil(t, indices)
+				return
 			}
-		}`
-
-		var resp opensearchapi.MappingGetResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 1)
-		assert.Contains(t, indices, "my-index")
-	})
+			require.NotNil(t, indices)
+			require.Len(t, indices, tt.wantLen)
+			for _, k := range tt.wantKeys {
+				require.Contains(t, indices, k)
+			}
+			if tt.checkField != nil {
+				tt.checkField(t, indices)
+			}
+		})
+	}
 }
 
-// TestSettingsGetResp_GetIndices tests the GetIndices method for SettingsGetResp
 func TestSettingsGetResp_GetIndices(t *testing.T) {
-	t.Run("returns empty map for uninitialized response", func(t *testing.T) {
-		resp := &opensearchapi.SettingsGetResp{}
-		indices := resp.GetIndices()
-		assert.Nil(t, indices)
-	})
+	t.Parallel()
 
-	t.Run("returns correct map after unmarshaling", func(t *testing.T) {
-		jsonData := `{
-			"test-index-1": {
-				"settings": {
-					"index": {
-						"number_of_shards": "1",
-						"number_of_replicas": "0"
-					}
-				}
+	tests := []struct {
+		name       string
+		json       string
+		wantNil    bool
+		wantLen    int
+		wantKeys   []string
+		checkField func(t *testing.T, indices map[string]opensearchapi.SettingsGetRespIndex)
+	}{
+		{
+			name:    "uninitialized response",
+			wantNil: true,
+		},
+		{
+			name: "two indices",
+			json: `{
+				"test-index-1": {"settings": {"index": {"number_of_shards": "1", "number_of_replicas": "0"}}},
+				"test-index-2": {"settings": {"index": {"number_of_shards": "2", "number_of_replicas": "1"}}}
+			}`,
+			wantLen:  2,
+			wantKeys: []string{"test-index-1", "test-index-2"},
+			checkField: func(t *testing.T, indices map[string]opensearchapi.SettingsGetRespIndex) {
+				require.Contains(t, string(indices["test-index-1"].Settings), "number_of_shards")
 			},
-			"test-index-2": {
-				"settings": {
-					"index": {
-						"number_of_shards": "2",
-						"number_of_replicas": "1"
-					}
-				}
+		},
+		{
+			name:     "single index",
+			json:     `{"my-index": {"settings": {}}}`,
+			wantLen:  1,
+			wantKeys: []string{"my-index"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var resp opensearchapi.SettingsGetResp
+			if tt.json != "" {
+				require.NoError(t, json.Unmarshal([]byte(tt.json), &resp))
 			}
-		}`
-
-		var resp opensearchapi.SettingsGetResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 2)
-		assert.Contains(t, indices, "test-index-1")
-		assert.Contains(t, indices, "test-index-2")
-
-		// Verify settings are preserved as RawMessage
-		index1 := indices["test-index-1"]
-		assert.NotNil(t, index1.Settings)
-		assert.Contains(t, string(index1.Settings), "number_of_shards")
-	})
-
-	t.Run("returns single index", func(t *testing.T) {
-		jsonData := `{
-			"my-index": {
-				"settings": {}
+			indices := resp.GetIndices()
+			if tt.wantNil {
+				require.Nil(t, indices)
+				return
 			}
-		}`
-
-		var resp opensearchapi.SettingsGetResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 1)
-		assert.Contains(t, indices, "my-index")
-	})
+			require.NotNil(t, indices)
+			require.Len(t, indices, tt.wantLen)
+			for _, k := range tt.wantKeys {
+				require.Contains(t, indices, k)
+			}
+			if tt.checkField != nil {
+				tt.checkField(t, indices)
+			}
+		})
+	}
 }
 
-// TestAliasGetResp_GetIndices tests the GetIndices method for AliasGetResp
 func TestAliasGetResp_GetIndices(t *testing.T) {
-	t.Run("returns empty map for uninitialized response", func(t *testing.T) {
-		resp := &opensearchapi.AliasGetResp{}
-		indices := resp.GetIndices()
-		assert.Nil(t, indices)
-	})
+	t.Parallel()
 
-	t.Run("returns correct map after unmarshaling", func(t *testing.T) {
-		jsonData := `{
-			"test-index-1": {
-				"aliases": {
-					"alias1": {},
-					"alias2": {"filter": {"term": {"user": "kimchy"}}}
-				}
+	tests := []struct {
+		name       string
+		json       string
+		wantNil    bool
+		wantLen    int
+		wantKeys   []string
+		checkField func(t *testing.T, indices map[string]opensearchapi.AliasGetRespIndex)
+	}{
+		{
+			name:    "uninitialized response",
+			wantNil: true,
+		},
+		{
+			name: "two indices with aliases",
+			json: `{
+				"test-index-1": {"aliases": {"alias1": {}, "alias2": {"filter": {"term": {"user": "kimchy"}}}}},
+				"test-index-2": {"aliases": {"alias3": {}}}
+			}`,
+			wantLen:  2,
+			wantKeys: []string{"test-index-1", "test-index-2"},
+			checkField: func(t *testing.T, indices map[string]opensearchapi.AliasGetRespIndex) {
+				require.Len(t, indices["test-index-1"].Aliases, 2)
+				require.Contains(t, indices["test-index-1"].Aliases, "alias1")
+				require.Contains(t, indices["test-index-1"].Aliases, "alias2")
 			},
-			"test-index-2": {
-				"aliases": {
-					"alias3": {}
-				}
+		},
+		{
+			name:     "index with empty aliases",
+			json:     `{"my-index": {"aliases": {}}}`,
+			wantLen:  1,
+			wantKeys: []string{"my-index"},
+			checkField: func(t *testing.T, indices map[string]opensearchapi.AliasGetRespIndex) {
+				require.Empty(t, indices["my-index"].Aliases)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var resp opensearchapi.AliasGetResp
+			if tt.json != "" {
+				require.NoError(t, json.Unmarshal([]byte(tt.json), &resp))
 			}
-		}`
-
-		var resp opensearchapi.AliasGetResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 2)
-		assert.Contains(t, indices, "test-index-1")
-		assert.Contains(t, indices, "test-index-2")
-
-		// Verify aliases are preserved
-		index1 := indices["test-index-1"]
-		assert.NotNil(t, index1.Aliases)
-		assert.Len(t, index1.Aliases, 2)
-		assert.Contains(t, index1.Aliases, "alias1")
-		assert.Contains(t, index1.Aliases, "alias2")
-	})
-
-	t.Run("returns index with empty aliases", func(t *testing.T) {
-		jsonData := `{
-			"my-index": {
-				"aliases": {}
+			indices := resp.GetIndices()
+			if tt.wantNil {
+				require.Nil(t, indices)
+				return
 			}
-		}`
-
-		var resp opensearchapi.AliasGetResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 1)
-		assert.Contains(t, indices, "my-index")
-		assert.Empty(t, indices["my-index"].Aliases)
-	})
+			require.NotNil(t, indices)
+			require.Len(t, indices, tt.wantLen)
+			for _, k := range tt.wantKeys {
+				require.Contains(t, indices, k)
+			}
+			if tt.checkField != nil {
+				tt.checkField(t, indices)
+			}
+		})
+	}
 }
 
-// TestIndicesRecoveryResp_GetIndices tests the GetIndices method for IndicesRecoveryResp
 func TestIndicesRecoveryResp_GetIndices(t *testing.T) {
-	t.Run("returns empty map for uninitialized response", func(t *testing.T) {
-		resp := &opensearchapi.IndicesRecoveryResp{}
-		indices := resp.GetIndices()
-		assert.Nil(t, indices)
-	})
+	t.Parallel()
 
-	t.Run("returns correct map after unmarshaling", func(t *testing.T) {
-		jsonData := `{
-			"test-index-1": {
-				"shards": [
-					{
-						"id": 0,
-						"type": "STORE",
-						"stage": "DONE",
-						"primary": true,
-						"start_time_in_millis": 1234567890,
-						"stop_time_in_millis": 1234567900,
-						"total_time_in_millis": 10,
-						"source": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"target": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"index": {
-							"size": {
-								"total_in_bytes": 1000,
-								"reused_in_bytes": 900,
-								"recovered_in_bytes": 100,
-								"percent": "100.0%"
-							},
-							"files": {
-								"total": 10,
-								"reused": 9,
-								"recovered": 1,
-								"percent": "100.0%"
-							},
-							"total_time_in_millis": 5,
-							"source_throttle_time_in_millis": 0,
-							"target_throttle_time_in_millis": 0
-						},
-						"translog": {
-							"recovered": 0,
-							"total": 0,
-							"percent": "100.0%",
-							"total_on_start": 0,
-							"total_time_in_millis": 0
-						},
-						"verify_index": {
-							"check_index_time_in_millis": 0,
-							"total_time_in_millis": 0
-						}
-					}
-				]
+	tests := []struct {
+		name       string
+		json       string
+		wantNil    bool
+		wantLen    int
+		wantKeys   []string
+		checkField func(t *testing.T, indices map[string]opensearchapi.IndicesRecoveryRespIndex)
+	}{
+		{
+			name:    "uninitialized response",
+			wantNil: true,
+		},
+		{
+			name: "two indices",
+			json: `{
+				"test-index-1": {"shards": [{"id": 0, "type": "STORE", "stage": "DONE", "primary": true, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "index": {"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"}, "files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"}, "total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0}, "translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0}, "verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}}]},
+				"test-index-2": {"shards": [{"id": 0, "type": "PEER", "stage": "DONE", "primary": false, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 60, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n2", "host": "127.0.0.2", "transport_address": "127.0.0.2:9300", "ip": "127.0.0.2", "name": "node-2"}, "index": {"size": {"total_in_bytes": 2000, "reused_in_bytes": 0, "recovered_in_bytes": 2000, "percent": "100.0%"}, "files": {"total": 15, "reused": 0, "recovered": 15, "percent": "100.0%"}, "total_time_in_millis": 50, "source_throttle_time_in_millis": 10, "target_throttle_time_in_millis": 5}, "translog": {"recovered": 100, "total": 100, "percent": "100.0%", "total_on_start": 100, "total_time_in_millis": 5}, "verify_index": {"check_index_time_in_millis": 2, "total_time_in_millis": 2}}]}
+			}`,
+			wantLen:  2,
+			wantKeys: []string{"test-index-1", "test-index-2"},
+			checkField: func(t *testing.T, indices map[string]opensearchapi.IndicesRecoveryRespIndex) {
+				require.Len(t, indices["test-index-1"].Shards, 1)
+				require.Equal(t, "STORE", indices["test-index-1"].Shards[0].Type)
+				require.True(t, indices["test-index-1"].Shards[0].Primary)
+				require.Equal(t, "PEER", indices["test-index-2"].Shards[0].Type)
+				require.False(t, indices["test-index-2"].Shards[0].Primary)
 			},
-			"test-index-2": {
-				"shards": [
-					{
-						"id": 0,
-						"type": "PEER",
-						"stage": "DONE",
-						"primary": false,
-						"start_time_in_millis": 1234567890,
-						"stop_time_in_millis": 1234567950,
-						"total_time_in_millis": 60,
-						"source": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"target": {
-							"id": "node2",
-							"host": "127.0.0.2",
-							"transport_address": "127.0.0.2:9300",
-							"ip": "127.0.0.2",
-							"name": "node-2"
-						},
-						"index": {
-							"size": {
-								"total_in_bytes": 2000,
-								"reused_in_bytes": 0,
-								"recovered_in_bytes": 2000,
-								"percent": "100.0%"
-							},
-							"files": {
-								"total": 15,
-								"reused": 0,
-								"recovered": 15,
-								"percent": "100.0%"
-							},
-							"total_time_in_millis": 50,
-							"source_throttle_time_in_millis": 10,
-							"target_throttle_time_in_millis": 5
-						},
-						"translog": {
-							"recovered": 100,
-							"total": 100,
-							"percent": "100.0%",
-							"total_on_start": 100,
-							"total_time_in_millis": 5
-						},
-						"verify_index": {
-							"check_index_time_in_millis": 2,
-							"total_time_in_millis": 2
-						}
-					}
-				]
+		},
+		{
+			name: "single index with multiple shards",
+			json: `{
+				"my-index": {"shards": [
+					{"id": 0, "type": "STORE", "stage": "DONE", "primary": true, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "index": {"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"}, "files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"}, "total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0}, "translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0}, "verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}},
+					{"id": 1, "type": "STORE", "stage": "DONE", "primary": true, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "index": {"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"}, "files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"}, "total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0}, "translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0}, "verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}}
+				]}
+			}`,
+			wantLen:  1,
+			wantKeys: []string{"my-index"},
+			checkField: func(t *testing.T, indices map[string]opensearchapi.IndicesRecoveryRespIndex) {
+				require.Len(t, indices["my-index"].Shards, 2)
+				require.Equal(t, 0, indices["my-index"].Shards[0].ID)
+				require.Equal(t, 1, indices["my-index"].Shards[1].ID)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var resp opensearchapi.IndicesRecoveryResp
+			if tt.json != "" {
+				require.NoError(t, json.Unmarshal([]byte(tt.json), &resp))
 			}
-		}`
-
-		var resp opensearchapi.IndicesRecoveryResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 2)
-		assert.Contains(t, indices, "test-index-1")
-		assert.Contains(t, indices, "test-index-2")
-
-		// Verify recovery data structure
-		index1 := indices["test-index-1"]
-		require.Len(t, index1.Shards, 1)
-		assert.Equal(t, 0, index1.Shards[0].ID)
-		assert.Equal(t, "STORE", index1.Shards[0].Type)
-		assert.Equal(t, "DONE", index1.Shards[0].Stage)
-		assert.True(t, index1.Shards[0].Primary)
-		assert.Equal(t, "node-1", index1.Shards[0].Source.Name)
-		assert.Equal(t, "node-1", index1.Shards[0].Target.Name)
-
-		index2 := indices["test-index-2"]
-		require.Len(t, index2.Shards, 1)
-		assert.Equal(t, "PEER", index2.Shards[0].Type)
-		assert.False(t, index2.Shards[0].Primary)
-		assert.Equal(t, "node-1", index2.Shards[0].Source.Name)
-		assert.Equal(t, "node-2", index2.Shards[0].Target.Name)
-	})
-
-	t.Run("returns single index with multiple shards", func(t *testing.T) {
-		jsonData := `{
-			"my-index": {
-				"shards": [
-					{
-						"id": 0,
-						"type": "STORE",
-						"stage": "DONE",
-						"primary": true,
-						"start_time_in_millis": 1234567890,
-						"stop_time_in_millis": 1234567900,
-						"total_time_in_millis": 10,
-						"source": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"target": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"index": {
-							"size": {
-								"total_in_bytes": 1000,
-								"reused_in_bytes": 900,
-								"recovered_in_bytes": 100,
-								"percent": "100.0%"
-							},
-							"files": {
-								"total": 10,
-								"reused": 9,
-								"recovered": 1,
-								"percent": "100.0%"
-							},
-							"total_time_in_millis": 5,
-							"source_throttle_time_in_millis": 0,
-							"target_throttle_time_in_millis": 0
-						},
-						"translog": {
-							"recovered": 0,
-							"total": 0,
-							"percent": "100.0%",
-							"total_on_start": 0,
-							"total_time_in_millis": 0
-						},
-						"verify_index": {
-							"check_index_time_in_millis": 0,
-							"total_time_in_millis": 0
-						}
-					},
-					{
-						"id": 1,
-						"type": "STORE",
-						"stage": "DONE",
-						"primary": true,
-						"start_time_in_millis": 1234567890,
-						"stop_time_in_millis": 1234567900,
-						"total_time_in_millis": 10,
-						"source": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"target": {
-							"id": "node1",
-							"host": "127.0.0.1",
-							"transport_address": "127.0.0.1:9300",
-							"ip": "127.0.0.1",
-							"name": "node-1"
-						},
-						"index": {
-							"size": {
-								"total_in_bytes": 1000,
-								"reused_in_bytes": 900,
-								"recovered_in_bytes": 100,
-								"percent": "100.0%"
-							},
-							"files": {
-								"total": 10,
-								"reused": 9,
-								"recovered": 1,
-								"percent": "100.0%"
-							},
-							"total_time_in_millis": 5,
-							"source_throttle_time_in_millis": 0,
-							"target_throttle_time_in_millis": 0
-						},
-						"translog": {
-							"recovered": 0,
-							"total": 0,
-							"percent": "100.0%",
-							"total_on_start": 0,
-							"total_time_in_millis": 0
-						},
-						"verify_index": {
-							"check_index_time_in_millis": 0,
-							"total_time_in_millis": 0
-						}
-					}
-				]
+			indices := resp.GetIndices()
+			if tt.wantNil {
+				require.Nil(t, indices)
+				return
 			}
-		}`
-
-		var resp opensearchapi.IndicesRecoveryResp
-		err := json.Unmarshal([]byte(jsonData), &resp)
-		require.NoError(t, err)
-
-		indices := resp.GetIndices()
-		require.NotNil(t, indices)
-		assert.Len(t, indices, 1)
-		assert.Contains(t, indices, "my-index")
-
-		// Verify multiple shards
-		myIndex := indices["my-index"]
-		require.Len(t, myIndex.Shards, 2)
-		assert.Equal(t, 0, myIndex.Shards[0].ID)
-		assert.Equal(t, 1, myIndex.Shards[1].ID)
-	})
+			require.NotNil(t, indices)
+			require.Len(t, indices, tt.wantLen)
+			for _, k := range tt.wantKeys {
+				require.Contains(t, indices, k)
+			}
+			if tt.checkField != nil {
+				tt.checkField(t, indices)
+			}
+		})
+	}
 }
 
-// TestMappingFieldResp_Inspect tests the Inspect method for MappingFieldResp
-func TestMappingFieldResp_Inspect(t *testing.T) {
-	resp := opensearchapi.MappingFieldResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
+func TestResp_Inspect(t *testing.T) {
+	t.Parallel()
+
+	type inspectable interface {
+		Inspect() opensearchapi.Inspect
+	}
+
+	tests := []struct {
+		name string
+		resp inspectable
+	}{
+		{name: "MappingFieldResp", resp: opensearchapi.MappingFieldResp{}},
+		{name: "MappingGetResp", resp: opensearchapi.MappingGetResp{}},
+		{name: "MappingPutResp", resp: opensearchapi.MappingPutResp{}},
+		{name: "SettingsGetResp", resp: opensearchapi.SettingsGetResp{}},
+		{name: "SettingsPutResp", resp: opensearchapi.SettingsPutResp{}},
+		{name: "AliasGetResp", resp: opensearchapi.AliasGetResp{}},
+		{name: "AliasDeleteResp", resp: opensearchapi.AliasDeleteResp{}},
+		{name: "AliasPutResp", resp: opensearchapi.AliasPutResp{}},
+		{name: "IndicesRecoveryResp", resp: opensearchapi.IndicesRecoveryResp{}},
+		{name: "IndicesDeleteResp", resp: opensearchapi.IndicesDeleteResp{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			inspect := tt.resp.Inspect()
+			require.Nil(t, inspect.Response)
+		})
+	}
 }
 
-// TestMappingGetResp_Inspect tests the Inspect method for MappingGetResp
-func TestMappingGetResp_Inspect(t *testing.T) {
-	resp := opensearchapi.MappingGetResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestMappingPutResp_Inspect tests the Inspect method for MappingPutResp
-func TestMappingPutResp_Inspect(t *testing.T) {
-	resp := opensearchapi.MappingPutResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestSettingsGetResp_Inspect tests the Inspect method for SettingsGetResp
-func TestSettingsGetResp_Inspect(t *testing.T) {
-	resp := opensearchapi.SettingsGetResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestSettingsPutResp_Inspect tests the Inspect method for SettingsPutResp
-func TestSettingsPutResp_Inspect(t *testing.T) {
-	resp := opensearchapi.SettingsPutResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestAliasGetResp_Inspect tests the Inspect method for AliasGetResp
-func TestAliasGetResp_Inspect(t *testing.T) {
-	resp := opensearchapi.AliasGetResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestAliasDeleteResp_Inspect tests the Inspect method for AliasDeleteResp
-func TestAliasDeleteResp_Inspect(t *testing.T) {
-	resp := opensearchapi.AliasDeleteResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestAliasPutResp_Inspect tests the Inspect method for AliasPutResp
-func TestAliasPutResp_Inspect(t *testing.T) {
-	resp := opensearchapi.AliasPutResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestIndicesRecoveryResp_Inspect tests the Inspect method for IndicesRecoveryResp
-func TestIndicesRecoveryResp_Inspect(t *testing.T) {
-	resp := opensearchapi.IndicesRecoveryResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestIndicesDeleteResp_Inspect tests the Inspect method for IndicesDeleteResp
-func TestIndicesDeleteResp_Inspect(t *testing.T) {
-	resp := opensearchapi.IndicesDeleteResp{}
-	inspect := resp.Inspect()
-	assert.Nil(t, inspect.Response)
-}
-
-// TestMappingFieldReq_GetRequest tests the GetRequest method for MappingFieldReq
 func TestMappingFieldReq_GetRequest(t *testing.T) {
-	t.Run("with valid indices and fields", func(t *testing.T) {
-		req := opensearchapi.MappingFieldReq{
-			Indices: []string{"test-index"},
-			Fields:  []string{"test_field"},
-		}
-		httpReq, err := req.GetRequest()
-		require.NoError(t, err)
-		assert.Equal(t, "GET", httpReq.Method)
-		assert.Equal(t, "/test-index/_mapping/field/test_field", httpReq.URL.Path)
-	})
+	t.Parallel()
 
-	t.Run("with wildcard field", func(t *testing.T) {
-		req := opensearchapi.MappingFieldReq{
-			Indices: []string{"test-index"},
-			Fields:  []string{"*"},
-		}
-		httpReq, err := req.GetRequest()
-		require.NoError(t, err)
-		assert.Equal(t, "GET", httpReq.Method)
-		assert.Equal(t, "/test-index/_mapping/field/*", httpReq.URL.Path)
-	})
+	tests := []struct {
+		name       string
+		req        opensearchapi.MappingFieldReq
+		wantMethod string
+		wantPath   string
+		wantErr    bool
+	}{
+		{
+			name:       "with valid indices and fields",
+			req:        opensearchapi.MappingFieldReq{Indices: []string{"test-index"}, Fields: []string{"test_field"}},
+			wantMethod: http.MethodGet,
+			wantPath:   "/test-index/_mapping/field/test_field",
+		},
+		{
+			name:       "with wildcard field",
+			req:        opensearchapi.MappingFieldReq{Indices: []string{"test-index"}, Fields: []string{"*"}},
+			wantMethod: http.MethodGet,
+			wantPath:   "/test-index/_mapping/field/*",
+		},
+		{
+			name:    "with empty fields returns error",
+			req:     opensearchapi.MappingFieldReq{Indices: []string{"test-index"}, Fields: []string{}},
+			wantMethod: http.MethodGet,
+			wantErr: true,
+		},
+		{
+			name:    "with nil fields returns error",
+			req:     opensearchapi.MappingFieldReq{Indices: []string{"test-index"}},
+			wantMethod: http.MethodGet,
+			wantErr: true,
+		},
+		{
+			name:       "without indices",
+			req:        opensearchapi.MappingFieldReq{Fields: []string{"test_field"}},
+			wantMethod: http.MethodGet,
+			wantPath:   "/_mapping/field/test_field",
+		},
+	}
 
-	t.Run("with empty fields creates invalid path", func(t *testing.T) {
-		req := opensearchapi.MappingFieldReq{
-			Indices: []string{"test-index"},
-			Fields:  []string{},
-		}
-		httpReq, err := req.GetRequest()
-		require.NoError(t, err)
-		// Empty fields results in path ending with slash - invalid OpenSearch API call
-		assert.Equal(t, "/test-index/_mapping/field/", httpReq.URL.Path)
-	})
-
-	t.Run("with nil fields creates invalid path", func(t *testing.T) {
-		req := opensearchapi.MappingFieldReq{
-			Indices: []string{"test-index"},
-			Fields:  nil,
-		}
-		httpReq, err := req.GetRequest()
-		require.NoError(t, err)
-		// Nil fields results in path ending with slash - invalid OpenSearch API call
-		assert.Equal(t, "/test-index/_mapping/field/", httpReq.URL.Path)
-	})
-
-	t.Run("without indices", func(t *testing.T) {
-		req := opensearchapi.MappingFieldReq{
-			Fields: []string{"test_field"},
-		}
-		httpReq, err := req.GetRequest()
-		require.NoError(t, err)
-		assert.Equal(t, "GET", httpReq.Method)
-		// Without indices, queries all indices
-		assert.Equal(t, "/_mapping/field/test_field", httpReq.URL.Path)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			httpReq, err := tt.req.GetRequest(tt.wantMethod)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.wantMethod, httpReq.Method)
+			require.Equal(t, tt.wantPath, httpReq.URL.Path)
+		})
+	}
 }

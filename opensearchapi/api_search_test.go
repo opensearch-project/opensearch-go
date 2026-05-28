@@ -11,6 +11,7 @@ package opensearchapi_test
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
@@ -78,7 +79,10 @@ func TestSearch(t *testing.T) {
 
 	t.Run("with request", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader("")})
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body:    strings.NewReader(""),
+		})
 		require.NoError(t, err)
 		assert.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -138,20 +142,22 @@ func TestSearch(t *testing.T) {
 	t.Run("url path", func(t *testing.T) {
 		t.Parallel()
 		req := &opensearchapi.SearchReq{}
-		httpReq, err := req.GetRequest()
+		httpReq, err := req.GetRequest(http.MethodPost)
 		require.NoError(t, err)
 		require.NotNil(t, httpReq)
 		assert.Equal(t, "/_search", httpReq.URL.Path)
 
 		req = &opensearchapi.SearchReq{Indices: []string{index}}
-		httpReq, err = req.GetRequest()
+		httpReq, err = req.GetRequest(http.MethodPost)
 		require.NoError(t, err)
 		require.NotNil(t, httpReq)
 		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
 	t.Run("request to retrieve response with routing key", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body: strings.NewReader(`{
 		  "query": {
 			"match": {
 			  "foo": "bar"
@@ -161,7 +167,8 @@ func TestSearch(t *testing.T) {
 			"foo"
 		  ],
 		  "_source": false
-		}`)})
+		}`),
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Hits.Hits)
 		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
@@ -211,7 +218,9 @@ func TestSearch(t *testing.T) {
 
 	t.Run("request with suggest", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body: strings.NewReader(`{
 			"suggest": {
 			  "text": "bar",
 			  "my-suggest": {
@@ -220,14 +229,17 @@ func TestSearch(t *testing.T) {
 				}
 			  }
 			}
-		  }`)})
+		  }`),
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 	})
 
 	t.Run("request with completion suggest", func(t *testing.T) {
 		t.Parallel()
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, Body: strings.NewReader(`{
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body: strings.NewReader(`{
 			"suggest": {
 			  "my-suggest": {
 			  	"text": "bar",
@@ -237,7 +249,8 @@ func TestSearch(t *testing.T) {
 				}
 			  }
 			}
-		  }`)})
+		  }`),
+		})
 		require.NoError(t, err)
 		assert.NotEmpty(t, resp.Suggest)
 		assert.NotEmpty(t, resp.Suggest["my-suggest"])

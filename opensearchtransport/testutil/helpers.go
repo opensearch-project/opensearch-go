@@ -14,12 +14,15 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"golang.org/x/mod/semver"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
 )
 
 // Common timeouts for testing
@@ -150,7 +153,7 @@ func SkipIfNotSecure(t *testing.T) {
 //
 // When OPENSEARCH_NODE_COUNT is unset, the function polls and uses stability
 // detection (consecutive identical counts) to decide when to stop waiting.
-func RequireMinNodes(t *testing.T, minNodes int) {
+func RequireMinNodes(t *testing.T, ctx context.Context, minNodes int) {
 	t.Helper()
 
 	// Fast path: if we know the cluster size from the environment, skip
@@ -180,7 +183,7 @@ func RequireMinNodes(t *testing.T, minNodes int) {
 
 	var lastTotal, stableCount int
 	for attempt := range maxAttempts {
-		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, nodesURL.String(), nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, nodesURL.String(), nil)
 		if err != nil {
 			t.Fatalf("RequireMinNodes: failed to create request: %v", err)
 		}
@@ -244,108 +247,100 @@ func RequireMinNodes(t *testing.T, minNodes int) {
 func WaitForCluster(t *testing.T) {
 	t.Helper()
 
-	const (
-		maxAttempts          = 25
-		delayBetweenAttempts = 5 * time.Second
-		requestTimeout       = 2 * time.Second
-	)
-
 	u := GetTestURL(t)
 	healthURL := *u
 	healthURL.Path = "/"
 
-	client := &http.Client{Transport: GetTestTransport(t)}
+	httpClient := &http.Client{Transport: GetTestTransport(t)}
 
-	var eofCount int
-	for attempt := range maxAttempts {
-		ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL.String(), nil)
-		if err != nil {
-			cancel()
-			t.Fatalf("WaitForCluster: failed to create request: %v", err)
+	var prepareReq func(*http.Request)
+	if IsSecure(t) {
+		password := GetPassword(t)
+		prepareReq = func(req *http.Request) {
+			req.SetBasicAuth("admin", password)
 		}
-
-		if IsSecure(t) {
-			req.SetBasicAuth("admin", GetPassword(t))
-		}
-
-		resp, err := client.Do(req)
-		cancel()
-
-		if err != nil {
-			if strings.Contains(err.Error(), "EOF") {
-				eofCount++
-				if eofCount >= 3 {
-					t.Fatalf("WaitForCluster: cluster returned EOF on %d consecutive attempts "+
-						"(SECURE_INTEGRATION=%s); verify the cluster scheme matches this setting: %v",
-						eofCount, os.Getenv("SECURE_INTEGRATION"), err)
-				}
-			} else {
-				eofCount = 0
-			}
-			t.Logf("WaitForCluster: attempt %d/%d: %v", attempt+1, maxAttempts, err)
-			time.Sleep(delayBetweenAttempts)
-			continue
-		}
-
-		eofCount = 0
-		resp.Body.Close()
-
-		if resp.StatusCode == http.StatusOK {
-			if attempt > 0 {
-				t.Logf("WaitForCluster: cluster ready after %d attempts", attempt+1)
-			}
-			return
-		}
-
-		// Fail fast on authentication errors -- retrying with the same credentials won't help
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-			t.Fatalf("WaitForCluster: cluster returned %d (SECURE_INTEGRATION=%s, OPENSEARCH_VERSION=%s); "+
-				"verify credentials are correct -- the admin password changed in OpenSearch 2.12.0+",
-				resp.StatusCode, os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"))
-		}
-
-		t.Logf("WaitForCluster: attempt %d/%d: status %d", attempt+1, maxAttempts, resp.StatusCode)
-		time.Sleep(delayBetweenAttempts)
 	}
 
-	t.Fatalf("WaitForCluster: cluster not ready after %d attempts (url=%s)", maxAttempts, healthURL.String())
+	readiness.Wait(t, t.Context(), readiness.LayerHTTP,
+		readiness.WithExpectedNodes(1),
+		readiness.WithRawHTTP(&healthURL, httpClient, prepareReq))
 }
 
-// versionAllSupported is the version expression matching all supported OpenSearch versions.
-const versionAllSupported = ">=v1.0.0"
+// ignoredFieldRule pairs a compiled regexp with a version expression.
+type ignoredFieldRule struct {
+	Pattern *regexp.Regexp
+	Version string // operator+version expression, e.g. ">=v1.0.0"
+}
 
-// ignoredFieldPatterns contains field patterns that should be ignored during JSON comparison
-// Map of field patterns to their version requirements using operator+version syntax
-// Format: {operator}{version}(,{operator}{version})*
-// Examples: ">=v1.0.0", ">=v1.0.0,<v2.0.0", "=v2.1.0"
+// ignoredFieldRules contains patterns for JSON pointer paths that should be
+// ignored during JSON round-trip comparison. Each pattern is a regexp matched
+// against the full path from a JSON diff "remove" operation.
 //
-//nolint:gochecknoglobals // This is a test utility package
-var ignoredFieldPatterns = map[string]string{
-	// Dynamic IO statistics that change between calls - present in all supported versions
-	"/io_stats/":         versionAllSupported,
-	"/io_time_in_millis": versionAllSupported,
-	"/queue_size":        versionAllSupported,
-	"/read_time":         versionAllSupported,
-	"/write_time":        versionAllSupported,
+// Version expressions use operator+version syntax: ">=v1.0.0", ">=v2.0.0,<v3.0.0"
+var ignoredFieldRules = []ignoredFieldRule{
+	// Dynamic IO statistics that change between calls
+	{regexp.MustCompile(`/io_stats/`), ">=v1.0.0"},
+	{regexp.MustCompile(`/io_time_in_millis$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/queue_size$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/read_time$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/write_time$`), ">=v1.0.0"},
 
-	// Optional script/template metadata - present in all supported versions
-	"/options":                  versionAllSupported,
-	"/metadata/stored_scripts/": versionAllSupported,
+	// Optional script/template metadata
+	{regexp.MustCompile(`/options$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/metadata/stored_scripts/`), ">=v1.0.0"},
 
-	// Dynamic cluster/node fields - present in all supported versions
-	"/target_node":   versionAllSupported,
-	"/relocation_id": versionAllSupported,
+	// Dynamic cluster/node fields
+	{regexp.MustCompile(`/target_node$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/relocation_id$`), ">=v1.0.0"},
 
-	// Dynamic task-related fields - present in all supported versions
-	"/cancellation_time_millis": versionAllSupported,
+	// Dynamic task-related fields
+	{regexp.MustCompile(`/cancellation_time_millis$`), ">=v1.0.0"},
 
 	// Version-specific or environment-dependent fields
-	"/build_flavor":   versionAllSupported,
-	"/build_type":     versionAllSupported,
-	"/build_snapshot": versionAllSupported,
-	"/lucene_version": versionAllSupported,
+	{regexp.MustCompile(`/build_flavor$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/build_type$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/build_snapshot$`), ">=v1.0.0"},
+	{regexp.MustCompile(`/lucene_version$`), ">=v1.0.0"},
+
+	// Fields present in server responses but not yet in the OpenAPI spec
+	{regexp.MustCompile(`/max_last_index_request_timestamp$`), ">=v2.0.0"},
+	{regexp.MustCompile(`/merges/warmer$`), ">=v2.0.0"},
+	{regexp.MustCompile(`/search/query_failed$`), ">=v2.0.0"},
+	{regexp.MustCompile(`/startree_query_`), ">=v3.0.0"},
+
+	// Search hit underscore fields not in SearchResult's hits item schema
+	{regexp.MustCompile(`/hits/hits/\d+/_`), ">=v1.0.0"},
+
+	// Deprecated _type field in ingest simulate responses (removed in 2.0+)
+	{regexp.MustCompile(`/_type$`), ">=v1.0.0"},
+
+	// Index-level settings/index/replication not in spec
+	{regexp.MustCompile(`/settings/index/replication$`), ">=v1.0.0"},
+
+	// Segment merge_id (transient during background merges)
+	{regexp.MustCompile(`/segments/[^/]+/merge_id$`), ">=v1.0.0"},
+
+	// Shard stores embed node IDs as dynamic object keys
+	{regexp.MustCompile(`/stores/\d+/[A-Za-z0-9_-]{20,}$`), ">=v1.0.0"},
+
+	// Transport SSL settings in nodes info response
+	{regexp.MustCompile(`/nodes/[^/]+/settings/transport/ssl$`), ">=v1.0.0"},
+
+	// System-generated search pipeline fields
+	{regexp.MustCompile(`/search_pipeline/system_generated_`), ">=v2.0.0"},
+
+	// Node-level indices/status_counter not in spec
+	{regexp.MustCompile(`/nodes/[^/]+/indices/status_counter$`), ">=v2.0.0"},
+
+	// Mapping property/field attributes not fully modeled in the spec schema.
+	// Covers nested properties, multi-fields, and all per-field settings.
+	{regexp.MustCompile(`/mappings/properties/`), ">=v1.0.0"},
+
+	// Node-level search_pipelines/processors not in spec
+	{regexp.MustCompile(`/nodes/[^/]+/search_pipelines/processors$`), ">=v2.7.0"},
+
+	// Cluster state metadata fields not in spec
+	{regexp.MustCompile(`/metadata/search_pipeline$`), ">=v2.0.0"},
 }
 
 // ShouldIgnoreField returns true if the given JSON path represents a field
@@ -353,9 +348,9 @@ var ignoredFieldPatterns = map[string]string{
 // cause test failures when missing from Go client structs.
 func ShouldIgnoreField(t *testing.T, path string, serverVersion string) bool {
 	t.Helper()
-	for pattern, versionExpr := range ignoredFieldPatterns {
-		if strings.Contains(path, pattern) {
-			return EvaluateVersionExpression(t, serverVersion, versionExpr)
+	for _, rule := range ignoredFieldRules {
+		if rule.Pattern.MatchString(path) {
+			return EvaluateVersionExpression(t, serverVersion, rule.Version)
 		}
 	}
 	return false
@@ -419,7 +414,7 @@ func EvaluateVersionCondition(t *testing.T, serverVersion, condition string) boo
 		panic(fmt.Sprintf("invalid version format in condition: %q", condition))
 	}
 
-	comparison := semver.Compare(serverVersion, normalizedVersion)
+	comparison := compareVersion(serverVersion, normalizedVersion)
 
 	switch operator {
 	case ">=":
@@ -517,7 +512,7 @@ func SkipIfVersion(t *testing.T, operator string, version string, testName strin
 	case operator == "!=" && !hasPatch:
 		matches = semver.MajorMinor(serverVersion) != semver.MajorMinor(constraintSemver)
 	default:
-		cmp := semver.Compare(serverVersion, constraintSemver)
+		cmp := compareVersion(serverVersion, constraintSemver)
 		switch operator {
 		case "=":
 			matches = cmp == 0
@@ -552,4 +547,97 @@ func NormalizeVersion(t *testing.T, version string) string {
 		return "v" + version
 	}
 	return version
+}
+
+// preReleaseRank assigns ordering to known pre-release tags. Lower rank
+// = earlier in the release cycle. Per OpenSearch convention:
+//
+//	snapshot < alpha < beta < rc < (release, i.e. no suffix)
+//
+// Standard semver (golang.org/x/mod/semver) orders alpha < beta < rc <
+// release correctly via lexicographic compare on pre-release identifiers,
+// but it places "SNAPSHOT" after "rc" because alphabetic ordering puts
+// upper-case 'S' beyond lower-case 'r'. Maven/Gradle SNAPSHOT builds
+// represent "in-development past the last release", and treating them
+// as later than rc over-skips nightly CI builds that contain the fix.
+//
+
+var preReleaseRank = map[string]int{
+	"snapshot": 0,
+	"alpha":    1,
+	"beta":     2,
+	"rc":       3,
+}
+
+// compareVersion orders two normalized "vX.Y.Z[-pre]" strings using the
+// pre-release ranking above. Returns -1 if a < b, 0 if equal, +1 if
+// a > b.
+func compareVersion(a, b string) int {
+	aBase, aPre := splitPrerelease(a)
+	bBase, bPre := splitPrerelease(b)
+
+	if cmp := semver.Compare(aBase, bBase); cmp != 0 {
+		return cmp
+	}
+	return comparePrerelease(aPre, bPre)
+}
+
+// splitPrerelease returns the base "vX.Y.Z" portion and the lower-cased
+// pre-release tag (without the leading "-"). Empty pre-release means
+// "is a release version".
+func splitPrerelease(v string) (string, string) {
+	if before, after, ok := strings.Cut(v, "-"); ok {
+		return before, strings.ToLower(after)
+	}
+	return v, ""
+}
+
+// comparePrerelease compares two lower-cased pre-release strings. The
+// empty string represents "release" (no pre-release suffix) and ranks
+// highest. Known tags use preReleaseRank; tied ranks fall through to
+// lexicographic compare so e.g. "rc.1" < "rc.2".
+func comparePrerelease(a, b string) int {
+	if a == b {
+		return 0
+	}
+	if a == "" {
+		return +1 // release beats any pre-release
+	}
+	if b == "" {
+		return -1
+	}
+
+	aRank, aKnown := preReleaseRank[preReleaseHead(a)]
+	bRank, bKnown := preReleaseRank[preReleaseHead(b)]
+
+	switch {
+	case aKnown && bKnown:
+		if aRank != bRank {
+			if aRank < bRank {
+				return -1
+			}
+			return +1
+		}
+	case aKnown:
+		return -1 // known tag sorts before unknown
+	case bKnown:
+		return +1
+	}
+
+	if a < b {
+		return -1
+	}
+	return +1
+}
+
+// preReleaseHead returns the leading alpha tag of a pre-release string,
+// stripping any trailing numeric or punctuation suffix. "rc.1" -> "rc",
+// "alpha-2" -> "alpha", "snapshot" -> "snapshot".
+func preReleaseHead(s string) string {
+	for i, r := range s {
+		if r == '.' || r == '-' || (r >= '0' && r <= '9') {
+			return s[:i]
+		}
+	}
+	return s
 }

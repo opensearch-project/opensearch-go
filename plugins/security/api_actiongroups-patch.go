@@ -10,9 +10,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // ActionGroupsPatchReq represents possible options for the actiongroups patch request
@@ -24,27 +25,22 @@ type ActionGroupsPatchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ActionGroupsPatchReq) GetRequest() (*http.Request, error) {
+func (r ActionGroupsPatchReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/actiongroups/") + len(r.ActionGroup))
-	path.WriteString("/_plugins/_security/api/actiongroups")
-	if len(r.ActionGroup) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.ActionGroup)
+	var path string
+	if r.ActionGroup == "" {
+		path, err = ospath.SecurityPatchActionGroupsPath{}.Build()
+	} else {
+		path, err = ospath.SecurityPatchActionGroupPath{ActionGroup: r.ActionGroup}.Build()
 	}
-
-	return opensearch.BuildRequest(
-		"PATCH",
-		path.String(),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	if err != nil {
+		return nil, err
+	}
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // ActionGroupsPatchResp represents the returned struct of the actiongroups patch response

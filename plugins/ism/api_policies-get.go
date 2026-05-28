@@ -8,9 +8,10 @@ package ism
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // PoliciesGetReq represents possible options for the policies get request
@@ -21,22 +22,19 @@ type PoliciesGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r PoliciesGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_ism/policies/") + len(r.Policy))
-	path.WriteString("/_plugins/_ism/policies")
-	if len(r.Policy) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Policy)
+func (r PoliciesGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Policy == "" {
+		path, err = ospath.IsmGetPoliciesPath{}.Build()
+	} else {
+		path, err = ospath.IsmGetPolicyPath{PolicyID: r.Policy}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodGet,
-		path.String(),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // PoliciesGetResp represents the returned struct of the policies get response

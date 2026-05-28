@@ -53,7 +53,7 @@ func TestSeedFallback(t *testing.T) {
 		res, err := tp.Perform(req)
 		require.NoError(t, err)
 		require.NotNil(t, res)
-		require.Equal(t, 200, res.StatusCode)
+		require.Equal(t, http.StatusOK, res.StatusCode)
 		if res.Body != nil {
 			res.Body.Close()
 		}
@@ -81,7 +81,7 @@ func TestSeedFallback(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 		res, err := tp.Perform(req)
 		require.NoError(t, err)
-		require.Equal(t, 200, res.StatusCode)
+		require.Equal(t, http.StatusOK, res.StatusCode)
 		if res.Body != nil {
 			res.Body.Close()
 		}
@@ -197,7 +197,7 @@ func TestSeedFallback(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 		res, err := tp.Perform(req)
 		require.NoError(t, err)
-		require.Equal(t, 200, res.StatusCode)
+		require.Equal(t, http.StatusOK, res.StatusCode)
 		if res.Body != nil {
 			res.Body.Close()
 		}

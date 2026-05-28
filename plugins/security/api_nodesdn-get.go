@@ -8,9 +8,10 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesDNGetReq represents possible options for the nodes dn get request
@@ -20,18 +21,21 @@ type NodesDNGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesDNGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/nodesdn/") + len(r.Cluster))
-	path.WriteString("/_plugins/_security/api/nodesdn")
-	if len(r.Cluster) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Cluster)
+func (r NodesDNGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Cluster == "" {
+		path, err = ospath.SecurityGetDistinguishedNamesPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetDistinguishedNamePath{ClusterName: r.Cluster}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+	return build.Request(
+		method,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

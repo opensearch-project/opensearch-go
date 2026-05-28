@@ -8,9 +8,10 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // TenantsGetReq represents possible options for the tenants get request
@@ -21,18 +22,21 @@ type TenantsGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TenantsGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/tenants/") + len(r.Tenant))
-	path.WriteString("/_plugins/_security/api/tenants")
-	if len(r.Tenant) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Tenant)
+func (r TenantsGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Tenant == "" {
+		path, err = ospath.SecurityGetTenantsPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetTenantPath{Tenant: r.Tenant}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+	return build.Request(
+		method,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

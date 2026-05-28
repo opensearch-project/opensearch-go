@@ -10,9 +10,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // InternalUsersPatchReq represents possible options for the internalusers patch request
@@ -24,23 +25,25 @@ type InternalUsersPatchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r InternalUsersPatchReq) GetRequest() (*http.Request, error) {
+func (r InternalUsersPatchReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/internalusers/") + len(r.User))
-	path.WriteString("/_plugins/_security/api/internalusers")
-	if len(r.User) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.User)
+	var path string
+	if r.User == "" {
+		path, err = ospath.SecurityPatchUsersPath{}.Build()
+	} else {
+		path, err = ospath.SecurityPatchUserPath{Username: r.User}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PATCH",
-		path.String(),
+	return build.Request(
+		method,
+		path,
 		bytes.NewReader(body),
 		make(map[string]string),
 		r.Header,

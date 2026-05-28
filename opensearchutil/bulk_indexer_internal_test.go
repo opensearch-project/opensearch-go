@@ -413,7 +413,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						},
 
 						MaxRetries:    5,
-						RetryOnStatus: []int{502, 503, 504, 429},
+						RetryOnStatus: []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout, http.StatusTooManyRequests},
 						RetryBackoff: func(i int) time.Duration {
 							if testutil.IsDebugEnabled(t) {
 								t.Logf("*** Retry #%d", i)

@@ -127,7 +127,7 @@ func TestTransportConfig(t *testing.T) {
 	t.Run("Defaults", func(t *testing.T) {
 		tp, _ := New(Config{})
 
-		if !reflect.DeepEqual(tp.retryOnStatus, []int{502, 503, 504}) {
+		if !reflect.DeepEqual(tp.retryOnStatus, []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout}) {
 			t.Errorf("Unexpected retryOnStatus: %v", tp.retryOnStatus)
 		}
 
@@ -154,7 +154,7 @@ func TestTransportConfig(t *testing.T) {
 
 	t.Run("Custom", func(t *testing.T) {
 		tp, _ := New(Config{
-			RetryOnStatus:            []int{404, 408},
+			RetryOnStatus:            []int{http.StatusNotFound, http.StatusRequestTimeout},
 			DisableRetry:             true,
 			EnableRetryOnTimeout:     true,
 			MaxRetries:               5,
@@ -162,7 +162,7 @@ func TestTransportConfig(t *testing.T) {
 			DisableResponseBuffering: true,
 		})
 
-		if !reflect.DeepEqual(tp.retryOnStatus, []int{404, 408}) {
+		if !reflect.DeepEqual(tp.retryOnStatus, []int{http.StatusNotFound, http.StatusRequestTimeout}) {
 			t.Errorf("Unexpected retryOnStatus: %v", tp.retryOnStatus)
 		}
 

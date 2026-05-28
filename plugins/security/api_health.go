@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // Health executes a get health request with the optional HealthReq
@@ -23,7 +24,7 @@ func (c Client) Health(ctx context.Context, req *HealthReq) (HealthResp, error) 
 		data HealthResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodGet, req, &data); err != nil {
 		return data, err
 	}
 
@@ -36,9 +37,9 @@ type HealthReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r HealthReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r HealthReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/health",
 		nil,
 		make(map[string]string),

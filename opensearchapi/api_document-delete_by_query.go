@@ -7,12 +7,12 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DocumentDeleteByQueryReq represents possible options for the /<index>/_delete_by_query request
@@ -26,14 +26,13 @@ type DocumentDeleteByQueryReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DocumentDeleteByQueryReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/%s/_delete_by_query", strings.Join(r.Indices, ",")),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+func (r DocumentDeleteByQueryReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.DeleteByQueryPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // DocumentDeleteByQueryResp represents the returned struct of the /<index>/_delete_by_query response

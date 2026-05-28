@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 
@@ -169,7 +170,7 @@ func example() error {
 	}
 	for _, item := range bulkResp.Items {
 		for operation, resp := range item {
-			if resp.Status > 299 {
+			if resp.Status >= http.StatusMultipleChoices {
 				fmt.Printf("Bulk %s Error: %s\n", operation, resp.Result)
 			}
 		}

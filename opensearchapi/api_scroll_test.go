@@ -9,6 +9,7 @@
 package opensearchapi_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
@@ -29,7 +30,7 @@ func TestScrollClient(t *testing.T) {
 
 	testIndex := testutil.MustUniqueString(t, "test-scroll")
 	t.Cleanup(func() {
-		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
 	})
 
 	_, err = client.Document.Create(

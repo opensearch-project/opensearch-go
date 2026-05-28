@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
@@ -71,7 +71,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "with request",
 					Results: func() (osapitest.Response, error) {
-						return client.IndexTemplate.Get(t.Context(), &opensearchapi.IndexTemplateGetReq{IndexTemplates: []string{indexTemplate}})
+						return client.IndexTemplate.Get(t.Context(), &opensearchapi.IndexTemplateGetReq{IndexTemplates: indexTemplate})
 					},
 				},
 				{
@@ -151,7 +151,7 @@ func TestIndexTemplateClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.IndexTemplate.SimulateIndex(t.Context(), opensearchapi.IndexTemplateSimulateIndexReq{})
+						return failingClient.IndexTemplate.SimulateIndex(t.Context(), opensearchapi.IndexTemplateSimulateIndexReq{Index: "test"})
 					},
 				},
 			},

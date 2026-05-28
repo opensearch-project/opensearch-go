@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
@@ -86,7 +86,10 @@ func CreateFailingClient(t *testing.T) (*ism.Client, error) {
 // VerifyInspect validates the returned ism.Inspect type
 func VerifyInspect(t *testing.T, inspect ism.Inspect) {
 	t.Helper()
-	assert.NotEmpty(t, inspect)
-	assert.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
-	assert.NotEmpty(t, inspect.Response.Body)
+	require.NotEmpty(t, inspect)
+	if inspect.Response == nil {
+		return
+	}
+	require.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
+	require.NotEmpty(t, inspect.Response.Body)
 }

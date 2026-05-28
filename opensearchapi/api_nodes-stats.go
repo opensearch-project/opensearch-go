@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesStatsReq represents possible options for the /_nodes request
@@ -24,39 +25,16 @@ type NodesStatsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesStatsReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-
-	path.Grow(13 + len(strings.Join(r.NodeID, ",")) + 1 + len(strings.Join(r.Metric, ",")) + 1 + len(strings.Join(r.IndexMetric, ",")))
-
-	path.WriteString("/")
-	path.WriteString("_nodes")
-
-	if len(r.NodeID) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.NodeID, ","))
+func (r NodesStatsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.NodesStatsPath{
+		IndexMetric: r.IndexMetric,
+		Metric:      r.Metric,
+		NodeID:      r.NodeID,
+	}.Build()
+	if err != nil {
+		return nil, err
 	}
-
-	path.WriteString("/")
-	path.WriteString("stats")
-
-	if len(r.Metric) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.Metric, ","))
-	}
-
-	if len(r.IndexMetric) > 0 {
-		path.WriteString("/")
-		path.WriteString(strings.Join(r.IndexMetric, ","))
-	}
-
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // NodesStatsResp represents the returned struct of the /_nodes response

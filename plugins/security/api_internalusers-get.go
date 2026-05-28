@@ -8,9 +8,10 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // InternalUsersGetReq represents possible options for the internal users get request
@@ -21,18 +22,21 @@ type InternalUsersGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r InternalUsersGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/internalusers/") + len(r.User))
-	path.WriteString("/_plugins/_security/api/internalusers")
-	if len(r.User) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.User)
+func (r InternalUsersGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.User == "" {
+		path, err = ospath.SecurityGetUsersPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetUserPath{Username: r.User}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+	return build.Request(
+		method,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

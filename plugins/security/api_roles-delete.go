@@ -7,10 +7,11 @@
 package security
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RolesDeleteReq represents possible options for the roles delete request
@@ -21,14 +22,13 @@ type RolesDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RolesDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"DELETE",
-		fmt.Sprintf("/_plugins/_security/api/roles/%s", r.Role),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+func (r RolesDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SecurityDeleteRolePath{Role: r.Role}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // RolesDeleteResp represents the returned struct of the roles delete response

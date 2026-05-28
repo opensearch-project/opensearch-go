@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // ConfigGetReq represents possible options for the securityconfig get request
@@ -19,9 +20,9 @@ type ConfigGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ConfigGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r ConfigGetReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/api/securityconfig",
 		nil,
 		make(map[string]string),

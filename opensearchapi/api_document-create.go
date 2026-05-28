@@ -9,9 +9,10 @@ package opensearchapi
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DocumentCreateReq represents possible options for the /<index>/_create request
@@ -26,20 +27,16 @@ type DocumentCreateReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DocumentCreateReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(10 + len(r.Index) + len(r.DocumentID))
-	path.WriteString("/")
-	path.WriteString(r.Index)
-	path.WriteString("/_create/")
-	path.WriteString(r.DocumentID)
-	return opensearch.BuildRequest(
-		"PUT",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+func (r DocumentCreateReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.CreatePath{
+		ID:    r.DocumentID,
+		Index: r.Index,
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // DocumentCreateResp represents the returned struct of the /_doc response

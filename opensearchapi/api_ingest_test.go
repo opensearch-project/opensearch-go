@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
@@ -62,7 +62,7 @@ func TestIngestClient(t *testing.T) {
 				{
 					Name: "inspect",
 					Results: func() (osapitest.Response, error) {
-						return failingClient.Ingest.Create(t.Context(), opensearchapi.IngestCreateReq{})
+						return failingClient.Ingest.Create(t.Context(), opensearchapi.IngestCreateReq{PipelineID: "test"})
 					},
 				},
 			},

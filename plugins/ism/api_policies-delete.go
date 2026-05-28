@@ -7,10 +7,11 @@
 package ism
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // PoliciesDeleteReq represents possible options for the policies get request
@@ -21,14 +22,13 @@ type PoliciesDeleteReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r PoliciesDeleteReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		http.MethodDelete,
-		fmt.Sprintf("/_plugins/_ism/policies/%s", r.Policy),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+func (r PoliciesDeleteReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IsmDeletePolicyPath{PolicyID: r.Policy}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // PoliciesDeleteResp represents the returned struct of the policies get response

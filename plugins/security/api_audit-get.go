@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // AuditGetReq represents possible options for the audit get request
@@ -18,9 +19,9 @@ type AuditGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r AuditGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r AuditGetReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/api/audit",
 		nil,
 		make(map[string]string),

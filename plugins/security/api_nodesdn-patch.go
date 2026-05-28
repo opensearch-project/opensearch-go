@@ -10,9 +10,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesDNPatchReq represents possible options for the nodesdn patch request
@@ -24,23 +25,25 @@ type NodesDNPatchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesDNPatchReq) GetRequest() (*http.Request, error) {
+func (r NodesDNPatchReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/nodesdn/") + len(r.Cluster))
-	path.WriteString("/_plugins/_security/api/nodesdn")
-	if len(r.Cluster) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Cluster)
+	var path string
+	if r.Cluster == "" {
+		path, err = ospath.SecurityPatchDistinguishedNamesPath{}.Build()
+	} else {
+		path, err = ospath.SecurityPatchDistinguishedNamePath{ClusterName: r.Cluster}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PATCH",
-		path.String(),
+	return build.Request(
+		method,
+		path,
 		bytes.NewReader(body),
 		make(map[string]string),
 		r.Header,

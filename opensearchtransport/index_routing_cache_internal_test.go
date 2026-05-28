@@ -295,6 +295,155 @@ func TestIndexSlotCacheUpdateFromDiscovery(t *testing.T) {
 	})
 }
 
+// TestIndexSlotCacheShardMapMerge covers the merge semantics of updateFromDiscovery
+// for the per-shard placement map: a new partial /_cat/shards response (e.g. during
+// a relocation window where source/destination rows are skipped) must not clobber
+// shards from a previously-complete cached map, while a genuine shrink in primary
+// count must drop unreachable old entries.
+func TestIndexSlotCacheShardMapMerge(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		prior     *indexShardMap // nil means no prior map
+		incoming  *indexShardPlacement
+		wantCount int
+		wantPrims int
+		wantShard map[int]*shardNodes // expected entries; nil means "must not be present"
+	}{
+		{
+			name:  "no prior map: store as-is",
+			prior: nil,
+			incoming: &indexShardPlacement{
+				NumberOfPrimaryShards: 2,
+				RoutingNumShards:      256,
+				ShardToNodes: map[int]*shardNodes{
+					0: {Primary: "node0"},
+					1: {Primary: "node1"},
+				},
+			},
+			wantCount: 2,
+			wantPrims: 2,
+			wantShard: map[int]*shardNodes{
+				0: {Primary: "node0"},
+				1: {Primary: "node1"},
+			},
+		},
+		{
+			name: "complete new placement overwrites prior",
+			prior: &indexShardMap{
+				NumberOfPrimaryShards: 2,
+				RoutingNumShards:      256,
+				Shards: map[int]*shardNodes{
+					0: {Primary: "old0"},
+					1: {Primary: "old1"},
+				},
+			},
+			incoming: &indexShardPlacement{
+				NumberOfPrimaryShards: 2,
+				RoutingNumShards:      256,
+				ShardToNodes: map[int]*shardNodes{
+					0: {Primary: "new0"},
+					1: {Primary: "new1"},
+				},
+			},
+			wantCount: 2,
+			wantPrims: 2,
+			wantShard: map[int]*shardNodes{
+				0: {Primary: "new0"},
+				1: {Primary: "new1"},
+			},
+		},
+		{
+			name: "relocation window: missing shard preserved from prior",
+			prior: &indexShardMap{
+				NumberOfPrimaryShards: 3,
+				RoutingNumShards:      384,
+				Shards: map[int]*shardNodes{
+					0: {Primary: "node0", Replicas: []string{"node1"}},
+					1: {Primary: "node1", Replicas: []string{"node2"}},
+					2: {Primary: "node2", Replicas: []string{"node0"}},
+				},
+			},
+			incoming: &indexShardPlacement{
+				NumberOfPrimaryShards: 3,
+				RoutingNumShards:      384,
+				ShardToNodes: map[int]*shardNodes{
+					// Shard 1 absent: source is RELOCATING, destination is INITIALIZING,
+					// both filtered out by the /_cat/shards parser.
+					0: {Primary: "node0", Replicas: []string{"node3"}}, // replica moved
+					2: {Primary: "node2", Replicas: []string{"node0"}},
+				},
+			},
+			wantCount: 3,
+			wantPrims: 3,
+			wantShard: map[int]*shardNodes{
+				0: {Primary: "node0", Replicas: []string{"node3"}}, // new wins
+				1: {Primary: "node1", Replicas: []string{"node2"}}, // carried forward
+				2: {Primary: "node2", Replicas: []string{"node0"}}, // new wins
+			},
+		},
+		{
+			name: "shrunk index drops shards beyond new primary count",
+			prior: &indexShardMap{
+				NumberOfPrimaryShards: 4,
+				RoutingNumShards:      512,
+				Shards: map[int]*shardNodes{
+					0: {Primary: "node0"},
+					1: {Primary: "node1"},
+					2: {Primary: "node2"},
+					3: {Primary: "node3"},
+				},
+			},
+			incoming: &indexShardPlacement{
+				NumberOfPrimaryShards: 2,
+				RoutingNumShards:      512,
+				ShardToNodes: map[int]*shardNodes{
+					0: {Primary: "node0"},
+					1: {Primary: "node1"},
+				},
+			},
+			wantCount: 2,
+			wantPrims: 2,
+			wantShard: map[int]*shardNodes{
+				0: {Primary: "node0"},
+				1: {Primary: "node1"},
+				2: nil,
+				3: nil,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			c := newIndexSlotCache(indexSlotCacheConfig{})
+			slot := c.getOrCreate("idx")
+			if tt.prior != nil {
+				slot.shardMap.Store(tt.prior)
+			}
+
+			c.updateFromDiscovery(map[string]*indexShardPlacement{"idx": tt.incoming}, 10, time.Now())
+
+			sm := slot.shardMap.Load()
+			require.NotNil(t, sm)
+			require.Equal(t, tt.wantPrims, sm.NumberOfPrimaryShards)
+			require.Len(t, sm.Shards, tt.wantCount)
+
+			for shard, want := range tt.wantShard {
+				if want == nil {
+					require.NotContains(t, sm.Shards, shard, "shard %d should be dropped", shard)
+					continue
+				}
+				got, ok := sm.Shards[shard]
+				require.True(t, ok, "shard %d missing from merged map", shard)
+				require.Equal(t, want.Primary, got.Primary, "shard %d primary", shard)
+				require.Equal(t, want.Replicas, got.Replicas, "shard %d replicas", shard)
+			}
+		})
+	}
+}
+
 func TestIndexSlotShardNodeNameSet(t *testing.T) {
 	t.Parallel()
 

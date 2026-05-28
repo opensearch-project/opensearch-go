@@ -10,13 +10,14 @@ package opensearchapi_test
 
 import (
 	"context"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 )
 
@@ -33,7 +34,9 @@ func TestClusterClient(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-cluster-indices")
 	indexWithUnassigned := testutil.MustUniqueString(t, "test-cluster-unassigned")
 	t.Cleanup(func() {
-		client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: []string{index, indexWithUnassigned}})
+		client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{
+			Indices: []string{index, indexWithUnassigned},
+		})
 	})
 
 	// Create a regular index
@@ -91,7 +94,7 @@ func TestClusterClient(t *testing.T) {
 
 		// Verify we got a successful HTTP response
 		response := res.Inspect().Response
-		require.Equal(t, 200, response.StatusCode, "Expected 200 OK for successful allocation explanation")
+		require.Equal(t, http.StatusOK, response.StatusCode, "Expected 200 OK for successful allocation explanation")
 	}
 
 	// Validation function for expected error cases

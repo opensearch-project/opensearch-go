@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // ConfigPatchReq represents possible options for the securityconfig patch request
@@ -22,14 +23,14 @@ type ConfigPatchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r ConfigPatchReq) GetRequest() (*http.Request, error) {
+func (r ConfigPatchReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PATCH",
+	return build.Request(
+		method,
 		"/_plugins/_security/api/securityconfig",
 		bytes.NewReader(body),
 		make(map[string]string),

@@ -8,9 +8,10 @@ package security
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // RolesMappingGetReq represents possible options for the rolesmapping get request
@@ -21,18 +22,21 @@ type RolesMappingGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RolesMappingGetReq) GetRequest() (*http.Request, error) {
-	var path strings.Builder
-	path.Grow(len("/_plugins/_security/api/rolesmapping/") + len(r.Role))
-	path.WriteString("/_plugins/_security/api/rolesmapping")
-	if len(r.Role) > 0 {
-		path.WriteString("/")
-		path.WriteString(r.Role)
+func (r RolesMappingGetReq) GetRequest(method string) (*http.Request, error) {
+	var path string
+	var err error
+	if r.Role == "" {
+		path, err = ospath.SecurityGetRoleMappingsPath{}.Build()
+	} else {
+		path, err = ospath.SecurityGetRoleMappingPath{Role: r.Role}.Build()
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
+	return build.Request(
+		method,
+		path,
 		nil,
 		make(map[string]string),
 		r.Header,

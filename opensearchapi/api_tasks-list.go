@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // TasksListReq represents possible options for the index create request
@@ -20,9 +21,9 @@ type TasksListReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r TasksListReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r TasksListReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_tasks",
 		nil,
 		r.Params.get(),

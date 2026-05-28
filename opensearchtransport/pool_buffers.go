@@ -65,11 +65,19 @@ func getConnSlice(minCap int) *[]*Connection {
 	return bp
 }
 
-// putConnSlice clears pointer references and returns the buffer to the pool.
-func putConnSlice(bp *[]*Connection) {
+// clearConns clears all slots up to capacity and truncates the slice to
+// length 0. Shared by [putConnSlice] and [pooledConns.Release] so the
+// "no retained *Connection across cycles" invariant has a single
+// definition that can be tested without exercising the pool.
+func clearConns(bp *[]*Connection) {
 	s := *bp
 	clear(s[:cap(s)])
 	*bp = s[:0]
+}
+
+// putConnSlice clears pointer references and returns the buffer to the pool.
+func putConnSlice(bp *[]*Connection) {
+	clearConns(bp)
 	connSlicePool.Put(bp)
 }
 
@@ -115,9 +123,7 @@ func (b pooledConns) Release() {
 	if b.p == nil {
 		return
 	}
-	s := *b.p
-	clear(s[:cap(s)])
-	*b.p = s[:0]
+	clearConns(b.p)
 	connSlicePool.Put(b.p)
 }
 

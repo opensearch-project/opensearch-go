@@ -336,7 +336,7 @@ func (cp *multiServerPool) getWarmupParams() (int, int) {
 //nolint:unparam // public API; selector kept for backward compatibility
 func NewConnectionPool(conns []*Connection, selector Selector) ConnectionPool {
 	if len(conns) == 1 {
-		return &singleServerPool{connection: conns[0]}
+		return newSingleServerPool(conns[0], nil)
 	}
 
 	pool := &multiServerPool{

@@ -10,9 +10,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // SearchShards executes a /_search request with the optional SearchShardsReq
@@ -25,7 +26,7 @@ func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*Search
 		data SearchShardsResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -41,23 +42,12 @@ type SearchShardsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SearchShardsReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("//_search_shards") + len(indices))
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+func (r SearchShardsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SearchShardsPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_search_shards")
-
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // SearchShardsResp represents the returned struct of the /_search response

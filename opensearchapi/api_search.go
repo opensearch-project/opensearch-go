@@ -9,12 +9,12 @@ package opensearchapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Search executes a /_search request with the optional SearchReq
@@ -27,7 +27,7 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 		data SearchResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -44,16 +44,14 @@ type SearchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r SearchReq) GetRequest() (*http.Request, error) {
-	var path string
-	if len(r.Indices) > 0 {
-		path = fmt.Sprintf("/%s/_search", strings.Join(r.Indices, ","))
-	} else {
-		path = "/_search"
+func (r SearchReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.SearchPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"POST",
+	return build.Request(
+		method,
 		path,
 		r.Body,
 		r.Params.get(),

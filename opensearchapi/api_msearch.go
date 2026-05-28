@@ -11,9 +11,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // MSearch executes a /_msearch request with the optional MSearchReq
@@ -22,7 +23,7 @@ func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, erro
 		data MSearchResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return &data, err
 	}
 
@@ -40,22 +41,12 @@ type MSearchReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r MSearchReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("//_msearch") + len(indices))
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+func (r MSearchReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.MsearchPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_msearch")
-	return opensearch.BuildRequest(
-		"POST",
-		path.String(),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // MSearchResp represents the returned struct of the /_msearch response

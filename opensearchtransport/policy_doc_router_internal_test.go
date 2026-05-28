@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 func TestExtractDocumentFromPath(t *testing.T) {
@@ -334,8 +336,9 @@ func TestDocRouterConsistency(t *testing.T) {
 		// to different nodes (by pigeonhole with 5 nodes).
 		selectedNodes := make(map[string]struct{})
 		for i := range 50 {
-			path := fmt.Sprintf("/orders/_doc/doc-%d", i)
-			req, err := http.NewRequest(http.MethodGet, path, nil)
+			docID := fmt.Sprintf("doc-%d", i)
+			p2, _ := ospath.IndexPath{Index: "orders", ID: docID}.Build()
+			req, err := http.NewRequest(http.MethodGet, p2, nil)
 			require.NoError(t, err)
 
 			hop, evalErr := p.Eval(context.Background(), req)

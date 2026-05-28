@@ -517,7 +517,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	if len(cfg.RetryOnStatus) == 0 && cfg.RetryOnStatus == nil {
-		cfg.RetryOnStatus = []int{502, 503, 504}
+		cfg.RetryOnStatus = []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout}
 	}
 
 	if cfg.MaxRetries == 0 {
@@ -924,7 +924,7 @@ func New(cfg Config) (*Client, error) {
 	} else {
 		// Use client-configured timeout settings for the main connection pool
 		if len(conns) == 1 {
-			client.mu.connectionPool = &singleServerPool{connection: conns[0]}
+			client.mu.connectionPool = newSingleServerPool(conns[0], nil)
 		} else {
 			poolCtx, poolCancel := context.WithCancel(ctx)
 			pool := &multiServerPool{
@@ -1631,14 +1631,26 @@ func (c *Client) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 
-	if u.Path != "" && u.Path != "/" {
-		// Only prepend the base path if it's not empty or just "/"
-		// This prevents double slashes like "//" when base URL has trailing slash
-		var b strings.Builder
-		b.Grow(len(u.Path) + len(req.URL.Path))
-		b.WriteString(strings.TrimRight(u.Path, "/")) // Remove trailing slash from base
-		b.WriteString(req.URL.Path)
-		req.URL.Path = b.String()
+	// Scan backwards to find the effective base path length, excluding
+	// trailing slashes. This avoids the closure allocation that
+	// strings.TrimRight incurs via makeCutsetFunc.
+	baseLen := len(u.Path)
+	for baseLen > 0 && u.Path[baseLen-1] == '/' {
+		baseLen--
+	}
+	if baseLen == 0 {
+		return
+	}
+
+	// u.Path[:baseLen] is a substring slice (no allocation). The + operator
+	// compiles to concatstring2 which pre-sizes the result exactly.
+	base := u.Path[:baseLen]
+	req.URL.Path = base + req.URL.Path
+
+	// Preserve percent-encoded path segments (e.g. %2F in document IDs)
+	// so EscapedPath() honors RawPath instead of re-encoding from Path.
+	if req.URL.RawPath != "" {
+		req.URL.RawPath = base + req.URL.RawPath
 	}
 }
 
@@ -1665,11 +1677,17 @@ func (c *Client) signRequest(req *http.Request) error {
 }
 
 func (c *Client) setReqUserAgent(req *http.Request) {
+	if req.Header == nil {
+		req.Header = make(http.Header, 1)
+	}
 	req.Header.Set("User-Agent", c.userAgent)
 }
 
 func (c *Client) setReqGlobalHeader(req *http.Request) {
 	if len(c.header) > 0 {
+		if req.Header == nil {
+			req.Header = make(http.Header, len(c.header))
+		}
 		for k, v := range c.header {
 			if req.Header.Get(k) != k {
 				for _, vv := range v {
@@ -2401,10 +2419,7 @@ func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
 
 		currentPool.mu.RUnlock()
 
-		return &singleServerPool{
-			connection: connection,
-			metrics:    metrics,
-		}
+		return newSingleServerPool(connection, metrics)
 
 	case *singleServerPool:
 		// Already a singleServerPool - return unchanged

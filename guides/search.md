@@ -1,5 +1,7 @@
 # Search
 
+> **Note:** Examples in this guide use `opensearchutil.NewJSONReader` for request bodies that contain dynamic values. For static query strings, raw JSON is acceptable. When building bodies from user-supplied values, always use structured serialization. See [Security](security.md#request-body-construction) for details.
+
 OpenSearch provides a powerful search API that allows you to search for documents in an index. The search API supports a number of parameters that allow you to customize the search operation. In this guide, we will explore the search API and its parameters.
 
 # Setup
@@ -21,6 +23,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
 
 func main() {
@@ -84,7 +87,11 @@ For search-heavy applications, you can configure the client to automatically rou
 			opensearchapi.IndexReq{
 				Index:      exampleIndex,
 				DocumentID: strconv.Itoa(i),
-				Body:       strings.NewReader(fmt.Sprintf(`{"title": "The Dark Knight %d", "director": "Christopher Nolan", "year": %d}`, i, 2008+i)),
+				Body: opensearchutil.NewJSONReader(map[string]any{
+					"title":    fmt.Sprintf("The Dark Knight %d", i),
+					"director": "Christopher Nolan",
+					"year":     2008 + i,
+				}),
 			},
 		)
 		if err != nil {
@@ -233,7 +240,12 @@ The scroll example above has one weakness: if the index is updated while you are
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pitCreateResp.PitID)),
+			Body: opensearchutil.NewJSONReader(map[string]any{
+				"pit": map[string]any{
+					"id":         pitCreateResp.PitID,
+					"keep_alive": "1m",
+				},
+			}),
 			Params: opensearchapi.SearchParams{
 				Size: opensearchapi.ToPointer(5),
 				Sort: []string{"year:desc"},
@@ -252,7 +264,13 @@ The scroll example above has one weakness: if the index is updated while you are
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pitCreateResp.PitID)),
+			Body: opensearchutil.NewJSONReader(map[string]any{
+				"pit": map[string]any{
+					"id":         pitCreateResp.PitID,
+					"keep_alive": "1m",
+				},
+				"search_after": []string{"1994"},
+			}),
 			Params: opensearchapi.SearchParams{
 				Size: opensearchapi.ToPointer(5),
 				Sort: []string{"year:desc"},

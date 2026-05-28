@@ -9,10 +9,11 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // NodesDNPutReq represents possible options for the nodesdn put request
@@ -24,19 +25,18 @@ type NodesDNPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r NodesDNPutReq) GetRequest() (*http.Request, error) {
+func (r NodesDNPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/nodesdn/%s", r.Cluster),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := ospath.SecurityUpdateDistinguishedNamePath{ClusterName: r.Cluster}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // NodesDNPutBody reperensts the request body for NodesDNPutReq

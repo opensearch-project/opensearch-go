@@ -8,6 +8,7 @@ package security
 
 import (
 	"context"
+	"net/http"
 )
 
 type securityconfigClient struct {
@@ -24,7 +25,7 @@ func (c securityconfigClient) Get(ctx context.Context, req *ConfigGetReq) (Confi
 		data ConfigGetResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodGet, req, &data); err != nil {
 		return data, err
 	}
 
@@ -37,7 +38,7 @@ func (c securityconfigClient) Put(ctx context.Context, req ConfigPutReq) (Config
 		data ConfigPutResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPut, req, &data); err != nil {
 		return data, err
 	}
 
@@ -50,7 +51,7 @@ func (c securityconfigClient) Patch(ctx context.Context, req ConfigPatchReq) (Co
 		data ConfigPatchResp
 		err  error
 	)
-	if data.response, err = do(ctx, c.apiClient, req, &data); err != nil {
+	if data.response, err = do(ctx, c.apiClient, http.MethodPatch, req, &data); err != nil {
 		return data, err
 	}
 

@@ -43,6 +43,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 )
@@ -79,15 +80,12 @@ type testReq struct {
 
 func boolPtr(v bool) *bool { return &v }
 
-func (r testReq) GetRequest() (*http.Request, error) {
+func (r testReq) GetRequest(method string) (*http.Request, error) {
 	if r.Error {
 		return nil, fmt.Errorf("test error")
 	}
-	if r.Method == "" {
-		r.Method = http.MethodGet
-	}
-	return BuildRequest(
-		r.Method,
+	return build.Request(
+		method,
 		r.Path,
 		r.Body,
 		r.Params,
@@ -215,7 +213,7 @@ func TestClientInterfe(t *testing.T) {
 		require.NoError(t, err)
 
 		req := testReq{}
-		resp, err := c.Do(context.TODO(), req, nil)
+		resp, err := c.Do(context.TODO(), http.MethodGet, req, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 	})
@@ -233,7 +231,7 @@ func TestClientInterfe(t *testing.T) {
 		}
 
 		var got rootResp
-		resp, err := Do(t.Context(), c, testReq{Path: "/"}, &got)
+		resp, err := Do(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Equal(t, "1.0.0", got.Version.Number)
@@ -244,7 +242,7 @@ func TestClientInterfe(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
-		resp, err := Do[NoBody](t.Context(), c, testReq{Path: "/"}, nil)
+		resp, err := Do[NoBody](t.Context(), c, http.MethodGet, testReq{Path: "/"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 	})
@@ -254,7 +252,7 @@ func TestClientInterfe(t *testing.T) {
 		require.NoError(t, err)
 
 		req := testReq{Error: true}
-		resp, err := c.Do(context.TODO(), req, nil)
+		resp, err := c.Do(context.TODO(), http.MethodGet, req, nil)
 		assert.Error(t, err)
 		assert.Nil(t, resp)
 	})
@@ -267,7 +265,7 @@ func TestClientInterfe(t *testing.T) {
 			Version int `json:"version"`
 		}
 		req := testReq{Path: "/"}
-		resp, err := c.Do(context.TODO(), req, &failStr{})
+		resp, err := c.Do(context.TODO(), http.MethodGet, req, &failStr{})
 		require.Error(t, err)
 		assert.ErrorIs(t, err, ErrJSONUnmarshalBody)
 		assert.NotNil(t, resp)
@@ -291,7 +289,7 @@ func TestClientInterfe(t *testing.T) {
 			Version int `json:"version"`
 		}
 		req := testReq{}
-		resp, err := c.Do(context.TODO(), req, &failStr{})
+		resp, err := c.Do(context.TODO(), http.MethodGet, req, &failStr{})
 		require.Error(t, err)
 		assert.ErrorIs(t, err, ErrReadBody)
 		assert.NotNil(t, resp)

@@ -8,9 +8,10 @@ package opensearchapi
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // IndicesSegmentsReq represents possible options for the index shrink request
@@ -22,23 +23,12 @@ type IndicesSegmentsReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r IndicesSegmentsReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-
-	var path strings.Builder
-	path.Grow(11 + len(indices))
-	if len(indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+func (r IndicesSegmentsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IndicesSegmentsPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
 	}
-	path.WriteString("/_segments")
-	return opensearch.BuildRequest(
-		"GET",
-		path.String(),
-		nil,
-		r.Params.get(),
-		r.Header,
-	)
+	return build.Request(method, path, nil, r.Params.get(), r.Header)
 }
 
 // IndicesSegmentsResp represents the returned struct of the index shrink response

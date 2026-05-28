@@ -7,11 +7,12 @@
 package opensearchapi
 
 import (
-	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // DocumentExplainReq represents possible options for the /<Index>/_explain/<DocumentID> request
@@ -26,14 +27,16 @@ type DocumentExplainReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r DocumentExplainReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"POST",
-		fmt.Sprintf("/%s/_explain/%s", r.Index, r.DocumentID),
-		r.Body,
-		r.Params.get(),
-		r.Header,
-	)
+func (r DocumentExplainReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.ExplainPath{
+		ID:    r.DocumentID,
+		Index: r.Index,
+	}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, r.Body, r.Params.get(), r.Header)
 }
 
 // DocumentExplainResp represents the returned struct of the /<Index>/_explain/<DocumentID> response

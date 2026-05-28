@@ -9,10 +9,11 @@ package security
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // InternalUsersPutReq represents possible options for the internalusers put request
@@ -24,19 +25,18 @@ type InternalUsersPutReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r InternalUsersPutReq) GetRequest() (*http.Request, error) {
+func (r InternalUsersPutReq) GetRequest(method string) (*http.Request, error) {
 	body, err := json.Marshal(r.Body) //nolint:gosec // G117: Password field is intentional for this security API
 	if err != nil {
 		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		"PUT",
-		fmt.Sprintf("/_plugins/_security/api/internalusers/%s", r.User),
-		bytes.NewReader(body),
-		make(map[string]string),
-		r.Header,
-	)
+	path, err := ospath.SecurityCreateUserPath{Username: r.User}.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	return build.Request(method, path, bytes.NewReader(body), make(map[string]string), r.Header)
 }
 
 // InternalUsersPutBody represents the request body for InternalUsersPutReq

@@ -9,9 +9,10 @@ package ism
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
 // Remove executes a remove policy request with the required RemoveReq
@@ -20,7 +21,7 @@ func (c Client) Remove(ctx context.Context, req RemoveReq) (RemoveResp, error) {
 		data RemoveResp
 		err  error
 	)
-	if data.response, err = do(ctx, &c, req, &data); err != nil {
+	if data.response, err = do(ctx, &c, http.MethodPost, req, &data); err != nil {
 		return data, err
 	}
 
@@ -35,23 +36,13 @@ type RemoveReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r RemoveReq) GetRequest() (*http.Request, error) {
-	indices := strings.Join(r.Indices, ",")
-	var path strings.Builder
-	path.Grow(len("/_plugins/_ism/remove/") + len(indices))
-	path.WriteString("/_plugins/_ism/remove")
-	if len(r.Indices) > 0 {
-		path.WriteString("/")
-		path.WriteString(indices)
+func (r RemoveReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.IsmRemovePolicyPath{Index: r.Indices}.Build()
+	if err != nil {
+		return nil, err
 	}
 
-	return opensearch.BuildRequest(
-		http.MethodPost,
-		path.String(),
-		nil,
-		make(map[string]string),
-		r.Header,
-	)
+	return build.Request(method, path, nil, make(map[string]string), r.Header)
 }
 
 // RemoveResp represents the returned struct of the remove policy response

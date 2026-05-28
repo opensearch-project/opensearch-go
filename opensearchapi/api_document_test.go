@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/test"
+	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
 )
@@ -94,7 +94,10 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = client.Document.Exists(t.Context(), opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
+						resp.Response, err = client.Document.Exists(
+							t.Context(),
+							opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID},
+						)
 						return resp, err
 					},
 				},
@@ -105,7 +108,10 @@ func TestDocumentClient(t *testing.T) {
 							resp osapitest.DummyInspect
 							err  error
 						)
-						resp.Response, err = failingClient.Document.Exists(t.Context(), opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID})
+						resp.Response, err = failingClient.Document.Exists(
+							t.Context(),
+							opensearchapi.DocumentExistsReq{Index: index, DocumentID: documentID},
+						)
 						return resp, err
 					},
 				},

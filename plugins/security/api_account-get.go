@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 )
 
 // AccountGetReq represents possible options for the account get request
@@ -18,9 +19,9 @@ type AccountGetReq struct {
 }
 
 // GetRequest returns the *http.Request that gets executed by the client
-func (r AccountGetReq) GetRequest() (*http.Request, error) {
-	return opensearch.BuildRequest(
-		"GET",
+func (r AccountGetReq) GetRequest(method string) (*http.Request, error) {
+	return build.Request(
+		method,
 		"/_plugins/_security/api/account",
 		nil,
 		make(map[string]string),
