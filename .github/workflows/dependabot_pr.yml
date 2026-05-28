@@ -18,18 +18,18 @@ jobs:
     steps:
       - name: GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
       - name: Check out code
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Update the changelog
-        uses: dangoslen/dependabot-changelog-helper@v4
+        uses: dangoslen/dependabot-changelog-helper@50a0884d19a0e4aa379a69c96a82b5e8d6c46d63 # v4
         with:
           version: 'Unreleased'
       
@@ -40,7 +40,7 @@ jobs:
         run: prettier --prose-wrap never --write **/*.md
 
       - name: Commit the changes
-        uses: stefanzweifel/git-auto-commit-action@v7
+        uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7
         with:
           commit_message: "Update changelog"
           branch: ${{ github.head_ref }}
