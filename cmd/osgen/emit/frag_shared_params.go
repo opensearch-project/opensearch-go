@@ -8,8 +8,8 @@ package emit
 
 // SharedParamsFragment renders type aliases for the TimeoutParams and
 // DebugParams structs defined in internal/params. Emitted once in the
-// core package so that external consumers can reference osapi.TimeoutParams
-// and osapi.DebugParams in composite literals.
+// core package so that external consumers can reference opensearchapi.TimeoutParams
+// and opensearchapi.DebugParams in composite literals.
 type SharedParamsFragment struct{}
 
 // Imports returns the imports the shared-params fragment needs.

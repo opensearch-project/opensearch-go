@@ -11,6 +11,8 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 func TestResolveUnionType(t *testing.T) {
@@ -421,7 +423,7 @@ func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {
 
 	branchType := &goType{
 		Name:      "BranchType",
-		Pkg:       "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+		Pkg:       ir.DefaultCoreImportPath,
 		SchemaRef: "group___BranchType",
 		IsShared:  false,
 	}
@@ -429,7 +431,7 @@ func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {
 
 	unionType := &goType{
 		Name:      "SharedUnion",
-		Pkg:       "github.com/opensearch-project/opensearch-go/v4/opensearchapi",
+		Pkg:       ir.DefaultCoreImportPath,
 		SchemaRef: "_common___SharedUnion",
 		IsShared:  true,
 		IsUnion:   true,

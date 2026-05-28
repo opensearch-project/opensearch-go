@@ -96,7 +96,7 @@ func (s *GenerateSuite) TestGenerateAPI() {
 	outDir := filepath.Join(s.tmpDir, "api")
 	pluginsDir := filepath.Join(s.tmpDir, "plugins")
 
-	err := generateAPI(specPath, nil, outDir, pluginsDir, "osapi", VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -121,7 +121,7 @@ func (s *GenerateSuite) TestGenerateAPI_Filter() {
 	outDir := filepath.Join(s.tmpDir, "api-filter")
 
 	filter := map[string]bool{"cluster.health": true}
-	err := generateAPI(specPath, filter, outDir, "", "osapi", VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, filter, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -136,7 +136,14 @@ func (s *GenerateSuite) TestGenerateAPI_Filter() {
 }
 
 func (s *GenerateSuite) TestGenerateAPI_InvalidSpec() {
-	err := generateAPI("/nonexistent/spec.yaml", nil, filepath.Join(s.tmpDir, "invalid"), "", "osapi", VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(
+		"/nonexistent/spec.yaml",
+		nil,
+		filepath.Join(s.tmpDir, "invalid"),
+		"",
+		opensearchAPIPkgName,
+		VersionRange{},
+		BreadcrumbConfig{})
 	s.Require().Error(err)
 }
 
@@ -145,7 +152,7 @@ func (s *GenerateSuite) TestGenerateAPI_WithPlugins() {
 	outDir := filepath.Join(s.tmpDir, "api-plugins")
 	pluginsDir := filepath.Join(s.tmpDir, "plugins-with")
 
-	err := generateAPI(specPath, nil, outDir, pluginsDir, "osapi", VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
 	s.Require().NoError(err)
 
 	pluginDir := filepath.Join(pluginsDir, "knn")
@@ -169,9 +176,9 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 
 	// Plant a stale generated file.
 	staleFile := filepath.Join(outDir, "old-operation_gen.go")
-	s.Require().NoError(maybe.WriteFile(staleFile, []byte("package osapi\n"), 0o600))
+	s.Require().NoError(maybe.WriteFile(staleFile, []byte("package "+opensearchAPIPkgName+"\n"), 0o600))
 
-	err := generateAPI(specPath, nil, outDir, "", "osapi", VersionRange{}, BreadcrumbConfig{})
+	err := generateAPI(specPath, nil, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{})
 	s.Require().NoError(err)
 
 	// Stale file should be removed.

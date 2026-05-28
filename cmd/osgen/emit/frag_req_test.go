@@ -210,7 +210,7 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 
 	f := &emit.File{
 		FilePath:  "/tmp/test/cluster-health_gen.go",
-		Package:   "osapi",
+		Package:   ir.DefaultCorePkgName,
 		Fragments: []emit.Fragment{&emit.ReqFragment{Op: op}, &emit.ParamsFragment{Op: op}},
 	}
 
@@ -218,7 +218,7 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 	require.NoError(t, err)
 
 	output := string(src)
-	require.Contains(t, output, "package osapi")
+	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 
 	netIdx := strings.Index(output, `"net/http"`)
 	buildIdx := strings.Index(output, `"github.com/opensearch-project/opensearch-go/v4/internal/build"`)

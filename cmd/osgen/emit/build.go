@@ -161,7 +161,7 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 	}
 
 	// Dispatch test file (core operations only).
-	if frag := buildDispatchTestFrag(spec.Operations, cfg.CorePkg, cfg.ModulePath+"/"+cfg.CorePkg); frag != nil {
+	if frag := buildDispatchTestFrag(spec.Operations, cfg.CorePkg, coreImportPath(cfg.CorePkg, cfg.ModulePath)); frag != nil {
 		targets = append(targets, NewDispatchTestFile(cfg.OutDir, cfg.CorePkg, frag))
 	}
 
@@ -187,8 +187,8 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 
 		// Plugin test helper file (skip if hand-written helpers already exist).
 		pluginImport := importPathForGroup(pi.ops[0].Group, cfg.CorePkg, cfg.ModulePath)
-		coreImport := cfg.ModulePath + "/" + cfg.CorePkg
-		testDir := pi.dir + "/internal/test"
+		coreImport := coreImportPath(cfg.CorePkg, cfg.ModulePath)
+		testDir := pi.dir + "/internal/" + pkg + "test"
 		if !hasExistingHelper(testDir) {
 			targets = append(targets, NewPluginTestHelperFile(testDir, pkg, pluginImport, coreImport, cfg.CorePkg))
 		}
@@ -863,7 +863,7 @@ func unsatisfiedPositionalDeps(pb ir.PathBuilder) map[string]bool {
 }
 
 // qualifiedBodyLiteral returns the Go expression for an empty body struct
-// literal, qualified for use in external test packages (e.g. "osapi.CountBody{}").
+// literal, qualified for use in external test packages (e.g. "opensearchapi.CountBody{}").
 // For plugin operations whose body type lives in the core package, the core
 // package qualifier is used instead.
 func qualifiedBodyLiteral(op *ir.Operation, pkg, corePkg string) string {
@@ -1334,10 +1334,22 @@ func routeOp(group, outDir, pluginsDir string) (string, string) {
 
 func importPathForGroup(group, corePkg, modulePath string) string {
 	prefix := groupPrefixIR(group)
+	core := coreImportPath(corePkg, modulePath)
 	if coreGroupPrefixes[prefix] {
-		return modulePath + "/" + corePkg
+		return core
 	}
-	return modulePath + "/" + corePkg + "/plugins/" + prefix
+	return core + "/plugins/" + prefix
+}
+
+// coreImportPath returns the full import path for the core API package.
+// When corePkg matches the default name, it uses the canonical subpath
+// (currently nested under v5preview/); otherwise it places the override
+// package directly under the module root for legacy compatibility.
+func coreImportPath(corePkg, modulePath string) string {
+	if corePkg == ir.DefaultCorePkgName {
+		return modulePath + "/" + ir.DefaultCoreSubpath
+	}
+	return modulePath + "/" + corePkg
 }
 
 func groupPrefixIR(group string) string {

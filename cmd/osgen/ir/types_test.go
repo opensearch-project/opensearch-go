@@ -15,7 +15,7 @@ import (
 func TestTypeRegistryRegisterAndLookup(t *testing.T) {
 	t.Parallel()
 
-	reg := ir.NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
+	reg := ir.NewTypeRegistry(ir.DefaultCorePkgName, ir.DefaultCoreImportPath)
 
 	typ := &ir.Type{
 		Name:      "ClusterHealthResp",
@@ -60,7 +60,7 @@ func TestTypeRegistryRegisterAndLookup(t *testing.T) {
 func TestTypeRegistryShared(t *testing.T) {
 	t.Parallel()
 
-	reg := ir.NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
+	reg := ir.NewTypeRegistry(ir.DefaultCorePkgName, ir.DefaultCoreImportPath)
 
 	shared := &ir.Type{Name: "ShardStatistics", SchemaRef: "_common___ShardStatistics", Scope: ir.ScopeShared}
 	local := &ir.Type{Name: "IndexHealthStats", SchemaRef: "cluster.health___IndexHealthStats", Scope: ir.ScopeLocal}
@@ -82,13 +82,13 @@ func TestTypeRegistryShared(t *testing.T) {
 func TestTypeRegistryPromoteSharedDeps(t *testing.T) {
 	t.Parallel()
 
-	reg := ir.NewTypeRegistry("osapi", "github.com/opensearch-project/opensearch-go/v4/osapi")
+	reg := ir.NewTypeRegistry(ir.DefaultCorePkgName, ir.DefaultCoreImportPath)
 
 	parent := &ir.Type{
 		Name:      "SharedParent",
 		SchemaRef: "shared___Parent",
 		Scope:     ir.ScopeShared,
-		Package:   "osapi",
+		Package:   ir.DefaultCorePkgName,
 		Fields:    []ir.Field{{GoName: "Child", GoType: "LocalChild"}},
 	}
 	child := &ir.Type{

@@ -9,10 +9,12 @@ package emit
 import (
 	"sort"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 // LocalModule is the module path used to identify local imports for grouping.
-const LocalModule = "github.com/opensearch-project/opensearch-go/v4"
+const LocalModule = ir.ModulePath
 
 // Import represents one import statement.
 type Import struct {

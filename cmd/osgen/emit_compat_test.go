@@ -23,8 +23,8 @@ func TestCompatFileTarget_MatchesLegacy(t *testing.T) {
 		pkg         string
 		hasDuration bool
 	}{
-		{name: "without duration", pkg: "osapi", hasDuration: false},
-		{name: "with duration", pkg: "osapi", hasDuration: true},
+		{name: "without duration", pkg: opensearchAPIPkgName, hasDuration: false},
+		{name: "with duration", pkg: opensearchAPIPkgName, hasDuration: true},
 		{name: "plugin without duration", pkg: "knn", hasDuration: false},
 		{name: "plugin with duration", pkg: "ism", hasDuration: true},
 	}

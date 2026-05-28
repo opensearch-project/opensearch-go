@@ -317,7 +317,7 @@ func qualifierFunc(isPlugin bool, reg *ir.TypeRegistry) func(string) string {
 }
 
 // qualifyType prefixes shared type names in goType with the registry's core
-// package name (e.g. "[]InsightsTopQuery" becomes "[]osapi.InsightsTopQuery").
+// package name (e.g. "[]InsightsTopQuery" becomes "[]opensearchapi.InsightsTopQuery").
 func qualifyType(goType string, reg *ir.TypeRegistry) string {
 	prefix, base := unwrapGoType(goType)
 	if base == "" || isBuiltin(base) || strings.Contains(base, ".") {

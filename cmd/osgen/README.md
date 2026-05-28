@@ -80,26 +80,26 @@ go run . paths \
 
 ### api
 
-Generates API consumer files into `osapi/` and plugin directories.
+Generates API consumer files into `v5preview/opensearchapi/` and plugin directories.
 
 #### Flags
 
-| Flag                             | Default  | Description                                                             |
-| -------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                  |
-| `-out`                           | required | Output directory for core API files (e.g. `osapi/`)                     |
-| `-pkg`                           | required | Go package name for generated files (e.g. `osapi`)                      |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `osapi/plugins/`)               |
-| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                              |
-| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                     |
-| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                     |
-| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed        |
-| `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them |
-| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`          |
-| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`               |
-| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`       |
-| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`       |
-| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`    |
+| Flag                             | Default  | Description                                                                 |
+| -------------------------------- | -------- | --------------------------------------------------------------------------- |
+| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                      |
+| `-out`                           | required | Output directory for core API files (e.g. `v5preview/opensearchapi/`)       |
+| `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)                  |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `v5preview/opensearchapi/plugins/`) |
+| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                                  |
+| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                         |
+| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                         |
+| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed            |
+| `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them     |
+| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`              |
+| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`                   |
+| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`           |
+| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`           |
+| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`        |
 
 #### Examples
 
@@ -109,9 +109,9 @@ Regenerate all API consumer files:
 cd cmd/osgen
 go run . api \
   -spec ../../opensearch-openapi.yaml \
-  -out ../../osapi \
-  -pkg osapi \
-  -plugins-out ../../osapi/plugins
+  -out ../../v5preview/opensearchapi \
+  -pkg opensearchapi \
+  -plugins-out ../../v5preview/opensearchapi/plugins
 ```
 
 Generate a single operation:
@@ -120,8 +120,8 @@ Generate a single operation:
 cd cmd/osgen
 go run . api \
   -spec ../../opensearch-openapi.yaml \
-  -out ../../osapi \
-  -pkg osapi \
+  -out ../../v5preview/opensearchapi \
+  -pkg opensearchapi \
   -groups cluster.health
 ```
 
@@ -154,7 +154,7 @@ go run . api \
 
 1. Extracts operations from the spec, resolving HTTP methods, path patterns, query parameters, and request bodies.
 2. Classifies query parameters into Go types (string, int, bool, duration, list) based on schema analysis.
-3. Routes each operation to either the core `osapi` package or a plugin package based on the operation group prefix.
+3. Routes each operation to either the core `opensearchapi` package or a plugin package based on the operation group prefix.
 4. Renders Req structs (with path builder embedding, optional body, and header support), Params structs (with typed encode methods), and Resp stubs.
 5. Annotates generated code with availability (`x-version-added`), deprecation (`x-version-deprecated`, `x-deprecation-message`), and distribution exclusion metadata.
 

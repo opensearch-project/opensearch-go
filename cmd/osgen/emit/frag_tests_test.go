@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 func TestParamsTestFragment_Body(t *testing.T) {
@@ -85,8 +86,8 @@ func TestReqTestFragment_Body(t *testing.T) {
 	t.Parallel()
 
 	frag := &emit.ReqTestFragment{
-		PkgName:    "osapi",
-		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
+		PkgName:    ir.DefaultCorePkgName,
+		ImportPath: ir.DefaultCoreImportPath,
 		TypePrefix: "ClusterHealth",
 		Cases: []emit.ReqTestCase{
 			{Name: "empty request", WantMethod: "GET", WantPath: "/_cluster/health", WantErr: "false"},
@@ -101,7 +102,7 @@ func TestReqTestFragment_Body(t *testing.T) {
 		want string
 	}{
 		{name: "func name", want: "func TestClusterHealthReq_GetRequest(t *testing.T)"},
-		{name: "req type", want: "osapi.ClusterHealthReq"},
+		{name: "req type", want: ir.DefaultCorePkgName + ".ClusterHealthReq"},
 		{name: "method assertion", want: "require.Equal(t, tt.wantMethod, httpReq.Method)"},
 		{name: "path assertion", want: "require.Equal(t, tt.wantPath, httpReq.URL.Path)"},
 	}
@@ -118,17 +119,23 @@ func TestDispatchTestFragment_Body(t *testing.T) {
 	t.Parallel()
 
 	frag := &emit.DispatchTestFragment{
-		PkgName:    "osapi",
-		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
+		PkgName:    ir.DefaultCorePkgName,
+		ImportPath: ir.DefaultCoreImportPath,
 		Entries: []emit.DispatchEntry{
 			{
 				TestName:   "ClusterHealth",
 				FieldPath:  "Cluster",
 				MethodName: "Health",
-				ReqType:    "*osapi.ClusterHealthReq",
-				RespType:   "*osapi.ClusterHealthResp",
+				ReqType:    "*" + ir.DefaultCorePkgName + ".ClusterHealthReq",
+				RespType:   "*" + ir.DefaultCorePkgName + ".ClusterHealthResp",
 			},
-			{TestName: "Info", FieldPath: "", MethodName: "Info", ReqType: "*osapi.InfoReq", RespType: "*osapi.InfoResp"},
+			{
+				TestName:   "Info",
+				FieldPath:  "",
+				MethodName: "Info",
+				ReqType:    "*" + ir.DefaultCorePkgName + ".InfoReq",
+				RespType:   "*" + ir.DefaultCorePkgName + ".InfoResp",
+			},
 		},
 	}
 
@@ -160,28 +167,28 @@ func TestNewParamsTestFile_BuildTag(t *testing.T) {
 		Cases:      []emit.ParamTestCase{{Name: "x", FieldAssign: "X: func(b bool) *bool { return &b }(true)", WantAssign: `"x": "true"`}},
 	}
 
-	target := emit.NewParamsTestFile("/tmp/test", "osapi", "api_cluster-health", frag)
+	target := emit.NewParamsTestFile("/tmp/test", ir.DefaultCorePkgName, "api_cluster-health", frag)
 	src, err := target.Render()
 	require.NoError(t, err)
 
 	output := string(src)
 	require.Contains(t, output, "//go:build !integration")
-	require.Contains(t, output, "package osapi")
+	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 }
 
 func TestReqTestFile_BlackBox(t *testing.T) {
 	t.Parallel()
 
 	frag := &emit.ReqTestFragment{
-		PkgName:    "osapi",
-		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
+		PkgName:    ir.DefaultCorePkgName,
+		ImportPath: ir.DefaultCoreImportPath,
 		TypePrefix: "ClusterHealth",
 		Cases:      []emit.ReqTestCase{{Name: "empty", WantMethod: "GET", WantPath: "/", WantErr: "false"}},
 	}
 
 	target := &emit.File{
 		FilePath:  "/tmp/test/api_cluster-health_gen_test.go",
-		Package:   "osapi_test",
+		Package:   ir.DefaultCorePkgName + "_test",
 		BuildTag:  "!integration",
 		Fragments: []emit.Fragment{frag},
 	}
@@ -190,31 +197,31 @@ func TestReqTestFile_BlackBox(t *testing.T) {
 
 	output := string(src)
 	require.Contains(t, output, "//go:build !integration")
-	require.Contains(t, output, "package osapi_test")
+	require.Contains(t, output, "package "+ir.DefaultCorePkgName+"_test")
 }
 
 func TestNewIntegTestFile_BuildTag(t *testing.T) {
 	t.Parallel()
 
 	frag := &emit.IntegTestFragment{
-		PkgName:    "osapi",
-		ImportPath: "github.com/opensearch-project/opensearch-go/v4/osapi",
-		ModulePath: "github.com/opensearch-project/opensearch-go/v4",
-		CorePkg:    "osapi",
+		PkgName:    ir.DefaultCorePkgName,
+		ImportPath: ir.DefaultCoreImportPath,
+		ModulePath: ir.ModulePath,
+		CorePkg:    ir.DefaultCorePkgName,
 		Config: emit.IntegTestConfig{
 			TypePrefix:   "ClusterHealth",
 			CallExpr:     "client.Cluster.Health(t.Context(), nil)",
 			FailCallExpr: "failingClient.Cluster.Health(t.Context(), nil)",
-			CorePkgName:  "osapi",
+			CorePkgName:  ir.DefaultCorePkgName,
 		},
 	}
 
-	target := emit.NewIntegTestFile("/tmp/test", "osapi", "api_cluster-health", frag)
+	target := emit.NewIntegTestFile("/tmp/test", ir.DefaultCorePkgName, "api_cluster-health", frag)
 	src, err := target.Render()
 	require.NoError(t, err)
 
 	output := string(src)
 	require.Contains(t, output, "//go:build integration")
-	require.Contains(t, output, "package osapi_test")
+	require.Contains(t, output, "package "+ir.DefaultCorePkgName+"_test")
 	require.Contains(t, output, "func TestClusterHealth(t *testing.T)")
 }

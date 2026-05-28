@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 func TestTitleSegment(t *testing.T) {
@@ -47,7 +49,7 @@ func TestTitleSegment(t *testing.T) {
 
 // TestPathBuilderName verifies the mapping from x-operation-group to path
 // builder struct name. These struct names appear in internal/path/builders_gen.go
-// and are referenced by consumer files in osapi/ and osapi/plugins/ via their
+// and are referenced by consumer files in v5preview/opensearchapi/ and v5preview/opensearchapi/plugins/ via their
 // GetRequest() methods. The naming must stay deterministic across regeneration.
 func TestPathBuilderName(t *testing.T) {
 	t.Parallel()
@@ -184,18 +186,22 @@ func TestOperationFilename(t *testing.T) {
 		group string
 		want  string // full relative path: dir/basename_gen.go
 	}{
-		{name: "core leaf", group: "search", want: "osapi/search_gen.go"},
-		{name: "core dotted", group: "indices.create", want: "osapi/indices-create_gen.go"},
-		{name: "_core stripped", group: "_core.search", want: "osapi/search_gen.go"},
-		{name: "plugin leaf", group: "knn.stats", want: "osapi/plugins/knn/stats_gen.go"},
-		{name: "plugin underscore", group: "ism.add_policy", want: "osapi/plugins/ism/add_policy_gen.go"},
-		{name: "plugin multi word", group: "security.reload_http_certificates", want: "osapi/plugins/security/reload_http_certificates_gen.go"},
+		{name: "core leaf", group: "search", want: "v5preview/opensearchapi/search_gen.go"},
+		{name: "core dotted", group: "indices.create", want: "v5preview/opensearchapi/indices-create_gen.go"},
+		{name: "_core stripped", group: "_core.search", want: "v5preview/opensearchapi/search_gen.go"},
+		{name: "plugin leaf", group: "knn.stats", want: "v5preview/opensearchapi/plugins/knn/stats_gen.go"},
+		{name: "plugin underscore", group: "ism.add_policy", want: "v5preview/opensearchapi/plugins/ism/add_policy_gen.go"},
+		{
+			name:  "plugin multi word",
+			group: "security.reload_http_certificates",
+			want:  "v5preview/opensearchapi/plugins/security/reload_http_certificates_gen.go",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, dir := routeOperation(tt.group, "osapi", "osapi/plugins")
+			_, dir := routeOperation(tt.group, ir.DefaultCoreSubpath, ir.DefaultCoreSubpath+"/plugins")
 			got := dir + "/" + operationFilename(tt.group) + genFileSuffix
 			require.Equal(t, tt.want, got)
 		})
@@ -220,7 +226,6 @@ func TestHTTPMethodConst(t *testing.T) {
 		{name: "trace", method: http.MethodTrace, want: "http.MethodTrace"},
 		{name: "connect", method: http.MethodConnect, want: "http.MethodConnect"},
 		{name: "lowercase", method: "get", want: "http.MethodGet"},
-		{name: "unknown defaults to get", method: "UNKNOWN", want: "http.MethodGet"},
 	}
 
 	for _, tt := range tests {
@@ -229,6 +234,11 @@ func TestHTTPMethodConst(t *testing.T) {
 			require.Equal(t, tt.want, httpMethodConst(tt.method))
 		})
 	}
+}
+
+func TestHTTPMethodConst_PanicsOnUnknown(t *testing.T) {
+	t.Parallel()
+	require.Panics(t, func() { httpMethodConst("UNKNOWN") })
 }
 
 func TestGoFieldName(t *testing.T) {

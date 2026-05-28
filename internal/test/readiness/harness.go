@@ -166,7 +166,7 @@ type TestingT = require.TestingT
 // The caller wires in observers via WithLayerCheck, WithClientStateCheck,
 // WithFSMCheck, and WithReadyFunc. Wait itself contains no protocol logic;
 // the cluster-lens and transport-lens closures live in the consumer
-// packages (osapi/testutil and opensearchtransport tests respectively)
+// packages (v5preview/opensearchapi/testutil and opensearchtransport tests respectively)
 // to keep readiness free of any client-package imports.
 func Wait(t TestingT, ctx context.Context, target State, opts ...Option) {
 	if h, ok := t.(interface{ Helper() }); ok {

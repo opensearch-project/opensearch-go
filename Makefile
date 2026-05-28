@@ -137,7 +137,7 @@ OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specifi
 
 # Generated code output directories.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
-GEN_OSAPI_DIR   := $(REPO_ROOT)/osapi
+GEN_OSAPI_DIR   := $(REPO_ROOT)/v5preview/opensearchapi
 GEN_PLUGINS_DIR := $(GEN_OSAPI_DIR)/plugins
 
 # Version filtering defaults for code generation.
@@ -160,7 +160,7 @@ fetch-opensearch-spec-force: ## Re-download the OpenSearch OpenAPI spec from ups
 	@printf "\033[2m-> Downloading %s...\033[0m\n" "$(OPENAPI_SPEC)"
 	@curl -sSfL "$(OPENAPI_SPEC_URL)" -o "$(OPENAPI_SPEC)"
 
-clean-gen:  ## Remove all generated Go files (osapi, osapi/plugins, internal/path)
+clean-gen:  ## Remove all generated Go files (v5preview/opensearchapi, plugins, internal/path)
 	@printf "\033[2m-> Removing generated files...\033[0m\n"
 	@rm -f $(GEN_PATH_DIR)/builders_gen.go $(GEN_PATH_DIR)/builders_gen_test.go
 	@rm -f $(GEN_OSAPI_DIR)/*_gen.go $(GEN_OSAPI_DIR)/*_gen_test.go
@@ -182,7 +182,7 @@ gen-api: fetch-opensearch-spec  ## Regenerate API consumer files only
 	cd $(REPO_ROOT)/cmd/osgen && go run . api \
 		-spec $(OPENAPI_SPEC) \
 		-out $(GEN_OSAPI_DIR) \
-		-pkg osapi \
+		-pkg opensearchapi \
 		-plugins-out $(GEN_PLUGINS_DIR) \
 		-min-version=$(GEN_MIN_VERSION) \
 		-max-version=$(GEN_MAX_VERSION) \
@@ -196,7 +196,7 @@ test-gen: regen  ## Regen then run unit + integration tests (ensures tests use f
 	@$(MAKE) test-unit
 	@printf "\033[2m-> Running integration tests...\033[0m\n"
 	$(eval SECURE_INTEGRATION ?= true)
-	@SECURE_INTEGRATION=$(SECURE_INTEGRATION) go test -v -tags=integration -count=1 -timeout=5m ./osapi/...
+	@SECURE_INTEGRATION=$(SECURE_INTEGRATION) go test -v -tags=integration -count=1 -timeout=5m ./v5preview/opensearchapi/...
 
 lint:  ## Run lint on the package
 	@$(MAKE) linters
@@ -327,7 +327,7 @@ godoc: ## Display documentation for the package
 	@printf "\033[2m-> Generating documentation...\033[0m\n"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchapi"
-	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/osapi"
+	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchtransport"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchutil"
 	@printf "\n"

@@ -19,7 +19,7 @@ import (
 
 // rawHTTPLensCheck observes a single endpoint URL with a plain http.Client
 // and advances one synthetic node through LayerTCP and LayerHTTP. Used when
-// the caller has not yet constructed an osapi.Client (e.g. transport-level
+// the caller has not yet constructed an opensearchapi.Client (e.g. transport-level
 // pre-flight checks).
 //
 // Because the lens cannot enumerate node identities, it tracks one
@@ -116,7 +116,7 @@ func IsPermanentAuthErr(err error) bool {
 
 // WithRawHTTP registers a layer check that advances one synthetic
 // "endpoint-<host:port>" node through LayerTCP and LayerHTTP using a
-// plain http.Client. Use this when an osapi.Client is not yet available.
+// plain http.Client. Use this when an opensearchapi.Client is not yet available.
 //
 // prepareReq is called on every probe request before it is sent and is
 // the caller's hook for setting BasicAuth or other headers. Pass nil if

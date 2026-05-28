@@ -18,7 +18,7 @@
 
 # Security
 
-This guide covers security best practices for using the OpenSearch Go client. Examples use the `osapi` package (spec-generated, typed request bodies, pointer params). The same principles apply to the `opensearchapi` package, which uses `io.Reader` bodies instead of typed structs.
+This guide covers security best practices for using the OpenSearch Go client. Examples use the `v5preview/opensearchapi` package (spec-generated, typed request bodies, pointer params). The same principles apply to the `opensearchapi` package, which uses `io.Reader` bodies instead of typed structs.
 
 ## TLS and Certificate Verification
 
@@ -98,7 +98,7 @@ This section covers how the Go client passes those values to the server, the sec
 
 ### How the Client Encodes Path Parameters
 
-Every request struct in `osapi` and `opensearchapi` builds its URL through the shared `internal/path` package. For each caller-supplied path segment (an index name, a document ID, a template name, and so on) the client:
+Every request struct in `v5preview/opensearchapi` and `opensearchapi` builds its URL through the shared `internal/path` package. For each caller-supplied path segment (an index name, a document ID, a template name, and so on) the client:
 
 - percent-encodes characters that would change the _structure_ of the URL (`/`, `?`, `#`, `%`, whitespace, control bytes, and the `..` sequence), so a value can never escape its segment, add query parameters, or reach a different REST endpoint; and
 - passes everything else through unchanged, including `*`, `,`, `-`, `+`, `<`, `>`, and `_`.
@@ -137,7 +137,7 @@ Here is a concrete example showing input validation for a multi-tenant applicati
 // WRONG: user input flows directly into a destructive operation.
 // A user supplying "*" would delete all indices.
 func handleDeleteIndex(userInput string) error {
-    _, err := client.Indices.Delete(ctx, &osapi.IndicesDeleteReq{
+    _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
         Index: []string{userInput},
     })
     return err
@@ -155,7 +155,7 @@ func handleDeleteIndex(tenantID, userInput string) error {
     if !strings.HasPrefix(userInput, expected) {
         return fmt.Errorf("index %q is not in tenant namespace", userInput)
     }
-    _, err := client.Indices.Delete(ctx, &osapi.IndicesDeleteReq{
+    _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
         Index: []string{userInput},
     })
     return err
@@ -211,7 +211,7 @@ idx, err := osx.LiteralIndex(req.TenantIndex)
 if err != nil {
     return fmt.Errorf("invalid tenant index: %w", err)
 }
-_, err = client.Indices.Delete(ctx, &osapi.IndicesDeleteReq{
+_, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
     Index: []string{idx},
 })
 ```
@@ -237,14 +237,14 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
 
   ```go
   // Restrict wildcard expansion to open indices only (exclude closed and hidden).
-  resp, err := client.Search(ctx, &osapi.SearchReq{
+  resp, err := client.Search(ctx, &opensearchapi.SearchReq{
       Index: []string{"logs-*"},
-      Body:  &osapi.SearchBody{
-          Query: &osapi.CommonQueryDSLQueryContainer{
-              MatchAll: &osapi.CommonQueryDSLMatchAllQuery{},
+      Body:  &opensearchapi.SearchBody{
+          Query: &opensearchapi.CommonQueryDSLQueryContainer{
+              MatchAll: &opensearchapi.CommonQueryDSLMatchAllQuery{},
           },
       },
-      Params: &osapi.SearchParams{
+      Params: &opensearchapi.SearchParams{
           ExpandWildcards: []string{"open"},
       },
   })
@@ -268,20 +268,20 @@ A future version of the client will make literal-by-default the library's own be
 //   // err: "wildcard '*' in index name requires AllowWildcards option"
 //
 // Opt in when you've validated the pattern yourself:
-//   _, err := client.Indices.Delete(ctx, req, osapi.AllowWildcards())
+//   _, err := client.Indices.Delete(ctx, req, opensearchapi.AllowWildcards())
 ```
 
 Until this is available, applications that accept index names from external input should validate those names before passing them to the client, as shown in the examples above.
 
 ## Request Body Construction
 
-The `osapi` package provides typed `Body` structs for most operations. Using the typed struct is the safest approach because the compiler enforces the schema and `json.Marshal` handles escaping automatically. String interpolation into JSON is a security risk because unescaped input can alter the structure of the request.
+The `v5preview/opensearchapi` package provides typed `Body` structs for most operations. Using the typed struct is the safest approach because the compiler enforces the schema and `json.Marshal` handles escaping automatically. String interpolation into JSON is a security risk because unescaped input can alter the structure of the request.
 
 ```go
 // WRONG: string interpolation into a raw body reader. A search term
 // containing a double quote breaks out of the JSON string and can
 // alter the query structure.
-resp, err := client.Search(ctx, &osapi.SearchReq{
+resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Index:      []string{"products"},
     BodyReader: strings.NewReader(fmt.Sprintf(
         `{"query":{"match":{"title":"%s"}}}`, userQuery,
@@ -299,10 +299,10 @@ resp, err := client.Search(ctx, &osapi.SearchReq{
 // "search a field with user input" intent. Reach for BodyReader +
 // opensearchutil.NewJSONReader (below) when only the union-shaped
 // `match` form fits the query you need.
-resp, err := client.Search(ctx, &osapi.SearchReq{
+resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Index: []string{"products"},
-    Body: &osapi.SearchBody{
-        Query: &osapi.CommonQueryDSLQueryContainer{
+    Body: &opensearchapi.SearchBody{
+        Query: &opensearchapi.CommonQueryDSLQueryContainer{
             MatchPhrase: map[string]string{
                 "title": userQuery,
             },
@@ -323,7 +323,7 @@ body := opensearchutil.NewJSONReader(map[string]any{
         },
     },
 })
-resp, err := client.Search(ctx, &osapi.SearchReq{
+resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Index:      []string{"products"},
     BodyReader: body,
 })
@@ -332,9 +332,9 @@ resp, err := client.Search(ctx, &osapi.SearchReq{
 On the response side, use the typed response fields for structured access. When you need the raw bytes (logging, proxying, custom deserialization), use `RawBody()`:
 
 ```go
-resp, err := client.Search(ctx, &osapi.SearchReq{
+resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Index: []string{"products"},
-    Body:  &osapi.SearchBody{Query: query},
+    Body:  &opensearchapi.SearchBody{Query: query},
 })
 if err != nil {
     return err

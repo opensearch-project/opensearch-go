@@ -255,7 +255,7 @@ type IntegTestConfig struct {
 	SkipReason string
 
 	// CallExpr is the Go expression that invokes the operation under test
-	// (e.g. "client.Cluster.Health(t.Context(), osapi.ClusterHealthReq{...})").
+	// (e.g. "client.Cluster.Health(t.Context(), opensearchapi.ClusterHealthReq{...})").
 	// References variables declared by the template: index, docID, name.
 	CallExpr string
 
@@ -284,11 +284,11 @@ type IntegTestConfig struct {
 	IsNoBody bool
 
 	// IsPlugin is true when the operation belongs to a plugin package rather
-	// than the core osapi package. Affects client construction and imports.
+	// than the core opensearchapi package. Affects client construction and imports.
 	IsPlugin bool
 
-	// CorePkgName is the package name for the core API types (e.g. "osapi").
-	// Used in type references like "osapi.IndicesDeleteReq" within fixture and
+	// CorePkgName is the package name for the core API types (e.g. "opensearchapi").
+	// Used in type references like "opensearchapi.IndicesDeleteReq" within fixture and
 	// cleanup code.
 	CorePkgName string
 }
@@ -325,7 +325,7 @@ func (f *IntegTestFragment) Imports() []Import {
 	imps = append(imps, Import{Path: "github.com/stretchr/testify/require"})
 
 	if cfg.IsPlugin {
-		imps = append(imps, Import{Path: f.ImportPath + "/internal/test", Alias: "plugintest"})
+		imps = append(imps, Import{Path: f.ImportPath + "/internal/" + f.PkgName + "test", Alias: "plugintest"})
 	}
 
 	needsStrings := strings.Contains(cfg.CallExpr, "strings.NewReader") || strings.Contains(cfg.FixtureCode, "strings.NewReader")
@@ -344,17 +344,17 @@ func (f *IntegTestFragment) Imports() []Import {
 	}
 
 	if cfg.IsPlugin && (strings.Contains(cfg.FixtureCode, f.CorePkg+".") || strings.Contains(cfg.CallExpr, f.CorePkg+".")) {
-		imps = append(imps, Import{Path: f.ModulePath + "/" + f.CorePkg})
+		imps = append(imps, Import{Path: coreImportPath(f.CorePkg, f.ModulePath)})
 	}
 
 	needTestutil := !cfg.IsPlugin || cfg.VersionAdded != "" || !cfg.IsNoBody || cfg.FixtureCode != "" ||
 		cfg.NeedsIndex || cfg.NeedsDocID || cfg.NeedsName || cfg.HasFlag(TestWaitReady)
 	if needTestutil {
-		imps = append(imps, Import{Path: f.ModulePath + "/" + f.CorePkg + "/testutil"})
+		imps = append(imps, Import{Path: coreImportPath(f.CorePkg, f.ModulePath) + "/testutil"})
 	}
 
 	if !cfg.IsNoBody && !cfg.IsPlugin {
-		imps = append(imps, Import{Path: f.ModulePath + "/" + f.CorePkg + "/internal/test", Alias: "osapitest"})
+		imps = append(imps, Import{Path: f.ImportPath + "/internal/osapitest", Alias: "osapitest"})
 	}
 
 	return imps

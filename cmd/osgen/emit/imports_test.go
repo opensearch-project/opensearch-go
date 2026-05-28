@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 func TestImportSetAdd(t *testing.T) {
@@ -95,7 +96,7 @@ func TestImportGroup(t *testing.T) {
 		{name: "stdlib nested", path: "net/http", want: 0},
 		{name: "third-party", path: "github.com/stretchr/testify/require", want: 1},
 		{name: "local root", path: "github.com/opensearch-project/opensearch-go/v4", want: 2},
-		{name: "local sub", path: "github.com/opensearch-project/opensearch-go/v4/osapi", want: 2},
+		{name: "local sub", path: ir.DefaultCoreImportPath, want: 2},
 	}
 
 	for _, tt := range tests {

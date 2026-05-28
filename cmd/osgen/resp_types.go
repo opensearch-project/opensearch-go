@@ -35,7 +35,7 @@ type unionBranch struct {
 // goType represents a generated Go struct type or discriminated union.
 type goType struct {
 	Name      string        // Go type name (e.g. "ClusterHealthResp", "ShardStatistics")
-	Pkg       string        // full import path (e.g. "github.com/opensearch-project/opensearch-go/v4/opensearchapi")
+	Pkg       string        // full import path (see ir.DefaultCoreImportPath)
 	SchemaRef string        // original spec schema key (e.g. "_common___ShardStatistics")
 	Fields    []goField     // struct fields in declaration order
 	IsResp    bool          // true for top-level response body types (gets Inspect method)
@@ -53,7 +53,7 @@ type typeRegistry struct {
 	byName map[string]*goType // Go name -> type (for collision detection)
 	order  []string           // insertion-order schema refs
 
-	// CorePkg is the Go package name for the core API output (e.g. "osapi").
+	// CorePkg is the Go package name for the core API output (e.g. "opensearchapi").
 	CorePkg string
 	// CoreImport is the full import path for CorePkg.
 	CoreImport string

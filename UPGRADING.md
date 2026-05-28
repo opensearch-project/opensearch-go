@@ -4,7 +4,7 @@
 - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
   - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
   - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
-  - [osapi/ package - v5 preview API surface](#osapi-package---v5-preview-api-surface)
+  - [v5preview/opensearchapi/ package - v5 preview API surface](#v5previewopensearchapi-package---v5-preview-api-surface)
 - [Upgrading to >= 4.0.0](#upgrading-to->=-4.0.0)
   - [Import path](#import-path)
   - [Error types](#error-types)
@@ -103,7 +103,7 @@ GetRequest() (*http.Request, error)
 GetRequest(method string) (*http.Request, error)
 ```
 
-This change is invisible to almost all callers: the typed `Req` structs that the client consumes (e.g. `opensearchapi.SearchReq`, `osapi.IndexReq`) already implement the new signature. Only code that defines a custom type satisfying `opensearch.Request` is affected. If you maintain such a type, add a `method string` parameter and forward it to your underlying `http.NewRequest` call (or `opensearch.BuildRequest`).
+This change is invisible to almost all callers: the typed `Req` structs that the client consumes (e.g. `opensearchapi.SearchReq`, the v5-preview `opensearchapi.IndexReq`) already implement the new signature. Only code that defines a custom type satisfying `opensearch.Request` is affected. If you maintain such a type, add a `method string` parameter and forward it to your underlying `http.NewRequest` call (or `opensearch.BuildRequest`).
 
 ### Path segment values are percent-encoded
 
@@ -123,31 +123,46 @@ If your code intentionally passes percent-encoded values, decode them with `url.
 
 [#650]: https://github.com/opensearch-project/opensearch-go/issues/650
 
-### `osapi/` package — v5 preview API surface
+### `v5preview/opensearchapi/` package — v5 preview API surface
 
-This release introduces a new `osapi/` package alongside the existing `opensearchapi/` package. `osapi/` is the **preview of the v5 API in the v4 branch**. `osapi/` is generated from the OpenSearch OpenAPI spec by `cmd/osgen`. When the v5 branch is cut the contents of `osapi/` will relocate to the current `opensearchapi/` package. Callers who migrate to `osapi/` during the v4 branch will be able to use the v5 API today; the only thing that changes at v5 release time is the import path and the package qualifier on every reference.
+This release introduces a new `v5preview/opensearchapi/` package alongside the existing top-level `opensearchapi/` package. The new package is the **preview of the v5 API in the v4 branch** and is generated from the OpenSearch OpenAPI spec by `cmd/osgen`. It deliberately reuses the package name `opensearchapi` so that callers who migrate during the v4 branch only need to change the import path at v5 release time -- every reference in code (e.g. `opensearchapi.IndexReq`, `opensearchapi.NewClient`) stays the same.
 
 **Migration Considerations:**
 
-- Migrating to `osapi/` in v4 gives you the v5 surface ahead of v5 release. The trade-off is a search-and-replace at v5 release time: both the import path (`/v4/osapi` -> `/v5/opensearchapi`) and every package qualifier (`osapi.IndexReq` -> `opensearchapi.IndexReq`, `osapi.NewClient` -> `opensearchapi.NewClient`, etc.).
-- Staying on `opensearchapi/` is fine through the rest of v4. At v5, the hand-written `opensearchapi/` is removed; the only forward path is the code-generated API surface (closely matches the existing hand-written ergonomics).
-- We are also evaluating an alternative import path of `github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi` for the preview package (tracked in [#835](https://github.com/opensearch-project/opensearch-go/issues/835)) so the package qualifier never changes; if that lands the only edit at v5 will be the import path.
+- Migrating to `v5preview/opensearchapi/` in v4 gives you the v5 surface ahead of v5 release. The trade-off at v5 release time is a single edit per consuming file: change the import path from `/v4/v5preview/opensearchapi` to `/v5/opensearchapi`. Package qualifiers do not change.
+- Staying on the top-level `opensearchapi/` package is fine through the rest of v4. At v5, the hand-written `opensearchapi/` is removed; the only forward path is the code-generated API surface (closely matches the existing hand-written ergonomics).
 
 **Import path:**
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/osapi"
+import "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 
-client, err := osapi.NewClient(osapi.Config{...})
+client, err := opensearchapi.NewClient(opensearchapi.Config{...})
 ```
+
+**Forward-compatible replace directive:**
+
+To write code today against the eventual v5 import path, add a `replace` directive to your `go.mod` so the `opensearchapi` package resolves to the v5preview:
+
+```
+replace github.com/opensearch-project/opensearch-go/v5/opensearchapi => github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi v4.7.0
+```
+
+Then write your imports as if v5 already shipped:
+
+```go
+import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+```
+
+When v5 ships, drop the `replace` line; nothing else has to change.
 
 **Surface differences worth knowing about:**
 
-- Optional `Params` are `*Params` pointer fields (nil-safe; pass `&osapi.IndexParams{...}` to set).
+- Optional `Params` are `*Params` pointer fields (nil-safe; pass `&opensearchapi.IndexParams{...}` to set).
 - Optional boolean query parameters are `*bool` so a deliberate `false` can be sent over the wire.
-- Plugin APIs (k-NN, ML, Security, ISM, etc.) live in `osapi/plugins/`.
+- Plugin APIs (k-NN, ML, Security, ISM, etc.) live in `v5preview/opensearchapi/plugins/`.
 
-See `osapi/README.md` for the full usage guide.
+See `v5preview/opensearchapi/README.md` for the full usage guide.
 
 ## Upgrading to >= 4.0.0
 

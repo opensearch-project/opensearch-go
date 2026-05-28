@@ -132,14 +132,14 @@ func TestUnionFragment_FileAssembly(t *testing.T) {
 		},
 	}
 
-	target := emit.NewUnionTypesFile("/tmp/test", "osapi", types)
+	target := emit.NewUnionTypesFile("/tmp/test", ir.DefaultCorePkgName, types)
 	require.NotNil(t, target)
 
 	src, err := target.Render()
 	require.NoError(t, err)
 
 	output := string(src)
-	require.Contains(t, output, "package osapi")
+	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 	require.Contains(t, output, `"encoding/json"`)
 	require.Contains(t, output, `"fmt"`)
 
@@ -182,7 +182,7 @@ func TestNewSharedTypesFile_FiltersStructs(t *testing.T) {
 		{Name: "UnionType", Kind: ir.TypeUnion, Scope: ir.ScopeShared},
 	}
 
-	target := emit.NewSharedTypesFile("/tmp/test", "osapi", types)
+	target := emit.NewSharedTypesFile("/tmp/test", ir.DefaultCorePkgName, types)
 	require.NotNil(t, target)
 
 	src, err := target.Render()

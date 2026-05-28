@@ -35,8 +35,8 @@ func runAPI() error {
 	fs := flag.NewFlagSet("api", flag.ExitOnError)
 	specPath := fs.String("spec", "", "path to OpenAPI spec YAML (single combined file)")
 	groups := fs.String("groups", "", "comma-separated x-operation-group names (empty = all)")
-	outDir := fs.String("out", "", "output directory for core API files (osapi/)")
-	pluginsDir := fs.String("plugins-out", "", "output directory for plugin files (osapi/plugins/)")
+	outDir := fs.String("out", "", "output directory for core API files (v5preview/opensearchapi/)")
+	pluginsDir := fs.String("plugins-out", "", "output directory for plugin files (v5preview/opensearchapi/plugins/)")
 	pkg := fs.String("pkg", opensearchAPIPkgName, "Go package name for core API output")
 	minVer := fs.String("min-version", versionEpoch, "minimum OpenSearch version (default operator: >=)")
 	maxVer := fs.String("max-version", versionLatest, "maximum OpenSearch version (default operator: <=)")
@@ -54,7 +54,7 @@ func runAPI() error {
 	}
 
 	if *specPath == "" || *outDir == "" {
-		return fmt.Errorf("usage: osgen api -spec <openapi-spec.yaml> -out <dir/> [-pkg <name>] -plugins-out <osapi/plugins/>")
+		return fmt.Errorf("usage: osgen api -spec <openapi-spec.yaml> -out <dir/> [-pkg <name>] -plugins-out <v5preview/opensearchapi/plugins/>")
 	}
 
 	var filter map[string]bool

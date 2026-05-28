@@ -75,7 +75,7 @@ func TestPluginTestHelperFragment_Body(t *testing.T) {
 		Pkg:          "ossecurity",
 		PluginImport: "github.com/opensearch-project/opensearch-go/v4/plugins/security",
 		CoreImport:   "github.com/opensearch-project/opensearch-go/v4",
-		CorePkg:      "osapi",
+		CorePkg:      ir.DefaultCorePkgName,
 	}
 
 	body, err := frag.Body()

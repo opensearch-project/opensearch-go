@@ -135,7 +135,7 @@ func baseGoName(jsonName string) string {
 
 // pkgScopedName returns the Go type prefix for an operation, scoped to its
 // target package. Core operations retain their full group prefix because they
-// share the osapi package ("cluster.stats" -> "ClusterStats"). Plugin
+// share the opensearchapi package ("cluster.stats" -> "ClusterStats"). Plugin
 // operations strip the plugin prefix because the package already provides it
 // ("knn.stats" -> "Stats" within package knn).
 func pkgScopedName(group string) string {

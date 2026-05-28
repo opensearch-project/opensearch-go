@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 func TestClientsFragment_Body(t *testing.T) {
@@ -81,14 +82,14 @@ func TestNewClientsFile_Render(t *testing.T) {
 		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
 	}
 
-	target := emit.NewClientsFile("/tmp/test", "osapi", clients)
+	target := emit.NewClientsFile("/tmp/test", ir.DefaultCorePkgName, clients)
 	require.NotNil(t, target)
 
 	src, err := target.Render()
 	require.NoError(t, err)
 
 	output := string(src)
-	require.Contains(t, output, "package osapi")
+	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4"`)
 	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"`)
 }
@@ -96,6 +97,6 @@ func TestNewClientsFile_Render(t *testing.T) {
 func TestNewClientsFile_NilWhenEmpty(t *testing.T) {
 	t.Parallel()
 
-	target := emit.NewClientsFile("/tmp/test", "osapi", nil)
+	target := emit.NewClientsFile("/tmp/test", ir.DefaultCorePkgName, nil)
 	require.Nil(t, target)
 }

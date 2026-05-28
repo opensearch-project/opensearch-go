@@ -12,22 +12,24 @@ import (
 	"path"
 	"sort"
 	"strings"
+
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
 const (
 	// opensearchAPIPkgName is the Go package name for core API types.
-	opensearchAPIPkgName = "opensearchapi"
+	opensearchAPIPkgName = ir.DefaultCorePkgName
 
 	// modulePath is the Go module path for this project.
-	modulePath = "github.com/opensearch-project/opensearch-go/v4"
+	modulePath = ir.ModulePath
 
 	// opensearchAPIImport is the full import path for the core API package.
-	opensearchAPIImport = modulePath + "/" + opensearchAPIPkgName
+	opensearchAPIImport = ir.DefaultCoreImportPath
 
 	// pluginsImportBase is the import path prefix for plugin packages when
 	// using the default package name. When -pkg overrides the package name,
 	// importPathForPkg computes the path from corePkg directly.
-	pluginsImportBase = modulePath + "/" + opensearchAPIPkgName + "/plugins"
+	pluginsImportBase = ir.DefaultPluginsImportBase
 
 	genFileSuffix     = "_gen.go"
 	genTestFileSuffix = "_gen_test.go"
