@@ -314,6 +314,5 @@ func (c ingestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*Ing
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

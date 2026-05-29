@@ -406,6 +406,5 @@ func (c Client) Reindex(ctx context.Context, req *ReindexReq) (*ReindexResp, err
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

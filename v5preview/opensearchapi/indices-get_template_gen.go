@@ -161,6 +161,5 @@ func (c indicesClient) GetTemplate(ctx context.Context, req *IndicesGetTemplateR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -168,6 +168,5 @@ func (c Client) Restore(ctx context.Context, req *RemoteStoreRestoreReq) (*Remot
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

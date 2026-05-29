@@ -227,6 +227,5 @@ func (c indicesClient) ShardStores(ctx context.Context, req *IndicesShardStoresR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

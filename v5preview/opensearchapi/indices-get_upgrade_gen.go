@@ -170,6 +170,5 @@ func (c indicesClient) GetUpgrade(ctx context.Context, req *IndicesGetUpgradeReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

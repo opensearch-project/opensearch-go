@@ -201,6 +201,5 @@ func (c indicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*Indices
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

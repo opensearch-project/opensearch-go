@@ -19,6 +19,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -281,6 +282,35 @@ type UpdateBodySourceObject1 struct {
 type UpdateBodyScript struct {
 }
 
+// WriteShardFailures detects replica-shard failures on a UpdateResp.
+// Returns nil when no shards failed.
+func (r *UpdateResp) WriteShardFailures() *ShardFailureError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &ShardFailureError{
+		Operation:    OperationUpdate,
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// UpdateResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *UpdateResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.WriteShards) {
+		if e := r.WriteShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Update updates a document with a script or partial document.
 //
 // POST /{index}/_update/{id}
@@ -301,6 +331,5 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
 }

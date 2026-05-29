@@ -11981,58 +11981,6 @@ type SecurityWhoAmI struct {
 	IsNodeCertificateRequest *bool           `json:"is_node_certificate_request,omitempty"`
 }
 
-type SmExecutionInfo struct {
-	// The reason policy execution failed, if applicable.
-	Cause *string `json:"cause,omitempty"`
-
-	// A detailed message about the policy execution result.
-	Message *string `json:"message,omitempty"`
-}
-
-// Details about the most recent policy execution.
-type SmExecutionMetadata struct {
-	Info *SmExecutionInfo `json:"info,omitempty"`
-}
-
-// Information about any retry attempts that occurred.
-type SmRetryMetadata struct {
-	// The number of retry attempts made.
-	Count *int `json:"count,omitempty"`
-}
-
-// Any information about what triggered the policy execution.
-type SmTriggerMetadata struct {
-	// When the policy was triggered.
-	Time *int `json:"time,omitempty"`
-}
-
-type SmStateMetadata struct {
-	// The current state of the policy execution.
-	CurrentState *string `json:"current_state,omitempty"`
-
-	// Details about the most recent policy execution.
-	LatestExecution *SmExecutionMetadata `json:"latest_execution,omitempty"`
-
-	// Information about any retry attempts that occurred.
-	Retry *SmRetryMetadata `json:"retry,omitempty"`
-
-	// Any information about what triggered the policy execution.
-	Trigger *SmTriggerMetadata `json:"trigger,omitempty"`
-}
-
-type SmExplainedPolicy struct {
-	Creation          *SmStateMetadata `json:"creation,omitempty"`
-	Deletion          *SmStateMetadata `json:"deletion,omitempty"`
-	Enabled           *bool            `json:"enabled,omitempty"`
-	Name              *string          `json:"name,omitempty"`
-	PolicyPrimaryTerm *int             `json:"policy_primary_term,omitempty"`
-	PolicySeqNo       *int             `json:"policy_seq_no,omitempty"`
-}
-
-type SmPolicyExplanation struct {
-	Policies []SmExplainedPolicy `json:"policies,omitempty"`
-}
-
 type SmCronExpression struct {
 	// The cron expression that defines the schedule.
 	Expression string `json:"expression"`
@@ -12160,6 +12108,75 @@ type SmSMPolicy struct {
 	SnapshotConfig SmSnapshotConfig `json:"snapshot_config"`
 }
 
+type SmPolicyResponse struct {
+	// The policy ID.
+	ID string `json:"_id"`
+
+	// The primary term for optimistic concurrency control.
+	PrimaryTerm int `json:"_primary_term"`
+
+	// The sequence number for optimistic concurrency control.
+	SeqNo int `json:"_seq_no"`
+
+	// The version number of the policy document.
+	Version int `json:"_version"`
+
+	// The complete snapshot management policy configuration.
+	SmPolicy SmSMPolicy `json:"sm_policy"`
+}
+
+type SmExecutionInfo struct {
+	// The reason policy execution failed, if applicable.
+	Cause *string `json:"cause,omitempty"`
+
+	// A detailed message about the policy execution result.
+	Message *string `json:"message,omitempty"`
+}
+
+// Details about the most recent policy execution.
+type SmExecutionMetadata struct {
+	Info *SmExecutionInfo `json:"info,omitempty"`
+}
+
+// Information about any retry attempts that occurred.
+type SmRetryMetadata struct {
+	// The number of retry attempts made.
+	Count *int `json:"count,omitempty"`
+}
+
+// Any information about what triggered the policy execution.
+type SmTriggerMetadata struct {
+	// When the policy was triggered.
+	Time *int `json:"time,omitempty"`
+}
+
+type SmStateMetadata struct {
+	// The current state of the policy execution.
+	CurrentState *string `json:"current_state,omitempty"`
+
+	// Details about the most recent policy execution.
+	LatestExecution *SmExecutionMetadata `json:"latest_execution,omitempty"`
+
+	// Information about any retry attempts that occurred.
+	Retry *SmRetryMetadata `json:"retry,omitempty"`
+
+	// Any information about what triggered the policy execution.
+	Trigger *SmTriggerMetadata `json:"trigger,omitempty"`
+}
+
+type SmExplainedPolicy struct {
+	Creation          *SmStateMetadata `json:"creation,omitempty"`
+	Deletion          *SmStateMetadata `json:"deletion,omitempty"`
+	Enabled           *bool            `json:"enabled,omitempty"`
+	Name              *string          `json:"name,omitempty"`
+	PolicyPrimaryTerm *int             `json:"policy_primary_term,omitempty"`
+	PolicySeqNo       *int             `json:"policy_seq_no,omitempty"`
+}
+
+type SmPolicyExplanation struct {
+	Policies []SmExplainedPolicy `json:"policies,omitempty"`
+}
+
 type SmListedPolicy struct {
 	// The policy ID.
 	ID string `json:"_id"`
@@ -12180,23 +12197,6 @@ type SmGetPoliciesResponse struct {
 
 	// The total number of policies found.
 	TotalPolicies int `json:"total_policies"`
-}
-
-type SmPolicyResponse struct {
-	// The policy ID.
-	ID string `json:"_id"`
-
-	// The primary term for optimistic concurrency control.
-	PrimaryTerm int `json:"_primary_term"`
-
-	// The sequence number for optimistic concurrency control.
-	SeqNo int `json:"_seq_no"`
-
-	// The version number of the policy document.
-	Version int `json:"_version"`
-
-	// The complete snapshot management policy configuration.
-	SmPolicy SmSMPolicy `json:"sm_policy"`
 }
 
 type SnapshotShardFailure struct {

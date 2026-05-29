@@ -151,6 +151,5 @@ func (c danglingClient) ListDanglingIndices(ctx context.Context, req *DanglingIn
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

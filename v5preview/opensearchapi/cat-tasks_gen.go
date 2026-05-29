@@ -237,6 +237,5 @@ func (c catClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, 
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

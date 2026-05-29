@@ -171,6 +171,5 @@ func (c catClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

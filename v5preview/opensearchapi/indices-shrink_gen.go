@@ -210,6 +210,5 @@ func (c indicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*Indic
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

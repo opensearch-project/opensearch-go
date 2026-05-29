@@ -172,6 +172,5 @@ func (c catClient) Plugins(ctx context.Context, req *CatPluginsReq) (*CatPlugins
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

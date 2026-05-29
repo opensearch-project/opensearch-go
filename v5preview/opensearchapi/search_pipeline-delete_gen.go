@@ -124,6 +124,5 @@ func (c searchPipelineClient) Delete(ctx context.Context, req SearchPipelineDele
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -203,6 +203,5 @@ func (c catClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndices
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

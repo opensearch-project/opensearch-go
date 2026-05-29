@@ -136,7 +136,6 @@ func (c snapshotClient) DeleteRepository(ctx context.Context, req *SnapshotDelet
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -158,6 +157,5 @@ func (c repositoryClient) Delete(ctx context.Context, req *SnapshotDeleteReposit
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

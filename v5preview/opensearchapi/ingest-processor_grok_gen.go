@@ -130,6 +130,5 @@ func (c ingestClient) ProcessorGrok(ctx context.Context, req *IngestProcessorGro
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

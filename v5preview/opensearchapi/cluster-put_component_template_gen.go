@@ -185,6 +185,5 @@ func (c clusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutC
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

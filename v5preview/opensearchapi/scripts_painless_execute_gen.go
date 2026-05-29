@@ -179,6 +179,5 @@ func (c Client) ScriptsPainlessExecute(ctx context.Context, req *ScriptsPainless
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

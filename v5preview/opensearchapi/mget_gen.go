@@ -368,6 +368,5 @@ func (c Client) Mget(ctx context.Context, req MgetReq) (*MgetResp, error) {
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

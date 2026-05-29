@@ -143,6 +143,9 @@ func (r CreateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/create-workflow/
 type CreateResp struct {
+	// The ID of the workflow.
+	WorkflowID string `json:"workflow_id"`
+
 	response *opensearch.Response
 }
 

@@ -135,6 +135,5 @@ func (c indicesClient) CreateDataStream(ctx context.Context, req IndicesCreateDa
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

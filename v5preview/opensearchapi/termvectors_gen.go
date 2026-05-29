@@ -282,6 +282,5 @@ func (c Client) Termvectors(ctx context.Context, req TermvectorsReq) (*Termvecto
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -154,6 +154,5 @@ func (c Client) DeleteByQueryRethrottle(ctx context.Context, req DeleteByQueryRe
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

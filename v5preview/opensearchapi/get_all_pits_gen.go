@@ -137,6 +137,5 @@ func (c Client) GetAllPits(ctx context.Context, req *GetAllPitsReq) (*GetAllPits
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

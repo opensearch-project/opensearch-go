@@ -18,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -214,6 +215,49 @@ func (r BulkResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
+// BulkItemFailures detects partial failures on a Bulk response by
+// scanning every per-item op for a non-nil Error. Returns nil when no
+// items failed.
+func (r *BulkResp) BulkItemFailures() *PartialBulkError {
+	if r == nil || !r.Errors {
+		return nil
+	}
+	var failed []BulkResponseItem
+	succeeded := 0
+	for _, item := range r.Items {
+		for _, v := range []*BulkResponseItem{item.Create, item.Delete, item.Index, item.Update} {
+			if v == nil {
+				continue
+			}
+			if v.Error != nil {
+				failed = append(failed, *v)
+			} else {
+				succeeded++
+			}
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return &PartialBulkError{
+		FailedItems:    failed,
+		SucceededCount: succeeded,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// BulkResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *BulkResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.BulkItems) {
+		if e := r.BulkItemFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Bulk allows to perform multiple index/update/delete operations in a single request.
 //
 // Path: /_bulk
@@ -236,6 +280,5 @@ func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
 }

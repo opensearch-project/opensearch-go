@@ -210,6 +210,5 @@ func (c catClient) AllPITSegments(ctx context.Context, req *CatAllPITSegmentsReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

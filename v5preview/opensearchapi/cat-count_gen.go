@@ -240,6 +240,5 @@ func (c catClient) Count(ctx context.Context, req *CatCountReq) (*CatCountResp, 
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

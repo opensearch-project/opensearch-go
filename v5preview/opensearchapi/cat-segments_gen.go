@@ -152,6 +152,5 @@ func (c catClient) Segments(ctx context.Context, req *CatSegmentsReq) (*CatSegme
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -19,6 +19,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -392,6 +393,36 @@ type IndicesStatsShardPath struct {
 	StatePath string `json:"state_path"`
 }
 
+// BroadcastShardFailures detects partial failures on a broadcast-shape
+// response (one envelope, all-shards aggregate). Returns nil when no
+// shards failed.
+func (r *IndicesStatsResp) BroadcastShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// IndicesStatsResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *IndicesStatsResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.BroadcastShards) {
+		if e := r.BroadcastShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Stats provides statistics on operations happening in an index.
 //
 // GET /_stats
@@ -416,6 +447,5 @@ func (c indicesClient) Stats(ctx context.Context, req *IndicesStatsReq) (*Indice
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errors), nil)
 }

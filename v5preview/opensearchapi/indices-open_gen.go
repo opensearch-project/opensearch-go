@@ -294,6 +294,5 @@ func (c indicesClient) Open(ctx context.Context, req *IndicesOpenReq) (*IndicesO
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

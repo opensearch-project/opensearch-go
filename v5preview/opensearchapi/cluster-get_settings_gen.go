@@ -154,6 +154,5 @@ func (c clusterClient) GetSettings(ctx context.Context, req *ClusterGetSettingsR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

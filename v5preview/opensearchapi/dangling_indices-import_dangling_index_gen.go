@@ -98,6 +98,10 @@ func (r DanglingIndicesImportDanglingIndexParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/dangling-index/
 type DanglingIndicesImportDanglingIndexResp struct {
+	// For a successful response, this value is always true. On failure, an
+	// exception is returned instead.
+	Acknowledged bool `json:"acknowledged"`
+
 	response *opensearch.Response
 }
 
@@ -135,6 +139,5 @@ func (c danglingClient) ImportDanglingIndex(ctx context.Context, req DanglingInd
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

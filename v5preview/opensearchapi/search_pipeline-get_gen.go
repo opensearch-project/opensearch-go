@@ -133,6 +133,5 @@ func (c searchPipelineClient) Get(ctx context.Context, req SearchPipelineGetReq)
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

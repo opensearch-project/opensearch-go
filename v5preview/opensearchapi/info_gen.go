@@ -146,6 +146,5 @@ func (c Client) Info(ctx context.Context, req *InfoReq) (*InfoResp, error) {
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

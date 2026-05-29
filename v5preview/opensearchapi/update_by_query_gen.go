@@ -545,6 +545,5 @@ func (c Client) UpdateByQuery(ctx context.Context, req *UpdateByQueryReq) (*Upda
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

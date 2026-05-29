@@ -291,6 +291,5 @@ func (c catClient) Health(ctx context.Context, req *CatHealthReq) (*CatHealthRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

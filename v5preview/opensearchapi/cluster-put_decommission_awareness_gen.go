@@ -136,6 +136,5 @@ func (c clusterClient) PutDecommissionAwareness(ctx context.Context, req Cluster
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

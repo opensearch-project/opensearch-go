@@ -18,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -225,6 +226,35 @@ func (r IndexResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
+// WriteShardFailures detects replica-shard failures on a IndexResp.
+// Returns nil when no shards failed.
+func (r *IndexResp) WriteShardFailures() *ShardFailureError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &ShardFailureError{
+		Operation:    OperationIndex,
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// IndexResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *IndexResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.WriteShards) {
+		if e := r.WriteShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Index creates or updates a document in an index.
 //
 // Path: /{index}/_doc
@@ -247,6 +277,5 @@ func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
 }

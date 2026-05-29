@@ -168,6 +168,5 @@ func (c indicesClient) Delete(ctx context.Context, req *IndicesDeleteReq) (*Indi
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

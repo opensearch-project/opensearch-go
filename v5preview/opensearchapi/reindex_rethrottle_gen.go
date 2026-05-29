@@ -219,6 +219,5 @@ func (c Client) ReindexRethrottle(ctx context.Context, req ReindexRethrottleReq)
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -682,6 +682,5 @@ func (c clusterClient) Stats(ctx context.Context, req *ClusterStatsReq) (*Cluste
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

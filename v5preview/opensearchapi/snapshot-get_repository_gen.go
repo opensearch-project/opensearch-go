@@ -152,7 +152,6 @@ func (c snapshotClient) GetRepository(ctx context.Context, req *SnapshotGetRepos
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -174,6 +173,5 @@ func (c repositoryClient) Get(ctx context.Context, req *SnapshotGetRepositoryReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

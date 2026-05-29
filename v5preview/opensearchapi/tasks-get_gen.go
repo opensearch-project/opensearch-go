@@ -143,6 +143,5 @@ func (c tasksClient) Get(ctx context.Context, req TasksGetReq) (*TasksGetResp, e
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -18,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -158,6 +159,26 @@ func (r CreateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/index-document/
 type CreateResp struct {
+	// The unique identifier for a resource.
+	ID string `json:"_id"`
+
+	Index string `json:"_index"`
+
+	// The primary term of the document.
+	PrimaryTerm int64 `json:"_primary_term"`
+
+	// The sequence number of the document.
+	SeqNo int64 `json:"_seq_no"`
+
+	Shards ShardStatistics `json:"_shards"`
+
+	// The type of document or resource.
+	Type *string `json:"_type,omitempty"`
+
+	Version       int64  `json:"_version"`
+	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
+	Result        string `json:"result"`
+
 	response *opensearch.Response
 }
 
@@ -173,6 +194,35 @@ func (r CreateResp) RawBody() io.Reader {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
+}
+
+// WriteShardFailures detects replica-shard failures on a CreateResp.
+// Returns nil when no shards failed.
+func (r *CreateResp) WriteShardFailures() *ShardFailureError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &ShardFailureError{
+		Operation:    OperationCreate,
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// CreateResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *CreateResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.WriteShards) {
+		if e := r.WriteShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
 }
 
 // Create creates a new document in the index.
@@ -199,6 +249,5 @@ func (c Client) Create(ctx context.Context, req CreateReq) (*CreateResp, error) 
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
 }

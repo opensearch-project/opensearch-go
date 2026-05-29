@@ -387,6 +387,5 @@ func (c catClient) Snapshots(ctx context.Context, req *CatSnapshotsReq) (*CatSna
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

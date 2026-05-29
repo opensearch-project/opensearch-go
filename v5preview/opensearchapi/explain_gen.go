@@ -281,6 +281,5 @@ func (c Client) Explain(ctx context.Context, req ExplainReq) (*ExplainResp, erro
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

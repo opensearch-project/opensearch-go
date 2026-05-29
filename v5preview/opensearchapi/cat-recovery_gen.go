@@ -441,6 +441,5 @@ func (c catClient) Recovery(ctx context.Context, req *CatRecoveryReq) (*CatRecov
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

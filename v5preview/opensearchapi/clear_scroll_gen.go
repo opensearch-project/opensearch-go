@@ -166,6 +166,5 @@ func (c scrollClient) Delete(ctx context.Context, req *ClearScrollReq) (*ClearSc
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

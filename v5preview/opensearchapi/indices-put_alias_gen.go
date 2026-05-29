@@ -191,7 +191,6 @@ func (c indicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -209,6 +208,5 @@ func (c aliasClient) Put(ctx context.Context, req IndicesPutAliasReq) (*IndicesP
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

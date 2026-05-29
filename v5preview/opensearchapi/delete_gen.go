@@ -18,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -189,6 +190,35 @@ func (r DeleteResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
+// WriteShardFailures detects replica-shard failures on a DeleteResp.
+// Returns nil when no shards failed.
+func (r *DeleteResp) WriteShardFailures() *ShardFailureError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &ShardFailureError{
+		Operation:    OperationDelete,
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// DeleteResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *DeleteResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.WriteShards) {
+		if e := r.WriteShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Delete removes a document from the index.
 //
 // DELETE /{index}/_doc/{id}
@@ -209,6 +239,5 @@ func (c Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) 
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
 }

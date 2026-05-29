@@ -257,6 +257,5 @@ func (c Client) FieldCaps(ctx context.Context, req *FieldCapsReq) (*FieldCapsRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

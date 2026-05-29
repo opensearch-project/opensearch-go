@@ -20,6 +20,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -818,6 +819,36 @@ type SearchBodySort struct {
 type SearchBodyTrackTotalHits struct {
 }
 
+// SearchShardFailures detects partial failures on a SearchResp by
+// inspecting the top-level _shards envelope. Returns nil when no
+// shards failed.
+func (r *SearchResp) SearchShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// SearchResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *SearchResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.SearchShards) {
+		if e := r.SearchShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Search returns results matching a query.
 //
 // Path: /_search
@@ -848,6 +879,5 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
 }

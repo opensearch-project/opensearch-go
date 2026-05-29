@@ -167,6 +167,5 @@ func (c catClient) ClusterManager(ctx context.Context, req *CatClusterManagerReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

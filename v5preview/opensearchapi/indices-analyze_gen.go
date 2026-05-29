@@ -330,6 +330,5 @@ func (c indicesClient) Analyze(ctx context.Context, req IndicesAnalyzeReq) (*Ind
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -193,6 +193,5 @@ func (c indicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*Indice
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

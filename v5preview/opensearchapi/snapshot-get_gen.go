@@ -156,6 +156,5 @@ func (c snapshotClient) Get(ctx context.Context, req SnapshotGetReq) (*SnapshotG
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -391,6 +391,5 @@ func (c Client) Mtermvectors(ctx context.Context, req MtermvectorsReq) (*Mtermve
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

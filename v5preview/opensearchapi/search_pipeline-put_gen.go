@@ -150,6 +150,5 @@ func (c searchPipelineClient) Put(ctx context.Context, req SearchPipelinePutReq)
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

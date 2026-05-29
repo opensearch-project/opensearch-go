@@ -147,6 +147,9 @@ func (r UpdateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/create-workflow/
 type UpdateResp struct {
+	// The ID of the workflow to be updated. Required for the PUT method.
+	WorkflowID string `json:"workflow_id"`
+
 	response *opensearch.Response
 }
 

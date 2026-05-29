@@ -208,6 +208,5 @@ func (c indicesClient) PutTemplate(ctx context.Context, req IndicesPutTemplateRe
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

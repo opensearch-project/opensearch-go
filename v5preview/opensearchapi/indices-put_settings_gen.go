@@ -204,7 +204,6 @@ func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -226,6 +225,5 @@ func (c settingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

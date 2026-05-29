@@ -18,6 +18,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -160,6 +161,36 @@ func (r IndicesFlushResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
+// BroadcastShardFailures detects partial failures on a broadcast-shape
+// response (one envelope, all-shards aggregate). Returns nil when no
+// shards failed.
+func (r *IndicesFlushResp) BroadcastShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// IndicesFlushResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *IndicesFlushResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.BroadcastShards) {
+		if e := r.BroadcastShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Flush performs the flush operation on one or more indexes.
 //
 // Path: /_flush
@@ -186,6 +217,5 @@ func (c indicesClient) Flush(ctx context.Context, req *IndicesFlushReq) (*Indice
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errors), nil)
 }

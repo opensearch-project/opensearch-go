@@ -10,6 +10,7 @@ package query
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 
@@ -81,13 +82,31 @@ func (r DatasourceDeleteParams) get() map[string]string {
 	return params
 }
 
-// DatasourceDeleteResp represents the response for the query.datasource_delete operation.
+// DatasourceDeleteResp represents the response for the DatasourceDelete operation.
+// The response body has a dynamic schema and is captured as raw JSON.
 //
 // Deletes a specific data source by name.
-//
-// Available: >= 2.7.0.
 type DatasourceDeleteResp struct {
+	Body     json.RawMessage `json:"-"`
 	response *opensearch.Response
+}
+
+// UnmarshalJSON captures the raw response body.
+//
+//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
+func (r *DatasourceDeleteResp) UnmarshalJSON(b []byte) error {
+	r.Body = append(r.Body[:0], b...)
+	return nil
+}
+
+// MarshalJSON returns the raw response body for comparison testing.
+//
+//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
+func (r DatasourceDeleteResp) MarshalJSON() ([]byte, error) {
+	if r.Body == nil {
+		return build.NullJSON, nil
+	}
+	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

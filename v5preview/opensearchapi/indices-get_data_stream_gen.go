@@ -134,6 +134,5 @@ func (c indicesClient) GetDataStream(ctx context.Context, req *IndicesGetDataStr
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

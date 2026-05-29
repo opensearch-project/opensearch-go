@@ -175,6 +175,5 @@ func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

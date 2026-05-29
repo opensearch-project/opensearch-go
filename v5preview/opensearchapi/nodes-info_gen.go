@@ -1724,6 +1724,5 @@ func (c nodesClient) Info(ctx context.Context, req *NodesInfoReq) (*NodesInfoRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -192,6 +192,5 @@ func (c indicesClient) ResolveIndex(ctx context.Context, req *IndicesResolveInde
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

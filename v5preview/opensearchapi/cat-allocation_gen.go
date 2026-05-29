@@ -205,6 +205,5 @@ func (c catClient) Allocation(ctx context.Context, req *CatAllocationReq) (*CatA
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -172,6 +172,5 @@ func (c indicesClient) AddBlock(ctx context.Context, req IndicesAddBlockReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

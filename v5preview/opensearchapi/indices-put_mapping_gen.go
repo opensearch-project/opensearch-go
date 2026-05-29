@@ -245,7 +245,6 @@ func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -267,6 +266,5 @@ func (c mappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*Ind
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

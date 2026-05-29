@@ -137,6 +137,5 @@ func (c clusterClient) GetWeightedRouting(ctx context.Context, req ClusterGetWei
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

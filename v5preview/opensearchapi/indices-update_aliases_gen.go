@@ -259,6 +259,5 @@ func (c indicesClient) UpdateAliases(ctx context.Context, req *IndicesUpdateAlia
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

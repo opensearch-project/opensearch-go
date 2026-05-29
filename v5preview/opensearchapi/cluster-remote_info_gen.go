@@ -246,6 +246,5 @@ func (c clusterClient) RemoteInfo(ctx context.Context, req *ClusterRemoteInfoReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

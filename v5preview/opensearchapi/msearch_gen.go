@@ -19,6 +19,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -285,6 +286,78 @@ func (u MsearchMultiSearchResultResponsesItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// SearchShardFailures detects partial failures on a MsearchResp by
+// aggregating shard envelopes across union-typed sub-responses.
+func (r *MsearchResp) SearchShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	var totalShards, failedShards int
+	var failures []ShardSearchFailure
+	for _, resp := range r.Responses {
+		if resp.Type() == MsearchMultiSearchResultResponsesItemMsearchMultiSearchItemType {
+			item := resp.MsearchMultiSearchItem()
+			totalShards += item.Shards.Total
+			failedShards += item.Shards.Failed
+			failures = append(failures, item.Shards.Failures...)
+		}
+	}
+	if failedShards == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: failedShards,
+		TotalShards:  totalShards,
+		Failures:     failures,
+	}
+}
+
+// MultiSearchItemFailures detects per-sub-response Error objects on a
+// MsearchResp via union-branch dispatch. Returns nil when every
+// sub-response succeeded.
+func (r *MsearchResp) MultiSearchItemFailures() *MultiSearchItemError {
+	if r == nil {
+		return nil
+	}
+	var failed []MultiSearchItemFailure
+	succeeded := 0
+	for i, resp := range r.Responses {
+		if resp.Type() == MsearchMultiSearchResultResponsesItemErrorResponseBaseType {
+			failed = append(failed, MultiSearchItemFailure{
+				Index:             i,
+				ErrorResponseBase: resp.ErrorResponseBase(),
+			})
+		} else {
+			succeeded++
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return &MultiSearchItemError{
+		Items:          failed,
+		SucceededCount: succeeded,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// MsearchResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *MsearchResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.SearchShards) {
+		if e := r.SearchShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	if !mask.Has(errmask.MultiSearchItems) {
+		if e := r.MultiSearchItemFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Msearch allows to execute several search operations in one request.
 //
 // Path: /_msearch
@@ -315,6 +388,7 @@ func (c Client) Msearch(ctx context.Context, req *MsearchReq) (*MsearchResp, err
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), func(errs []error) error {
+		return &MsearchErrors{errs: errs}
+	})
 }

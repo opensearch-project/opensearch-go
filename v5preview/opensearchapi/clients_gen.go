@@ -11,6 +11,7 @@ package opensearchapi
 import (
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 )
 
 // Inspect represents the struct returned by Inspect(), its main use is to return the opensearch.Response to the user.
@@ -23,6 +24,7 @@ var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sent
 // Client represents the opensearchapi Client summarizing all API calls.
 type Client struct {
 	Client            *opensearch.Client
+	errors            errmask.ErrorMask
 	Cat               catClient
 	Cluster           clusterClient
 	Dangling          danglingClient
@@ -43,9 +45,10 @@ type Client struct {
 }
 
 // clientInit initializes a Client with all sub-clients.
-func clientInit(rootClient *opensearch.Client) *Client {
+func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	client := &Client{
 		Client: rootClient,
+		errors: mask,
 	}
 	client.Cat = catClient{apiClient: client}
 	client.Cluster = clusterClient{apiClient: client}

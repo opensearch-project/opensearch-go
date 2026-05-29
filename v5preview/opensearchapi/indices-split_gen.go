@@ -210,6 +210,5 @@ func (c indicesClient) Split(ctx context.Context, req IndicesSplitReq) (*Indices
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

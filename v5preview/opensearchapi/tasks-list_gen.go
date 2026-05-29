@@ -203,6 +203,5 @@ func (c tasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

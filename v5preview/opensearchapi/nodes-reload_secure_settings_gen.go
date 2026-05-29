@@ -253,6 +253,5 @@ func (c nodesClient) ReloadSecureSettings(ctx context.Context, req *NodesReloadS
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

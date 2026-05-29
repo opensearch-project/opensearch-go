@@ -19,6 +19,7 @@ import (
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -168,6 +169,36 @@ type ScrollBody struct {
 	ScrollID *string `json:"scroll_id,omitempty"`
 }
 
+// SearchShardFailures detects partial failures on a ScrollResp by
+// inspecting the top-level _shards envelope. Returns nil when no
+// shards failed.
+func (r *ScrollResp) SearchShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// ScrollResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *ScrollResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.SearchShards) {
+		if e := r.SearchShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // Get allows to retrieve a large numbers of results from a single search request.
 //
 // Path: /_search/scroll
@@ -194,6 +225,5 @@ func (c scrollClient) Get(ctx context.Context, req ScrollReq) (*ScrollResp, erro
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errors), nil)
 }

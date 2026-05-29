@@ -209,7 +209,6 @@ func (c indicesClient) GetSettings(ctx context.Context, req *IndicesGetSettingsR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -231,6 +230,5 @@ func (c settingsClient) Get(ctx context.Context, req *IndicesGetSettingsReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

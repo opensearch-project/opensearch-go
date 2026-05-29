@@ -139,7 +139,6 @@ func (c snapshotClient) CleanupRepository(ctx context.Context, req SnapshotClean
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -157,6 +156,5 @@ func (c repositoryClient) Cleanup(ctx context.Context, req SnapshotCleanupReposi
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

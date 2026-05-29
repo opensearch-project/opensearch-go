@@ -205,6 +205,5 @@ func (c indicesClient) Get(ctx context.Context, req *IndicesGetReq) (*IndicesGet
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

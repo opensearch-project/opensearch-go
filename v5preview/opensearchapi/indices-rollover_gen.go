@@ -253,6 +253,5 @@ func (c indicesClient) Rollover(ctx context.Context, req IndicesRolloverReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

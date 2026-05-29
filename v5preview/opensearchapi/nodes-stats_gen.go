@@ -1571,6 +1571,5 @@ func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStats
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

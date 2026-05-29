@@ -148,6 +148,5 @@ func (c clusterClient) PostVotingConfigExclusions(ctx context.Context, req *Clus
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -167,6 +167,5 @@ func (c snapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*Snaps
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

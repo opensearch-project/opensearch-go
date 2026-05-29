@@ -137,6 +137,5 @@ func (c Client) GetScriptLanguages(ctx context.Context, req *GetScriptLanguagesR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

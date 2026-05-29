@@ -496,6 +496,5 @@ func (c catClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, 
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

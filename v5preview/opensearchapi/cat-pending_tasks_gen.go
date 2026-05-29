@@ -176,6 +176,5 @@ func (c catClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

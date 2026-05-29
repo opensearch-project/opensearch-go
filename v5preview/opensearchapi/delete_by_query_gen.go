@@ -524,6 +524,5 @@ func (c Client) DeleteByQuery(ctx context.Context, req *DeleteByQueryReq) (*Dele
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

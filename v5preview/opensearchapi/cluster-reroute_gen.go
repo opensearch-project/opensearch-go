@@ -336,6 +336,5 @@ func (c clusterClient) Reroute(ctx context.Context, req *ClusterRerouteReq) (*Cl
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

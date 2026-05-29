@@ -430,6 +430,5 @@ func (c clusterClient) AllocationExplain(ctx context.Context, req *ClusterAlloca
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

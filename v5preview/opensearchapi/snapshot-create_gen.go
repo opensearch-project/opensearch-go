@@ -214,6 +214,5 @@ func (c snapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*Sna
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

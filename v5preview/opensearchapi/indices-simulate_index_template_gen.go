@@ -216,6 +216,5 @@ func (c indicesClient) SimulateIndexTemplate(ctx context.Context, req IndicesSim
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

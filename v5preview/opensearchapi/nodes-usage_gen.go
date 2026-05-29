@@ -156,6 +156,5 @@ func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsage
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
