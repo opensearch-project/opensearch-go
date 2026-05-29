@@ -75,6 +75,22 @@ const StandbyPromotionChecks = "OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS"
 // Debug enables verbose internal logging via [strconv.ParseBool].
 const Debug = "OPENSEARCH_GO_DEBUG"
 
+// ErrorMask is a comma-separated bitfield spec controlling which categories
+// of partial-failure errors API methods mask (ignore) instead of returning
+// as typed Go errors. Tokens are the lowercase snake_case wrapper-schema
+// names (`bulk_items`, `search_shards`, `write_shards`, `broadcast_shards`,
+// `node_failures`, `bulk_by_scroll_failures`, `task_failures`,
+// `multi_search_items`, `multi_doc_items`, `snapshot_create_shard_failures`,
+// `snapshot_get_shard_failures`, `simulate_doc_failures`,
+// `rank_eval_failures`, `ingestion_shard_failures`, `pit_node_failures`)
+// plus `all` and `none`/`empty`/`unknown` (aliases for zero). Each token
+// may be prefixed with `+` (set/mask) or `-` (clear/unmask); bare tokens
+// are treated as `+`. Tokens are applied left-to-right starting from the
+// programmatic Config.Errors value. Unrecognized tokens are silently
+// dropped (forward-compatible) and reported via the debug logger when
+// OPENSEARCH_GO_DEBUG=true.
+const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
+
 // Truthy reports whether the named environment variable is set to a
 // strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy
 // values all return false.

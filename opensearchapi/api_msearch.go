@@ -17,7 +17,14 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// MSearch executes a /_msearch request with the optional MSearchReq
+// MSearch executes a /_msearch request with the optional MSearchReq.
+//
+// Partial-failure detection: MSearch declares two wrappers in
+// `x-error-responses` (SearchShards and MultiSearchItems). Each fires
+// independently; results are collapsed per [collapsePerOpErrors]:
+//   - 0 sub-errors: returns nil
+//   - 1 sub-error: returns the sub-error directly
+//   - 2+ sub-errors: returns *MsearchErrors aggregating them
 func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, error) {
 	var (
 		data MSearchResp
@@ -27,24 +34,9 @@ func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, erro
 		return &data, err
 	}
 
-	if c.returnQueryErrors {
-		var totalShards, failedShards int
-		var failures []ResponseShardsFailure
-		for _, resp := range data.Responses {
-			totalShards += resp.Shards.Total
-			failedShards += resp.Shards.Failed
-			failures = append(failures, resp.Shards.Failures...)
-		}
-		if failedShards > 0 {
-			return &data, &PartialSearchError{
-				FailedShards: failedShards,
-				TotalShards:  totalShards,
-				Failures:     failures,
-			}
-		}
-	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), func(errs []error) error {
+		return &MsearchErrors{errs: errs}
+	})
 }
 
 // MSearchReq represents possible options for the /_msearch request

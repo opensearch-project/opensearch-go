@@ -18,6 +18,7 @@ func TestConvertToIR_BasicStructure(t *testing.T) {
 	t.Parallel()
 
 	specPath := buildTestSpec(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(specPath, nil, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 2)
@@ -61,6 +62,7 @@ func TestConvertToIR_QueryParams(t *testing.T) {
 	t.Parallel()
 
 	specPath := buildTestSpecWithQueryParams(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(specPath, nil, VersionRange{})
 	require.NoError(t, err)
 	require.NotEmpty(t, ops)

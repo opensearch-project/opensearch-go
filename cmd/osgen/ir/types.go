@@ -91,10 +91,25 @@ type Operation struct {
 	IsPointerReq   bool
 	IsNoBody       bool
 
+	// ErrorWrappers lists the partial-failure wrapper-schema names this
+	// operation may surface alongside its primary success response.
+	// Mirrors the proposed `x-error-responses` OpenAPI extension; until
+	// that extension lands upstream, cmd/osgen carries a hardcoded map
+	// (see internal/errwrap.OperationWrappers) populated during
+	// extraction. Order is stable (sorted) so codegen output is
+	// deterministic.
+	ErrorWrappers []string
+
 	// Routing (computed during parse from group name).
 	Package    string
 	ImportPath string
 	IsPlugin   bool
+
+	// MethodName is the flat client method name for plugin operations,
+	// computed in package main so it shares the same acronym and
+	// idiomatic-abbreviation rules as core method names. Empty for core
+	// operations, which carry their method names on DispatchRoutes.
+	MethodName string
 }
 
 // PathField is one URL path placeholder exposed as a struct field on the Req.

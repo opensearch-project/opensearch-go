@@ -226,7 +226,8 @@ func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.Typ
 	}
 
 	if len(op.DispatchRoutes) > 0 {
-		frags = append(frags, &DispatchFragment{Op: op})
+		frags = append(frags, &PartialFailureFragment{Op: op, Registry: reg})
+		frags = append(frags, &DispatchFragment{Op: op, Registry: reg})
 	}
 
 	return &File{

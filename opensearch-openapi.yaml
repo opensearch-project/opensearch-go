@@ -285,6 +285,9 @@ paths:
   /_bulk:
     post:
       operationId: bulk.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk
       x-version-added: '1.0'
       description: Allows to perform multiple index/update/delete operations in a single request.
@@ -314,6 +317,9 @@ paths:
           $ref: '#/components/responses/bulk___200'
     put:
       operationId: bulk.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk
       x-version-added: '1.0'
       description: Allows to perform multiple index/update/delete operations in a single request.
@@ -344,6 +350,9 @@ paths:
   /_bulk/stream:
     post:
       operationId: bulk_stream.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk_stream
       x-version-added: '2.17'
       description: Allows to perform multiple index/update/delete operations using request response streaming.
@@ -374,6 +383,9 @@ paths:
           $ref: '#/components/responses/bulk_stream___200'
     put:
       operationId: bulk_stream.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk_stream
       x-version-added: '2.17'
       description: Allows to perform multiple index/update/delete operations using request response streaming.
@@ -405,6 +417,8 @@ paths:
   /_cache/clear:
     post:
       operationId: indices.clear_cache.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.clear_cache
       x-version-added: '1.0'
       x-distributions-excluded:
@@ -1831,6 +1845,8 @@ paths:
   /_cluster/stats:
     get:
       operationId: cluster.stats.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: cluster.stats
       x-version-added: '1.0'
       description: Returns a high-level overview of cluster statistics.
@@ -1850,6 +1866,8 @@ paths:
   /_cluster/stats/{metric}/{index_metric}/nodes/{node_id}:
     get:
       operationId: cluster.stats.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: cluster.stats
       x-version-added: '2.18'
       description: Returns a high-level overview of cluster statistics.
@@ -1872,6 +1890,8 @@ paths:
   /_cluster/stats/{metric}/nodes/{node_id}:
     get:
       operationId: cluster.stats.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: cluster.stats
       x-version-added: '2.18'
       description: Returns a high-level overview of cluster statistics.
@@ -1893,6 +1913,8 @@ paths:
   /_cluster/stats/nodes/{node_id}:
     get:
       operationId: cluster.stats.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: cluster.stats
       x-version-added: '1.0'
       description: Returns a high-level overview of cluster statistics.
@@ -2079,6 +2101,8 @@ paths:
   /_count:
     get:
       operationId: count.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: count
       x-version-added: '1.0'
       description: Returns number of documents matching a query.
@@ -2111,6 +2135,8 @@ paths:
           $ref: '#/components/responses/count___200'
     post:
       operationId: count.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: count
       x-version-added: '1.0'
       description: Returns number of documents matching a query.
@@ -2144,6 +2170,8 @@ paths:
   /_dangling:
     get:
       operationId: dangling_indices.list_dangling_indices.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: dangling_indices.list_dangling_indices
       x-version-added: '1.0'
       description: Returns all dangling indexes.
@@ -2221,6 +2249,8 @@ paths:
   /_data_stream/_stats:
     get:
       operationId: indices.data_streams_stats.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.data_streams_stats
       x-version-added: '1.0'
       description: Provides statistics on operations happening in a data stream.
@@ -2292,6 +2322,8 @@ paths:
   /_data_stream/{name}/_stats:
     get:
       operationId: indices.data_streams_stats.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.data_streams_stats
       x-version-added: '1.0'
       description: Provides statistics on operations happening in a data stream.
@@ -2376,6 +2408,8 @@ paths:
   /_flush:
     get:
       operationId: indices.flush.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.flush
       x-version-added: '1.0'
       description: Performs the flush operation on one or more indexes.
@@ -2397,6 +2431,8 @@ paths:
           $ref: '#/components/responses/indices.flush___200'
     post:
       operationId: indices.flush.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.flush
       x-version-added: '1.0'
       description: Performs the flush operation on one or more indexes.
@@ -2419,6 +2455,8 @@ paths:
   /_forcemerge:
     post:
       operationId: indices.forcemerge.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.forcemerge
       x-version-added: '1.0'
       x-distributions-excluded:
@@ -2665,6 +2703,8 @@ paths:
   /_ingest/pipeline/_simulate:
     get:
       operationId: ingest.simulate.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SimulateDocFailures'
       x-operation-group: ingest.simulate
       x-version-added: '1.0'
       description: Simulates an ingest pipeline with example documents.
@@ -2684,6 +2724,8 @@ paths:
           $ref: '#/components/responses/ingest.simulate___200'
     post:
       operationId: ingest.simulate.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SimulateDocFailures'
       x-operation-group: ingest.simulate
       x-version-added: '1.0'
       description: Simulates an ingest pipeline with example documents.
@@ -2766,6 +2808,8 @@ paths:
   /_ingest/pipeline/{id}/_simulate:
     get:
       operationId: ingest.simulate.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SimulateDocFailures'
       x-operation-group: ingest.simulate
       x-version-added: '1.0'
       description: Simulates an ingest pipeline with example documents.
@@ -2786,6 +2830,8 @@ paths:
           $ref: '#/components/responses/ingest.simulate___200'
     post:
       operationId: ingest.simulate.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SimulateDocFailures'
       x-operation-group: ingest.simulate
       x-version-added: '1.0'
       description: Simulates an ingest pipeline with example documents.
@@ -3887,6 +3933,8 @@ paths:
   /_mget:
     get:
       operationId: mget.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mget
       x-version-added: '1.0'
       description: Allows to get multiple documents in one request.
@@ -3913,6 +3961,8 @@ paths:
           $ref: '#/components/responses/mget___200'
     post:
       operationId: mget.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mget
       x-version-added: '1.0'
       description: Allows to get multiple documents in one request.
@@ -3940,6 +3990,9 @@ paths:
   /_msearch:
     get:
       operationId: msearch.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch
       x-version-added: '1.0'
       description: Allows to execute several search operations in one request.
@@ -3966,6 +4019,9 @@ paths:
           $ref: '#/components/responses/msearch___200'
     post:
       operationId: msearch.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch
       x-version-added: '1.0'
       description: Allows to execute several search operations in one request.
@@ -3993,6 +4049,9 @@ paths:
   /_msearch/template:
     get:
       operationId: msearch_template.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch_template
       x-version-added: '1.0'
       description: Allows to execute several search template operations in one request.
@@ -4016,6 +4075,9 @@ paths:
           $ref: '#/components/responses/msearch_template___200'
     post:
       operationId: msearch_template.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch_template
       x-version-added: '1.0'
       description: Allows to execute several search template operations in one request.
@@ -4040,6 +4102,8 @@ paths:
   /_mtermvectors:
     get:
       operationId: mtermvectors.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mtermvectors
       x-version-added: '1.0'
       description: Returns multiple termvectors in one request.
@@ -4070,6 +4134,8 @@ paths:
           $ref: '#/components/responses/mtermvectors___200'
     post:
       operationId: mtermvectors.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mtermvectors
       x-version-added: '1.0'
       description: Returns multiple termvectors in one request.
@@ -4101,6 +4167,8 @@ paths:
   /_nodes:
     get:
       operationId: nodes.info.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.info
       x-version-added: '1.0'
       description: Returns information about nodes in the cluster.
@@ -4120,6 +4188,8 @@ paths:
   /_nodes/{node_id_or_metric}:
     get:
       operationId: nodes.info.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.info
       x-version-added: '1.0'
       description: Returns information about nodes in the cluster.
@@ -4140,6 +4210,8 @@ paths:
   /_nodes/{node_id}/{metric}:
     get:
       operationId: nodes.info.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.info
       x-version-added: '1.0'
       description: Returns information about nodes in the cluster.
@@ -4185,6 +4257,8 @@ paths:
   /_nodes/{node_id}/reload_secure_settings:
     post:
       operationId: nodes.reload_secure_settings.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.reload_secure_settings
       x-version-added: '1.0'
       description: Reloads secure settings.
@@ -4206,6 +4280,8 @@ paths:
   /_nodes/{node_id}/stats:
     get:
       operationId: nodes.stats.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.stats
       x-version-added: '1.0'
       description: Returns statistical information about nodes in the cluster.
@@ -4232,6 +4308,8 @@ paths:
   /_nodes/{node_id}/stats/{metric}:
     get:
       operationId: nodes.stats.4
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.stats
       x-version-added: '1.0'
       description: Returns statistical information about nodes in the cluster.
@@ -4259,6 +4337,8 @@ paths:
   /_nodes/{node_id}/stats/{metric}/{index_metric}:
     get:
       operationId: nodes.stats.5
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.stats
       x-version-added: '1.0'
       description: Returns statistical information about nodes in the cluster.
@@ -4287,6 +4367,8 @@ paths:
   /_nodes/{node_id}/usage:
     get:
       operationId: nodes.usage.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.usage
       x-version-added: '1.0'
       description: Returns low-level information about REST actions usage on nodes.
@@ -4306,6 +4388,8 @@ paths:
   /_nodes/{node_id}/usage/{metric}:
     get:
       operationId: nodes.usage.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.usage
       x-version-added: '1.0'
       description: Returns low-level information about REST actions usage on nodes.
@@ -4349,6 +4433,8 @@ paths:
   /_nodes/reload_secure_settings:
     post:
       operationId: nodes.reload_secure_settings.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.reload_secure_settings
       x-version-added: '1.0'
       description: Reloads secure settings.
@@ -4369,6 +4455,8 @@ paths:
   /_nodes/stats:
     get:
       operationId: nodes.stats.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.stats
       x-version-added: '1.0'
       description: Returns statistical information about nodes in the cluster.
@@ -4394,6 +4482,8 @@ paths:
   /_nodes/stats/{metric}:
     get:
       operationId: nodes.stats.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.stats
       x-version-added: '1.0'
       description: Returns statistical information about nodes in the cluster.
@@ -4420,6 +4510,8 @@ paths:
   /_nodes/stats/{metric}/{index_metric}:
     get:
       operationId: nodes.stats.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.stats
       x-version-added: '1.0'
       description: Returns statistical information about nodes in the cluster.
@@ -4447,6 +4539,8 @@ paths:
   /_nodes/usage:
     get:
       operationId: nodes.usage.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.usage
       x-version-added: '1.0'
       description: Returns low-level information about REST actions usage on nodes.
@@ -4465,6 +4559,8 @@ paths:
   /_nodes/usage/{metric}:
     get:
       operationId: nodes.usage.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___NodeFailures'
       x-operation-group: nodes.usage
       x-version-added: '1.0'
       description: Returns low-level information about REST actions usage on nodes.
@@ -4502,6 +4598,8 @@ paths:
   /_plugins/_asynchronous_search:
     post:
       operationId: asynchronous_search.search.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: asynchronous_search.search
       x-version-added: '1.0'
       description: Performs an asynchronous search.
@@ -4542,6 +4640,8 @@ paths:
           $ref: '#/components/responses/asynchronous_search.delete___200'
     get:
       operationId: asynchronous_search.get.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: asynchronous_search.get
       x-version-added: '1.0'
       description: Gets partial responses from an asynchronous search.
@@ -10864,6 +10964,8 @@ paths:
   /_rank_eval:
     get:
       operationId: rank_eval.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___RankEvalFailures'
       x-operation-group: rank_eval
       x-version-added: '1.0'
       description: Allows to evaluate the quality of ranked search results over a set of typical search queries.
@@ -10886,6 +10988,8 @@ paths:
           $ref: '#/components/responses/rank_eval___200'
     post:
       operationId: rank_eval.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___RankEvalFailures'
       x-operation-group: rank_eval
       x-version-added: '1.0'
       description: Allows to evaluate the quality of ranked search results over a set of typical search queries.
@@ -10928,6 +11032,8 @@ paths:
   /_refresh:
     get:
       operationId: indices.refresh.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.refresh
       x-version-added: '1.0'
       description: Performs the refresh operation in one or more indexes.
@@ -10947,6 +11053,8 @@ paths:
           $ref: '#/components/responses/indices.refresh___200'
     post:
       operationId: indices.refresh.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.refresh
       x-version-added: '1.0'
       description: Performs the refresh operation in one or more indexes.
@@ -10967,6 +11075,8 @@ paths:
   /_reindex:
     post:
       operationId: reindex.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkByScrollFailures'
       x-operation-group: reindex
       x-version-added: '1.0'
       description: |-
@@ -11356,6 +11466,8 @@ paths:
   /_search:
     get:
       operationId: search.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -11426,6 +11538,8 @@ paths:
           $ref: '#/components/responses/search___404'
     post:
       operationId: search.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -11652,6 +11766,8 @@ paths:
         - $ref: '#/components/parameters/_global___query.filter_path'
     get:
       operationId: get_all_pits.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___PitNodeFailures'
       x-operation-group: get_all_pits
       x-version-added: '2.4'
       description: Lists all active point in time searches.
@@ -11689,6 +11805,8 @@ paths:
           $ref: '#/components/responses/clear_scroll___404'
     get:
       operationId: scroll.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: scroll
       x-version-added: '1.0'
       description: Allows to retrieve a large numbers of results from a single search request.
@@ -11710,6 +11828,8 @@ paths:
           $ref: '#/components/responses/scroll___200'
     post:
       operationId: scroll.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: scroll
       x-version-added: '1.0'
       description: Allows to retrieve a large numbers of results from a single search request.
@@ -11807,6 +11927,8 @@ paths:
   /_search/template:
     get:
       operationId: search_template.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search_template
       x-version-added: '1.0'
       description: Allows to use the Mustache language to pre-render a search definition.
@@ -11840,6 +11962,8 @@ paths:
           $ref: '#/components/responses/search_template___200'
     post:
       operationId: search_template.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search_template
       x-version-added: '1.0'
       description: Allows to use the Mustache language to pre-render a search definition.
@@ -11874,6 +11998,8 @@ paths:
   /_segments:
     get:
       operationId: indices.segments.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.segments
       x-version-added: '1.0'
       x-distributions-excluded:
@@ -12209,6 +12335,8 @@ paths:
           $ref: '#/components/responses/snapshot.delete___200'
     get:
       operationId: snapshot.get.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SnapshotGetShardFailures'
       x-operation-group: snapshot.get
       x-version-added: '1.0'
       description: Returns information about a snapshot.
@@ -12231,6 +12359,8 @@ paths:
           $ref: '#/components/responses/snapshot.get___200'
     post:
       operationId: snapshot.create.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SnapshotCreateShardFailures'
       x-operation-group: snapshot.create
       x-version-added: '1.0'
       description: Creates a snapshot within an existing repository.
@@ -12254,6 +12384,8 @@ paths:
           $ref: '#/components/responses/snapshot.create___200'
     put:
       operationId: snapshot.create.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SnapshotCreateShardFailures'
       x-operation-group: snapshot.create
       x-version-added: '1.0'
       description: Creates a snapshot within an existing repository.
@@ -12348,6 +12480,8 @@ paths:
   /_stats:
     get:
       operationId: indices.stats.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.stats
       x-version-added: '1.0'
       description: Provides statistics on operations happening in an index.
@@ -12374,6 +12508,8 @@ paths:
   /_stats/{metric}:
     get:
       operationId: indices.stats.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.stats
       x-version-added: '1.0'
       description: Provides statistics on operations happening in an index.
@@ -12401,6 +12537,8 @@ paths:
   /_tasks:
     get:
       operationId: tasks.list.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___TaskFailures'
       x-operation-group: tasks.list
       x-version-added: '1.0'
       description: Returns a list of tasks.
@@ -12425,6 +12563,8 @@ paths:
   /_tasks/_cancel:
     post:
       operationId: tasks.cancel.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___TaskFailures'
       x-operation-group: tasks.cancel
       x-version-added: '1.0'
       description: Cancels a task, if it can be cancelled through an API.
@@ -12466,6 +12606,8 @@ paths:
   /_tasks/{task_id}/_cancel:
     post:
       operationId: tasks.cancel.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___TaskFailures'
       x-operation-group: tasks.cancel
       x-version-added: '1.0'
       description: Cancels a task, if it can be cancelled through an API.
@@ -12657,6 +12799,8 @@ paths:
           $ref: '#/components/responses/indices.get_upgrade___200'
     post:
       operationId: indices.upgrade.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.upgrade
       x-version-added: '1.0'
       x-version-deprecated: '1.0'
@@ -12680,6 +12824,8 @@ paths:
   /_validate/query:
     get:
       operationId: indices.validate_query.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.validate_query
       x-version-added: '1.0'
       description: Allows a user to validate a potentially expensive query without executing it.
@@ -12710,6 +12856,8 @@ paths:
           $ref: '#/components/responses/indices.validate_query___200'
     post:
       operationId: indices.validate_query.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.validate_query
       x-version-added: '1.0'
       description: Allows a user to validate a potentially expensive query without executing it.
@@ -13302,6 +13450,9 @@ paths:
   /{index}/_bulk:
     post:
       operationId: bulk.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk
       x-version-added: '1.0'
       description: Allows to perform multiple index/update/delete operations in a single request.
@@ -13332,6 +13483,9 @@ paths:
           $ref: '#/components/responses/bulk___200'
     put:
       operationId: bulk.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk
       x-version-added: '1.0'
       description: Allows to perform multiple index/update/delete operations in a single request.
@@ -13363,6 +13517,9 @@ paths:
   /{index}/_bulk/stream:
     post:
       operationId: bulk_stream.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk_stream
       x-version-added: '2.17'
       description: Allows to perform multiple index/update/delete operations using request response streaming.
@@ -13394,6 +13551,9 @@ paths:
           $ref: '#/components/responses/bulk_stream___200'
     put:
       operationId: bulk_stream.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkItems'
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: bulk_stream
       x-version-added: '2.17'
       description: Allows to perform multiple index/update/delete operations using request response streaming.
@@ -13426,6 +13586,8 @@ paths:
   /{index}/_cache/clear:
     post:
       operationId: indices.clear_cache.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.clear_cache
       x-version-added: '1.0'
       description: Clears all or specific caches for one or more indexes.
@@ -13531,6 +13693,8 @@ paths:
   /{index}/_count:
     get:
       operationId: count.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: count
       x-version-added: '1.0'
       description: Returns number of documents matching a query.
@@ -13564,6 +13728,8 @@ paths:
           $ref: '#/components/responses/count___200'
     post:
       operationId: count.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: count
       x-version-added: '1.0'
       description: Returns number of documents matching a query.
@@ -13598,6 +13764,8 @@ paths:
   /{index}/_create/{id}:
     post:
       operationId: create.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: create
       x-version-added: '1.0'
       description: |-
@@ -13628,6 +13796,8 @@ paths:
           $ref: '#/components/responses/create___201'
     put:
       operationId: create.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: create
       x-version-added: '1.0'
       description: |-
@@ -13659,6 +13829,8 @@ paths:
   /{index}/_delete_by_query:
     post:
       operationId: delete_by_query.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkByScrollFailures'
       x-operation-group: delete_by_query
       x-version-added: '1.0'
       description: Deletes documents matching the provided query.
@@ -13712,6 +13884,8 @@ paths:
   /{index}/_doc:
     post:
       operationId: index.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: index
       x-version-added: '1.0'
       description: Creates or updates a document in an index.
@@ -13745,6 +13919,8 @@ paths:
   /{index}/_doc/{id}:
     delete:
       operationId: delete.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: delete
       x-version-added: '1.0'
       description: Removes a document from the index.
@@ -13833,6 +14009,8 @@ paths:
           $ref: '#/components/responses/exists___404'
     post:
       operationId: index.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: index
       x-version-added: '1.0'
       description: Creates or updates a document in an index.
@@ -13866,6 +14044,8 @@ paths:
           $ref: '#/components/responses/index___201'
     put:
       operationId: index.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: index
       x-version-added: '1.0'
       description: Creates or updates a document in an index.
@@ -14014,6 +14194,8 @@ paths:
   /{index}/_flush:
     get:
       operationId: indices.flush.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.flush
       x-version-added: '1.0'
       description: Performs the flush operation on one or more indexes.
@@ -14036,6 +14218,8 @@ paths:
           $ref: '#/components/responses/indices.flush___200'
     post:
       operationId: indices.flush.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.flush
       x-version-added: '1.0'
       description: Performs the flush operation on one or more indexes.
@@ -14059,6 +14243,8 @@ paths:
   /{index}/_forcemerge:
     post:
       operationId: indices.forcemerge.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.forcemerge
       x-version-added: '1.0'
       description: Performs the force merge operation on one or more indexes.
@@ -14186,6 +14372,8 @@ paths:
   /{index}/_mget:
     get:
       operationId: mget.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mget
       x-version-added: '1.0'
       description: Allows to get multiple documents in one request.
@@ -14213,6 +14401,8 @@ paths:
           $ref: '#/components/responses/mget___200'
     post:
       operationId: mget.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mget
       x-version-added: '1.0'
       description: Allows to get multiple documents in one request.
@@ -14241,6 +14431,9 @@ paths:
   /{index}/_msearch:
     get:
       operationId: msearch.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch
       x-version-added: '1.0'
       description: Allows to execute several search operations in one request.
@@ -14268,6 +14461,9 @@ paths:
           $ref: '#/components/responses/msearch___200'
     post:
       operationId: msearch.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch
       x-version-added: '1.0'
       description: Allows to execute several search operations in one request.
@@ -14296,6 +14492,9 @@ paths:
   /{index}/_msearch/template:
     get:
       operationId: msearch_template.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch_template
       x-version-added: '1.0'
       description: Allows to execute several search template operations in one request.
@@ -14320,6 +14519,9 @@ paths:
           $ref: '#/components/responses/msearch_template___200'
     post:
       operationId: msearch_template.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
+        - $ref: '#/components/schemas/_common.errors___MultiSearchItems'
       x-operation-group: msearch_template
       x-version-added: '1.0'
       description: Allows to execute several search template operations in one request.
@@ -14345,6 +14547,8 @@ paths:
   /{index}/_mtermvectors:
     get:
       operationId: mtermvectors.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mtermvectors
       x-version-added: '1.0'
       description: Returns multiple termvectors in one request.
@@ -14376,6 +14580,8 @@ paths:
           $ref: '#/components/responses/mtermvectors___200'
     post:
       operationId: mtermvectors.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___MultiDocItems'
       x-operation-group: mtermvectors
       x-version-added: '1.0'
       description: Returns multiple termvectors in one request.
@@ -14435,6 +14641,8 @@ paths:
   /{index}/_rank_eval:
     get:
       operationId: rank_eval.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___RankEvalFailures'
       x-operation-group: rank_eval
       x-version-added: '1.0'
       description: Allows to evaluate the quality of ranked search results over a set of typical search queries.
@@ -14458,6 +14666,8 @@ paths:
           $ref: '#/components/responses/rank_eval___200'
     post:
       operationId: rank_eval.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___RankEvalFailures'
       x-operation-group: rank_eval
       x-version-added: '1.0'
       description: Allows to evaluate the quality of ranked search results over a set of typical search queries.
@@ -14502,6 +14712,8 @@ paths:
   /{index}/_refresh:
     get:
       operationId: indices.refresh.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.refresh
       x-version-added: '1.0'
       description: Performs the refresh operation in one or more indexes.
@@ -14522,6 +14734,8 @@ paths:
           $ref: '#/components/responses/indices.refresh___200'
     post:
       operationId: indices.refresh.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.refresh
       x-version-added: '1.0'
       description: Performs the refresh operation in one or more indexes.
@@ -14543,6 +14757,8 @@ paths:
   /{index}/_search:
     get:
       operationId: search.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -14614,6 +14830,8 @@ paths:
           $ref: '#/components/responses/search___404'
     post:
       operationId: search.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -14737,6 +14955,8 @@ paths:
   /{index}/_search/point_in_time:
     post:
       operationId: create_pit.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: create_pit
       x-version-added: '2.4'
       description: Creates point in time context.
@@ -14760,6 +14980,8 @@ paths:
   /{index}/_search/template:
     get:
       operationId: search_template.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search_template
       x-version-added: '1.0'
       description: Allows to use the Mustache language to pre-render a search definition.
@@ -14794,6 +15016,8 @@ paths:
           $ref: '#/components/responses/search_template___200'
     post:
       operationId: search_template.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: search_template
       x-version-added: '1.0'
       description: Allows to use the Mustache language to pre-render a search definition.
@@ -14829,6 +15053,8 @@ paths:
   /{index}/_segments:
     get:
       operationId: indices.segments.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.segments
       x-version-added: '1.0'
       x-distributions-excluded:
@@ -15125,6 +15351,8 @@ paths:
   /{index}/_stats:
     get:
       operationId: indices.stats.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.stats
       x-version-added: '1.0'
       description: Provides statistics on operations happening in an index.
@@ -15152,6 +15380,8 @@ paths:
   /{index}/_stats/{metric}:
     get:
       operationId: indices.stats.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.stats
       x-version-added: '1.0'
       description: Provides statistics on operations happening in an index.
@@ -15304,6 +15534,8 @@ paths:
   /{index}/_update_by_query:
     post:
       operationId: update_by_query.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BulkByScrollFailures'
       x-operation-group: update_by_query
       x-version-added: '1.0'
       description: |-
@@ -15360,6 +15592,8 @@ paths:
   /{index}/_update/{id}:
     post:
       operationId: update.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___WriteShards'
       x-operation-group: update
       x-version-added: '1.0'
       description: Updates a document with a script or partial document.
@@ -15414,6 +15648,8 @@ paths:
           $ref: '#/components/responses/indices.get_upgrade___200'
     post:
       operationId: indices.upgrade.1
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.upgrade
       x-version-added: '1.0'
       x-version-deprecated: '1.0'
@@ -15438,6 +15674,8 @@ paths:
   /{index}/_validate/query:
     get:
       operationId: indices.validate_query.2
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.validate_query
       x-version-added: '1.0'
       description: Allows a user to validate a potentially expensive query without executing it.
@@ -15469,6 +15707,8 @@ paths:
           $ref: '#/components/responses/indices.validate_query___200'
     post:
       operationId: indices.validate_query.3
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: indices.validate_query
       x-version-added: '1.0'
       description: Allows a user to validate a potentially expensive query without executing it.
@@ -15502,6 +15742,8 @@ paths:
     post:
       summary: Pause streaming ingestion for the given index.
       operationId: ingestion.pause.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___IngestionShardFailures'
       x-operation-group: ingestion.pause
       x-version-added: '3.1'
       description: Use this API to pause ingestion for a given index.
@@ -15523,6 +15765,8 @@ paths:
     post:
       summary: Resume streaming ingestion for the given index.
       operationId: ingestion.resume.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___IngestionShardFailures'
       x-operation-group: ingestion.resume
       x-version-added: '3.1'
       description: Use this API to resume ingestion for the given index.
@@ -15546,6 +15790,8 @@ paths:
     get:
       summary: Get the current ingestion state for a given index.
       operationId: ingestion.get_state.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___BroadcastShards'
       x-operation-group: ingestion.get_state
       x-version-added: '3.1'
       description: Use this API to retrieve the ingestion state for a given index.
@@ -38575,6 +38821,209 @@ components:
           schema:
             $ref: '#/components/schemas/wlm._common___QueryGroupResponse'
   schemas:
+    _common.errors___BroadcastShards:
+      description: |-
+        Index-broadcast response where one or more shards failed the
+        operation while others succeeded. Failures appear at
+        `_shards.failures[]`. The element schema in this spec collapses
+        with the search-family failure type, but the wrapper is kept
+        distinct so clients can opt in to broadcast vs search shard
+        handling independently.
+      type: object
+      properties:
+        _shards:
+          $ref: '#/components/schemas/_common___ShardStatistics'
+      x-version-added: '1.0'
+    _common.errors___BulkByScrollFailures:
+      description: |-
+        Long-running scroll-bulk operation (reindex, update_by_query,
+        delete_by_query). Top-level `failures[]` mixes bulk-write and
+        shard-search failure element types in one polymorphic array.
+      type: object
+      properties:
+        failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/_common___BulkByScrollFailure'
+      x-version-added: '1.0'
+    _common.errors___BulkItems:
+      description: |-
+        Bulk-style response surfaces failures via an `errors: true` flag plus
+        a per-item `error` object inside each entry of `items[]`.
+        Carried by `_core.bulk` and `_core.bulk_stream`.
+      type: object
+      properties:
+        errors:
+          type: boolean
+          description: True when at least one sub-operation in `items` failed.
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/_core.bulk___ResponseItem'
+      x-version-added: '1.0'
+    _common.errors___IngestionShardFailures:
+      description: |-
+        `ingestion.pause` / `ingestion.resume` responses surface per-shard
+        failures keyed by index name at the top-level `failures` map. Each
+        value is an array of shard-keyed failure objects.
+      type: object
+      properties:
+        failures:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: '#/components/schemas/ingestion._common___IngestionStateShardFailure'
+      x-version-added: '2.17'
+    _common.errors___MultiDocItems:
+      description: |-
+        `_mget` / `_mtermvectors`-style response. Each entry in `docs[]` is
+        either a doc body or an error object.
+      type: object
+      properties:
+        docs:
+          type: array
+          items:
+            $ref: '#/components/schemas/_core.mget___ResponseItem'
+      x-version-added: '1.0'
+    _common.errors___MultiSearchItems:
+      description: |-
+        `_msearch`-style response. Each entry in `responses[]` is either a
+        successful search body or an error object with an injected `status`.
+        Per-item search-shard failures may appear inside successful items.
+      type: object
+      properties:
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/_core.msearch___ResponseItem'
+      x-version-added: '1.0'
+    _common.errors___NodeFailures:
+      description: |-
+        Cluster/nodes operation where one or more nodes failed to respond.
+        Renders the standard `_nodes.failures[]` envelope via
+        `RestActions.buildNodesHeader`.
+      type: object
+      properties:
+        _nodes:
+          $ref: '#/components/schemas/_common___NodeStatistics'
+      x-version-added: '1.0'
+    _common.errors___PitNodeFailures:
+      description: |-
+        `_core.get_all_pits` returns per-node failures at the top level
+        without the standard `_nodes` envelope. This is a server
+        inconsistency relative to other `BaseNodesResponse`-derived
+        endpoints (see `NodeFailures`); kept as its own wrapper until the
+        server convergence is sorted out.
+      type: object
+      properties:
+        failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/_common___ErrorCause'
+      x-version-added: '1.0'
+    _common.errors___RankEvalFailures:
+      description: |-
+        `_rank_eval` returns failures as a top-level object map keyed by
+        queryId rather than as a positional array.
+      type: object
+      properties:
+        failures:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/_common___ErrorCause'
+      x-version-added: '1.0'
+    _common.errors___SearchShards:
+      description: |-
+        Search-family response with one or more shards failing while the
+        overall query still returned partial results. Failures appear at
+        `_shards.failures[]` of `ShardSearchFailure`.
+      type: object
+      properties:
+        _shards:
+          $ref: '#/components/schemas/_common___ShardStatistics'
+      x-version-added: '1.0'
+    _common.errors___SimulateDocFailures:
+      description: |-
+        `ingest.simulate` response. Failures may appear at two layers:
+        per document at `docs[].error`, and per processor at
+        `docs[].processor_results[].error`.
+      type: object
+      properties:
+        docs:
+          type: array
+          items:
+            type: object
+            properties:
+              error:
+                $ref: '#/components/schemas/_common___ErrorCause'
+              processor_results:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    error:
+                      $ref: '#/components/schemas/_common___ErrorCause'
+      x-version-added: '1.0'
+    _common.errors___SnapshotCreateShardFailures:
+      description: |-
+        `snapshot.create` response (with `wait_for_completion=true`) where
+        individual shards failed to snapshot. Failures appear at
+        `snapshot.failures[]`. State `PARTIAL` indicates partial completion.
+      type: object
+      properties:
+        snapshot:
+          type: object
+          properties:
+            failures:
+              type: array
+              items:
+                $ref: '#/components/schemas/snapshot._common___SnapshotShardFailure'
+      x-version-added: '1.0'
+    _common.errors___SnapshotGetShardFailures:
+      description: |-
+        `snapshot.get` response listing snapshots where individual snapshots
+        had shards fail to capture. Failures appear per-snapshot at
+        `snapshots[].failures[]`.
+      type: object
+      properties:
+        snapshots:
+          type: array
+          items:
+            type: object
+            properties:
+              failures:
+                type: array
+                items:
+                  $ref: '#/components/schemas/snapshot._common___SnapshotShardFailure'
+      x-version-added: '1.0'
+    _common.errors___TaskFailures:
+      description: |-
+        Tasks-API response. Two parallel top-level arrays - `task_failures[]`
+        (per-task) and `node_failures[]` (per-node) - both populated
+        independently. Distinct from the `_nodes`-wrapped `NodeFailures`
+        shape: here both arrays sit at the response root.
+      type: object
+      properties:
+        task_failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/_common___TaskFailure'
+        node_failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/_common___ErrorCause'
+      x-version-added: '1.0'
+    _common.errors___WriteShards:
+      description: |-
+        Single-doc write response where the primary acked but one or more
+        replicas failed. Failures appear at `_shards.failures[]` of
+        `ShardFailure`. Document is durable.
+      type: object
+      properties:
+        _shards:
+          $ref: '#/components/schemas/_common___ShardInfo'
+      x-version-added: '1.0'
     _common___AcknowledgedResponseBase:
       type: object
       properties:

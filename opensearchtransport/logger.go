@@ -52,6 +52,16 @@ func loadDebugLogger() DebuggingLogger {
 	return nil
 }
 
+// LoadDebugLogger returns the currently configured debugging logger, or
+// nil when one has not been installed (e.g. when OPENSEARCH_GO_DEBUG is
+// unset and no caller has supplied one programmatically). It exposes the
+// shared logger so other packages in the module can emit
+// configuration-time diagnostics through the same sink the transport
+// uses for request-level debug output.
+func LoadDebugLogger() DebuggingLogger {
+	return loadDebugLogger()
+}
+
 func storeDebugLogger(dl DebuggingLogger) {
 	if dl == nil {
 		debugLoggerPtr.Store(nil)

@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
@@ -45,6 +46,9 @@ func example() error {
 		return err
 	}
 
+	// Surface partial failures (bulk item errors, shard failures) as Go
+	// errors. See guides/error_handling.md for the per-category bitmask.
+	errMask := errmask.Empty
 	discoverOnStart := true
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
@@ -64,7 +68,7 @@ func example() error {
 
 			// Optional: Surface partial failures (bulk item errors, shard failures)
 			// as Go errors. See guides/error_handling.md for details.
-			ReturnQueryErrors: true,
+			Errors: &errMask,
 		},
 	)
 	if err != nil {
@@ -546,22 +550,22 @@ Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Re
 
 All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization. A complete reference is in [Request Routing: Configuration Reference](guides/routing.md#14-configuration-reference). Quick summary:
 
-| Variable                            | Default       | Description                                         |
-| ----------------------------------- | ------------- | --------------------------------------------------- |
-| `OPENSEARCH_GO_REQUEST_TIMEOUT`     | 0 (none)      | Per-attempt HTTP request timeout (duration or secs) |
-| `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                             |
-| `OPENSEARCH_GO_ROUTER`              | `false`       | Auto-construct DefaultRouter when no Router is set  |
-| `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                |
-| `OPENSEARCH_GO_SHARD_REQUESTS`      | `true`        | Adaptive `max_concurrent_shard_requests` bounds     |
-| `OPENSEARCH_GO_SHARD_COST`          | (defaults)    | Shard cost multipliers for connection scoring       |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG`    | (all enabled) | Skip specific discovery calls                       |
-| `OPENSEARCH_GO_FALLBACK`            | `true`        | Seed URL fallback when all pools exhausted          |
-| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | auto (5s-30s) | Stats polling interval                              |
-| `OPENSEARCH_GO_POLICY_*`            | (all enabled) | Disable specific routing policies (10 variables)    |
-| `OPENSEARCH_GO_ACTIVE_LIST_CAP`     | auto          | Max active connections per pool                     |
-| `OPENSEARCH_GO_STANDBY_*`           | (see guide)   | Standby rotation and promotion tuning (3 variables) |
-| `OPENSEARCH_GO_OVERLOADED_*`        | (see guide)   | JVM heap and breaker thresholds (2 variables)       |
-| `OPENSEARCH_GO_PARTIAL_QUERY_ERRORS`| `false`       | Surface partial failures as Go errors (overrides `Config.ReturnQueryErrors`) |
+| Variable                            | Default       | Description                                                                 |
+| ----------------------------------- | ------------- | --------------------------------------------------------------------------- |
+| `OPENSEARCH_GO_REQUEST_TIMEOUT`     | 0 (none)      | Per-attempt HTTP request timeout (duration or secs)                         |
+| `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                                                     |
+| `OPENSEARCH_GO_ROUTER`              | `false`       | Auto-construct DefaultRouter when no Router is set                          |
+| `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                                        |
+| `OPENSEARCH_GO_SHARD_REQUESTS`      | `true`        | Adaptive `max_concurrent_shard_requests` bounds                             |
+| `OPENSEARCH_GO_SHARD_COST`          | (defaults)    | Shard cost multipliers for connection scoring                               |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG`    | (all enabled) | Skip specific discovery calls                                               |
+| `OPENSEARCH_GO_FALLBACK`            | `true`        | Seed URL fallback when all pools exhausted                                  |
+| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | auto (5s-30s) | Stats polling interval                                                      |
+| `OPENSEARCH_GO_POLICY_*`            | (all enabled) | Disable specific routing policies (10 variables)                            |
+| `OPENSEARCH_GO_ACTIVE_LIST_CAP`     | auto          | Max active connections per pool                                             |
+| `OPENSEARCH_GO_STANDBY_*`           | (see guide)   | Standby rotation and promotion tuning (3 variables)                         |
+| `OPENSEARCH_GO_OVERLOADED_*`        | (see guide)   | JVM heap and breaker thresholds (2 variables)                               |
+| `OPENSEARCH_GO_ERROR_MASK`          | (version-dep) | Mask partial-failure categories (`+`/`-` tokens; overrides `Config.Errors`) |
 
 ## Guides by Topic
 

@@ -362,12 +362,8 @@ func NewPluginClientFile(outDir, pkg string, ops []*ir.Operation, byGroup map[st
 
 	var clientOps []PluginClientOp
 	for _, op := range ops {
-		suffix := op.Group
-		if idx := strings.IndexByte(suffix, '.'); idx >= 0 {
-			suffix = suffix[idx+1:]
-		}
 		pco := PluginClientOp{
-			MethodName:        PluginMethodName(suffix),
+			MethodName:        op.MethodName,
 			TypePrefix:        op.TypePrefix,
 			IsPointerReq:      op.IsPointerReq,
 			IsNoBody:          op.IsNoBody,
@@ -406,18 +402,4 @@ func NewPluginTestHelperFile(outDir, pkg, pluginImport, coreImport, corePkg stri
 			CorePkg:      corePkg,
 		}},
 	}
-}
-
-// PluginMethodName converts a suffix like "get_alias" to "GetAlias".
-func PluginMethodName(suffix string) string {
-	parts := strings.FieldsFunc(suffix, func(r rune) bool {
-		return r == '_'
-	})
-	var sb strings.Builder
-	for _, p := range parts {
-		if len(p) > 0 {
-			sb.WriteString(strings.ToUpper(p[:1]) + p[1:])
-		}
-	}
-	return sb.String()
 }

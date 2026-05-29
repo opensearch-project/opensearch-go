@@ -180,3 +180,105 @@ func TestExtensionStringSlice(t *testing.T) {
 		})
 	}
 }
+
+func TestErrorResponseWrappers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		op   *openapi3.Operation
+		want []string
+	}{
+		{name: "nil operation", op: nil, want: nil},
+		{name: "nil extensions", op: &openapi3.Operation{}, want: nil},
+		{name: "missing key", op: &openapi3.Operation{
+			Extensions: map[string]any{"x-other": "val"},
+		}, want: nil},
+		{
+			name: "json.RawMessage internal refs",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{
+					extErrorResponses: json.RawMessage(`[` +
+						`{"$ref":"#/components/schemas/_common.errors___BulkItems"},` +
+						`{"$ref":"#/components/schemas/_common.errors___WriteShards"}` +
+						`]`),
+				},
+			},
+			want: []string{"BulkItems", "WriteShards"},
+		},
+		{
+			name: "[]any of map refs",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{
+					extErrorResponses: []any{
+						map[string]any{"$ref": "#/components/schemas/_common.errors___SearchShards"},
+					},
+				},
+			},
+			want: []string{"SearchShards"},
+		},
+		{
+			name: "external ref source-form falls back to last path segment",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{
+					extErrorResponses: json.RawMessage(`[{"$ref":"../schemas/_common.errors.yaml#/components/schemas/BulkItems"}]`),
+				},
+			},
+			want: []string{"BulkItems"},
+		},
+		{
+			name: "skips entries without $ref",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{
+					extErrorResponses: []any{
+						map[string]any{"description": "no ref"},
+						map[string]any{"$ref": "#/components/schemas/_common.errors___NodeFailures"},
+					},
+				},
+			},
+			want: []string{"NodeFailures"},
+		},
+		{
+			name: "empty array",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{extErrorResponses: json.RawMessage(`[]`)},
+			},
+			want: nil,
+		},
+		{
+			name: "malformed json.RawMessage",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{extErrorResponses: json.RawMessage(`not-json`)},
+			},
+			want: nil,
+		},
+		{
+			name: "unexpected scalar value",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{extErrorResponses: 42},
+			},
+			want: nil,
+		},
+		{
+			name: "[]any with non-map elements skipped",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{
+					extErrorResponses: []any{"not-a-map", 99},
+				},
+			},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := errorResponseWrappers(tt.op)
+			if tt.want == nil {
+				require.Nil(t, got)
+			} else {
+				require.Equal(t, tt.want, got)
+			}
+		})
+	}
+}

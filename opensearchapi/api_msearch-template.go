@@ -16,7 +16,10 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// MSearchTemplate executes a /_msearch request with the optional MSearchTemplateReq
+// MSearchTemplate executes a /_msearch request with the optional MSearchTemplateReq.
+//
+// Partial-failure detection mirrors MSearch: see [MsearchErrors] for the
+// runtime-collapse rule and caller patterns.
 func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*MSearchTemplateResp, error) {
 	var (
 		data MSearchTemplateResp
@@ -26,24 +29,9 @@ func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*M
 		return &data, err
 	}
 
-	if c.returnQueryErrors {
-		var totalShards, failedShards int
-		var failures []ResponseShardsFailure
-		for _, resp := range data.Responses {
-			totalShards += resp.Shards.Total
-			failedShards += resp.Shards.Failed
-			failures = append(failures, resp.Shards.Failures...)
-		}
-		if failedShards > 0 {
-			return &data, &PartialSearchError{
-				FailedShards: failedShards,
-				TotalShards:  totalShards,
-				Failures:     failures,
-			}
-		}
-	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), func(errs []error) error {
+		return &MsearchTemplateErrors{errs: errs}
+	})
 }
 
 // MSearchTemplateReq represents possible options for the /_msearch request
@@ -80,7 +68,8 @@ type MSearchTemplateResp struct {
 			MaxScore *float32    `json:"max_score"`
 			Hits     []SearchHit `json:"hits"`
 		} `json:"hits"`
-		Status int `json:"status"`
+		Status int            `json:"status"`
+		Error  *DocumentError `json:"error,omitempty"`
 	} `json:"responses"`
 	response *opensearch.Response
 }

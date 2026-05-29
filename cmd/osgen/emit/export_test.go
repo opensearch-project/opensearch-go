@@ -17,3 +17,9 @@ type ImportSet = importSet
 
 // ImportGroup exposes importGroup to black-box tests.
 var ImportGroup = importGroup
+
+// BulkInnerItemType exposes bulkInnerItemType for the test caller
+// without leaking the (string, bool) signature through the var-block.
+func BulkInnerItemType(resp *ir.Type, reg *ir.TypeRegistry) (string, bool) {
+	return bulkInnerItemType(resp, reg)
+}

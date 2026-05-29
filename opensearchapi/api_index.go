@@ -30,14 +30,9 @@ func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 		return &data, err
 	}
 
-	if c.returnQueryErrors && data.Shards.Failed > 0 {
-		return &data, &ShardFailureError{
-			Operation:    OperationIndex,
-			FailedShards: data.Shards.Failed,
-			TotalShards:  data.Shards.Total,
-		}
+	if errs := data.PartialFailures(c.errors); len(errs) > 0 {
+		return &data, errs[0]
 	}
-
 	return &data, nil
 }
 

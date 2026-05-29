@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -103,8 +104,8 @@ func TestNewPluginClientFile_Render(t *testing.T) {
 	t.Parallel()
 
 	ops := []*ir.Operation{
-		{Group: "security.get_roles", TypePrefix: "SecurityGetRoles", IsPointerReq: true},
-		{Group: "security.create_role", TypePrefix: "SecurityCreateRole", IsPointerReq: false},
+		{Group: "security.get_roles", MethodName: "GetRoles", TypePrefix: "SecurityGetRoles", IsPointerReq: true},
+		{Group: "security.create_role", MethodName: "CreateRole", TypePrefix: "SecurityCreateRole", IsPointerReq: false},
 	}
 
 	target := emit.NewPluginClientFile("/tmp/test", "ossecurity", ops, nil)
@@ -177,9 +178,18 @@ func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 	roleSC := &emit.PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
 
 	ops := []*ir.Operation{
-		{Group: "security.flush_cache", TypePrefix: "SecurityFlushCache", IsPointerReq: true, IsNoBody: true, HTTPMethods: []string{"DELETE"}},
-		{Group: "security.get_role", TypePrefix: "SecurityGetRole", IsPointerReq: true, HTTPMethods: []string{"GET"}},
-		{Group: "security.create_role", TypePrefix: "SecurityCreateRole", IsPointerReq: false, HTTPMethods: []string{"PUT"}},
+		{
+			Group: "security.flush_cache", MethodName: "FlushCache", TypePrefix: "SecurityFlushCache",
+			IsPointerReq: true, IsNoBody: true, HTTPMethods: []string{http.MethodDelete},
+		},
+		{
+			Group: "security.get_role", MethodName: "GetRole", TypePrefix: "SecurityGetRole",
+			IsPointerReq: true, HTTPMethods: []string{http.MethodGet},
+		},
+		{
+			Group: "security.create_role", MethodName: "CreateRole", TypePrefix: "SecurityCreateRole",
+			IsPointerReq: false, HTTPMethods: []string{http.MethodPut},
+		},
 	}
 
 	byGroup := map[string]*emit.PluginSubClient{
@@ -199,25 +209,4 @@ func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 	require.Contains(t, output, "func (c *Client) FlushCache(")
 	require.Contains(t, output, "func (c roleClient) GetRole(")
 	require.Contains(t, output, "func (c roleClient) CreateRole(")
-}
-
-func TestPluginMethodName(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		input string
-		want  string
-	}{
-		{input: "get_roles", want: "GetRoles"},
-		{input: "create", want: "Create"},
-		{input: "delete_by_query", want: "DeleteByQuery"},
-		{input: "get", want: "Get"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, emit.PluginMethodName(tt.input))
-		})
-	}
 }

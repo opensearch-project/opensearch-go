@@ -30,6 +30,7 @@ func (f *ClientsFragment) Imports() []Import {
 	return []Import{
 		{Path: "github.com/opensearch-project/opensearch-go/v4"},
 		{Path: "github.com/opensearch-project/opensearch-go/v4/internal/apiutil"},
+		{Path: "github.com/opensearch-project/opensearch-go/v4/errmask"},
 	}
 }
 
@@ -120,15 +121,17 @@ var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sent
 // Client represents the opensearchapi Client summarizing all API calls.
 type Client struct {
 	Client *opensearch.Client
+	errors *errMaskWidth
 {{- range .TopLevel}}
 	{{.FieldName}} {{.TypeName}}
 {{- end}}
 }
 
 // clientInit initializes a Client with all sub-clients.
-func clientInit(rootClient *opensearch.Client) *Client {
+func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	client := &Client{
 		Client: rootClient,
+		errors: newErrMask(mask),
 	}
 {{- range .InitStmts}}
 	{{.}}

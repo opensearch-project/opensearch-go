@@ -15,38 +15,74 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
-const envReturnQueryErrors = "OPENSEARCH_GO_PARTIAL_QUERY_ERRORS"
-
-// resolveReturnQueryErrors returns the effective ReturnQueryErrors setting.
-// The environment variable takes highest priority, followed by the config
-// field value, followed by the compile-time default (false).
-func resolveReturnQueryErrors(cfgValue bool) bool {
-	if v, ok := os.LookupEnv(envReturnQueryErrors); ok && v != "" {
-		if b, err := strconv.ParseBool(v); err == nil {
-			return b
-		}
+// resolveErrorMask returns the effective [errmask.ErrorMask] for a Client
+// by merging the cfg-supplied mask with the OPENSEARCH_GO_ERROR_MASK env var.
+//
+// In v4 the default is [errmask.All]: every partial-failure category is
+// masked, preserving pre-bitfield behavior (no partial-failure errors
+// returned). The resolver substitutes that default whenever
+// [Config.Errors] is nil; a non-nil pointer is honored verbatim, so
+// callers can opt in to "report everything" wholesale with
+// `Errors: errmask.New()` or selectively with composite masks.
+//
+// Parsing is liberal (forward-compatible): tokens this binary doesn't
+// recognize are skipped and reported via the debug logger, mirroring
+// the policy used for OPENSEARCH_GO_ROUTING_CONFIG and
+// OPENSEARCH_GO_DISCOVERY_CONFIG. An older client therefore tolerates
+// new wrapper bits added by a newer release.
+func resolveErrorMask(cfg Config) errmask.ErrorMask {
+	var base errmask.ErrorMask
+	if cfg.Errors == nil {
+		base = errmask.All // v4 default: mask every partial-failure category (no behavior change)
+	} else {
+		base = *cfg.Errors
 	}
-	return cfgValue
+	if v, ok := os.LookupEnv(envvars.ErrorMask); ok && v != "" {
+		mask, unknown := errmask.Parse(v, base)
+		if len(unknown) > 0 {
+			if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
+				_ = dl.Logf("%s: ignored unknown tokens %q\n", envvars.ErrorMask, unknown)
+			}
+		}
+		return mask
+	}
+	return base
 }
 
 // Config represents the client configuration
 type Config struct {
 	Client opensearch.Config
-	// ReturnQueryErrors causes API methods to return partial failure errors
-	// (PartialBulkError, PartialSearchError, ShardFailureError) when the
-	// server responds with HTTP 200 but the response body indicates failures.
-	// The response is still fully populated; both (resp, err) are non-nil.
+
+	// Errors masks specific categories of partial-failure errors so they
+	// are NOT returned as typed Go errors. A set bit suppresses that
+	// category; [errmask.Empty] reports every category.
 	//
-	// NOTE: Default false in v4 (opt-in), but will change to true in v5.
-	ReturnQueryErrors bool
+	//   nil               use this version's default: errmask.All
+	//                     (mask everything; preserves pre-bitfield behavior)
+	//   errmask.New()     caller wants every category reported
+	//   errmask.New(errmask.All)
+	//                     caller wants every category masked
+	//
+	// [errmask.None] and [errmask.Unknown] are doc-friendly aliases for
+	// [errmask.Empty]; all three equal 0. Because the named values are
+	// constants (not addressable), use [errmask.New] to build the pointer.
+	// The pointer state is what disambiguates "use the default" from "caller
+	// chose Empty".
+	//
+	// The OPENSEARCH_GO_ERROR_MASK environment variable can override
+	// this value with comma-separated +/- tokens (see [errmask.Parse]).
+	Errors *errmask.ErrorMask
 }
 
 // Client represents the opensearchapi Client summarizing all API calls
 type Client struct {
 	Client            *opensearch.Client
-	returnQueryErrors bool
+	errors            errmask.ErrorMask
 	Cat               catClient
 	Cluster           clusterClient
 	Dangling          danglingClient
@@ -67,10 +103,10 @@ type Client struct {
 }
 
 // clientInit inits the Client with all sub clients
-func clientInit(rootClient *opensearch.Client, returnQueryErrors bool) *Client {
+func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	client := &Client{
-		Client:            rootClient,
-		returnQueryErrors: returnQueryErrors,
+		Client: rootClient,
+		errors: mask,
 	}
 	client.Cat = catClient{apiClient: client}
 	client.Indices = indicesClient{
@@ -107,7 +143,7 @@ func NewClient(config Config) (*Client, error) {
 		return nil, err
 	}
 
-	return clientInit(rootClient, resolveReturnQueryErrors(config.ReturnQueryErrors)), nil
+	return clientInit(rootClient, resolveErrorMask(config)), nil
 }
 
 // NewDefaultClient returns a opensearchapi client using defaults
@@ -120,19 +156,20 @@ func NewDefaultClient() (*Client, error) {
 		return nil, err
 	}
 
-	return clientInit(rootClient, resolveReturnQueryErrors(false)), nil
+	return clientInit(rootClient, resolveErrorMask(Config{})), nil
 }
 
 // NewFromClient creates an opensearchapi client from an existing opensearch.Client.
-// ReturnQueryErrors defaults to false; use NewClient with Config to enable it.
+// In v4 this preserves the legacy "mask everything" default; use NewClient
+// with Config to enable partial-failure errors.
 func NewFromClient(client *opensearch.Client) *Client {
-	return clientInit(client, resolveReturnQueryErrors(false))
+	return clientInit(client, resolveErrorMask(Config{}))
 }
 
 // NewFromClientWithErrors creates an opensearchapi client from an existing
-// opensearch.Client with ReturnQueryErrors enabled.
+// opensearch.Client with every partial-failure category reported as an error.
 func NewFromClientWithErrors(client *opensearch.Client) *Client {
-	return clientInit(client, resolveReturnQueryErrors(true))
+	return clientInit(client, resolveErrorMask(Config{Errors: errmask.New()}))
 }
 
 // do calls [opensearch.Do] and checks the response for OpenSearch API errors.
@@ -156,7 +193,7 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 // noBody is a typed-nil sentinel passed to do() when the caller does not
 // expect a response body. The nil pointer triggers the dataPointer == nil
 // guard in [opensearch.Do], skipping json.Unmarshal.
-var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sentinel value
+var noBody *opensearch.NoBody //nolint:gochecknoglobals // typed-nil sentinel shared by callers that expect no response body
 
 // formatDuration converts duration to a string in the format
 // accepted by Opensearch.

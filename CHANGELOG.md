@@ -89,16 +89,21 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Document environment variables in `guides/routing.md`
   - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
 - Add adaptive `max_concurrent_shard_requests` derived from cluster-wide AIMD congestion window ([#800](https://github.com/opensearch-project/opensearch-go/issues/800))
-- Add partial failure error types (`PartialBulkError`, `PartialSearchError`, `ShardFailureError`) that surface HTTP 200 partial failures as Go errors when `Config.ReturnQueryErrors` is enabled ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
+- Add partial failure error types (`PartialBulkError`, `PartialSearchError`, `ShardFailureError`, `MultiSearchItemError`) that surface HTTP 200 partial failures as typed Go errors, controlled by a per-category `errmask.ErrorMask` bitfield on `Config.Errors` ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
   - `PartialBulkError` returned from `Bulk` when `resp.Errors` is true, carries `FailedItems` and `SucceededCount`
   - `PartialSearchError` returned from `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` when `_shards.failed > 0`
   - `ShardFailureError` returned from `Index`, `Document.Create`, `Document.Delete`, `Update` when replica shards fail
-  - `PartialFailureError` marker interface with `IsPartial() bool` for type-switching across all partial failure types
+  - `MultiSearchItemError` returned from `MSearch`/`MSearchTemplate` for per-sub-response Error envelopes
+  - `MsearchErrors` / `MsearchTemplateErrors` per-op containers (Go 1.20+ multi-error contract via `Unwrap() []error`) when 2+ wrapper categories fire on the same response
+  - `PartialFailureError` marker interface with `IsPartial() bool` for type-switching across all partial-failure types
+  - Per-Resp helper methods (`BulkItemFailures`, `SearchShardFailures`, `WriteShardFailures`, `MultiSearchItemFailures`) plus `PartialFailures(mask)` aggregator for focused inspection at the call site
+  - `opensearchapi.Errors(err) []error` package-level helper that flattens single- and multi-wrapper errors into a uniform slice for `switch` dispatch
   - Helper functions: `IsPartialFailure`, `ToleratePartialFailures`, `RequireSuccessRate` for threshold-based error tolerance
   - Operation constants: `OperationIndex`, `OperationCreate`, `OperationUpdate`, `OperationDelete`
-  - `Config.ReturnQueryErrors` defaults to `false` in v4 (opt-in), will flip to `true` in v5
-  - `OPENSEARCH_GO_PARTIAL_QUERY_ERRORS` environment variable overrides `Config.ReturnQueryErrors` at runtime
+  - `Config.Errors *errmask.ErrorMask` replaces a single boolean: each bit suppresses one wrapper category. v4 defaults to `errmask.All` (mask everything, preserves pre-bitfield behavior); v5+ defaults to `errmask.Empty` (report everything)
+  - `OPENSEARCH_GO_ERROR_MASK` environment variable overrides `Config.Errors` at runtime via comma-separated `+`/`-` tokens (lowercase snake_case wrapper names; unknown tokens silently dropped, debug-logged)
   - Both `(resp, error)` are non-nil on partial failure -- response is fully populated
+  - `v5preview/opensearchapi` ports the same model with spec-driven types (regenerated from the OpenAPI `x-error-responses` extension on every `cmd/osgen` run)
 - Add `OperationClassifier` for zero-allocation HTTP method+path to `OperationID` mapping ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
   - Bit-packed `OperationID` (int64) encoding R/W flag, category, and minor operation
   - Masking helpers: `IsWrite`, `IsRead`, `Category`, `Minor`

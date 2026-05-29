@@ -14,7 +14,7 @@ import (
 
 // PartialFailureError is implemented by error types that represent partial
 // operation success. When a caller receives a PartialFailureError, the
-// accompanying response is fully populated — use errors.As to inspect
+// accompanying response is fully populated -- use errors.As to inspect
 // the failure details while still processing the partial results.
 //
 // Use [IsPartialFailure] to test, [ToleratePartialFailures] to suppress,
@@ -33,7 +33,7 @@ type PartialFailureError interface {
 // PartialBulkError indicates that a bulk operation completed with HTTP 200
 // but some items failed. The accompanying BulkResp is fully populated.
 type PartialBulkError struct {
-	FailedItems    []BulkRespItem
+	FailedItems    []BulkResponseItem
 	SucceededCount int
 }
 
@@ -58,7 +58,7 @@ func (e *PartialBulkError) IsPartial() bool { return true }
 type PartialSearchError struct {
 	FailedShards int
 	TotalShards  int
-	Failures     []ResponseShardsFailure
+	Failures     []ShardSearchFailure
 }
 
 //nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
@@ -77,20 +77,20 @@ func (e *PartialSearchError) IsPartial() bool { return true }
 
 // MultiSearchItemFailure captures one failed sub-response inside an
 // MSearch / MSearchTemplate result: the position within the Responses
-// slice, the per-sub-response HTTP-like status, and the server-side
-// error detail.
+// slice plus the spec-driven [ErrorResponseBase] envelope (Status int
+// and Error ErrorCause). The embedded fields are accessed directly:
+// `failure.Status`, `failure.Error`.
 type MultiSearchItemFailure struct {
-	Index  int
-	Status int
-	Error  *DocumentError
+	Index int
+	ErrorResponseBase
 }
 
 // MultiSearchItemError indicates that an MSearch / MSearchTemplate
-// response carries one or more sub-queries whose top-level Error field
-// is set (a fully-failed sub-query within an otherwise-successful
-// envelope). The accompanying response is fully populated; callers can
-// inspect successful sub-queries directly while iterating Items for the
-// failures.
+// response carries one or more sub-queries whose union branch decoded
+// as [ErrorResponseBase] (a fully-failed sub-query within an
+// otherwise-successful envelope). The accompanying response is fully
+// populated; callers can inspect successful sub-queries directly while
+// iterating Items for the failures.
 //
 // This is distinct from [PartialSearchError]: shard-level failures are
 // masked by the SearchShards bit, while the per-sub-response Error
@@ -201,42 +201,6 @@ func collapsePerOpErrors(errs []error, wrap func([]error) error) error {
 	}
 }
 
-// Errors returns the partial-failure sub-errors carried by err,
-// flattening any per-op multi-error wrapper (e.g. [MsearchErrors]) into
-// a flat slice.
-//
-// Use this from caller code so a single switch/default block handles
-// both the single-sub-error case (collapse rule returned the bare
-// sub-error) and the multi-sub-error case (collapse returned a per-op
-// wrapper). Adding new wrapper categories later becomes purely
-// additive: a new case in the caller's switch picks up the new type;
-// the default keeps catching everything else.
-//
-//	resp, err := c.MSearch(ctx, req)
-//	for _, sub := range opensearchapi.Errors(err) {
-//	    switch e := sub.(type) {
-//	    case *opensearchapi.PartialSearchError:
-//	        // shard aggregation
-//	    case *opensearchapi.MultiSearchItemError:
-//	        // per-sub-response Error envelope
-//	    default:
-//	        // transport / HTTP / decoding error
-//	    }
-//	}
-//
-// A nil err returns nil. A non-partial err (transport, HTTP, decode)
-// returns a single-element slice containing err.
-func Errors(err error) []error {
-	if err == nil {
-		return nil
-	}
-	var multi interface{ Unwrap() []error }
-	if errors.As(err, &multi) {
-		return multi.Unwrap()
-	}
-	return []error{err}
-}
-
 // ---------------------------------------------------------------------------
 // ShardFailureError
 // ---------------------------------------------------------------------------
@@ -278,6 +242,42 @@ func IsPartialFailure(err error) bool {
 	return errors.As(err, &partial)
 }
 
+// Errors returns the partial-failure sub-errors carried by err,
+// flattening any per-op multi-error wrapper (e.g. [MsearchErrors]) into
+// a flat slice.
+//
+// Use this from caller code so a single switch/default block handles
+// both the single-sub-error case (collapse rule returned the bare
+// sub-error) and the multi-sub-error case (collapse returned a per-op
+// wrapper). Adding new wrapper categories later becomes purely
+// additive: a new case in the caller's switch picks up the new type;
+// the default keeps catching everything else.
+//
+//	resp, err := c.Msearch(ctx, req)
+//	for _, sub := range opensearchapi.Errors(err) {
+//	    switch e := sub.(type) {
+//	    case *opensearchapi.PartialSearchError:
+//	        // shard aggregation
+//	    case *opensearchapi.MultiSearchItemError:
+//	        // per-sub-response Error envelope
+//	    default:
+//	        // transport / HTTP / decoding error
+//	    }
+//	}
+//
+// A nil err returns nil. A non-partial err (transport, HTTP, decode)
+// returns a single-element slice containing err.
+func Errors(err error) []error {
+	if err == nil {
+		return nil
+	}
+	var multi interface{ Unwrap() []error }
+	if errors.As(err, &multi) {
+		return multi.Unwrap()
+	}
+	return []error{err}
+}
+
 // ToleratePartialFailures returns nil for partial failure errors,
 // passes through all other errors unchanged.
 func ToleratePartialFailures(err error) error {
@@ -292,8 +292,8 @@ func ToleratePartialFailures(err error) error {
 // unchanged. A nil err returns nil.
 //
 // The success rate is computed from the integer counts on the concrete error
-// type: succeeded/total for [PartialBulkError] and [MultiSearchItemError],
-// (total-failed)/total for [PartialSearchError] and [ShardFailureError].
+// type: succeeded/total for [PartialBulkError], (total-failed)/total for
+// [PartialSearchError] and [ShardFailureError].
 func RequireSuccessRate(err error, threshold float64) error {
 	if err == nil {
 		return nil
@@ -310,15 +310,11 @@ func RequireSuccessRate(err error, threshold float64) error {
 	case *ShardFailureError:
 		succeeded = e.TotalShards - e.FailedShards
 		total = e.TotalShards
-	case *MultiSearchItemError:
-		succeeded = e.SucceededCount
-		total = e.SucceededCount + len(e.Items)
 	default:
 		// Try unwrapping -- the partial error may be wrapped.
 		var bulkErr *PartialBulkError
 		var searchErr *PartialSearchError
 		var shardErr *ShardFailureError
-		var msearchErr *MultiSearchItemError
 		switch {
 		case errors.As(err, &bulkErr):
 			succeeded = bulkErr.SucceededCount
@@ -329,9 +325,6 @@ func RequireSuccessRate(err error, threshold float64) error {
 		case errors.As(err, &shardErr):
 			succeeded = shardErr.TotalShards - shardErr.FailedShards
 			total = shardErr.TotalShards
-		case errors.As(err, &msearchErr):
-			succeeded = msearchErr.SucceededCount
-			total = msearchErr.SucceededCount + len(msearchErr.Items)
 		default:
 			return err
 		}

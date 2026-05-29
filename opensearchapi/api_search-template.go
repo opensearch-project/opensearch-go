@@ -26,14 +26,9 @@ func (c Client) SearchTemplate(ctx context.Context, req SearchTemplateReq) (*Sea
 		return &data, err
 	}
 
-	if c.returnQueryErrors && data.Shards.Failed > 0 {
-		return &data, &PartialSearchError{
-			FailedShards: data.Shards.Failed,
-			TotalShards:  data.Shards.Total,
-			Failures:     data.Shards.Failures,
-		}
+	if errs := data.PartialFailures(c.errors); len(errs) > 0 {
+		return &data, errs[0]
 	}
-
 	return &data, nil
 }
 

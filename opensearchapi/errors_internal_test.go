@@ -10,72 +10,101 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 )
 
-func TestResolveReturnQueryErrors(t *testing.T) {
+func ptrMask(m errmask.ErrorMask) *errmask.ErrorMask { return &m }
+
+func TestResolveErrorMask(t *testing.T) {
 	tests := []struct {
-		name     string
-		env      *string // nil = unset, non-nil = set to this value
-		cfgValue bool
-		want     bool
+		name string
+		env  *string // nil = unset, non-nil = set to this value
+		cfg  Config
+		want errmask.ErrorMask
 	}{
 		{
-			name:     "default unset false",
-			env:      nil,
-			cfgValue: false,
-			want:     false,
+			name: "v4 default nil config masks everything",
+			env:  nil,
+			cfg:  Config{},
+			want: errmask.All,
 		},
 		{
-			name:     "config true no env",
-			env:      nil,
-			cfgValue: true,
-			want:     true,
+			name: "explicit Empty pointer reports everything",
+			env:  nil,
+			cfg:  Config{Errors: ptrMask(errmask.Empty)},
+			want: errmask.Empty,
 		},
 		{
-			name:     "env true overrides config false",
-			env:      strPtr("true"),
-			cfgValue: false,
-			want:     true,
+			name: "explicit All pointer masks everything",
+			env:  nil,
+			cfg:  Config{Errors: ptrMask(errmask.All)},
+			want: errmask.All,
 		},
 		{
-			name:     "env false overrides config true",
-			env:      strPtr("false"),
-			cfgValue: true,
-			want:     false,
+			name: "explicit single-bit mask honored",
+			env:  nil,
+			cfg:  Config{Errors: ptrMask(errmask.BulkItems)},
+			want: errmask.BulkItems,
 		},
 		{
-			name:     "env 1",
-			env:      strPtr("1"),
-			cfgValue: false,
-			want:     true,
+			name: "env adds bit on top of cfg base",
+			env:  strPtr("+search_shards"),
+			cfg:  Config{Errors: ptrMask(errmask.BulkItems)},
+			want: errmask.BulkItems | errmask.SearchShards,
 		},
 		{
-			name:     "env 0 overrides config true",
-			env:      strPtr("0"),
-			cfgValue: true,
-			want:     false,
+			name: "env clears bit from cfg base",
+			env:  strPtr("-bulk_items"),
+			cfg:  Config{Errors: ptrMask(errmask.All)},
+			want: errmask.All &^ errmask.BulkItems,
 		},
 		{
-			name:     "env garbage falls through to config",
-			env:      strPtr("maybe"),
-			cfgValue: true,
-			want:     true,
+			name: "env empty token unmasks everything",
+			env:  strPtr("empty"),
+			cfg:  Config{Errors: ptrMask(errmask.All)},
+			want: errmask.Empty,
 		},
 		{
-			name:     "env empty falls through to config",
-			env:      strPtr(""),
-			cfgValue: false,
-			want:     false,
+			name: "env none alias unmasks everything",
+			env:  strPtr("none"),
+			cfg:  Config{Errors: ptrMask(errmask.All)},
+			want: errmask.Empty,
+		},
+		{
+			name: "env composite resets and sets",
+			env:  strPtr("empty,+write_shards"),
+			cfg:  Config{Errors: ptrMask(errmask.All)},
+			want: errmask.WriteShards,
+		},
+		{
+			name: "env unknown tokens silently dropped",
+			env:  strPtr("garbage"),
+			cfg:  Config{Errors: ptrMask(errmask.BulkItems)},
+			want: errmask.BulkItems,
+		},
+		{
+			name: "env empty string falls through to base",
+			env:  strPtr(""),
+			cfg:  Config{Errors: ptrMask(errmask.SearchShards)},
+			want: errmask.SearchShards,
+		},
+		{
+			name: "pascal case rejected as unknown tokens",
+			env:  strPtr("+BulkItems,+SearchShards"),
+			cfg:  Config{Errors: ptrMask(errmask.Empty)},
+			want: errmask.Empty, // both tokens fall through to unknown; mask unchanged
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.env != nil {
-				t.Setenv(envReturnQueryErrors, *tt.env)
+				t.Setenv(envvars.ErrorMask, *tt.env)
 			}
 
-			got := resolveReturnQueryErrors(tt.cfgValue)
+			got := resolveErrorMask(tt.cfg)
 			assert.Equal(t, tt.want, got)
 		})
 	}

@@ -1,5 +1,5 @@
 - [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
-  - [Partial failure errors (ReturnQueryErrors)](#partial-failure-errors-returnqueryerrors)
+  - [Partial failure errors (Config.Errors)](#partial-failure-errors-configerrors)
   - [Response.Body becomes a method](#responsebody-becomes-a-method)
   - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
 - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
@@ -29,52 +29,148 @@
 
 ## Upgrading to >= 5.0.0
 
-### Partial Failure Errors (ReturnQueryErrors)
+### Partial Failure Errors (Config.Errors)
 
-Version 5.0.0 changes `Config.ReturnQueryErrors` to default to `true`. When enabled, API methods return typed errors for partial failures (HTTP 200 responses with embedded errors), so callers only need the standard `if err != nil` pattern. Both the response and the error are non-nil on partial failure -- the response is fully populated.
+Version 5.0.0 introduces typed partial-failure errors and a per-category bitmask that controls which categories surface as Go errors. OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes), so callers historically had to remember a second response inspection after every `if err != nil { ... }`. The new model turns those partial failures into typed errors callers can match on with `errors.As`.
 
-**Why**: OpenSearch returns HTTP 200 for operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). Before this change, callers had to remember a second error check after every operation, which is easy to forget and non-idiomatic Go.
+#### Configuring the mask
 
-**What changes in v5**: If you relied on `err == nil` meaning "no failures of any kind", your code is already correct -- you were ignoring partial failures. With `ReturnQueryErrors: true` (now the default), those partial failures surface as errors. Your `if err != nil` blocks will now catch them.
+`Config.Errors` is a `*errmask.ErrorMask` pointer. A set bit suppresses (masks) that category; an unset bit reports it. Three named values cover the common cases:
 
-**If you need the old behavior**, set `ReturnQueryErrors: false`:
+| Value            | Meaning                                                             |
+| ---------------- | ------------------------------------------------------------------- |
+| `nil`            | Use the version's default (v4: `errmask.All`; v5+: `errmask.Empty`) |
+| `&errmask.Empty` | Mask nothing -- every category is reported as a typed error         |
+| `&errmask.All`   | Mask everything -- callers must inspect the response manually       |
+
+`errmask.None` and `errmask.Unknown` are aliases for `errmask.Empty`; all three equal 0. Composite masks (e.g. `errmask.SearchShards | errmask.MultiSearchItems`) suppress specific categories while leaving others reported.
+
+The v4 default (`errmask.All`) preserves pre-bitfield behavior: partial failures are not surfaced as Go errors, so existing v4 code continues to work without modification. Opt in by setting `Config.Errors: &errmask.Empty` (or use `errmask.NewClient`-style helpers). The v5+ default flips to `errmask.Empty` so partial failures surface by default.
 
 ```go
+mask := errmask.Empty // report every category
 client, err := opensearchapi.NewClient(opensearchapi.Config{
-    Client:            opensearch.Config{Addresses: addrs},
-    ReturnQueryErrors: false, // v4 behavior: partial failures don't return errors
+    Client: opensearch.Config{Addresses: addrs},
+    Errors: &mask,
 })
 ```
 
-**Handling partial failure errors**:
+#### Environment-variable override
 
-All partial failure errors implement the `PartialFailureError` interface and work with `errors.As`:
+`OPENSEARCH_GO_ERROR_MASK` accepts a comma-separated list of `+`/`-` tokens applied left-to-right on top of `Config.Errors`. Tokens are the lowercase snake_case wrapper-schema names from the OpenAPI `x-error-responses` extension (`bulk_items`, `search_shards`, `write_shards`, ...).
+
+```sh
+# Mask everything except bulk-item errors (useful with v4: opt out of "mask everything" but suppress search-shard noise)
+export OPENSEARCH_GO_ERROR_MASK="+all,-bulk_items"
+
+# Only mask search-shard failures; report every other category
+export OPENSEARCH_GO_ERROR_MASK="search_shards"
+
+# Reset to "mask everything" (mimics the v4 default)
+export OPENSEARCH_GO_ERROR_MASK="all"
+
+# Reset to "report everything" (the v5+ default)
+export OPENSEARCH_GO_ERROR_MASK="none"
+```
+
+Unknown tokens are ignored (forward compatible: an older client tolerates new wrapper bits added by a newer release) and reported via the debug logger when `OPENSEARCH_GO_DEBUG` is enabled.
+
+#### Handling typed errors
+
+Each operation returns a typed sub-error per detected wrapper category, and operations declaring multiple `x-error-responses` entries can fire more than one. The dispatch handler applies a runtime-collapse rule:
+
+- 0 sub-errors fired: returns `nil`.
+- 1 sub-error fired: returns the bare sub-error (no wrapper allocated).
+- 2+ sub-errors fired: returns the per-op error type wrapping the slice.
+
+`errors.As` against a known sub-error type works in **both** the single and multi cases (the per-op type implements `Unwrap() []error`):
 
 ```go
 resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
-if err != nil {
-    var bulkErr *opensearchapi.PartialBulkError
-    switch {
-    case errors.As(err, &bulkErr):
-        // resp is fully populated -- inspect individual items
-        log.Printf("%d/%d items failed",
-            len(bulkErr.FailedItems),
-            bulkErr.SucceededCount+len(bulkErr.FailedItems))
-    default:
-        return err // transport or HTTP error
+var bulkErr *opensearchapi.PartialBulkError
+if errors.As(err, &bulkErr) {
+    log.Printf("%d/%d items failed",
+        len(bulkErr.FailedItems),
+        bulkErr.SucceededCount+len(bulkErr.FailedItems))
+}
+```
+
+Callers wanting to enumerate every sub-error from a multi-wrapper op match on the per-op type:
+
+```go
+resp, err := client.MSearch(ctx, req)
+var msErr *opensearchapi.MsearchErrors
+if errors.As(err, &msErr) {
+    for _, sub := range msErr.Unwrap() {
+        switch e := sub.(type) {
+        case *opensearchapi.PartialSearchError: // shard aggregation
+        case *opensearchapi.MultiSearchItemError: // per-sub-response Error
+        }
     }
 }
 ```
 
-**Error types**:
+The `opensearchapi.Errors(err) []error` helper flattens the same shape uniformly across single- and multi-wrapper ops, so a single `switch` block handles both:
 
-| Error Type | Returned By | Key Fields |
-|---|---|---|
-| `*PartialBulkError` | `Bulk` | `FailedItems []BulkRespItem`, `SucceededCount int` |
-| `*PartialSearchError` | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
-| `*ShardFailureError` | `Index`, `Document.Create`, `Document.Delete`, `Update` | `Operation string`, `FailedShards int`, `TotalShards int` |
+```go
+resp, err := client.MSearch(ctx, req)
+for _, sub := range opensearchapi.Errors(err) {
+    switch e := sub.(type) {
+    case *opensearchapi.PartialSearchError:
+        // shard aggregation
+    case *opensearchapi.MultiSearchItemError:
+        // per-sub-response Error envelope
+    default:
+        // transport / HTTP / decoding error
+    }
+}
+```
 
-**Helper functions** for common patterns:
+A `nil` `err` returns `nil`; a non-partial err (transport, HTTP, decode) returns a single-element slice containing `err`. Adding new wrapper categories later is purely additive: a new `case` picks it up; the `default` keeps catching everything else.
+
+#### Per-Resp helper methods
+
+Every operation declaring `x-error-responses` exposes per-wrapper helper methods on its typed response, plus a `PartialFailures(mask)` aggregator. Use these when you want focused inspection at the call site without going through the dispatch error:
+
+```go
+resp, _ := client.Bulk(ctx, req)
+if e := resp.BulkItemFailures(); e != nil {
+    log.Printf("%d items failed", len(e.FailedItems))
+}
+
+resp2, _ := client.MSearch(ctx, req)
+if e := resp2.SearchShardFailures(); e != nil { /* ... */ }
+if e := resp2.MultiSearchItemFailures(); e != nil { /* ... */ }
+```
+
+The `r.PartialFailures(mask errmask.ErrorMask) []error` aggregator reports every wrapper category not suppressed by `mask` -- useful when reusing the dispatch's mask gating outside the dispatch path.
+
+#### Error types in v4 `opensearchapi/`
+
+| Error Type               | Returned By                                                                                                                         | Key Fields                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `*PartialBulkError`      | `Bulk`                                                                                                                              | `FailedItems []BulkRespItem`, `SucceededCount int`                        |
+| `*PartialSearchError`    | `Search`, `Scroll.Get`, `SearchTemplate` (single-bit); also via `*MsearchErrors` and `*MsearchTemplateErrors` for shard aggregation | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
+| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                                                             | `Operation string`, `FailedShards int`, `TotalShards int`                 |
+| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                                                                    | `Items []MultiSearchItemFailure`, `SucceededCount int`                    |
+| `*MsearchErrors`         | `MSearch` when 2+ wrappers fire                                                                                                     | `Unwrap() []error` (multi-error contract)                                 |
+| `*MsearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                                             | `Unwrap() []error`                                                        |
+
+Per-op `*<Op>Errors` types are the Go 1.20+ multi-error containers; they implement `Unwrap() []error` so `errors.As` against any sub-error type still matches whether the response carried one sub-error or many.
+
+#### Error types in v5preview `v5preview/opensearchapi/` (preview)
+
+The v5preview surface ports the same model, but its error sub-types are spec-driven (regenerated from the OpenAPI spec on every `cmd/osgen` run):
+
+| Field name                      | v4 (`opensearchapi`)    | v5preview (`v5preview/opensearchapi`)      |
+| ------------------------------- | ----------------------- | ------------------------------------------ |
+| Per-shard failure type          | `ResponseShardsFailure` | `ShardSearchFailure` (spec-driven)         |
+| Per-sub-response error envelope | inline `*DocumentError` | embedded `ErrorResponseBase` (spec-driven) |
+| Shard envelope type             | `ResponseShards`        | `ShardStatistics` (spec-driven)            |
+
+The v5preview package additionally generates one per-op error type per operation declaring `x-error-responses` (e.g. `*v5preview/opensearchapi.MsearchErrors`, `*v5preview/opensearchapi.MsearchTemplateErrors`). Callers wanting v4-shaped field types should keep using the v4 `opensearchapi` package; v5preview is a preview surface that will become the default in v5.
+
+#### Helper functions
 
 ```go
 // Suppress all partial failures (best-effort operations)
@@ -87,7 +183,7 @@ err = opensearchapi.RequireSuccessRate(err, 0.99)
 if opensearchapi.IsPartialFailure(err) { ... }
 ```
 
-**Operation constants** for `ShardFailureError.Operation`:
+#### Operation constants for `ShardFailureError.Operation`
 
 ```go
 opensearchapi.OperationIndex   // "index"

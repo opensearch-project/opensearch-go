@@ -8,6 +8,7 @@ package main
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -281,27 +282,46 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 	}
 	sort.Strings(names)
 
-	// Pre-compute Go names and detect collisions. When a JSON field with a
-	// leading underscore (e.g. "_score") produces the same Go name as another
-	// field ("score"), disambiguate with a "Raw" suffix on the underscore-
-	// prefixed variant. Both fields legitimately exist in the server response
-	// (e.g. CompletionSuggestOption has _score from SearchHit inlining and
-	// score from the suggestion itself).
+	// Pre-compute Go names and resolve collisions. baseGoName strips leading
+	// underscores, so a JSON field like "_score" produces the same Go name as a
+	// sibling "score" (both legitimately exist in a server response: e.g.
+	// CompletionSuggestOption has _score from SearchHit inlining and score from
+	// the suggestion itself). A property without a leading underscore claims the
+	// bare Go name; each underscore-prefixed sibling yields and takes a "Raw"
+	// suffix, bumped ("Raw", "Raw2", ...) until unique so three-plus colliding
+	// properties each get a distinct field.
 	goNames := make(map[string]string, len(names))
 	for _, name := range names {
 		goNames[name] = baseGoName(name)
 	}
-	seenGoName := make(map[string]string, len(names))
-	for _, name := range names {
-		gn := goNames[name]
-		if prev, dup := seenGoName[gn]; dup {
-			if strings.HasPrefix(name, "_") {
-				goNames[name] = gn + "Raw"
-			} else if strings.HasPrefix(prev, "_") {
-				goNames[prev] = gn + "Raw"
+	taken := make(map[string]struct{}, len(names))
+	assign := func(name string) {
+		base := goNames[name]
+		candidate := base
+		for suffix := 0; ; suffix++ {
+			if _, dup := taken[candidate]; !dup {
+				break
+			}
+			candidate = base + "Raw"
+			if suffix > 0 {
+				candidate += strconv.Itoa(suffix + 1)
 			}
 		}
-		seenGoName[gn] = name
+		taken[candidate] = struct{}{}
+		goNames[name] = candidate
+	}
+	// Non-underscore properties claim the bare name first; underscore-prefixed
+	// properties disambiguate after. names is already sorted, so both passes are
+	// deterministic and output is stable.
+	for _, name := range names {
+		if !strings.HasPrefix(name, "_") {
+			assign(name)
+		}
+	}
+	for _, name := range names {
+		if strings.HasPrefix(name, "_") {
+			assign(name)
+		}
 	}
 
 	fields := make([]goField, 0, len(schema.Properties))
@@ -338,7 +358,7 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 		if propRef != nil && propRef.Value != nil {
 			vRemoved = extensionString(propRef.Value.Extensions, extVersionRemoved)
 		}
-		if !w.vrange.Includes(versionAdded, vRemoved, versionDeprecated) {
+		if !w.vrange.Includes(versionAdded, vRemoved, versionDeprecated) { //nolint:nestif // version-filter branching is intentional
 			side := "(resp)"
 			if !isRespBody {
 				side = "(req)"
