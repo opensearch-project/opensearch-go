@@ -136,11 +136,30 @@ func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *{{$t.Name}}) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the New{{$t.Name}}From*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *{{$t.Name}}) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = {{$t.Name}}UnknownType
+}
 {{range $t.Branches}}
 // {{.Name}} returns the {{qualify .GoType}} branch value.
 func (u *{{$t.Name}}) {{.Name}}() {{qualify .GoType}} {
 	v, _ := u.value.({{qualify .GoType}})
 	return v
+}
+
+// New{{$t.Name}}From{{.Name}} returns a {{$t.Name}} populated with v
+// on the {{.Name}} branch.
+func New{{$t.Name}}From{{.Name}}(v {{qualify .GoType}}) {{$t.Name}} {
+	return {{$t.Name}}{
+		typ:   {{constName $t.Name .Name}},
+		value: v,
+	}
 }
 {{end}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
@@ -200,11 +219,30 @@ func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *{{$t.Name}}) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the New{{$t.Name}}From*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *{{$t.Name}}) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = {{$t.Name}}UnknownType
+}
 {{range $t.Branches}}
 // {{.Name}} returns the {{qualify .GoType}} branch value.
 func (u *{{$t.Name}}) {{.Name}}() {{qualify .GoType}} {
 	v, _ := u.value.({{qualify .GoType}})
 	return v
+}
+
+// New{{$t.Name}}From{{.Name}} returns a {{$t.Name}} populated with v
+// on the {{.Name}} branch.
+func New{{$t.Name}}From{{.Name}}(v {{qualify .GoType}}) {{$t.Name}} {
+	return {{$t.Name}}{
+		typ:   {{constName $t.Name .Name}},
+		value: v,
+	}
 }
 {{end}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
