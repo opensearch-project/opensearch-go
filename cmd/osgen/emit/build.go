@@ -197,6 +197,23 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 	return targets
 }
 
+// splitUnionsFromSiblings partitions a sibling-types list into struct-shape
+// types and discriminated unions. Unions need the UnionFragment template
+// (which renders Type/branch accessors and try-each unmarshal); structs go
+// through SiblingTypesFragment. Without this split, a union sibling
+// rendered as a struct emits as `type Foo struct {}` because its Branches
+// aren't Fields.
+func splitUnionsFromSiblings(types []*ir.Type) (structs, unions []*ir.Type) {
+	for _, st := range types {
+		if st.Kind == ir.TypeUnion || st.Kind == ir.TypeLazyUnion {
+			unions = append(unions, st)
+		} else {
+			structs = append(structs, st)
+		}
+	}
+	return structs, unions
+}
+
 func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.TypeRegistry) Target {
 	var frags []Fragment
 
@@ -206,23 +223,22 @@ func buildOperationFile(dir, pkg, basename string, op *ir.Operation, reg *ir.Typ
 		frags = append(frags, &RespFragment{Op: op, Registry: reg})
 	}
 	if len(op.SiblingTypes) > 0 {
-		var structSiblings, unionSiblings []*ir.Type
-		for _, st := range op.SiblingTypes {
-			if st.Kind == ir.TypeUnion || st.Kind == ir.TypeLazyUnion {
-				unionSiblings = append(unionSiblings, st)
-			} else {
-				structSiblings = append(structSiblings, st)
-			}
-		}
+		structSiblings, unionSiblings := splitUnionsFromSiblings(op.SiblingTypes)
 		if len(structSiblings) > 0 {
 			frags = append(frags, &SiblingTypesFragment{Op: op, Types: structSiblings, Registry: reg})
 		}
 		if len(unionSiblings) > 0 {
-			frags = append(frags, &UnionFragment{Types: unionSiblings})
+			frags = append(frags, &UnionFragment{Op: op, Types: unionSiblings, Registry: reg})
 		}
 	}
 	if len(op.ReqBodySiblings) > 0 {
-		frags = append(frags, &SiblingTypesFragment{Op: op, Types: op.ReqBodySiblings, Registry: reg})
+		structSiblings, unionSiblings := splitUnionsFromSiblings(op.ReqBodySiblings)
+		if len(structSiblings) > 0 {
+			frags = append(frags, &SiblingTypesFragment{Op: op, Types: structSiblings, Registry: reg})
+		}
+		if len(unionSiblings) > 0 {
+			frags = append(frags, &UnionFragment{Op: op, Types: unionSiblings, Registry: reg})
+		}
 	}
 
 	if len(op.DispatchRoutes) > 0 {

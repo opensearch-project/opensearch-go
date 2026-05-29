@@ -15,8 +15,13 @@ import (
 )
 
 // UnionFragment renders discriminated union types (both strict and lazy).
+// When Op is non-nil and represents a plugin operation, branch types are
+// qualified with the core package prefix (e.g. opensearchapi.FieldSort)
+// so the generated plugin file references shared types correctly.
 type UnionFragment struct {
-	Types []*ir.Type
+	Op       *ir.Operation
+	Types    []*ir.Type
+	Registry *ir.TypeRegistry
 }
 
 // Imports returns the imports the union-types fragment needs.
@@ -24,12 +29,30 @@ func (f *UnionFragment) Imports() []Import {
 	if len(f.Types) == 0 {
 		return nil
 	}
-	return []Import{
+	imps := []Import{
 		{Path: "bytes"},
 		{Path: "encoding/json"},
 		{Path: "fmt"},
 		{Path: LocalModule + "/internal/build"},
 	}
+	if f.Op != nil && f.Op.IsPlugin && f.Registry != nil && f.hasCrossPkgBranch() {
+		imps = append(imps, Import{Path: f.Registry.CoreImport})
+	}
+	return imps
+}
+
+// hasCrossPkgBranch reports whether any union branch references a
+// shared (core-package) type that needs cross-package qualification
+// when this fragment is emitted into a plugin package.
+func (f *UnionFragment) hasCrossPkgBranch() bool {
+	for _, t := range f.Types {
+		for _, b := range t.Branches {
+			if isCrossPackageType(b.GoType, f.Registry) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Body renders the union type definitions (and their UnmarshalJSON methods).
@@ -38,8 +61,23 @@ func (f *UnionFragment) Body() (string, error) {
 		return "", nil
 	}
 
+	var qualify func(string) string
+	if f.Op != nil {
+		qualify = qualifierFunc(f.Op.IsPlugin, f.Registry)
+	} else {
+		qualify = func(s string) string { return s }
+	}
+
 	var sb strings.Builder
-	if err := unionFragTmpl.Execute(&sb, f.Types); err != nil {
+	tmpl := template.Must(template.New("union").Funcs(template.FuncMap{
+		"comment":   CommentWrap,
+		"constName": unionConstNameIR,
+		"tokenStr":  tokenClassStr,
+		"isTryEach": func(k ir.TypeKind) bool { return k == ir.TypeLazyUnion },
+		"qualify":   qualify,
+	}).Parse(unionFragTmplText))
+
+	if err := tmpl.Execute(&sb, f.Types); err != nil {
 		return "", fmt.Errorf("rendering UnionFragment: %w", err)
 	}
 	return sb.String(), nil
@@ -66,13 +104,8 @@ func unionConstNameIR(unionName, branchName string) string {
 	return unionName + branchName + "Type"
 }
 
-//nolint:gochecknoglobals // const-ish read-only template
-var unionFragTmpl = template.Must(template.New("union").Funcs(template.FuncMap{
-	"comment":   CommentWrap,
-	"constName": unionConstNameIR,
-	"tokenStr":  tokenClassStr,
-	"isTryEach": func(k ir.TypeKind) bool { return k == ir.TypeLazyUnion },
-}).Parse(`{{- range $t := .}}
+//nolint:gochecknoglobals // const-ish read-only template body
+const unionFragTmplText = `{{- range $t := .}}
 {{- if isTryEach $t.Kind}}
 {{- if $t.Comment}}
 {{comment $t.Comment}}
@@ -104,9 +137,9 @@ func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *{{$t.Name}}) RawJSON() json.RawMessage { return u.raw }
 {{range $t.Branches}}
-// {{.Name}} returns the {{.GoType}} branch value.
-func (u *{{$t.Name}}) {{.Name}}() {{.GoType}} {
-	v, _ := u.value.({{.GoType}})
+// {{.Name}} returns the {{qualify .GoType}} branch value.
+func (u *{{$t.Name}}) {{.Name}}() {{qualify .GoType}} {
+	v, _ := u.value.({{qualify .GoType}})
 	return v
 }
 {{end}}
@@ -117,7 +150,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	}
 {{- range $t.Branches}}
 	{
-		var v {{.GoType}}
+		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = {{constName $t.Name .Name}}
 			u.value = v
@@ -168,9 +201,9 @@ func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *{{$t.Name}}) RawJSON() json.RawMessage { return u.raw }
 {{range $t.Branches}}
-// {{.Name}} returns the {{.GoType}} branch value.
-func (u *{{$t.Name}}) {{.Name}}() {{.GoType}} {
-	v, _ := u.value.({{.GoType}})
+// {{.Name}} returns the {{qualify .GoType}} branch value.
+func (u *{{$t.Name}}) {{.Name}}() {{qualify .GoType}} {
+	v, _ := u.value.({{qualify .GoType}})
 	return v
 }
 {{end}}
@@ -183,7 +216,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 {{- range $t.Branches}}
 {{- if eq (tokenStr .TokenClass) "object"}}
 	case data[0] == '{':
-		var v {{.GoType}}
+		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -191,7 +224,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		u.value = v
 {{- else if eq (tokenStr .TokenClass) "array"}}
 	case data[0] == '[':
-		var v {{.GoType}}
+		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -199,7 +232,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		u.value = v
 {{- else if eq (tokenStr .TokenClass) "string"}}
 	case data[0] == '"':
-		var v {{.GoType}}
+		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -207,7 +240,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		u.value = v
 {{- else if eq (tokenStr .TokenClass) "number"}}
 	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v {{.GoType}}
+		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -215,7 +248,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		u.value = v
 {{- else if eq (tokenStr .TokenClass) "bool"}}
 	case data[0] == 't' || data[0] == 'f':
-		var v {{.GoType}}
+		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -239,4 +272,4 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 {{- end}}
-{{end}}`))
+{{end}}`
