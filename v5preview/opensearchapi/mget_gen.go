@@ -242,16 +242,44 @@ func (u *MgetResponseBodyDocsItem) Type() MgetResponseBodyDocsItemType { return 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MgetResponseBodyDocsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMgetResponseBodyDocsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MgetResponseBodyDocsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MgetResponseBodyDocsItemUnknownType
+}
+
 // GetResult returns the GetResult branch value.
 func (u *MgetResponseBodyDocsItem) GetResult() GetResult {
 	v, _ := u.value.(GetResult)
 	return v
 }
 
+// NewMgetResponseBodyDocsItemFromGetResult returns a MgetResponseBodyDocsItem populated with v
+// on the GetResult branch.
+func NewMgetResponseBodyDocsItemFromGetResult(v GetResult) MgetResponseBodyDocsItem {
+	return MgetResponseBodyDocsItem{
+		typ:   MgetResponseBodyDocsItemGetResultType,
+		value: v,
+	}
+}
+
 // MgetMultiGetError returns the MgetMultiGetError branch value.
 func (u *MgetResponseBodyDocsItem) MgetMultiGetError() MgetMultiGetError {
 	v, _ := u.value.(MgetMultiGetError)
 	return v
+}
+
+// NewMgetResponseBodyDocsItemFromMgetMultiGetError returns a MgetResponseBodyDocsItem populated with v
+// on the MgetMultiGetError branch.
+func NewMgetResponseBodyDocsItemFromMgetMultiGetError(v MgetMultiGetError) MgetResponseBodyDocsItem {
+	return MgetResponseBodyDocsItem{
+		typ:   MgetResponseBodyDocsItemMgetMultiGetErrorType,
+		value: v,
+	}
 }
 
 func (u *MgetResponseBodyDocsItem) UnmarshalJSON(data []byte) error {
@@ -323,10 +351,6 @@ type MgetOperation struct {
 	VersionType *string `json:"version_type,omitempty"`
 }
 
-// MgetOperationSource is a typed component of the mget operation.
-type MgetOperationSource struct {
-}
-
 // MgetOperationSourceObject1 is a typed component of the mget operation.
 type MgetOperationSourceObject1 struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
@@ -340,6 +364,107 @@ type MgetOperationSourceObject1 struct {
 	// field list is provided in the `completion_fields` or `fielddata_fields`
 	// parameters.
 	Includes *string `json:"includes,omitempty"`
+}
+
+// MgetOperationSource is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type MgetOperationSource struct {
+	typ   MgetOperationSourceType
+	raw   json.RawMessage
+	value any
+}
+
+// MgetOperationSourceType discriminates the branches of MgetOperationSource.
+type MgetOperationSourceType int
+
+const (
+	MgetOperationSourceUnknownType MgetOperationSourceType = iota
+	MgetOperationSourceStringType
+	MgetOperationSourceMgetOperationSourceObject1Type
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns MgetOperationSourceUnknownType if the value has not been decoded.
+func (u *MgetOperationSource) Type() MgetOperationSourceType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *MgetOperationSource) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMgetOperationSourceFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MgetOperationSource) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MgetOperationSourceUnknownType
+}
+
+// String returns the string branch value.
+func (u *MgetOperationSource) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewMgetOperationSourceFromString returns a MgetOperationSource populated with v
+// on the String branch.
+func NewMgetOperationSourceFromString(v string) MgetOperationSource {
+	return MgetOperationSource{
+		typ:   MgetOperationSourceStringType,
+		value: v,
+	}
+}
+
+// MgetOperationSourceObject1 returns the MgetOperationSourceObject1 branch value.
+func (u *MgetOperationSource) MgetOperationSourceObject1() MgetOperationSourceObject1 {
+	v, _ := u.value.(MgetOperationSourceObject1)
+	return v
+}
+
+// NewMgetOperationSourceFromMgetOperationSourceObject1 returns a MgetOperationSource populated with v
+// on the MgetOperationSourceObject1 branch.
+func NewMgetOperationSourceFromMgetOperationSourceObject1(v MgetOperationSourceObject1) MgetOperationSource {
+	return MgetOperationSource{
+		typ:   MgetOperationSourceMgetOperationSourceObject1Type,
+		value: v,
+	}
+}
+
+func (u *MgetOperationSource) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = MgetOperationSourceStringType
+		u.value = v
+	case data[0] == '{':
+		var v MgetOperationSourceObject1
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = MgetOperationSourceMgetOperationSourceObject1Type
+		u.value = v
+	default:
+		return fmt.Errorf("MgetOperationSource: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u MgetOperationSource) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
 
 // Mget allows to get multiple documents in one request.

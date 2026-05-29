@@ -219,16 +219,44 @@ func (u *CatHealthRecordEpoch) Type() CatHealthRecordEpochType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CatHealthRecordEpoch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatHealthRecordEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatHealthRecordEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatHealthRecordEpochUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *CatHealthRecordEpoch) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewCatHealthRecordEpochFromInt64 returns a CatHealthRecordEpoch populated with v
+// on the Int64 branch.
+func NewCatHealthRecordEpochFromInt64(v int64) CatHealthRecordEpoch {
+	return CatHealthRecordEpoch{
+		typ:   CatHealthRecordEpochInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CatHealthRecordEpoch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCatHealthRecordEpochFromString returns a CatHealthRecordEpoch populated with v
+// on the String branch.
+func NewCatHealthRecordEpochFromString(v string) CatHealthRecordEpoch {
+	return CatHealthRecordEpoch{
+		typ:   CatHealthRecordEpochStringType,
+		value: v,
+	}
 }
 
 func (u *CatHealthRecordEpoch) UnmarshalJSON(data []byte) error {

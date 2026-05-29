@@ -11,6 +11,7 @@ package sql
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -119,6 +120,101 @@ func (r SettingsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SQLSettingsBody is a typed component of the sql.settings operation.
+// SQLSettingsBody is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type SQLSettingsBody struct {
+	typ   SQLSettingsBodyType
+	raw   json.RawMessage
+	value any
+}
+
+// SQLSettingsBodyType discriminates the branches of SQLSettingsBody.
+type SQLSettingsBodyType int
+
+const (
+	SQLSettingsBodyUnknownType SQLSettingsBodyType = iota
+	SQLSettingsBodySQLSqlSettingsPlainType
+	SQLSettingsBodySQLSqlSettingsType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns SQLSettingsBodyUnknownType if the value has not been decoded.
+func (u *SQLSettingsBody) Type() SQLSettingsBodyType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *SQLSettingsBody) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSQLSettingsBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SQLSettingsBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SQLSettingsBodyUnknownType
+}
+
+// SQLSqlSettingsPlain returns the opensearchapi.SQLSqlSettingsPlain branch value.
+func (u *SQLSettingsBody) SQLSqlSettingsPlain() opensearchapi.SQLSqlSettingsPlain {
+	v, _ := u.value.(opensearchapi.SQLSqlSettingsPlain)
+	return v
+}
+
+// NewSQLSettingsBodyFromSQLSqlSettingsPlain returns a SQLSettingsBody populated with v
+// on the SQLSqlSettingsPlain branch.
+func NewSQLSettingsBodyFromSQLSqlSettingsPlain(v opensearchapi.SQLSqlSettingsPlain) SQLSettingsBody {
+	return SQLSettingsBody{
+		typ:   SQLSettingsBodySQLSqlSettingsPlainType,
+		value: v,
+	}
+}
+
+// SQLSqlSettings returns the opensearchapi.SQLSqlSettings branch value.
+func (u *SQLSettingsBody) SQLSqlSettings() opensearchapi.SQLSqlSettings {
+	v, _ := u.value.(opensearchapi.SQLSqlSettings)
+	return v
+}
+
+// NewSQLSettingsBodyFromSQLSqlSettings returns a SQLSettingsBody populated with v
+// on the SQLSqlSettings branch.
+func NewSQLSettingsBodyFromSQLSqlSettings(v opensearchapi.SQLSqlSettings) SQLSettingsBody {
+	return SQLSettingsBody{
+		typ:   SQLSettingsBodySQLSqlSettingsType,
+		value: v,
+	}
+}
+
+func (u *SQLSettingsBody) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	{
+		var v opensearchapi.SQLSqlSettingsPlain
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SQLSettingsBodySQLSqlSettingsPlainType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SQLSqlSettings
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SQLSettingsBodySQLSqlSettingsType
+			u.value = v
+			return nil
+		}
+	}
+	return fmt.Errorf("SQLSettingsBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u SQLSettingsBody) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

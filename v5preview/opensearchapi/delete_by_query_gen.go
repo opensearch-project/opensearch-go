@@ -441,16 +441,44 @@ func (u *DeleteByQueryResponseBody) Type() DeleteByQueryResponseBodyType { retur
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *DeleteByQueryResponseBody) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewDeleteByQueryResponseBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *DeleteByQueryResponseBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = DeleteByQueryResponseBodyUnknownType
+}
+
 // BulkByScrollResponseBase returns the BulkByScrollResponseBase branch value.
 func (u *DeleteByQueryResponseBody) BulkByScrollResponseBase() BulkByScrollResponseBase {
 	v, _ := u.value.(BulkByScrollResponseBase)
 	return v
 }
 
+// NewDeleteByQueryResponseBodyFromBulkByScrollResponseBase returns a DeleteByQueryResponseBody populated with v
+// on the BulkByScrollResponseBase branch.
+func NewDeleteByQueryResponseBodyFromBulkByScrollResponseBase(v BulkByScrollResponseBase) DeleteByQueryResponseBody {
+	return DeleteByQueryResponseBody{
+		typ:   DeleteByQueryResponseBodyBulkByScrollResponseBaseType,
+		value: v,
+	}
+}
+
 // DeleteByQueryResponseBodyObject1 returns the DeleteByQueryResponseBodyObject1 branch value.
 func (u *DeleteByQueryResponseBody) DeleteByQueryResponseBodyObject1() DeleteByQueryResponseBodyObject1 {
 	v, _ := u.value.(DeleteByQueryResponseBodyObject1)
 	return v
+}
+
+// NewDeleteByQueryResponseBodyFromDeleteByQueryResponseBodyObject1 returns a DeleteByQueryResponseBody populated with v
+// on the DeleteByQueryResponseBodyObject1 branch.
+func NewDeleteByQueryResponseBodyFromDeleteByQueryResponseBodyObject1(v DeleteByQueryResponseBodyObject1) DeleteByQueryResponseBody {
+	return DeleteByQueryResponseBody{
+		typ:   DeleteByQueryResponseBodyDeleteByQueryResponseBodyObject1Type,
+		value: v,
+	}
 }
 
 func (u *DeleteByQueryResponseBody) UnmarshalJSON(data []byte) error {

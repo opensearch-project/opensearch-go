@@ -224,16 +224,44 @@ func (u *IndicesOpenResponseBody) Type() IndicesOpenResponseBodyType { return u.
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesOpenResponseBody) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesOpenResponseBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesOpenResponseBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesOpenResponseBodyUnknownType
+}
+
 // IndicesOpenResponseBodyObject0 returns the IndicesOpenResponseBodyObject0 branch value.
 func (u *IndicesOpenResponseBody) IndicesOpenResponseBodyObject0() IndicesOpenResponseBodyObject0 {
 	v, _ := u.value.(IndicesOpenResponseBodyObject0)
 	return v
 }
 
+// NewIndicesOpenResponseBodyFromIndicesOpenResponseBodyObject0 returns a IndicesOpenResponseBody populated with v
+// on the IndicesOpenResponseBodyObject0 branch.
+func NewIndicesOpenResponseBodyFromIndicesOpenResponseBodyObject0(v IndicesOpenResponseBodyObject0) IndicesOpenResponseBody {
+	return IndicesOpenResponseBody{
+		typ:   IndicesOpenResponseBodyIndicesOpenResponseBodyObject0Type,
+		value: v,
+	}
+}
+
 // IndicesOpenResponseBodyObject1 returns the IndicesOpenResponseBodyObject1 branch value.
 func (u *IndicesOpenResponseBody) IndicesOpenResponseBodyObject1() IndicesOpenResponseBodyObject1 {
 	v, _ := u.value.(IndicesOpenResponseBodyObject1)
 	return v
+}
+
+// NewIndicesOpenResponseBodyFromIndicesOpenResponseBodyObject1 returns a IndicesOpenResponseBody populated with v
+// on the IndicesOpenResponseBodyObject1 branch.
+func NewIndicesOpenResponseBodyFromIndicesOpenResponseBodyObject1(v IndicesOpenResponseBodyObject1) IndicesOpenResponseBody {
+	return IndicesOpenResponseBody{
+		typ:   IndicesOpenResponseBodyIndicesOpenResponseBodyObject1Type,
+		value: v,
+	}
 }
 
 func (u *IndicesOpenResponseBody) UnmarshalJSON(data []byte) error {

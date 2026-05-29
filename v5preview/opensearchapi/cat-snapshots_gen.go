@@ -238,16 +238,44 @@ func (u *CatSnapshotsRecordEndEpoch) Type() CatSnapshotsRecordEndEpochType { ret
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CatSnapshotsRecordEndEpoch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatSnapshotsRecordEndEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatSnapshotsRecordEndEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatSnapshotsRecordEndEpochUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *CatSnapshotsRecordEndEpoch) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewCatSnapshotsRecordEndEpochFromInt64 returns a CatSnapshotsRecordEndEpoch populated with v
+// on the Int64 branch.
+func NewCatSnapshotsRecordEndEpochFromInt64(v int64) CatSnapshotsRecordEndEpoch {
+	return CatSnapshotsRecordEndEpoch{
+		typ:   CatSnapshotsRecordEndEpochInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CatSnapshotsRecordEndEpoch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCatSnapshotsRecordEndEpochFromString returns a CatSnapshotsRecordEndEpoch populated with v
+// on the String branch.
+func NewCatSnapshotsRecordEndEpochFromString(v string) CatSnapshotsRecordEndEpoch {
+	return CatSnapshotsRecordEndEpoch{
+		typ:   CatSnapshotsRecordEndEpochStringType,
+		value: v,
+	}
 }
 
 func (u *CatSnapshotsRecordEndEpoch) UnmarshalJSON(data []byte) error {
@@ -315,16 +343,44 @@ func (u *CatSnapshotsRecordStartEpoch) Type() CatSnapshotsRecordStartEpochType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CatSnapshotsRecordStartEpoch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatSnapshotsRecordStartEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatSnapshotsRecordStartEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatSnapshotsRecordStartEpochUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *CatSnapshotsRecordStartEpoch) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewCatSnapshotsRecordStartEpochFromInt64 returns a CatSnapshotsRecordStartEpoch populated with v
+// on the Int64 branch.
+func NewCatSnapshotsRecordStartEpochFromInt64(v int64) CatSnapshotsRecordStartEpoch {
+	return CatSnapshotsRecordStartEpoch{
+		typ:   CatSnapshotsRecordStartEpochInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CatSnapshotsRecordStartEpoch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCatSnapshotsRecordStartEpochFromString returns a CatSnapshotsRecordStartEpoch populated with v
+// on the String branch.
+func NewCatSnapshotsRecordStartEpochFromString(v string) CatSnapshotsRecordStartEpoch {
+	return CatSnapshotsRecordStartEpoch{
+		typ:   CatSnapshotsRecordStartEpochStringType,
+		value: v,
+	}
 }
 
 func (u *CatSnapshotsRecordStartEpoch) UnmarshalJSON(data []byte) error {

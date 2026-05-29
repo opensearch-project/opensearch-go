@@ -208,16 +208,44 @@ func (u *FlowFrameworkGetStatusResponseBody) Type() FlowFrameworkGetStatusRespon
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *FlowFrameworkGetStatusResponseBody) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewFlowFrameworkGetStatusResponseBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *FlowFrameworkGetStatusResponseBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = FlowFrameworkGetStatusResponseBodyUnknownType
+}
+
 // FlowFrameworkCommonWorkFlowStatusFullResponse returns the FlowFrameworkCommonWorkFlowStatusFullResponse branch value.
 func (u *FlowFrameworkGetStatusResponseBody) FlowFrameworkCommonWorkFlowStatusFullResponse() FlowFrameworkCommonWorkFlowStatusFullResponse {
 	v, _ := u.value.(FlowFrameworkCommonWorkFlowStatusFullResponse)
 	return v
 }
 
+// NewFlowFrameworkGetStatusResponseBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse returns a FlowFrameworkGetStatusResponseBody populated with v
+// on the FlowFrameworkCommonWorkFlowStatusFullResponse branch.
+func NewFlowFrameworkGetStatusResponseBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse(v FlowFrameworkCommonWorkFlowStatusFullResponse) FlowFrameworkGetStatusResponseBody {
+	return FlowFrameworkGetStatusResponseBody{
+		typ:   FlowFrameworkGetStatusResponseBodyFlowFrameworkCommonWorkFlowStatusFullResponseType,
+		value: v,
+	}
+}
+
 // FlowFrameworkCommonWorkFlowStatusDefaultResponse returns the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch value.
 func (u *FlowFrameworkGetStatusResponseBody) FlowFrameworkCommonWorkFlowStatusDefaultResponse() FlowFrameworkCommonWorkFlowStatusDefaultResponse {
 	v, _ := u.value.(FlowFrameworkCommonWorkFlowStatusDefaultResponse)
 	return v
+}
+
+// NewFlowFrameworkGetStatusResponseBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse returns a FlowFrameworkGetStatusResponseBody populated with v
+// on the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch.
+func NewFlowFrameworkGetStatusResponseBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse(v FlowFrameworkCommonWorkFlowStatusDefaultResponse) FlowFrameworkGetStatusResponseBody {
+	return FlowFrameworkGetStatusResponseBody{
+		typ:   FlowFrameworkGetStatusResponseBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType,
+		value: v,
+	}
 }
 
 func (u *FlowFrameworkGetStatusResponseBody) UnmarshalJSON(data []byte) error {

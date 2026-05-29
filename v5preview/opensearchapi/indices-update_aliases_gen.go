@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -187,12 +188,6 @@ type IndicesUpdateAliasesAddAction struct {
 	SearchRouting *string `json:"search_routing,omitempty"`
 }
 
-// IndicesUpdateAliasesAddActionAliases is a typed component of the indices.update_aliases operation.
-//
-// The list of aliases to add. Index alias names support date math.
-type IndicesUpdateAliasesAddActionAliases struct {
-}
-
 // IndicesUpdateAliasesRemoveAction is a typed component of the indices.update_aliases operation.
 //
 // The configuration for removing an alias.
@@ -214,12 +209,6 @@ type IndicesUpdateAliasesRemoveAction struct {
 	MustExist *bool `json:"must_exist,omitempty"`
 }
 
-// IndicesUpdateAliasesRemoveActionAliases is a typed component of the indices.update_aliases operation.
-//
-// The list of aliases to remove. Index alias names support date math.
-type IndicesUpdateAliasesRemoveActionAliases struct {
-}
-
 // IndicesUpdateAliasesRemoveIndexAction is a typed component of the indices.update_aliases operation.
 //
 // The configuration for removing an index.
@@ -233,6 +222,212 @@ type IndicesUpdateAliasesRemoveIndexAction struct {
 
 	// Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
+}
+
+// The list of aliases to add. Index alias names support date math.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type IndicesUpdateAliasesAddActionAliases struct {
+	typ   IndicesUpdateAliasesAddActionAliasesType
+	raw   json.RawMessage
+	value any
+}
+
+// IndicesUpdateAliasesAddActionAliasesType discriminates the branches of IndicesUpdateAliasesAddActionAliases.
+type IndicesUpdateAliasesAddActionAliasesType int
+
+const (
+	IndicesUpdateAliasesAddActionAliasesUnknownType IndicesUpdateAliasesAddActionAliasesType = iota
+	IndicesUpdateAliasesAddActionAliasesStringType
+	IndicesUpdateAliasesAddActionAliasesArrayType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesUpdateAliasesAddActionAliasesUnknownType if the value has not been decoded.
+func (u *IndicesUpdateAliasesAddActionAliases) Type() IndicesUpdateAliasesAddActionAliasesType {
+	return u.typ
+}
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *IndicesUpdateAliasesAddActionAliases) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesUpdateAliasesAddActionAliasesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesUpdateAliasesAddActionAliases) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesUpdateAliasesAddActionAliasesUnknownType
+}
+
+// String returns the string branch value.
+func (u *IndicesUpdateAliasesAddActionAliases) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewIndicesUpdateAliasesAddActionAliasesFromString returns a IndicesUpdateAliasesAddActionAliases populated with v
+// on the String branch.
+func NewIndicesUpdateAliasesAddActionAliasesFromString(v string) IndicesUpdateAliasesAddActionAliases {
+	return IndicesUpdateAliasesAddActionAliases{
+		typ:   IndicesUpdateAliasesAddActionAliasesStringType,
+		value: v,
+	}
+}
+
+// Array returns the []string branch value.
+func (u *IndicesUpdateAliasesAddActionAliases) Array() []string {
+	v, _ := u.value.([]string)
+	return v
+}
+
+// NewIndicesUpdateAliasesAddActionAliasesFromArray returns a IndicesUpdateAliasesAddActionAliases populated with v
+// on the Array branch.
+func NewIndicesUpdateAliasesAddActionAliasesFromArray(v []string) IndicesUpdateAliasesAddActionAliases {
+	return IndicesUpdateAliasesAddActionAliases{
+		typ:   IndicesUpdateAliasesAddActionAliasesArrayType,
+		value: v,
+	}
+}
+
+func (u *IndicesUpdateAliasesAddActionAliases) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesAddActionAliasesStringType
+		u.value = v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesAddActionAliasesArrayType
+		u.value = v
+	default:
+		return fmt.Errorf("IndicesUpdateAliasesAddActionAliases: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u IndicesUpdateAliasesAddActionAliases) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// The list of aliases to remove. Index alias names support date math.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type IndicesUpdateAliasesRemoveActionAliases struct {
+	typ   IndicesUpdateAliasesRemoveActionAliasesType
+	raw   json.RawMessage
+	value any
+}
+
+// IndicesUpdateAliasesRemoveActionAliasesType discriminates the branches of IndicesUpdateAliasesRemoveActionAliases.
+type IndicesUpdateAliasesRemoveActionAliasesType int
+
+const (
+	IndicesUpdateAliasesRemoveActionAliasesUnknownType IndicesUpdateAliasesRemoveActionAliasesType = iota
+	IndicesUpdateAliasesRemoveActionAliasesStringType
+	IndicesUpdateAliasesRemoveActionAliasesArrayType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesUpdateAliasesRemoveActionAliasesUnknownType if the value has not been decoded.
+func (u *IndicesUpdateAliasesRemoveActionAliases) Type() IndicesUpdateAliasesRemoveActionAliasesType {
+	return u.typ
+}
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *IndicesUpdateAliasesRemoveActionAliases) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesUpdateAliasesRemoveActionAliasesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesUpdateAliasesRemoveActionAliases) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesUpdateAliasesRemoveActionAliasesUnknownType
+}
+
+// String returns the string branch value.
+func (u *IndicesUpdateAliasesRemoveActionAliases) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewIndicesUpdateAliasesRemoveActionAliasesFromString returns a IndicesUpdateAliasesRemoveActionAliases populated with v
+// on the String branch.
+func NewIndicesUpdateAliasesRemoveActionAliasesFromString(v string) IndicesUpdateAliasesRemoveActionAliases {
+	return IndicesUpdateAliasesRemoveActionAliases{
+		typ:   IndicesUpdateAliasesRemoveActionAliasesStringType,
+		value: v,
+	}
+}
+
+// Array returns the []string branch value.
+func (u *IndicesUpdateAliasesRemoveActionAliases) Array() []string {
+	v, _ := u.value.([]string)
+	return v
+}
+
+// NewIndicesUpdateAliasesRemoveActionAliasesFromArray returns a IndicesUpdateAliasesRemoveActionAliases populated with v
+// on the Array branch.
+func NewIndicesUpdateAliasesRemoveActionAliasesFromArray(v []string) IndicesUpdateAliasesRemoveActionAliases {
+	return IndicesUpdateAliasesRemoveActionAliases{
+		typ:   IndicesUpdateAliasesRemoveActionAliasesArrayType,
+		value: v,
+	}
+}
+
+func (u *IndicesUpdateAliasesRemoveActionAliases) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesRemoveActionAliasesStringType
+		u.value = v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesUpdateAliasesRemoveActionAliasesArrayType
+		u.value = v
+	default:
+		return fmt.Errorf("IndicesUpdateAliasesRemoveActionAliases: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u IndicesUpdateAliasesRemoveActionAliases) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
 
 // UpdateAliases updates index aliases.

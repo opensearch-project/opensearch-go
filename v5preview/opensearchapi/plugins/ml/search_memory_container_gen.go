@@ -11,6 +11,7 @@ package ml
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -141,6 +142,149 @@ type MlSearchMemoryContainerBody struct {
 	Sort *MlSearchMemoryContainerBodySort `json:"sort,omitempty"`
 }
 
-// MlSearchMemoryContainerBodySort is a typed component of the ml.search_memory_container operation.
+// MlSearchMemoryContainerBodySort is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type MlSearchMemoryContainerBodySort struct {
+	typ   MlSearchMemoryContainerBodySortType
+	raw   json.RawMessage
+	value any
+}
+
+// MlSearchMemoryContainerBodySortType discriminates the branches of MlSearchMemoryContainerBodySort.
+type MlSearchMemoryContainerBodySortType int
+
+const (
+	MlSearchMemoryContainerBodySortUnknownType MlSearchMemoryContainerBodySortType = iota
+	MlSearchMemoryContainerBodySortStringType
+	MlSearchMemoryContainerBodySortStringMapType
+	MlSearchMemoryContainerBodySortFieldSortMapType
+	MlSearchMemoryContainerBodySortOptionsType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns MlSearchMemoryContainerBodySortUnknownType if the value has not been decoded.
+func (u *MlSearchMemoryContainerBodySort) Type() MlSearchMemoryContainerBodySortType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *MlSearchMemoryContainerBodySort) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlSearchMemoryContainerBodySortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlSearchMemoryContainerBodySort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlSearchMemoryContainerBodySortUnknownType
+}
+
+// String returns the string branch value.
+func (u *MlSearchMemoryContainerBodySort) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewMlSearchMemoryContainerBodySortFromString returns a MlSearchMemoryContainerBodySort populated with v
+// on the String branch.
+func NewMlSearchMemoryContainerBodySortFromString(v string) MlSearchMemoryContainerBodySort {
+	return MlSearchMemoryContainerBodySort{
+		typ:   MlSearchMemoryContainerBodySortStringType,
+		value: v,
+	}
+}
+
+// StringMap returns the map[string]string branch value.
+func (u *MlSearchMemoryContainerBodySort) StringMap() map[string]string {
+	v, _ := u.value.(map[string]string)
+	return v
+}
+
+// NewMlSearchMemoryContainerBodySortFromStringMap returns a MlSearchMemoryContainerBodySort populated with v
+// on the StringMap branch.
+func NewMlSearchMemoryContainerBodySortFromStringMap(v map[string]string) MlSearchMemoryContainerBodySort {
+	return MlSearchMemoryContainerBodySort{
+		typ:   MlSearchMemoryContainerBodySortStringMapType,
+		value: v,
+	}
+}
+
+// FieldSortMap returns the map[string]opensearchapi.FieldSort branch value.
+func (u *MlSearchMemoryContainerBodySort) FieldSortMap() map[string]opensearchapi.FieldSort {
+	v, _ := u.value.(map[string]opensearchapi.FieldSort)
+	return v
+}
+
+// NewMlSearchMemoryContainerBodySortFromFieldSortMap returns a MlSearchMemoryContainerBodySort populated with v
+// on the FieldSortMap branch.
+func NewMlSearchMemoryContainerBodySortFromFieldSortMap(v map[string]opensearchapi.FieldSort) MlSearchMemoryContainerBodySort {
+	return MlSearchMemoryContainerBodySort{
+		typ:   MlSearchMemoryContainerBodySortFieldSortMapType,
+		value: v,
+	}
+}
+
+// Options returns the opensearchapi.SortOptions branch value.
+func (u *MlSearchMemoryContainerBodySort) Options() opensearchapi.SortOptions {
+	v, _ := u.value.(opensearchapi.SortOptions)
+	return v
+}
+
+// NewMlSearchMemoryContainerBodySortFromOptions returns a MlSearchMemoryContainerBodySort populated with v
+// on the Options branch.
+func NewMlSearchMemoryContainerBodySortFromOptions(v opensearchapi.SortOptions) MlSearchMemoryContainerBodySort {
+	return MlSearchMemoryContainerBodySort{
+		typ:   MlSearchMemoryContainerBodySortOptionsType,
+		value: v,
+	}
+}
+
+func (u *MlSearchMemoryContainerBodySort) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	{
+		var v string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchMemoryContainerBodySortStringType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v map[string]string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchMemoryContainerBodySortStringMapType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v map[string]opensearchapi.FieldSort
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchMemoryContainerBodySortFieldSortMapType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SortOptions
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchMemoryContainerBodySortOptionsType
+			u.value = v
+			return nil
+		}
+	}
+	return fmt.Errorf("MlSearchMemoryContainerBodySort: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u MlSearchMemoryContainerBodySort) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

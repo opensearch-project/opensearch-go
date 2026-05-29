@@ -260,16 +260,44 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) Type() IndicesSegmentsIndexSegm
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesSegmentsIndexSegmentShardsValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesSegmentsIndexSegmentShardsValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesSegmentsIndexSegmentShardsValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesSegmentsIndexSegmentShardsValueUnknownType
+}
+
 // Array returns the []IndicesSegmentsShardsSegment branch value.
 func (u *IndicesSegmentsIndexSegmentShardsValue) Array() []IndicesSegmentsShardsSegment {
 	v, _ := u.value.([]IndicesSegmentsShardsSegment)
 	return v
 }
 
+// NewIndicesSegmentsIndexSegmentShardsValueFromArray returns a IndicesSegmentsIndexSegmentShardsValue populated with v
+// on the Array branch.
+func NewIndicesSegmentsIndexSegmentShardsValueFromArray(v []IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
+	return IndicesSegmentsIndexSegmentShardsValue{
+		typ:   IndicesSegmentsIndexSegmentShardsValueArrayType,
+		value: v,
+	}
+}
+
 // IndicesSegmentsShardsSegment returns the IndicesSegmentsShardsSegment branch value.
 func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() IndicesSegmentsShardsSegment {
 	v, _ := u.value.(IndicesSegmentsShardsSegment)
 	return v
+}
+
+// NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
+// on the IndicesSegmentsShardsSegment branch.
+func NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
+	return IndicesSegmentsIndexSegmentShardsValue{
+		typ:   IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType,
+		value: v,
+	}
 }
 
 func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) error {

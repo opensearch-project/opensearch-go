@@ -219,16 +219,44 @@ func (u *IngestSimulateDocumentSimulationVersion) Type() IngestSimulateDocumentS
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IngestSimulateDocumentSimulationVersion) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIngestSimulateDocumentSimulationVersionFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IngestSimulateDocumentSimulationVersion) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IngestSimulateDocumentSimulationVersionUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *IngestSimulateDocumentSimulationVersion) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewIngestSimulateDocumentSimulationVersionFromInt64 returns a IngestSimulateDocumentSimulationVersion populated with v
+// on the Int64 branch.
+func NewIngestSimulateDocumentSimulationVersionFromInt64(v int64) IngestSimulateDocumentSimulationVersion {
+	return IngestSimulateDocumentSimulationVersion{
+		typ:   IngestSimulateDocumentSimulationVersionInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *IngestSimulateDocumentSimulationVersion) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewIngestSimulateDocumentSimulationVersionFromString returns a IngestSimulateDocumentSimulationVersion populated with v
+// on the String branch.
+func NewIngestSimulateDocumentSimulationVersionFromString(v string) IngestSimulateDocumentSimulationVersion {
+	return IngestSimulateDocumentSimulationVersion{
+		typ:   IngestSimulateDocumentSimulationVersionStringType,
+		value: v,
+	}
 }
 
 func (u *IngestSimulateDocumentSimulationVersion) UnmarshalJSON(data []byte) error {

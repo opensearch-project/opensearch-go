@@ -1499,16 +1499,44 @@ func (u *NodesStatsIP) Type() NodesStatsIPType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesStatsIP) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesStatsIPFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesStatsIP) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesStatsIPUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesStatsIP) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesStatsIPFromString returns a NodesStatsIP populated with v
+// on the String branch.
+func NewNodesStatsIPFromString(v string) NodesStatsIP {
+	return NodesStatsIP{
+		typ:   NodesStatsIPStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesStatsIP) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesStatsIPFromArray returns a NodesStatsIP populated with v
+// on the Array branch.
+func NewNodesStatsIPFromArray(v []string) NodesStatsIP {
+	return NodesStatsIP{
+		typ:   NodesStatsIPArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesStatsIP) UnmarshalJSON(data []byte) error {

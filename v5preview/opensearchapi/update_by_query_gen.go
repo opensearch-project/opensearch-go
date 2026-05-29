@@ -453,16 +453,44 @@ func (u *UpdateByQueryResponseBody) Type() UpdateByQueryResponseBodyType { retur
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *UpdateByQueryResponseBody) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewUpdateByQueryResponseBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *UpdateByQueryResponseBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = UpdateByQueryResponseBodyUnknownType
+}
+
 // BulkByScrollResponseBase returns the BulkByScrollResponseBase branch value.
 func (u *UpdateByQueryResponseBody) BulkByScrollResponseBase() BulkByScrollResponseBase {
 	v, _ := u.value.(BulkByScrollResponseBase)
 	return v
 }
 
+// NewUpdateByQueryResponseBodyFromBulkByScrollResponseBase returns a UpdateByQueryResponseBody populated with v
+// on the BulkByScrollResponseBase branch.
+func NewUpdateByQueryResponseBodyFromBulkByScrollResponseBase(v BulkByScrollResponseBase) UpdateByQueryResponseBody {
+	return UpdateByQueryResponseBody{
+		typ:   UpdateByQueryResponseBodyBulkByScrollResponseBaseType,
+		value: v,
+	}
+}
+
 // UpdateByQueryResponseBodyObject1 returns the UpdateByQueryResponseBodyObject1 branch value.
 func (u *UpdateByQueryResponseBody) UpdateByQueryResponseBodyObject1() UpdateByQueryResponseBodyObject1 {
 	v, _ := u.value.(UpdateByQueryResponseBodyObject1)
 	return v
+}
+
+// NewUpdateByQueryResponseBodyFromUpdateByQueryResponseBodyObject1 returns a UpdateByQueryResponseBody populated with v
+// on the UpdateByQueryResponseBodyObject1 branch.
+func NewUpdateByQueryResponseBodyFromUpdateByQueryResponseBodyObject1(v UpdateByQueryResponseBodyObject1) UpdateByQueryResponseBody {
+	return UpdateByQueryResponseBody{
+		typ:   UpdateByQueryResponseBodyUpdateByQueryResponseBodyObject1Type,
+		value: v,
+	}
 }
 
 func (u *UpdateByQueryResponseBody) UnmarshalJSON(data []byte) error {
@@ -515,8 +543,105 @@ type UpdateByQueryBody struct {
 	Slice *SlicedScroll `json:"slice,omitempty"`
 }
 
-// UpdateByQueryBodyScript is a typed component of the update_by_query operation.
+// UpdateByQueryBodyScript is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type UpdateByQueryBodyScript struct {
+	typ   UpdateByQueryBodyScriptType
+	raw   json.RawMessage
+	value any
+}
+
+// UpdateByQueryBodyScriptType discriminates the branches of UpdateByQueryBodyScript.
+type UpdateByQueryBodyScriptType int
+
+const (
+	UpdateByQueryBodyScriptUnknownType UpdateByQueryBodyScriptType = iota
+	UpdateByQueryBodyScriptStringType
+	UpdateByQueryBodyScriptStoredType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns UpdateByQueryBodyScriptUnknownType if the value has not been decoded.
+func (u *UpdateByQueryBodyScript) Type() UpdateByQueryBodyScriptType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *UpdateByQueryBodyScript) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewUpdateByQueryBodyScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *UpdateByQueryBodyScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = UpdateByQueryBodyScriptUnknownType
+}
+
+// String returns the string branch value.
+func (u *UpdateByQueryBodyScript) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewUpdateByQueryBodyScriptFromString returns a UpdateByQueryBodyScript populated with v
+// on the String branch.
+func NewUpdateByQueryBodyScriptFromString(v string) UpdateByQueryBodyScript {
+	return UpdateByQueryBodyScript{
+		typ:   UpdateByQueryBodyScriptStringType,
+		value: v,
+	}
+}
+
+// Stored returns the StoredScriptId branch value.
+func (u *UpdateByQueryBodyScript) Stored() StoredScriptId {
+	v, _ := u.value.(StoredScriptId)
+	return v
+}
+
+// NewUpdateByQueryBodyScriptFromStored returns a UpdateByQueryBodyScript populated with v
+// on the Stored branch.
+func NewUpdateByQueryBodyScriptFromStored(v StoredScriptId) UpdateByQueryBodyScript {
+	return UpdateByQueryBodyScript{
+		typ:   UpdateByQueryBodyScriptStoredType,
+		value: v,
+	}
+}
+
+func (u *UpdateByQueryBodyScript) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = UpdateByQueryBodyScriptStringType
+		u.value = v
+	case data[0] == '{':
+		var v StoredScriptId
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = UpdateByQueryBodyScriptStoredType
+		u.value = v
+	default:
+		return fmt.Errorf("UpdateByQueryBodyScript: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u UpdateByQueryBodyScript) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
 
 // UpdateByQuery performs an update on every document in the index without changing the source,.

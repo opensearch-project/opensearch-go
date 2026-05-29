@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -179,11 +180,108 @@ type IndicesPutTemplateBody struct {
 	Version *int64 `json:"version,omitempty"`
 }
 
-// IndicesPutTemplateBodyIndexPatterns is a typed component of the indices.put_template operation.
-//
 // Array of wildcard expressions used to match the names
 // of indexes during creation.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type IndicesPutTemplateBodyIndexPatterns struct {
+	typ   IndicesPutTemplateBodyIndexPatternsType
+	raw   json.RawMessage
+	value any
+}
+
+// IndicesPutTemplateBodyIndexPatternsType discriminates the branches of IndicesPutTemplateBodyIndexPatterns.
+type IndicesPutTemplateBodyIndexPatternsType int
+
+const (
+	IndicesPutTemplateBodyIndexPatternsUnknownType IndicesPutTemplateBodyIndexPatternsType = iota
+	IndicesPutTemplateBodyIndexPatternsStringType
+	IndicesPutTemplateBodyIndexPatternsArrayType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesPutTemplateBodyIndexPatternsUnknownType if the value has not been decoded.
+func (u *IndicesPutTemplateBodyIndexPatterns) Type() IndicesPutTemplateBodyIndexPatternsType {
+	return u.typ
+}
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *IndicesPutTemplateBodyIndexPatterns) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesPutTemplateBodyIndexPatternsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesPutTemplateBodyIndexPatterns) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesPutTemplateBodyIndexPatternsUnknownType
+}
+
+// String returns the string branch value.
+func (u *IndicesPutTemplateBodyIndexPatterns) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewIndicesPutTemplateBodyIndexPatternsFromString returns a IndicesPutTemplateBodyIndexPatterns populated with v
+// on the String branch.
+func NewIndicesPutTemplateBodyIndexPatternsFromString(v string) IndicesPutTemplateBodyIndexPatterns {
+	return IndicesPutTemplateBodyIndexPatterns{
+		typ:   IndicesPutTemplateBodyIndexPatternsStringType,
+		value: v,
+	}
+}
+
+// Array returns the []string branch value.
+func (u *IndicesPutTemplateBodyIndexPatterns) Array() []string {
+	v, _ := u.value.([]string)
+	return v
+}
+
+// NewIndicesPutTemplateBodyIndexPatternsFromArray returns a IndicesPutTemplateBodyIndexPatterns populated with v
+// on the Array branch.
+func NewIndicesPutTemplateBodyIndexPatternsFromArray(v []string) IndicesPutTemplateBodyIndexPatterns {
+	return IndicesPutTemplateBodyIndexPatterns{
+		typ:   IndicesPutTemplateBodyIndexPatternsArrayType,
+		value: v,
+	}
+}
+
+func (u *IndicesPutTemplateBodyIndexPatterns) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesPutTemplateBodyIndexPatternsStringType
+		u.value = v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesPutTemplateBodyIndexPatternsArrayType
+		u.value = v
+	default:
+		return fmt.Errorf("IndicesPutTemplateBodyIndexPatterns: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u IndicesPutTemplateBodyIndexPatterns) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
 
 // PutTemplate creates or updates an index template.

@@ -240,16 +240,44 @@ func (u *MsearchMultiSearchResultResponsesItem) Type() MsearchMultiSearchResultR
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MsearchMultiSearchResultResponsesItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMsearchMultiSearchResultResponsesItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MsearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MsearchMultiSearchResultResponsesItemUnknownType
+}
+
 // MsearchMultiSearchItem returns the MsearchMultiSearchItem branch value.
 func (u *MsearchMultiSearchResultResponsesItem) MsearchMultiSearchItem() MsearchMultiSearchItem {
 	v, _ := u.value.(MsearchMultiSearchItem)
 	return v
 }
 
+// NewMsearchMultiSearchResultResponsesItemFromMsearchMultiSearchItem returns a MsearchMultiSearchResultResponsesItem populated with v
+// on the MsearchMultiSearchItem branch.
+func NewMsearchMultiSearchResultResponsesItemFromMsearchMultiSearchItem(v MsearchMultiSearchItem) MsearchMultiSearchResultResponsesItem {
+	return MsearchMultiSearchResultResponsesItem{
+		typ:   MsearchMultiSearchResultResponsesItemMsearchMultiSearchItemType,
+		value: v,
+	}
+}
+
 // ErrorResponseBase returns the ErrorResponseBase branch value.
 func (u *MsearchMultiSearchResultResponsesItem) ErrorResponseBase() ErrorResponseBase {
 	v, _ := u.value.(ErrorResponseBase)
 	return v
+}
+
+// NewMsearchMultiSearchResultResponsesItemFromErrorResponseBase returns a MsearchMultiSearchResultResponsesItem populated with v
+// on the ErrorResponseBase branch.
+func NewMsearchMultiSearchResultResponsesItemFromErrorResponseBase(v ErrorResponseBase) MsearchMultiSearchResultResponsesItem {
+	return MsearchMultiSearchResultResponsesItem{
+		typ:   MsearchMultiSearchResultResponsesItemErrorResponseBaseType,
+		value: v,
+	}
 }
 
 func (u *MsearchMultiSearchResultResponsesItem) UnmarshalJSON(data []byte) error {

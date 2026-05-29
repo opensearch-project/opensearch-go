@@ -10,6 +10,8 @@ package search_relevance
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -106,6 +108,127 @@ func (r PutExperimentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutExperimentsBody is a typed component of the search_relevance.put_experiments operation.
+// SearchRelevancePutExperimentsBody is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type SearchRelevancePutExperimentsBody struct {
+	typ   SearchRelevancePutExperimentsBodyType
+	raw   json.RawMessage
+	value any
+}
+
+// SearchRelevancePutExperimentsBodyType discriminates the branches of SearchRelevancePutExperimentsBody.
+type SearchRelevancePutExperimentsBodyType int
+
+const (
+	SearchRelevancePutExperimentsBodyUnknownType SearchRelevancePutExperimentsBodyType = iota
+	SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
+	SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
+	SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns SearchRelevancePutExperimentsBodyUnknownType if the value has not been decoded.
+func (u *SearchRelevancePutExperimentsBody) Type() SearchRelevancePutExperimentsBodyType {
+	return u.typ
+}
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *SearchRelevancePutExperimentsBody) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchRelevancePutExperimentsBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchRelevancePutExperimentsBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchRelevancePutExperimentsBodyUnknownType
+}
+
+// SearchRelevancePutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExperimentRequest() opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest {
+	v, _ := u.value.(opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest)
+	return v
+}
+
+// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the SearchRelevancePutHybridOptimizerExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest(v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody {
+	return SearchRelevancePutExperimentsBody{
+		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType,
+		value: v,
+	}
+}
+
+// SearchRelevancePutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimentRequest() opensearchapi.SearchRelevancePutPointwiseExperimentRequest {
+	v, _ := u.value.(opensearchapi.SearchRelevancePutPointwiseExperimentRequest)
+	return v
+}
+
+// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the SearchRelevancePutPointwiseExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest(v opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+	return SearchRelevancePutExperimentsBody{
+		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType,
+		value: v,
+	}
+}
+
+// SearchRelevancePutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperimentRequest() opensearchapi.SearchRelevancePutPairwiseExperimentRequest {
+	v, _ := u.value.(opensearchapi.SearchRelevancePutPairwiseExperimentRequest)
+	return v
+}
+
+// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the SearchRelevancePutPairwiseExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest(v opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+	return SearchRelevancePutExperimentsBody{
+		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType,
+		value: v,
+	}
+}
+
+func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	{
+		var v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SearchRelevancePutPointwiseExperimentRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SearchRelevancePutPairwiseExperimentRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
+			u.value = v
+			return nil
+		}
+	}
+	return fmt.Errorf("SearchRelevancePutExperimentsBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u SearchRelevancePutExperimentsBody) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

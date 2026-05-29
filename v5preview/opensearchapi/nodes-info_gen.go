@@ -985,16 +985,44 @@ func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) RawJSON() json.
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromString returns a NodesInfoNodeSettingsClusterInitialClusterManagerNodes populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromString(v string) NodesInfoNodeSettingsClusterInitialClusterManagerNodes {
+	return NodesInfoNodeSettingsClusterInitialClusterManagerNodes{
+		typ:   NodesInfoNodeSettingsClusterInitialClusterManagerNodesStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromArray returns a NodesInfoNodeSettingsClusterInitialClusterManagerNodes populated with v
+// on the Array branch.
+func NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromArray(v []string) NodesInfoNodeSettingsClusterInitialClusterManagerNodes {
+	return NodesInfoNodeSettingsClusterInitialClusterManagerNodes{
+		typ:   NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) UnmarshalJSON(data []byte) error {
@@ -1060,16 +1088,44 @@ func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Type() NodesInfoNodeSet
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsClusterInitialMasterNodesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsClusterInitialMasterNodesFromString returns a NodesInfoNodeSettingsClusterInitialMasterNodes populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsClusterInitialMasterNodesFromString(v string) NodesInfoNodeSettingsClusterInitialMasterNodes {
+	return NodesInfoNodeSettingsClusterInitialMasterNodes{
+		typ:   NodesInfoNodeSettingsClusterInitialMasterNodesStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesInfoNodeSettingsClusterInitialMasterNodesFromArray returns a NodesInfoNodeSettingsClusterInitialMasterNodes populated with v
+// on the Array branch.
+func NewNodesInfoNodeSettingsClusterInitialMasterNodesFromArray(v []string) NodesInfoNodeSettingsClusterInitialMasterNodes {
+	return NodesInfoNodeSettingsClusterInitialMasterNodes{
+		typ:   NodesInfoNodeSettingsClusterInitialMasterNodesArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) UnmarshalJSON(data []byte) error {
@@ -1133,16 +1189,44 @@ func (u *NodesInfoNodeSettingsHttpHost) Type() NodesInfoNodeSettingsHttpHostType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsHttpHost) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHttpHostFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsHttpHost) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsHttpHostUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsHttpHost) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsHttpHostFromString returns a NodesInfoNodeSettingsHttpHost populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsHttpHostFromString(v string) NodesInfoNodeSettingsHttpHost {
+	return NodesInfoNodeSettingsHttpHost{
+		typ:   NodesInfoNodeSettingsHttpHostStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesInfoNodeSettingsHttpHost) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesInfoNodeSettingsHttpHostFromArray returns a NodesInfoNodeSettingsHttpHost populated with v
+// on the Array branch.
+func NewNodesInfoNodeSettingsHttpHostFromArray(v []string) NodesInfoNodeSettingsHttpHost {
+	return NodesInfoNodeSettingsHttpHost{
+		typ:   NodesInfoNodeSettingsHttpHostArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsHttpHost) UnmarshalJSON(data []byte) error {
@@ -1208,16 +1292,44 @@ func (u *NodesInfoNodeSettingsHttpPublishHost) Type() NodesInfoNodeSettingsHttpP
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsHttpPublishHost) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHttpPublishHostFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsHttpPublishHost) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsHttpPublishHostUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsHttpPublishHost) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsHttpPublishHostFromString returns a NodesInfoNodeSettingsHttpPublishHost populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsHttpPublishHostFromString(v string) NodesInfoNodeSettingsHttpPublishHost {
+	return NodesInfoNodeSettingsHttpPublishHost{
+		typ:   NodesInfoNodeSettingsHttpPublishHostStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesInfoNodeSettingsHttpPublishHost) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesInfoNodeSettingsHttpPublishHostFromArray returns a NodesInfoNodeSettingsHttpPublishHost populated with v
+// on the Array branch.
+func NewNodesInfoNodeSettingsHttpPublishHostFromArray(v []string) NodesInfoNodeSettingsHttpPublishHost {
+	return NodesInfoNodeSettingsHttpPublishHost{
+		typ:   NodesInfoNodeSettingsHttpPublishHostArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsHttpPublishHost) UnmarshalJSON(data []byte) error {
@@ -1281,16 +1393,44 @@ func (u *NodesInfoNodeSettingsHttpType) Type() NodesInfoNodeSettingsHttpTypeType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsHttpType) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHttpTypeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsHttpType) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsHttpTypeUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsHttpType) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsHttpTypeFromString returns a NodesInfoNodeSettingsHttpType populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsHttpTypeFromString(v string) NodesInfoNodeSettingsHttpType {
+	return NodesInfoNodeSettingsHttpType{
+		typ:   NodesInfoNodeSettingsHttpTypeStringType,
+		value: v,
+	}
+}
+
 // Config returns the NodesInfoNodeSettingsHttpTypeConfig branch value.
 func (u *NodesInfoNodeSettingsHttpType) Config() NodesInfoNodeSettingsHttpTypeConfig {
 	v, _ := u.value.(NodesInfoNodeSettingsHttpTypeConfig)
 	return v
+}
+
+// NewNodesInfoNodeSettingsHttpTypeFromConfig returns a NodesInfoNodeSettingsHttpType populated with v
+// on the Config branch.
+func NewNodesInfoNodeSettingsHttpTypeFromConfig(v NodesInfoNodeSettingsHttpTypeConfig) NodesInfoNodeSettingsHttpType {
+	return NodesInfoNodeSettingsHttpType{
+		typ:   NodesInfoNodeSettingsHttpTypeConfigType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsHttpType) UnmarshalJSON(data []byte) error {
@@ -1354,16 +1494,44 @@ func (u *NodesInfoNodeSettingsNodeRoles) Type() NodesInfoNodeSettingsNodeRolesTy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsNodeRoles) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsNodeRolesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsNodeRoles) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsNodeRolesUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsNodeRoles) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsNodeRolesFromString returns a NodesInfoNodeSettingsNodeRoles populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsNodeRolesFromString(v string) NodesInfoNodeSettingsNodeRoles {
+	return NodesInfoNodeSettingsNodeRoles{
+		typ:   NodesInfoNodeSettingsNodeRolesStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesInfoNodeSettingsNodeRoles) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesInfoNodeSettingsNodeRolesFromArray returns a NodesInfoNodeSettingsNodeRoles populated with v
+// on the Array branch.
+func NewNodesInfoNodeSettingsNodeRolesFromArray(v []string) NodesInfoNodeSettingsNodeRoles {
+	return NodesInfoNodeSettingsNodeRoles{
+		typ:   NodesInfoNodeSettingsNodeRolesArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsNodeRoles) UnmarshalJSON(data []byte) error {
@@ -1429,16 +1597,44 @@ func (u *NodesInfoNodeSettingsTransportHost) Type() NodesInfoNodeSettingsTranspo
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsTransportHost) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsTransportHostFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsTransportHost) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsTransportHostUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsTransportHost) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsTransportHostFromString returns a NodesInfoNodeSettingsTransportHost populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsTransportHostFromString(v string) NodesInfoNodeSettingsTransportHost {
+	return NodesInfoNodeSettingsTransportHost{
+		typ:   NodesInfoNodeSettingsTransportHostStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *NodesInfoNodeSettingsTransportHost) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewNodesInfoNodeSettingsTransportHostFromArray returns a NodesInfoNodeSettingsTransportHost populated with v
+// on the Array branch.
+func NewNodesInfoNodeSettingsTransportHostFromArray(v []string) NodesInfoNodeSettingsTransportHost {
+	return NodesInfoNodeSettingsTransportHost{
+		typ:   NodesInfoNodeSettingsTransportHostArrayType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsTransportHost) UnmarshalJSON(data []byte) error {
@@ -1504,16 +1700,44 @@ func (u *NodesInfoNodeSettingsTransportType) Type() NodesInfoNodeSettingsTranspo
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeSettingsTransportType) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsTransportTypeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeSettingsTransportType) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeSettingsTransportTypeUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeSettingsTransportType) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeSettingsTransportTypeFromString returns a NodesInfoNodeSettingsTransportType populated with v
+// on the String branch.
+func NewNodesInfoNodeSettingsTransportTypeFromString(v string) NodesInfoNodeSettingsTransportType {
+	return NodesInfoNodeSettingsTransportType{
+		typ:   NodesInfoNodeSettingsTransportTypeStringType,
+		value: v,
+	}
+}
+
 // Config returns the NodesInfoNodeSettingsTransportTypeConfig branch value.
 func (u *NodesInfoNodeSettingsTransportType) Config() NodesInfoNodeSettingsTransportTypeConfig {
 	v, _ := u.value.(NodesInfoNodeSettingsTransportTypeConfig)
 	return v
+}
+
+// NewNodesInfoNodeSettingsTransportTypeFromConfig returns a NodesInfoNodeSettingsTransportType populated with v
+// on the Config branch.
+func NewNodesInfoNodeSettingsTransportTypeFromConfig(v NodesInfoNodeSettingsTransportTypeConfig) NodesInfoNodeSettingsTransportType {
+	return NodesInfoNodeSettingsTransportType{
+		typ:   NodesInfoNodeSettingsTransportTypeConfigType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeSettingsTransportType) UnmarshalJSON(data []byte) error {
@@ -1577,16 +1801,44 @@ func (u *NodesInfoNodeTotalIndexingBuffer) Type() NodesInfoNodeTotalIndexingBuff
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeTotalIndexingBuffer) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeTotalIndexingBufferFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeTotalIndexingBuffer) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeTotalIndexingBufferUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *NodesInfoNodeTotalIndexingBuffer) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewNodesInfoNodeTotalIndexingBufferFromInt64 returns a NodesInfoNodeTotalIndexingBuffer populated with v
+// on the Int64 branch.
+func NewNodesInfoNodeTotalIndexingBufferFromInt64(v int64) NodesInfoNodeTotalIndexingBuffer {
+	return NodesInfoNodeTotalIndexingBuffer{
+		typ:   NodesInfoNodeTotalIndexingBufferInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeTotalIndexingBuffer) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewNodesInfoNodeTotalIndexingBufferFromString returns a NodesInfoNodeTotalIndexingBuffer populated with v
+// on the String branch.
+func NewNodesInfoNodeTotalIndexingBufferFromString(v string) NodesInfoNodeTotalIndexingBuffer {
+	return NodesInfoNodeTotalIndexingBuffer{
+		typ:   NodesInfoNodeTotalIndexingBufferStringType,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeTotalIndexingBuffer) UnmarshalJSON(data []byte) error {
@@ -1652,16 +1904,44 @@ func (u *NodesInfoNodeTotalIndexingBufferInBytes) Type() NodesInfoNodeTotalIndex
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesInfoNodeTotalIndexingBufferInBytes) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeTotalIndexingBufferInBytesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesInfoNodeTotalIndexingBufferInBytes) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesInfoNodeTotalIndexingBufferInBytesUnknownType
+}
+
 // String returns the string branch value.
 func (u *NodesInfoNodeTotalIndexingBufferInBytes) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewNodesInfoNodeTotalIndexingBufferInBytesFromString returns a NodesInfoNodeTotalIndexingBufferInBytes populated with v
+// on the String branch.
+func NewNodesInfoNodeTotalIndexingBufferInBytesFromString(v string) NodesInfoNodeTotalIndexingBufferInBytes {
+	return NodesInfoNodeTotalIndexingBufferInBytes{
+		typ:   NodesInfoNodeTotalIndexingBufferInBytesStringType,
+		value: v,
+	}
+}
+
 // Int64 returns the int64 branch value.
 func (u *NodesInfoNodeTotalIndexingBufferInBytes) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
+}
+
+// NewNodesInfoNodeTotalIndexingBufferInBytesFromInt64 returns a NodesInfoNodeTotalIndexingBufferInBytes populated with v
+// on the Int64 branch.
+func NewNodesInfoNodeTotalIndexingBufferInBytesFromInt64(v int64) NodesInfoNodeTotalIndexingBufferInBytes {
+	return NodesInfoNodeTotalIndexingBufferInBytes{
+		typ:   NodesInfoNodeTotalIndexingBufferInBytesInt64Type,
+		value: v,
+	}
 }
 
 func (u *NodesInfoNodeTotalIndexingBufferInBytes) UnmarshalJSON(data []byte) error {

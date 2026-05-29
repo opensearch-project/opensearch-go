@@ -176,16 +176,44 @@ func (u *ClusterRemoteInfoResponseBodyValue) Type() ClusterRemoteInfoResponseBod
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ClusterRemoteInfoResponseBodyValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewClusterRemoteInfoResponseBodyValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ClusterRemoteInfoResponseBodyValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ClusterRemoteInfoResponseBodyValueUnknownType
+}
+
 // ClusterRemoteInfoClusterRemoteSniffInfo returns the ClusterRemoteInfoClusterRemoteSniffInfo branch value.
 func (u *ClusterRemoteInfoResponseBodyValue) ClusterRemoteInfoClusterRemoteSniffInfo() ClusterRemoteInfoClusterRemoteSniffInfo {
 	v, _ := u.value.(ClusterRemoteInfoClusterRemoteSniffInfo)
 	return v
 }
 
+// NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo returns a ClusterRemoteInfoResponseBodyValue populated with v
+// on the ClusterRemoteInfoClusterRemoteSniffInfo branch.
+func NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo(v ClusterRemoteInfoClusterRemoteSniffInfo) ClusterRemoteInfoResponseBodyValue {
+	return ClusterRemoteInfoResponseBodyValue{
+		typ:   ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteSniffInfoType,
+		value: v,
+	}
+}
+
 // ClusterRemoteInfoClusterRemoteProxyInfo returns the ClusterRemoteInfoClusterRemoteProxyInfo branch value.
 func (u *ClusterRemoteInfoResponseBodyValue) ClusterRemoteInfoClusterRemoteProxyInfo() ClusterRemoteInfoClusterRemoteProxyInfo {
 	v, _ := u.value.(ClusterRemoteInfoClusterRemoteProxyInfo)
 	return v
+}
+
+// NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo returns a ClusterRemoteInfoResponseBodyValue populated with v
+// on the ClusterRemoteInfoClusterRemoteProxyInfo branch.
+func NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo(v ClusterRemoteInfoClusterRemoteProxyInfo) ClusterRemoteInfoResponseBodyValue {
+	return ClusterRemoteInfoResponseBodyValue{
+		typ:   ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteProxyInfoType,
+		value: v,
+	}
 }
 
 func (u *ClusterRemoteInfoResponseBodyValue) UnmarshalJSON(data []byte) error {

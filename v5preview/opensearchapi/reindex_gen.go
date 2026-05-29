@@ -244,16 +244,44 @@ func (u *ReindexResponseBody) Type() ReindexResponseBodyType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReindexResponseBody) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReindexResponseBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReindexResponseBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReindexResponseBodyUnknownType
+}
+
 // BulkByScrollResponseBase returns the BulkByScrollResponseBase branch value.
 func (u *ReindexResponseBody) BulkByScrollResponseBase() BulkByScrollResponseBase {
 	v, _ := u.value.(BulkByScrollResponseBase)
 	return v
 }
 
+// NewReindexResponseBodyFromBulkByScrollResponseBase returns a ReindexResponseBody populated with v
+// on the BulkByScrollResponseBase branch.
+func NewReindexResponseBodyFromBulkByScrollResponseBase(v BulkByScrollResponseBase) ReindexResponseBody {
+	return ReindexResponseBody{
+		typ:   ReindexResponseBodyBulkByScrollResponseBaseType,
+		value: v,
+	}
+}
+
 // ReindexResponseBodyObject1 returns the ReindexResponseBodyObject1 branch value.
 func (u *ReindexResponseBody) ReindexResponseBodyObject1() ReindexResponseBodyObject1 {
 	v, _ := u.value.(ReindexResponseBodyObject1)
 	return v
+}
+
+// NewReindexResponseBodyFromReindexResponseBodyObject1 returns a ReindexResponseBody populated with v
+// on the ReindexResponseBodyObject1 branch.
+func NewReindexResponseBodyFromReindexResponseBodyObject1(v ReindexResponseBodyObject1) ReindexResponseBody {
+	return ReindexResponseBody{
+		typ:   ReindexResponseBodyReindexResponseBodyObject1Type,
+		value: v,
+	}
 }
 
 func (u *ReindexResponseBody) UnmarshalJSON(data []byte) error {
@@ -319,10 +347,6 @@ type ReindexDestination struct {
 	VersionType *string `json:"version_type,omitempty"`
 }
 
-// ReindexBodyScript is a typed component of the reindex operation.
-type ReindexBodyScript struct {
-}
-
 // ReindexSource is a typed component of the reindex operation.
 type ReindexSource struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
@@ -375,8 +399,252 @@ type ReindexRemoteSource struct {
 	Username *string `json:"username,omitempty"`
 }
 
-// ReindexSourceSort is a typed component of the reindex operation.
+// ReindexBodyScript is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type ReindexBodyScript struct {
+	typ   ReindexBodyScriptType
+	raw   json.RawMessage
+	value any
+}
+
+// ReindexBodyScriptType discriminates the branches of ReindexBodyScript.
+type ReindexBodyScriptType int
+
+const (
+	ReindexBodyScriptUnknownType ReindexBodyScriptType = iota
+	ReindexBodyScriptStringType
+	ReindexBodyScriptStoredType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns ReindexBodyScriptUnknownType if the value has not been decoded.
+func (u *ReindexBodyScript) Type() ReindexBodyScriptType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *ReindexBodyScript) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReindexBodyScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReindexBodyScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReindexBodyScriptUnknownType
+}
+
+// String returns the string branch value.
+func (u *ReindexBodyScript) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewReindexBodyScriptFromString returns a ReindexBodyScript populated with v
+// on the String branch.
+func NewReindexBodyScriptFromString(v string) ReindexBodyScript {
+	return ReindexBodyScript{
+		typ:   ReindexBodyScriptStringType,
+		value: v,
+	}
+}
+
+// Stored returns the StoredScriptId branch value.
+func (u *ReindexBodyScript) Stored() StoredScriptId {
+	v, _ := u.value.(StoredScriptId)
+	return v
+}
+
+// NewReindexBodyScriptFromStored returns a ReindexBodyScript populated with v
+// on the Stored branch.
+func NewReindexBodyScriptFromStored(v StoredScriptId) ReindexBodyScript {
+	return ReindexBodyScript{
+		typ:   ReindexBodyScriptStoredType,
+		value: v,
+	}
+}
+
+func (u *ReindexBodyScript) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = ReindexBodyScriptStringType
+		u.value = v
+	case data[0] == '{':
+		var v StoredScriptId
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = ReindexBodyScriptStoredType
+		u.value = v
+	default:
+		return fmt.Errorf("ReindexBodyScript: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u ReindexBodyScript) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// ReindexSourceSort is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type ReindexSourceSort struct {
+	typ   ReindexSourceSortType
+	raw   json.RawMessage
+	value any
+}
+
+// ReindexSourceSortType discriminates the branches of ReindexSourceSort.
+type ReindexSourceSortType int
+
+const (
+	ReindexSourceSortUnknownType ReindexSourceSortType = iota
+	ReindexSourceSortStringType
+	ReindexSourceSortStringMapType
+	ReindexSourceSortFieldSortMapType
+	ReindexSourceSortOptionsType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns ReindexSourceSortUnknownType if the value has not been decoded.
+func (u *ReindexSourceSort) Type() ReindexSourceSortType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *ReindexSourceSort) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReindexSourceSortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReindexSourceSort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReindexSourceSortUnknownType
+}
+
+// String returns the string branch value.
+func (u *ReindexSourceSort) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewReindexSourceSortFromString returns a ReindexSourceSort populated with v
+// on the String branch.
+func NewReindexSourceSortFromString(v string) ReindexSourceSort {
+	return ReindexSourceSort{
+		typ:   ReindexSourceSortStringType,
+		value: v,
+	}
+}
+
+// StringMap returns the map[string]string branch value.
+func (u *ReindexSourceSort) StringMap() map[string]string {
+	v, _ := u.value.(map[string]string)
+	return v
+}
+
+// NewReindexSourceSortFromStringMap returns a ReindexSourceSort populated with v
+// on the StringMap branch.
+func NewReindexSourceSortFromStringMap(v map[string]string) ReindexSourceSort {
+	return ReindexSourceSort{
+		typ:   ReindexSourceSortStringMapType,
+		value: v,
+	}
+}
+
+// FieldSortMap returns the map[string]FieldSort branch value.
+func (u *ReindexSourceSort) FieldSortMap() map[string]FieldSort {
+	v, _ := u.value.(map[string]FieldSort)
+	return v
+}
+
+// NewReindexSourceSortFromFieldSortMap returns a ReindexSourceSort populated with v
+// on the FieldSortMap branch.
+func NewReindexSourceSortFromFieldSortMap(v map[string]FieldSort) ReindexSourceSort {
+	return ReindexSourceSort{
+		typ:   ReindexSourceSortFieldSortMapType,
+		value: v,
+	}
+}
+
+// Options returns the SortOptions branch value.
+func (u *ReindexSourceSort) Options() SortOptions {
+	v, _ := u.value.(SortOptions)
+	return v
+}
+
+// NewReindexSourceSortFromOptions returns a ReindexSourceSort populated with v
+// on the Options branch.
+func NewReindexSourceSortFromOptions(v SortOptions) ReindexSourceSort {
+	return ReindexSourceSort{
+		typ:   ReindexSourceSortOptionsType,
+		value: v,
+	}
+}
+
+func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	{
+		var v string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = ReindexSourceSortStringType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v map[string]string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = ReindexSourceSortStringMapType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v map[string]FieldSort
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = ReindexSourceSortFieldSortMapType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v SortOptions
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = ReindexSourceSortOptionsType
+			u.value = v
+			return nil
+		}
+	}
+	return fmt.Errorf("ReindexSourceSort: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u ReindexSourceSort) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
 
 // Reindex allows to copy documents from one index to another, optionally filtering the source.

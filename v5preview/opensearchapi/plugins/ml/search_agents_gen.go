@@ -11,6 +11,7 @@ package ml
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -151,6 +152,149 @@ type MlSearchAgentsBody struct {
 	Sort *MlSearchAgentsBodySort `json:"sort,omitempty"`
 }
 
-// MlSearchAgentsBodySort is a typed component of the ml.search_agents operation.
+// MlSearchAgentsBodySort is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type MlSearchAgentsBodySort struct {
+	typ   MlSearchAgentsBodySortType
+	raw   json.RawMessage
+	value any
+}
+
+// MlSearchAgentsBodySortType discriminates the branches of MlSearchAgentsBodySort.
+type MlSearchAgentsBodySortType int
+
+const (
+	MlSearchAgentsBodySortUnknownType MlSearchAgentsBodySortType = iota
+	MlSearchAgentsBodySortStringType
+	MlSearchAgentsBodySortStringMapType
+	MlSearchAgentsBodySortFieldSortMapType
+	MlSearchAgentsBodySortOptionsType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns MlSearchAgentsBodySortUnknownType if the value has not been decoded.
+func (u *MlSearchAgentsBodySort) Type() MlSearchAgentsBodySortType { return u.typ }
+
+// RawJSON returns the original JSON bytes for escape-hatch decoding.
+func (u *MlSearchAgentsBodySort) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlSearchAgentsBodySortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlSearchAgentsBodySort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlSearchAgentsBodySortUnknownType
+}
+
+// String returns the string branch value.
+func (u *MlSearchAgentsBodySort) String() string {
+	v, _ := u.value.(string)
+	return v
+}
+
+// NewMlSearchAgentsBodySortFromString returns a MlSearchAgentsBodySort populated with v
+// on the String branch.
+func NewMlSearchAgentsBodySortFromString(v string) MlSearchAgentsBodySort {
+	return MlSearchAgentsBodySort{
+		typ:   MlSearchAgentsBodySortStringType,
+		value: v,
+	}
+}
+
+// StringMap returns the map[string]string branch value.
+func (u *MlSearchAgentsBodySort) StringMap() map[string]string {
+	v, _ := u.value.(map[string]string)
+	return v
+}
+
+// NewMlSearchAgentsBodySortFromStringMap returns a MlSearchAgentsBodySort populated with v
+// on the StringMap branch.
+func NewMlSearchAgentsBodySortFromStringMap(v map[string]string) MlSearchAgentsBodySort {
+	return MlSearchAgentsBodySort{
+		typ:   MlSearchAgentsBodySortStringMapType,
+		value: v,
+	}
+}
+
+// FieldSortMap returns the map[string]opensearchapi.FieldSort branch value.
+func (u *MlSearchAgentsBodySort) FieldSortMap() map[string]opensearchapi.FieldSort {
+	v, _ := u.value.(map[string]opensearchapi.FieldSort)
+	return v
+}
+
+// NewMlSearchAgentsBodySortFromFieldSortMap returns a MlSearchAgentsBodySort populated with v
+// on the FieldSortMap branch.
+func NewMlSearchAgentsBodySortFromFieldSortMap(v map[string]opensearchapi.FieldSort) MlSearchAgentsBodySort {
+	return MlSearchAgentsBodySort{
+		typ:   MlSearchAgentsBodySortFieldSortMapType,
+		value: v,
+	}
+}
+
+// Options returns the opensearchapi.SortOptions branch value.
+func (u *MlSearchAgentsBodySort) Options() opensearchapi.SortOptions {
+	v, _ := u.value.(opensearchapi.SortOptions)
+	return v
+}
+
+// NewMlSearchAgentsBodySortFromOptions returns a MlSearchAgentsBodySort populated with v
+// on the Options branch.
+func NewMlSearchAgentsBodySortFromOptions(v opensearchapi.SortOptions) MlSearchAgentsBodySort {
+	return MlSearchAgentsBodySort{
+		typ:   MlSearchAgentsBodySortOptionsType,
+		value: v,
+	}
+}
+
+func (u *MlSearchAgentsBodySort) UnmarshalJSON(data []byte) error {
+	u.raw = append(u.raw[:0], data...)
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	{
+		var v string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchAgentsBodySortStringType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v map[string]string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchAgentsBodySortStringMapType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v map[string]opensearchapi.FieldSort
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchAgentsBodySortFieldSortMapType
+			u.value = v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SortOptions
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchAgentsBodySortOptionsType
+			u.value = v
+			return nil
+		}
+	}
+	return fmt.Errorf("MlSearchAgentsBodySort: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u MlSearchAgentsBodySort) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

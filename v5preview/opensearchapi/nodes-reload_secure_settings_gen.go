@@ -175,16 +175,44 @@ func (u *NodesReloadSecureSettingsResponseBodyNodesValue) Type() NodesReloadSecu
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NodesReloadSecureSettingsResponseBodyNodesValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesReloadSecureSettingsResponseBodyNodesValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesReloadSecureSettingsResponseBodyNodesValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesReloadSecureSettingsResponseBodyNodesValueUnknownType
+}
+
 // NodesReloadSecureSettingsNodeReloadResponse returns the NodesReloadSecureSettingsNodeReloadResponse branch value.
 func (u *NodesReloadSecureSettingsResponseBodyNodesValue) NodesReloadSecureSettingsNodeReloadResponse() NodesReloadSecureSettingsNodeReloadResponse {
 	v, _ := u.value.(NodesReloadSecureSettingsNodeReloadResponse)
 	return v
 }
 
+// NewNodesReloadSecureSettingsResponseBodyNodesValueFromNodesReloadSecureSettingsNodeReloadResponse returns a NodesReloadSecureSettingsResponseBodyNodesValue populated with v
+// on the NodesReloadSecureSettingsNodeReloadResponse branch.
+func NewNodesReloadSecureSettingsResponseBodyNodesValueFromNodesReloadSecureSettingsNodeReloadResponse(v NodesReloadSecureSettingsNodeReloadResponse) NodesReloadSecureSettingsResponseBodyNodesValue {
+	return NodesReloadSecureSettingsResponseBodyNodesValue{
+		typ:   NodesReloadSecureSettingsResponseBodyNodesValueNodesReloadSecureSettingsNodeReloadResponseType,
+		value: v,
+	}
+}
+
 // NodesReloadSecureSettingsNodeReloadError returns the NodesReloadSecureSettingsNodeReloadError branch value.
 func (u *NodesReloadSecureSettingsResponseBodyNodesValue) NodesReloadSecureSettingsNodeReloadError() NodesReloadSecureSettingsNodeReloadError {
 	v, _ := u.value.(NodesReloadSecureSettingsNodeReloadError)
 	return v
+}
+
+// NewNodesReloadSecureSettingsResponseBodyNodesValueFromNodesReloadSecureSettingsNodeReloadError returns a NodesReloadSecureSettingsResponseBodyNodesValue populated with v
+// on the NodesReloadSecureSettingsNodeReloadError branch.
+func NewNodesReloadSecureSettingsResponseBodyNodesValueFromNodesReloadSecureSettingsNodeReloadError(v NodesReloadSecureSettingsNodeReloadError) NodesReloadSecureSettingsResponseBodyNodesValue {
+	return NodesReloadSecureSettingsResponseBodyNodesValue{
+		typ:   NodesReloadSecureSettingsResponseBodyNodesValueNodesReloadSecureSettingsNodeReloadErrorType,
+		value: v,
+	}
 }
 
 func (u *NodesReloadSecureSettingsResponseBodyNodesValue) UnmarshalJSON(data []byte) error {

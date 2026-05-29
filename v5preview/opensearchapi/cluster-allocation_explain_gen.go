@@ -334,16 +334,44 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Type() ClusterAlloc
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewClusterAllocationExplainClusterInfoShardSizesValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ClusterAllocationExplainClusterInfoShardSizesValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ClusterAllocationExplainClusterInfoShardSizesValueUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewClusterAllocationExplainClusterInfoShardSizesValueFromInt64 returns a ClusterAllocationExplainClusterInfoShardSizesValue populated with v
+// on the Int64 branch.
+func NewClusterAllocationExplainClusterInfoShardSizesValueFromInt64(v int64) ClusterAllocationExplainClusterInfoShardSizesValue {
+	return ClusterAllocationExplainClusterInfoShardSizesValue{
+		typ:   ClusterAllocationExplainClusterInfoShardSizesValueInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewClusterAllocationExplainClusterInfoShardSizesValueFromString returns a ClusterAllocationExplainClusterInfoShardSizesValue populated with v
+// on the String branch.
+func NewClusterAllocationExplainClusterInfoShardSizesValueFromString(v string) ClusterAllocationExplainClusterInfoShardSizesValue {
+	return ClusterAllocationExplainClusterInfoShardSizesValue{
+		typ:   ClusterAllocationExplainClusterInfoShardSizesValueStringType,
+		value: v,
+	}
 }
 
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) UnmarshalJSON(data []byte) error {

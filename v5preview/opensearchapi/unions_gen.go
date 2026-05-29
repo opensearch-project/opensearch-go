@@ -41,16 +41,44 @@ func (u *ErrorCauseHeaderValue) Type() ErrorCauseHeaderValueType { return u.typ 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ErrorCauseHeaderValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewErrorCauseHeaderValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ErrorCauseHeaderValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ErrorCauseHeaderValueUnknownType
+}
+
 // String returns the string branch value.
 func (u *ErrorCauseHeaderValue) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewErrorCauseHeaderValueFromString returns a ErrorCauseHeaderValue populated with v
+// on the String branch.
+func NewErrorCauseHeaderValueFromString(v string) ErrorCauseHeaderValue {
+	return ErrorCauseHeaderValue{
+		typ:   ErrorCauseHeaderValueStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *ErrorCauseHeaderValue) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewErrorCauseHeaderValueFromArray returns a ErrorCauseHeaderValue populated with v
+// on the Array branch.
+func NewErrorCauseHeaderValueFromArray(v []string) ErrorCauseHeaderValue {
+	return ErrorCauseHeaderValue{
+		typ:   ErrorCauseHeaderValueArrayType,
+		value: v,
+	}
 }
 
 func (u *ErrorCauseHeaderValue) UnmarshalJSON(data []byte) error {
@@ -117,16 +145,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Type() CommonAggrega
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) UnmarshalJSON(data []byte) error {
@@ -195,16 +251,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets)
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -273,16 +357,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) R
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -351,16 +463,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) RawJS
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -427,10 +567,29 @@ func (u *CommonAggregationsCompositeAggregateKeyValue) Type() CommonAggregations
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsCompositeAggregateKeyValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsCompositeAggregateKeyValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsCompositeAggregateKeyValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsCompositeAggregateKeyValueUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *CommonAggregationsCompositeAggregateKeyValue) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewCommonAggregationsCompositeAggregateKeyValueFromBool returns a CommonAggregationsCompositeAggregateKeyValue populated with v
+// on the Bool branch.
+func NewCommonAggregationsCompositeAggregateKeyValueFromBool(v bool) CommonAggregationsCompositeAggregateKeyValue {
+	return CommonAggregationsCompositeAggregateKeyValue{
+		typ:   CommonAggregationsCompositeAggregateKeyValueBoolType,
+		value: v,
+	}
 }
 
 // Float64 returns the float64 branch value.
@@ -439,10 +598,28 @@ func (u *CommonAggregationsCompositeAggregateKeyValue) Float64() float64 {
 	return v
 }
 
+// NewCommonAggregationsCompositeAggregateKeyValueFromFloat64 returns a CommonAggregationsCompositeAggregateKeyValue populated with v
+// on the Float64 branch.
+func NewCommonAggregationsCompositeAggregateKeyValueFromFloat64(v float64) CommonAggregationsCompositeAggregateKeyValue {
+	return CommonAggregationsCompositeAggregateKeyValue{
+		typ:   CommonAggregationsCompositeAggregateKeyValueFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonAggregationsCompositeAggregateKeyValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonAggregationsCompositeAggregateKeyValueFromString returns a CommonAggregationsCompositeAggregateKeyValue populated with v
+// on the String branch.
+func NewCommonAggregationsCompositeAggregateKeyValueFromString(v string) CommonAggregationsCompositeAggregateKeyValue {
+	return CommonAggregationsCompositeAggregateKeyValue{
+		typ:   CommonAggregationsCompositeAggregateKeyValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsCompositeAggregateKeyValue) UnmarshalJSON(data []byte) error {
@@ -518,16 +695,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) RawJSON()
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -596,16 +801,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) RawJSON
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -673,10 +906,29 @@ func (u *TopLeftBottomRightGeoBoundsBottomRight) Type() TopLeftBottomRightGeoBou
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *TopLeftBottomRightGeoBoundsBottomRight) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewTopLeftBottomRightGeoBoundsBottomRightFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *TopLeftBottomRightGeoBoundsBottomRight) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = TopLeftBottomRightGeoBoundsBottomRightUnknownType
+}
+
 // Latlon returns the LatLonGeoLocation branch value.
 func (u *TopLeftBottomRightGeoBoundsBottomRight) Latlon() LatLonGeoLocation {
 	v, _ := u.value.(LatLonGeoLocation)
 	return v
+}
+
+// NewTopLeftBottomRightGeoBoundsBottomRightFromLatlon returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
+// on the Latlon branch.
+func NewTopLeftBottomRightGeoBoundsBottomRightFromLatlon(v LatLonGeoLocation) TopLeftBottomRightGeoBoundsBottomRight {
+	return TopLeftBottomRightGeoBoundsBottomRight{
+		typ:   TopLeftBottomRightGeoBoundsBottomRightLatlonType,
+		value: v,
+	}
 }
 
 // Geohash returns the GeoHashLocation branch value.
@@ -685,16 +937,43 @@ func (u *TopLeftBottomRightGeoBoundsBottomRight) Geohash() GeoHashLocation {
 	return v
 }
 
+// NewTopLeftBottomRightGeoBoundsBottomRightFromGeohash returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
+// on the Geohash branch.
+func NewTopLeftBottomRightGeoBoundsBottomRightFromGeohash(v GeoHashLocation) TopLeftBottomRightGeoBoundsBottomRight {
+	return TopLeftBottomRightGeoBoundsBottomRight{
+		typ:   TopLeftBottomRightGeoBoundsBottomRightGeohashType,
+		value: v,
+	}
+}
+
 // Array returns the []float64 branch value.
 func (u *TopLeftBottomRightGeoBoundsBottomRight) Array() []float64 {
 	v, _ := u.value.([]float64)
 	return v
 }
 
+// NewTopLeftBottomRightGeoBoundsBottomRightFromArray returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
+// on the Array branch.
+func NewTopLeftBottomRightGeoBoundsBottomRightFromArray(v []float64) TopLeftBottomRightGeoBoundsBottomRight {
+	return TopLeftBottomRightGeoBoundsBottomRight{
+		typ:   TopLeftBottomRightGeoBoundsBottomRightArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *TopLeftBottomRightGeoBoundsBottomRight) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewTopLeftBottomRightGeoBoundsBottomRightFromString returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
+// on the String branch.
+func NewTopLeftBottomRightGeoBoundsBottomRightFromString(v string) TopLeftBottomRightGeoBoundsBottomRight {
+	return TopLeftBottomRightGeoBoundsBottomRight{
+		typ:   TopLeftBottomRightGeoBoundsBottomRightStringType,
+		value: v,
+	}
 }
 
 func (u *TopLeftBottomRightGeoBoundsBottomRight) UnmarshalJSON(data []byte) error {
@@ -776,10 +1055,29 @@ func (u *TopLeftBottomRightGeoBoundsTopLeft) Type() TopLeftBottomRightGeoBoundsT
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *TopLeftBottomRightGeoBoundsTopLeft) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewTopLeftBottomRightGeoBoundsTopLeftFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *TopLeftBottomRightGeoBoundsTopLeft) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = TopLeftBottomRightGeoBoundsTopLeftUnknownType
+}
+
 // Latlon returns the LatLonGeoLocation branch value.
 func (u *TopLeftBottomRightGeoBoundsTopLeft) Latlon() LatLonGeoLocation {
 	v, _ := u.value.(LatLonGeoLocation)
 	return v
+}
+
+// NewTopLeftBottomRightGeoBoundsTopLeftFromLatlon returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
+// on the Latlon branch.
+func NewTopLeftBottomRightGeoBoundsTopLeftFromLatlon(v LatLonGeoLocation) TopLeftBottomRightGeoBoundsTopLeft {
+	return TopLeftBottomRightGeoBoundsTopLeft{
+		typ:   TopLeftBottomRightGeoBoundsTopLeftLatlonType,
+		value: v,
+	}
 }
 
 // Geohash returns the GeoHashLocation branch value.
@@ -788,16 +1086,43 @@ func (u *TopLeftBottomRightGeoBoundsTopLeft) Geohash() GeoHashLocation {
 	return v
 }
 
+// NewTopLeftBottomRightGeoBoundsTopLeftFromGeohash returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
+// on the Geohash branch.
+func NewTopLeftBottomRightGeoBoundsTopLeftFromGeohash(v GeoHashLocation) TopLeftBottomRightGeoBoundsTopLeft {
+	return TopLeftBottomRightGeoBoundsTopLeft{
+		typ:   TopLeftBottomRightGeoBoundsTopLeftGeohashType,
+		value: v,
+	}
+}
+
 // Array returns the []float64 branch value.
 func (u *TopLeftBottomRightGeoBoundsTopLeft) Array() []float64 {
 	v, _ := u.value.([]float64)
 	return v
 }
 
+// NewTopLeftBottomRightGeoBoundsTopLeftFromArray returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
+// on the Array branch.
+func NewTopLeftBottomRightGeoBoundsTopLeftFromArray(v []float64) TopLeftBottomRightGeoBoundsTopLeft {
+	return TopLeftBottomRightGeoBoundsTopLeft{
+		typ:   TopLeftBottomRightGeoBoundsTopLeftArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *TopLeftBottomRightGeoBoundsTopLeft) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewTopLeftBottomRightGeoBoundsTopLeftFromString returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
+// on the String branch.
+func NewTopLeftBottomRightGeoBoundsTopLeftFromString(v string) TopLeftBottomRightGeoBoundsTopLeft {
+	return TopLeftBottomRightGeoBoundsTopLeft{
+		typ:   TopLeftBottomRightGeoBoundsTopLeftStringType,
+		value: v,
+	}
 }
 
 func (u *TopLeftBottomRightGeoBoundsTopLeft) UnmarshalJSON(data []byte) error {
@@ -879,10 +1204,29 @@ func (u *TopRightBottomLeftGeoBoundsBottomLeft) Type() TopRightBottomLeftGeoBoun
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *TopRightBottomLeftGeoBoundsBottomLeft) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewTopRightBottomLeftGeoBoundsBottomLeftFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *TopRightBottomLeftGeoBoundsBottomLeft) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = TopRightBottomLeftGeoBoundsBottomLeftUnknownType
+}
+
 // Latlon returns the LatLonGeoLocation branch value.
 func (u *TopRightBottomLeftGeoBoundsBottomLeft) Latlon() LatLonGeoLocation {
 	v, _ := u.value.(LatLonGeoLocation)
 	return v
+}
+
+// NewTopRightBottomLeftGeoBoundsBottomLeftFromLatlon returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
+// on the Latlon branch.
+func NewTopRightBottomLeftGeoBoundsBottomLeftFromLatlon(v LatLonGeoLocation) TopRightBottomLeftGeoBoundsBottomLeft {
+	return TopRightBottomLeftGeoBoundsBottomLeft{
+		typ:   TopRightBottomLeftGeoBoundsBottomLeftLatlonType,
+		value: v,
+	}
 }
 
 // Geohash returns the GeoHashLocation branch value.
@@ -891,16 +1235,43 @@ func (u *TopRightBottomLeftGeoBoundsBottomLeft) Geohash() GeoHashLocation {
 	return v
 }
 
+// NewTopRightBottomLeftGeoBoundsBottomLeftFromGeohash returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
+// on the Geohash branch.
+func NewTopRightBottomLeftGeoBoundsBottomLeftFromGeohash(v GeoHashLocation) TopRightBottomLeftGeoBoundsBottomLeft {
+	return TopRightBottomLeftGeoBoundsBottomLeft{
+		typ:   TopRightBottomLeftGeoBoundsBottomLeftGeohashType,
+		value: v,
+	}
+}
+
 // Array returns the []float64 branch value.
 func (u *TopRightBottomLeftGeoBoundsBottomLeft) Array() []float64 {
 	v, _ := u.value.([]float64)
 	return v
 }
 
+// NewTopRightBottomLeftGeoBoundsBottomLeftFromArray returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
+// on the Array branch.
+func NewTopRightBottomLeftGeoBoundsBottomLeftFromArray(v []float64) TopRightBottomLeftGeoBoundsBottomLeft {
+	return TopRightBottomLeftGeoBoundsBottomLeft{
+		typ:   TopRightBottomLeftGeoBoundsBottomLeftArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *TopRightBottomLeftGeoBoundsBottomLeft) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewTopRightBottomLeftGeoBoundsBottomLeftFromString returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
+// on the String branch.
+func NewTopRightBottomLeftGeoBoundsBottomLeftFromString(v string) TopRightBottomLeftGeoBoundsBottomLeft {
+	return TopRightBottomLeftGeoBoundsBottomLeft{
+		typ:   TopRightBottomLeftGeoBoundsBottomLeftStringType,
+		value: v,
+	}
 }
 
 func (u *TopRightBottomLeftGeoBoundsBottomLeft) UnmarshalJSON(data []byte) error {
@@ -982,10 +1353,29 @@ func (u *TopRightBottomLeftGeoBoundsTopRight) Type() TopRightBottomLeftGeoBounds
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *TopRightBottomLeftGeoBoundsTopRight) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewTopRightBottomLeftGeoBoundsTopRightFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *TopRightBottomLeftGeoBoundsTopRight) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = TopRightBottomLeftGeoBoundsTopRightUnknownType
+}
+
 // Latlon returns the LatLonGeoLocation branch value.
 func (u *TopRightBottomLeftGeoBoundsTopRight) Latlon() LatLonGeoLocation {
 	v, _ := u.value.(LatLonGeoLocation)
 	return v
+}
+
+// NewTopRightBottomLeftGeoBoundsTopRightFromLatlon returns a TopRightBottomLeftGeoBoundsTopRight populated with v
+// on the Latlon branch.
+func NewTopRightBottomLeftGeoBoundsTopRightFromLatlon(v LatLonGeoLocation) TopRightBottomLeftGeoBoundsTopRight {
+	return TopRightBottomLeftGeoBoundsTopRight{
+		typ:   TopRightBottomLeftGeoBoundsTopRightLatlonType,
+		value: v,
+	}
 }
 
 // Geohash returns the GeoHashLocation branch value.
@@ -994,16 +1384,43 @@ func (u *TopRightBottomLeftGeoBoundsTopRight) Geohash() GeoHashLocation {
 	return v
 }
 
+// NewTopRightBottomLeftGeoBoundsTopRightFromGeohash returns a TopRightBottomLeftGeoBoundsTopRight populated with v
+// on the Geohash branch.
+func NewTopRightBottomLeftGeoBoundsTopRightFromGeohash(v GeoHashLocation) TopRightBottomLeftGeoBoundsTopRight {
+	return TopRightBottomLeftGeoBoundsTopRight{
+		typ:   TopRightBottomLeftGeoBoundsTopRightGeohashType,
+		value: v,
+	}
+}
+
 // Array returns the []float64 branch value.
 func (u *TopRightBottomLeftGeoBoundsTopRight) Array() []float64 {
 	v, _ := u.value.([]float64)
 	return v
 }
 
+// NewTopRightBottomLeftGeoBoundsTopRightFromArray returns a TopRightBottomLeftGeoBoundsTopRight populated with v
+// on the Array branch.
+func NewTopRightBottomLeftGeoBoundsTopRightFromArray(v []float64) TopRightBottomLeftGeoBoundsTopRight {
+	return TopRightBottomLeftGeoBoundsTopRight{
+		typ:   TopRightBottomLeftGeoBoundsTopRightArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *TopRightBottomLeftGeoBoundsTopRight) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewTopRightBottomLeftGeoBoundsTopRightFromString returns a TopRightBottomLeftGeoBoundsTopRight populated with v
+// on the String branch.
+func NewTopRightBottomLeftGeoBoundsTopRightFromString(v string) TopRightBottomLeftGeoBoundsTopRight {
+	return TopRightBottomLeftGeoBoundsTopRight{
+		typ:   TopRightBottomLeftGeoBoundsTopRightStringType,
+		value: v,
+	}
 }
 
 func (u *TopRightBottomLeftGeoBoundsTopRight) UnmarshalJSON(data []byte) error {
@@ -1090,10 +1507,29 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) Type() CommonAggregationsGe
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsGeoBoundsAggregateBounds) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsGeoBoundsAggregateBoundsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsGeoBoundsAggregateBounds) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsGeoBoundsAggregateBoundsUnknownType
+}
+
 // Coords returns the CoordsGeoBounds branch value.
 func (u *CommonAggregationsGeoBoundsAggregateBounds) Coords() CoordsGeoBounds {
 	v, _ := u.value.(CoordsGeoBounds)
 	return v
+}
+
+// NewCommonAggregationsGeoBoundsAggregateBoundsFromCoords returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
+// on the Coords branch.
+func NewCommonAggregationsGeoBoundsAggregateBoundsFromCoords(v CoordsGeoBounds) CommonAggregationsGeoBoundsAggregateBounds {
+	return CommonAggregationsGeoBoundsAggregateBounds{
+		typ:   CommonAggregationsGeoBoundsAggregateBoundsCoordsType,
+		value: v,
+	}
 }
 
 // Tlbr returns the TopLeftBottomRightGeoBounds branch value.
@@ -1102,16 +1538,43 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) Tlbr() TopLeftBottomRightGe
 	return v
 }
 
+// NewCommonAggregationsGeoBoundsAggregateBoundsFromTlbr returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
+// on the Tlbr branch.
+func NewCommonAggregationsGeoBoundsAggregateBoundsFromTlbr(v TopLeftBottomRightGeoBounds) CommonAggregationsGeoBoundsAggregateBounds {
+	return CommonAggregationsGeoBoundsAggregateBounds{
+		typ:   CommonAggregationsGeoBoundsAggregateBoundsTlbrType,
+		value: v,
+	}
+}
+
 // Trbl returns the TopRightBottomLeftGeoBounds branch value.
 func (u *CommonAggregationsGeoBoundsAggregateBounds) Trbl() TopRightBottomLeftGeoBounds {
 	v, _ := u.value.(TopRightBottomLeftGeoBounds)
 	return v
 }
 
+// NewCommonAggregationsGeoBoundsAggregateBoundsFromTrbl returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
+// on the Trbl branch.
+func NewCommonAggregationsGeoBoundsAggregateBoundsFromTrbl(v TopRightBottomLeftGeoBounds) CommonAggregationsGeoBoundsAggregateBounds {
+	return CommonAggregationsGeoBoundsAggregateBounds{
+		typ:   CommonAggregationsGeoBoundsAggregateBoundsTrblType,
+		value: v,
+	}
+}
+
 // Wkt returns the WktGeoBounds branch value.
 func (u *CommonAggregationsGeoBoundsAggregateBounds) Wkt() WktGeoBounds {
 	v, _ := u.value.(WktGeoBounds)
 	return v
+}
+
+// NewCommonAggregationsGeoBoundsAggregateBoundsFromWkt returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
+// on the Wkt branch.
+func NewCommonAggregationsGeoBoundsAggregateBoundsFromWkt(v WktGeoBounds) CommonAggregationsGeoBoundsAggregateBounds {
+	return CommonAggregationsGeoBoundsAggregateBounds{
+		typ:   CommonAggregationsGeoBoundsAggregateBoundsWktType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) error {
@@ -1198,10 +1661,29 @@ func (u *CommonAggregationsGeoCentroidAggregateLocation) Type() CommonAggregatio
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsGeoCentroidAggregateLocation) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsGeoCentroidAggregateLocationFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsGeoCentroidAggregateLocation) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsGeoCentroidAggregateLocationUnknownType
+}
+
 // Latlon returns the LatLonGeoLocation branch value.
 func (u *CommonAggregationsGeoCentroidAggregateLocation) Latlon() LatLonGeoLocation {
 	v, _ := u.value.(LatLonGeoLocation)
 	return v
+}
+
+// NewCommonAggregationsGeoCentroidAggregateLocationFromLatlon returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
+// on the Latlon branch.
+func NewCommonAggregationsGeoCentroidAggregateLocationFromLatlon(v LatLonGeoLocation) CommonAggregationsGeoCentroidAggregateLocation {
+	return CommonAggregationsGeoCentroidAggregateLocation{
+		typ:   CommonAggregationsGeoCentroidAggregateLocationLatlonType,
+		value: v,
+	}
 }
 
 // Geohash returns the GeoHashLocation branch value.
@@ -1210,16 +1692,43 @@ func (u *CommonAggregationsGeoCentroidAggregateLocation) Geohash() GeoHashLocati
 	return v
 }
 
+// NewCommonAggregationsGeoCentroidAggregateLocationFromGeohash returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
+// on the Geohash branch.
+func NewCommonAggregationsGeoCentroidAggregateLocationFromGeohash(v GeoHashLocation) CommonAggregationsGeoCentroidAggregateLocation {
+	return CommonAggregationsGeoCentroidAggregateLocation{
+		typ:   CommonAggregationsGeoCentroidAggregateLocationGeohashType,
+		value: v,
+	}
+}
+
 // Array returns the []float64 branch value.
 func (u *CommonAggregationsGeoCentroidAggregateLocation) Array() []float64 {
 	v, _ := u.value.([]float64)
 	return v
 }
 
+// NewCommonAggregationsGeoCentroidAggregateLocationFromArray returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
+// on the Array branch.
+func NewCommonAggregationsGeoCentroidAggregateLocationFromArray(v []float64) CommonAggregationsGeoCentroidAggregateLocation {
+	return CommonAggregationsGeoCentroidAggregateLocation{
+		typ:   CommonAggregationsGeoCentroidAggregateLocationArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonAggregationsGeoCentroidAggregateLocation) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonAggregationsGeoCentroidAggregateLocationFromString returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
+// on the String branch.
+func NewCommonAggregationsGeoCentroidAggregateLocationFromString(v string) CommonAggregationsGeoCentroidAggregateLocation {
+	return CommonAggregationsGeoCentroidAggregateLocation{
+		typ:   CommonAggregationsGeoCentroidAggregateLocationStringType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsGeoCentroidAggregateLocation) UnmarshalJSON(data []byte) error {
@@ -1302,16 +1811,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Raw
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -1380,16 +1917,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Raw
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -1455,16 +2020,44 @@ func (u *CommonAggregationsKeyedPercentilesValue) Type() CommonAggregationsKeyed
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsKeyedPercentilesValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsKeyedPercentilesValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsKeyedPercentilesValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsKeyedPercentilesValueUnknownType
+}
+
 // Float64 returns the float64 branch value.
 func (u *CommonAggregationsKeyedPercentilesValue) Float64() float64 {
 	v, _ := u.value.(float64)
 	return v
 }
 
+// NewCommonAggregationsKeyedPercentilesValueFromFloat64 returns a CommonAggregationsKeyedPercentilesValue populated with v
+// on the Float64 branch.
+func NewCommonAggregationsKeyedPercentilesValueFromFloat64(v float64) CommonAggregationsKeyedPercentilesValue {
+	return CommonAggregationsKeyedPercentilesValue{
+		typ:   CommonAggregationsKeyedPercentilesValueFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonAggregationsKeyedPercentilesValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonAggregationsKeyedPercentilesValueFromString returns a CommonAggregationsKeyedPercentilesValue populated with v
+// on the String branch.
+func NewCommonAggregationsKeyedPercentilesValueFromString(v string) CommonAggregationsKeyedPercentilesValue {
+	return CommonAggregationsKeyedPercentilesValue{
+		typ:   CommonAggregationsKeyedPercentilesValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsKeyedPercentilesValue) UnmarshalJSON(data []byte) error {
@@ -1530,16 +2123,44 @@ func (u *CommonAggregationsPercentilesAggregateBaseValues) Type() CommonAggregat
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsPercentilesAggregateBaseValues) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsPercentilesAggregateBaseValuesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsPercentilesAggregateBaseValues) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsPercentilesAggregateBaseValuesUnknownType
+}
+
 // Map returns the map[string]CommonAggregationsKeyedPercentilesValue branch value.
 func (u *CommonAggregationsPercentilesAggregateBaseValues) Map() map[string]CommonAggregationsKeyedPercentilesValue {
 	v, _ := u.value.(map[string]CommonAggregationsKeyedPercentilesValue)
 	return v
 }
 
+// NewCommonAggregationsPercentilesAggregateBaseValuesFromMap returns a CommonAggregationsPercentilesAggregateBaseValues populated with v
+// on the Map branch.
+func NewCommonAggregationsPercentilesAggregateBaseValuesFromMap(v map[string]CommonAggregationsKeyedPercentilesValue) CommonAggregationsPercentilesAggregateBaseValues {
+	return CommonAggregationsPercentilesAggregateBaseValues{
+		typ:   CommonAggregationsPercentilesAggregateBaseValuesMapType,
+		value: v,
+	}
+}
+
 // Array returns the []CommonAggregationsArrayPercentilesItem branch value.
 func (u *CommonAggregationsPercentilesAggregateBaseValues) Array() []CommonAggregationsArrayPercentilesItem {
 	v, _ := u.value.([]CommonAggregationsArrayPercentilesItem)
 	return v
+}
+
+// NewCommonAggregationsPercentilesAggregateBaseValuesFromArray returns a CommonAggregationsPercentilesAggregateBaseValues populated with v
+// on the Array branch.
+func NewCommonAggregationsPercentilesAggregateBaseValuesFromArray(v []CommonAggregationsArrayPercentilesItem) CommonAggregationsPercentilesAggregateBaseValues {
+	return CommonAggregationsPercentilesAggregateBaseValues{
+		typ:   CommonAggregationsPercentilesAggregateBaseValuesArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsPercentilesAggregateBaseValues) UnmarshalJSON(data []byte) error {
@@ -1608,16 +2229,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) RawJS
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -1686,16 +2335,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) RawJSON
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -1764,16 +2441,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) R
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -1839,16 +2544,44 @@ func (u *CommonAggregationsLongTermsBucketKey) Type() CommonAggregationsLongTerm
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAggregationsLongTermsBucketKey) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsLongTermsBucketKeyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsLongTermsBucketKey) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsLongTermsBucketKeyUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *CommonAggregationsLongTermsBucketKey) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewCommonAggregationsLongTermsBucketKeyFromInt64 returns a CommonAggregationsLongTermsBucketKey populated with v
+// on the Int64 branch.
+func NewCommonAggregationsLongTermsBucketKeyFromInt64(v int64) CommonAggregationsLongTermsBucketKey {
+	return CommonAggregationsLongTermsBucketKey{
+		typ:   CommonAggregationsLongTermsBucketKeyInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonAggregationsLongTermsBucketKey) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonAggregationsLongTermsBucketKeyFromString returns a CommonAggregationsLongTermsBucketKey populated with v
+// on the String branch.
+func NewCommonAggregationsLongTermsBucketKeyFromString(v string) CommonAggregationsLongTermsBucketKey {
+	return CommonAggregationsLongTermsBucketKey{
+		typ:   CommonAggregationsLongTermsBucketKeyStringType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsLongTermsBucketKey) UnmarshalJSON(data []byte) error {
@@ -1917,16 +2650,44 @@ func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) RawJSON() 
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap returns a CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets {
+	return CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets{
+		typ:   CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromArray returns a CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets {
+	return CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets{
+		typ:   CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -1995,16 +2756,44 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBuck
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets {
+	return CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets{
+		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets {
+	return CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets{
+		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -2073,16 +2862,44 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBu
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets {
+	return CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets{
+		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets {
+	return CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets{
+		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -2151,16 +2968,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets)
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -2224,16 +3069,44 @@ func (u *SearchHitMatchedQueries) Type() SearchHitMatchedQueriesType { return u.
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchHitMatchedQueries) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchHitMatchedQueriesFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchHitMatchedQueries) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchHitMatchedQueriesUnknownType
+}
+
 // Array returns the []string branch value.
 func (u *SearchHitMatchedQueries) Array() []string {
 	v, _ := u.value.([]string)
 	return v
 }
 
+// NewSearchHitMatchedQueriesFromArray returns a SearchHitMatchedQueries populated with v
+// on the Array branch.
+func NewSearchHitMatchedQueriesFromArray(v []string) SearchHitMatchedQueries {
+	return SearchHitMatchedQueries{
+		typ:   SearchHitMatchedQueriesArrayType,
+		value: v,
+	}
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *SearchHitMatchedQueries) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
+}
+
+// NewSearchHitMatchedQueriesFromMap returns a SearchHitMatchedQueries populated with v
+// on the Map branch.
+func NewSearchHitMatchedQueriesFromMap(v map[string]json.RawMessage) SearchHitMatchedQueries {
+	return SearchHitMatchedQueries{
+		typ:   SearchHitMatchedQueriesMapType,
+		value: v,
+	}
 }
 
 func (u *SearchHitMatchedQueries) UnmarshalJSON(data []byte) error {
@@ -2298,10 +3171,29 @@ func (u *SortResultsItem) Type() SortResultsItemType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SortResultsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSortResultsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SortResultsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SortResultsItemUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *SortResultsItem) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewSortResultsItemFromBool returns a SortResultsItem populated with v
+// on the Bool branch.
+func NewSortResultsItemFromBool(v bool) SortResultsItem {
+	return SortResultsItem{
+		typ:   SortResultsItemBoolType,
+		value: v,
+	}
 }
 
 // Float64 returns the float64 branch value.
@@ -2310,10 +3202,28 @@ func (u *SortResultsItem) Float64() float64 {
 	return v
 }
 
+// NewSortResultsItemFromFloat64 returns a SortResultsItem populated with v
+// on the Float64 branch.
+func NewSortResultsItemFromFloat64(v float64) SortResultsItem {
+	return SortResultsItem{
+		typ:   SortResultsItemFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *SortResultsItem) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewSortResultsItemFromString returns a SortResultsItem populated with v
+// on the String branch.
+func NewSortResultsItemFromString(v string) SortResultsItem {
+	return SortResultsItem{
+		typ:   SortResultsItemStringType,
+		value: v,
+	}
 }
 
 func (u *SortResultsItem) UnmarshalJSON(data []byte) error {
@@ -2384,16 +3294,44 @@ func (u *SearchHitsMetadataTotal) Type() SearchHitsMetadataTotalType { return u.
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchHitsMetadataTotal) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchHitsMetadataTotalFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchHitsMetadataTotal) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchHitsMetadataTotalUnknownType
+}
+
 // SearchTotalHits returns the SearchTotalHits branch value.
 func (u *SearchHitsMetadataTotal) SearchTotalHits() SearchTotalHits {
 	v, _ := u.value.(SearchTotalHits)
 	return v
 }
 
+// NewSearchHitsMetadataTotalFromSearchTotalHits returns a SearchHitsMetadataTotal populated with v
+// on the SearchTotalHits branch.
+func NewSearchHitsMetadataTotalFromSearchTotalHits(v SearchTotalHits) SearchHitsMetadataTotal {
+	return SearchHitsMetadataTotal{
+		typ:   SearchHitsMetadataTotalSearchTotalHitsType,
+		value: v,
+	}
+}
+
 // Int64 returns the int64 branch value.
 func (u *SearchHitsMetadataTotal) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
+}
+
+// NewSearchHitsMetadataTotalFromInt64 returns a SearchHitsMetadataTotal populated with v
+// on the Int64 branch.
+func NewSearchHitsMetadataTotalFromInt64(v int64) SearchHitsMetadataTotal {
+	return SearchHitsMetadataTotal{
+		typ:   SearchHitsMetadataTotalInt64Type,
+		value: v,
+	}
 }
 
 func (u *SearchHitsMetadataTotal) UnmarshalJSON(data []byte) error {
@@ -2462,16 +3400,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) RawJSON() json.R
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseVoidBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseVoidBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseVoidBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseVoidBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseVoidBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseVoidBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseVoidBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) UnmarshalJSON(data []byte) error {
@@ -2540,16 +3506,44 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) RawJSON() j
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseVoidBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseVoidBuckets {
+	return CommonAggregationsSignificantTermsAggregateBaseVoidBuckets{
+		typ:   CommonAggregationsSignificantTermsAggregateBaseVoidBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseVoidBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromArray(v []json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseVoidBuckets {
+	return CommonAggregationsSignificantTermsAggregateBaseVoidBuckets{
+		typ:   CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) UnmarshalJSON(data []byte) error {
@@ -2618,16 +3612,44 @@ func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketB
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets populated with v
+// on the Map branch.
+func NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []json.RawMessage branch value.
 func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Array() []json.RawMessage {
 	v, _ := u.value.([]json.RawMessage)
 	return v
+}
+
+// NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets populated with v
+// on the Array branch.
+func NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) UnmarshalJSON(data []byte) error {
@@ -2751,10 +3773,29 @@ func (u *SearchResultAggregationsValue) Type() SearchResultAggregationsValueType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchResultAggregationsValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchResultAggregationsValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchResultAggregationsValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchResultAggregationsValueUnknownType
+}
+
 // AdjacencyMatrix returns the CommonAggregationsAdjacencyMatrixAggregate branch value.
 func (u *SearchResultAggregationsValue) AdjacencyMatrix() CommonAggregationsAdjacencyMatrixAggregate {
 	v, _ := u.value.(CommonAggregationsAdjacencyMatrixAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromAdjacencyMatrix returns a SearchResultAggregationsValue populated with v
+// on the AdjacencyMatrix branch.
+func NewSearchResultAggregationsValueFromAdjacencyMatrix(v CommonAggregationsAdjacencyMatrixAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueAdjacencyMatrixType,
+		value: v,
+	}
 }
 
 // AutoDateHistogram returns the CommonAggregationsAutoDateHistogramAggregate branch value.
@@ -2763,10 +3804,28 @@ func (u *SearchResultAggregationsValue) AutoDateHistogram() CommonAggregationsAu
 	return v
 }
 
+// NewSearchResultAggregationsValueFromAutoDateHistogram returns a SearchResultAggregationsValue populated with v
+// on the AutoDateHistogram branch.
+func NewSearchResultAggregationsValueFromAutoDateHistogram(v CommonAggregationsAutoDateHistogramAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueAutoDateHistogramType,
+		value: v,
+	}
+}
+
 // Avg returns the CommonAggregationsAvgAggregate branch value.
 func (u *SearchResultAggregationsValue) Avg() CommonAggregationsAvgAggregate {
 	v, _ := u.value.(CommonAggregationsAvgAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromAvg returns a SearchResultAggregationsValue populated with v
+// on the Avg branch.
+func NewSearchResultAggregationsValueFromAvg(v CommonAggregationsAvgAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueAvgType,
+		value: v,
+	}
 }
 
 // BoxPlot returns the CommonAggregationsBoxPlotAggregate branch value.
@@ -2775,10 +3834,28 @@ func (u *SearchResultAggregationsValue) BoxPlot() CommonAggregationsBoxPlotAggre
 	return v
 }
 
+// NewSearchResultAggregationsValueFromBoxPlot returns a SearchResultAggregationsValue populated with v
+// on the BoxPlot branch.
+func NewSearchResultAggregationsValueFromBoxPlot(v CommonAggregationsBoxPlotAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueBoxPlotType,
+		value: v,
+	}
+}
+
 // BucketMetricValue returns the CommonAggregationsBucketMetricValueAggregate branch value.
 func (u *SearchResultAggregationsValue) BucketMetricValue() CommonAggregationsBucketMetricValueAggregate {
 	v, _ := u.value.(CommonAggregationsBucketMetricValueAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromBucketMetricValue returns a SearchResultAggregationsValue populated with v
+// on the BucketMetricValue branch.
+func NewSearchResultAggregationsValueFromBucketMetricValue(v CommonAggregationsBucketMetricValueAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueBucketMetricValueType,
+		value: v,
+	}
 }
 
 // Cardinality returns the CommonAggregationsCardinalityAggregate branch value.
@@ -2787,10 +3864,28 @@ func (u *SearchResultAggregationsValue) Cardinality() CommonAggregationsCardinal
 	return v
 }
 
+// NewSearchResultAggregationsValueFromCardinality returns a SearchResultAggregationsValue populated with v
+// on the Cardinality branch.
+func NewSearchResultAggregationsValueFromCardinality(v CommonAggregationsCardinalityAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueCardinalityType,
+		value: v,
+	}
+}
+
 // Children returns the CommonAggregationsChildrenAggregate branch value.
 func (u *SearchResultAggregationsValue) Children() CommonAggregationsChildrenAggregate {
 	v, _ := u.value.(CommonAggregationsChildrenAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromChildren returns a SearchResultAggregationsValue populated with v
+// on the Children branch.
+func NewSearchResultAggregationsValueFromChildren(v CommonAggregationsChildrenAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueChildrenType,
+		value: v,
+	}
 }
 
 // Composite returns the CommonAggregationsCompositeAggregate branch value.
@@ -2799,10 +3894,28 @@ func (u *SearchResultAggregationsValue) Composite() CommonAggregationsCompositeA
 	return v
 }
 
+// NewSearchResultAggregationsValueFromComposite returns a SearchResultAggregationsValue populated with v
+// on the Composite branch.
+func NewSearchResultAggregationsValueFromComposite(v CommonAggregationsCompositeAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueCompositeType,
+		value: v,
+	}
+}
+
 // DateHistogram returns the CommonAggregationsDateHistogramAggregate branch value.
 func (u *SearchResultAggregationsValue) DateHistogram() CommonAggregationsDateHistogramAggregate {
 	v, _ := u.value.(CommonAggregationsDateHistogramAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromDateHistogram returns a SearchResultAggregationsValue populated with v
+// on the DateHistogram branch.
+func NewSearchResultAggregationsValueFromDateHistogram(v CommonAggregationsDateHistogramAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueDateHistogramType,
+		value: v,
+	}
 }
 
 // DateRange returns the CommonAggregationsDateRangeAggregate branch value.
@@ -2811,10 +3924,28 @@ func (u *SearchResultAggregationsValue) DateRange() CommonAggregationsDateRangeA
 	return v
 }
 
+// NewSearchResultAggregationsValueFromDateRange returns a SearchResultAggregationsValue populated with v
+// on the DateRange branch.
+func NewSearchResultAggregationsValueFromDateRange(v CommonAggregationsDateRangeAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueDateRangeType,
+		value: v,
+	}
+}
+
 // Derivative returns the CommonAggregationsDerivativeAggregate branch value.
 func (u *SearchResultAggregationsValue) Derivative() CommonAggregationsDerivativeAggregate {
 	v, _ := u.value.(CommonAggregationsDerivativeAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromDerivative returns a SearchResultAggregationsValue populated with v
+// on the Derivative branch.
+func NewSearchResultAggregationsValueFromDerivative(v CommonAggregationsDerivativeAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueDerivativeType,
+		value: v,
+	}
 }
 
 // Dterms returns the CommonAggregationsDoubleTermsAggregate branch value.
@@ -2823,10 +3954,28 @@ func (u *SearchResultAggregationsValue) Dterms() CommonAggregationsDoubleTermsAg
 	return v
 }
 
+// NewSearchResultAggregationsValueFromDterms returns a SearchResultAggregationsValue populated with v
+// on the Dterms branch.
+func NewSearchResultAggregationsValueFromDterms(v CommonAggregationsDoubleTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueDtermsType,
+		value: v,
+	}
+}
+
 // ExtendedStats returns the CommonAggregationsExtendedStatsAggregate branch value.
 func (u *SearchResultAggregationsValue) ExtendedStats() CommonAggregationsExtendedStatsAggregate {
 	v, _ := u.value.(CommonAggregationsExtendedStatsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromExtendedStats returns a SearchResultAggregationsValue populated with v
+// on the ExtendedStats branch.
+func NewSearchResultAggregationsValueFromExtendedStats(v CommonAggregationsExtendedStatsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueExtendedStatsType,
+		value: v,
+	}
 }
 
 // ExtendedStatsBucket returns the CommonAggregationsExtendedStatsBucketAggregate branch value.
@@ -2835,10 +3984,28 @@ func (u *SearchResultAggregationsValue) ExtendedStatsBucket() CommonAggregations
 	return v
 }
 
+// NewSearchResultAggregationsValueFromExtendedStatsBucket returns a SearchResultAggregationsValue populated with v
+// on the ExtendedStatsBucket branch.
+func NewSearchResultAggregationsValueFromExtendedStatsBucket(v CommonAggregationsExtendedStatsBucketAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueExtendedStatsBucketType,
+		value: v,
+	}
+}
+
 // Filter returns the CommonAggregationsFilterAggregate branch value.
 func (u *SearchResultAggregationsValue) Filter() CommonAggregationsFilterAggregate {
 	v, _ := u.value.(CommonAggregationsFilterAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromFilter returns a SearchResultAggregationsValue populated with v
+// on the Filter branch.
+func NewSearchResultAggregationsValueFromFilter(v CommonAggregationsFilterAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueFilterType,
+		value: v,
+	}
 }
 
 // Filters returns the CommonAggregationsFiltersAggregate branch value.
@@ -2847,10 +4014,28 @@ func (u *SearchResultAggregationsValue) Filters() CommonAggregationsFiltersAggre
 	return v
 }
 
+// NewSearchResultAggregationsValueFromFilters returns a SearchResultAggregationsValue populated with v
+// on the Filters branch.
+func NewSearchResultAggregationsValueFromFilters(v CommonAggregationsFiltersAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueFiltersType,
+		value: v,
+	}
+}
+
 // GeoBounds returns the CommonAggregationsGeoBoundsAggregate branch value.
 func (u *SearchResultAggregationsValue) GeoBounds() CommonAggregationsGeoBoundsAggregate {
 	v, _ := u.value.(CommonAggregationsGeoBoundsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromGeoBounds returns a SearchResultAggregationsValue populated with v
+// on the GeoBounds branch.
+func NewSearchResultAggregationsValueFromGeoBounds(v CommonAggregationsGeoBoundsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueGeoBoundsType,
+		value: v,
+	}
 }
 
 // GeoCentroid returns the CommonAggregationsGeoCentroidAggregate branch value.
@@ -2859,10 +4044,28 @@ func (u *SearchResultAggregationsValue) GeoCentroid() CommonAggregationsGeoCentr
 	return v
 }
 
+// NewSearchResultAggregationsValueFromGeoCentroid returns a SearchResultAggregationsValue populated with v
+// on the GeoCentroid branch.
+func NewSearchResultAggregationsValueFromGeoCentroid(v CommonAggregationsGeoCentroidAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueGeoCentroidType,
+		value: v,
+	}
+}
+
 // GeoDistance returns the CommonAggregationsGeoDistanceAggregate branch value.
 func (u *SearchResultAggregationsValue) GeoDistance() CommonAggregationsGeoDistanceAggregate {
 	v, _ := u.value.(CommonAggregationsGeoDistanceAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromGeoDistance returns a SearchResultAggregationsValue populated with v
+// on the GeoDistance branch.
+func NewSearchResultAggregationsValueFromGeoDistance(v CommonAggregationsGeoDistanceAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueGeoDistanceType,
+		value: v,
+	}
 }
 
 // GeohashGrid returns the CommonAggregationsGeoHashGridAggregate branch value.
@@ -2871,10 +4074,28 @@ func (u *SearchResultAggregationsValue) GeohashGrid() CommonAggregationsGeoHashG
 	return v
 }
 
+// NewSearchResultAggregationsValueFromGeohashGrid returns a SearchResultAggregationsValue populated with v
+// on the GeohashGrid branch.
+func NewSearchResultAggregationsValueFromGeohashGrid(v CommonAggregationsGeoHashGridAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueGeohashGridType,
+		value: v,
+	}
+}
+
 // GeotileGrid returns the CommonAggregationsGeoTileGridAggregate branch value.
 func (u *SearchResultAggregationsValue) GeotileGrid() CommonAggregationsGeoTileGridAggregate {
 	v, _ := u.value.(CommonAggregationsGeoTileGridAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromGeotileGrid returns a SearchResultAggregationsValue populated with v
+// on the GeotileGrid branch.
+func NewSearchResultAggregationsValueFromGeotileGrid(v CommonAggregationsGeoTileGridAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueGeotileGridType,
+		value: v,
+	}
 }
 
 // Global returns the CommonAggregationsGlobalAggregate branch value.
@@ -2883,10 +4104,28 @@ func (u *SearchResultAggregationsValue) Global() CommonAggregationsGlobalAggrega
 	return v
 }
 
+// NewSearchResultAggregationsValueFromGlobal returns a SearchResultAggregationsValue populated with v
+// on the Global branch.
+func NewSearchResultAggregationsValueFromGlobal(v CommonAggregationsGlobalAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueGlobalType,
+		value: v,
+	}
+}
+
 // HdrPercentiles returns the CommonAggregationsHdrPercentilesAggregate branch value.
 func (u *SearchResultAggregationsValue) HdrPercentiles() CommonAggregationsHdrPercentilesAggregate {
 	v, _ := u.value.(CommonAggregationsHdrPercentilesAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromHdrPercentiles returns a SearchResultAggregationsValue populated with v
+// on the HdrPercentiles branch.
+func NewSearchResultAggregationsValueFromHdrPercentiles(v CommonAggregationsHdrPercentilesAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueHdrPercentilesType,
+		value: v,
+	}
 }
 
 // HdrPercentileRanks returns the CommonAggregationsHdrPercentileRanksAggregate branch value.
@@ -2895,10 +4134,28 @@ func (u *SearchResultAggregationsValue) HdrPercentileRanks() CommonAggregationsH
 	return v
 }
 
+// NewSearchResultAggregationsValueFromHdrPercentileRanks returns a SearchResultAggregationsValue populated with v
+// on the HdrPercentileRanks branch.
+func NewSearchResultAggregationsValueFromHdrPercentileRanks(v CommonAggregationsHdrPercentileRanksAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueHdrPercentileRanksType,
+		value: v,
+	}
+}
+
 // Histogram returns the CommonAggregationsHistogramAggregate branch value.
 func (u *SearchResultAggregationsValue) Histogram() CommonAggregationsHistogramAggregate {
 	v, _ := u.value.(CommonAggregationsHistogramAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromHistogram returns a SearchResultAggregationsValue populated with v
+// on the Histogram branch.
+func NewSearchResultAggregationsValueFromHistogram(v CommonAggregationsHistogramAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueHistogramType,
+		value: v,
+	}
 }
 
 // IPRange returns the CommonAggregationsIpRangeAggregate branch value.
@@ -2907,10 +4164,28 @@ func (u *SearchResultAggregationsValue) IPRange() CommonAggregationsIpRangeAggre
 	return v
 }
 
+// NewSearchResultAggregationsValueFromIPRange returns a SearchResultAggregationsValue populated with v
+// on the IPRange branch.
+func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsIpRangeAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueIPRangeType,
+		value: v,
+	}
+}
+
 // Lrareterms returns the CommonAggregationsLongRareTermsAggregate branch value.
 func (u *SearchResultAggregationsValue) Lrareterms() CommonAggregationsLongRareTermsAggregate {
 	v, _ := u.value.(CommonAggregationsLongRareTermsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromLrareterms returns a SearchResultAggregationsValue populated with v
+// on the Lrareterms branch.
+func NewSearchResultAggregationsValueFromLrareterms(v CommonAggregationsLongRareTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueLraretermsType,
+		value: v,
+	}
 }
 
 // Lterms returns the CommonAggregationsLongTermsAggregate branch value.
@@ -2919,10 +4194,28 @@ func (u *SearchResultAggregationsValue) Lterms() CommonAggregationsLongTermsAggr
 	return v
 }
 
+// NewSearchResultAggregationsValueFromLterms returns a SearchResultAggregationsValue populated with v
+// on the Lterms branch.
+func NewSearchResultAggregationsValueFromLterms(v CommonAggregationsLongTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueLtermsType,
+		value: v,
+	}
+}
+
 // MatrixStats returns the CommonAggregationsMatrixStatsAggregate branch value.
 func (u *SearchResultAggregationsValue) MatrixStats() CommonAggregationsMatrixStatsAggregate {
 	v, _ := u.value.(CommonAggregationsMatrixStatsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromMatrixStats returns a SearchResultAggregationsValue populated with v
+// on the MatrixStats branch.
+func NewSearchResultAggregationsValueFromMatrixStats(v CommonAggregationsMatrixStatsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueMatrixStatsType,
+		value: v,
+	}
 }
 
 // Max returns the CommonAggregationsMaxAggregate branch value.
@@ -2931,10 +4224,28 @@ func (u *SearchResultAggregationsValue) Max() CommonAggregationsMaxAggregate {
 	return v
 }
 
+// NewSearchResultAggregationsValueFromMax returns a SearchResultAggregationsValue populated with v
+// on the Max branch.
+func NewSearchResultAggregationsValueFromMax(v CommonAggregationsMaxAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueMaxType,
+		value: v,
+	}
+}
+
 // MedianAbsoluteDeviation returns the CommonAggregationsMedianAbsoluteDeviationAggregate branch value.
 func (u *SearchResultAggregationsValue) MedianAbsoluteDeviation() CommonAggregationsMedianAbsoluteDeviationAggregate {
 	v, _ := u.value.(CommonAggregationsMedianAbsoluteDeviationAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromMedianAbsoluteDeviation returns a SearchResultAggregationsValue populated with v
+// on the MedianAbsoluteDeviation branch.
+func NewSearchResultAggregationsValueFromMedianAbsoluteDeviation(v CommonAggregationsMedianAbsoluteDeviationAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueMedianAbsoluteDeviationType,
+		value: v,
+	}
 }
 
 // Min returns the CommonAggregationsMinAggregate branch value.
@@ -2943,10 +4254,28 @@ func (u *SearchResultAggregationsValue) Min() CommonAggregationsMinAggregate {
 	return v
 }
 
+// NewSearchResultAggregationsValueFromMin returns a SearchResultAggregationsValue populated with v
+// on the Min branch.
+func NewSearchResultAggregationsValueFromMin(v CommonAggregationsMinAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueMinType,
+		value: v,
+	}
+}
+
 // Missing returns the CommonAggregationsMissingAggregate branch value.
 func (u *SearchResultAggregationsValue) Missing() CommonAggregationsMissingAggregate {
 	v, _ := u.value.(CommonAggregationsMissingAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromMissing returns a SearchResultAggregationsValue populated with v
+// on the Missing branch.
+func NewSearchResultAggregationsValueFromMissing(v CommonAggregationsMissingAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueMissingType,
+		value: v,
+	}
 }
 
 // MultiTerms returns the CommonAggregationsMultiTermsAggregate branch value.
@@ -2955,10 +4284,28 @@ func (u *SearchResultAggregationsValue) MultiTerms() CommonAggregationsMultiTerm
 	return v
 }
 
+// NewSearchResultAggregationsValueFromMultiTerms returns a SearchResultAggregationsValue populated with v
+// on the MultiTerms branch.
+func NewSearchResultAggregationsValueFromMultiTerms(v CommonAggregationsMultiTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueMultiTermsType,
+		value: v,
+	}
+}
+
 // Nested returns the CommonAggregationsNestedAggregate branch value.
 func (u *SearchResultAggregationsValue) Nested() CommonAggregationsNestedAggregate {
 	v, _ := u.value.(CommonAggregationsNestedAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromNested returns a SearchResultAggregationsValue populated with v
+// on the Nested branch.
+func NewSearchResultAggregationsValueFromNested(v CommonAggregationsNestedAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueNestedType,
+		value: v,
+	}
 }
 
 // Parent returns the CommonAggregationsParentAggregate branch value.
@@ -2967,10 +4314,28 @@ func (u *SearchResultAggregationsValue) Parent() CommonAggregationsParentAggrega
 	return v
 }
 
+// NewSearchResultAggregationsValueFromParent returns a SearchResultAggregationsValue populated with v
+// on the Parent branch.
+func NewSearchResultAggregationsValueFromParent(v CommonAggregationsParentAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueParentType,
+		value: v,
+	}
+}
+
 // PercentilesBucket returns the CommonAggregationsPercentilesBucketAggregate branch value.
 func (u *SearchResultAggregationsValue) PercentilesBucket() CommonAggregationsPercentilesBucketAggregate {
 	v, _ := u.value.(CommonAggregationsPercentilesBucketAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromPercentilesBucket returns a SearchResultAggregationsValue populated with v
+// on the PercentilesBucket branch.
+func NewSearchResultAggregationsValueFromPercentilesBucket(v CommonAggregationsPercentilesBucketAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValuePercentilesBucketType,
+		value: v,
+	}
 }
 
 // Range returns the CommonAggregationsRangeAggregate branch value.
@@ -2979,10 +4344,28 @@ func (u *SearchResultAggregationsValue) Range() CommonAggregationsRangeAggregate
 	return v
 }
 
+// NewSearchResultAggregationsValueFromRange returns a SearchResultAggregationsValue populated with v
+// on the Range branch.
+func NewSearchResultAggregationsValueFromRange(v CommonAggregationsRangeAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueRangeType,
+		value: v,
+	}
+}
+
 // Rate returns the CommonAggregationsRateAggregate branch value.
 func (u *SearchResultAggregationsValue) Rate() CommonAggregationsRateAggregate {
 	v, _ := u.value.(CommonAggregationsRateAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromRate returns a SearchResultAggregationsValue populated with v
+// on the Rate branch.
+func NewSearchResultAggregationsValueFromRate(v CommonAggregationsRateAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueRateType,
+		value: v,
+	}
 }
 
 // ReverseNested returns the CommonAggregationsReverseNestedAggregate branch value.
@@ -2991,10 +4374,28 @@ func (u *SearchResultAggregationsValue) ReverseNested() CommonAggregationsRevers
 	return v
 }
 
+// NewSearchResultAggregationsValueFromReverseNested returns a SearchResultAggregationsValue populated with v
+// on the ReverseNested branch.
+func NewSearchResultAggregationsValueFromReverseNested(v CommonAggregationsReverseNestedAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueReverseNestedType,
+		value: v,
+	}
+}
+
 // Sampler returns the CommonAggregationsSamplerAggregate branch value.
 func (u *SearchResultAggregationsValue) Sampler() CommonAggregationsSamplerAggregate {
 	v, _ := u.value.(CommonAggregationsSamplerAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromSampler returns a SearchResultAggregationsValue populated with v
+// on the Sampler branch.
+func NewSearchResultAggregationsValueFromSampler(v CommonAggregationsSamplerAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSamplerType,
+		value: v,
+	}
 }
 
 // ScriptedMetric returns the CommonAggregationsScriptedMetricAggregate branch value.
@@ -3003,10 +4404,28 @@ func (u *SearchResultAggregationsValue) ScriptedMetric() CommonAggregationsScrip
 	return v
 }
 
+// NewSearchResultAggregationsValueFromScriptedMetric returns a SearchResultAggregationsValue populated with v
+// on the ScriptedMetric branch.
+func NewSearchResultAggregationsValueFromScriptedMetric(v CommonAggregationsScriptedMetricAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueScriptedMetricType,
+		value: v,
+	}
+}
+
 // Siglterms returns the CommonAggregationsSignificantLongTermsAggregate branch value.
 func (u *SearchResultAggregationsValue) Siglterms() CommonAggregationsSignificantLongTermsAggregate {
 	v, _ := u.value.(CommonAggregationsSignificantLongTermsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromSiglterms returns a SearchResultAggregationsValue populated with v
+// on the Siglterms branch.
+func NewSearchResultAggregationsValueFromSiglterms(v CommonAggregationsSignificantLongTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSigltermsType,
+		value: v,
+	}
 }
 
 // Sigsterms returns the CommonAggregationsSignificantStringTermsAggregate branch value.
@@ -3015,10 +4434,28 @@ func (u *SearchResultAggregationsValue) Sigsterms() CommonAggregationsSignifican
 	return v
 }
 
+// NewSearchResultAggregationsValueFromSigsterms returns a SearchResultAggregationsValue populated with v
+// on the Sigsterms branch.
+func NewSearchResultAggregationsValueFromSigsterms(v CommonAggregationsSignificantStringTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSigstermsType,
+		value: v,
+	}
+}
+
 // SimpleLongValue returns the CommonAggregationsCumulativeCardinalityAggregate branch value.
 func (u *SearchResultAggregationsValue) SimpleLongValue() CommonAggregationsCumulativeCardinalityAggregate {
 	v, _ := u.value.(CommonAggregationsCumulativeCardinalityAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromSimpleLongValue returns a SearchResultAggregationsValue populated with v
+// on the SimpleLongValue branch.
+func NewSearchResultAggregationsValueFromSimpleLongValue(v CommonAggregationsCumulativeCardinalityAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSimpleLongValueType,
+		value: v,
+	}
 }
 
 // SimpleValue returns the CommonAggregationsSimpleValueAggregate branch value.
@@ -3027,10 +4464,28 @@ func (u *SearchResultAggregationsValue) SimpleValue() CommonAggregationsSimpleVa
 	return v
 }
 
+// NewSearchResultAggregationsValueFromSimpleValue returns a SearchResultAggregationsValue populated with v
+// on the SimpleValue branch.
+func NewSearchResultAggregationsValueFromSimpleValue(v CommonAggregationsSimpleValueAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSimpleValueType,
+		value: v,
+	}
+}
+
 // Stats returns the CommonAggregationsStatsAggregate branch value.
 func (u *SearchResultAggregationsValue) Stats() CommonAggregationsStatsAggregate {
 	v, _ := u.value.(CommonAggregationsStatsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromStats returns a SearchResultAggregationsValue populated with v
+// on the Stats branch.
+func NewSearchResultAggregationsValueFromStats(v CommonAggregationsStatsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueStatsType,
+		value: v,
+	}
 }
 
 // StatsBucket returns the CommonAggregationsStatsBucketAggregate branch value.
@@ -3039,10 +4494,28 @@ func (u *SearchResultAggregationsValue) StatsBucket() CommonAggregationsStatsBuc
 	return v
 }
 
+// NewSearchResultAggregationsValueFromStatsBucket returns a SearchResultAggregationsValue populated with v
+// on the StatsBucket branch.
+func NewSearchResultAggregationsValueFromStatsBucket(v CommonAggregationsStatsBucketAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueStatsBucketType,
+		value: v,
+	}
+}
+
 // Srareterms returns the CommonAggregationsStringRareTermsAggregate branch value.
 func (u *SearchResultAggregationsValue) Srareterms() CommonAggregationsStringRareTermsAggregate {
 	v, _ := u.value.(CommonAggregationsStringRareTermsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromSrareterms returns a SearchResultAggregationsValue populated with v
+// on the Srareterms branch.
+func NewSearchResultAggregationsValueFromSrareterms(v CommonAggregationsStringRareTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSraretermsType,
+		value: v,
+	}
 }
 
 // Sterms returns the CommonAggregationsStringTermsAggregate branch value.
@@ -3051,10 +4524,28 @@ func (u *SearchResultAggregationsValue) Sterms() CommonAggregationsStringTermsAg
 	return v
 }
 
+// NewSearchResultAggregationsValueFromSterms returns a SearchResultAggregationsValue populated with v
+// on the Sterms branch.
+func NewSearchResultAggregationsValueFromSterms(v CommonAggregationsStringTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueStermsType,
+		value: v,
+	}
+}
+
 // Sum returns the CommonAggregationsSumAggregate branch value.
 func (u *SearchResultAggregationsValue) Sum() CommonAggregationsSumAggregate {
 	v, _ := u.value.(CommonAggregationsSumAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromSum returns a SearchResultAggregationsValue populated with v
+// on the Sum branch.
+func NewSearchResultAggregationsValueFromSum(v CommonAggregationsSumAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueSumType,
+		value: v,
+	}
 }
 
 // TdigestPercentiles returns the CommonAggregationsTDigestPercentilesAggregate branch value.
@@ -3063,10 +4554,28 @@ func (u *SearchResultAggregationsValue) TdigestPercentiles() CommonAggregationsT
 	return v
 }
 
+// NewSearchResultAggregationsValueFromTdigestPercentiles returns a SearchResultAggregationsValue populated with v
+// on the TdigestPercentiles branch.
+func NewSearchResultAggregationsValueFromTdigestPercentiles(v CommonAggregationsTDigestPercentilesAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueTdigestPercentilesType,
+		value: v,
+	}
+}
+
 // TdigestPercentileRanks returns the CommonAggregationsTDigestPercentileRanksAggregate branch value.
 func (u *SearchResultAggregationsValue) TdigestPercentileRanks() CommonAggregationsTDigestPercentileRanksAggregate {
 	v, _ := u.value.(CommonAggregationsTDigestPercentileRanksAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromTdigestPercentileRanks returns a SearchResultAggregationsValue populated with v
+// on the TdigestPercentileRanks branch.
+func NewSearchResultAggregationsValueFromTdigestPercentileRanks(v CommonAggregationsTDigestPercentileRanksAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueTdigestPercentileRanksType,
+		value: v,
+	}
 }
 
 // TTest returns the CommonAggregationsTTestAggregate branch value.
@@ -3075,10 +4584,28 @@ func (u *SearchResultAggregationsValue) TTest() CommonAggregationsTTestAggregate
 	return v
 }
 
+// NewSearchResultAggregationsValueFromTTest returns a SearchResultAggregationsValue populated with v
+// on the TTest branch.
+func NewSearchResultAggregationsValueFromTTest(v CommonAggregationsTTestAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueTTestType,
+		value: v,
+	}
+}
+
 // TopHits returns the CommonAggregationsTopHitsAggregate branch value.
 func (u *SearchResultAggregationsValue) TopHits() CommonAggregationsTopHitsAggregate {
 	v, _ := u.value.(CommonAggregationsTopHitsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromTopHits returns a SearchResultAggregationsValue populated with v
+// on the TopHits branch.
+func NewSearchResultAggregationsValueFromTopHits(v CommonAggregationsTopHitsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueTopHitsType,
+		value: v,
+	}
 }
 
 // Ulterms returns the CommonAggregationsUnsignedLongTermsAggregate branch value.
@@ -3087,10 +4614,28 @@ func (u *SearchResultAggregationsValue) Ulterms() CommonAggregationsUnsignedLong
 	return v
 }
 
+// NewSearchResultAggregationsValueFromUlterms returns a SearchResultAggregationsValue populated with v
+// on the Ulterms branch.
+func NewSearchResultAggregationsValueFromUlterms(v CommonAggregationsUnsignedLongTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueUltermsType,
+		value: v,
+	}
+}
+
 // Umrareterms returns the CommonAggregationsUnmappedRareTermsAggregate branch value.
 func (u *SearchResultAggregationsValue) Umrareterms() CommonAggregationsUnmappedRareTermsAggregate {
 	v, _ := u.value.(CommonAggregationsUnmappedRareTermsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromUmrareterms returns a SearchResultAggregationsValue populated with v
+// on the Umrareterms branch.
+func NewSearchResultAggregationsValueFromUmrareterms(v CommonAggregationsUnmappedRareTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueUmraretermsType,
+		value: v,
+	}
 }
 
 // Umsigterms returns the CommonAggregationsUnmappedSignificantTermsAggregate branch value.
@@ -3099,10 +4644,28 @@ func (u *SearchResultAggregationsValue) Umsigterms() CommonAggregationsUnmappedS
 	return v
 }
 
+// NewSearchResultAggregationsValueFromUmsigterms returns a SearchResultAggregationsValue populated with v
+// on the Umsigterms branch.
+func NewSearchResultAggregationsValueFromUmsigterms(v CommonAggregationsUnmappedSignificantTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueUmsigtermsType,
+		value: v,
+	}
+}
+
 // Umterms returns the CommonAggregationsUnmappedTermsAggregate branch value.
 func (u *SearchResultAggregationsValue) Umterms() CommonAggregationsUnmappedTermsAggregate {
 	v, _ := u.value.(CommonAggregationsUnmappedTermsAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromUmterms returns a SearchResultAggregationsValue populated with v
+// on the Umterms branch.
+func NewSearchResultAggregationsValueFromUmterms(v CommonAggregationsUnmappedTermsAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueUmtermsType,
+		value: v,
+	}
 }
 
 // ValueCount returns the CommonAggregationsValueCountAggregate branch value.
@@ -3111,16 +4674,43 @@ func (u *SearchResultAggregationsValue) ValueCount() CommonAggregationsValueCoun
 	return v
 }
 
+// NewSearchResultAggregationsValueFromValueCount returns a SearchResultAggregationsValue populated with v
+// on the ValueCount branch.
+func NewSearchResultAggregationsValueFromValueCount(v CommonAggregationsValueCountAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueValueCountType,
+		value: v,
+	}
+}
+
 // VariableWidthHistogram returns the CommonAggregationsVariableWidthHistogramAggregate branch value.
 func (u *SearchResultAggregationsValue) VariableWidthHistogram() CommonAggregationsVariableWidthHistogramAggregate {
 	v, _ := u.value.(CommonAggregationsVariableWidthHistogramAggregate)
 	return v
 }
 
+// NewSearchResultAggregationsValueFromVariableWidthHistogram returns a SearchResultAggregationsValue populated with v
+// on the VariableWidthHistogram branch.
+func NewSearchResultAggregationsValueFromVariableWidthHistogram(v CommonAggregationsVariableWidthHistogramAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueVariableWidthHistogramType,
+		value: v,
+	}
+}
+
 // WeightedAvg returns the CommonAggregationsWeightedAvgAggregate branch value.
 func (u *SearchResultAggregationsValue) WeightedAvg() CommonAggregationsWeightedAvgAggregate {
 	v, _ := u.value.(CommonAggregationsWeightedAvgAggregate)
 	return v
+}
+
+// NewSearchResultAggregationsValueFromWeightedAvg returns a SearchResultAggregationsValue populated with v
+// on the WeightedAvg branch.
+func NewSearchResultAggregationsValueFromWeightedAvg(v CommonAggregationsWeightedAvgAggregate) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		typ:   SearchResultAggregationsValueWeightedAvgType,
+		value: v,
+	}
 }
 
 func (u *SearchResultAggregationsValue) UnmarshalJSON(data []byte) error {
@@ -3662,16 +5252,44 @@ func (u *SearchPhraseSuggestOptions) Type() SearchPhraseSuggestOptionsType { ret
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchPhraseSuggestOptions) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchPhraseSuggestOptionsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchPhraseSuggestOptions) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchPhraseSuggestOptionsUnknownType
+}
+
 // SearchPhraseSuggestOption returns the SearchPhraseSuggestOption branch value.
 func (u *SearchPhraseSuggestOptions) SearchPhraseSuggestOption() SearchPhraseSuggestOption {
 	v, _ := u.value.(SearchPhraseSuggestOption)
 	return v
 }
 
+// NewSearchPhraseSuggestOptionsFromSearchPhraseSuggestOption returns a SearchPhraseSuggestOptions populated with v
+// on the SearchPhraseSuggestOption branch.
+func NewSearchPhraseSuggestOptionsFromSearchPhraseSuggestOption(v SearchPhraseSuggestOption) SearchPhraseSuggestOptions {
+	return SearchPhraseSuggestOptions{
+		typ:   SearchPhraseSuggestOptionsSearchPhraseSuggestOptionType,
+		value: v,
+	}
+}
+
 // Array returns the []SearchPhraseSuggestOption branch value.
 func (u *SearchPhraseSuggestOptions) Array() []SearchPhraseSuggestOption {
 	v, _ := u.value.([]SearchPhraseSuggestOption)
 	return v
+}
+
+// NewSearchPhraseSuggestOptionsFromArray returns a SearchPhraseSuggestOptions populated with v
+// on the Array branch.
+func NewSearchPhraseSuggestOptionsFromArray(v []SearchPhraseSuggestOption) SearchPhraseSuggestOptions {
+	return SearchPhraseSuggestOptions{
+		typ:   SearchPhraseSuggestOptionsArrayType,
+		value: v,
+	}
 }
 
 func (u *SearchPhraseSuggestOptions) UnmarshalJSON(data []byte) error {
@@ -3735,16 +5353,44 @@ func (u *SearchTermSuggestOptions) Type() SearchTermSuggestOptionsType { return 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchTermSuggestOptions) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchTermSuggestOptionsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchTermSuggestOptions) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchTermSuggestOptionsUnknownType
+}
+
 // SearchTermSuggestOption returns the SearchTermSuggestOption branch value.
 func (u *SearchTermSuggestOptions) SearchTermSuggestOption() SearchTermSuggestOption {
 	v, _ := u.value.(SearchTermSuggestOption)
 	return v
 }
 
+// NewSearchTermSuggestOptionsFromSearchTermSuggestOption returns a SearchTermSuggestOptions populated with v
+// on the SearchTermSuggestOption branch.
+func NewSearchTermSuggestOptionsFromSearchTermSuggestOption(v SearchTermSuggestOption) SearchTermSuggestOptions {
+	return SearchTermSuggestOptions{
+		typ:   SearchTermSuggestOptionsSearchTermSuggestOptionType,
+		value: v,
+	}
+}
+
 // Array returns the []SearchTermSuggestOption branch value.
 func (u *SearchTermSuggestOptions) Array() []SearchTermSuggestOption {
 	v, _ := u.value.([]SearchTermSuggestOption)
 	return v
+}
+
+// NewSearchTermSuggestOptionsFromArray returns a SearchTermSuggestOptions populated with v
+// on the Array branch.
+func NewSearchTermSuggestOptionsFromArray(v []SearchTermSuggestOption) SearchTermSuggestOptions {
+	return SearchTermSuggestOptions{
+		typ:   SearchTermSuggestOptionsArrayType,
+		value: v,
+	}
 }
 
 func (u *SearchTermSuggestOptions) UnmarshalJSON(data []byte) error {
@@ -3808,16 +5454,44 @@ func (u *SearchResultSuggestValueItem) Type() SearchResultSuggestValueItemType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchResultSuggestValueItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchResultSuggestValueItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchResultSuggestValueItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchResultSuggestValueItemUnknownType
+}
+
 // Phrase returns the SearchPhraseSuggest branch value.
 func (u *SearchResultSuggestValueItem) Phrase() SearchPhraseSuggest {
 	v, _ := u.value.(SearchPhraseSuggest)
 	return v
 }
 
+// NewSearchResultSuggestValueItemFromPhrase returns a SearchResultSuggestValueItem populated with v
+// on the Phrase branch.
+func NewSearchResultSuggestValueItemFromPhrase(v SearchPhraseSuggest) SearchResultSuggestValueItem {
+	return SearchResultSuggestValueItem{
+		typ:   SearchResultSuggestValueItemPhraseType,
+		value: v,
+	}
+}
+
 // Term returns the SearchTermSuggest branch value.
 func (u *SearchResultSuggestValueItem) Term() SearchTermSuggest {
 	v, _ := u.value.(SearchTermSuggest)
 	return v
+}
+
+// NewSearchResultSuggestValueItemFromTerm returns a SearchResultSuggestValueItem populated with v
+// on the Term branch.
+func NewSearchResultSuggestValueItemFromTerm(v SearchTermSuggest) SearchResultSuggestValueItem {
+	return SearchResultSuggestValueItem{
+		typ:   SearchResultSuggestValueItemTermType,
+		value: v,
+	}
 }
 
 func (u *SearchResultSuggestValueItem) UnmarshalJSON(data []byte) error {
@@ -3880,16 +5554,44 @@ func (u *CommonQueryDSLBoolQueryFilter) Type() CommonQueryDSLBoolQueryFilterType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLBoolQueryFilter) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLBoolQueryFilterFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLBoolQueryFilter) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryFilterUnknownType
+}
+
 // CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryFilter) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
 	v, _ := u.value.(CommonQueryDSLQueryContainer)
 	return v
 }
 
+// NewCommonQueryDSLBoolQueryFilterFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryFilter populated with v
+// on the CommonQueryDSLQueryContainer branch.
+func NewCommonQueryDSLBoolQueryFilterFromCommonQueryDSLQueryContainer(v CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryFilter {
+	return CommonQueryDSLBoolQueryFilter{
+		typ:   CommonQueryDSLBoolQueryFilterCommonQueryDSLQueryContainerType,
+		value: v,
+	}
+}
+
 // Array returns the []CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryFilter) Array() []CommonQueryDSLQueryContainer {
 	v, _ := u.value.([]CommonQueryDSLQueryContainer)
 	return v
+}
+
+// NewCommonQueryDSLBoolQueryFilterFromArray returns a CommonQueryDSLBoolQueryFilter populated with v
+// on the Array branch.
+func NewCommonQueryDSLBoolQueryFilterFromArray(v []CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryFilter {
+	return CommonQueryDSLBoolQueryFilter{
+		typ:   CommonQueryDSLBoolQueryFilterArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLBoolQueryFilter) UnmarshalJSON(data []byte) error {
@@ -3955,16 +5657,44 @@ func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) Type() CommonQueryDSLBoolQue
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLBoolQueryMinimumShouldMatchFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryMinimumShouldMatchUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewCommonQueryDSLBoolQueryMinimumShouldMatchFromInt returns a CommonQueryDSLBoolQueryMinimumShouldMatch populated with v
+// on the Int branch.
+func NewCommonQueryDSLBoolQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLBoolQueryMinimumShouldMatch {
+	return CommonQueryDSLBoolQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLBoolQueryMinimumShouldMatchIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLBoolQueryMinimumShouldMatchFromString returns a CommonQueryDSLBoolQueryMinimumShouldMatch populated with v
+// on the String branch.
+func NewCommonQueryDSLBoolQueryMinimumShouldMatchFromString(v string) CommonQueryDSLBoolQueryMinimumShouldMatch {
+	return CommonQueryDSLBoolQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLBoolQueryMinimumShouldMatchStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) UnmarshalJSON(data []byte) error {
@@ -4028,16 +5758,44 @@ func (u *CommonQueryDSLBoolQueryMust) Type() CommonQueryDSLBoolQueryMustType { r
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLBoolQueryMust) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLBoolQueryMustFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLBoolQueryMust) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryMustUnknownType
+}
+
 // CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryMust) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
 	v, _ := u.value.(CommonQueryDSLQueryContainer)
 	return v
 }
 
+// NewCommonQueryDSLBoolQueryMustFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryMust populated with v
+// on the CommonQueryDSLQueryContainer branch.
+func NewCommonQueryDSLBoolQueryMustFromCommonQueryDSLQueryContainer(v CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryMust {
+	return CommonQueryDSLBoolQueryMust{
+		typ:   CommonQueryDSLBoolQueryMustCommonQueryDSLQueryContainerType,
+		value: v,
+	}
+}
+
 // Array returns the []CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryMust) Array() []CommonQueryDSLQueryContainer {
 	v, _ := u.value.([]CommonQueryDSLQueryContainer)
 	return v
+}
+
+// NewCommonQueryDSLBoolQueryMustFromArray returns a CommonQueryDSLBoolQueryMust populated with v
+// on the Array branch.
+func NewCommonQueryDSLBoolQueryMustFromArray(v []CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryMust {
+	return CommonQueryDSLBoolQueryMust{
+		typ:   CommonQueryDSLBoolQueryMustArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLBoolQueryMust) UnmarshalJSON(data []byte) error {
@@ -4102,16 +5860,44 @@ func (u *CommonQueryDSLBoolQueryMustNot) Type() CommonQueryDSLBoolQueryMustNotTy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLBoolQueryMustNot) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLBoolQueryMustNotFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLBoolQueryMustNot) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryMustNotUnknownType
+}
+
 // CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryMustNot) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
 	v, _ := u.value.(CommonQueryDSLQueryContainer)
 	return v
 }
 
+// NewCommonQueryDSLBoolQueryMustNotFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryMustNot populated with v
+// on the CommonQueryDSLQueryContainer branch.
+func NewCommonQueryDSLBoolQueryMustNotFromCommonQueryDSLQueryContainer(v CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryMustNot {
+	return CommonQueryDSLBoolQueryMustNot{
+		typ:   CommonQueryDSLBoolQueryMustNotCommonQueryDSLQueryContainerType,
+		value: v,
+	}
+}
+
 // Array returns the []CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryMustNot) Array() []CommonQueryDSLQueryContainer {
 	v, _ := u.value.([]CommonQueryDSLQueryContainer)
 	return v
+}
+
+// NewCommonQueryDSLBoolQueryMustNotFromArray returns a CommonQueryDSLBoolQueryMustNot populated with v
+// on the Array branch.
+func NewCommonQueryDSLBoolQueryMustNotFromArray(v []CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryMustNot {
+	return CommonQueryDSLBoolQueryMustNot{
+		typ:   CommonQueryDSLBoolQueryMustNotArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLBoolQueryMustNot) UnmarshalJSON(data []byte) error {
@@ -4175,16 +5961,44 @@ func (u *CommonQueryDSLBoolQueryShould) Type() CommonQueryDSLBoolQueryShouldType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLBoolQueryShould) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLBoolQueryShouldFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLBoolQueryShould) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLBoolQueryShouldUnknownType
+}
+
 // CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryShould) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
 	v, _ := u.value.(CommonQueryDSLQueryContainer)
 	return v
 }
 
+// NewCommonQueryDSLBoolQueryShouldFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryShould populated with v
+// on the CommonQueryDSLQueryContainer branch.
+func NewCommonQueryDSLBoolQueryShouldFromCommonQueryDSLQueryContainer(v CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryShould {
+	return CommonQueryDSLBoolQueryShould{
+		typ:   CommonQueryDSLBoolQueryShouldCommonQueryDSLQueryContainerType,
+		value: v,
+	}
+}
+
 // Array returns the []CommonQueryDSLQueryContainer branch value.
 func (u *CommonQueryDSLBoolQueryShould) Array() []CommonQueryDSLQueryContainer {
 	v, _ := u.value.([]CommonQueryDSLQueryContainer)
 	return v
+}
+
+// NewCommonQueryDSLBoolQueryShouldFromArray returns a CommonQueryDSLBoolQueryShould populated with v
+// on the Array branch.
+func NewCommonQueryDSLBoolQueryShouldFromArray(v []CommonQueryDSLQueryContainer) CommonQueryDSLBoolQueryShould {
+	return CommonQueryDSLBoolQueryShould{
+		typ:   CommonQueryDSLBoolQueryShouldArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLBoolQueryShould) UnmarshalJSON(data []byte) error {
@@ -4250,16 +6064,44 @@ func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) Type() CommonQuery
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromInt returns a CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch populated with v
+// on the Int branch.
+func NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch {
+	return CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromString returns a CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch populated with v
+// on the String branch.
+func NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromString(v string) CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch {
+	return CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) UnmarshalJSON(data []byte) error {
@@ -4326,10 +6168,29 @@ func (u *CommonQueryDSLRandomScoreFunctionSeed) Type() CommonQueryDSLRandomScore
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLRandomScoreFunctionSeed) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLRandomScoreFunctionSeedFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLRandomScoreFunctionSeed) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLRandomScoreFunctionSeedUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLRandomScoreFunctionSeed) Int() int {
 	v, _ := u.value.(int)
 	return v
+}
+
+// NewCommonQueryDSLRandomScoreFunctionSeedFromInt returns a CommonQueryDSLRandomScoreFunctionSeed populated with v
+// on the Int branch.
+func NewCommonQueryDSLRandomScoreFunctionSeedFromInt(v int) CommonQueryDSLRandomScoreFunctionSeed {
+	return CommonQueryDSLRandomScoreFunctionSeed{
+		typ:   CommonQueryDSLRandomScoreFunctionSeedIntType,
+		value: v,
+	}
 }
 
 // Int64 returns the int64 branch value.
@@ -4338,10 +6199,28 @@ func (u *CommonQueryDSLRandomScoreFunctionSeed) Int64() int64 {
 	return v
 }
 
+// NewCommonQueryDSLRandomScoreFunctionSeedFromInt64 returns a CommonQueryDSLRandomScoreFunctionSeed populated with v
+// on the Int64 branch.
+func NewCommonQueryDSLRandomScoreFunctionSeedFromInt64(v int64) CommonQueryDSLRandomScoreFunctionSeed {
+	return CommonQueryDSLRandomScoreFunctionSeed{
+		typ:   CommonQueryDSLRandomScoreFunctionSeedInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLRandomScoreFunctionSeed) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLRandomScoreFunctionSeedFromString returns a CommonQueryDSLRandomScoreFunctionSeed populated with v
+// on the String branch.
+func NewCommonQueryDSLRandomScoreFunctionSeedFromString(v string) CommonQueryDSLRandomScoreFunctionSeed {
+	return CommonQueryDSLRandomScoreFunctionSeed{
+		typ:   CommonQueryDSLRandomScoreFunctionSeedStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLRandomScoreFunctionSeed) UnmarshalJSON(data []byte) error {
@@ -4413,16 +6292,44 @@ func (u *CommonQueryDSLScriptScoreFunctionScript) Type() CommonQueryDSLScriptSco
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLScriptScoreFunctionScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLScriptScoreFunctionScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLScriptScoreFunctionScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLScriptScoreFunctionScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLScriptScoreFunctionScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLScriptScoreFunctionScriptFromString returns a CommonQueryDSLScriptScoreFunctionScript populated with v
+// on the String branch.
+func NewCommonQueryDSLScriptScoreFunctionScriptFromString(v string) CommonQueryDSLScriptScoreFunctionScript {
+	return CommonQueryDSLScriptScoreFunctionScript{
+		typ:   CommonQueryDSLScriptScoreFunctionScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonQueryDSLScriptScoreFunctionScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonQueryDSLScriptScoreFunctionScriptFromStored returns a CommonQueryDSLScriptScoreFunctionScript populated with v
+// on the Stored branch.
+func NewCommonQueryDSLScriptScoreFunctionScriptFromStored(v StoredScriptId) CommonQueryDSLScriptScoreFunctionScript {
+	return CommonQueryDSLScriptScoreFunctionScript{
+		typ:   CommonQueryDSLScriptScoreFunctionScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLScriptScoreFunctionScript) UnmarshalJSON(data []byte) error {
@@ -4489,10 +6396,29 @@ func (u *CommonQueryDSLQueryContainerFuzzyValue) Type() CommonQueryDSLQueryConta
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLQueryContainerFuzzyValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLQueryContainerFuzzyValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLQueryContainerFuzzyValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLQueryContainerFuzzyValueUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *CommonQueryDSLQueryContainerFuzzyValue) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerFuzzyValueFromBool returns a CommonQueryDSLQueryContainerFuzzyValue populated with v
+// on the Bool branch.
+func NewCommonQueryDSLQueryContainerFuzzyValueFromBool(v bool) CommonQueryDSLQueryContainerFuzzyValue {
+	return CommonQueryDSLQueryContainerFuzzyValue{
+		typ:   CommonQueryDSLQueryContainerFuzzyValueBoolType,
+		value: v,
+	}
 }
 
 // Float64 returns the float64 branch value.
@@ -4501,10 +6427,28 @@ func (u *CommonQueryDSLQueryContainerFuzzyValue) Float64() float64 {
 	return v
 }
 
+// NewCommonQueryDSLQueryContainerFuzzyValueFromFloat64 returns a CommonQueryDSLQueryContainerFuzzyValue populated with v
+// on the Float64 branch.
+func NewCommonQueryDSLQueryContainerFuzzyValueFromFloat64(v float64) CommonQueryDSLQueryContainerFuzzyValue {
+	return CommonQueryDSLQueryContainerFuzzyValue{
+		typ:   CommonQueryDSLQueryContainerFuzzyValueFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLQueryContainerFuzzyValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerFuzzyValueFromString returns a CommonQueryDSLQueryContainerFuzzyValue populated with v
+// on the String branch.
+func NewCommonQueryDSLQueryContainerFuzzyValueFromString(v string) CommonQueryDSLQueryContainerFuzzyValue {
+	return CommonQueryDSLQueryContainerFuzzyValue{
+		typ:   CommonQueryDSLQueryContainerFuzzyValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLQueryContainerFuzzyValue) UnmarshalJSON(data []byte) error {
@@ -4575,16 +6519,44 @@ func (u *SearchInnerHitsSource) Type() SearchInnerHitsSourceType { return u.typ 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchInnerHitsSource) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchInnerHitsSourceFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchInnerHitsSource) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchInnerHitsSourceUnknownType
+}
+
 // String returns the string branch value.
 func (u *SearchInnerHitsSource) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewSearchInnerHitsSourceFromString returns a SearchInnerHitsSource populated with v
+// on the String branch.
+func NewSearchInnerHitsSourceFromString(v string) SearchInnerHitsSource {
+	return SearchInnerHitsSource{
+		typ:   SearchInnerHitsSourceStringType,
+		value: v,
+	}
+}
+
 // SearchInnerHitsSourceObject1 returns the SearchInnerHitsSourceObject1 branch value.
 func (u *SearchInnerHitsSource) SearchInnerHitsSourceObject1() SearchInnerHitsSourceObject1 {
 	v, _ := u.value.(SearchInnerHitsSourceObject1)
 	return v
+}
+
+// NewSearchInnerHitsSourceFromSearchInnerHitsSourceObject1 returns a SearchInnerHitsSource populated with v
+// on the SearchInnerHitsSourceObject1 branch.
+func NewSearchInnerHitsSourceFromSearchInnerHitsSourceObject1(v SearchInnerHitsSourceObject1) SearchInnerHitsSource {
+	return SearchInnerHitsSource{
+		typ:   SearchInnerHitsSourceSearchInnerHitsSourceObject1Type,
+		value: v,
+	}
 }
 
 func (u *SearchInnerHitsSource) UnmarshalJSON(data []byte) error {
@@ -4648,16 +6620,44 @@ func (u *SearchFieldCollapseInnerHits) Type() SearchFieldCollapseInnerHitsType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchFieldCollapseInnerHits) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchFieldCollapseInnerHitsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchFieldCollapseInnerHits) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchFieldCollapseInnerHitsUnknownType
+}
+
 // SearchInnerHits returns the SearchInnerHits branch value.
 func (u *SearchFieldCollapseInnerHits) SearchInnerHits() SearchInnerHits {
 	v, _ := u.value.(SearchInnerHits)
 	return v
 }
 
+// NewSearchFieldCollapseInnerHitsFromSearchInnerHits returns a SearchFieldCollapseInnerHits populated with v
+// on the SearchInnerHits branch.
+func NewSearchFieldCollapseInnerHitsFromSearchInnerHits(v SearchInnerHits) SearchFieldCollapseInnerHits {
+	return SearchFieldCollapseInnerHits{
+		typ:   SearchFieldCollapseInnerHitsSearchInnerHitsType,
+		value: v,
+	}
+}
+
 // Array returns the []SearchInnerHits branch value.
 func (u *SearchFieldCollapseInnerHits) Array() []SearchInnerHits {
 	v, _ := u.value.([]SearchInnerHits)
 	return v
+}
+
+// NewSearchFieldCollapseInnerHitsFromArray returns a SearchFieldCollapseInnerHits populated with v
+// on the Array branch.
+func NewSearchFieldCollapseInnerHitsFromArray(v []SearchInnerHits) SearchFieldCollapseInnerHits {
+	return SearchFieldCollapseInnerHits{
+		typ:   SearchFieldCollapseInnerHitsArrayType,
+		value: v,
+	}
 }
 
 func (u *SearchFieldCollapseInnerHits) UnmarshalJSON(data []byte) error {
@@ -4723,16 +6723,44 @@ func (u *SearchInnerHitsDocvalueFieldsItem) Type() SearchInnerHitsDocvalueFields
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchInnerHitsDocvalueFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchInnerHitsDocvalueFieldsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchInnerHitsDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchInnerHitsDocvalueFieldsItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *SearchInnerHitsDocvalueFieldsItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewSearchInnerHitsDocvalueFieldsItemFromString returns a SearchInnerHitsDocvalueFieldsItem populated with v
+// on the String branch.
+func NewSearchInnerHitsDocvalueFieldsItemFromString(v string) SearchInnerHitsDocvalueFieldsItem {
+	return SearchInnerHitsDocvalueFieldsItem{
+		typ:   SearchInnerHitsDocvalueFieldsItemStringType,
+		value: v,
+	}
+}
+
 // SearchInnerHitsDocvalueFieldsItemObject1 returns the SearchInnerHitsDocvalueFieldsItemObject1 branch value.
 func (u *SearchInnerHitsDocvalueFieldsItem) SearchInnerHitsDocvalueFieldsItemObject1() SearchInnerHitsDocvalueFieldsItemObject1 {
 	v, _ := u.value.(SearchInnerHitsDocvalueFieldsItemObject1)
 	return v
+}
+
+// NewSearchInnerHitsDocvalueFieldsItemFromSearchInnerHitsDocvalueFieldsItemObject1 returns a SearchInnerHitsDocvalueFieldsItem populated with v
+// on the SearchInnerHitsDocvalueFieldsItemObject1 branch.
+func NewSearchInnerHitsDocvalueFieldsItemFromSearchInnerHitsDocvalueFieldsItemObject1(v SearchInnerHitsDocvalueFieldsItemObject1) SearchInnerHitsDocvalueFieldsItem {
+	return SearchInnerHitsDocvalueFieldsItem{
+		typ:   SearchInnerHitsDocvalueFieldsItemSearchInnerHitsDocvalueFieldsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *SearchInnerHitsDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
@@ -4796,16 +6824,44 @@ func (u *SearchInnerHitsFieldsItem) Type() SearchInnerHitsFieldsItemType { retur
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchInnerHitsFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchInnerHitsFieldsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchInnerHitsFieldsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchInnerHitsFieldsItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *SearchInnerHitsFieldsItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewSearchInnerHitsFieldsItemFromString returns a SearchInnerHitsFieldsItem populated with v
+// on the String branch.
+func NewSearchInnerHitsFieldsItemFromString(v string) SearchInnerHitsFieldsItem {
+	return SearchInnerHitsFieldsItem{
+		typ:   SearchInnerHitsFieldsItemStringType,
+		value: v,
+	}
+}
+
 // SearchInnerHitsFieldsItemObject1 returns the SearchInnerHitsFieldsItemObject1 branch value.
 func (u *SearchInnerHitsFieldsItem) SearchInnerHitsFieldsItemObject1() SearchInnerHitsFieldsItemObject1 {
 	v, _ := u.value.(SearchInnerHitsFieldsItemObject1)
 	return v
+}
+
+// NewSearchInnerHitsFieldsItemFromSearchInnerHitsFieldsItemObject1 returns a SearchInnerHitsFieldsItem populated with v
+// on the SearchInnerHitsFieldsItemObject1 branch.
+func NewSearchInnerHitsFieldsItemFromSearchInnerHitsFieldsItemObject1(v SearchInnerHitsFieldsItemObject1) SearchInnerHitsFieldsItem {
+	return SearchInnerHitsFieldsItem{
+		typ:   SearchInnerHitsFieldsItemSearchInnerHitsFieldsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *SearchInnerHitsFieldsItem) UnmarshalJSON(data []byte) error {
@@ -4869,16 +6925,44 @@ func (u *SearchHighlightFields) Type() SearchHighlightFieldsType { return u.typ 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchHighlightFields) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchHighlightFieldsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchHighlightFields) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchHighlightFieldsUnknownType
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *SearchHighlightFields) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
+// NewSearchHighlightFieldsFromMap returns a SearchHighlightFields populated with v
+// on the Map branch.
+func NewSearchHighlightFieldsFromMap(v map[string]json.RawMessage) SearchHighlightFields {
+	return SearchHighlightFields{
+		typ:   SearchHighlightFieldsMapType,
+		value: v,
+	}
+}
+
 // Array returns the []map[string]SearchHighlightField branch value.
 func (u *SearchHighlightFields) Array() []map[string]SearchHighlightField {
 	v, _ := u.value.([]map[string]SearchHighlightField)
 	return v
+}
+
+// NewSearchHighlightFieldsFromArray returns a SearchHighlightFields populated with v
+// on the Array branch.
+func NewSearchHighlightFieldsFromArray(v []map[string]SearchHighlightField) SearchHighlightFields {
+	return SearchHighlightFields{
+		typ:   SearchHighlightFieldsArrayType,
+		value: v,
+	}
 }
 
 func (u *SearchHighlightFields) UnmarshalJSON(data []byte) error {
@@ -4942,16 +7026,44 @@ func (u *ScriptFieldScript) Type() ScriptFieldScriptType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ScriptFieldScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewScriptFieldScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ScriptFieldScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ScriptFieldScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *ScriptFieldScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewScriptFieldScriptFromString returns a ScriptFieldScript populated with v
+// on the String branch.
+func NewScriptFieldScriptFromString(v string) ScriptFieldScript {
+	return ScriptFieldScript{
+		typ:   ScriptFieldScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *ScriptFieldScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewScriptFieldScriptFromStored returns a ScriptFieldScript populated with v
+// on the Stored branch.
+func NewScriptFieldScriptFromStored(v StoredScriptId) ScriptFieldScript {
+	return ScriptFieldScript{
+		typ:   ScriptFieldScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *ScriptFieldScript) UnmarshalJSON(data []byte) error {
@@ -5016,10 +7128,29 @@ func (u *FieldSortMissing) Type() FieldSortMissingType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *FieldSortMissing) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewFieldSortMissingFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *FieldSortMissing) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = FieldSortMissingUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *FieldSortMissing) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewFieldSortMissingFromBool returns a FieldSortMissing populated with v
+// on the Bool branch.
+func NewFieldSortMissingFromBool(v bool) FieldSortMissing {
+	return FieldSortMissing{
+		typ:   FieldSortMissingBoolType,
+		value: v,
+	}
 }
 
 // Float64 returns the float64 branch value.
@@ -5028,10 +7159,28 @@ func (u *FieldSortMissing) Float64() float64 {
 	return v
 }
 
+// NewFieldSortMissingFromFloat64 returns a FieldSortMissing populated with v
+// on the Float64 branch.
+func NewFieldSortMissingFromFloat64(v float64) FieldSortMissing {
+	return FieldSortMissing{
+		typ:   FieldSortMissingFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *FieldSortMissing) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewFieldSortMissingFromString returns a FieldSortMissing populated with v
+// on the String branch.
+func NewFieldSortMissingFromString(v string) FieldSortMissing {
+	return FieldSortMissing{
+		typ:   FieldSortMissingStringType,
+		value: v,
+	}
 }
 
 func (u *FieldSortMissing) UnmarshalJSON(data []byte) error {
@@ -5102,16 +7251,44 @@ func (u *ScriptSortScript) Type() ScriptSortScriptType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ScriptSortScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewScriptSortScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ScriptSortScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ScriptSortScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *ScriptSortScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewScriptSortScriptFromString returns a ScriptSortScript populated with v
+// on the String branch.
+func NewScriptSortScriptFromString(v string) ScriptSortScript {
+	return ScriptSortScript{
+		typ:   ScriptSortScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *ScriptSortScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewScriptSortScriptFromStored returns a ScriptSortScript populated with v
+// on the Stored branch.
+func NewScriptSortScriptFromStored(v StoredScriptId) ScriptSortScript {
+	return ScriptSortScript{
+		typ:   ScriptSortScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *ScriptSortScript) UnmarshalJSON(data []byte) error {
@@ -5177,10 +7354,29 @@ func (u *SearchInnerHitsSort) Type() SearchInnerHitsSortType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchInnerHitsSort) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchInnerHitsSortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchInnerHitsSort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchInnerHitsSortUnknownType
+}
+
 // String returns the string branch value.
 func (u *SearchInnerHitsSort) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewSearchInnerHitsSortFromString returns a SearchInnerHitsSort populated with v
+// on the String branch.
+func NewSearchInnerHitsSortFromString(v string) SearchInnerHitsSort {
+	return SearchInnerHitsSort{
+		typ:   SearchInnerHitsSortStringType,
+		value: v,
+	}
 }
 
 // StringMap returns the map[string]string branch value.
@@ -5189,16 +7385,43 @@ func (u *SearchInnerHitsSort) StringMap() map[string]string {
 	return v
 }
 
+// NewSearchInnerHitsSortFromStringMap returns a SearchInnerHitsSort populated with v
+// on the StringMap branch.
+func NewSearchInnerHitsSortFromStringMap(v map[string]string) SearchInnerHitsSort {
+	return SearchInnerHitsSort{
+		typ:   SearchInnerHitsSortStringMapType,
+		value: v,
+	}
+}
+
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *SearchInnerHitsSort) FieldSortMap() map[string]FieldSort {
 	v, _ := u.value.(map[string]FieldSort)
 	return v
 }
 
+// NewSearchInnerHitsSortFromFieldSortMap returns a SearchInnerHitsSort populated with v
+// on the FieldSortMap branch.
+func NewSearchInnerHitsSortFromFieldSortMap(v map[string]FieldSort) SearchInnerHitsSort {
+	return SearchInnerHitsSort{
+		typ:   SearchInnerHitsSortFieldSortMapType,
+		value: v,
+	}
+}
+
 // Options returns the SortOptions branch value.
 func (u *SearchInnerHitsSort) Options() SortOptions {
 	v, _ := u.value.(SortOptions)
 	return v
+}
+
+// NewSearchInnerHitsSortFromOptions returns a SearchInnerHitsSort populated with v
+// on the Options branch.
+func NewSearchInnerHitsSortFromOptions(v SortOptions) SearchInnerHitsSort {
+	return SearchInnerHitsSort{
+		typ:   SearchInnerHitsSortOptionsType,
+		value: v,
+	}
 }
 
 func (u *SearchInnerHitsSort) UnmarshalJSON(data []byte) error {
@@ -5278,16 +7501,44 @@ func (u *CommonQueryDSLIntervalsFilterScript) Type() CommonQueryDSLIntervalsFilt
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLIntervalsFilterScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLIntervalsFilterScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLIntervalsFilterScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLIntervalsFilterScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLIntervalsFilterScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLIntervalsFilterScriptFromString returns a CommonQueryDSLIntervalsFilterScript populated with v
+// on the String branch.
+func NewCommonQueryDSLIntervalsFilterScriptFromString(v string) CommonQueryDSLIntervalsFilterScript {
+	return CommonQueryDSLIntervalsFilterScript{
+		typ:   CommonQueryDSLIntervalsFilterScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonQueryDSLIntervalsFilterScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonQueryDSLIntervalsFilterScriptFromStored returns a CommonQueryDSLIntervalsFilterScript populated with v
+// on the Stored branch.
+func NewCommonQueryDSLIntervalsFilterScriptFromStored(v StoredScriptId) CommonQueryDSLIntervalsFilterScript {
+	return CommonQueryDSLIntervalsFilterScript{
+		typ:   CommonQueryDSLIntervalsFilterScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLIntervalsFilterScript) UnmarshalJSON(data []byte) error {
@@ -5351,16 +7602,44 @@ func (u *CommonQueryDSLKnnQueryRescore) Type() CommonQueryDSLKnnQueryRescoreType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLKnnQueryRescore) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLKnnQueryRescoreFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLKnnQueryRescore) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLKnnQueryRescoreUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *CommonQueryDSLKnnQueryRescore) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
 }
 
+// NewCommonQueryDSLKnnQueryRescoreFromBool returns a CommonQueryDSLKnnQueryRescore populated with v
+// on the Bool branch.
+func NewCommonQueryDSLKnnQueryRescoreFromBool(v bool) CommonQueryDSLKnnQueryRescore {
+	return CommonQueryDSLKnnQueryRescore{
+		typ:   CommonQueryDSLKnnQueryRescoreBoolType,
+		value: v,
+	}
+}
+
 // Context returns the CommonQueryDSLRescoreContext branch value.
 func (u *CommonQueryDSLKnnQueryRescore) Context() CommonQueryDSLRescoreContext {
 	v, _ := u.value.(CommonQueryDSLRescoreContext)
 	return v
+}
+
+// NewCommonQueryDSLKnnQueryRescoreFromContext returns a CommonQueryDSLKnnQueryRescore populated with v
+// on the Context branch.
+func NewCommonQueryDSLKnnQueryRescoreFromContext(v CommonQueryDSLRescoreContext) CommonQueryDSLKnnQueryRescore {
+	return CommonQueryDSLKnnQueryRescore{
+		typ:   CommonQueryDSLKnnQueryRescoreContextType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLKnnQueryRescore) UnmarshalJSON(data []byte) error {
@@ -5427,10 +7706,29 @@ func (u *CommonQueryDSLQueryContainerMatchValue) Type() CommonQueryDSLQueryConta
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLQueryContainerMatchValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLQueryContainerMatchValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLQueryContainerMatchValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLQueryContainerMatchValueUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *CommonQueryDSLQueryContainerMatchValue) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerMatchValueFromBool returns a CommonQueryDSLQueryContainerMatchValue populated with v
+// on the Bool branch.
+func NewCommonQueryDSLQueryContainerMatchValueFromBool(v bool) CommonQueryDSLQueryContainerMatchValue {
+	return CommonQueryDSLQueryContainerMatchValue{
+		typ:   CommonQueryDSLQueryContainerMatchValueBoolType,
+		value: v,
+	}
 }
 
 // Float64 returns the float64 branch value.
@@ -5439,10 +7737,28 @@ func (u *CommonQueryDSLQueryContainerMatchValue) Float64() float64 {
 	return v
 }
 
+// NewCommonQueryDSLQueryContainerMatchValueFromFloat64 returns a CommonQueryDSLQueryContainerMatchValue populated with v
+// on the Float64 branch.
+func NewCommonQueryDSLQueryContainerMatchValueFromFloat64(v float64) CommonQueryDSLQueryContainerMatchValue {
+	return CommonQueryDSLQueryContainerMatchValue{
+		typ:   CommonQueryDSLQueryContainerMatchValueFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLQueryContainerMatchValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerMatchValueFromString returns a CommonQueryDSLQueryContainerMatchValue populated with v
+// on the String branch.
+func NewCommonQueryDSLQueryContainerMatchValueFromString(v string) CommonQueryDSLQueryContainerMatchValue {
+	return CommonQueryDSLQueryContainerMatchValue{
+		typ:   CommonQueryDSLQueryContainerMatchValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLQueryContainerMatchValue) UnmarshalJSON(data []byte) error {
@@ -5515,16 +7831,44 @@ func (u *CommonQueryDSLMoreLikeThisQueryLike) Type() CommonQueryDSLMoreLikeThisQ
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMoreLikeThisQueryLike) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMoreLikeThisQueryLikeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMoreLikeThisQueryLike) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryLikeUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryLike) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLMoreLikeThisQueryLikeFromString returns a CommonQueryDSLMoreLikeThisQueryLike populated with v
+// on the String branch.
+func NewCommonQueryDSLMoreLikeThisQueryLikeFromString(v string) CommonQueryDSLMoreLikeThisQueryLike {
+	return CommonQueryDSLMoreLikeThisQueryLike{
+		typ:   CommonQueryDSLMoreLikeThisQueryLikeStringType,
+		value: v,
+	}
+}
+
 // Document returns the CommonQueryDSLLikeDocument branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryLike) Document() CommonQueryDSLLikeDocument {
 	v, _ := u.value.(CommonQueryDSLLikeDocument)
 	return v
+}
+
+// NewCommonQueryDSLMoreLikeThisQueryLikeFromDocument returns a CommonQueryDSLMoreLikeThisQueryLike populated with v
+// on the Document branch.
+func NewCommonQueryDSLMoreLikeThisQueryLikeFromDocument(v CommonQueryDSLLikeDocument) CommonQueryDSLMoreLikeThisQueryLike {
+	return CommonQueryDSLMoreLikeThisQueryLike{
+		typ:   CommonQueryDSLMoreLikeThisQueryLikeDocumentType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMoreLikeThisQueryLike) UnmarshalJSON(data []byte) error {
@@ -5590,16 +7934,44 @@ func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) Type() CommonQueryDSLMoreLikeT
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMoreLikeThisQueryLikeItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryLikeItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLMoreLikeThisQueryLikeItemFromString returns a CommonQueryDSLMoreLikeThisQueryLikeItem populated with v
+// on the String branch.
+func NewCommonQueryDSLMoreLikeThisQueryLikeItemFromString(v string) CommonQueryDSLMoreLikeThisQueryLikeItem {
+	return CommonQueryDSLMoreLikeThisQueryLikeItem{
+		typ:   CommonQueryDSLMoreLikeThisQueryLikeItemStringType,
+		value: v,
+	}
+}
+
 // Document returns the CommonQueryDSLLikeDocument branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) Document() CommonQueryDSLLikeDocument {
 	v, _ := u.value.(CommonQueryDSLLikeDocument)
 	return v
+}
+
+// NewCommonQueryDSLMoreLikeThisQueryLikeItemFromDocument returns a CommonQueryDSLMoreLikeThisQueryLikeItem populated with v
+// on the Document branch.
+func NewCommonQueryDSLMoreLikeThisQueryLikeItemFromDocument(v CommonQueryDSLLikeDocument) CommonQueryDSLMoreLikeThisQueryLikeItem {
+	return CommonQueryDSLMoreLikeThisQueryLikeItem{
+		typ:   CommonQueryDSLMoreLikeThisQueryLikeItemDocumentType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) UnmarshalJSON(data []byte) error {
@@ -5665,16 +8037,44 @@ func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) Type() CommonQueryDS
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromInt returns a CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch populated with v
+// on the Int branch.
+func NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch {
+	return CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromString returns a CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch populated with v
+// on the String branch.
+func NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromString(v string) CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch {
+	return CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) UnmarshalJSON(data []byte) error {
@@ -5742,16 +8142,44 @@ func (u *CommonQueryDSLMoreLikeThisQueryStopWords) Type() CommonQueryDSLMoreLike
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMoreLikeThisQueryStopWords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMoreLikeThisQueryStopWordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMoreLikeThisQueryStopWords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryStopWordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryStopWords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLMoreLikeThisQueryStopWordsFromString returns a CommonQueryDSLMoreLikeThisQueryStopWords populated with v
+// on the String branch.
+func NewCommonQueryDSLMoreLikeThisQueryStopWordsFromString(v string) CommonQueryDSLMoreLikeThisQueryStopWords {
+	return CommonQueryDSLMoreLikeThisQueryStopWords{
+		typ:   CommonQueryDSLMoreLikeThisQueryStopWordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryStopWords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonQueryDSLMoreLikeThisQueryStopWordsFromArray returns a CommonQueryDSLMoreLikeThisQueryStopWords populated with v
+// on the Array branch.
+func NewCommonQueryDSLMoreLikeThisQueryStopWordsFromArray(v []string) CommonQueryDSLMoreLikeThisQueryStopWords {
+	return CommonQueryDSLMoreLikeThisQueryStopWords{
+		typ:   CommonQueryDSLMoreLikeThisQueryStopWordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMoreLikeThisQueryStopWords) UnmarshalJSON(data []byte) error {
@@ -5817,16 +8245,44 @@ func (u *CommonQueryDSLMoreLikeThisQueryUnlike) Type() CommonQueryDSLMoreLikeThi
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlike) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMoreLikeThisQueryUnlikeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlike) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlike) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLMoreLikeThisQueryUnlikeFromString returns a CommonQueryDSLMoreLikeThisQueryUnlike populated with v
+// on the String branch.
+func NewCommonQueryDSLMoreLikeThisQueryUnlikeFromString(v string) CommonQueryDSLMoreLikeThisQueryUnlike {
+	return CommonQueryDSLMoreLikeThisQueryUnlike{
+		typ:   CommonQueryDSLMoreLikeThisQueryUnlikeStringType,
+		value: v,
+	}
+}
+
 // Document returns the CommonQueryDSLLikeDocument branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlike) Document() CommonQueryDSLLikeDocument {
 	v, _ := u.value.(CommonQueryDSLLikeDocument)
 	return v
+}
+
+// NewCommonQueryDSLMoreLikeThisQueryUnlikeFromDocument returns a CommonQueryDSLMoreLikeThisQueryUnlike populated with v
+// on the Document branch.
+func NewCommonQueryDSLMoreLikeThisQueryUnlikeFromDocument(v CommonQueryDSLLikeDocument) CommonQueryDSLMoreLikeThisQueryUnlike {
+	return CommonQueryDSLMoreLikeThisQueryUnlike{
+		typ:   CommonQueryDSLMoreLikeThisQueryUnlikeDocumentType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMoreLikeThisQueryUnlike) UnmarshalJSON(data []byte) error {
@@ -5892,16 +8348,44 @@ func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) Type() CommonQueryDSLMoreLik
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromString returns a CommonQueryDSLMoreLikeThisQueryUnlikeItem populated with v
+// on the String branch.
+func NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromString(v string) CommonQueryDSLMoreLikeThisQueryUnlikeItem {
+	return CommonQueryDSLMoreLikeThisQueryUnlikeItem{
+		typ:   CommonQueryDSLMoreLikeThisQueryUnlikeItemStringType,
+		value: v,
+	}
+}
+
 // Document returns the CommonQueryDSLLikeDocument branch value.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) Document() CommonQueryDSLLikeDocument {
 	v, _ := u.value.(CommonQueryDSLLikeDocument)
 	return v
+}
+
+// NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromDocument returns a CommonQueryDSLMoreLikeThisQueryUnlikeItem populated with v
+// on the Document branch.
+func NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromDocument(v CommonQueryDSLLikeDocument) CommonQueryDSLMoreLikeThisQueryUnlikeItem {
+	return CommonQueryDSLMoreLikeThisQueryUnlikeItem{
+		typ:   CommonQueryDSLMoreLikeThisQueryUnlikeItemDocumentType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) UnmarshalJSON(data []byte) error {
@@ -5967,16 +8451,44 @@ func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) Type() CommonQueryDSLM
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMultiMatchQueryMinimumShouldMatchUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromInt returns a CommonQueryDSLMultiMatchQueryMinimumShouldMatch populated with v
+// on the Int branch.
+func NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLMultiMatchQueryMinimumShouldMatch {
+	return CommonQueryDSLMultiMatchQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLMultiMatchQueryMinimumShouldMatchIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromString returns a CommonQueryDSLMultiMatchQueryMinimumShouldMatch populated with v
+// on the String branch.
+func NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromString(v string) CommonQueryDSLMultiMatchQueryMinimumShouldMatch {
+	return CommonQueryDSLMultiMatchQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLMultiMatchQueryMinimumShouldMatchStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) UnmarshalJSON(data []byte) error {
@@ -6042,16 +8554,44 @@ func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) Type() CommonQueryDSL
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLQueryStringQueryMinimumShouldMatchUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromInt returns a CommonQueryDSLQueryStringQueryMinimumShouldMatch populated with v
+// on the Int branch.
+func NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLQueryStringQueryMinimumShouldMatch {
+	return CommonQueryDSLQueryStringQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLQueryStringQueryMinimumShouldMatchIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromString returns a CommonQueryDSLQueryStringQueryMinimumShouldMatch populated with v
+// on the String branch.
+func NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromString(v string) CommonQueryDSLQueryStringQueryMinimumShouldMatch {
+	return CommonQueryDSLQueryStringQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLQueryStringQueryMinimumShouldMatchStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) UnmarshalJSON(data []byte) error {
@@ -6117,16 +8657,44 @@ func (u *CommonQueryDSLNumberRangeQueryFrom) Type() CommonQueryDSLNumberRangeQue
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLNumberRangeQueryFrom) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLNumberRangeQueryFromFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLNumberRangeQueryFrom) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLNumberRangeQueryFromUnknownType
+}
+
 // Float64 returns the float64 branch value.
 func (u *CommonQueryDSLNumberRangeQueryFrom) Float64() float64 {
 	v, _ := u.value.(float64)
 	return v
 }
 
+// NewCommonQueryDSLNumberRangeQueryFromFromFloat64 returns a CommonQueryDSLNumberRangeQueryFrom populated with v
+// on the Float64 branch.
+func NewCommonQueryDSLNumberRangeQueryFromFromFloat64(v float64) CommonQueryDSLNumberRangeQueryFrom {
+	return CommonQueryDSLNumberRangeQueryFrom{
+		typ:   CommonQueryDSLNumberRangeQueryFromFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLNumberRangeQueryFrom) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLNumberRangeQueryFromFromString returns a CommonQueryDSLNumberRangeQueryFrom populated with v
+// on the String branch.
+func NewCommonQueryDSLNumberRangeQueryFromFromString(v string) CommonQueryDSLNumberRangeQueryFrom {
+	return CommonQueryDSLNumberRangeQueryFrom{
+		typ:   CommonQueryDSLNumberRangeQueryFromStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLNumberRangeQueryFrom) UnmarshalJSON(data []byte) error {
@@ -6190,16 +8758,44 @@ func (u *CommonQueryDSLNumberRangeQueryTo) Type() CommonQueryDSLNumberRangeQuery
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLNumberRangeQueryTo) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLNumberRangeQueryToFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLNumberRangeQueryTo) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLNumberRangeQueryToUnknownType
+}
+
 // Float64 returns the float64 branch value.
 func (u *CommonQueryDSLNumberRangeQueryTo) Float64() float64 {
 	v, _ := u.value.(float64)
 	return v
 }
 
+// NewCommonQueryDSLNumberRangeQueryToFromFloat64 returns a CommonQueryDSLNumberRangeQueryTo populated with v
+// on the Float64 branch.
+func NewCommonQueryDSLNumberRangeQueryToFromFloat64(v float64) CommonQueryDSLNumberRangeQueryTo {
+	return CommonQueryDSLNumberRangeQueryTo{
+		typ:   CommonQueryDSLNumberRangeQueryToFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLNumberRangeQueryTo) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLNumberRangeQueryToFromString returns a CommonQueryDSLNumberRangeQueryTo populated with v
+// on the String branch.
+func NewCommonQueryDSLNumberRangeQueryToFromString(v string) CommonQueryDSLNumberRangeQueryTo {
+	return CommonQueryDSLNumberRangeQueryTo{
+		typ:   CommonQueryDSLNumberRangeQueryToStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLNumberRangeQueryTo) UnmarshalJSON(data []byte) error {
@@ -6265,16 +8861,44 @@ func (u *CommonQueryDSLQueryContainerRangeValue) Type() CommonQueryDSLQueryConta
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLQueryContainerRangeValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLQueryContainerRangeValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLQueryContainerRangeValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLQueryContainerRangeValueUnknownType
+}
+
 // CommonQueryDSLNumberRangeQuery returns the CommonQueryDSLNumberRangeQuery branch value.
 func (u *CommonQueryDSLQueryContainerRangeValue) CommonQueryDSLNumberRangeQuery() CommonQueryDSLNumberRangeQuery {
 	v, _ := u.value.(CommonQueryDSLNumberRangeQuery)
 	return v
 }
 
+// NewCommonQueryDSLQueryContainerRangeValueFromCommonQueryDSLNumberRangeQuery returns a CommonQueryDSLQueryContainerRangeValue populated with v
+// on the CommonQueryDSLNumberRangeQuery branch.
+func NewCommonQueryDSLQueryContainerRangeValueFromCommonQueryDSLNumberRangeQuery(v CommonQueryDSLNumberRangeQuery) CommonQueryDSLQueryContainerRangeValue {
+	return CommonQueryDSLQueryContainerRangeValue{
+		typ:   CommonQueryDSLQueryContainerRangeValueCommonQueryDSLNumberRangeQueryType,
+		value: v,
+	}
+}
+
 // CommonQueryDSLDateRangeQuery returns the CommonQueryDSLDateRangeQuery branch value.
 func (u *CommonQueryDSLQueryContainerRangeValue) CommonQueryDSLDateRangeQuery() CommonQueryDSLDateRangeQuery {
 	v, _ := u.value.(CommonQueryDSLDateRangeQuery)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerRangeValueFromCommonQueryDSLDateRangeQuery returns a CommonQueryDSLQueryContainerRangeValue populated with v
+// on the CommonQueryDSLDateRangeQuery branch.
+func NewCommonQueryDSLQueryContainerRangeValueFromCommonQueryDSLDateRangeQuery(v CommonQueryDSLDateRangeQuery) CommonQueryDSLQueryContainerRangeValue {
+	return CommonQueryDSLQueryContainerRangeValue{
+		typ:   CommonQueryDSLQueryContainerRangeValueCommonQueryDSLDateRangeQueryType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLQueryContainerRangeValue) UnmarshalJSON(data []byte) error {
@@ -6336,16 +8960,44 @@ func (u *CommonQueryDSLScriptQueryScript) Type() CommonQueryDSLScriptQueryScript
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLScriptQueryScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLScriptQueryScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLScriptQueryScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLScriptQueryScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLScriptQueryScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLScriptQueryScriptFromString returns a CommonQueryDSLScriptQueryScript populated with v
+// on the String branch.
+func NewCommonQueryDSLScriptQueryScriptFromString(v string) CommonQueryDSLScriptQueryScript {
+	return CommonQueryDSLScriptQueryScript{
+		typ:   CommonQueryDSLScriptQueryScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonQueryDSLScriptQueryScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonQueryDSLScriptQueryScriptFromStored returns a CommonQueryDSLScriptQueryScript populated with v
+// on the Stored branch.
+func NewCommonQueryDSLScriptQueryScriptFromStored(v StoredScriptId) CommonQueryDSLScriptQueryScript {
+	return CommonQueryDSLScriptQueryScript{
+		typ:   CommonQueryDSLScriptQueryScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLScriptQueryScript) UnmarshalJSON(data []byte) error {
@@ -6411,16 +9063,44 @@ func (u *CommonQueryDSLScriptScoreQueryScript) Type() CommonQueryDSLScriptScoreQ
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLScriptScoreQueryScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLScriptScoreQueryScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLScriptScoreQueryScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLScriptScoreQueryScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLScriptScoreQueryScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLScriptScoreQueryScriptFromString returns a CommonQueryDSLScriptScoreQueryScript populated with v
+// on the String branch.
+func NewCommonQueryDSLScriptScoreQueryScriptFromString(v string) CommonQueryDSLScriptScoreQueryScript {
+	return CommonQueryDSLScriptScoreQueryScript{
+		typ:   CommonQueryDSLScriptScoreQueryScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonQueryDSLScriptScoreQueryScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonQueryDSLScriptScoreQueryScriptFromStored returns a CommonQueryDSLScriptScoreQueryScript populated with v
+// on the Stored branch.
+func NewCommonQueryDSLScriptScoreQueryScriptFromStored(v StoredScriptId) CommonQueryDSLScriptScoreQueryScript {
+	return CommonQueryDSLScriptScoreQueryScript{
+		typ:   CommonQueryDSLScriptScoreQueryScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLScriptScoreQueryScript) UnmarshalJSON(data []byte) error {
@@ -6488,16 +9168,44 @@ func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) RawJSON() json.
 	return u.raw
 }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchUnknownType
+}
+
 // Int returns the int branch value.
 func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromInt returns a CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch populated with v
+// on the Int branch.
+func NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch {
+	return CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromString returns a CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch populated with v
+// on the String branch.
+func NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromString(v string) CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch {
+	return CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch{
+		typ:   CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) UnmarshalJSON(data []byte) error {
@@ -6564,10 +9272,29 @@ func (u *CommonQueryDSLQueryContainerTermValue) Type() CommonQueryDSLQueryContai
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLQueryContainerTermValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLQueryContainerTermValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLQueryContainerTermValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLQueryContainerTermValueUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *CommonQueryDSLQueryContainerTermValue) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerTermValueFromBool returns a CommonQueryDSLQueryContainerTermValue populated with v
+// on the Bool branch.
+func NewCommonQueryDSLQueryContainerTermValueFromBool(v bool) CommonQueryDSLQueryContainerTermValue {
+	return CommonQueryDSLQueryContainerTermValue{
+		typ:   CommonQueryDSLQueryContainerTermValueBoolType,
+		value: v,
+	}
 }
 
 // Float64 returns the float64 branch value.
@@ -6576,10 +9303,28 @@ func (u *CommonQueryDSLQueryContainerTermValue) Float64() float64 {
 	return v
 }
 
+// NewCommonQueryDSLQueryContainerTermValueFromFloat64 returns a CommonQueryDSLQueryContainerTermValue populated with v
+// on the Float64 branch.
+func NewCommonQueryDSLQueryContainerTermValueFromFloat64(v float64) CommonQueryDSLQueryContainerTermValue {
+	return CommonQueryDSLQueryContainerTermValue{
+		typ:   CommonQueryDSLQueryContainerTermValueFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLQueryContainerTermValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonQueryDSLQueryContainerTermValueFromString returns a CommonQueryDSLQueryContainerTermValue populated with v
+// on the String branch.
+func NewCommonQueryDSLQueryContainerTermValueFromString(v string) CommonQueryDSLQueryContainerTermValue {
+	return CommonQueryDSLQueryContainerTermValue{
+		typ:   CommonQueryDSLQueryContainerTermValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLQueryContainerTermValue) UnmarshalJSON(data []byte) error {
@@ -6652,16 +9397,44 @@ func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Type() CommonQuery
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromString returns a CommonQueryDSLTermsSetQueryMinimumShouldMatchScript populated with v
+// on the String branch.
+func NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromString(v string) CommonQueryDSLTermsSetQueryMinimumShouldMatchScript {
+	return CommonQueryDSLTermsSetQueryMinimumShouldMatchScript{
+		typ:   CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromStored returns a CommonQueryDSLTermsSetQueryMinimumShouldMatchScript populated with v
+// on the Stored branch.
+func NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromStored(v StoredScriptId) CommonQueryDSLTermsSetQueryMinimumShouldMatchScript {
+	return CommonQueryDSLTermsSetQueryMinimumShouldMatchScript{
+		typ:   CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) UnmarshalJSON(data []byte) error {
@@ -6725,16 +9498,44 @@ func (u *CommonMappingTypeDynamic) Type() CommonMappingTypeDynamicType { return 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingTypeDynamic) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingTypeDynamicFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingTypeDynamic) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingTypeDynamicUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonMappingTypeDynamic) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonMappingTypeDynamicFromString returns a CommonMappingTypeDynamic populated with v
+// on the String branch.
+func NewCommonMappingTypeDynamicFromString(v string) CommonMappingTypeDynamic {
+	return CommonMappingTypeDynamic{
+		typ:   CommonMappingTypeDynamicStringType,
+		value: v,
+	}
+}
+
 // Bool returns the bool branch value.
 func (u *CommonMappingTypeDynamic) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewCommonMappingTypeDynamicFromBool returns a CommonMappingTypeDynamic populated with v
+// on the Bool branch.
+func NewCommonMappingTypeDynamicFromBool(v bool) CommonMappingTypeDynamic {
+	return CommonMappingTypeDynamic{
+		typ:   CommonMappingTypeDynamicBoolType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingTypeDynamic) UnmarshalJSON(data []byte) error {
@@ -6798,16 +9599,44 @@ func (u *CommonMappingPropertyBaseDynamic) Type() CommonMappingPropertyBaseDynam
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingPropertyBaseDynamic) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingPropertyBaseDynamicFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingPropertyBaseDynamic) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingPropertyBaseDynamicUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonMappingPropertyBaseDynamic) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonMappingPropertyBaseDynamicFromString returns a CommonMappingPropertyBaseDynamic populated with v
+// on the String branch.
+func NewCommonMappingPropertyBaseDynamicFromString(v string) CommonMappingPropertyBaseDynamic {
+	return CommonMappingPropertyBaseDynamic{
+		typ:   CommonMappingPropertyBaseDynamicStringType,
+		value: v,
+	}
+}
+
 // Bool returns the bool branch value.
 func (u *CommonMappingPropertyBaseDynamic) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
+}
+
+// NewCommonMappingPropertyBaseDynamicFromBool returns a CommonMappingPropertyBaseDynamic populated with v
+// on the Bool branch.
+func NewCommonMappingPropertyBaseDynamicFromBool(v bool) CommonMappingPropertyBaseDynamic {
+	return CommonMappingPropertyBaseDynamic{
+		typ:   CommonMappingPropertyBaseDynamicBoolType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingPropertyBaseDynamic) UnmarshalJSON(data []byte) error {
@@ -6873,16 +9702,44 @@ func (u *CommonMappingJoinPropertyRelationsValue) Type() CommonMappingJoinProper
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingJoinPropertyRelationsValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingJoinPropertyRelationsValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingJoinPropertyRelationsValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingJoinPropertyRelationsValueUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonMappingJoinPropertyRelationsValue) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonMappingJoinPropertyRelationsValueFromString returns a CommonMappingJoinPropertyRelationsValue populated with v
+// on the String branch.
+func NewCommonMappingJoinPropertyRelationsValueFromString(v string) CommonMappingJoinPropertyRelationsValue {
+	return CommonMappingJoinPropertyRelationsValue{
+		typ:   CommonMappingJoinPropertyRelationsValueStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonMappingJoinPropertyRelationsValue) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonMappingJoinPropertyRelationsValueFromArray returns a CommonMappingJoinPropertyRelationsValue populated with v
+// on the Array branch.
+func NewCommonMappingJoinPropertyRelationsValueFromArray(v []string) CommonMappingJoinPropertyRelationsValue {
+	return CommonMappingJoinPropertyRelationsValue{
+		typ:   CommonMappingJoinPropertyRelationsValueArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingJoinPropertyRelationsValue) UnmarshalJSON(data []byte) error {
@@ -6948,16 +9805,44 @@ func (u *CommonMappingSuggestContextPrecision) Type() CommonMappingSuggestContex
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingSuggestContextPrecision) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingSuggestContextPrecisionFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingSuggestContextPrecision) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingSuggestContextPrecisionUnknownType
+}
+
 // Float64 returns the float64 branch value.
 func (u *CommonMappingSuggestContextPrecision) Float64() float64 {
 	v, _ := u.value.(float64)
 	return v
 }
 
+// NewCommonMappingSuggestContextPrecisionFromFloat64 returns a CommonMappingSuggestContextPrecision populated with v
+// on the Float64 branch.
+func NewCommonMappingSuggestContextPrecisionFromFloat64(v float64) CommonMappingSuggestContextPrecision {
+	return CommonMappingSuggestContextPrecision{
+		typ:   CommonMappingSuggestContextPrecisionFloat64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonMappingSuggestContextPrecision) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonMappingSuggestContextPrecisionFromString returns a CommonMappingSuggestContextPrecision populated with v
+// on the String branch.
+func NewCommonMappingSuggestContextPrecisionFromString(v string) CommonMappingSuggestContextPrecision {
+	return CommonMappingSuggestContextPrecision{
+		typ:   CommonMappingSuggestContextPrecisionStringType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingSuggestContextPrecision) UnmarshalJSON(data []byte) error {
@@ -7030,10 +9915,29 @@ func (u *CommonMappingGeoPointPropertyNullValue) Type() CommonMappingGeoPointPro
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingGeoPointPropertyNullValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingGeoPointPropertyNullValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingGeoPointPropertyNullValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingGeoPointPropertyNullValueUnknownType
+}
+
 // Latlon returns the LatLonGeoLocation branch value.
 func (u *CommonMappingGeoPointPropertyNullValue) Latlon() LatLonGeoLocation {
 	v, _ := u.value.(LatLonGeoLocation)
 	return v
+}
+
+// NewCommonMappingGeoPointPropertyNullValueFromLatlon returns a CommonMappingGeoPointPropertyNullValue populated with v
+// on the Latlon branch.
+func NewCommonMappingGeoPointPropertyNullValueFromLatlon(v LatLonGeoLocation) CommonMappingGeoPointPropertyNullValue {
+	return CommonMappingGeoPointPropertyNullValue{
+		typ:   CommonMappingGeoPointPropertyNullValueLatlonType,
+		value: v,
+	}
 }
 
 // Geohash returns the GeoHashLocation branch value.
@@ -7042,16 +9946,43 @@ func (u *CommonMappingGeoPointPropertyNullValue) Geohash() GeoHashLocation {
 	return v
 }
 
+// NewCommonMappingGeoPointPropertyNullValueFromGeohash returns a CommonMappingGeoPointPropertyNullValue populated with v
+// on the Geohash branch.
+func NewCommonMappingGeoPointPropertyNullValueFromGeohash(v GeoHashLocation) CommonMappingGeoPointPropertyNullValue {
+	return CommonMappingGeoPointPropertyNullValue{
+		typ:   CommonMappingGeoPointPropertyNullValueGeohashType,
+		value: v,
+	}
+}
+
 // Array returns the []float64 branch value.
 func (u *CommonMappingGeoPointPropertyNullValue) Array() []float64 {
 	v, _ := u.value.([]float64)
 	return v
 }
 
+// NewCommonMappingGeoPointPropertyNullValueFromArray returns a CommonMappingGeoPointPropertyNullValue populated with v
+// on the Array branch.
+func NewCommonMappingGeoPointPropertyNullValueFromArray(v []float64) CommonMappingGeoPointPropertyNullValue {
+	return CommonMappingGeoPointPropertyNullValue{
+		typ:   CommonMappingGeoPointPropertyNullValueArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonMappingGeoPointPropertyNullValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonMappingGeoPointPropertyNullValueFromString returns a CommonMappingGeoPointPropertyNullValue populated with v
+// on the String branch.
+func NewCommonMappingGeoPointPropertyNullValueFromString(v string) CommonMappingGeoPointPropertyNullValue {
+	return CommonMappingGeoPointPropertyNullValue{
+		typ:   CommonMappingGeoPointPropertyNullValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingGeoPointPropertyNullValue) UnmarshalJSON(data []byte) error {
@@ -7136,10 +10067,29 @@ func (u *CommonMappingXyPointPropertyNullValue) Type() CommonMappingXyPointPrope
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingXyPointPropertyNullValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingXyPointPropertyNullValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingXyPointPropertyNullValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingXyPointPropertyNullValueUnknownType
+}
+
 // Cartesian returns the XyCartesianCoordinates branch value.
 func (u *CommonMappingXyPointPropertyNullValue) Cartesian() XyCartesianCoordinates {
 	v, _ := u.value.(XyCartesianCoordinates)
 	return v
+}
+
+// NewCommonMappingXyPointPropertyNullValueFromCartesian returns a CommonMappingXyPointPropertyNullValue populated with v
+// on the Cartesian branch.
+func NewCommonMappingXyPointPropertyNullValueFromCartesian(v XyCartesianCoordinates) CommonMappingXyPointPropertyNullValue {
+	return CommonMappingXyPointPropertyNullValue{
+		typ:   CommonMappingXyPointPropertyNullValueCartesianType,
+		value: v,
+	}
 }
 
 // Array returns the []float64 branch value.
@@ -7148,10 +10098,28 @@ func (u *CommonMappingXyPointPropertyNullValue) Array() []float64 {
 	return v
 }
 
+// NewCommonMappingXyPointPropertyNullValueFromArray returns a CommonMappingXyPointPropertyNullValue populated with v
+// on the Array branch.
+func NewCommonMappingXyPointPropertyNullValueFromArray(v []float64) CommonMappingXyPointPropertyNullValue {
+	return CommonMappingXyPointPropertyNullValue{
+		typ:   CommonMappingXyPointPropertyNullValueArrayType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CommonMappingXyPointPropertyNullValue) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCommonMappingXyPointPropertyNullValueFromString returns a CommonMappingXyPointPropertyNullValue populated with v
+// on the String branch.
+func NewCommonMappingXyPointPropertyNullValueFromString(v string) CommonMappingXyPointPropertyNullValue {
+	return CommonMappingXyPointPropertyNullValue{
+		typ:   CommonMappingXyPointPropertyNullValueStringType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingXyPointPropertyNullValue) UnmarshalJSON(data []byte) error {
@@ -7224,16 +10192,44 @@ func (u *CommonMappingSemanticPropertyChunking) Type() CommonMappingSemanticProp
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingSemanticPropertyChunking) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingSemanticPropertyChunkingFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingSemanticPropertyChunking) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingSemanticPropertyChunkingUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *CommonMappingSemanticPropertyChunking) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
 }
 
+// NewCommonMappingSemanticPropertyChunkingFromBool returns a CommonMappingSemanticPropertyChunking populated with v
+// on the Bool branch.
+func NewCommonMappingSemanticPropertyChunkingFromBool(v bool) CommonMappingSemanticPropertyChunking {
+	return CommonMappingSemanticPropertyChunking{
+		typ:   CommonMappingSemanticPropertyChunkingBoolType,
+		value: v,
+	}
+}
+
 // Array returns the []CommonMappingSemanticChunkingStrategy branch value.
 func (u *CommonMappingSemanticPropertyChunking) Array() []CommonMappingSemanticChunkingStrategy {
 	v, _ := u.value.([]CommonMappingSemanticChunkingStrategy)
 	return v
+}
+
+// NewCommonMappingSemanticPropertyChunkingFromArray returns a CommonMappingSemanticPropertyChunking populated with v
+// on the Array branch.
+func NewCommonMappingSemanticPropertyChunkingFromArray(v []CommonMappingSemanticChunkingStrategy) CommonMappingSemanticPropertyChunking {
+	return CommonMappingSemanticPropertyChunking{
+		typ:   CommonMappingSemanticPropertyChunkingArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingSemanticPropertyChunking) UnmarshalJSON(data []byte) error {
@@ -7344,10 +10340,29 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) Type() CommonMappingMatc
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingMatchOnlyTextPropertyFieldsValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueUnknownType
+}
+
 // CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
 	v, _ := u.value.(CommonMappingBinaryProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingBinaryProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingBinaryPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
@@ -7356,10 +10371,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingBooleanProp
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingBooleanProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingBooleanPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingJoinProperty() CommonMappingJoinProperty {
 	v, _ := u.value.(CommonMappingJoinProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingJoinProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingJoinProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingJoinPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
@@ -7368,10 +10401,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingKeywordProp
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKeywordProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
 	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingMatchOnlyTextPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
@@ -7380,10 +10431,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingPercolatorP
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingPercolatorProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingPercolatorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
 	v, _ := u.value.(CommonMappingRankFeatureProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingRankFeatureProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingRankFeaturePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
@@ -7392,10 +10461,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingRankFeature
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingRankFeaturesProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingRankFeaturesPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
 	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingSearchAsYouTypePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
@@ -7404,10 +10491,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingTextPropert
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingTextProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingTextProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingTextPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingVersionProperty() CommonMappingVersionProperty {
 	v, _ := u.value.(CommonMappingVersionProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingVersionProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingVersionProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingVersionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
@@ -7416,10 +10521,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingWildcardPro
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingWildcardProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingWildcardPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
 	v, _ := u.value.(CommonMappingDateNanosProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDateNanosProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingDateNanosPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
@@ -7428,10 +10551,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingDatePropert
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDateProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingDateProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingDatePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
 	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingAggregateMetricDoublePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
@@ -7440,10 +10581,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingFlatObjectP
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFlatObjectProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingFlatObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingNestedProperty() CommonMappingNestedProperty {
 	v, _ := u.value.(CommonMappingNestedProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingNestedProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingNestedProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingNestedPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
@@ -7452,10 +10611,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingObjectPrope
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingObjectProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingObjectProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
 	v, _ := u.value.(CommonMappingCompletionProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingCompletionProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingCompletionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
@@ -7464,10 +10641,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingConstantKey
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingConstantKeywordProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingConstantKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
 	v, _ := u.value.(CommonMappingFieldAliasProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFieldAliasProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingFieldAliasPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
@@ -7476,10 +10671,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingHistogramPr
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingHistogramProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingHistogramPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingIpProperty() CommonMappingIpProperty {
 	v, _ := u.value.(CommonMappingIpProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIpProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingIpPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
@@ -7488,10 +10701,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingMurmur3Hash
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingMurmur3HashProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingMurmur3HashPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
 	v, _ := u.value.(CommonMappingTokenCountProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingTokenCountProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingTokenCountPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
@@ -7500,10 +10731,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingGeoPointPro
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingGeoPointProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingGeoPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
 	v, _ := u.value.(CommonMappingGeoShapeProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingGeoShapeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingGeoShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
@@ -7512,10 +10761,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingXyPointProp
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyPointProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingXyPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
 	v, _ := u.value.(CommonMappingXyShapeProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyShapeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingXyShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
@@ -7524,10 +10791,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingByteNumberP
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingByteNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingByteNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
 	v, _ := u.value.(CommonMappingDoubleNumberProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDoubleNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingDoubleNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
@@ -7536,10 +10821,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingFloatNumber
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFloatNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
 	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingHalfFloatNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
@@ -7548,10 +10851,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingIntegerNumb
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIntegerNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingIntegerNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
 	v, _ := u.value.(CommonMappingLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingLongNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
@@ -7560,10 +10881,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingScaledFloat
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingScaledFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
 	v, _ := u.value.(CommonMappingSemanticProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingSemanticProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingSemanticProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingSemanticPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
@@ -7572,10 +10911,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingShortNumber
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingShortNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingShortNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingShortNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
 	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingUnsignedLongNumberProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingUnsignedLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
@@ -7584,10 +10941,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingDateRangePr
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDateRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingDateRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingDateRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
 	v, _ := u.value.(CommonMappingDoubleRangeProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDoubleRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingDoubleRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingDoubleRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
@@ -7596,10 +10971,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingFloatRangeP
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFloatRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingFloatRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingFloatRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
 	v, _ := u.value.(CommonMappingIntegerRangeProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIntegerRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIntegerRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingIntegerRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
@@ -7608,10 +11001,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingIpRangeProp
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIpRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingIpRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
 	v, _ := u.value.(CommonMappingLongRangeProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingLongRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingLongRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingLongRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
@@ -7620,10 +11031,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingKnnVectorPr
 	return v
 }
 
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKnnVectorProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingKnnVectorProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingKnnVectorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
 	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
 	return v
+}
+
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIcuCollationKeywordProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+	return CommonMappingMatchOnlyTextPropertyFieldsValue{
+		typ:   CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingIcuCollationKeywordPropertyType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) UnmarshalJSON(data []byte) error {
@@ -8092,10 +11521,29 @@ func (u *CommonMappingPropertyBaseFieldsValue) Type() CommonMappingPropertyBaseF
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingPropertyBaseFieldsValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingPropertyBaseFieldsValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingPropertyBaseFieldsValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingPropertyBaseFieldsValueUnknownType
+}
+
 // CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
 	v, _ := u.value.(CommonMappingBinaryProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingBinaryProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingBinaryPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
@@ -8104,10 +11552,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingBooleanProperty() Co
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingBooleanProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingBooleanPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingJoinProperty() CommonMappingJoinProperty {
 	v, _ := u.value.(CommonMappingJoinProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingJoinProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingJoinProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingJoinPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
@@ -8116,10 +11582,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingKeywordProperty() Co
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKeywordProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
 	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingMatchOnlyTextPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
@@ -8128,10 +11612,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingPercolatorProperty()
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingPercolatorProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingPercolatorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
 	v, _ := u.value.(CommonMappingRankFeatureProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingRankFeatureProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingRankFeaturePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
@@ -8140,10 +11642,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingRankFeaturesProperty
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingRankFeaturesProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingRankFeaturesPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
 	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingSearchAsYouTypePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
@@ -8152,10 +11672,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingTextProperty() Commo
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingTextProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingTextProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingTextPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingVersionProperty() CommonMappingVersionProperty {
 	v, _ := u.value.(CommonMappingVersionProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingVersionProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingVersionProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingVersionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
@@ -8164,10 +11702,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingWildcardProperty() C
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingWildcardProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingWildcardPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
 	v, _ := u.value.(CommonMappingDateNanosProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDateNanosProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingDateNanosPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
@@ -8176,10 +11732,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingDateProperty() Commo
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDateProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingDateProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingDatePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
 	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingAggregateMetricDoublePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
@@ -8188,10 +11762,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingFlatObjectProperty()
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFlatObjectProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingFlatObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingNestedProperty() CommonMappingNestedProperty {
 	v, _ := u.value.(CommonMappingNestedProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingNestedProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingNestedProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingNestedPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
@@ -8200,10 +11792,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingObjectProperty() Com
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingObjectProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingObjectProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
 	v, _ := u.value.(CommonMappingCompletionProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingCompletionProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingCompletionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
@@ -8212,10 +11822,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingConstantKeywordPrope
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingConstantKeywordProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingConstantKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
 	v, _ := u.value.(CommonMappingFieldAliasProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFieldAliasProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingFieldAliasPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
@@ -8224,10 +11852,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingHistogramProperty() 
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingHistogramProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingHistogramPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingIpProperty() CommonMappingIpProperty {
 	v, _ := u.value.(CommonMappingIpProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIpProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingIpPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
@@ -8236,10 +11882,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingMurmur3HashProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingMurmur3HashProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingMurmur3HashPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
 	v, _ := u.value.(CommonMappingTokenCountProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingTokenCountProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingTokenCountPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
@@ -8248,10 +11912,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingGeoPointProperty() C
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingGeoPointProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingGeoPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
 	v, _ := u.value.(CommonMappingGeoShapeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingGeoShapeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingGeoShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
@@ -8260,10 +11942,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingXyPointProperty() Co
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyPointProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingXyPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
 	v, _ := u.value.(CommonMappingXyShapeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyShapeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingXyShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
@@ -8272,10 +11972,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingByteNumberProperty()
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingByteNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingByteNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
 	v, _ := u.value.(CommonMappingDoubleNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDoubleNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingDoubleNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
@@ -8284,10 +12002,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingFloatNumberProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFloatNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
 	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingHalfFloatNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
@@ -8296,10 +12032,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingIntegerNumberPropert
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIntegerNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingIntegerNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
 	v, _ := u.value.(CommonMappingLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingLongNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
@@ -8308,10 +12062,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingScaledFloatNumberPro
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingScaledFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
 	v, _ := u.value.(CommonMappingSemanticProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingSemanticProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingSemanticProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingSemanticPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
@@ -8320,10 +12092,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingShortNumberProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingShortNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingShortNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingShortNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
 	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingUnsignedLongNumberProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingUnsignedLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
@@ -8332,10 +12122,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingDateRangeProperty() 
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDateRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingDateRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingDateRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
 	v, _ := u.value.(CommonMappingDoubleRangeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDoubleRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingDoubleRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingDoubleRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
@@ -8344,10 +12152,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingFloatRangeProperty()
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFloatRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingFloatRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingFloatRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
 	v, _ := u.value.(CommonMappingIntegerRangeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIntegerRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIntegerRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingIntegerRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
@@ -8356,10 +12182,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingIpRangeProperty() Co
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIpRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingIpRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
 	v, _ := u.value.(CommonMappingLongRangeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingLongRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingLongRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingLongRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
@@ -8368,10 +12212,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingKnnVectorProperty() 
 	return v
 }
 
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKnnVectorProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingKnnVectorProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingKnnVectorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
 func (u *CommonMappingPropertyBaseFieldsValue) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
 	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIcuCollationKeywordProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingPropertyBaseFieldsValue {
+	return CommonMappingPropertyBaseFieldsValue{
+		typ:   CommonMappingPropertyBaseFieldsValueCommonMappingIcuCollationKeywordPropertyType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingPropertyBaseFieldsValue) UnmarshalJSON(data []byte) error {
@@ -8840,10 +12702,29 @@ func (u *CommonMappingPropertyBasePropertiesValue) Type() CommonMappingPropertyB
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingPropertyBasePropertiesValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingPropertyBasePropertiesValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingPropertyBasePropertiesValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingPropertyBasePropertiesValueUnknownType
+}
+
 // CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
 	v, _ := u.value.(CommonMappingBinaryProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingBinaryProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingBinaryPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
@@ -8852,10 +12733,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingBooleanProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingBooleanProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingBooleanPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingJoinProperty() CommonMappingJoinProperty {
 	v, _ := u.value.(CommonMappingJoinProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingJoinProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingJoinProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingJoinPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
@@ -8864,10 +12763,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingKeywordProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKeywordProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
 	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingMatchOnlyTextPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
@@ -8876,10 +12793,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingPercolatorProper
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingPercolatorProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingPercolatorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
 	v, _ := u.value.(CommonMappingRankFeatureProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingRankFeatureProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingRankFeaturePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
@@ -8888,10 +12823,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingRankFeaturesProp
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingRankFeaturesProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingRankFeaturesPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
 	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingSearchAsYouTypePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
@@ -8900,10 +12853,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingTextProperty() C
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingTextProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingTextProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingTextPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingVersionProperty() CommonMappingVersionProperty {
 	v, _ := u.value.(CommonMappingVersionProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingVersionProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingVersionProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingVersionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
@@ -8912,10 +12883,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingWildcardProperty
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingWildcardProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingWildcardPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
 	v, _ := u.value.(CommonMappingDateNanosProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDateNanosProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingDateNanosPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
@@ -8924,10 +12913,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingDateProperty() C
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDateProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingDateProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingDatePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
 	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingAggregateMetricDoublePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
@@ -8936,10 +12943,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingFlatObjectProper
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFlatObjectProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingFlatObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingNestedProperty() CommonMappingNestedProperty {
 	v, _ := u.value.(CommonMappingNestedProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingNestedProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingNestedProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingNestedPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
@@ -8948,10 +12973,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingObjectProperty()
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingObjectProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingObjectProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
 	v, _ := u.value.(CommonMappingCompletionProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingCompletionProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingCompletionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
@@ -8960,10 +13003,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingConstantKeywordP
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingConstantKeywordProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingConstantKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
 	v, _ := u.value.(CommonMappingFieldAliasProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFieldAliasProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingFieldAliasPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
@@ -8972,10 +13033,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingHistogramPropert
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingHistogramProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingHistogramPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingIpProperty() CommonMappingIpProperty {
 	v, _ := u.value.(CommonMappingIpProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIpProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingIpPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
@@ -8984,10 +13063,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingMurmur3HashPrope
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingMurmur3HashProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingMurmur3HashPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
 	v, _ := u.value.(CommonMappingTokenCountProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingTokenCountProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingTokenCountPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
@@ -8996,10 +13093,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingGeoPointProperty
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingGeoPointProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingGeoPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
 	v, _ := u.value.(CommonMappingGeoShapeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingGeoShapeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingGeoShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
@@ -9008,10 +13123,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingXyPointProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyPointProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingXyPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
 	v, _ := u.value.(CommonMappingXyShapeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyShapeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingXyShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
@@ -9020,10 +13153,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingByteNumberProper
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingByteNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingByteNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
 	v, _ := u.value.(CommonMappingDoubleNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDoubleNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingDoubleNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
@@ -9032,10 +13183,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingFloatNumberPrope
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFloatNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
 	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingHalfFloatNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
@@ -9044,10 +13213,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingIntegerNumberPro
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIntegerNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingIntegerNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
 	v, _ := u.value.(CommonMappingLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingLongNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
@@ -9056,10 +13243,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingScaledFloatNumbe
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingScaledFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
 	v, _ := u.value.(CommonMappingSemanticProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingSemanticProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingSemanticProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingSemanticPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
@@ -9068,10 +13273,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingShortNumberPrope
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingShortNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingShortNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingShortNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
 	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingUnsignedLongNumberProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingUnsignedLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
@@ -9080,10 +13303,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingDateRangePropert
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDateRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingDateRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingDateRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
 	v, _ := u.value.(CommonMappingDoubleRangeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDoubleRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingDoubleRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingDoubleRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
@@ -9092,10 +13333,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingFloatRangeProper
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFloatRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingFloatRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingFloatRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
 	v, _ := u.value.(CommonMappingIntegerRangeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIntegerRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIntegerRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingIntegerRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
@@ -9104,10 +13363,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingIpRangeProperty(
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIpRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingIpRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
 	v, _ := u.value.(CommonMappingLongRangeProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingLongRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingLongRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingLongRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
@@ -9116,10 +13393,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingKnnVectorPropert
 	return v
 }
 
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKnnVectorProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingKnnVectorProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingKnnVectorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
 func (u *CommonMappingPropertyBasePropertiesValue) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
 	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
 	return v
+}
+
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIcuCollationKeywordProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingPropertyBasePropertiesValue {
+	return CommonMappingPropertyBasePropertiesValue{
+		typ:   CommonMappingPropertyBasePropertiesValueCommonMappingIcuCollationKeywordPropertyType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingPropertyBasePropertiesValue) UnmarshalJSON(data []byte) error {
@@ -9586,10 +13881,29 @@ func (u *CommonMappingDynamicTemplate) Type() CommonMappingDynamicTemplateType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingDynamicTemplate) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingDynamicTemplateFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingDynamicTemplate) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingDynamicTemplateUnknownType
+}
+
 // CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
 	v, _ := u.value.(CommonMappingBinaryProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingBinaryProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingBinaryPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
@@ -9598,10 +13912,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingBooleanProperty() CommonMapp
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingBooleanProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingBooleanPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingJoinProperty() CommonMappingJoinProperty {
 	v, _ := u.value.(CommonMappingJoinProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingJoinProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingJoinProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingJoinPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
@@ -9610,10 +13942,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingKeywordProperty() CommonMapp
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingKeywordProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
 	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingMatchOnlyTextProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingMatchOnlyTextPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
@@ -9622,10 +13972,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingPercolatorProperty() CommonM
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingPercolatorProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingPercolatorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
 	v, _ := u.value.(CommonMappingRankFeatureProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingRankFeatureProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingRankFeaturePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
@@ -9634,10 +14002,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingRankFeaturesProperty() Commo
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingRankFeaturesProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingRankFeaturesPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
 	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingSearchAsYouTypePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
@@ -9646,10 +14032,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingTextProperty() CommonMapping
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingTextProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingTextProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingTextPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingVersionProperty() CommonMappingVersionProperty {
 	v, _ := u.value.(CommonMappingVersionProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingVersionProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingVersionProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingVersionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
@@ -9658,10 +14062,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingWildcardProperty() CommonMap
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingWildcardProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingWildcardPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
 	v, _ := u.value.(CommonMappingDateNanosProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingDateNanosProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingDateNanosPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
@@ -9670,10 +14092,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingDateProperty() CommonMapping
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingDateProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingDateProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingDatePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
 	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingAggregateMetricDoublePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
@@ -9682,10 +14122,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingFlatObjectProperty() CommonM
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingFlatObjectProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingFlatObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingNestedProperty() CommonMappingNestedProperty {
 	v, _ := u.value.(CommonMappingNestedProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingNestedProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingNestedProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingNestedPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
@@ -9694,10 +14152,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingObjectProperty() CommonMappi
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingObjectProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingObjectProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
 	v, _ := u.value.(CommonMappingCompletionProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingCompletionProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingCompletionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
@@ -9706,10 +14182,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingConstantKeywordProperty() Co
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingConstantKeywordProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingConstantKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
 	v, _ := u.value.(CommonMappingFieldAliasProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingFieldAliasProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingFieldAliasPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
@@ -9718,10 +14212,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingHistogramProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingHistogramProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingHistogramPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingIpProperty() CommonMappingIpProperty {
 	v, _ := u.value.(CommonMappingIpProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingIpProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIpProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingIpPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
@@ -9730,10 +14242,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingMurmur3HashProperty() Common
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingMurmur3HashProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingMurmur3HashPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
 	v, _ := u.value.(CommonMappingTokenCountProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingTokenCountProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingTokenCountPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
@@ -9742,10 +14272,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingGeoPointProperty() CommonMap
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingGeoPointProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingGeoPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
 	v, _ := u.value.(CommonMappingGeoShapeProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingGeoShapeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingGeoShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
@@ -9754,10 +14302,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingXyPointProperty() CommonMapp
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingXyPointProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingXyPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
 	v, _ := u.value.(CommonMappingXyShapeProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingXyShapeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingXyShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
@@ -9766,10 +14332,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingByteNumberProperty() CommonM
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingByteNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingByteNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
 	v, _ := u.value.(CommonMappingDoubleNumberProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingDoubleNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingDoubleNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
@@ -9778,10 +14362,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingFloatNumberProperty() Common
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingFloatNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
 	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingHalfFloatNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingHalfFloatNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
@@ -9790,10 +14392,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingIntegerNumberProperty() Comm
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingIntegerNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingIntegerNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
 	v, _ := u.value.(CommonMappingLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingLongNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
@@ -9802,10 +14422,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingScaledFloatNumberProperty() 
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingScaledFloatNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingScaledFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
 	v, _ := u.value.(CommonMappingSemanticProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingSemanticProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingSemanticProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingSemanticPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
@@ -9814,10 +14452,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingShortNumberProperty() Common
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingShortNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingShortNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingShortNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
 	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingUnsignedLongNumberProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingUnsignedLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
@@ -9826,10 +14482,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingDateRangeProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingDateRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingDateRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingDateRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
 	v, _ := u.value.(CommonMappingDoubleRangeProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingDoubleRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingDoubleRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingDoubleRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
@@ -9838,10 +14512,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingFloatRangeProperty() CommonM
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingFloatRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingFloatRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingFloatRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
 	v, _ := u.value.(CommonMappingIntegerRangeProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingIntegerRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIntegerRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingIntegerRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
@@ -9850,10 +14542,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingIpRangeProperty() CommonMapp
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingIpRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIpRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingIpRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
 	v, _ := u.value.(CommonMappingLongRangeProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingLongRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingLongRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingLongRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
@@ -9862,10 +14572,28 @@ func (u *CommonMappingDynamicTemplate) CommonMappingKnnVectorProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingDynamicTemplateFromCommonMappingKnnVectorProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingKnnVectorProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingKnnVectorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
 func (u *CommonMappingDynamicTemplate) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
 	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
 	return v
+}
+
+// NewCommonMappingDynamicTemplateFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIcuCollationKeywordProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingDynamicTemplate {
+	return CommonMappingDynamicTemplate{
+		typ:   CommonMappingDynamicTemplateCommonMappingIcuCollationKeywordPropertyType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
@@ -10332,10 +15060,29 @@ func (u *CommonMappingTypePropertiesValue) Type() CommonMappingTypePropertiesVal
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingTypePropertiesValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingTypePropertiesValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingTypePropertiesValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingTypePropertiesValueUnknownType
+}
+
 // CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
 	v, _ := u.value.(CommonMappingBinaryProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingBinaryProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingBinaryPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
@@ -10344,10 +15091,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingBooleanProperty() Common
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingBooleanProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingBooleanPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingJoinProperty() CommonMappingJoinProperty {
 	v, _ := u.value.(CommonMappingJoinProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingJoinProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingJoinProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingJoinPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
@@ -10356,10 +15121,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingKeywordProperty() Common
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingKeywordProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
 	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingMatchOnlyTextPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
@@ -10368,10 +15151,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingPercolatorProperty() Com
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingPercolatorProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingPercolatorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
 	v, _ := u.value.(CommonMappingRankFeatureProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingRankFeatureProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingRankFeaturePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
@@ -10380,10 +15181,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingRankFeaturesProperty() C
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingRankFeaturesProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingRankFeaturesPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
 	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingSearchAsYouTypePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
@@ -10392,10 +15211,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingTextProperty() CommonMap
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingTextProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingTextProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingTextPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingVersionProperty() CommonMappingVersionProperty {
 	v, _ := u.value.(CommonMappingVersionProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingVersionProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingVersionProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingVersionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
@@ -10404,10 +15241,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingWildcardProperty() Commo
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingWildcardProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingWildcardPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
 	v, _ := u.value.(CommonMappingDateNanosProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingDateNanosProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingDateNanosPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
@@ -10416,10 +15271,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingDateProperty() CommonMap
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingDateProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingDateProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingDatePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
 	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingAggregateMetricDoublePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
@@ -10428,10 +15301,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingFlatObjectProperty() Com
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingFlatObjectProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingFlatObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingNestedProperty() CommonMappingNestedProperty {
 	v, _ := u.value.(CommonMappingNestedProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingNestedProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingNestedProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingNestedPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
@@ -10440,10 +15331,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingObjectProperty() CommonM
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingObjectProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingObjectProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
 	v, _ := u.value.(CommonMappingCompletionProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingCompletionProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingCompletionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
@@ -10452,10 +15361,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingConstantKeywordProperty(
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingConstantKeywordProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingConstantKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
 	v, _ := u.value.(CommonMappingFieldAliasProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingFieldAliasProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingFieldAliasPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
@@ -10464,10 +15391,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingHistogramProperty() Comm
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingHistogramProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingHistogramPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingIpProperty() CommonMappingIpProperty {
 	v, _ := u.value.(CommonMappingIpProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingIpProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIpProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingIpPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
@@ -10476,10 +15421,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingMurmur3HashProperty() Co
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingMurmur3HashProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingMurmur3HashPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
 	v, _ := u.value.(CommonMappingTokenCountProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingTokenCountProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingTokenCountPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
@@ -10488,10 +15451,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingGeoPointProperty() Commo
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingGeoPointProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingGeoPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
 	v, _ := u.value.(CommonMappingGeoShapeProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingGeoShapeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingGeoShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
@@ -10500,10 +15481,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingXyPointProperty() Common
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingXyPointProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingXyPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
 	v, _ := u.value.(CommonMappingXyShapeProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingXyShapeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingXyShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
@@ -10512,10 +15511,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingByteNumberProperty() Com
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingByteNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingByteNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
 	v, _ := u.value.(CommonMappingDoubleNumberProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingDoubleNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingDoubleNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
@@ -10524,10 +15541,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingFloatNumberProperty() Co
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingFloatNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
 	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingHalfFloatNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
@@ -10536,10 +15571,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingIntegerNumberProperty() 
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingIntegerNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingIntegerNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
 	v, _ := u.value.(CommonMappingLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingLongNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
@@ -10548,10 +15601,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingScaledFloatNumberPropert
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingScaledFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
 	v, _ := u.value.(CommonMappingSemanticProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingSemanticProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingSemanticProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingSemanticPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
@@ -10560,10 +15631,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingShortNumberProperty() Co
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingShortNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingShortNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingShortNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
 	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingUnsignedLongNumberProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingUnsignedLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
@@ -10572,10 +15661,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingDateRangeProperty() Comm
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingDateRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingDateRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingDateRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
 	v, _ := u.value.(CommonMappingDoubleRangeProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingDoubleRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingDoubleRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingDoubleRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
@@ -10584,10 +15691,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingFloatRangeProperty() Com
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingFloatRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingFloatRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingFloatRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
 	v, _ := u.value.(CommonMappingIntegerRangeProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingIntegerRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIntegerRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingIntegerRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
@@ -10596,10 +15721,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingIpRangeProperty() Common
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingIpRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIpRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingIpRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
 	v, _ := u.value.(CommonMappingLongRangeProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingLongRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingLongRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingLongRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
@@ -10608,10 +15751,28 @@ func (u *CommonMappingTypePropertiesValue) CommonMappingKnnVectorProperty() Comm
 	return v
 }
 
+// NewCommonMappingTypePropertiesValueFromCommonMappingKnnVectorProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingKnnVectorProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingKnnVectorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
 func (u *CommonMappingTypePropertiesValue) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
 	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
 	return v
+}
+
+// NewCommonMappingTypePropertiesValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIcuCollationKeywordProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingTypePropertiesValue {
+	return CommonMappingTypePropertiesValue{
+		typ:   CommonMappingTypePropertiesValueCommonMappingIcuCollationKeywordPropertyType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingTypePropertiesValue) UnmarshalJSON(data []byte) error {
@@ -11037,16 +16198,44 @@ func (u *CommonAnalysisFingerprintAnalyzerStopwords) Type() CommonAnalysisFinger
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisFingerprintAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisFingerprintAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisFingerprintAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisFingerprintAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisFingerprintAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisFingerprintAnalyzerStopwordsFromString returns a CommonAnalysisFingerprintAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisFingerprintAnalyzerStopwordsFromString(v string) CommonAnalysisFingerprintAnalyzerStopwords {
+	return CommonAnalysisFingerprintAnalyzerStopwords{
+		typ:   CommonAnalysisFingerprintAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisFingerprintAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisFingerprintAnalyzerStopwordsFromArray returns a CommonAnalysisFingerprintAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisFingerprintAnalyzerStopwordsFromArray(v []string) CommonAnalysisFingerprintAnalyzerStopwords {
+	return CommonAnalysisFingerprintAnalyzerStopwords{
+		typ:   CommonAnalysisFingerprintAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisFingerprintAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11114,16 +16303,44 @@ func (u *CommonAnalysisLanguageAnalyzerStopwords) Type() CommonAnalysisLanguageA
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisLanguageAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisLanguageAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisLanguageAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisLanguageAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisLanguageAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisLanguageAnalyzerStopwordsFromString returns a CommonAnalysisLanguageAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisLanguageAnalyzerStopwordsFromString(v string) CommonAnalysisLanguageAnalyzerStopwords {
+	return CommonAnalysisLanguageAnalyzerStopwords{
+		typ:   CommonAnalysisLanguageAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisLanguageAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisLanguageAnalyzerStopwordsFromArray returns a CommonAnalysisLanguageAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisLanguageAnalyzerStopwordsFromArray(v []string) CommonAnalysisLanguageAnalyzerStopwords {
+	return CommonAnalysisLanguageAnalyzerStopwords{
+		typ:   CommonAnalysisLanguageAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisLanguageAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11191,16 +16408,44 @@ func (u *CommonAnalysisPatternAnalyzerStopwords) Type() CommonAnalysisPatternAna
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisPatternAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisPatternAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisPatternAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisPatternAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisPatternAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisPatternAnalyzerStopwordsFromString returns a CommonAnalysisPatternAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisPatternAnalyzerStopwordsFromString(v string) CommonAnalysisPatternAnalyzerStopwords {
+	return CommonAnalysisPatternAnalyzerStopwords{
+		typ:   CommonAnalysisPatternAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisPatternAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisPatternAnalyzerStopwordsFromArray returns a CommonAnalysisPatternAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisPatternAnalyzerStopwordsFromArray(v []string) CommonAnalysisPatternAnalyzerStopwords {
+	return CommonAnalysisPatternAnalyzerStopwords{
+		typ:   CommonAnalysisPatternAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisPatternAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11268,16 +16513,44 @@ func (u *CommonAnalysisStandardAnalyzerStopwords) Type() CommonAnalysisStandardA
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisStandardAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisStandardAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisStandardAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisStandardAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisStandardAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisStandardAnalyzerStopwordsFromString returns a CommonAnalysisStandardAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisStandardAnalyzerStopwordsFromString(v string) CommonAnalysisStandardAnalyzerStopwords {
+	return CommonAnalysisStandardAnalyzerStopwords{
+		typ:   CommonAnalysisStandardAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisStandardAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisStandardAnalyzerStopwordsFromArray returns a CommonAnalysisStandardAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisStandardAnalyzerStopwordsFromArray(v []string) CommonAnalysisStandardAnalyzerStopwords {
+	return CommonAnalysisStandardAnalyzerStopwords{
+		typ:   CommonAnalysisStandardAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisStandardAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11345,16 +16618,44 @@ func (u *CommonAnalysisStopAnalyzerStopwords) Type() CommonAnalysisStopAnalyzerS
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisStopAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisStopAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisStopAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisStopAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisStopAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisStopAnalyzerStopwordsFromString returns a CommonAnalysisStopAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisStopAnalyzerStopwordsFromString(v string) CommonAnalysisStopAnalyzerStopwords {
+	return CommonAnalysisStopAnalyzerStopwords{
+		typ:   CommonAnalysisStopAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisStopAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisStopAnalyzerStopwordsFromArray returns a CommonAnalysisStopAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisStopAnalyzerStopwordsFromArray(v []string) CommonAnalysisStopAnalyzerStopwords {
+	return CommonAnalysisStopAnalyzerStopwords{
+		typ:   CommonAnalysisStopAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisStopAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11422,16 +16723,44 @@ func (u *CommonAnalysisSnowballAnalyzerStopwords) Type() CommonAnalysisSnowballA
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisSnowballAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisSnowballAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisSnowballAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisSnowballAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisSnowballAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisSnowballAnalyzerStopwordsFromString returns a CommonAnalysisSnowballAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisSnowballAnalyzerStopwordsFromString(v string) CommonAnalysisSnowballAnalyzerStopwords {
+	return CommonAnalysisSnowballAnalyzerStopwords{
+		typ:   CommonAnalysisSnowballAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisSnowballAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisSnowballAnalyzerStopwordsFromArray returns a CommonAnalysisSnowballAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisSnowballAnalyzerStopwordsFromArray(v []string) CommonAnalysisSnowballAnalyzerStopwords {
+	return CommonAnalysisSnowballAnalyzerStopwords{
+		typ:   CommonAnalysisSnowballAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisSnowballAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11499,16 +16828,44 @@ func (u *CommonAnalysisDutchAnalyzerStopwords) Type() CommonAnalysisDutchAnalyze
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisDutchAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisDutchAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisDutchAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisDutchAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisDutchAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisDutchAnalyzerStopwordsFromString returns a CommonAnalysisDutchAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisDutchAnalyzerStopwordsFromString(v string) CommonAnalysisDutchAnalyzerStopwords {
+	return CommonAnalysisDutchAnalyzerStopwords{
+		typ:   CommonAnalysisDutchAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisDutchAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisDutchAnalyzerStopwordsFromArray returns a CommonAnalysisDutchAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisDutchAnalyzerStopwordsFromArray(v []string) CommonAnalysisDutchAnalyzerStopwords {
+	return CommonAnalysisDutchAnalyzerStopwords{
+		typ:   CommonAnalysisDutchAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisDutchAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11576,16 +16933,44 @@ func (u *CommonAnalysisCjkAnalyzerStopwords) Type() CommonAnalysisCjkAnalyzerSto
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisCjkAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisCjkAnalyzerStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisCjkAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisCjkAnalyzerStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisCjkAnalyzerStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisCjkAnalyzerStopwordsFromString returns a CommonAnalysisCjkAnalyzerStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisCjkAnalyzerStopwordsFromString(v string) CommonAnalysisCjkAnalyzerStopwords {
+	return CommonAnalysisCjkAnalyzerStopwords{
+		typ:   CommonAnalysisCjkAnalyzerStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisCjkAnalyzerStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisCjkAnalyzerStopwordsFromArray returns a CommonAnalysisCjkAnalyzerStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisCjkAnalyzerStopwordsFromArray(v []string) CommonAnalysisCjkAnalyzerStopwords {
+	return CommonAnalysisCjkAnalyzerStopwords{
+		typ:   CommonAnalysisCjkAnalyzerStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisCjkAnalyzerStopwords) UnmarshalJSON(data []byte) error {
@@ -11667,10 +17052,29 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) Type() IndicesIndexSettingsA
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsAnalysisAnalyzerValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsAnalysisAnalyzerValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsAnalysisAnalyzerValueUnknownType
+}
+
 // CommonAnalysisCustomAnalyzer returns the CommonAnalysisCustomAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisCustomAnalyzer() CommonAnalysisCustomAnalyzer {
 	v, _ := u.value.(CommonAnalysisCustomAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCustomAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisCustomAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCustomAnalyzer(v CommonAnalysisCustomAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisCustomAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisFingerprintAnalyzer returns the CommonAnalysisFingerprintAnalyzer branch value.
@@ -11679,10 +17083,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisFingerprintAna
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisFingerprintAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisFingerprintAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisFingerprintAnalyzer(v CommonAnalysisFingerprintAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisFingerprintAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisKeywordAnalyzer returns the CommonAnalysisKeywordAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisKeywordAnalyzer() CommonAnalysisKeywordAnalyzer {
 	v, _ := u.value.(CommonAnalysisKeywordAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisKeywordAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisKeywordAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisKeywordAnalyzer(v CommonAnalysisKeywordAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisKeywordAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisLanguageAnalyzer returns the CommonAnalysisLanguageAnalyzer branch value.
@@ -11691,10 +17113,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisLanguageAnalyz
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisLanguageAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisLanguageAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisLanguageAnalyzer(v CommonAnalysisLanguageAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisLanguageAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisNoriAnalyzer returns the CommonAnalysisNoriAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisNoriAnalyzer() CommonAnalysisNoriAnalyzer {
 	v, _ := u.value.(CommonAnalysisNoriAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisNoriAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisNoriAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisNoriAnalyzer(v CommonAnalysisNoriAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisNoriAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisPatternAnalyzer returns the CommonAnalysisPatternAnalyzer branch value.
@@ -11703,10 +17143,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisPatternAnalyze
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisPatternAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisPatternAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisPatternAnalyzer(v CommonAnalysisPatternAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisPatternAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSimpleAnalyzer returns the CommonAnalysisSimpleAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisSimpleAnalyzer() CommonAnalysisSimpleAnalyzer {
 	v, _ := u.value.(CommonAnalysisSimpleAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSimpleAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisSimpleAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSimpleAnalyzer(v CommonAnalysisSimpleAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisSimpleAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisStandardAnalyzer returns the CommonAnalysisStandardAnalyzer branch value.
@@ -11715,10 +17173,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisStandardAnalyz
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisStandardAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisStandardAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisStandardAnalyzer(v CommonAnalysisStandardAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisStandardAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisStopAnalyzer returns the CommonAnalysisStopAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisStopAnalyzer() CommonAnalysisStopAnalyzer {
 	v, _ := u.value.(CommonAnalysisStopAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisStopAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisStopAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisStopAnalyzer(v CommonAnalysisStopAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisStopAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisWhitespaceAnalyzer returns the CommonAnalysisWhitespaceAnalyzer branch value.
@@ -11727,10 +17203,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisWhitespaceAnal
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisWhitespaceAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisWhitespaceAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisWhitespaceAnalyzer(v CommonAnalysisWhitespaceAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisWhitespaceAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisIcuAnalyzer returns the CommonAnalysisIcuAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisIcuAnalyzer() CommonAnalysisIcuAnalyzer {
 	v, _ := u.value.(CommonAnalysisIcuAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisIcuAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisIcuAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisIcuAnalyzer(v CommonAnalysisIcuAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisIcuAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisKuromojiAnalyzer returns the CommonAnalysisKuromojiAnalyzer branch value.
@@ -11739,10 +17233,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisKuromojiAnalyz
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisKuromojiAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisKuromojiAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisKuromojiAnalyzer(v CommonAnalysisKuromojiAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisKuromojiAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSnowballAnalyzer returns the CommonAnalysisSnowballAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisSnowballAnalyzer() CommonAnalysisSnowballAnalyzer {
 	v, _ := u.value.(CommonAnalysisSnowballAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSnowballAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisSnowballAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSnowballAnalyzer(v CommonAnalysisSnowballAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisSnowballAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisDutchAnalyzer returns the CommonAnalysisDutchAnalyzer branch value.
@@ -11751,10 +17263,28 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisDutchAnalyzer(
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisDutchAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisDutchAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisDutchAnalyzer(v CommonAnalysisDutchAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisDutchAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSmartcnAnalyzer returns the CommonAnalysisSmartcnAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisSmartcnAnalyzer() CommonAnalysisSmartcnAnalyzer {
 	v, _ := u.value.(CommonAnalysisSmartcnAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSmartcnAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisSmartcnAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSmartcnAnalyzer(v CommonAnalysisSmartcnAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisSmartcnAnalyzerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisCjkAnalyzer returns the CommonAnalysisCjkAnalyzer branch value.
@@ -11763,16 +17293,43 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisCjkAnalyzer() 
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCjkAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisCjkAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCjkAnalyzer(v CommonAnalysisCjkAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisCjkAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisPhoneAnalyzer returns the CommonAnalysisPhoneAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisPhoneAnalyzer() CommonAnalysisPhoneAnalyzer {
 	v, _ := u.value.(CommonAnalysisPhoneAnalyzer)
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisPhoneAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisPhoneAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisPhoneAnalyzer(v CommonAnalysisPhoneAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisPhoneAnalyzerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisPhoneSearchAnalyzer returns the CommonAnalysisPhoneSearchAnalyzer branch value.
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) CommonAnalysisPhoneSearchAnalyzer() CommonAnalysisPhoneSearchAnalyzer {
 	v, _ := u.value.(CommonAnalysisPhoneSearchAnalyzer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisPhoneSearchAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisPhoneSearchAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisPhoneSearchAnalyzer(v CommonAnalysisPhoneSearchAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+	return IndicesIndexSettingsAnalysisAnalyzerValue{
+		typ:   IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisPhoneSearchAnalyzerType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) error {
@@ -11967,10 +17524,29 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) Type() IndicesIndexSetting
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsAnalysisCharFilterValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsAnalysisCharFilterValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsAnalysisCharFilterValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsAnalysisCharFilterValueUnknownType
+}
+
 // CommonAnalysisHtmlStripCharFilter returns the CommonAnalysisHtmlStripCharFilter branch value.
 func (u *IndicesIndexSettingsAnalysisCharFilterValue) CommonAnalysisHtmlStripCharFilter() CommonAnalysisHtmlStripCharFilter {
 	v, _ := u.value.(CommonAnalysisHtmlStripCharFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisHtmlStripCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisHtmlStripCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisHtmlStripCharFilter(v CommonAnalysisHtmlStripCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+	return IndicesIndexSettingsAnalysisCharFilterValue{
+		typ:   IndicesIndexSettingsAnalysisCharFilterValueCommonAnalysisHtmlStripCharFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisMappingCharFilter returns the CommonAnalysisMappingCharFilter branch value.
@@ -11979,10 +17555,28 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) CommonAnalysisMappingCharF
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisMappingCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisMappingCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisMappingCharFilter(v CommonAnalysisMappingCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+	return IndicesIndexSettingsAnalysisCharFilterValue{
+		typ:   IndicesIndexSettingsAnalysisCharFilterValueCommonAnalysisMappingCharFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisPatternReplaceCharFilter returns the CommonAnalysisPatternReplaceCharFilter branch value.
 func (u *IndicesIndexSettingsAnalysisCharFilterValue) CommonAnalysisPatternReplaceCharFilter() CommonAnalysisPatternReplaceCharFilter {
 	v, _ := u.value.(CommonAnalysisPatternReplaceCharFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisPatternReplaceCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisPatternReplaceCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisPatternReplaceCharFilter(v CommonAnalysisPatternReplaceCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+	return IndicesIndexSettingsAnalysisCharFilterValue{
+		typ:   IndicesIndexSettingsAnalysisCharFilterValueCommonAnalysisPatternReplaceCharFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisIcuNormalizationCharFilter returns the CommonAnalysisIcuNormalizationCharFilter branch value.
@@ -11991,10 +17585,28 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) CommonAnalysisIcuNormaliza
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisIcuNormalizationCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisIcuNormalizationCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisIcuNormalizationCharFilter(v CommonAnalysisIcuNormalizationCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+	return IndicesIndexSettingsAnalysisCharFilterValue{
+		typ:   IndicesIndexSettingsAnalysisCharFilterValueCommonAnalysisIcuNormalizationCharFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisKuromojiIterationMarkCharFilter returns the CommonAnalysisKuromojiIterationMarkCharFilter branch value.
 func (u *IndicesIndexSettingsAnalysisCharFilterValue) CommonAnalysisKuromojiIterationMarkCharFilter() CommonAnalysisKuromojiIterationMarkCharFilter {
 	v, _ := u.value.(CommonAnalysisKuromojiIterationMarkCharFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisKuromojiIterationMarkCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisKuromojiIterationMarkCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisKuromojiIterationMarkCharFilter(v CommonAnalysisKuromojiIterationMarkCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+	return IndicesIndexSettingsAnalysisCharFilterValue{
+		typ:   IndicesIndexSettingsAnalysisCharFilterValueCommonAnalysisKuromojiIterationMarkCharFilterType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsAnalysisCharFilterValue) UnmarshalJSON(data []byte) error {
@@ -12082,16 +17694,44 @@ func (u *CommonAnalysisConditionTokenFilterScript) Type() CommonAnalysisConditio
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisConditionTokenFilterScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisConditionTokenFilterScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisConditionTokenFilterScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisConditionTokenFilterScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisConditionTokenFilterScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisConditionTokenFilterScriptFromString returns a CommonAnalysisConditionTokenFilterScript populated with v
+// on the String branch.
+func NewCommonAnalysisConditionTokenFilterScriptFromString(v string) CommonAnalysisConditionTokenFilterScript {
+	return CommonAnalysisConditionTokenFilterScript{
+		typ:   CommonAnalysisConditionTokenFilterScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonAnalysisConditionTokenFilterScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonAnalysisConditionTokenFilterScriptFromStored returns a CommonAnalysisConditionTokenFilterScript populated with v
+// on the Stored branch.
+func NewCommonAnalysisConditionTokenFilterScriptFromStored(v StoredScriptId) CommonAnalysisConditionTokenFilterScript {
+	return CommonAnalysisConditionTokenFilterScript{
+		typ:   CommonAnalysisConditionTokenFilterScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisConditionTokenFilterScript) UnmarshalJSON(data []byte) error {
@@ -12157,16 +17797,44 @@ func (u *CommonAnalysisPredicateTokenFilterScript) Type() CommonAnalysisPredicat
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisPredicateTokenFilterScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisPredicateTokenFilterScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisPredicateTokenFilterScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisPredicateTokenFilterScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisPredicateTokenFilterScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisPredicateTokenFilterScriptFromString returns a CommonAnalysisPredicateTokenFilterScript populated with v
+// on the String branch.
+func NewCommonAnalysisPredicateTokenFilterScriptFromString(v string) CommonAnalysisPredicateTokenFilterScript {
+	return CommonAnalysisPredicateTokenFilterScript{
+		typ:   CommonAnalysisPredicateTokenFilterScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *CommonAnalysisPredicateTokenFilterScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewCommonAnalysisPredicateTokenFilterScriptFromStored returns a CommonAnalysisPredicateTokenFilterScript populated with v
+// on the Stored branch.
+func NewCommonAnalysisPredicateTokenFilterScriptFromStored(v StoredScriptId) CommonAnalysisPredicateTokenFilterScript {
+	return CommonAnalysisPredicateTokenFilterScript{
+		typ:   CommonAnalysisPredicateTokenFilterScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisPredicateTokenFilterScript) UnmarshalJSON(data []byte) error {
@@ -12234,16 +17902,44 @@ func (u *CommonAnalysisStopTokenFilterStopwords) Type() CommonAnalysisStopTokenF
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonAnalysisStopTokenFilterStopwords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonAnalysisStopTokenFilterStopwordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonAnalysisStopTokenFilterStopwords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonAnalysisStopTokenFilterStopwordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *CommonAnalysisStopTokenFilterStopwords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewCommonAnalysisStopTokenFilterStopwordsFromString returns a CommonAnalysisStopTokenFilterStopwords populated with v
+// on the String branch.
+func NewCommonAnalysisStopTokenFilterStopwordsFromString(v string) CommonAnalysisStopTokenFilterStopwords {
+	return CommonAnalysisStopTokenFilterStopwords{
+		typ:   CommonAnalysisStopTokenFilterStopwordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *CommonAnalysisStopTokenFilterStopwords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewCommonAnalysisStopTokenFilterStopwordsFromArray returns a CommonAnalysisStopTokenFilterStopwords populated with v
+// on the Array branch.
+func NewCommonAnalysisStopTokenFilterStopwordsFromArray(v []string) CommonAnalysisStopTokenFilterStopwords {
+	return CommonAnalysisStopTokenFilterStopwords{
+		typ:   CommonAnalysisStopTokenFilterStopwordsArrayType,
+		value: v,
+	}
 }
 
 func (u *CommonAnalysisStopTokenFilterStopwords) UnmarshalJSON(data []byte) error {
@@ -12357,10 +18053,29 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) Type() IndicesIndexSettingsAna
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsAnalysisFilterValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsAnalysisFilterValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsAnalysisFilterValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsAnalysisFilterValueUnknownType
+}
+
 // CommonAnalysisAsciiFoldingTokenFilter returns the CommonAnalysisAsciiFoldingTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisAsciiFoldingTokenFilter() CommonAnalysisAsciiFoldingTokenFilter {
 	v, _ := u.value.(CommonAnalysisAsciiFoldingTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisAsciiFoldingTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisAsciiFoldingTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisAsciiFoldingTokenFilter(v CommonAnalysisAsciiFoldingTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisAsciiFoldingTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisCommonGramsTokenFilter returns the CommonAnalysisCommonGramsTokenFilter branch value.
@@ -12369,10 +18084,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisCommonGramsToken
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisCommonGramsTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisCommonGramsTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisCommonGramsTokenFilter(v CommonAnalysisCommonGramsTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisCommonGramsTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisConditionTokenFilter returns the CommonAnalysisConditionTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisConditionTokenFilter() CommonAnalysisConditionTokenFilter {
 	v, _ := u.value.(CommonAnalysisConditionTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisConditionTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisConditionTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisConditionTokenFilter(v CommonAnalysisConditionTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisConditionTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisDelimitedPayloadTokenFilter returns the CommonAnalysisDelimitedPayloadTokenFilter branch value.
@@ -12381,10 +18114,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisDelimitedPayload
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisDelimitedPayloadTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisDelimitedPayloadTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisDelimitedPayloadTokenFilter(v CommonAnalysisDelimitedPayloadTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisDelimitedPayloadTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisEdgeNGramTokenFilter returns the CommonAnalysisEdgeNGramTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisEdgeNGramTokenFilter() CommonAnalysisEdgeNGramTokenFilter {
 	v, _ := u.value.(CommonAnalysisEdgeNGramTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisEdgeNGramTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisEdgeNGramTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisEdgeNGramTokenFilter(v CommonAnalysisEdgeNGramTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisEdgeNGramTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisElisionTokenFilter returns the CommonAnalysisElisionTokenFilter branch value.
@@ -12393,10 +18144,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisElisionTokenFilt
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisElisionTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisElisionTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisElisionTokenFilter(v CommonAnalysisElisionTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisElisionTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisFingerprintTokenFilter returns the CommonAnalysisFingerprintTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisFingerprintTokenFilter() CommonAnalysisFingerprintTokenFilter {
 	v, _ := u.value.(CommonAnalysisFingerprintTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisFingerprintTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisFingerprintTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisFingerprintTokenFilter(v CommonAnalysisFingerprintTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisFingerprintTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisHunspellTokenFilter returns the CommonAnalysisHunspellTokenFilter branch value.
@@ -12405,10 +18174,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisHunspellTokenFil
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisHunspellTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisHunspellTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisHunspellTokenFilter(v CommonAnalysisHunspellTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisHunspellTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisHyphenationDecompounderTokenFilter returns the CommonAnalysisHyphenationDecompounderTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisHyphenationDecompounderTokenFilter() CommonAnalysisHyphenationDecompounderTokenFilter {
 	v, _ := u.value.(CommonAnalysisHyphenationDecompounderTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisHyphenationDecompounderTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisHyphenationDecompounderTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisHyphenationDecompounderTokenFilter(v CommonAnalysisHyphenationDecompounderTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisHyphenationDecompounderTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisKeepTypesTokenFilter returns the CommonAnalysisKeepTypesTokenFilter branch value.
@@ -12417,10 +18204,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKeepTypesTokenFi
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKeepTypesTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKeepTypesTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKeepTypesTokenFilter(v CommonAnalysisKeepTypesTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKeepTypesTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisKeepWordsTokenFilter returns the CommonAnalysisKeepWordsTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKeepWordsTokenFilter() CommonAnalysisKeepWordsTokenFilter {
 	v, _ := u.value.(CommonAnalysisKeepWordsTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKeepWordsTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKeepWordsTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKeepWordsTokenFilter(v CommonAnalysisKeepWordsTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKeepWordsTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisKeywordMarkerTokenFilter returns the CommonAnalysisKeywordMarkerTokenFilter branch value.
@@ -12429,10 +18234,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKeywordMarkerTok
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKeywordMarkerTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKeywordMarkerTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKeywordMarkerTokenFilter(v CommonAnalysisKeywordMarkerTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKeywordMarkerTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisKStemTokenFilter returns the CommonAnalysisKStemTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKStemTokenFilter() CommonAnalysisKStemTokenFilter {
 	v, _ := u.value.(CommonAnalysisKStemTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKStemTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKStemTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKStemTokenFilter(v CommonAnalysisKStemTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKStemTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisLengthTokenFilter returns the CommonAnalysisLengthTokenFilter branch value.
@@ -12441,10 +18264,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisLengthTokenFilte
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisLengthTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisLengthTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisLengthTokenFilter(v CommonAnalysisLengthTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisLengthTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisLimitTokenCountTokenFilter returns the CommonAnalysisLimitTokenCountTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisLimitTokenCountTokenFilter() CommonAnalysisLimitTokenCountTokenFilter {
 	v, _ := u.value.(CommonAnalysisLimitTokenCountTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisLimitTokenCountTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisLimitTokenCountTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisLimitTokenCountTokenFilter(v CommonAnalysisLimitTokenCountTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisLimitTokenCountTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisLowercaseTokenFilter returns the CommonAnalysisLowercaseTokenFilter branch value.
@@ -12453,10 +18294,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisLowercaseTokenFi
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisLowercaseTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisLowercaseTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisLowercaseTokenFilter(v CommonAnalysisLowercaseTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisLowercaseTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisMultiplexerTokenFilter returns the CommonAnalysisMultiplexerTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisMultiplexerTokenFilter() CommonAnalysisMultiplexerTokenFilter {
 	v, _ := u.value.(CommonAnalysisMultiplexerTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisMultiplexerTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisMultiplexerTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisMultiplexerTokenFilter(v CommonAnalysisMultiplexerTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisMultiplexerTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisNGramTokenFilter returns the CommonAnalysisNGramTokenFilter branch value.
@@ -12465,10 +18324,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisNGramTokenFilter
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisNGramTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisNGramTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisNGramTokenFilter(v CommonAnalysisNGramTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisNGramTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisNoriPartOfSpeechTokenFilter returns the CommonAnalysisNoriPartOfSpeechTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisNoriPartOfSpeechTokenFilter() CommonAnalysisNoriPartOfSpeechTokenFilter {
 	v, _ := u.value.(CommonAnalysisNoriPartOfSpeechTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisNoriPartOfSpeechTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisNoriPartOfSpeechTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisNoriPartOfSpeechTokenFilter(v CommonAnalysisNoriPartOfSpeechTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisNoriPartOfSpeechTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisPatternCaptureTokenFilter returns the CommonAnalysisPatternCaptureTokenFilter branch value.
@@ -12477,10 +18354,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisPatternCaptureTo
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPatternCaptureTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisPatternCaptureTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPatternCaptureTokenFilter(v CommonAnalysisPatternCaptureTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisPatternCaptureTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisPatternReplaceTokenFilter returns the CommonAnalysisPatternReplaceTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisPatternReplaceTokenFilter() CommonAnalysisPatternReplaceTokenFilter {
 	v, _ := u.value.(CommonAnalysisPatternReplaceTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPatternReplaceTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisPatternReplaceTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPatternReplaceTokenFilter(v CommonAnalysisPatternReplaceTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisPatternReplaceTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisPersianStemTokenFilter returns the CommonAnalysisPersianStemTokenFilter branch value.
@@ -12489,10 +18384,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisPersianStemToken
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPersianStemTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisPersianStemTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPersianStemTokenFilter(v CommonAnalysisPersianStemTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisPersianStemTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisPorterStemTokenFilter returns the CommonAnalysisPorterStemTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisPorterStemTokenFilter() CommonAnalysisPorterStemTokenFilter {
 	v, _ := u.value.(CommonAnalysisPorterStemTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPorterStemTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisPorterStemTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPorterStemTokenFilter(v CommonAnalysisPorterStemTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisPorterStemTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisPredicateTokenFilter returns the CommonAnalysisPredicateTokenFilter branch value.
@@ -12501,10 +18414,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisPredicateTokenFi
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPredicateTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisPredicateTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPredicateTokenFilter(v CommonAnalysisPredicateTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisPredicateTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisRemoveDuplicatesTokenFilter returns the CommonAnalysisRemoveDuplicatesTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisRemoveDuplicatesTokenFilter() CommonAnalysisRemoveDuplicatesTokenFilter {
 	v, _ := u.value.(CommonAnalysisRemoveDuplicatesTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisRemoveDuplicatesTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisRemoveDuplicatesTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisRemoveDuplicatesTokenFilter(v CommonAnalysisRemoveDuplicatesTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisRemoveDuplicatesTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisReverseTokenFilter returns the CommonAnalysisReverseTokenFilter branch value.
@@ -12513,10 +18444,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisReverseTokenFilt
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisReverseTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisReverseTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisReverseTokenFilter(v CommonAnalysisReverseTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisReverseTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisShingleTokenFilter returns the CommonAnalysisShingleTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisShingleTokenFilter() CommonAnalysisShingleTokenFilter {
 	v, _ := u.value.(CommonAnalysisShingleTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisShingleTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisShingleTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisShingleTokenFilter(v CommonAnalysisShingleTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisShingleTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisSnowballTokenFilter returns the CommonAnalysisSnowballTokenFilter branch value.
@@ -12525,10 +18474,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisSnowballTokenFil
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSnowballTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisSnowballTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSnowballTokenFilter(v CommonAnalysisSnowballTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisSnowballTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisStemmerOverrideTokenFilter returns the CommonAnalysisStemmerOverrideTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisStemmerOverrideTokenFilter() CommonAnalysisStemmerOverrideTokenFilter {
 	v, _ := u.value.(CommonAnalysisStemmerOverrideTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisStemmerOverrideTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisStemmerOverrideTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisStemmerOverrideTokenFilter(v CommonAnalysisStemmerOverrideTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisStemmerOverrideTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisStemmerTokenFilter returns the CommonAnalysisStemmerTokenFilter branch value.
@@ -12537,10 +18504,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisStemmerTokenFilt
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisStemmerTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisStemmerTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisStemmerTokenFilter(v CommonAnalysisStemmerTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisStemmerTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisStopTokenFilter returns the CommonAnalysisStopTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisStopTokenFilter() CommonAnalysisStopTokenFilter {
 	v, _ := u.value.(CommonAnalysisStopTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisStopTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisStopTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisStopTokenFilter(v CommonAnalysisStopTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisStopTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisSynonymGraphTokenFilter returns the CommonAnalysisSynonymGraphTokenFilter branch value.
@@ -12549,10 +18534,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisSynonymGraphToke
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSynonymGraphTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisSynonymGraphTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSynonymGraphTokenFilter(v CommonAnalysisSynonymGraphTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisSynonymGraphTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSynonymTokenFilter returns the CommonAnalysisSynonymTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisSynonymTokenFilter() CommonAnalysisSynonymTokenFilter {
 	v, _ := u.value.(CommonAnalysisSynonymTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSynonymTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisSynonymTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSynonymTokenFilter(v CommonAnalysisSynonymTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisSynonymTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisTrimTokenFilter returns the CommonAnalysisTrimTokenFilter branch value.
@@ -12561,10 +18564,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisTrimTokenFilter(
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisTrimTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisTrimTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisTrimTokenFilter(v CommonAnalysisTrimTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisTrimTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisTruncateTokenFilter returns the CommonAnalysisTruncateTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisTruncateTokenFilter() CommonAnalysisTruncateTokenFilter {
 	v, _ := u.value.(CommonAnalysisTruncateTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisTruncateTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisTruncateTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisTruncateTokenFilter(v CommonAnalysisTruncateTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisTruncateTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisUniqueTokenFilter returns the CommonAnalysisUniqueTokenFilter branch value.
@@ -12573,10 +18594,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisUniqueTokenFilte
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisUniqueTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisUniqueTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisUniqueTokenFilter(v CommonAnalysisUniqueTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisUniqueTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisUppercaseTokenFilter returns the CommonAnalysisUppercaseTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisUppercaseTokenFilter() CommonAnalysisUppercaseTokenFilter {
 	v, _ := u.value.(CommonAnalysisUppercaseTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisUppercaseTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisUppercaseTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisUppercaseTokenFilter(v CommonAnalysisUppercaseTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisUppercaseTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisWordDelimiterGraphTokenFilter returns the CommonAnalysisWordDelimiterGraphTokenFilter branch value.
@@ -12585,10 +18624,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisWordDelimiterGra
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisWordDelimiterGraphTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisWordDelimiterGraphTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisWordDelimiterGraphTokenFilter(v CommonAnalysisWordDelimiterGraphTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisWordDelimiterGraphTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisWordDelimiterTokenFilter returns the CommonAnalysisWordDelimiterTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisWordDelimiterTokenFilter() CommonAnalysisWordDelimiterTokenFilter {
 	v, _ := u.value.(CommonAnalysisWordDelimiterTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisWordDelimiterTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisWordDelimiterTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisWordDelimiterTokenFilter(v CommonAnalysisWordDelimiterTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisWordDelimiterTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisKuromojiStemmerTokenFilter returns the CommonAnalysisKuromojiStemmerTokenFilter branch value.
@@ -12597,10 +18654,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKuromojiStemmerT
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiStemmerTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKuromojiStemmerTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiStemmerTokenFilter(v CommonAnalysisKuromojiStemmerTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKuromojiStemmerTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisKuromojiReadingFormTokenFilter returns the CommonAnalysisKuromojiReadingFormTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKuromojiReadingFormTokenFilter() CommonAnalysisKuromojiReadingFormTokenFilter {
 	v, _ := u.value.(CommonAnalysisKuromojiReadingFormTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiReadingFormTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKuromojiReadingFormTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiReadingFormTokenFilter(v CommonAnalysisKuromojiReadingFormTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKuromojiReadingFormTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisKuromojiPartOfSpeechTokenFilter returns the CommonAnalysisKuromojiPartOfSpeechTokenFilter branch value.
@@ -12609,10 +18684,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisKuromojiPartOfSp
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiPartOfSpeechTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisKuromojiPartOfSpeechTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiPartOfSpeechTokenFilter(v CommonAnalysisKuromojiPartOfSpeechTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisKuromojiPartOfSpeechTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisIcuTokenizer returns the CommonAnalysisIcuTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisIcuTokenizer() CommonAnalysisIcuTokenizer {
 	v, _ := u.value.(CommonAnalysisIcuTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTokenizer returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisIcuTokenizer branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisIcuTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisIcuCollationTokenFilter returns the CommonAnalysisIcuCollationTokenFilter branch value.
@@ -12621,10 +18714,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisIcuCollationToke
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuCollationTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisIcuCollationTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuCollationTokenFilter(v CommonAnalysisIcuCollationTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisIcuCollationTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisIcuFoldingTokenFilter returns the CommonAnalysisIcuFoldingTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisIcuFoldingTokenFilter() CommonAnalysisIcuFoldingTokenFilter {
 	v, _ := u.value.(CommonAnalysisIcuFoldingTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuFoldingTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisIcuFoldingTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuFoldingTokenFilter(v CommonAnalysisIcuFoldingTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisIcuFoldingTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisIcuNormalizationTokenFilter returns the CommonAnalysisIcuNormalizationTokenFilter branch value.
@@ -12633,10 +18744,28 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisIcuNormalization
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuNormalizationTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisIcuNormalizationTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuNormalizationTokenFilter(v CommonAnalysisIcuNormalizationTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisIcuNormalizationTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisIcuTransformTokenFilter returns the CommonAnalysisIcuTransformTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisIcuTransformTokenFilter() CommonAnalysisIcuTransformTokenFilter {
 	v, _ := u.value.(CommonAnalysisIcuTransformTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTransformTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisIcuTransformTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTransformTokenFilter(v CommonAnalysisIcuTransformTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisIcuTransformTokenFilterType,
+		value: v,
+	}
 }
 
 // CommonAnalysisPhoneticTokenFilter returns the CommonAnalysisPhoneticTokenFilter branch value.
@@ -12645,16 +18774,43 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisPhoneticTokenFil
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPhoneticTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisPhoneticTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisPhoneticTokenFilter(v CommonAnalysisPhoneticTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisPhoneticTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisDictionaryDecompounderTokenFilter returns the CommonAnalysisDictionaryDecompounderTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisDictionaryDecompounderTokenFilter() CommonAnalysisDictionaryDecompounderTokenFilter {
 	v, _ := u.value.(CommonAnalysisDictionaryDecompounderTokenFilter)
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisDictionaryDecompounderTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisDictionaryDecompounderTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisDictionaryDecompounderTokenFilter(v CommonAnalysisDictionaryDecompounderTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisDictionaryDecompounderTokenFilterType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSmartcnStopTokenFilter returns the CommonAnalysisSmartcnStopTokenFilter branch value.
 func (u *IndicesIndexSettingsAnalysisFilterValue) CommonAnalysisSmartcnStopTokenFilter() CommonAnalysisSmartcnStopTokenFilter {
 	v, _ := u.value.(CommonAnalysisSmartcnStopTokenFilter)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSmartcnStopTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisSmartcnStopTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisSmartcnStopTokenFilter(v CommonAnalysisSmartcnStopTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+	return IndicesIndexSettingsAnalysisFilterValue{
+		typ:   IndicesIndexSettingsAnalysisFilterValueCommonAnalysisSmartcnStopTokenFilterType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsAnalysisFilterValue) UnmarshalJSON(data []byte) error {
@@ -13102,16 +19258,44 @@ func (u *IndicesIndexSettingsAnalysisNormalizerValue) Type() IndicesIndexSetting
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsAnalysisNormalizerValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsAnalysisNormalizerValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsAnalysisNormalizerValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsAnalysisNormalizerValueUnknownType
+}
+
 // CommonAnalysisLowercaseNormalizer returns the CommonAnalysisLowercaseNormalizer branch value.
 func (u *IndicesIndexSettingsAnalysisNormalizerValue) CommonAnalysisLowercaseNormalizer() CommonAnalysisLowercaseNormalizer {
 	v, _ := u.value.(CommonAnalysisLowercaseNormalizer)
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisNormalizerValueFromCommonAnalysisLowercaseNormalizer returns a IndicesIndexSettingsAnalysisNormalizerValue populated with v
+// on the CommonAnalysisLowercaseNormalizer branch.
+func NewIndicesIndexSettingsAnalysisNormalizerValueFromCommonAnalysisLowercaseNormalizer(v CommonAnalysisLowercaseNormalizer) IndicesIndexSettingsAnalysisNormalizerValue {
+	return IndicesIndexSettingsAnalysisNormalizerValue{
+		typ:   IndicesIndexSettingsAnalysisNormalizerValueCommonAnalysisLowercaseNormalizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisCustomNormalizer returns the CommonAnalysisCustomNormalizer branch value.
 func (u *IndicesIndexSettingsAnalysisNormalizerValue) CommonAnalysisCustomNormalizer() CommonAnalysisCustomNormalizer {
 	v, _ := u.value.(CommonAnalysisCustomNormalizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisNormalizerValueFromCommonAnalysisCustomNormalizer returns a IndicesIndexSettingsAnalysisNormalizerValue populated with v
+// on the CommonAnalysisCustomNormalizer branch.
+func NewIndicesIndexSettingsAnalysisNormalizerValueFromCommonAnalysisCustomNormalizer(v CommonAnalysisCustomNormalizer) IndicesIndexSettingsAnalysisNormalizerValue {
+	return IndicesIndexSettingsAnalysisNormalizerValue{
+		typ:   IndicesIndexSettingsAnalysisNormalizerValueCommonAnalysisCustomNormalizerType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsAnalysisNormalizerValue) UnmarshalJSON(data []byte) error {
@@ -13190,10 +19374,29 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) Type() IndicesIndexSettings
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsAnalysisTokenizerValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsAnalysisTokenizerValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsAnalysisTokenizerValueUnknownType
+}
+
 // CommonAnalysisCharGroupTokenizer returns the CommonAnalysisCharGroupTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisCharGroupTokenizer() CommonAnalysisCharGroupTokenizer {
 	v, _ := u.value.(CommonAnalysisCharGroupTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisCharGroupTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisCharGroupTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisCharGroupTokenizer(v CommonAnalysisCharGroupTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisCharGroupTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisEdgeNGramTokenizer returns the CommonAnalysisEdgeNGramTokenizer branch value.
@@ -13202,10 +19405,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisEdgeNGramToke
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisEdgeNGramTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisEdgeNGramTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisEdgeNGramTokenizer(v CommonAnalysisEdgeNGramTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisEdgeNGramTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisKeywordTokenizer returns the CommonAnalysisKeywordTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisKeywordTokenizer() CommonAnalysisKeywordTokenizer {
 	v, _ := u.value.(CommonAnalysisKeywordTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisKeywordTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisKeywordTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisKeywordTokenizer(v CommonAnalysisKeywordTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisKeywordTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisLetterTokenizer returns the CommonAnalysisLetterTokenizer branch value.
@@ -13214,10 +19435,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisLetterTokeniz
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisLetterTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisLetterTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisLetterTokenizer(v CommonAnalysisLetterTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisLetterTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisLowercaseTokenizer returns the CommonAnalysisLowercaseTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisLowercaseTokenizer() CommonAnalysisLowercaseTokenizer {
 	v, _ := u.value.(CommonAnalysisLowercaseTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisLowercaseTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisLowercaseTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisLowercaseTokenizer(v CommonAnalysisLowercaseTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisLowercaseTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisNGramTokenizer returns the CommonAnalysisNGramTokenizer branch value.
@@ -13226,10 +19465,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisNGramTokenize
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisNGramTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisNGramTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisNGramTokenizer(v CommonAnalysisNGramTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisNGramTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisNoriTokenizer returns the CommonAnalysisNoriTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisNoriTokenizer() CommonAnalysisNoriTokenizer {
 	v, _ := u.value.(CommonAnalysisNoriTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisNoriTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisNoriTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisNoriTokenizer(v CommonAnalysisNoriTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisNoriTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisPathHierarchyTokenizer returns the CommonAnalysisPathHierarchyTokenizer branch value.
@@ -13238,10 +19495,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisPathHierarchy
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisPathHierarchyTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisPathHierarchyTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisPathHierarchyTokenizer(v CommonAnalysisPathHierarchyTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisPathHierarchyTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisStandardTokenizer returns the CommonAnalysisStandardTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisStandardTokenizer() CommonAnalysisStandardTokenizer {
 	v, _ := u.value.(CommonAnalysisStandardTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisStandardTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisStandardTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisStandardTokenizer(v CommonAnalysisStandardTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisStandardTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisUaxEmailUrlTokenizer returns the CommonAnalysisUaxEmailUrlTokenizer branch value.
@@ -13250,10 +19525,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisUaxEmailUrlTo
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailUrlTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisUaxEmailUrlTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailUrlTokenizer(v CommonAnalysisUaxEmailUrlTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisUaxEmailUrlTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisWhitespaceTokenizer returns the CommonAnalysisWhitespaceTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisWhitespaceTokenizer() CommonAnalysisWhitespaceTokenizer {
 	v, _ := u.value.(CommonAnalysisWhitespaceTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisWhitespaceTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisWhitespaceTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisWhitespaceTokenizer(v CommonAnalysisWhitespaceTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisWhitespaceTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisKuromojiTokenizer returns the CommonAnalysisKuromojiTokenizer branch value.
@@ -13262,10 +19555,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisKuromojiToken
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisKuromojiTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisKuromojiTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisKuromojiTokenizer(v CommonAnalysisKuromojiTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisKuromojiTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisPatternTokenizer returns the CommonAnalysisPatternTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisPatternTokenizer() CommonAnalysisPatternTokenizer {
 	v, _ := u.value.(CommonAnalysisPatternTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisPatternTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisPatternTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisPatternTokenizer(v CommonAnalysisPatternTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisPatternTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisSimplePatternTokenizer returns the CommonAnalysisSimplePatternTokenizer branch value.
@@ -13274,10 +19585,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisSimplePattern
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSimplePatternTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisSimplePatternTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSimplePatternTokenizer(v CommonAnalysisSimplePatternTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisSimplePatternTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSimplePatternSplitTokenizer returns the CommonAnalysisSimplePatternSplitTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisSimplePatternSplitTokenizer() CommonAnalysisSimplePatternSplitTokenizer {
 	v, _ := u.value.(CommonAnalysisSimplePatternSplitTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSimplePatternSplitTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisSimplePatternSplitTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSimplePatternSplitTokenizer(v CommonAnalysisSimplePatternSplitTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisSimplePatternSplitTokenizerType,
+		value: v,
+	}
 }
 
 // CommonAnalysisIcuTokenizer returns the CommonAnalysisIcuTokenizer branch value.
@@ -13286,10 +19615,28 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisIcuTokenizer(
 	return v
 }
 
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisIcuTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisIcuTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisIcuTokenizerType,
+		value: v,
+	}
+}
+
 // CommonAnalysisSmartcnTokenizer returns the CommonAnalysisSmartcnTokenizer branch value.
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) CommonAnalysisSmartcnTokenizer() CommonAnalysisSmartcnTokenizer {
 	v, _ := u.value.(CommonAnalysisSmartcnTokenizer)
 	return v
+}
+
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSmartcnTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisSmartcnTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSmartcnTokenizer(v CommonAnalysisSmartcnTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+	return IndicesIndexSettingsAnalysisTokenizerValue{
+		typ:   IndicesIndexSettingsAnalysisTokenizerValueCommonAnalysisSmartcnTokenizerType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsAnalysisTokenizerValue) UnmarshalJSON(data []byte) error {
@@ -13475,16 +19822,44 @@ func (u *IndicesIndexSettingsCreationDate) Type() IndicesIndexSettingsCreationDa
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsCreationDate) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsCreationDateFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsCreationDate) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsCreationDateUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *IndicesIndexSettingsCreationDate) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewIndicesIndexSettingsCreationDateFromInt64 returns a IndicesIndexSettingsCreationDate populated with v
+// on the Int64 branch.
+func NewIndicesIndexSettingsCreationDateFromInt64(v int64) IndicesIndexSettingsCreationDate {
+	return IndicesIndexSettingsCreationDate{
+		typ:   IndicesIndexSettingsCreationDateInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSettingsCreationDate) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewIndicesIndexSettingsCreationDateFromString returns a IndicesIndexSettingsCreationDate populated with v
+// on the String branch.
+func NewIndicesIndexSettingsCreationDateFromString(v string) IndicesIndexSettingsCreationDate {
+	return IndicesIndexSettingsCreationDate{
+		typ:   IndicesIndexSettingsCreationDateStringType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsCreationDate) UnmarshalJSON(data []byte) error {
@@ -13552,16 +19927,44 @@ func (u *IndicesIndexingPressureMemoryLimit) Type() IndicesIndexingPressureMemor
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexingPressureMemoryLimit) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexingPressureMemoryLimitFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexingPressureMemoryLimit) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexingPressureMemoryLimitUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexingPressureMemoryLimit) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexingPressureMemoryLimitFromString returns a IndicesIndexingPressureMemoryLimit populated with v
+// on the String branch.
+func NewIndicesIndexingPressureMemoryLimitFromString(v string) IndicesIndexingPressureMemoryLimit {
+	return IndicesIndexingPressureMemoryLimit{
+		typ:   IndicesIndexingPressureMemoryLimitStringType,
+		value: v,
+	}
+}
+
 // Int64 returns the int64 branch value.
 func (u *IndicesIndexingPressureMemoryLimit) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
+}
+
+// NewIndicesIndexingPressureMemoryLimitFromInt64 returns a IndicesIndexingPressureMemoryLimit populated with v
+// on the Int64 branch.
+func NewIndicesIndexingPressureMemoryLimitFromInt64(v int64) IndicesIndexingPressureMemoryLimit {
+	return IndicesIndexingPressureMemoryLimit{
+		typ:   IndicesIndexingPressureMemoryLimitInt64Type,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexingPressureMemoryLimit) UnmarshalJSON(data []byte) error {
@@ -13629,16 +20032,44 @@ func (u *IndicesIndexSettingsLifecycleOriginationDate) Type() IndicesIndexSettin
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsLifecycleOriginationDate) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsLifecycleOriginationDateFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsLifecycleOriginationDate) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsLifecycleOriginationDateUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *IndicesIndexSettingsLifecycleOriginationDate) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewIndicesIndexSettingsLifecycleOriginationDateFromInt64 returns a IndicesIndexSettingsLifecycleOriginationDate populated with v
+// on the Int64 branch.
+func NewIndicesIndexSettingsLifecycleOriginationDateFromInt64(v int64) IndicesIndexSettingsLifecycleOriginationDate {
+	return IndicesIndexSettingsLifecycleOriginationDate{
+		typ:   IndicesIndexSettingsLifecycleOriginationDateInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSettingsLifecycleOriginationDate) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewIndicesIndexSettingsLifecycleOriginationDateFromString returns a IndicesIndexSettingsLifecycleOriginationDate populated with v
+// on the String branch.
+func NewIndicesIndexSettingsLifecycleOriginationDateFromString(v string) IndicesIndexSettingsLifecycleOriginationDate {
+	return IndicesIndexSettingsLifecycleOriginationDate{
+		typ:   IndicesIndexSettingsLifecycleOriginationDateStringType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsLifecycleOriginationDate) UnmarshalJSON(data []byte) error {
@@ -13702,16 +20133,44 @@ func (u *IndicesIndexSettingsMergePolicy) Type() IndicesIndexSettingsMergePolicy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsMergePolicy) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsMergePolicyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsMergePolicy) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsMergePolicyUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSettingsMergePolicy) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexSettingsMergePolicyFromString returns a IndicesIndexSettingsMergePolicy populated with v
+// on the String branch.
+func NewIndicesIndexSettingsMergePolicyFromString(v string) IndicesIndexSettingsMergePolicy {
+	return IndicesIndexSettingsMergePolicy{
+		typ:   IndicesIndexSettingsMergePolicyStringType,
+		value: v,
+	}
+}
+
 // TieredPolicyConfig returns the IndicesIndexSettingsMergeTieredPolicy branch value.
 func (u *IndicesIndexSettingsMergePolicy) TieredPolicyConfig() IndicesIndexSettingsMergeTieredPolicy {
 	v, _ := u.value.(IndicesIndexSettingsMergeTieredPolicy)
 	return v
+}
+
+// NewIndicesIndexSettingsMergePolicyFromTieredPolicyConfig returns a IndicesIndexSettingsMergePolicy populated with v
+// on the TieredPolicyConfig branch.
+func NewIndicesIndexSettingsMergePolicyFromTieredPolicyConfig(v IndicesIndexSettingsMergeTieredPolicy) IndicesIndexSettingsMergePolicy {
+	return IndicesIndexSettingsMergePolicy{
+		typ:   IndicesIndexSettingsMergePolicyTieredPolicyConfigType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsMergePolicy) UnmarshalJSON(data []byte) error {
@@ -13775,16 +20234,44 @@ func (u *IndicesIndexSettingsRoutingPath) Type() IndicesIndexSettingsRoutingPath
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsRoutingPath) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsRoutingPathFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsRoutingPath) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsRoutingPathUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSettingsRoutingPath) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexSettingsRoutingPathFromString returns a IndicesIndexSettingsRoutingPath populated with v
+// on the String branch.
+func NewIndicesIndexSettingsRoutingPathFromString(v string) IndicesIndexSettingsRoutingPath {
+	return IndicesIndexSettingsRoutingPath{
+		typ:   IndicesIndexSettingsRoutingPathStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *IndicesIndexSettingsRoutingPath) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewIndicesIndexSettingsRoutingPathFromArray returns a IndicesIndexSettingsRoutingPath populated with v
+// on the Array branch.
+func NewIndicesIndexSettingsRoutingPathFromArray(v []string) IndicesIndexSettingsRoutingPath {
+	return IndicesIndexSettingsRoutingPath{
+		typ:   IndicesIndexSettingsRoutingPathArrayType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsRoutingPath) UnmarshalJSON(data []byte) error {
@@ -13850,16 +20337,44 @@ func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Type() IndicesIndexS
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSettingsSimilarityScriptedTfidfScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromString returns a IndicesIndexSettingsSimilarityScriptedTfidfScript populated with v
+// on the String branch.
+func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromString(v string) IndicesIndexSettingsSimilarityScriptedTfidfScript {
+	return IndicesIndexSettingsSimilarityScriptedTfidfScript{
+		typ:   IndicesIndexSettingsSimilarityScriptedTfidfScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored returns a IndicesIndexSettingsSimilarityScriptedTfidfScript populated with v
+// on the Stored branch.
+func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored(v StoredScriptId) IndicesIndexSettingsSimilarityScriptedTfidfScript {
+	return IndicesIndexSettingsSimilarityScriptedTfidfScript{
+		typ:   IndicesIndexSettingsSimilarityScriptedTfidfScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) UnmarshalJSON(data []byte) error {
@@ -13923,16 +20438,44 @@ func (u *IndicesIndexSegmentSortMissing) Type() IndicesIndexSegmentSortMissingTy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSegmentSortMissing) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSegmentSortMissingFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSegmentSortMissing) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSegmentSortMissingUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSegmentSortMissing) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexSegmentSortMissingFromString returns a IndicesIndexSegmentSortMissing populated with v
+// on the String branch.
+func NewIndicesIndexSegmentSortMissingFromString(v string) IndicesIndexSegmentSortMissing {
+	return IndicesIndexSegmentSortMissing{
+		typ:   IndicesIndexSegmentSortMissingStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *IndicesIndexSegmentSortMissing) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewIndicesIndexSegmentSortMissingFromArray returns a IndicesIndexSegmentSortMissing populated with v
+// on the Array branch.
+func NewIndicesIndexSegmentSortMissingFromArray(v []string) IndicesIndexSegmentSortMissing {
+	return IndicesIndexSegmentSortMissing{
+		typ:   IndicesIndexSegmentSortMissingArrayType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSegmentSortMissing) UnmarshalJSON(data []byte) error {
@@ -13996,16 +20539,44 @@ func (u *IndicesIndexSegmentSortMode) Type() IndicesIndexSegmentSortModeType { r
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSegmentSortMode) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSegmentSortModeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSegmentSortMode) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSegmentSortModeUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSegmentSortMode) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexSegmentSortModeFromString returns a IndicesIndexSegmentSortMode populated with v
+// on the String branch.
+func NewIndicesIndexSegmentSortModeFromString(v string) IndicesIndexSegmentSortMode {
+	return IndicesIndexSegmentSortMode{
+		typ:   IndicesIndexSegmentSortModeStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *IndicesIndexSegmentSortMode) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewIndicesIndexSegmentSortModeFromArray returns a IndicesIndexSegmentSortMode populated with v
+// on the Array branch.
+func NewIndicesIndexSegmentSortModeFromArray(v []string) IndicesIndexSegmentSortMode {
+	return IndicesIndexSegmentSortMode{
+		typ:   IndicesIndexSegmentSortModeArrayType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSegmentSortMode) UnmarshalJSON(data []byte) error {
@@ -14069,16 +20640,44 @@ func (u *IndicesIndexSegmentSortOrder) Type() IndicesIndexSegmentSortOrderType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IndicesIndexSegmentSortOrder) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesIndexSegmentSortOrderFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesIndexSegmentSortOrder) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesIndexSegmentSortOrderUnknownType
+}
+
 // String returns the string branch value.
 func (u *IndicesIndexSegmentSortOrder) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIndicesIndexSegmentSortOrderFromString returns a IndicesIndexSegmentSortOrder populated with v
+// on the String branch.
+func NewIndicesIndexSegmentSortOrderFromString(v string) IndicesIndexSegmentSortOrder {
+	return IndicesIndexSegmentSortOrder{
+		typ:   IndicesIndexSegmentSortOrderStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *IndicesIndexSegmentSortOrder) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewIndicesIndexSegmentSortOrderFromArray returns a IndicesIndexSegmentSortOrder populated with v
+// on the Array branch.
+func NewIndicesIndexSegmentSortOrderFromArray(v []string) IndicesIndexSegmentSortOrder {
+	return IndicesIndexSegmentSortOrder{
+		typ:   IndicesIndexSegmentSortOrderArrayType,
+		value: v,
+	}
 }
 
 func (u *IndicesIndexSegmentSortOrder) UnmarshalJSON(data []byte) error {
@@ -14142,16 +20741,44 @@ func (u *SegmentsStatsSegmentReplication) Type() SegmentsStatsSegmentReplication
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SegmentsStatsSegmentReplication) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSegmentsStatsSegmentReplicationFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SegmentsStatsSegmentReplication) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SegmentsStatsSegmentReplicationUnknownType
+}
+
 // SegmentsStatsSegmentReplicationObject1 returns the SegmentsStatsSegmentReplicationObject1 branch value.
 func (u *SegmentsStatsSegmentReplication) SegmentsStatsSegmentReplicationObject1() SegmentsStatsSegmentReplicationObject1 {
 	v, _ := u.value.(SegmentsStatsSegmentReplicationObject1)
 	return v
 }
 
+// NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject1 returns a SegmentsStatsSegmentReplication populated with v
+// on the SegmentsStatsSegmentReplicationObject1 branch.
+func NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject1(v SegmentsStatsSegmentReplicationObject1) SegmentsStatsSegmentReplication {
+	return SegmentsStatsSegmentReplication{
+		typ:   SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject1Type,
+		value: v,
+	}
+}
+
 // SegmentsStatsSegmentReplicationObject0 returns the SegmentsStatsSegmentReplicationObject0 branch value.
 func (u *SegmentsStatsSegmentReplication) SegmentsStatsSegmentReplicationObject0() SegmentsStatsSegmentReplicationObject0 {
 	v, _ := u.value.(SegmentsStatsSegmentReplicationObject0)
 	return v
+}
+
+// NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject0 returns a SegmentsStatsSegmentReplication populated with v
+// on the SegmentsStatsSegmentReplicationObject0 branch.
+func NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject0(v SegmentsStatsSegmentReplicationObject0) SegmentsStatsSegmentReplication {
+	return SegmentsStatsSegmentReplication{
+		typ:   SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject0Type,
+		value: v,
+	}
 }
 
 func (u *SegmentsStatsSegmentReplication) UnmarshalJSON(data []byte) error {
@@ -14213,16 +20840,44 @@ func (u *BulkByScrollTaskStatusSlicesItem) Type() BulkByScrollTaskStatusSlicesIt
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *BulkByScrollTaskStatusSlicesItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewBulkByScrollTaskStatusSlicesItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *BulkByScrollTaskStatusSlicesItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = BulkByScrollTaskStatusSlicesItemUnknownType
+}
+
 // BulkByScrollTaskStatus returns the BulkByScrollTaskStatus branch value.
 func (u *BulkByScrollTaskStatusSlicesItem) BulkByScrollTaskStatus() BulkByScrollTaskStatus {
 	v, _ := u.value.(BulkByScrollTaskStatus)
 	return v
 }
 
+// NewBulkByScrollTaskStatusSlicesItemFromBulkByScrollTaskStatus returns a BulkByScrollTaskStatusSlicesItem populated with v
+// on the BulkByScrollTaskStatus branch.
+func NewBulkByScrollTaskStatusSlicesItemFromBulkByScrollTaskStatus(v BulkByScrollTaskStatus) BulkByScrollTaskStatusSlicesItem {
+	return BulkByScrollTaskStatusSlicesItem{
+		typ:   BulkByScrollTaskStatusSlicesItemBulkByScrollTaskStatusType,
+		value: v,
+	}
+}
+
 // Exception returns the ErrorCause branch value.
 func (u *BulkByScrollTaskStatusSlicesItem) Exception() ErrorCause {
 	v, _ := u.value.(ErrorCause)
 	return v
+}
+
+// NewBulkByScrollTaskStatusSlicesItemFromException returns a BulkByScrollTaskStatusSlicesItem populated with v
+// on the Exception branch.
+func NewBulkByScrollTaskStatusSlicesItemFromException(v ErrorCause) BulkByScrollTaskStatusSlicesItem {
+	return BulkByScrollTaskStatusSlicesItem{
+		typ:   BulkByScrollTaskStatusSlicesItemExceptionType,
+		value: v,
+	}
 }
 
 func (u *BulkByScrollTaskStatusSlicesItem) UnmarshalJSON(data []byte) error {
@@ -14286,16 +20941,44 @@ func (u *BulkByScrollResponseBaseFailuresItem) Type() BulkByScrollResponseBaseFa
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *BulkByScrollResponseBaseFailuresItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewBulkByScrollResponseBaseFailuresItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *BulkByScrollResponseBaseFailuresItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = BulkByScrollResponseBaseFailuresItemUnknownType
+}
+
 // BulkItemResponseFailure returns the BulkItemResponseFailure branch value.
 func (u *BulkByScrollResponseBaseFailuresItem) BulkItemResponseFailure() BulkItemResponseFailure {
 	v, _ := u.value.(BulkItemResponseFailure)
 	return v
 }
 
+// NewBulkByScrollResponseBaseFailuresItemFromBulkItemResponseFailure returns a BulkByScrollResponseBaseFailuresItem populated with v
+// on the BulkItemResponseFailure branch.
+func NewBulkByScrollResponseBaseFailuresItemFromBulkItemResponseFailure(v BulkItemResponseFailure) BulkByScrollResponseBaseFailuresItem {
+	return BulkByScrollResponseBaseFailuresItem{
+		typ:   BulkByScrollResponseBaseFailuresItemBulkItemResponseFailureType,
+		value: v,
+	}
+}
+
 // ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value.
 func (u *BulkByScrollResponseBaseFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
 	v, _ := u.value.(ScrollableHitSourceSearchFailure)
 	return v
+}
+
+// NewBulkByScrollResponseBaseFailuresItemFromScrollableHitSourceSearchFailure returns a BulkByScrollResponseBaseFailuresItem populated with v
+// on the ScrollableHitSourceSearchFailure branch.
+func NewBulkByScrollResponseBaseFailuresItemFromScrollableHitSourceSearchFailure(v ScrollableHitSourceSearchFailure) BulkByScrollResponseBaseFailuresItem {
+	return BulkByScrollResponseBaseFailuresItem{
+		typ:   BulkByScrollResponseBaseFailuresItemScrollableHitSourceSearchFailureType,
+		value: v,
+	}
 }
 
 func (u *BulkByScrollResponseBaseFailuresItem) UnmarshalJSON(data []byte) error {
@@ -14359,10 +21042,29 @@ func (u *TasksTaskInfoBaseStatus) Type() TasksTaskInfoBaseStatusType { return u.
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *TasksTaskInfoBaseStatus) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewTasksTaskInfoBaseStatusFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *TasksTaskInfoBaseStatus) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = TasksTaskInfoBaseStatusUnknownType
+}
+
 // TasksReplicationTaskStatus returns the TasksReplicationTaskStatus branch value.
 func (u *TasksTaskInfoBaseStatus) TasksReplicationTaskStatus() TasksReplicationTaskStatus {
 	v, _ := u.value.(TasksReplicationTaskStatus)
 	return v
+}
+
+// NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus returns a TasksTaskInfoBaseStatus populated with v
+// on the TasksReplicationTaskStatus branch.
+func NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus(v TasksReplicationTaskStatus) TasksTaskInfoBaseStatus {
+	return TasksTaskInfoBaseStatus{
+		typ:   TasksTaskInfoBaseStatusTasksReplicationTaskStatusType,
+		value: v,
+	}
 }
 
 // BulkByScrollTaskStatus returns the BulkByScrollTaskStatus branch value.
@@ -14371,16 +21073,43 @@ func (u *TasksTaskInfoBaseStatus) BulkByScrollTaskStatus() BulkByScrollTaskStatu
 	return v
 }
 
+// NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus returns a TasksTaskInfoBaseStatus populated with v
+// on the BulkByScrollTaskStatus branch.
+func NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus(v BulkByScrollTaskStatus) TasksTaskInfoBaseStatus {
+	return TasksTaskInfoBaseStatus{
+		typ:   TasksTaskInfoBaseStatusBulkByScrollTaskStatusType,
+		value: v,
+	}
+}
+
 // TasksPersistentTaskStatus returns the TasksPersistentTaskStatus branch value.
 func (u *TasksTaskInfoBaseStatus) TasksPersistentTaskStatus() TasksPersistentTaskStatus {
 	v, _ := u.value.(TasksPersistentTaskStatus)
 	return v
 }
 
+// NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus returns a TasksTaskInfoBaseStatus populated with v
+// on the TasksPersistentTaskStatus branch.
+func NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus(v TasksPersistentTaskStatus) TasksTaskInfoBaseStatus {
+	return TasksTaskInfoBaseStatus{
+		typ:   TasksTaskInfoBaseStatusTasksPersistentTaskStatusType,
+		value: v,
+	}
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *TasksTaskInfoBaseStatus) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
+}
+
+// NewTasksTaskInfoBaseStatusFromMap returns a TasksTaskInfoBaseStatus populated with v
+// on the Map branch.
+func NewTasksTaskInfoBaseStatusFromMap(v map[string]json.RawMessage) TasksTaskInfoBaseStatus {
+	return TasksTaskInfoBaseStatus{
+		typ:   TasksTaskInfoBaseStatusMapType,
+		value: v,
+	}
 }
 
 func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
@@ -14458,16 +21187,44 @@ func (u *TasksTaskListResponseBase) Type() TasksTaskListResponseBaseType { retur
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *TasksTaskListResponseBase) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewTasksTaskListResponseBaseFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *TasksTaskListResponseBase) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = TasksTaskListResponseBaseUnknownType
+}
+
 // Array returns the []TasksTaskInfo branch value.
 func (u *TasksTaskListResponseBase) Array() []TasksTaskInfo {
 	v, _ := u.value.([]TasksTaskInfo)
 	return v
 }
 
+// NewTasksTaskListResponseBaseFromArray returns a TasksTaskListResponseBase populated with v
+// on the Array branch.
+func NewTasksTaskListResponseBaseFromArray(v []TasksTaskInfo) TasksTaskListResponseBase {
+	return TasksTaskListResponseBase{
+		typ:   TasksTaskListResponseBaseArrayType,
+		value: v,
+	}
+}
+
 // Map returns the map[string]json.RawMessage branch value.
 func (u *TasksTaskListResponseBase) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
+}
+
+// NewTasksTaskListResponseBaseFromMap returns a TasksTaskListResponseBase populated with v
+// on the Map branch.
+func NewTasksTaskListResponseBaseFromMap(v map[string]json.RawMessage) TasksTaskListResponseBase {
+	return TasksTaskListResponseBase{
+		typ:   TasksTaskListResponseBaseMapType,
+		value: v,
+	}
 }
 
 func (u *TasksTaskListResponseBase) UnmarshalJSON(data []byte) error {
@@ -14576,10 +21333,29 @@ func (u *CommonMappingFieldMappingValue) Type() CommonMappingFieldMappingValueTy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CommonMappingFieldMappingValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonMappingFieldMappingValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonMappingFieldMappingValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonMappingFieldMappingValueUnknownType
+}
+
 // CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
 	v, _ := u.value.(CommonMappingBinaryProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingBinaryProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingBinaryPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
@@ -14588,10 +21364,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingBooleanProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingBooleanProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingBooleanPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingJoinProperty() CommonMappingJoinProperty {
 	v, _ := u.value.(CommonMappingJoinProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingJoinProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingJoinProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingJoinPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
@@ -14600,10 +21394,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingKeywordProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingKeywordProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
 	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingMatchOnlyTextPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
@@ -14612,10 +21424,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingPercolatorProperty() Commo
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingPercolatorProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingPercolatorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
 	v, _ := u.value.(CommonMappingRankFeatureProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingRankFeatureProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingRankFeaturePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
@@ -14624,10 +21454,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingRankFeaturesProperty() Com
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingRankFeaturesProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingRankFeaturesPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
 	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingSearchAsYouTypePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
@@ -14636,10 +21484,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingTextProperty() CommonMappi
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingTextProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingTextProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingTextPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingVersionProperty() CommonMappingVersionProperty {
 	v, _ := u.value.(CommonMappingVersionProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingVersionProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingVersionProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingVersionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
@@ -14648,10 +21514,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingWildcardProperty() CommonM
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingWildcardProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingWildcardPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
 	v, _ := u.value.(CommonMappingDateNanosProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingDateNanosProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingDateNanosPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
@@ -14660,10 +21544,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingDateProperty() CommonMappi
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingDateProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingDateProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingDatePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
 	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingAggregateMetricDoublePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
@@ -14672,10 +21574,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingFlatObjectProperty() Commo
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingFlatObjectProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingFlatObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingNestedProperty() CommonMappingNestedProperty {
 	v, _ := u.value.(CommonMappingNestedProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingNestedProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingNestedProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingNestedPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
@@ -14684,10 +21604,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingObjectProperty() CommonMap
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingObjectProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingObjectProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingObjectPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
 	v, _ := u.value.(CommonMappingCompletionProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingCompletionProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingCompletionPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
@@ -14696,10 +21634,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingConstantKeywordProperty() 
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingConstantKeywordProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingConstantKeywordPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
 	v, _ := u.value.(CommonMappingFieldAliasProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingFieldAliasProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingFieldAliasPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
@@ -14708,10 +21664,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingHistogramProperty() Common
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingHistogramProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingHistogramPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingIpProperty() CommonMappingIpProperty {
 	v, _ := u.value.(CommonMappingIpProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingIpProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIpProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingIpPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
@@ -14720,10 +21694,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingMurmur3HashProperty() Comm
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingMurmur3HashProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingMurmur3HashPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
 	v, _ := u.value.(CommonMappingTokenCountProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingTokenCountProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingTokenCountPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
@@ -14732,10 +21724,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingGeoPointProperty() CommonM
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingGeoPointProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingGeoPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
 	v, _ := u.value.(CommonMappingGeoShapeProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingGeoShapeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingGeoShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
@@ -14744,10 +21754,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingXyPointProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingXyPointProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingXyPointPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
 	v, _ := u.value.(CommonMappingXyShapeProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingXyShapeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingXyShapePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
@@ -14756,10 +21784,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingByteNumberProperty() Commo
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingByteNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingByteNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
 	v, _ := u.value.(CommonMappingDoubleNumberProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingDoubleNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingDoubleNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
@@ -14768,10 +21814,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingFloatNumberProperty() Comm
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingFloatNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
 	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingHalfFloatNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
@@ -14780,10 +21844,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingIntegerNumberProperty() Co
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingIntegerNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingIntegerNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
 	v, _ := u.value.(CommonMappingLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingLongNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
@@ -14792,10 +21874,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingScaledFloatNumberProperty(
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingScaledFloatNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
 	v, _ := u.value.(CommonMappingSemanticProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingSemanticProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingSemanticProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingSemanticPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
@@ -14804,10 +21904,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingShortNumberProperty() Comm
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingShortNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingShortNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingShortNumberPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
 	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingUnsignedLongNumberProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingUnsignedLongNumberPropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
@@ -14816,10 +21934,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingDateRangeProperty() Common
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingDateRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingDateRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingDateRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
 	v, _ := u.value.(CommonMappingDoubleRangeProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingDoubleRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingDoubleRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingDoubleRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
@@ -14828,10 +21964,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingFloatRangeProperty() Commo
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingFloatRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingFloatRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingFloatRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
 	v, _ := u.value.(CommonMappingIntegerRangeProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingIntegerRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIntegerRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingIntegerRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
@@ -14840,10 +21994,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingIpRangeProperty() CommonMa
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingIpRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIpRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingIpRangePropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
 	v, _ := u.value.(CommonMappingLongRangeProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingLongRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingLongRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingLongRangePropertyType,
+		value: v,
+	}
 }
 
 // CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
@@ -14852,10 +22024,28 @@ func (u *CommonMappingFieldMappingValue) CommonMappingKnnVectorProperty() Common
 	return v
 }
 
+// NewCommonMappingFieldMappingValueFromCommonMappingKnnVectorProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingKnnVectorProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingKnnVectorPropertyType,
+		value: v,
+	}
+}
+
 // CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
 func (u *CommonMappingFieldMappingValue) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
 	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
 	return v
+}
+
+// NewCommonMappingFieldMappingValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIcuCollationKeywordProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingFieldMappingValue {
+	return CommonMappingFieldMappingValue{
+		typ:   CommonMappingFieldMappingValueCommonMappingIcuCollationKeywordPropertyType,
+		value: v,
+	}
 }
 
 func (u *CommonMappingFieldMappingValue) UnmarshalJSON(data []byte) error {
@@ -15277,16 +22467,44 @@ func (u *IngestProcessorContainerScript) Type() IngestProcessorContainerScriptTy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IngestProcessorContainerScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIngestProcessorContainerScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IngestProcessorContainerScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IngestProcessorContainerScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *IngestProcessorContainerScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewIngestProcessorContainerScriptFromString returns a IngestProcessorContainerScript populated with v
+// on the String branch.
+func NewIngestProcessorContainerScriptFromString(v string) IngestProcessorContainerScript {
+	return IngestProcessorContainerScript{
+		typ:   IngestProcessorContainerScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *IngestProcessorContainerScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewIngestProcessorContainerScriptFromStored returns a IngestProcessorContainerScript populated with v
+// on the Stored branch.
+func NewIngestProcessorContainerScriptFromStored(v StoredScriptId) IngestProcessorContainerScript {
+	return IngestProcessorContainerScript{
+		typ:   IngestProcessorContainerScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *IngestProcessorContainerScript) UnmarshalJSON(data []byte) error {
@@ -15350,16 +22568,44 @@ func (u *InsightsSourceSource) Type() InsightsSourceSourceType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *InsightsSourceSource) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInsightsSourceSourceFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InsightsSourceSource) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InsightsSourceSourceUnknownType
+}
+
 // String returns the string branch value.
 func (u *InsightsSourceSource) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewInsightsSourceSourceFromString returns a InsightsSourceSource populated with v
+// on the String branch.
+func NewInsightsSourceSourceFromString(v string) InsightsSourceSource {
+	return InsightsSourceSource{
+		typ:   InsightsSourceSourceStringType,
+		value: v,
+	}
+}
+
 // InsightsSourceSourceObject1 returns the InsightsSourceSourceObject1 branch value.
 func (u *InsightsSourceSource) InsightsSourceSourceObject1() InsightsSourceSourceObject1 {
 	v, _ := u.value.(InsightsSourceSourceObject1)
 	return v
+}
+
+// NewInsightsSourceSourceFromInsightsSourceSourceObject1 returns a InsightsSourceSource populated with v
+// on the InsightsSourceSourceObject1 branch.
+func NewInsightsSourceSourceFromInsightsSourceSourceObject1(v InsightsSourceSourceObject1) InsightsSourceSource {
+	return InsightsSourceSource{
+		typ:   InsightsSourceSourceInsightsSourceSourceObject1Type,
+		value: v,
+	}
 }
 
 func (u *InsightsSourceSource) UnmarshalJSON(data []byte) error {
@@ -15423,16 +22669,44 @@ func (u *InsightsSourceDocvalueFieldsItem) Type() InsightsSourceDocvalueFieldsIt
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *InsightsSourceDocvalueFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInsightsSourceDocvalueFieldsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InsightsSourceDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InsightsSourceDocvalueFieldsItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *InsightsSourceDocvalueFieldsItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewInsightsSourceDocvalueFieldsItemFromString returns a InsightsSourceDocvalueFieldsItem populated with v
+// on the String branch.
+func NewInsightsSourceDocvalueFieldsItemFromString(v string) InsightsSourceDocvalueFieldsItem {
+	return InsightsSourceDocvalueFieldsItem{
+		typ:   InsightsSourceDocvalueFieldsItemStringType,
+		value: v,
+	}
+}
+
 // InsightsSourceDocvalueFieldsItemObject1 returns the InsightsSourceDocvalueFieldsItemObject1 branch value.
 func (u *InsightsSourceDocvalueFieldsItem) InsightsSourceDocvalueFieldsItemObject1() InsightsSourceDocvalueFieldsItemObject1 {
 	v, _ := u.value.(InsightsSourceDocvalueFieldsItemObject1)
 	return v
+}
+
+// NewInsightsSourceDocvalueFieldsItemFromInsightsSourceDocvalueFieldsItemObject1 returns a InsightsSourceDocvalueFieldsItem populated with v
+// on the InsightsSourceDocvalueFieldsItemObject1 branch.
+func NewInsightsSourceDocvalueFieldsItemFromInsightsSourceDocvalueFieldsItemObject1(v InsightsSourceDocvalueFieldsItemObject1) InsightsSourceDocvalueFieldsItem {
+	return InsightsSourceDocvalueFieldsItem{
+		typ:   InsightsSourceDocvalueFieldsItemInsightsSourceDocvalueFieldsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *InsightsSourceDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
@@ -15496,16 +22770,44 @@ func (u *InsightsSourceFieldsItem) Type() InsightsSourceFieldsItemType { return 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *InsightsSourceFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInsightsSourceFieldsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InsightsSourceFieldsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InsightsSourceFieldsItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *InsightsSourceFieldsItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewInsightsSourceFieldsItemFromString returns a InsightsSourceFieldsItem populated with v
+// on the String branch.
+func NewInsightsSourceFieldsItemFromString(v string) InsightsSourceFieldsItem {
+	return InsightsSourceFieldsItem{
+		typ:   InsightsSourceFieldsItemStringType,
+		value: v,
+	}
+}
+
 // InsightsSourceFieldsItemObject1 returns the InsightsSourceFieldsItemObject1 branch value.
 func (u *InsightsSourceFieldsItem) InsightsSourceFieldsItemObject1() InsightsSourceFieldsItemObject1 {
 	v, _ := u.value.(InsightsSourceFieldsItemObject1)
 	return v
+}
+
+// NewInsightsSourceFieldsItemFromInsightsSourceFieldsItemObject1 returns a InsightsSourceFieldsItem populated with v
+// on the InsightsSourceFieldsItemObject1 branch.
+func NewInsightsSourceFieldsItemFromInsightsSourceFieldsItemObject1(v InsightsSourceFieldsItemObject1) InsightsSourceFieldsItem {
+	return InsightsSourceFieldsItem{
+		typ:   InsightsSourceFieldsItemInsightsSourceFieldsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *InsightsSourceFieldsItem) UnmarshalJSON(data []byte) error {
@@ -15571,10 +22873,29 @@ func (u *InsightsSourceSort) Type() InsightsSourceSortType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *InsightsSourceSort) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInsightsSourceSortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InsightsSourceSort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InsightsSourceSortUnknownType
+}
+
 // String returns the string branch value.
 func (u *InsightsSourceSort) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewInsightsSourceSortFromString returns a InsightsSourceSort populated with v
+// on the String branch.
+func NewInsightsSourceSortFromString(v string) InsightsSourceSort {
+	return InsightsSourceSort{
+		typ:   InsightsSourceSortStringType,
+		value: v,
+	}
 }
 
 // StringMap returns the map[string]string branch value.
@@ -15583,16 +22904,43 @@ func (u *InsightsSourceSort) StringMap() map[string]string {
 	return v
 }
 
+// NewInsightsSourceSortFromStringMap returns a InsightsSourceSort populated with v
+// on the StringMap branch.
+func NewInsightsSourceSortFromStringMap(v map[string]string) InsightsSourceSort {
+	return InsightsSourceSort{
+		typ:   InsightsSourceSortStringMapType,
+		value: v,
+	}
+}
+
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *InsightsSourceSort) FieldSortMap() map[string]FieldSort {
 	v, _ := u.value.(map[string]FieldSort)
 	return v
 }
 
+// NewInsightsSourceSortFromFieldSortMap returns a InsightsSourceSort populated with v
+// on the FieldSortMap branch.
+func NewInsightsSourceSortFromFieldSortMap(v map[string]FieldSort) InsightsSourceSort {
+	return InsightsSourceSort{
+		typ:   InsightsSourceSortFieldSortMapType,
+		value: v,
+	}
+}
+
 // Options returns the SortOptions branch value.
 func (u *InsightsSourceSort) Options() SortOptions {
 	v, _ := u.value.(SortOptions)
 	return v
+}
+
+// NewInsightsSourceSortFromOptions returns a InsightsSourceSort populated with v
+// on the Options branch.
+func NewInsightsSourceSortFromOptions(v SortOptions) InsightsSourceSort {
+	return InsightsSourceSort{
+		typ:   InsightsSourceSortOptionsType,
+		value: v,
+	}
 }
 
 func (u *InsightsSourceSort) UnmarshalJSON(data []byte) error {
@@ -15672,10 +23020,29 @@ func (u *InsightsSourceSortItem) Type() InsightsSourceSortItemType { return u.ty
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *InsightsSourceSortItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInsightsSourceSortItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InsightsSourceSortItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InsightsSourceSortItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *InsightsSourceSortItem) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewInsightsSourceSortItemFromString returns a InsightsSourceSortItem populated with v
+// on the String branch.
+func NewInsightsSourceSortItemFromString(v string) InsightsSourceSortItem {
+	return InsightsSourceSortItem{
+		typ:   InsightsSourceSortItemStringType,
+		value: v,
+	}
 }
 
 // StringMap returns the map[string]string branch value.
@@ -15684,16 +23051,43 @@ func (u *InsightsSourceSortItem) StringMap() map[string]string {
 	return v
 }
 
+// NewInsightsSourceSortItemFromStringMap returns a InsightsSourceSortItem populated with v
+// on the StringMap branch.
+func NewInsightsSourceSortItemFromStringMap(v map[string]string) InsightsSourceSortItem {
+	return InsightsSourceSortItem{
+		typ:   InsightsSourceSortItemStringMapType,
+		value: v,
+	}
+}
+
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *InsightsSourceSortItem) FieldSortMap() map[string]FieldSort {
 	v, _ := u.value.(map[string]FieldSort)
 	return v
 }
 
+// NewInsightsSourceSortItemFromFieldSortMap returns a InsightsSourceSortItem populated with v
+// on the FieldSortMap branch.
+func NewInsightsSourceSortItemFromFieldSortMap(v map[string]FieldSort) InsightsSourceSortItem {
+	return InsightsSourceSortItem{
+		typ:   InsightsSourceSortItemFieldSortMapType,
+		value: v,
+	}
+}
+
 // Options returns the SortOptions branch value.
 func (u *InsightsSourceSortItem) Options() SortOptions {
 	v, _ := u.value.(SortOptions)
 	return v
+}
+
+// NewInsightsSourceSortItemFromOptions returns a InsightsSourceSortItem populated with v
+// on the Options branch.
+func NewInsightsSourceSortItemFromOptions(v SortOptions) InsightsSourceSortItem {
+	return InsightsSourceSortItem{
+		typ:   InsightsSourceSortItemOptionsType,
+		value: v,
+	}
 }
 
 func (u *InsightsSourceSortItem) UnmarshalJSON(data []byte) error {
@@ -15774,16 +23168,44 @@ func (u *InsightsSourceTrackTotalHits) Type() InsightsSourceTrackTotalHitsType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *InsightsSourceTrackTotalHits) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInsightsSourceTrackTotalHitsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InsightsSourceTrackTotalHits) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InsightsSourceTrackTotalHitsUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *InsightsSourceTrackTotalHits) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
 }
 
+// NewInsightsSourceTrackTotalHitsFromBool returns a InsightsSourceTrackTotalHits populated with v
+// on the Bool branch.
+func NewInsightsSourceTrackTotalHitsFromBool(v bool) InsightsSourceTrackTotalHits {
+	return InsightsSourceTrackTotalHits{
+		typ:   InsightsSourceTrackTotalHitsBoolType,
+		value: v,
+	}
+}
+
 // Int returns the int branch value.
 func (u *InsightsSourceTrackTotalHits) Int() int {
 	v, _ := u.value.(int)
 	return v
+}
+
+// NewInsightsSourceTrackTotalHitsFromInt returns a InsightsSourceTrackTotalHits populated with v
+// on the Int branch.
+func NewInsightsSourceTrackTotalHitsFromInt(v int) InsightsSourceTrackTotalHits {
+	return InsightsSourceTrackTotalHits{
+		typ:   InsightsSourceTrackTotalHitsIntType,
+		value: v,
+	}
 }
 
 func (u *InsightsSourceTrackTotalHits) UnmarshalJSON(data []byte) error {
@@ -15847,16 +23269,44 @@ func (u *IsmPolicyTemplate) Type() IsmPolicyTemplateType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *IsmPolicyTemplate) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIsmPolicyTemplateFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IsmPolicyTemplate) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IsmPolicyTemplateUnknownType
+}
+
 // IsmTemplate returns the IsmTemplate branch value.
 func (u *IsmPolicyTemplate) IsmTemplate() IsmTemplate {
 	v, _ := u.value.(IsmTemplate)
 	return v
 }
 
+// NewIsmPolicyTemplateFromIsmTemplate returns a IsmPolicyTemplate populated with v
+// on the IsmTemplate branch.
+func NewIsmPolicyTemplateFromIsmTemplate(v IsmTemplate) IsmPolicyTemplate {
+	return IsmPolicyTemplate{
+		typ:   IsmPolicyTemplateIsmTemplateType,
+		value: v,
+	}
+}
+
 // Array returns the []IsmTemplate branch value.
 func (u *IsmPolicyTemplate) Array() []IsmTemplate {
 	v, _ := u.value.([]IsmTemplate)
 	return v
+}
+
+// NewIsmPolicyTemplateFromArray returns a IsmPolicyTemplate populated with v
+// on the Array branch.
+func NewIsmPolicyTemplateFromArray(v []IsmTemplate) IsmPolicyTemplate {
+	return IsmPolicyTemplate{
+		typ:   IsmPolicyTemplateArrayType,
+		value: v,
+	}
 }
 
 func (u *IsmPolicyTemplate) UnmarshalJSON(data []byte) error {
@@ -15922,16 +23372,44 @@ func (u *SearchResultJsonValueSuggestValueItemObject0Options) Type() SearchResul
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchResultJsonValueSuggestValueItemObject0Options) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchResultJsonValueSuggestValueItemObject0OptionsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchResultJsonValueSuggestValueItemObject0Options) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchResultJsonValueSuggestValueItemObject0OptionsUnknownType
+}
+
 // SearchResultJsonValueSuggestValueItemObject0OptionsObject0 returns the SearchResultJsonValueSuggestValueItemObject0OptionsObject0 branch value.
 func (u *SearchResultJsonValueSuggestValueItemObject0Options) SearchResultJsonValueSuggestValueItemObject0OptionsObject0() SearchResultJsonValueSuggestValueItemObject0OptionsObject0 {
 	v, _ := u.value.(SearchResultJsonValueSuggestValueItemObject0OptionsObject0)
 	return v
 }
 
+// NewSearchResultJsonValueSuggestValueItemObject0OptionsFromSearchResultJsonValueSuggestValueItemObject0OptionsObject0 returns a SearchResultJsonValueSuggestValueItemObject0Options populated with v
+// on the SearchResultJsonValueSuggestValueItemObject0OptionsObject0 branch.
+func NewSearchResultJsonValueSuggestValueItemObject0OptionsFromSearchResultJsonValueSuggestValueItemObject0OptionsObject0(v SearchResultJsonValueSuggestValueItemObject0OptionsObject0) SearchResultJsonValueSuggestValueItemObject0Options {
+	return SearchResultJsonValueSuggestValueItemObject0Options{
+		typ:   SearchResultJsonValueSuggestValueItemObject0OptionsSearchResultJsonValueSuggestValueItemObject0OptionsObject0Type,
+		value: v,
+	}
+}
+
 // Array returns the []SearchResultJsonValueSuggestValueItemObject0OptionsItem branch value.
 func (u *SearchResultJsonValueSuggestValueItemObject0Options) Array() []SearchResultJsonValueSuggestValueItemObject0OptionsItem {
 	v, _ := u.value.([]SearchResultJsonValueSuggestValueItemObject0OptionsItem)
 	return v
+}
+
+// NewSearchResultJsonValueSuggestValueItemObject0OptionsFromArray returns a SearchResultJsonValueSuggestValueItemObject0Options populated with v
+// on the Array branch.
+func NewSearchResultJsonValueSuggestValueItemObject0OptionsFromArray(v []SearchResultJsonValueSuggestValueItemObject0OptionsItem) SearchResultJsonValueSuggestValueItemObject0Options {
+	return SearchResultJsonValueSuggestValueItemObject0Options{
+		typ:   SearchResultJsonValueSuggestValueItemObject0OptionsArrayType,
+		value: v,
+	}
 }
 
 func (u *SearchResultJsonValueSuggestValueItemObject0Options) UnmarshalJSON(data []byte) error {
@@ -15998,10 +23476,29 @@ func (u *SearchResultJsonValueSuggestValueItem) Type() SearchResultJsonValueSugg
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchResultJsonValueSuggestValueItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchResultJsonValueSuggestValueItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchResultJsonValueSuggestValueItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchResultJsonValueSuggestValueItemUnknownType
+}
+
 // SearchResultJsonValueSuggestValueItemObject0 returns the SearchResultJsonValueSuggestValueItemObject0 branch value.
 func (u *SearchResultJsonValueSuggestValueItem) SearchResultJsonValueSuggestValueItemObject0() SearchResultJsonValueSuggestValueItemObject0 {
 	v, _ := u.value.(SearchResultJsonValueSuggestValueItemObject0)
 	return v
+}
+
+// NewSearchResultJsonValueSuggestValueItemFromSearchResultJsonValueSuggestValueItemObject0 returns a SearchResultJsonValueSuggestValueItem populated with v
+// on the SearchResultJsonValueSuggestValueItemObject0 branch.
+func NewSearchResultJsonValueSuggestValueItemFromSearchResultJsonValueSuggestValueItemObject0(v SearchResultJsonValueSuggestValueItemObject0) SearchResultJsonValueSuggestValueItem {
+	return SearchResultJsonValueSuggestValueItem{
+		typ:   SearchResultJsonValueSuggestValueItemSearchResultJsonValueSuggestValueItemObject0Type,
+		value: v,
+	}
 }
 
 // Phrase returns the SearchPhraseSuggest branch value.
@@ -16010,10 +23507,28 @@ func (u *SearchResultJsonValueSuggestValueItem) Phrase() SearchPhraseSuggest {
 	return v
 }
 
+// NewSearchResultJsonValueSuggestValueItemFromPhrase returns a SearchResultJsonValueSuggestValueItem populated with v
+// on the Phrase branch.
+func NewSearchResultJsonValueSuggestValueItemFromPhrase(v SearchPhraseSuggest) SearchResultJsonValueSuggestValueItem {
+	return SearchResultJsonValueSuggestValueItem{
+		typ:   SearchResultJsonValueSuggestValueItemPhraseType,
+		value: v,
+	}
+}
+
 // Term returns the SearchTermSuggest branch value.
 func (u *SearchResultJsonValueSuggestValueItem) Term() SearchTermSuggest {
 	v, _ := u.value.(SearchTermSuggest)
 	return v
+}
+
+// NewSearchResultJsonValueSuggestValueItemFromTerm returns a SearchResultJsonValueSuggestValueItem populated with v
+// on the Term branch.
+func NewSearchResultJsonValueSuggestValueItemFromTerm(v SearchTermSuggest) SearchResultJsonValueSuggestValueItem {
+	return SearchResultJsonValueSuggestValueItem{
+		typ:   SearchResultJsonValueSuggestValueItemTermType,
+		value: v,
+	}
 }
 
 func (u *SearchResultJsonValueSuggestValueItem) UnmarshalJSON(data []byte) error {
@@ -16085,16 +23600,44 @@ func (u *MlDeleteAgenticMemoryResponseFailuresItem) Type() MlDeleteAgenticMemory
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlDeleteAgenticMemoryResponseFailuresItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlDeleteAgenticMemoryResponseFailuresItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlDeleteAgenticMemoryResponseFailuresItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlDeleteAgenticMemoryResponseFailuresItemUnknownType
+}
+
 // BulkItemResponseFailure returns the BulkItemResponseFailure branch value.
 func (u *MlDeleteAgenticMemoryResponseFailuresItem) BulkItemResponseFailure() BulkItemResponseFailure {
 	v, _ := u.value.(BulkItemResponseFailure)
 	return v
 }
 
+// NewMlDeleteAgenticMemoryResponseFailuresItemFromBulkItemResponseFailure returns a MlDeleteAgenticMemoryResponseFailuresItem populated with v
+// on the BulkItemResponseFailure branch.
+func NewMlDeleteAgenticMemoryResponseFailuresItemFromBulkItemResponseFailure(v BulkItemResponseFailure) MlDeleteAgenticMemoryResponseFailuresItem {
+	return MlDeleteAgenticMemoryResponseFailuresItem{
+		typ:   MlDeleteAgenticMemoryResponseFailuresItemBulkItemResponseFailureType,
+		value: v,
+	}
+}
+
 // ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value.
 func (u *MlDeleteAgenticMemoryResponseFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
 	v, _ := u.value.(ScrollableHitSourceSearchFailure)
 	return v
+}
+
+// NewMlDeleteAgenticMemoryResponseFailuresItemFromScrollableHitSourceSearchFailure returns a MlDeleteAgenticMemoryResponseFailuresItem populated with v
+// on the ScrollableHitSourceSearchFailure branch.
+func NewMlDeleteAgenticMemoryResponseFailuresItemFromScrollableHitSourceSearchFailure(v ScrollableHitSourceSearchFailure) MlDeleteAgenticMemoryResponseFailuresItem {
+	return MlDeleteAgenticMemoryResponseFailuresItem{
+		typ:   MlDeleteAgenticMemoryResponseFailuresItemScrollableHitSourceSearchFailureType,
+		value: v,
+	}
 }
 
 func (u *MlDeleteAgenticMemoryResponseFailuresItem) UnmarshalJSON(data []byte) error {
@@ -16156,16 +23699,44 @@ func (u *MlExecuteAlgorithmResponse) Type() MlExecuteAlgorithmResponseType { ret
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlExecuteAlgorithmResponse) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlExecuteAlgorithmResponseFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlExecuteAlgorithmResponse) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlExecuteAlgorithmResponseUnknownType
+}
+
 // MlExecuteLocalSampleCalculatorResponse returns the MlExecuteLocalSampleCalculatorResponse branch value.
 func (u *MlExecuteAlgorithmResponse) MlExecuteLocalSampleCalculatorResponse() MlExecuteLocalSampleCalculatorResponse {
 	v, _ := u.value.(MlExecuteLocalSampleCalculatorResponse)
 	return v
 }
 
+// NewMlExecuteAlgorithmResponseFromMlExecuteLocalSampleCalculatorResponse returns a MlExecuteAlgorithmResponse populated with v
+// on the MlExecuteLocalSampleCalculatorResponse branch.
+func NewMlExecuteAlgorithmResponseFromMlExecuteLocalSampleCalculatorResponse(v MlExecuteLocalSampleCalculatorResponse) MlExecuteAlgorithmResponse {
+	return MlExecuteAlgorithmResponse{
+		typ:   MlExecuteAlgorithmResponseMlExecuteLocalSampleCalculatorResponseType,
+		value: v,
+	}
+}
+
 // MlExecuteAlgorithmResponseObject1 returns the MlExecuteAlgorithmResponseObject1 branch value.
 func (u *MlExecuteAlgorithmResponse) MlExecuteAlgorithmResponseObject1() MlExecuteAlgorithmResponseObject1 {
 	v, _ := u.value.(MlExecuteAlgorithmResponseObject1)
 	return v
+}
+
+// NewMlExecuteAlgorithmResponseFromMlExecuteAlgorithmResponseObject1 returns a MlExecuteAlgorithmResponse populated with v
+// on the MlExecuteAlgorithmResponseObject1 branch.
+func NewMlExecuteAlgorithmResponseFromMlExecuteAlgorithmResponseObject1(v MlExecuteAlgorithmResponseObject1) MlExecuteAlgorithmResponse {
+	return MlExecuteAlgorithmResponse{
+		typ:   MlExecuteAlgorithmResponseMlExecuteAlgorithmResponseObject1Type,
+		value: v,
+	}
 }
 
 func (u *MlExecuteAlgorithmResponse) UnmarshalJSON(data []byte) error {
@@ -16229,16 +23800,44 @@ func (u *MlModelProfileTargetWorkerNodesItem) Type() MlModelProfileTargetWorkerN
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlModelProfileTargetWorkerNodesItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlModelProfileTargetWorkerNodesItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlModelProfileTargetWorkerNodesItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlModelProfileTargetWorkerNodesItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlModelProfileTargetWorkerNodesItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlModelProfileTargetWorkerNodesItemFromString returns a MlModelProfileTargetWorkerNodesItem populated with v
+// on the String branch.
+func NewMlModelProfileTargetWorkerNodesItemFromString(v string) MlModelProfileTargetWorkerNodesItem {
+	return MlModelProfileTargetWorkerNodesItem{
+		typ:   MlModelProfileTargetWorkerNodesItemStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *MlModelProfileTargetWorkerNodesItem) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewMlModelProfileTargetWorkerNodesItemFromArray returns a MlModelProfileTargetWorkerNodesItem populated with v
+// on the Array branch.
+func NewMlModelProfileTargetWorkerNodesItemFromArray(v []string) MlModelProfileTargetWorkerNodesItem {
+	return MlModelProfileTargetWorkerNodesItem{
+		typ:   MlModelProfileTargetWorkerNodesItemArrayType,
+		value: v,
+	}
 }
 
 func (u *MlModelProfileTargetWorkerNodesItem) UnmarshalJSON(data []byte) error {
@@ -16302,16 +23901,44 @@ func (u *MlModelProfileWorkerNodesItem) Type() MlModelProfileWorkerNodesItemType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlModelProfileWorkerNodesItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlModelProfileWorkerNodesItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlModelProfileWorkerNodesItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlModelProfileWorkerNodesItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlModelProfileWorkerNodesItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlModelProfileWorkerNodesItemFromString returns a MlModelProfileWorkerNodesItem populated with v
+// on the String branch.
+func NewMlModelProfileWorkerNodesItemFromString(v string) MlModelProfileWorkerNodesItem {
+	return MlModelProfileWorkerNodesItem{
+		typ:   MlModelProfileWorkerNodesItemStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *MlModelProfileWorkerNodesItem) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewMlModelProfileWorkerNodesItemFromArray returns a MlModelProfileWorkerNodesItem populated with v
+// on the Array branch.
+func NewMlModelProfileWorkerNodesItemFromArray(v []string) MlModelProfileWorkerNodesItem {
+	return MlModelProfileWorkerNodesItem{
+		typ:   MlModelProfileWorkerNodesItemArrayType,
+		value: v,
+	}
 }
 
 func (u *MlModelProfileWorkerNodesItem) UnmarshalJSON(data []byte) error {
@@ -16375,16 +24002,44 @@ func (u *MlTaskWorkerNodeItem) Type() MlTaskWorkerNodeItemType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlTaskWorkerNodeItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlTaskWorkerNodeItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlTaskWorkerNodeItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlTaskWorkerNodeItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlTaskWorkerNodeItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlTaskWorkerNodeItemFromString returns a MlTaskWorkerNodeItem populated with v
+// on the String branch.
+func NewMlTaskWorkerNodeItemFromString(v string) MlTaskWorkerNodeItem {
+	return MlTaskWorkerNodeItem{
+		typ:   MlTaskWorkerNodeItemStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *MlTaskWorkerNodeItem) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewMlTaskWorkerNodeItemFromArray returns a MlTaskWorkerNodeItem populated with v
+// on the Array branch.
+func NewMlTaskWorkerNodeItemFromArray(v []string) MlTaskWorkerNodeItem {
+	return MlTaskWorkerNodeItem{
+		typ:   MlTaskWorkerNodeItemArrayType,
+		value: v,
+	}
 }
 
 func (u *MlTaskWorkerNodeItem) UnmarshalJSON(data []byte) error {
@@ -16448,16 +24103,44 @@ func (u *MlSourceCreateTime) Type() MlSourceCreateTimeType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlSourceCreateTime) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlSourceCreateTimeFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlSourceCreateTime) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlSourceCreateTimeUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlSourceCreateTime) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlSourceCreateTimeFromString returns a MlSourceCreateTime populated with v
+// on the String branch.
+func NewMlSourceCreateTimeFromString(v string) MlSourceCreateTime {
+	return MlSourceCreateTime{
+		typ:   MlSourceCreateTimeStringType,
+		value: v,
+	}
+}
+
 // Int64 returns the int64 branch value.
 func (u *MlSourceCreateTime) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
+}
+
+// NewMlSourceCreateTimeFromInt64 returns a MlSourceCreateTime populated with v
+// on the Int64 branch.
+func NewMlSourceCreateTimeFromInt64(v int64) MlSourceCreateTime {
+	return MlSourceCreateTime{
+		typ:   MlSourceCreateTimeInt64Type,
+		value: v,
+	}
 }
 
 func (u *MlSourceCreateTime) UnmarshalJSON(data []byte) error {
@@ -16521,16 +24204,44 @@ func (u *MlSourcePlanningWorkerNodesItem) Type() MlSourcePlanningWorkerNodesItem
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlSourcePlanningWorkerNodesItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlSourcePlanningWorkerNodesItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlSourcePlanningWorkerNodesItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlSourcePlanningWorkerNodesItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlSourcePlanningWorkerNodesItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlSourcePlanningWorkerNodesItemFromString returns a MlSourcePlanningWorkerNodesItem populated with v
+// on the String branch.
+func NewMlSourcePlanningWorkerNodesItemFromString(v string) MlSourcePlanningWorkerNodesItem {
+	return MlSourcePlanningWorkerNodesItem{
+		typ:   MlSourcePlanningWorkerNodesItemStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *MlSourcePlanningWorkerNodesItem) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewMlSourcePlanningWorkerNodesItemFromArray returns a MlSourcePlanningWorkerNodesItem populated with v
+// on the Array branch.
+func NewMlSourcePlanningWorkerNodesItemFromArray(v []string) MlSourcePlanningWorkerNodesItem {
+	return MlSourcePlanningWorkerNodesItem{
+		typ:   MlSourcePlanningWorkerNodesItemArrayType,
+		value: v,
+	}
 }
 
 func (u *MlSourcePlanningWorkerNodesItem) UnmarshalJSON(data []byte) error {
@@ -16594,16 +24305,44 @@ func (u *MlSourceWorkerNodeItem) Type() MlSourceWorkerNodeItemType { return u.ty
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlSourceWorkerNodeItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlSourceWorkerNodeItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlSourceWorkerNodeItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlSourceWorkerNodeItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlSourceWorkerNodeItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlSourceWorkerNodeItemFromString returns a MlSourceWorkerNodeItem populated with v
+// on the String branch.
+func NewMlSourceWorkerNodeItemFromString(v string) MlSourceWorkerNodeItem {
+	return MlSourceWorkerNodeItem{
+		typ:   MlSourceWorkerNodeItemStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *MlSourceWorkerNodeItem) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewMlSourceWorkerNodeItemFromArray returns a MlSourceWorkerNodeItem populated with v
+// on the Array branch.
+func NewMlSourceWorkerNodeItemFromArray(v []string) MlSourceWorkerNodeItem {
+	return MlSourceWorkerNodeItem{
+		typ:   MlSourceWorkerNodeItemArrayType,
+		value: v,
+	}
 }
 
 func (u *MlSourceWorkerNodeItem) UnmarshalJSON(data []byte) error {
@@ -16667,16 +24406,44 @@ func (u *NeuralStats) Type() NeuralStatsType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *NeuralStats) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNeuralStatsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NeuralStats) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NeuralStatsUnknownType
+}
+
 // NeuralNestedStats returns the NeuralNestedStats branch value.
 func (u *NeuralStats) NeuralNestedStats() NeuralNestedStats {
 	v, _ := u.value.(NeuralNestedStats)
 	return v
 }
 
+// NewNeuralStatsFromNeuralNestedStats returns a NeuralStats populated with v
+// on the NeuralNestedStats branch.
+func NewNeuralStatsFromNeuralNestedStats(v NeuralNestedStats) NeuralStats {
+	return NeuralStats{
+		typ:   NeuralStatsNeuralNestedStatsType,
+		value: v,
+	}
+}
+
 // NeuralFlatStats returns the NeuralFlatStats branch value.
 func (u *NeuralStats) NeuralFlatStats() NeuralFlatStats {
 	v, _ := u.value.(NeuralFlatStats)
 	return v
+}
+
+// NewNeuralStatsFromNeuralFlatStats returns a NeuralStats populated with v
+// on the NeuralFlatStats branch.
+func NewNeuralStatsFromNeuralFlatStats(v NeuralFlatStats) NeuralStats {
+	return NeuralStats{
+		typ:   NeuralStatsNeuralFlatStatsType,
+		value: v,
+	}
 }
 
 func (u *NeuralStats) UnmarshalJSON(data []byte) error {
@@ -16738,16 +24505,44 @@ func (u *HttpHeadersValue) Type() HttpHeadersValueType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *HttpHeadersValue) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewHttpHeadersValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *HttpHeadersValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = HttpHeadersValueUnknownType
+}
+
 // String returns the string branch value.
 func (u *HttpHeadersValue) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewHttpHeadersValueFromString returns a HttpHeadersValue populated with v
+// on the String branch.
+func NewHttpHeadersValueFromString(v string) HttpHeadersValue {
+	return HttpHeadersValue{
+		typ:   HttpHeadersValueStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *HttpHeadersValue) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewHttpHeadersValueFromArray returns a HttpHeadersValue populated with v
+// on the Array branch.
+func NewHttpHeadersValueFromArray(v []string) HttpHeadersValue {
+	return HttpHeadersValue{
+		typ:   HttpHeadersValueArrayType,
+		value: v,
+	}
 }
 
 func (u *HttpHeadersValue) UnmarshalJSON(data []byte) error {
@@ -16817,16 +24612,44 @@ func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) Type() ReplicationI
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReplicationIndexFollowerStatusTotalWriteTimeMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReplicationIndexFollowerStatusTotalWriteTimeMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromInt64 returns a ReplicationIndexFollowerStatusTotalWriteTimeMillis populated with v
+// on the Int64 branch.
+func NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromInt64(v int64) ReplicationIndexFollowerStatusTotalWriteTimeMillis {
+	return ReplicationIndexFollowerStatusTotalWriteTimeMillis{
+		typ:   ReplicationIndexFollowerStatusTotalWriteTimeMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromString returns a ReplicationIndexFollowerStatusTotalWriteTimeMillis populated with v
+// on the String branch.
+func NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromString(v string) ReplicationIndexFollowerStatusTotalWriteTimeMillis {
+	return ReplicationIndexFollowerStatusTotalWriteTimeMillis{
+		typ:   ReplicationIndexFollowerStatusTotalWriteTimeMillisStringType,
+		value: v,
+	}
 }
 
 func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) UnmarshalJSON(data []byte) error {
@@ -16896,16 +24719,44 @@ func (u *ReplicationFollowerStatusTotalWriteTimeMillis) Type() ReplicationFollow
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReplicationFollowerStatusTotalWriteTimeMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReplicationFollowerStatusTotalWriteTimeMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReplicationFollowerStatusTotalWriteTimeMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReplicationFollowerStatusTotalWriteTimeMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ReplicationFollowerStatusTotalWriteTimeMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewReplicationFollowerStatusTotalWriteTimeMillisFromInt64 returns a ReplicationFollowerStatusTotalWriteTimeMillis populated with v
+// on the Int64 branch.
+func NewReplicationFollowerStatusTotalWriteTimeMillisFromInt64(v int64) ReplicationFollowerStatusTotalWriteTimeMillis {
+	return ReplicationFollowerStatusTotalWriteTimeMillis{
+		typ:   ReplicationFollowerStatusTotalWriteTimeMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ReplicationFollowerStatusTotalWriteTimeMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewReplicationFollowerStatusTotalWriteTimeMillisFromString returns a ReplicationFollowerStatusTotalWriteTimeMillis populated with v
+// on the String branch.
+func NewReplicationFollowerStatusTotalWriteTimeMillisFromString(v string) ReplicationFollowerStatusTotalWriteTimeMillis {
+	return ReplicationFollowerStatusTotalWriteTimeMillis{
+		typ:   ReplicationFollowerStatusTotalWriteTimeMillisStringType,
+		value: v,
+	}
 }
 
 func (u *ReplicationFollowerStatusTotalWriteTimeMillis) UnmarshalJSON(data []byte) error {
@@ -16975,16 +24826,44 @@ func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) Type() ReplicationInde
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReplicationIndexStatusTotalReadTimeLuceneMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReplicationIndexStatusTotalReadTimeLuceneMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewReplicationIndexStatusTotalReadTimeLuceneMillisFromInt64 returns a ReplicationIndexStatusTotalReadTimeLuceneMillis populated with v
+// on the Int64 branch.
+func NewReplicationIndexStatusTotalReadTimeLuceneMillisFromInt64(v int64) ReplicationIndexStatusTotalReadTimeLuceneMillis {
+	return ReplicationIndexStatusTotalReadTimeLuceneMillis{
+		typ:   ReplicationIndexStatusTotalReadTimeLuceneMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewReplicationIndexStatusTotalReadTimeLuceneMillisFromString returns a ReplicationIndexStatusTotalReadTimeLuceneMillis populated with v
+// on the String branch.
+func NewReplicationIndexStatusTotalReadTimeLuceneMillisFromString(v string) ReplicationIndexStatusTotalReadTimeLuceneMillis {
+	return ReplicationIndexStatusTotalReadTimeLuceneMillis{
+		typ:   ReplicationIndexStatusTotalReadTimeLuceneMillisStringType,
+		value: v,
+	}
 }
 
 func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) UnmarshalJSON(data []byte) error {
@@ -17054,16 +24933,44 @@ func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) Type() ReplicationIn
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReplicationIndexStatusTotalReadTimeTranslogMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReplicationIndexStatusTotalReadTimeTranslogMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewReplicationIndexStatusTotalReadTimeTranslogMillisFromInt64 returns a ReplicationIndexStatusTotalReadTimeTranslogMillis populated with v
+// on the Int64 branch.
+func NewReplicationIndexStatusTotalReadTimeTranslogMillisFromInt64(v int64) ReplicationIndexStatusTotalReadTimeTranslogMillis {
+	return ReplicationIndexStatusTotalReadTimeTranslogMillis{
+		typ:   ReplicationIndexStatusTotalReadTimeTranslogMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewReplicationIndexStatusTotalReadTimeTranslogMillisFromString returns a ReplicationIndexStatusTotalReadTimeTranslogMillis populated with v
+// on the String branch.
+func NewReplicationIndexStatusTotalReadTimeTranslogMillisFromString(v string) ReplicationIndexStatusTotalReadTimeTranslogMillis {
+	return ReplicationIndexStatusTotalReadTimeTranslogMillis{
+		typ:   ReplicationIndexStatusTotalReadTimeTranslogMillisStringType,
+		value: v,
+	}
 }
 
 func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) UnmarshalJSON(data []byte) error {
@@ -17133,16 +25040,44 @@ func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) Type() ReplicationLea
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReplicationLeaderStatusTotalReadTimeLuceneMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReplicationLeaderStatusTotalReadTimeLuceneMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromInt64 returns a ReplicationLeaderStatusTotalReadTimeLuceneMillis populated with v
+// on the Int64 branch.
+func NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromInt64(v int64) ReplicationLeaderStatusTotalReadTimeLuceneMillis {
+	return ReplicationLeaderStatusTotalReadTimeLuceneMillis{
+		typ:   ReplicationLeaderStatusTotalReadTimeLuceneMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromString returns a ReplicationLeaderStatusTotalReadTimeLuceneMillis populated with v
+// on the String branch.
+func NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromString(v string) ReplicationLeaderStatusTotalReadTimeLuceneMillis {
+	return ReplicationLeaderStatusTotalReadTimeLuceneMillis{
+		typ:   ReplicationLeaderStatusTotalReadTimeLuceneMillisStringType,
+		value: v,
+	}
 }
 
 func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) UnmarshalJSON(data []byte) error {
@@ -17212,16 +25147,44 @@ func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) Type() ReplicationL
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewReplicationLeaderStatusTotalReadTimeTranslogMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = ReplicationLeaderStatusTotalReadTimeTranslogMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromInt64 returns a ReplicationLeaderStatusTotalReadTimeTranslogMillis populated with v
+// on the Int64 branch.
+func NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromInt64(v int64) ReplicationLeaderStatusTotalReadTimeTranslogMillis {
+	return ReplicationLeaderStatusTotalReadTimeTranslogMillis{
+		typ:   ReplicationLeaderStatusTotalReadTimeTranslogMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromString returns a ReplicationLeaderStatusTotalReadTimeTranslogMillis populated with v
+// on the String branch.
+func NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromString(v string) ReplicationLeaderStatusTotalReadTimeTranslogMillis {
+	return ReplicationLeaderStatusTotalReadTimeTranslogMillis{
+		typ:   ReplicationLeaderStatusTotalReadTimeTranslogMillisStringType,
+		value: v,
+	}
 }
 
 func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) UnmarshalJSON(data []byte) error {
@@ -17285,16 +25248,44 @@ func (u *RollupsIntervalCron) Type() RollupsIntervalCronType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *RollupsIntervalCron) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewRollupsIntervalCronFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *RollupsIntervalCron) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = RollupsIntervalCronUnknownType
+}
+
 // Array returns the []RollupsCron branch value.
 func (u *RollupsIntervalCron) Array() []RollupsCron {
 	v, _ := u.value.([]RollupsCron)
 	return v
 }
 
+// NewRollupsIntervalCronFromArray returns a RollupsIntervalCron populated with v
+// on the Array branch.
+func NewRollupsIntervalCronFromArray(v []RollupsCron) RollupsIntervalCron {
+	return RollupsIntervalCron{
+		typ:   RollupsIntervalCronArrayType,
+		value: v,
+	}
+}
+
 // RollupsCron returns the RollupsCron branch value.
 func (u *RollupsIntervalCron) RollupsCron() RollupsCron {
 	v, _ := u.value.(RollupsCron)
 	return v
+}
+
+// NewRollupsIntervalCronFromRollupsCron returns a RollupsIntervalCron populated with v
+// on the RollupsCron branch.
+func NewRollupsIntervalCronFromRollupsCron(v RollupsCron) RollupsIntervalCron {
+	return RollupsIntervalCron{
+		typ:   RollupsIntervalCronRollupsCronType,
+		value: v,
+	}
 }
 
 func (u *RollupsIntervalCron) UnmarshalJSON(data []byte) error {
@@ -17360,16 +25351,44 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) Type() SearchPipelin
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchPipelineStructurePhaseResultsProcessorsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchPipelineStructurePhaseResultsProcessorsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchPipelineStructurePhaseResultsProcessorsItemUnknownType
+}
+
 // SearchPipelineStructurePhaseResultsProcessorsItemObject0 returns the SearchPipelineStructurePhaseResultsProcessorsItemObject0 branch value.
 func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SearchPipelineStructurePhaseResultsProcessorsItemObject0() SearchPipelineStructurePhaseResultsProcessorsItemObject0 {
 	v, _ := u.value.(SearchPipelineStructurePhaseResultsProcessorsItemObject0)
 	return v
 }
 
+// NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject0 returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
+// on the SearchPipelineStructurePhaseResultsProcessorsItemObject0 branch.
+func NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject0(v SearchPipelineStructurePhaseResultsProcessorsItemObject0) SearchPipelineStructurePhaseResultsProcessorsItem {
+	return SearchPipelineStructurePhaseResultsProcessorsItem{
+		typ:   SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject0Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructurePhaseResultsProcessorsItemObject1 returns the SearchPipelineStructurePhaseResultsProcessorsItemObject1 branch value.
 func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SearchPipelineStructurePhaseResultsProcessorsItemObject1() SearchPipelineStructurePhaseResultsProcessorsItemObject1 {
 	v, _ := u.value.(SearchPipelineStructurePhaseResultsProcessorsItemObject1)
 	return v
+}
+
+// NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject1 returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
+// on the SearchPipelineStructurePhaseResultsProcessorsItemObject1 branch.
+func NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject1(v SearchPipelineStructurePhaseResultsProcessorsItemObject1) SearchPipelineStructurePhaseResultsProcessorsItem {
+	return SearchPipelineStructurePhaseResultsProcessorsItem{
+		typ:   SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *SearchPipelineStructurePhaseResultsProcessorsItem) UnmarshalJSON(data []byte) error {
@@ -17436,10 +25455,29 @@ func (u *SearchPipelineStructureRequestProcessorsItem) Type() SearchPipelineStru
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchPipelineStructureRequestProcessorsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchPipelineStructureRequestProcessorsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchPipelineStructureRequestProcessorsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchPipelineStructureRequestProcessorsItemUnknownType
+}
+
 // SearchPipelineStructureRequestProcessorsItemObject0 returns the SearchPipelineStructureRequestProcessorsItemObject0 branch value.
 func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject0() SearchPipelineStructureRequestProcessorsItemObject0 {
 	v, _ := u.value.(SearchPipelineStructureRequestProcessorsItemObject0)
 	return v
+}
+
+// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject0 returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the SearchPipelineStructureRequestProcessorsItemObject0 branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject0(v SearchPipelineStructureRequestProcessorsItemObject0) SearchPipelineStructureRequestProcessorsItem {
+	return SearchPipelineStructureRequestProcessorsItem{
+		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject0Type,
+		value: v,
+	}
 }
 
 // SearchPipelineStructureRequestProcessorsItemObject1 returns the SearchPipelineStructureRequestProcessorsItemObject1 branch value.
@@ -17448,10 +25486,28 @@ func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRe
 	return v
 }
 
+// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject1 returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the SearchPipelineStructureRequestProcessorsItemObject1 branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject1(v SearchPipelineStructureRequestProcessorsItemObject1) SearchPipelineStructureRequestProcessorsItem {
+	return SearchPipelineStructureRequestProcessorsItem{
+		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject1Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructureRequestProcessorsItemObject2 returns the SearchPipelineStructureRequestProcessorsItemObject2 branch value.
 func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject2() SearchPipelineStructureRequestProcessorsItemObject2 {
 	v, _ := u.value.(SearchPipelineStructureRequestProcessorsItemObject2)
 	return v
+}
+
+// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject2 returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the SearchPipelineStructureRequestProcessorsItemObject2 branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject2(v SearchPipelineStructureRequestProcessorsItemObject2) SearchPipelineStructureRequestProcessorsItem {
+	return SearchPipelineStructureRequestProcessorsItem{
+		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject2Type,
+		value: v,
+	}
 }
 
 // SearchPipelineStructureRequestProcessorsItemObject3 returns the SearchPipelineStructureRequestProcessorsItemObject3 branch value.
@@ -17460,10 +25516,28 @@ func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRe
 	return v
 }
 
+// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject3 returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the SearchPipelineStructureRequestProcessorsItemObject3 branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject3(v SearchPipelineStructureRequestProcessorsItemObject3) SearchPipelineStructureRequestProcessorsItem {
+	return SearchPipelineStructureRequestProcessorsItem{
+		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject3Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructureRequestProcessorsItemObject4 returns the SearchPipelineStructureRequestProcessorsItemObject4 branch value.
 func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject4() SearchPipelineStructureRequestProcessorsItemObject4 {
 	v, _ := u.value.(SearchPipelineStructureRequestProcessorsItemObject4)
 	return v
+}
+
+// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject4 returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the SearchPipelineStructureRequestProcessorsItemObject4 branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject4(v SearchPipelineStructureRequestProcessorsItemObject4) SearchPipelineStructureRequestProcessorsItem {
+	return SearchPipelineStructureRequestProcessorsItem{
+		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject4Type,
+		value: v,
+	}
 }
 
 func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte) error {
@@ -17558,10 +25632,29 @@ func (u *SearchPipelineStructureResponseProcessorsItem) Type() SearchPipelineStr
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SearchPipelineStructureResponseProcessorsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchPipelineStructureResponseProcessorsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchPipelineStructureResponseProcessorsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchPipelineStructureResponseProcessorsItemUnknownType
+}
+
 // SearchPipelineStructureResponseProcessorsItemObject0 returns the SearchPipelineStructureResponseProcessorsItemObject0 branch value.
 func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject0() SearchPipelineStructureResponseProcessorsItemObject0 {
 	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject0)
 	return v
+}
+
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject0 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject0 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject0(v SearchPipelineStructureResponseProcessorsItemObject0) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject0Type,
+		value: v,
+	}
 }
 
 // SearchPipelineStructureResponseProcessorsItemObject1 returns the SearchPipelineStructureResponseProcessorsItemObject1 branch value.
@@ -17570,10 +25663,28 @@ func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureR
 	return v
 }
 
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject1 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject1 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject1(v SearchPipelineStructureResponseProcessorsItemObject1) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject1Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructureResponseProcessorsItemObject2 returns the SearchPipelineStructureResponseProcessorsItemObject2 branch value.
 func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject2() SearchPipelineStructureResponseProcessorsItemObject2 {
 	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject2)
 	return v
+}
+
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject2 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject2 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject2(v SearchPipelineStructureResponseProcessorsItemObject2) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject2Type,
+		value: v,
+	}
 }
 
 // SearchPipelineStructureResponseProcessorsItemObject3 returns the SearchPipelineStructureResponseProcessorsItemObject3 branch value.
@@ -17582,10 +25693,28 @@ func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureR
 	return v
 }
 
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject3 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject3 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject3(v SearchPipelineStructureResponseProcessorsItemObject3) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject3Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructureResponseProcessorsItemObject4 returns the SearchPipelineStructureResponseProcessorsItemObject4 branch value.
 func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject4() SearchPipelineStructureResponseProcessorsItemObject4 {
 	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject4)
 	return v
+}
+
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject4 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject4 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject4(v SearchPipelineStructureResponseProcessorsItemObject4) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject4Type,
+		value: v,
+	}
 }
 
 // SearchPipelineStructureResponseProcessorsItemObject5 returns the SearchPipelineStructureResponseProcessorsItemObject5 branch value.
@@ -17594,10 +25723,28 @@ func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureR
 	return v
 }
 
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject5 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject5 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject5(v SearchPipelineStructureResponseProcessorsItemObject5) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject5Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructureResponseProcessorsItemObject6 returns the SearchPipelineStructureResponseProcessorsItemObject6 branch value.
 func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject6() SearchPipelineStructureResponseProcessorsItemObject6 {
 	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject6)
 	return v
+}
+
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject6 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject6 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject6(v SearchPipelineStructureResponseProcessorsItemObject6) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject6Type,
+		value: v,
+	}
 }
 
 // SearchPipelineStructureResponseProcessorsItemObject7 returns the SearchPipelineStructureResponseProcessorsItemObject7 branch value.
@@ -17606,10 +25753,28 @@ func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureR
 	return v
 }
 
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject7 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject7 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject7(v SearchPipelineStructureResponseProcessorsItemObject7) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject7Type,
+		value: v,
+	}
+}
+
 // SearchPipelineStructureResponseProcessorsItemObject8 returns the SearchPipelineStructureResponseProcessorsItemObject8 branch value.
 func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject8() SearchPipelineStructureResponseProcessorsItemObject8 {
 	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject8)
 	return v
+}
+
+// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject8 returns a SearchPipelineStructureResponseProcessorsItem populated with v
+// on the SearchPipelineStructureResponseProcessorsItemObject8 branch.
+func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject8(v SearchPipelineStructureResponseProcessorsItemObject8) SearchPipelineStructureResponseProcessorsItem {
+	return SearchPipelineStructureResponseProcessorsItem{
+		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject8Type,
+		value: v,
+	}
 }
 
 func (u *SearchPipelineStructureResponseProcessorsItem) UnmarshalJSON(data []byte) error {
@@ -17727,16 +25892,44 @@ func (u *SQLPplEnabled) Type() SQLPplEnabledType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SQLPplEnabled) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSQLPplEnabledFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SQLPplEnabled) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SQLPplEnabledUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *SQLPplEnabled) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
 }
 
+// NewSQLPplEnabledFromBool returns a SQLPplEnabled populated with v
+// on the Bool branch.
+func NewSQLPplEnabledFromBool(v bool) SQLPplEnabled {
+	return SQLPplEnabled{
+		typ:   SQLPplEnabledBoolType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *SQLPplEnabled) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewSQLPplEnabledFromString returns a SQLPplEnabled populated with v
+// on the String branch.
+func NewSQLPplEnabledFromString(v string) SQLPplEnabled {
+	return SQLPplEnabled{
+		typ:   SQLPplEnabledStringType,
+		value: v,
+	}
 }
 
 func (u *SQLPplEnabled) UnmarshalJSON(data []byte) error {
@@ -17800,16 +25993,44 @@ func (u *SQLPluginsQuerySizeLimit) Type() SQLPluginsQuerySizeLimitType { return 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SQLPluginsQuerySizeLimit) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSQLPluginsQuerySizeLimitFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SQLPluginsQuerySizeLimit) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SQLPluginsQuerySizeLimitUnknownType
+}
+
 // String returns the string branch value.
 func (u *SQLPluginsQuerySizeLimit) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewSQLPluginsQuerySizeLimitFromString returns a SQLPluginsQuerySizeLimit populated with v
+// on the String branch.
+func NewSQLPluginsQuerySizeLimitFromString(v string) SQLPluginsQuerySizeLimit {
+	return SQLPluginsQuerySizeLimit{
+		typ:   SQLPluginsQuerySizeLimitStringType,
+		value: v,
+	}
+}
+
 // Int returns the int branch value.
 func (u *SQLPluginsQuerySizeLimit) Int() int {
 	v, _ := u.value.(int)
 	return v
+}
+
+// NewSQLPluginsQuerySizeLimitFromInt returns a SQLPluginsQuerySizeLimit populated with v
+// on the Int branch.
+func NewSQLPluginsQuerySizeLimitFromInt(v int) SQLPluginsQuerySizeLimit {
+	return SQLPluginsQuerySizeLimit{
+		typ:   SQLPluginsQuerySizeLimitIntType,
+		value: v,
+	}
 }
 
 func (u *SQLPluginsQuerySizeLimit) UnmarshalJSON(data []byte) error {
@@ -17873,16 +26094,44 @@ func (u *SQLEnabled) Type() SQLEnabledType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SQLEnabled) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSQLEnabledFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SQLEnabled) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SQLEnabledUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *SQLEnabled) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
 }
 
+// NewSQLEnabledFromBool returns a SQLEnabled populated with v
+// on the Bool branch.
+func NewSQLEnabledFromBool(v bool) SQLEnabled {
+	return SQLEnabled{
+		typ:   SQLEnabledBoolType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *SQLEnabled) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewSQLEnabledFromString returns a SQLEnabled populated with v
+// on the String branch.
+func NewSQLEnabledFromString(v string) SQLEnabled {
+	return SQLEnabled{
+		typ:   SQLEnabledStringType,
+		value: v,
+	}
 }
 
 func (u *SQLEnabled) UnmarshalJSON(data []byte) error {
@@ -17946,16 +26195,44 @@ func (u *SQLSlowlog) Type() SQLSlowlogType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *SQLSlowlog) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSQLSlowlogFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SQLSlowlog) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SQLSlowlogUnknownType
+}
+
 // Int returns the int branch value.
 func (u *SQLSlowlog) Int() int {
 	v, _ := u.value.(int)
 	return v
 }
 
+// NewSQLSlowlogFromInt returns a SQLSlowlog populated with v
+// on the Int branch.
+func NewSQLSlowlogFromInt(v int) SQLSlowlog {
+	return SQLSlowlog{
+		typ:   SQLSlowlogIntType,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *SQLSlowlog) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewSQLSlowlogFromString returns a SQLSlowlog populated with v
+// on the String branch.
+func NewSQLSlowlogFromString(v string) SQLSlowlog {
+	return SQLSlowlog{
+		typ:   SQLSlowlogStringType,
+		value: v,
+	}
 }
 
 func (u *SQLSlowlog) UnmarshalJSON(data []byte) error {
@@ -18021,16 +26298,44 @@ func (u *WlmQueryGroupResponseResourceLimits) Type() WlmQueryGroupResponseResour
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *WlmQueryGroupResponseResourceLimits) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewWlmQueryGroupResponseResourceLimitsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *WlmQueryGroupResponseResourceLimits) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = WlmQueryGroupResponseResourceLimitsUnknownType
+}
+
 // WlmQueryGroupResponseResourceLimitsObject0 returns the WlmQueryGroupResponseResourceLimitsObject0 branch value.
 func (u *WlmQueryGroupResponseResourceLimits) WlmQueryGroupResponseResourceLimitsObject0() WlmQueryGroupResponseResourceLimitsObject0 {
 	v, _ := u.value.(WlmQueryGroupResponseResourceLimitsObject0)
 	return v
 }
 
+// NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject0 returns a WlmQueryGroupResponseResourceLimits populated with v
+// on the WlmQueryGroupResponseResourceLimitsObject0 branch.
+func NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject0(v WlmQueryGroupResponseResourceLimitsObject0) WlmQueryGroupResponseResourceLimits {
+	return WlmQueryGroupResponseResourceLimits{
+		typ:   WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject0Type,
+		value: v,
+	}
+}
+
 // WlmQueryGroupResponseResourceLimitsObject1 returns the WlmQueryGroupResponseResourceLimitsObject1 branch value.
 func (u *WlmQueryGroupResponseResourceLimits) WlmQueryGroupResponseResourceLimitsObject1() WlmQueryGroupResponseResourceLimitsObject1 {
 	v, _ := u.value.(WlmQueryGroupResponseResourceLimitsObject1)
 	return v
+}
+
+// NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject1 returns a WlmQueryGroupResponseResourceLimits populated with v
+// on the WlmQueryGroupResponseResourceLimitsObject1 branch.
+func NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject1(v WlmQueryGroupResponseResourceLimitsObject1) WlmQueryGroupResponseResourceLimits {
+	return WlmQueryGroupResponseResourceLimits{
+		typ:   WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject1Type,
+		value: v,
+	}
 }
 
 func (u *WlmQueryGroupResponseResourceLimits) UnmarshalJSON(data []byte) error {
@@ -18092,16 +26397,44 @@ func (u *AsynchronousSearchSearchSource) Type() AsynchronousSearchSearchSourceTy
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *AsynchronousSearchSearchSource) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewAsynchronousSearchSearchSourceFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *AsynchronousSearchSearchSource) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = AsynchronousSearchSearchSourceUnknownType
+}
+
 // String returns the string branch value.
 func (u *AsynchronousSearchSearchSource) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewAsynchronousSearchSearchSourceFromString returns a AsynchronousSearchSearchSource populated with v
+// on the String branch.
+func NewAsynchronousSearchSearchSourceFromString(v string) AsynchronousSearchSearchSource {
+	return AsynchronousSearchSearchSource{
+		typ:   AsynchronousSearchSearchSourceStringType,
+		value: v,
+	}
+}
+
 // AsynchronousSearchSearchSourceObject1 returns the AsynchronousSearchSearchSourceObject1 branch value.
 func (u *AsynchronousSearchSearchSource) AsynchronousSearchSearchSourceObject1() AsynchronousSearchSearchSourceObject1 {
 	v, _ := u.value.(AsynchronousSearchSearchSourceObject1)
 	return v
+}
+
+// NewAsynchronousSearchSearchSourceFromAsynchronousSearchSearchSourceObject1 returns a AsynchronousSearchSearchSource populated with v
+// on the AsynchronousSearchSearchSourceObject1 branch.
+func NewAsynchronousSearchSearchSourceFromAsynchronousSearchSearchSourceObject1(v AsynchronousSearchSearchSourceObject1) AsynchronousSearchSearchSource {
+	return AsynchronousSearchSearchSource{
+		typ:   AsynchronousSearchSearchSourceAsynchronousSearchSearchSourceObject1Type,
+		value: v,
+	}
 }
 
 func (u *AsynchronousSearchSearchSource) UnmarshalJSON(data []byte) error {
@@ -18167,16 +26500,44 @@ func (u *AsynchronousSearchSearchDocvalueFieldsItem) Type() AsynchronousSearchSe
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *AsynchronousSearchSearchDocvalueFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewAsynchronousSearchSearchDocvalueFieldsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *AsynchronousSearchSearchDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = AsynchronousSearchSearchDocvalueFieldsItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *AsynchronousSearchSearchDocvalueFieldsItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewAsynchronousSearchSearchDocvalueFieldsItemFromString returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
+// on the String branch.
+func NewAsynchronousSearchSearchDocvalueFieldsItemFromString(v string) AsynchronousSearchSearchDocvalueFieldsItem {
+	return AsynchronousSearchSearchDocvalueFieldsItem{
+		typ:   AsynchronousSearchSearchDocvalueFieldsItemStringType,
+		value: v,
+	}
+}
+
 // AsynchronousSearchSearchDocvalueFieldsItemObject1 returns the AsynchronousSearchSearchDocvalueFieldsItemObject1 branch value.
 func (u *AsynchronousSearchSearchDocvalueFieldsItem) AsynchronousSearchSearchDocvalueFieldsItemObject1() AsynchronousSearchSearchDocvalueFieldsItemObject1 {
 	v, _ := u.value.(AsynchronousSearchSearchDocvalueFieldsItemObject1)
 	return v
+}
+
+// NewAsynchronousSearchSearchDocvalueFieldsItemFromAsynchronousSearchSearchDocvalueFieldsItemObject1 returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
+// on the AsynchronousSearchSearchDocvalueFieldsItemObject1 branch.
+func NewAsynchronousSearchSearchDocvalueFieldsItemFromAsynchronousSearchSearchDocvalueFieldsItemObject1(v AsynchronousSearchSearchDocvalueFieldsItemObject1) AsynchronousSearchSearchDocvalueFieldsItem {
+	return AsynchronousSearchSearchDocvalueFieldsItem{
+		typ:   AsynchronousSearchSearchDocvalueFieldsItemAsynchronousSearchSearchDocvalueFieldsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *AsynchronousSearchSearchDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
@@ -18242,16 +26603,44 @@ func (u *AsynchronousSearchSearchFieldsItem) Type() AsynchronousSearchSearchFiel
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *AsynchronousSearchSearchFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewAsynchronousSearchSearchFieldsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *AsynchronousSearchSearchFieldsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = AsynchronousSearchSearchFieldsItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *AsynchronousSearchSearchFieldsItem) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewAsynchronousSearchSearchFieldsItemFromString returns a AsynchronousSearchSearchFieldsItem populated with v
+// on the String branch.
+func NewAsynchronousSearchSearchFieldsItemFromString(v string) AsynchronousSearchSearchFieldsItem {
+	return AsynchronousSearchSearchFieldsItem{
+		typ:   AsynchronousSearchSearchFieldsItemStringType,
+		value: v,
+	}
+}
+
 // AsynchronousSearchSearchFieldsItemObject1 returns the AsynchronousSearchSearchFieldsItemObject1 branch value.
 func (u *AsynchronousSearchSearchFieldsItem) AsynchronousSearchSearchFieldsItemObject1() AsynchronousSearchSearchFieldsItemObject1 {
 	v, _ := u.value.(AsynchronousSearchSearchFieldsItemObject1)
 	return v
+}
+
+// NewAsynchronousSearchSearchFieldsItemFromAsynchronousSearchSearchFieldsItemObject1 returns a AsynchronousSearchSearchFieldsItem populated with v
+// on the AsynchronousSearchSearchFieldsItemObject1 branch.
+func NewAsynchronousSearchSearchFieldsItemFromAsynchronousSearchSearchFieldsItemObject1(v AsynchronousSearchSearchFieldsItemObject1) AsynchronousSearchSearchFieldsItem {
+	return AsynchronousSearchSearchFieldsItem{
+		typ:   AsynchronousSearchSearchFieldsItemAsynchronousSearchSearchFieldsItemObject1Type,
+		value: v,
+	}
 }
 
 func (u *AsynchronousSearchSearchFieldsItem) UnmarshalJSON(data []byte) error {
@@ -18317,10 +26706,29 @@ func (u *AsynchronousSearchSearchSort) Type() AsynchronousSearchSearchSortType {
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *AsynchronousSearchSearchSort) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewAsynchronousSearchSearchSortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *AsynchronousSearchSearchSort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = AsynchronousSearchSearchSortUnknownType
+}
+
 // String returns the string branch value.
 func (u *AsynchronousSearchSearchSort) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewAsynchronousSearchSearchSortFromString returns a AsynchronousSearchSearchSort populated with v
+// on the String branch.
+func NewAsynchronousSearchSearchSortFromString(v string) AsynchronousSearchSearchSort {
+	return AsynchronousSearchSearchSort{
+		typ:   AsynchronousSearchSearchSortStringType,
+		value: v,
+	}
 }
 
 // StringMap returns the map[string]string branch value.
@@ -18329,16 +26737,43 @@ func (u *AsynchronousSearchSearchSort) StringMap() map[string]string {
 	return v
 }
 
+// NewAsynchronousSearchSearchSortFromStringMap returns a AsynchronousSearchSearchSort populated with v
+// on the StringMap branch.
+func NewAsynchronousSearchSearchSortFromStringMap(v map[string]string) AsynchronousSearchSearchSort {
+	return AsynchronousSearchSearchSort{
+		typ:   AsynchronousSearchSearchSortStringMapType,
+		value: v,
+	}
+}
+
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *AsynchronousSearchSearchSort) FieldSortMap() map[string]FieldSort {
 	v, _ := u.value.(map[string]FieldSort)
 	return v
 }
 
+// NewAsynchronousSearchSearchSortFromFieldSortMap returns a AsynchronousSearchSearchSort populated with v
+// on the FieldSortMap branch.
+func NewAsynchronousSearchSearchSortFromFieldSortMap(v map[string]FieldSort) AsynchronousSearchSearchSort {
+	return AsynchronousSearchSearchSort{
+		typ:   AsynchronousSearchSearchSortFieldSortMapType,
+		value: v,
+	}
+}
+
 // Options returns the SortOptions branch value.
 func (u *AsynchronousSearchSearchSort) Options() SortOptions {
 	v, _ := u.value.(SortOptions)
 	return v
+}
+
+// NewAsynchronousSearchSearchSortFromOptions returns a AsynchronousSearchSearchSort populated with v
+// on the Options branch.
+func NewAsynchronousSearchSearchSortFromOptions(v SortOptions) AsynchronousSearchSearchSort {
+	return AsynchronousSearchSearchSort{
+		typ:   AsynchronousSearchSearchSortOptionsType,
+		value: v,
+	}
 }
 
 func (u *AsynchronousSearchSearchSort) UnmarshalJSON(data []byte) error {
@@ -18418,10 +26853,29 @@ func (u *AsynchronousSearchSearchSortItem) Type() AsynchronousSearchSearchSortIt
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *AsynchronousSearchSearchSortItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewAsynchronousSearchSearchSortItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *AsynchronousSearchSearchSortItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = AsynchronousSearchSearchSortItemUnknownType
+}
+
 // String returns the string branch value.
 func (u *AsynchronousSearchSearchSortItem) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewAsynchronousSearchSearchSortItemFromString returns a AsynchronousSearchSearchSortItem populated with v
+// on the String branch.
+func NewAsynchronousSearchSearchSortItemFromString(v string) AsynchronousSearchSearchSortItem {
+	return AsynchronousSearchSearchSortItem{
+		typ:   AsynchronousSearchSearchSortItemStringType,
+		value: v,
+	}
 }
 
 // StringMap returns the map[string]string branch value.
@@ -18430,16 +26884,43 @@ func (u *AsynchronousSearchSearchSortItem) StringMap() map[string]string {
 	return v
 }
 
+// NewAsynchronousSearchSearchSortItemFromStringMap returns a AsynchronousSearchSearchSortItem populated with v
+// on the StringMap branch.
+func NewAsynchronousSearchSearchSortItemFromStringMap(v map[string]string) AsynchronousSearchSearchSortItem {
+	return AsynchronousSearchSearchSortItem{
+		typ:   AsynchronousSearchSearchSortItemStringMapType,
+		value: v,
+	}
+}
+
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *AsynchronousSearchSearchSortItem) FieldSortMap() map[string]FieldSort {
 	v, _ := u.value.(map[string]FieldSort)
 	return v
 }
 
+// NewAsynchronousSearchSearchSortItemFromFieldSortMap returns a AsynchronousSearchSearchSortItem populated with v
+// on the FieldSortMap branch.
+func NewAsynchronousSearchSearchSortItemFromFieldSortMap(v map[string]FieldSort) AsynchronousSearchSearchSortItem {
+	return AsynchronousSearchSearchSortItem{
+		typ:   AsynchronousSearchSearchSortItemFieldSortMapType,
+		value: v,
+	}
+}
+
 // Options returns the SortOptions branch value.
 func (u *AsynchronousSearchSearchSortItem) Options() SortOptions {
 	v, _ := u.value.(SortOptions)
 	return v
+}
+
+// NewAsynchronousSearchSearchSortItemFromOptions returns a AsynchronousSearchSearchSortItem populated with v
+// on the Options branch.
+func NewAsynchronousSearchSearchSortItemFromOptions(v SortOptions) AsynchronousSearchSearchSortItem {
+	return AsynchronousSearchSearchSortItem{
+		typ:   AsynchronousSearchSearchSortItemOptionsType,
+		value: v,
+	}
 }
 
 func (u *AsynchronousSearchSearchSortItem) UnmarshalJSON(data []byte) error {
@@ -18522,16 +27003,44 @@ func (u *AsynchronousSearchSearchTrackTotalHits) Type() AsynchronousSearchSearch
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *AsynchronousSearchSearchTrackTotalHits) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewAsynchronousSearchSearchTrackTotalHitsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *AsynchronousSearchSearchTrackTotalHits) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = AsynchronousSearchSearchTrackTotalHitsUnknownType
+}
+
 // Bool returns the bool branch value.
 func (u *AsynchronousSearchSearchTrackTotalHits) Bool() bool {
 	v, _ := u.value.(bool)
 	return v
 }
 
+// NewAsynchronousSearchSearchTrackTotalHitsFromBool returns a AsynchronousSearchSearchTrackTotalHits populated with v
+// on the Bool branch.
+func NewAsynchronousSearchSearchTrackTotalHitsFromBool(v bool) AsynchronousSearchSearchTrackTotalHits {
+	return AsynchronousSearchSearchTrackTotalHits{
+		typ:   AsynchronousSearchSearchTrackTotalHitsBoolType,
+		value: v,
+	}
+}
+
 // Int returns the int branch value.
 func (u *AsynchronousSearchSearchTrackTotalHits) Int() int {
 	v, _ := u.value.(int)
 	return v
+}
+
+// NewAsynchronousSearchSearchTrackTotalHitsFromInt returns a AsynchronousSearchSearchTrackTotalHits populated with v
+// on the Int branch.
+func NewAsynchronousSearchSearchTrackTotalHitsFromInt(v int) AsynchronousSearchSearchTrackTotalHits {
+	return AsynchronousSearchSearchTrackTotalHits{
+		typ:   AsynchronousSearchSearchTrackTotalHitsIntType,
+		value: v,
+	}
 }
 
 func (u *AsynchronousSearchSearchTrackTotalHits) UnmarshalJSON(data []byte) error {
@@ -18601,10 +27110,29 @@ func (u *GeospatialGeoJSONDataGeometry) Type() GeospatialGeoJSONDataGeometryType
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *GeospatialGeoJSONDataGeometry) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewGeospatialGeoJSONDataGeometryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *GeospatialGeoJSONDataGeometry) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = GeospatialGeoJSONDataGeometryUnknownType
+}
+
 // GeospatialPoint returns the GeospatialPoint branch value.
 func (u *GeospatialGeoJSONDataGeometry) GeospatialPoint() GeospatialPoint {
 	v, _ := u.value.(GeospatialPoint)
 	return v
+}
+
+// NewGeospatialGeoJSONDataGeometryFromGeospatialPoint returns a GeospatialGeoJSONDataGeometry populated with v
+// on the GeospatialPoint branch.
+func NewGeospatialGeoJSONDataGeometryFromGeospatialPoint(v GeospatialPoint) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryGeospatialPointType,
+		value: v,
+	}
 }
 
 // GeospatialMultiPoint returns the GeospatialMultiPoint branch value.
@@ -18613,10 +27141,28 @@ func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiPoint() GeospatialMultiPo
 	return v
 }
 
+// NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPoint returns a GeospatialGeoJSONDataGeometry populated with v
+// on the GeospatialMultiPoint branch.
+func NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPoint(v GeospatialMultiPoint) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryGeospatialMultiPointType,
+		value: v,
+	}
+}
+
 // GeospatialLineString returns the GeospatialLineString branch value.
 func (u *GeospatialGeoJSONDataGeometry) GeospatialLineString() GeospatialLineString {
 	v, _ := u.value.(GeospatialLineString)
 	return v
+}
+
+// NewGeospatialGeoJSONDataGeometryFromGeospatialLineString returns a GeospatialGeoJSONDataGeometry populated with v
+// on the GeospatialLineString branch.
+func NewGeospatialGeoJSONDataGeometryFromGeospatialLineString(v GeospatialLineString) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryGeospatialLineStringType,
+		value: v,
+	}
 }
 
 // GeospatialMultiLineString returns the GeospatialMultiLineString branch value.
@@ -18625,10 +27171,28 @@ func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiLineString() GeospatialMu
 	return v
 }
 
+// NewGeospatialGeoJSONDataGeometryFromGeospatialMultiLineString returns a GeospatialGeoJSONDataGeometry populated with v
+// on the GeospatialMultiLineString branch.
+func NewGeospatialGeoJSONDataGeometryFromGeospatialMultiLineString(v GeospatialMultiLineString) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryGeospatialMultiLineStringType,
+		value: v,
+	}
+}
+
 // GeospatialPolygon returns the GeospatialPolygon branch value.
 func (u *GeospatialGeoJSONDataGeometry) GeospatialPolygon() GeospatialPolygon {
 	v, _ := u.value.(GeospatialPolygon)
 	return v
+}
+
+// NewGeospatialGeoJSONDataGeometryFromGeospatialPolygon returns a GeospatialGeoJSONDataGeometry populated with v
+// on the GeospatialPolygon branch.
+func NewGeospatialGeoJSONDataGeometryFromGeospatialPolygon(v GeospatialPolygon) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryGeospatialPolygonType,
+		value: v,
+	}
 }
 
 // GeospatialMultiPolygon returns the GeospatialMultiPolygon branch value.
@@ -18637,10 +27201,28 @@ func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiPolygon() GeospatialMulti
 	return v
 }
 
+// NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPolygon returns a GeospatialGeoJSONDataGeometry populated with v
+// on the GeospatialMultiPolygon branch.
+func NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPolygon(v GeospatialMultiPolygon) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryGeospatialMultiPolygonType,
+		value: v,
+	}
+}
+
 // Array returns the [][]float64 branch value.
 func (u *GeospatialGeoJSONDataGeometry) Array() [][]float64 {
 	v, _ := u.value.([][]float64)
 	return v
+}
+
+// NewGeospatialGeoJSONDataGeometryFromArray returns a GeospatialGeoJSONDataGeometry populated with v
+// on the Array branch.
+func NewGeospatialGeoJSONDataGeometryFromArray(v [][]float64) GeospatialGeoJSONDataGeometry {
+	return GeospatialGeoJSONDataGeometry{
+		typ:   GeospatialGeoJSONDataGeometryArrayType,
+		value: v,
+	}
 }
 
 func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
@@ -18750,10 +27332,29 @@ func (u *GeospatialGeometryCollectionGeometriesItem) Type() GeospatialGeometryCo
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *GeospatialGeometryCollectionGeometriesItem) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewGeospatialGeometryCollectionGeometriesItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *GeospatialGeometryCollectionGeometriesItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = GeospatialGeometryCollectionGeometriesItemUnknownType
+}
+
 // GeospatialPoint returns the GeospatialPoint branch value.
 func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialPoint() GeospatialPoint {
 	v, _ := u.value.(GeospatialPoint)
 	return v
+}
+
+// NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPoint returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the GeospatialPoint branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPoint(v GeospatialPoint) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemGeospatialPointType,
+		value: v,
+	}
 }
 
 // GeospatialMultiPoint returns the GeospatialMultiPoint branch value.
@@ -18762,10 +27363,28 @@ func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiPoint() Geos
 	return v
 }
 
+// NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPoint returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the GeospatialMultiPoint branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPoint(v GeospatialMultiPoint) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemGeospatialMultiPointType,
+		value: v,
+	}
+}
+
 // GeospatialLineString returns the GeospatialLineString branch value.
 func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialLineString() GeospatialLineString {
 	v, _ := u.value.(GeospatialLineString)
 	return v
+}
+
+// NewGeospatialGeometryCollectionGeometriesItemFromGeospatialLineString returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the GeospatialLineString branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialLineString(v GeospatialLineString) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemGeospatialLineStringType,
+		value: v,
+	}
 }
 
 // GeospatialMultiLineString returns the GeospatialMultiLineString branch value.
@@ -18774,10 +27393,28 @@ func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiLineString()
 	return v
 }
 
+// NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiLineString returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the GeospatialMultiLineString branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiLineString(v GeospatialMultiLineString) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemGeospatialMultiLineStringType,
+		value: v,
+	}
+}
+
 // GeospatialPolygon returns the GeospatialPolygon branch value.
 func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialPolygon() GeospatialPolygon {
 	v, _ := u.value.(GeospatialPolygon)
 	return v
+}
+
+// NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPolygon returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the GeospatialPolygon branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPolygon(v GeospatialPolygon) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemGeospatialPolygonType,
+		value: v,
+	}
 }
 
 // GeospatialMultiPolygon returns the GeospatialMultiPolygon branch value.
@@ -18786,10 +27423,28 @@ func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiPolygon() Ge
 	return v
 }
 
+// NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPolygon returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the GeospatialMultiPolygon branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPolygon(v GeospatialMultiPolygon) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemGeospatialMultiPolygonType,
+		value: v,
+	}
+}
+
 // Array returns the [][]float64 branch value.
 func (u *GeospatialGeometryCollectionGeometriesItem) Array() [][]float64 {
 	v, _ := u.value.([][]float64)
 	return v
+}
+
+// NewGeospatialGeometryCollectionGeometriesItemFromArray returns a GeospatialGeometryCollectionGeometriesItem populated with v
+// on the Array branch.
+func NewGeospatialGeometryCollectionGeometriesItemFromArray(v [][]float64) GeospatialGeometryCollectionGeometriesItem {
+	return GeospatialGeometryCollectionGeometriesItem{
+		typ:   GeospatialGeometryCollectionGeometriesItemArrayType,
+		value: v,
+	}
 }
 
 func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) error {
@@ -18893,16 +27548,44 @@ func (u *MlGuardrailsStopWords) Type() MlGuardrailsStopWordsType { return u.typ 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *MlGuardrailsStopWords) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlGuardrailsStopWordsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlGuardrailsStopWords) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlGuardrailsStopWordsUnknownType
+}
+
 // String returns the string branch value.
 func (u *MlGuardrailsStopWords) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewMlGuardrailsStopWordsFromString returns a MlGuardrailsStopWords populated with v
+// on the String branch.
+func NewMlGuardrailsStopWordsFromString(v string) MlGuardrailsStopWords {
+	return MlGuardrailsStopWords{
+		typ:   MlGuardrailsStopWordsStringType,
+		value: v,
+	}
+}
+
 // Array returns the []string branch value.
 func (u *MlGuardrailsStopWords) Array() []string {
 	v, _ := u.value.([]string)
 	return v
+}
+
+// NewMlGuardrailsStopWordsFromArray returns a MlGuardrailsStopWords populated with v
+// on the Array branch.
+func NewMlGuardrailsStopWordsFromArray(v []string) MlGuardrailsStopWords {
+	return MlGuardrailsStopWords{
+		typ:   MlGuardrailsStopWordsArrayType,
+		value: v,
+	}
 }
 
 func (u *MlGuardrailsStopWords) UnmarshalJSON(data []byte) error {
@@ -18966,16 +27649,44 @@ func (u *DerivedFieldScript) Type() DerivedFieldScriptType { return u.typ }
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *DerivedFieldScript) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewDerivedFieldScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *DerivedFieldScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = DerivedFieldScriptUnknownType
+}
+
 // String returns the string branch value.
 func (u *DerivedFieldScript) String() string {
 	v, _ := u.value.(string)
 	return v
 }
 
+// NewDerivedFieldScriptFromString returns a DerivedFieldScript populated with v
+// on the String branch.
+func NewDerivedFieldScriptFromString(v string) DerivedFieldScript {
+	return DerivedFieldScript{
+		typ:   DerivedFieldScriptStringType,
+		value: v,
+	}
+}
+
 // Stored returns the StoredScriptId branch value.
 func (u *DerivedFieldScript) Stored() StoredScriptId {
 	v, _ := u.value.(StoredScriptId)
 	return v
+}
+
+// NewDerivedFieldScriptFromStored returns a DerivedFieldScript populated with v
+// on the Stored branch.
+func NewDerivedFieldScriptFromStored(v StoredScriptId) DerivedFieldScript {
+	return DerivedFieldScript{
+		typ:   DerivedFieldScriptStoredType,
+		value: v,
+	}
 }
 
 func (u *DerivedFieldScript) UnmarshalJSON(data []byte) error {
@@ -19041,16 +27752,44 @@ func (u *WlmQueryGroupCreateResourceLimits) Type() WlmQueryGroupCreateResourceLi
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *WlmQueryGroupCreateResourceLimits) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewWlmQueryGroupCreateResourceLimitsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *WlmQueryGroupCreateResourceLimits) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = WlmQueryGroupCreateResourceLimitsUnknownType
+}
+
 // WlmQueryGroupCreateResourceLimitsObject0 returns the WlmQueryGroupCreateResourceLimitsObject0 branch value.
 func (u *WlmQueryGroupCreateResourceLimits) WlmQueryGroupCreateResourceLimitsObject0() WlmQueryGroupCreateResourceLimitsObject0 {
 	v, _ := u.value.(WlmQueryGroupCreateResourceLimitsObject0)
 	return v
 }
 
+// NewWlmQueryGroupCreateResourceLimitsFromWlmQueryGroupCreateResourceLimitsObject0 returns a WlmQueryGroupCreateResourceLimits populated with v
+// on the WlmQueryGroupCreateResourceLimitsObject0 branch.
+func NewWlmQueryGroupCreateResourceLimitsFromWlmQueryGroupCreateResourceLimitsObject0(v WlmQueryGroupCreateResourceLimitsObject0) WlmQueryGroupCreateResourceLimits {
+	return WlmQueryGroupCreateResourceLimits{
+		typ:   WlmQueryGroupCreateResourceLimitsWlmQueryGroupCreateResourceLimitsObject0Type,
+		value: v,
+	}
+}
+
 // WlmQueryGroupCreateResourceLimitsObject1 returns the WlmQueryGroupCreateResourceLimitsObject1 branch value.
 func (u *WlmQueryGroupCreateResourceLimits) WlmQueryGroupCreateResourceLimitsObject1() WlmQueryGroupCreateResourceLimitsObject1 {
 	v, _ := u.value.(WlmQueryGroupCreateResourceLimitsObject1)
 	return v
+}
+
+// NewWlmQueryGroupCreateResourceLimitsFromWlmQueryGroupCreateResourceLimitsObject1 returns a WlmQueryGroupCreateResourceLimits populated with v
+// on the WlmQueryGroupCreateResourceLimitsObject1 branch.
+func NewWlmQueryGroupCreateResourceLimitsFromWlmQueryGroupCreateResourceLimitsObject1(v WlmQueryGroupCreateResourceLimitsObject1) WlmQueryGroupCreateResourceLimits {
+	return WlmQueryGroupCreateResourceLimits{
+		typ:   WlmQueryGroupCreateResourceLimitsWlmQueryGroupCreateResourceLimitsObject1Type,
+		value: v,
+	}
 }
 
 func (u *WlmQueryGroupCreateResourceLimits) UnmarshalJSON(data []byte) error {

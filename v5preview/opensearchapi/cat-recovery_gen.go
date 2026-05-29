@@ -292,16 +292,44 @@ func (u *CatRecoveryRecordStartTimeMillis) Type() CatRecoveryRecordStartTimeMill
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CatRecoveryRecordStartTimeMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatRecoveryRecordStartTimeMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatRecoveryRecordStartTimeMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatRecoveryRecordStartTimeMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *CatRecoveryRecordStartTimeMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewCatRecoveryRecordStartTimeMillisFromInt64 returns a CatRecoveryRecordStartTimeMillis populated with v
+// on the Int64 branch.
+func NewCatRecoveryRecordStartTimeMillisFromInt64(v int64) CatRecoveryRecordStartTimeMillis {
+	return CatRecoveryRecordStartTimeMillis{
+		typ:   CatRecoveryRecordStartTimeMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CatRecoveryRecordStartTimeMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCatRecoveryRecordStartTimeMillisFromString returns a CatRecoveryRecordStartTimeMillis populated with v
+// on the String branch.
+func NewCatRecoveryRecordStartTimeMillisFromString(v string) CatRecoveryRecordStartTimeMillis {
+	return CatRecoveryRecordStartTimeMillis{
+		typ:   CatRecoveryRecordStartTimeMillisStringType,
+		value: v,
+	}
 }
 
 func (u *CatRecoveryRecordStartTimeMillis) UnmarshalJSON(data []byte) error {
@@ -369,16 +397,44 @@ func (u *CatRecoveryRecordStopTimeMillis) Type() CatRecoveryRecordStopTimeMillis
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
 func (u *CatRecoveryRecordStopTimeMillis) RawJSON() json.RawMessage { return u.raw }
 
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatRecoveryRecordStopTimeMillisFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatRecoveryRecordStopTimeMillis) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatRecoveryRecordStopTimeMillisUnknownType
+}
+
 // Int64 returns the int64 branch value.
 func (u *CatRecoveryRecordStopTimeMillis) Int64() int64 {
 	v, _ := u.value.(int64)
 	return v
 }
 
+// NewCatRecoveryRecordStopTimeMillisFromInt64 returns a CatRecoveryRecordStopTimeMillis populated with v
+// on the Int64 branch.
+func NewCatRecoveryRecordStopTimeMillisFromInt64(v int64) CatRecoveryRecordStopTimeMillis {
+	return CatRecoveryRecordStopTimeMillis{
+		typ:   CatRecoveryRecordStopTimeMillisInt64Type,
+		value: v,
+	}
+}
+
 // String returns the string branch value.
 func (u *CatRecoveryRecordStopTimeMillis) String() string {
 	v, _ := u.value.(string)
 	return v
+}
+
+// NewCatRecoveryRecordStopTimeMillisFromString returns a CatRecoveryRecordStopTimeMillis populated with v
+// on the String branch.
+func NewCatRecoveryRecordStopTimeMillisFromString(v string) CatRecoveryRecordStopTimeMillis {
+	return CatRecoveryRecordStopTimeMillis{
+		typ:   CatRecoveryRecordStopTimeMillisStringType,
+		value: v,
+	}
 }
 
 func (u *CatRecoveryRecordStopTimeMillis) UnmarshalJSON(data []byte) error {
