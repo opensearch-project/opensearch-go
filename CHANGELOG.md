@@ -7,6 +7,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
+- v5preview/opensearchapi: `NewClient` and `NewDefaultClient` now inject `opensearchtransport.NewDefaultRouter` when `config.Client.Router` is nil, opting every v5preview client into intelligent request routing by default. The `OPENSEARCH_GO_ROUTER` env var preserves its v4 semantics end-to-end: `=true`/`=1` enables auto-discovery (via `DiscoverNodesOnStart`); `=false`/`=0` suppresses both Router injection and auto-discovery; unset injects the Router without auto-discovery. v4's `opensearchapi.NewClient` is unchanged. ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
+- Add `envvars.Falsy(name)` helper that distinguishes "explicitly opted out" from "unset" (Truthy collapses both into false). Used by v5preview's router injection rule.
 - Add `v5preview/opensearchapi/` package: regenerated v5-track API surface produced by `cmd/osgen` from the OpenAPI spec. Fully typed Req/Resp/Params structs, sub-clients matching OpenSearch namespaces (`client.Cat`, `client.Cluster`, `client.Indices`, etc.), and a `plugins/` subtree for ML/k-NN/security/ISM/etc. Coexists with `opensearchapi/` during the v4 -> v5 transition; see `v5preview/opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling. Includes `opensearch.NoBody` marker type for calls that expect no response body, unifying all internal dispatch through a single generic path ([#809](https://github.com/opensearch-project/opensearch-go/pull/809))
@@ -94,7 +96,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `PartialSearchError` returned from `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` when `_shards.failed > 0`
   - `ShardFailureError` returned from `Index`, `Document.Create`, `Document.Delete`, `Update` when replica shards fail
   - `MultiSearchItemError` returned from `MSearch`/`MSearchTemplate` for per-sub-response Error envelopes
-  - `MsearchErrors` / `MsearchTemplateErrors` per-op containers (Go 1.20+ multi-error contract via `Unwrap() []error`) when 2+ wrapper categories fire on the same response
+  - `MSearchErrors` / `MSearchTemplateErrors` per-op containers (Go 1.20+ multi-error contract via `Unwrap() []error`) when 2+ wrapper categories fire on the same response
   - `PartialFailureError` marker interface with `IsPartial() bool` for type-switching across all partial-failure types
   - Per-Resp helper methods (`BulkItemFailures`, `SearchShardFailures`, `WriteShardFailures`, `MultiSearchItemFailures`) plus `PartialFailures(mask)` aggregator for focused inspection at the call site
   - `opensearchapi.Errors(err) []error` package-level helper that flattens single- and multi-wrapper errors into a uniform slice for `switch` dispatch

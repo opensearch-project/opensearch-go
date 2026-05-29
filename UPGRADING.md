@@ -37,21 +37,20 @@ Version 5.0.0 introduces typed partial-failure errors and a per-category bitmask
 
 `Config.Errors` is a `*errmask.ErrorMask` pointer. A set bit suppresses (masks) that category; an unset bit reports it. Three named values cover the common cases:
 
-| Value            | Meaning                                                             |
-| ---------------- | ------------------------------------------------------------------- |
-| `nil`            | Use the version's default (v4: `errmask.All`; v5+: `errmask.Empty`) |
-| `&errmask.Empty` | Mask nothing -- every category is reported as a typed error         |
-| `&errmask.All`   | Mask everything -- callers must inspect the response manually       |
+| Value                      | Meaning                                                             |
+| -------------------------- | ------------------------------------------------------------------- |
+| `nil`                      | Use the version's default (v4: `errmask.All`; v5+: `errmask.Empty`) |
+| `errmask.New()`            | Mask nothing -- every category is reported as a typed error         |
+| `errmask.New(errmask.All)` | Mask everything -- callers must inspect the response manually       |
 
-`errmask.None` and `errmask.Unknown` are aliases for `errmask.Empty`; all three equal 0. Composite masks (e.g. `errmask.SearchShards | errmask.MultiSearchItems`) suppress specific categories while leaving others reported.
+`errmask.None` and `errmask.Unknown` are aliases for `errmask.Empty`; all three equal 0. Composite masks (e.g. `errmask.New(errmask.SearchShards | errmask.MultiSearchItems)`) suppress specific categories while leaving others reported. `errmask.New` builds the `*errmask.ErrorMask` the `Config.Errors` field expects, since the named values are constants and not addressable.
 
-The v4 default (`errmask.All`) preserves pre-bitfield behavior: partial failures are not surfaced as Go errors, so existing v4 code continues to work without modification. Opt in by setting `Config.Errors: &errmask.Empty` (or use `errmask.NewClient`-style helpers). The v5+ default flips to `errmask.Empty` so partial failures surface by default.
+The v4 default (`errmask.All`) preserves pre-bitfield behavior: partial failures are not surfaced as Go errors, so existing v4 code continues to work without modification. Opt in by setting `Config.Errors: errmask.New()`. The v5+ default flips to `errmask.Empty` so partial failures surface by default.
 
 ```go
-mask := errmask.Empty // report every category
 client, err := opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{Addresses: addrs},
-    Errors: &mask,
+    Errors: errmask.New(), // report every category
 })
 ```
 
@@ -99,7 +98,7 @@ Callers wanting to enumerate every sub-error from a multi-wrapper op match on th
 
 ```go
 resp, err := client.MSearch(ctx, req)
-var msErr *opensearchapi.MsearchErrors
+var msErr *opensearchapi.MSearchErrors
 if errors.As(err, &msErr) {
     for _, sub := range msErr.Unwrap() {
         switch e := sub.(type) {
@@ -150,11 +149,11 @@ The `r.PartialFailures(mask errmask.ErrorMask) []error` aggregator reports every
 | Error Type               | Returned By                                                                                                                         | Key Fields                                                                |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | `*PartialBulkError`      | `Bulk`                                                                                                                              | `FailedItems []BulkRespItem`, `SucceededCount int`                        |
-| `*PartialSearchError`    | `Search`, `Scroll.Get`, `SearchTemplate` (single-bit); also via `*MsearchErrors` and `*MsearchTemplateErrors` for shard aggregation | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
+| `*PartialSearchError`    | `Search`, `Scroll.Get`, `SearchTemplate` (single-bit); also via `*MSearchErrors` and `*MSearchTemplateErrors` for shard aggregation | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
 | `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                                                             | `Operation string`, `FailedShards int`, `TotalShards int`                 |
 | `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                                                                    | `Items []MultiSearchItemFailure`, `SucceededCount int`                    |
-| `*MsearchErrors`         | `MSearch` when 2+ wrappers fire                                                                                                     | `Unwrap() []error` (multi-error contract)                                 |
-| `*MsearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                                             | `Unwrap() []error`                                                        |
+| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                                                                     | `Unwrap() []error` (multi-error contract)                                 |
+| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                                             | `Unwrap() []error`                                                        |
 
 Per-op `*<Op>Errors` types are the Go 1.20+ multi-error containers; they implement `Unwrap() []error` so `errors.As` against any sub-error type still matches whether the response carried one sub-error or many.
 
@@ -165,10 +164,47 @@ The v5preview surface ports the same model, but its error sub-types are spec-dri
 | Field name                      | v4 (`opensearchapi`)    | v5preview (`v5preview/opensearchapi`)      |
 | ------------------------------- | ----------------------- | ------------------------------------------ |
 | Per-shard failure type          | `ResponseShardsFailure` | `ShardSearchFailure` (spec-driven)         |
-| Per-sub-response error envelope | inline `*DocumentError` | embedded `ErrorResponseBase` (spec-driven) |
+| Per-sub-response error envelope | inline `*DocumentError` | embedded `ErrorRespBase` (spec-driven) |
 | Shard envelope type             | `ResponseShards`        | `ShardStatistics` (spec-driven)            |
 
-The v5preview package additionally generates one per-op error type per operation declaring `x-error-responses` (e.g. `*v5preview/opensearchapi.MsearchErrors`, `*v5preview/opensearchapi.MsearchTemplateErrors`). Callers wanting v4-shaped field types should keep using the v4 `opensearchapi` package; v5preview is a preview surface that will become the default in v5.
+The v5preview package additionally generates one per-op error type per operation declaring `x-error-responses` (e.g. `*v5preview/opensearchapi.MSearchErrors`, `*v5preview/opensearchapi.MSearchTemplateErrors`). Callers wanting v4-shaped field types should keep using the v4 `opensearchapi` package; v5preview is a preview surface that will become the default in v5.
+
+### Default Router Injection in v5preview
+
+`v5preview/opensearchapi.NewClient` (and `NewDefaultClient`) now inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. v5preview opts every client into intelligent request routing -- role-aware dispatch with RTT-based scoring, congestion-window AIMD, and shard-cost weighting -- by default.
+
+The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
+
+| `OPENSEARCH_GO_ROUTER` | v4                           | v5preview                                                   |
+| ---------------------- | ---------------------------- | ----------------------------------------------------------- |
+| unset                  | no Router, no auto-discovery | **default Router injected**, no auto-discovery              |
+| `true` / `1`           | default Router (transport layer), auto-discovery on | **default Router injected, auto-discovery on**              |
+| `false` / `0`          | no Router, no auto-discovery | **injection skipped (Router stays nil)**, no auto-discovery |
+| unparseable            | no Router, no auto-discovery | default Router injected, no auto-discovery                  |
+
+At the transport layer v4 and v5preview behave identically: `opensearchtransport.New` creates a `NewDefaultRouter` whenever `Router == nil` and `OPENSEARCH_GO_ROUTER` is truthy. What v5preview adds is the `opensearchapi`-level injection, which sets `Router` to the default before the transport sees it unless `OPENSEARCH_GO_ROUTER` is explicitly falsy. So the only behavioral divergence from v4 is on the `unset` and unparseable rows: v4 leaves `Router` nil, v5preview injects the default. Truthy and falsy semantics are preserved end-to-end -- a v4 caller running with `OPENSEARCH_GO_ROUTER=true` keeps auto-discovery when migrating to v5preview, and `=false` opts out of both Router injection and auto-discovery.
+
+```go
+// v5preview: default router is injected automatically.
+client, _ := opensearchapi.NewClient(opensearchapi.Config{
+    Client: opensearch.Config{Addresses: addrs}, // Router == nil
+})
+// client uses NewDefaultRouter under the hood.
+
+// Caller-provided Router is preserved unchanged.
+custom, _ := opensearchtransport.NewMuxRouter()
+client, _ = opensearchapi.NewClient(opensearchapi.Config{
+    Client: opensearch.Config{Addresses: addrs, Router: custom},
+})
+// client uses `custom`; the default-router injection is skipped.
+
+// Env-var opt-out: OPENSEARCH_GO_ROUTER=false -> Router stays nil,
+// no auto-discovery.
+```
+
+A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect: setting `DiscoverNodesOnStart: &false` keeps auto-discovery off even when `OPENSEARCH_GO_ROUTER=true`.
+
+v4's `opensearchapi.NewClient` is unchanged: it doesn't auto-inject a Router, so existing v4 code keeps its current behavior.
 
 #### Helper functions
 
@@ -193,6 +229,51 @@ opensearchapi.OperationDelete  // "delete"
 ```
 
 See [Error Handling and Partial Failures](guides/error_handling.md) for the full guide.
+
+### `DiscoverNodes()` blocking semantics
+
+`opensearch.Client.DiscoverNodes()` and `opensearchtransport.Client.DiscoverNodes()` now **block** when an in-flight discovery cycle is active and return that cycle's error verbatim, instead of the previous immediate `nil` no-op.
+
+The previous "fire-and-forget" behavior masked discovery failures: a caller that handed control back after a failing discovery saw `err == nil` and continued against a stale node list. The new behavior surfaces the failure synchronously so callers can react (retry, alert, fall back to seed nodes).
+
+Client construction itself never blocks on discovery: when `Config.DiscoverNodesOnStart` is `&true`, `opensearch.NewClient` launches a detached goroutine that calls `DiscoverNodes()`, then returns. Callers who want fully manual control set `DiscoverNodesOnStart: &false` and `DiscoverNodesInterval: 0` -- no on-start goroutine, no polling loop -- and call `client.DiscoverNodes(ctx)` themselves before issuing requests:
+
+```go
+discoverOnStart := false
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:             []string{"https://localhost:9200"},
+    DiscoverNodesOnStart:  &discoverOnStart, // skip auto-discovery
+    DiscoverNodesInterval: 0,                // disable polling loop
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := client.DiscoverNodes(ctx); err != nil {
+    log.Printf("initial discovery failed: %s", err)
+}
+
+// proceed to use the client; topology data is ready.
+```
+
+The signature already changed earlier in this version to take `context.Context` (see CHANGELOG); this is a behavioral change on top of the signature change.
+
+### `opensearchtransport.Route` interface gained `OpID()`
+
+The exported `Route` interface in `opensearchtransport` gained a new method:
+
+```go
+type Route interface {
+    Policy() Policy
+    Attrs() routeAttr
+    PoolName() string
+    OpID() OperationID  // new in v5
+}
+```
+
+External code that implements `Route` (custom routing policies) must add an `OpID() OperationID` method returning the [`OperationID`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4/opensearchtransport#OperationID) for the route -- typically the `Op*` constant matching the route's HTTP method+path. Built-in routes built via `NewRouteMux` are populated automatically; only hand-written `Route` implementations are affected.
 
 ### StringError for Unknown JSON Responses
 
@@ -771,8 +852,8 @@ Version 3.0.0 reorganized APIs into logical sub-clients. The following tables co
 | `client.Count(...)`                      | `client.Indices.Count(ctx, req)`        |
 | `client.FieldCaps(...)`                  | `client.Indices.FieldCaps(ctx, req)`    |
 | `client.Mget(...)`                       | `client.MGet(ctx, req)`                 |
-| `client.Msearch(...)`                    | `client.MSearch(ctx, req)`              |
-| `client.MsearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
+| `client.MSearch(...)`                    | `client.MSearch(ctx, req)`              |
+| `client.MSearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
 | `client.Mtermvectors(...)`               | `client.MTermvectors(ctx, req)`         |
 | `client.Indices.AddBlock(...)`           | `client.Indices.Block(ctx, req)`        |
 | `client.Indices.ResolveIndex(...)`       | `client.Indices.Resolve(ctx, req)`      |

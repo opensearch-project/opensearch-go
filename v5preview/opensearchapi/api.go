@@ -78,8 +78,61 @@ type Config struct {
 	Errors *errmask.ErrorMask
 }
 
-// NewClient returns an api client
+// defaultRouter returns the v5preview default Router. v5preview opts
+// every caller into intelligent request routing: role-aware
+// dispatch with RTT-based scoring, congestion-window AIMD, and shard-
+// cost weighting. Callers who want different routing semantics set
+// `config.Client.Router` to their own [opensearchtransport.Router]
+// before calling [NewClient]; setting OPENSEARCH_GO_ROUTER=false
+// suppresses the default-router injection entirely (the caller's nil
+// Router stays nil, matching v4 behavior).
+func defaultRouter() (opensearchtransport.Router, error) {
+	return opensearchtransport.NewDefaultRouter()
+}
+
+// NewClient returns an api client. Routing rule:
+//
+//   - config.Client.Router != nil: use the caller's Router unchanged.
+//   - config.Client.Router == nil and OPENSEARCH_GO_ROUTER=false: leave
+//     Router nil (env-driven opt-out).
+//   - config.Client.Router == nil otherwise (env unset or truthy):
+//     inject [opensearchtransport.NewDefaultRouter] -- v5preview opts
+//     every caller into intelligent request routing by default.
+//
+// When the default-router injection runs AND OPENSEARCH_GO_ROUTER is
+// explicitly truthy, NewClient also sets DiscoverNodesOnStart=true
+// (unless the caller already picked a value). This preserves v4's
+// truthy-env semantics: a v4 caller running with
+// OPENSEARCH_GO_ROUTER=true relied on auto-discovery as a side
+// effect, which would otherwise be silently dropped on v5preview
+// because the underlying opensearch.NewClient skips its env-driven
+// discovery path when Router != nil.
+//
+// The OPENSEARCH_GO_ROUTER variable is the same one v4 uses to opt
+// into on-start discovery; in v5preview it doubles as the env-var
+// opt-out for the default-router injection. The unset behavior is
+// the only divergence from v4: v4 does nothing on unset, v5preview
+// injects the default router.
 func NewClient(config Config) (*Client, error) {
+	if config.Client.Router == nil && !envvars.Falsy(envvars.Router) {
+		router, err := defaultRouter()
+		if err != nil {
+			return nil, fmt.Errorf("v5preview/opensearchapi: build default router: %w", err)
+		}
+		config.Client.Router = router
+
+		// Preserve v4's OPENSEARCH_GO_ROUTER=true side-effect: enable
+		// on-start discovery when env is truthy and caller did not
+		// pick a value. The opensearch.NewClient env-discovery path
+		// at the same env-var key only fires when Router == nil; that
+		// condition is now false because we just injected one, so
+		// replicate the side-effect here for v4 migrators.
+		if config.Client.DiscoverNodesOnStart == nil && envvars.Truthy(envvars.Router) {
+			t := true
+			config.Client.DiscoverNodesOnStart = &t
+		}
+	}
+
 	rootClient, err := opensearch.NewClient(config.Client)
 	if err != nil {
 		return nil, err
@@ -88,17 +141,16 @@ func NewClient(config Config) (*Client, error) {
 	return clientInit(rootClient, resolveErrorMask(config)), nil
 }
 
-// NewDefaultClient returns an api client using defaults
+// NewDefaultClient returns an api client using defaults: localhost on
+// the default scheme/port plus the default router (see [NewClient] for
+// the router-injection rule).
 func NewDefaultClient() (*Client, error) {
 	defaultAddress := opensearch.DefaultScheme + "://" + net.JoinHostPort(opensearch.DefaultHost, strconv.Itoa(opensearch.DefaultPort))
-	rootClient, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{defaultAddress},
+	return NewClient(Config{
+		Client: opensearch.Config{
+			Addresses: []string{defaultAddress},
+		},
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return clientInit(rootClient, resolveErrorMask(Config{})), nil
 }
 
 // NewFromClient creates an api client from an existing opensearch.Client.

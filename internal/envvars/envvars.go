@@ -102,3 +102,17 @@ func Truthy(name string) bool {
 	b, err := strconv.ParseBool(val)
 	return err == nil && b
 }
+
+// Falsy reports whether the named environment variable is set to a
+// strconv.ParseBool-falsy value. Empty, unset, unparseable, or truthy
+// values all return false. Use this when "explicitly opted out" needs
+// to be distinguished from "unset" (where Truthy alone collapses both
+// into false).
+func Falsy(name string) bool {
+	val, ok := os.LookupEnv(name)
+	if !ok || val == "" {
+		return false
+	}
+	b, err := strconv.ParseBool(val)
+	return err == nil && !b
+}
