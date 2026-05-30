@@ -12,12 +12,13 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"
 	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
@@ -29,8 +30,8 @@ import (
 // failures by default and can mask categories they choose to tolerate.
 // The resolver substitutes that default whenever [Config.Errors] is
 // nil; a non-nil pointer is honored verbatim, so callers can opt out
-// wholesale with `Errors: &errmask.All` or selectively with composite
-// masks.
+// wholesale with `Errors: errmask.New(errmask.All)` or selectively with
+// composite masks.
 //
 // Parsing is liberal (forward-compatible): tokens this binary doesn't
 // recognize are skipped and reported via the debug logger, mirroring
@@ -66,12 +67,15 @@ type Config struct {
 	//
 	//   nil               use this version's default: errmask.Empty
 	//                     (report every partial-failure category)
-	//   &errmask.Empty    caller wants every category reported
-	//   &errmask.All      caller wants every category masked
+	//   errmask.New()     caller wants every category reported
+	//   errmask.New(errmask.All)
+	//                     caller wants every category masked
 	//
 	// [errmask.None] and [errmask.Unknown] are doc-friendly aliases for
-	// [errmask.Empty]; all three equal 0. The pointer state is what
-	// disambiguates "use the default" from "caller chose Empty".
+	// [errmask.Empty]; all three equal 0. Because the named values are
+	// constants (not addressable), use [errmask.New] to build the pointer.
+	// The pointer state is what disambiguates "use the default" from "caller
+	// chose Empty".
 	//
 	// The OPENSEARCH_GO_ERROR_MASK environment variable can override
 	// this value with comma-separated +/- tokens (see [errmask.Parse]).
@@ -153,18 +157,80 @@ func NewDefaultClient() (*Client, error) {
 	})
 }
 
-// NewFromClient creates an api client from an existing opensearch.Client.
-// In v4 this preserves the legacy "mask everything" default; use NewClient
-// with Config to enable partial-failure errors.
-func NewFromClient(client *opensearch.Client) *Client {
-	return clientInit(client, resolveErrorMask(Config{}))
+// errMaskWidth is the storage type backing a Client's live error mask.
+// It is an alias (not a named type) so the generated clients_gen.go can
+// declare the field and call the atomic methods directly, yet the width
+// stays an implementation detail: widen it to atomic.Uint64 here if the
+// mask ever outgrows 32 bits and no call site changes, because the method
+// set is identical. The mask is held behind a pointer on Client so the
+// value-receiver API methods (which copy Client per call) all share one
+// cell and observe a concurrent SetErrorMask.
+type errMaskWidth = atomic.Uint32
+
+// newErrMask returns an error-mask cell initialized to m.
+func newErrMask(m errmask.ErrorMask) *errMaskWidth {
+	w := new(errMaskWidth)
+	w.Store(uint32(m))
+	return w
 }
 
-// NewFromClientWithErrors creates an api client from an existing
-// opensearch.Client with every partial-failure category reported as an error.
-func NewFromClientWithErrors(client *opensearch.Client) *Client {
-	none := errmask.None
-	return clientInit(client, resolveErrorMask(Config{Errors: &none}))
+// errorMask returns the Client's current effective error mask. Generated
+// dispatch code calls this per request so a SetErrorMask applied mid-flight
+// takes effect on subsequent calls.
+func (c *Client) errorMask() errmask.ErrorMask {
+	return errmask.ErrorMask(c.errors.Load())
+}
+
+// ErrorMask returns the Client's current partial-failure error mask. Read
+// it before [Client.SetErrorMask] to supply the expected prior value.
+func (c *Client) ErrorMask() errmask.ErrorMask {
+	return c.errorMask()
+}
+
+// SetErrorMask atomically replaces the Client's partial-failure error mask,
+// but only if its current value still equals prev. It returns an
+// [*ErrorMaskConflictError] (without changing the mask) when another writer
+// changed it first, so the caller resolves the race by re-reading
+// [Client.ErrorMask] and retrying rather than silently clobbering the
+// concurrent update. The change is visible to all copies of this Client and
+// to in-flight calls that have not yet read the mask.
+func (c *Client) SetErrorMask(prev, next errmask.ErrorMask) error {
+	if c.errors.CompareAndSwap(uint32(prev), uint32(next)) {
+		return nil
+	}
+	return &ErrorMaskConflictError{Expected: prev, Actual: c.errorMask()}
+}
+
+// ErrorMaskConflictError reports that [Client.SetErrorMask] did not apply
+// because the mask was changed concurrently: Actual (the observed value)
+// did not match Expected (the prev the caller passed).
+//
+//nolint:errname // the leading "Error" refers to the ErrorMask feature, not error-naming convention
+type ErrorMaskConflictError struct {
+	Expected errmask.ErrorMask
+	Actual   errmask.ErrorMask
+}
+
+func (e *ErrorMaskConflictError) Error() string {
+	return fmt.Sprintf(
+		"opensearchapi: SetErrorMask conflict: expected mask %s, found %s",
+		e.Expected, e.Actual,
+	)
+}
+
+// Clone returns a new Client that shares this Client's underlying
+// opensearch.Client -- and therefore its connection pool, auth, transport,
+// and router -- but carries an independent error-mask cell seeded from the
+// current mask. Mutating the clone's mask via [Client.SetErrorMask] does
+// not affect the original, mirroring [net/http.Transport.Clone]'s "same
+// config, independent instance" contract.
+//
+// Use it to derive a client that talks over the same connection but reports
+// (or tolerates) a different set of partial-failure categories. To share the
+// transport with plugin clients instead, pass the exported [Client.Client]
+// field to their constructors.
+func (c *Client) Clone() *Client {
+	return clientInit(c.Client, c.errorMask())
 }
 
 // do calls [opensearch.Do] and checks the response for OpenSearch API errors.

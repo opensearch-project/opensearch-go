@@ -209,7 +209,7 @@ func (r UpdateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/update-document/
 type UpdateResp struct {
-	WriteResponseBase
+	WriteRespBase
 
 	// The result of an inline get operation.
 	Get *InlineGet `json:"get,omitempty"`
@@ -526,5 +526,5 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
 }

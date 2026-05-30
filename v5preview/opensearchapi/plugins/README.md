@@ -41,14 +41,13 @@ import (
     "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/plugins/security"
 )
 
-root, _ := opensearch.NewClient(opensearch.Config{...})
-
 // Core API client
-api := opensearchapi.NewFromClient(root)
+api, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{...}})
 
-// Plugin clients (same connection pool, auth, retry logic)
-knnClient := knn.NewClient(root)
-secClient := security.NewClient(root)
+// Plugin clients share the core client's transport (same connection pool,
+// auth, retry logic) via its exported Client field.
+knnClient := knn.NewClient(api.Client)
+secClient := security.NewClient(api.Client)
 
 // Use both
 _, _ = api.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: "vectors"})

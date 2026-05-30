@@ -399,7 +399,7 @@ func (c *Client) Migrate(ctx context.Context, req *MigrateReq) (*MigrateResp, er
 	return &resp, nil
 }
 
-// ReloadHttpCertificates reloads the HTTP communication certificates.
+// ReloadHTTPCertificates reloads the HTTP communication certificates.
 //
 // PUT /_plugins/_security/api/ssl/http/reloadcerts
 //
@@ -408,7 +408,7 @@ func (c *Client) Migrate(ctx context.Context, req *MigrateReq) (*MigrateResp, er
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#reload-http-certificates
-func (c *Client) ReloadHttpCertificates(ctx context.Context, req *ReloadHTTPCertificatesReq) (*ReloadHTTPCertificatesResp, error) {
+func (c *Client) ReloadHTTPCertificates(ctx context.Context, req *ReloadHTTPCertificatesReq) (*ReloadHTTPCertificatesResp, error) {
 	if req == nil {
 		req = &ReloadHTTPCertificatesReq{}
 	}

@@ -213,102 +213,108 @@ func (r ReindexResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// ReindexResponseBodyObject1 is a typed component of the reindex operation.
-type ReindexResponseBodyObject1 struct {
+// ReindexRespBodyObject1 is a typed component of the reindex operation.
+type ReindexRespBodyObject1 struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
-// ReindexResponseBody is a discriminated union type (try-each, newest version first).
+// ReindexRespBody is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type ReindexResponseBody struct {
-	typ   ReindexResponseBodyType
+type ReindexRespBody struct {
+	typ   ReindexRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// ReindexResponseBodyType discriminates the branches of ReindexResponseBody.
-type ReindexResponseBodyType int
+// ReindexRespBodyType discriminates the branches of ReindexRespBody.
+type ReindexRespBodyType int
 
 const (
-	ReindexResponseBodyUnknownType ReindexResponseBodyType = iota
-	ReindexResponseBodyBulkByScrollResponseBaseType
-	ReindexResponseBodyReindexResponseBodyObject1Type
+	ReindexRespBodyUnknownType ReindexRespBodyType = iota
+	ReindexRespBodyBulkByScrollRespBaseType
+	ReindexRespBodyReindexRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns ReindexResponseBodyUnknownType if the value has not been decoded.
-func (u *ReindexResponseBody) Type() ReindexResponseBodyType { return u.typ }
+// Returns ReindexRespBodyUnknownType if the value has not been decoded.
+func (u *ReindexRespBody) Type() ReindexRespBodyType { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *ReindexResponseBody) RawJSON() json.RawMessage { return u.raw }
+func (u *ReindexRespBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewReindexResponseBodyFrom*
+// verbatim when no typed branch is set. Use the NewReindexRespBodyFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *ReindexResponseBody) SetRaw(raw json.RawMessage) {
+func (u *ReindexRespBody) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = ReindexResponseBodyUnknownType
+	u.typ = ReindexRespBodyUnknownType
 }
 
-// BulkByScrollResponseBase returns the BulkByScrollResponseBase branch value.
-func (u *ReindexResponseBody) BulkByScrollResponseBase() BulkByScrollResponseBase {
-	v, _ := u.value.(BulkByScrollResponseBase)
+// BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
+func (u *ReindexRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
+	v, _ := u.value.(BulkByScrollRespBase)
 	return v
 }
 
-// NewReindexResponseBodyFromBulkByScrollResponseBase returns a ReindexResponseBody populated with v
-// on the BulkByScrollResponseBase branch.
-func NewReindexResponseBodyFromBulkByScrollResponseBase(v BulkByScrollResponseBase) ReindexResponseBody {
-	return ReindexResponseBody{
-		typ:   ReindexResponseBodyBulkByScrollResponseBaseType,
+// NewReindexRespBodyFromBulkByScrollRespBase returns a ReindexRespBody populated with v
+// on the BulkByScrollRespBase branch.
+func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexRespBody {
+	return ReindexRespBody{
+		typ:   ReindexRespBodyBulkByScrollRespBaseType,
 		value: v,
 	}
 }
 
-// ReindexResponseBodyObject1 returns the ReindexResponseBodyObject1 branch value.
-func (u *ReindexResponseBody) ReindexResponseBodyObject1() ReindexResponseBodyObject1 {
-	v, _ := u.value.(ReindexResponseBodyObject1)
+// ReindexRespBodyObject1 returns the ReindexRespBodyObject1 branch value.
+func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
+	v, _ := u.value.(ReindexRespBodyObject1)
 	return v
 }
 
-// NewReindexResponseBodyFromReindexResponseBodyObject1 returns a ReindexResponseBody populated with v
-// on the ReindexResponseBodyObject1 branch.
-func NewReindexResponseBodyFromReindexResponseBodyObject1(v ReindexResponseBodyObject1) ReindexResponseBody {
-	return ReindexResponseBody{
-		typ:   ReindexResponseBodyReindexResponseBodyObject1Type,
+// NewReindexRespBodyFromReindexRespBodyObject1 returns a ReindexRespBody populated with v
+// on the ReindexRespBodyObject1 branch.
+func NewReindexRespBodyFromReindexRespBodyObject1(v ReindexRespBodyObject1) ReindexRespBody {
+	return ReindexRespBody{
+		typ:   ReindexRespBodyReindexRespBodyObject1Type,
 		value: v,
 	}
 }
 
-func (u *ReindexResponseBody) UnmarshalJSON(data []byte) error {
+func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
-		var v BulkByScrollResponseBase
+		var v BulkByScrollRespBase
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexResponseBodyBulkByScrollResponseBaseType
+			u.typ = ReindexRespBodyBulkByScrollRespBaseType
 			u.value = v
 			return nil
 		}
 	}
 	{
-		var v ReindexResponseBodyObject1
+		var v ReindexRespBodyObject1
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexResponseBodyReindexResponseBodyObject1Type
+			u.typ = ReindexRespBodyReindexRespBodyObject1Type
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("ReindexResponseBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return fmt.Errorf("ReindexRespBody: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u ReindexResponseBody) MarshalJSON() ([]byte, error) {
+func (u ReindexRespBody) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -602,6 +608,12 @@ func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {

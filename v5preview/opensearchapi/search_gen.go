@@ -1295,6 +1295,12 @@ func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -1504,5 +1510,5 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
 }

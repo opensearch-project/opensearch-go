@@ -136,7 +136,7 @@ func (r IndicesRolloverParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/dashboards/im-dashboards/rollover/
 type IndicesRolloverResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Conditions         map[string]bool `json:"conditions"`
 	DryRun             bool            `json:"dry_run"`
 	NewIndex           string          `json:"new_index"`

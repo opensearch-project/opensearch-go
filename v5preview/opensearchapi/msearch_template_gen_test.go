@@ -23,32 +23,32 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
-func TestMsearchTemplateReq_GetRequest(t *testing.T) {
+func TestMSearchTemplateReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.MsearchTemplateReq
+		req        opensearchapi.MSearchTemplateReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        opensearchapi.MsearchTemplateReq{},
+			req:        opensearchapi.MSearchTemplateReq{},
 			wantMethod: "GET",
 			wantPath:   "/_msearch/template",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.MsearchTemplateReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.MSearchTemplateReq{Index: []string{"a", "b"}},
 			wantMethod: "GET",
 			wantPath:   "/a,b/_msearch/template",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.MsearchTemplateReq{Index: []string{"x"}, Body: strings.NewReader("{}")},
+			req:        opensearchapi.MSearchTemplateReq{Index: []string{"x"}, Body: strings.NewReader("{}")},
 			wantMethod: "POST",
 			wantPath:   "/x/_msearch/template",
 			wantErr:    false,
@@ -69,7 +69,7 @@ func TestMsearchTemplateReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestMsearchTemplate_Roundtrip(t *testing.T) {
+func TestMSearchTemplate_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -85,7 +85,7 @@ func TestMsearchTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.MsearchTemplate(t.Context(), nil)
+		resp, err := client.MSearchTemplate(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -104,7 +104,7 @@ func TestMsearchTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.MsearchTemplate(t.Context(), nil)
+		resp, err := errClient.MSearchTemplate(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

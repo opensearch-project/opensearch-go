@@ -24,7 +24,7 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// MsearchReq represents the request for the msearch operation.
+// MSearchReq represents the request for the msearch operation.
 //
 // Allows to execute several search operations in one request.
 //
@@ -35,7 +35,7 @@ import (
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/multi-search/
-type MsearchReq struct {
+type MSearchReq struct {
 	// Index specifies the list of path segments for the request URL.
 	Index []string
 
@@ -46,11 +46,11 @@ type MsearchReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *MsearchParams
+	Params *MSearchParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r MsearchReq) GetRequest(method string) (*http.Request, error) {
+func (r MSearchReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.MsearchPath{
 		Index: r.Index,
 	}.Build()
@@ -84,8 +84,8 @@ func (r MsearchReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// MsearchParams represents query parameters for the MsearchReq.
-type MsearchParams struct {
+// MSearchParams represents query parameters for the MSearchReq.
+type MSearchParams struct {
 	TimeoutParams
 	DebugParams
 	// Specifies whether to return partial results if there are shard request
@@ -133,7 +133,7 @@ type MsearchParams struct {
 	TypedKeys *bool
 }
 
-func (r MsearchParams) get() map[string]string {
+func (r MSearchParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -179,132 +179,138 @@ func (r MsearchParams) get() map[string]string {
 	return params
 }
 
-// MsearchResp represents the response for the msearch operation.
+// MSearchResp represents the response for the msearch operation.
 //
 // Allows to execute several search operations in one request.
 //
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/multi-search/
-type MsearchResp struct {
-	Responses []MsearchMultiSearchResultResponsesItem `json:"responses"`
+type MSearchResp struct {
+	Responses []MSearchMultiSearchResultResponsesItem `json:"responses"`
 	Took      float64                                 `json:"took"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r MsearchResp) Inspect() Inspect {
+func (r MSearchResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r MsearchResp) RawBody() io.Reader {
+func (r MSearchResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// MsearchMultiSearchItem is a typed component of the msearch operation.
-type MsearchMultiSearchItem struct {
+// MSearchMultiSearchItem is a typed component of the msearch operation.
+type MSearchMultiSearchItem struct {
 	SearchResult
 	Status *float64 `json:"status,omitempty"`
 }
 
-// MsearchMultiSearchResultResponsesItem is a discriminated union type (try-each, newest version first).
+// MSearchMultiSearchResultResponsesItem is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type MsearchMultiSearchResultResponsesItem struct {
-	typ   MsearchMultiSearchResultResponsesItemType
+type MSearchMultiSearchResultResponsesItem struct {
+	typ   MSearchMultiSearchResultResponsesItemType
 	raw   json.RawMessage
 	value any
 }
 
-// MsearchMultiSearchResultResponsesItemType discriminates the branches of MsearchMultiSearchResultResponsesItem.
-type MsearchMultiSearchResultResponsesItemType int
+// MSearchMultiSearchResultResponsesItemType discriminates the branches of MSearchMultiSearchResultResponsesItem.
+type MSearchMultiSearchResultResponsesItemType int
 
 const (
-	MsearchMultiSearchResultResponsesItemUnknownType MsearchMultiSearchResultResponsesItemType = iota
-	MsearchMultiSearchResultResponsesItemMsearchMultiSearchItemType
-	MsearchMultiSearchResultResponsesItemErrorResponseBaseType
+	MSearchMultiSearchResultResponsesItemUnknownType MSearchMultiSearchResultResponsesItemType = iota
+	MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType
+	MSearchMultiSearchResultResponsesItemErrorRespBaseType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns MsearchMultiSearchResultResponsesItemUnknownType if the value has not been decoded.
-func (u *MsearchMultiSearchResultResponsesItem) Type() MsearchMultiSearchResultResponsesItemType {
+// Returns MSearchMultiSearchResultResponsesItemUnknownType if the value has not been decoded.
+func (u *MSearchMultiSearchResultResponsesItem) Type() MSearchMultiSearchResultResponsesItemType {
 	return u.typ
 }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *MsearchMultiSearchResultResponsesItem) RawJSON() json.RawMessage { return u.raw }
+func (u *MSearchMultiSearchResultResponsesItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewMsearchMultiSearchResultResponsesItemFrom*
+// verbatim when no typed branch is set. Use the NewMSearchMultiSearchResultResponsesItemFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *MsearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
+func (u *MSearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = MsearchMultiSearchResultResponsesItemUnknownType
+	u.typ = MSearchMultiSearchResultResponsesItemUnknownType
 }
 
-// MsearchMultiSearchItem returns the MsearchMultiSearchItem branch value.
-func (u *MsearchMultiSearchResultResponsesItem) MsearchMultiSearchItem() MsearchMultiSearchItem {
-	v, _ := u.value.(MsearchMultiSearchItem)
+// MSearchMultiSearchItem returns the MSearchMultiSearchItem branch value.
+func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() MSearchMultiSearchItem {
+	v, _ := u.value.(MSearchMultiSearchItem)
 	return v
 }
 
-// NewMsearchMultiSearchResultResponsesItemFromMsearchMultiSearchItem returns a MsearchMultiSearchResultResponsesItem populated with v
-// on the MsearchMultiSearchItem branch.
-func NewMsearchMultiSearchResultResponsesItemFromMsearchMultiSearchItem(v MsearchMultiSearchItem) MsearchMultiSearchResultResponsesItem {
-	return MsearchMultiSearchResultResponsesItem{
-		typ:   MsearchMultiSearchResultResponsesItemMsearchMultiSearchItemType,
+// NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem returns a MSearchMultiSearchResultResponsesItem populated with v
+// on the MSearchMultiSearchItem branch.
+func NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(v MSearchMultiSearchItem) MSearchMultiSearchResultResponsesItem {
+	return MSearchMultiSearchResultResponsesItem{
+		typ:   MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType,
 		value: v,
 	}
 }
 
-// ErrorResponseBase returns the ErrorResponseBase branch value.
-func (u *MsearchMultiSearchResultResponsesItem) ErrorResponseBase() ErrorResponseBase {
-	v, _ := u.value.(ErrorResponseBase)
+// ErrorRespBase returns the ErrorRespBase branch value.
+func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() ErrorRespBase {
+	v, _ := u.value.(ErrorRespBase)
 	return v
 }
 
-// NewMsearchMultiSearchResultResponsesItemFromErrorResponseBase returns a MsearchMultiSearchResultResponsesItem populated with v
-// on the ErrorResponseBase branch.
-func NewMsearchMultiSearchResultResponsesItemFromErrorResponseBase(v ErrorResponseBase) MsearchMultiSearchResultResponsesItem {
-	return MsearchMultiSearchResultResponsesItem{
-		typ:   MsearchMultiSearchResultResponsesItemErrorResponseBaseType,
+// NewMSearchMultiSearchResultResponsesItemFromErrorRespBase returns a MSearchMultiSearchResultResponsesItem populated with v
+// on the ErrorRespBase branch.
+func NewMSearchMultiSearchResultResponsesItemFromErrorRespBase(v ErrorRespBase) MSearchMultiSearchResultResponsesItem {
+	return MSearchMultiSearchResultResponsesItem{
+		typ:   MSearchMultiSearchResultResponsesItemErrorRespBaseType,
 		value: v,
 	}
 }
 
-func (u *MsearchMultiSearchResultResponsesItem) UnmarshalJSON(data []byte) error {
+func (u *MSearchMultiSearchResultResponsesItem) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v MsearchMultiSearchItem
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "error", "status") {
+		var v ErrorRespBase
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MsearchMultiSearchResultResponsesItemMsearchMultiSearchItemType
+			u.typ = MSearchMultiSearchResultResponsesItemErrorRespBaseType
 			u.value = v
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
-		var v ErrorResponseBase
+		var v MSearchMultiSearchItem
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MsearchMultiSearchResultResponsesItemErrorResponseBaseType
+			u.typ = MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("MsearchMultiSearchResultResponsesItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return fmt.Errorf("MSearchMultiSearchResultResponsesItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u MsearchMultiSearchResultResponsesItem) MarshalJSON() ([]byte, error) {
+func (u MSearchMultiSearchResultResponsesItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -314,17 +320,17 @@ func (u MsearchMultiSearchResultResponsesItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// SearchShardFailures detects partial failures on a MsearchResp by
+// SearchShardFailures detects partial failures on a MSearchResp by
 // aggregating shard envelopes across union-typed sub-responses.
-func (r *MsearchResp) SearchShardFailures() *PartialSearchError {
+func (r *MSearchResp) SearchShardFailures() *PartialSearchError {
 	if r == nil {
 		return nil
 	}
 	var totalShards, failedShards int
 	var failures []ShardSearchFailure
 	for _, resp := range r.Responses {
-		if resp.Type() == MsearchMultiSearchResultResponsesItemMsearchMultiSearchItemType {
-			item := resp.MsearchMultiSearchItem()
+		if resp.Type() == MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType {
+			item := resp.MSearchMultiSearchItem()
 			totalShards += item.Shards.Total
 			failedShards += item.Shards.Failed
 			failures = append(failures, item.Shards.Failures...)
@@ -341,19 +347,19 @@ func (r *MsearchResp) SearchShardFailures() *PartialSearchError {
 }
 
 // MultiSearchItemFailures detects per-sub-response Error objects on a
-// MsearchResp via union-branch dispatch. Returns nil when every
+// MSearchResp via union-branch dispatch. Returns nil when every
 // sub-response succeeded.
-func (r *MsearchResp) MultiSearchItemFailures() *MultiSearchItemError {
+func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError {
 	if r == nil {
 		return nil
 	}
 	var failed []MultiSearchItemFailure
 	succeeded := 0
 	for i, resp := range r.Responses {
-		if resp.Type() == MsearchMultiSearchResultResponsesItemErrorResponseBaseType {
+		if resp.Type() == MSearchMultiSearchResultResponsesItemErrorRespBaseType {
 			failed = append(failed, MultiSearchItemFailure{
-				Index:             i,
-				ErrorResponseBase: resp.ErrorResponseBase(),
+				Index:         i,
+				ErrorRespBase: resp.ErrorRespBase(),
 			})
 		} else {
 			succeeded++
@@ -369,9 +375,9 @@ func (r *MsearchResp) MultiSearchItemFailures() *MultiSearchItemError {
 }
 
 // PartialFailures returns the partial-failure sub-errors detected on the
-// MsearchResp, gated by mask. Mask bits suppress their corresponding
+// MSearchResp, gated by mask. Mask bits suppress their corresponding
 // wrapper category.
-func (r *MsearchResp) PartialFailures(mask errmask.ErrorMask) []error {
+func (r *MSearchResp) PartialFailures(mask errmask.ErrorMask) []error {
 	var errs []error
 	if !mask.Has(errmask.SearchShards) {
 		if e := r.SearchShardFailures(); e != nil {
@@ -386,7 +392,7 @@ func (r *MsearchResp) PartialFailures(mask errmask.ErrorMask) []error {
 	return errs
 }
 
-// Msearch allows to execute several search operations in one request.
+// MSearch allows to execute several search operations in one request.
 //
 // Path: /_msearch
 //
@@ -395,13 +401,13 @@ func (r *MsearchResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/multi-search/
-func (c Client) Msearch(ctx context.Context, req *MsearchReq) (*MsearchResp, error) {
+func (c Client) MSearch(ctx context.Context, req *MSearchReq) (*MSearchResp, error) {
 	if req == nil {
-		req = &MsearchReq{}
+		req = &MSearchReq{}
 	}
 
 	var (
-		data MsearchResp
+		data MSearchResp
 		err  error
 	)
 	method := http.MethodGet
@@ -416,7 +422,7 @@ func (c Client) Msearch(ctx context.Context, req *MsearchReq) (*MsearchResp, err
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), func(errs []error) error {
-		return &MsearchErrors{errs: errs}
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), func(errs []error) error {
+		return &MSearchErrors{errs: errs}
 	})
 }

@@ -23,7 +23,7 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// MtermvectorsReq represents the request for the mtermvectors operation.
+// MTermVectorsReq represents the request for the mtermvectors operation.
 //
 // Returns multiple termvectors in one request.
 //
@@ -34,13 +34,13 @@ import (
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-type MtermvectorsReq struct {
+type MTermVectorsReq struct {
 	// Index specifies the path segment for the request URL.
 	Index string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *MtermvectorsBody
+	Body *MTermVectorsBody
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -50,11 +50,11 @@ type MtermvectorsReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *MtermvectorsParams
+	Params *MTermVectorsParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r MtermvectorsReq) GetRequest(method string) (*http.Request, error) {
+func (r MTermVectorsReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.MtermvectorsPath{
 		Index: r.Index,
 	}.Build()
@@ -87,8 +87,8 @@ func (r MtermvectorsReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// MtermvectorsParams represents query parameters for the MtermvectorsReq.
-type MtermvectorsParams struct {
+// MTermVectorsParams represents query parameters for the MTermVectorsReq.
+type MTermVectorsParams struct {
 	TimeoutParams
 	DebugParams
 	// If `true`, the response includes the document count, sum of document
@@ -147,7 +147,7 @@ type MtermvectorsParams struct {
 	VersionType string
 }
 
-func (r MtermvectorsParams) get() map[string]string {
+func (r MTermVectorsParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -209,35 +209,35 @@ func (r MtermvectorsParams) get() map[string]string {
 	return params
 }
 
-// MtermvectorsResp represents the response for the mtermvectors operation.
+// MTermVectorsResp represents the response for the mtermvectors operation.
 //
 // Returns multiple termvectors in one request.
 //
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-type MtermvectorsResp struct {
-	Docs []MtermvectorsTermVectorsResult `json:"docs"`
+type MTermVectorsResp struct {
+	Docs []MTermVectorsTermVectorsResult `json:"docs"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r MtermvectorsResp) Inspect() Inspect {
+func (r MTermVectorsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r MtermvectorsResp) RawBody() io.Reader {
+func (r MTermVectorsResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// MtermvectorsTermVectorsResult is a typed component of the mtermvectors operation.
-type MtermvectorsTermVectorsResult struct {
+// MTermVectorsTermVectorsResult is a typed component of the mtermvectors operation.
+type MTermVectorsTermVectorsResult struct {
 	// The unique identifier for a resource.
 	ID string `json:"_id"`
 
@@ -249,54 +249,54 @@ type MtermvectorsTermVectorsResult struct {
 	Version     *int64                           `json:"_version,omitempty"`
 	Error       *ErrorCause                      `json:"error,omitempty"`
 	Found       *bool                            `json:"found,omitempty"`
-	TermVectors map[string]TermvectorsTermVector `json:"term_vectors,omitempty"`
+	TermVectors map[string]TermVectorsTermVector `json:"term_vectors,omitempty"`
 	Took        *int64                           `json:"took,omitempty"`
 }
 
-// TermvectorsTermVector is a typed component of the mtermvectors operation.
-type TermvectorsTermVector struct {
-	FieldStatistics *TermvectorsFieldStatistics `json:"field_statistics,omitempty"`
-	Terms           map[string]TermvectorsTerm  `json:"terms"`
+// TermVectorsTermVector is a typed component of the mtermvectors operation.
+type TermVectorsTermVector struct {
+	FieldStatistics *TermVectorsFieldStatistics `json:"field_statistics,omitempty"`
+	Terms           map[string]TermVectorsTerm  `json:"terms"`
 }
 
-// TermvectorsFieldStatistics is a typed component of the mtermvectors operation.
-type TermvectorsFieldStatistics struct {
+// TermVectorsFieldStatistics is a typed component of the mtermvectors operation.
+type TermVectorsFieldStatistics struct {
 	DocCount   int   `json:"doc_count"`
 	SumDocFreq int64 `json:"sum_doc_freq"`
 	SumTtf     int64 `json:"sum_ttf"`
 }
 
-// TermvectorsTerm is a typed component of the mtermvectors operation.
-type TermvectorsTerm struct {
+// TermVectorsTerm is a typed component of the mtermvectors operation.
+type TermVectorsTerm struct {
 	DocFreq  *int               `json:"doc_freq,omitempty"`
 	Score    *float64           `json:"score,omitempty"`
 	TermFreq int                `json:"term_freq"`
-	Tokens   []TermvectorsToken `json:"tokens,omitempty"`
+	Tokens   []TermVectorsToken `json:"tokens,omitempty"`
 	Ttf      *int               `json:"ttf,omitempty"`
 }
 
-// TermvectorsToken is a typed component of the mtermvectors operation.
-type TermvectorsToken struct {
+// TermVectorsToken is a typed component of the mtermvectors operation.
+type TermVectorsToken struct {
 	EndOffset   *int    `json:"end_offset,omitempty"`
 	Payload     *string `json:"payload,omitempty"`
 	Position    int     `json:"position"`
 	StartOffset *int    `json:"start_offset,omitempty"`
 }
 
-// MtermvectorsBody is a typed component of the mtermvectors operation.
+// MTermVectorsBody is a typed component of the mtermvectors operation.
 //
 // Define ids, documents, parameters or a list of parameters per document here. You must at least provide a list of document ids. See documentation.
-type MtermvectorsBody struct {
+type MTermVectorsBody struct {
 	// Array of existing or artificial documents.
-	Docs []MtermvectorsOperation `json:"docs,omitempty"`
+	Docs []MTermVectorsOperation `json:"docs,omitempty"`
 
 	// Simplified syntax to specify documents by their ID if they're in the
 	// same index.
 	Ids []string `json:"ids,omitempty"`
 }
 
-// MtermvectorsOperation is a typed component of the mtermvectors operation.
-type MtermvectorsOperation struct {
+// MTermVectorsOperation is a typed component of the mtermvectors operation.
+type MTermVectorsOperation struct {
 	// The unique identifier for a resource.
 	ID string `json:"_id"`
 
@@ -315,7 +315,7 @@ type MtermvectorsOperation struct {
 	// parameters.
 	Fields *string `json:"fields,omitempty"`
 
-	Filter *TermvectorsFilter `json:"filter,omitempty"`
+	Filter *TermVectorsFilter `json:"filter,omitempty"`
 
 	// When `true`, the response includes the term offsets.
 	Offsets *bool `json:"offsets,omitempty"`
@@ -337,8 +337,8 @@ type MtermvectorsOperation struct {
 	VersionType *string `json:"version_type,omitempty"`
 }
 
-// TermvectorsFilter is a typed component of the mtermvectors operation.
-type TermvectorsFilter struct {
+// TermVectorsFilter is a typed component of the mtermvectors operation.
+type TermVectorsFilter struct {
 	// Ignores words that appear in more than the specified number of
 	// documents. Default is `unbounded`.
 	MaxDocFreq *int `json:"max_doc_freq,omitempty"`
@@ -365,7 +365,7 @@ type TermvectorsFilter struct {
 	MinWordLength *int `json:"min_word_length,omitempty"`
 }
 
-// Mtermvectors returns multiple termvectors in one request.
+// MTermVectors returns multiple termvectors in one request.
 //
 // Path: /_mtermvectors
 //
@@ -374,9 +374,9 @@ type TermvectorsFilter struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c Client) Mtermvectors(ctx context.Context, req MtermvectorsReq) (*MtermvectorsResp, error) {
+func (c Client) MTermVectors(ctx context.Context, req MTermVectorsReq) (*MTermVectorsResp, error) {
 	var (
-		data MtermvectorsResp
+		data MTermVectorsResp
 		err  error
 	)
 	method := http.MethodGet

@@ -121,7 +121,7 @@ func (r IndicesAddBlockParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesAddBlockResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Indices            []IndicesAddBlockIndicesBlockStatus `json:"indices"`
 	ShardsAcknowledged bool                                `json:"shards_acknowledged"`
 

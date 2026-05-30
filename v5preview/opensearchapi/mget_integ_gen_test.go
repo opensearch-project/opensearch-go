@@ -22,12 +22,12 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
-func TestMget(t *testing.T) {
+func TestMGet(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	index := testutil.MustUniqueString(t, "test-mget")
-	docID := testutil.MustUniqueString(t, "test-mget")
+	index := testutil.MustUniqueString(t, "test-m-get")
+	docID := testutil.MustUniqueString(t, "test-m-get")
 	t.Cleanup(func() {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
@@ -44,7 +44,7 @@ func TestMget(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Mget(t.Context(), opensearchapi.MgetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
+		resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -54,7 +54,7 @@ func TestMget(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Mget(t.Context(), opensearchapi.MgetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
+		res, err := failingClient.MGet(t.Context(), opensearchapi.MGetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

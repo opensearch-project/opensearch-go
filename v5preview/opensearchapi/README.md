@@ -10,7 +10,7 @@ import "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 
 ## Client Creation
 
-Three constructors cover the common scenarios:
+Two constructors cover the common scenarios:
 
 ```go
 // From explicit configuration
@@ -24,11 +24,11 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 
 // Connect to localhost:9200 with default settings
 client, err := opensearchapi.NewDefaultClient()
-
-// Wrap an existing opensearch.Client (e.g. one shared with plugins)
-root, _ := opensearch.NewClient(opensearch.Config{...})
-client := opensearchapi.NewFromClient(root)
 ```
+
+To share transport configuration (e.g. with plugin clients), build one
+`opensearch.Config` and hand it to `NewClient`; the resulting client wraps a
+single underlying `opensearch.Client`.
 
 ## Making Requests
 

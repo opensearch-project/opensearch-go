@@ -16,52 +16,52 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMsearchTemplateParams_get(t *testing.T) {
+func TestMSearchTemplateParams_get(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		params MsearchTemplateParams
+		params MSearchTemplateParams
 		want   map[string]string
 	}{
-		{name: "empty", params: MsearchTemplateParams{}, want: nil},
+		{name: "empty", params: MSearchTemplateParams{}, want: nil},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: MsearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: MSearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: MsearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: MSearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
 			name:   "max_concurrent_searches",
-			params: MsearchTemplateParams{MaxConcurrentSearches: 42},
+			params: MSearchTemplateParams{MaxConcurrentSearches: 42},
 			want:   map[string]string{"max_concurrent_searches": "42"},
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: MsearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: MSearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: MsearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: MSearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
 			name:   "search_type",
-			params: MsearchTemplateParams{SearchType: "test-value"},
+			params: MSearchTemplateParams{SearchType: "test-value"},
 			want:   map[string]string{"search_type": "test-value"},
 		},
 		{
 			name:   "typed_keys=true",
-			params: MsearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: MSearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: MsearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: MSearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 	}

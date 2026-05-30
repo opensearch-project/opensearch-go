@@ -16,97 +16,97 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTermvectorsParams_get(t *testing.T) {
+func TestTermVectorsParams_get(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		params TermvectorsParams
+		params TermVectorsParams
 		want   map[string]string
 	}{
-		{name: "empty", params: TermvectorsParams{}, want: nil},
+		{name: "empty", params: TermVectorsParams{}, want: nil},
 		{
 			name:   "field_statistics=true",
-			params: TermvectorsParams{FieldStatistics: func(b bool) *bool { return &b }(true)},
+			params: TermVectorsParams{FieldStatistics: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"field_statistics": "true"},
 		},
 		{
 			name:   "field_statistics=false",
-			params: TermvectorsParams{FieldStatistics: func(b bool) *bool { return &b }(false)},
+			params: TermVectorsParams{FieldStatistics: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"field_statistics": "false"},
 		},
 		{
 			name:   "fields",
-			params: TermvectorsParams{Fields: []string{"a", "b"}},
+			params: TermVectorsParams{Fields: []string{"a", "b"}},
 			want:   map[string]string{"fields": "a,b"},
 		},
 		{
 			name:   "offsets=true",
-			params: TermvectorsParams{Offsets: func(b bool) *bool { return &b }(true)},
+			params: TermVectorsParams{Offsets: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"offsets": "true"},
 		},
 		{
 			name:   "offsets=false",
-			params: TermvectorsParams{Offsets: func(b bool) *bool { return &b }(false)},
+			params: TermVectorsParams{Offsets: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"offsets": "false"},
 		},
 		{
 			name:   "payloads=true",
-			params: TermvectorsParams{Payloads: func(b bool) *bool { return &b }(true)},
+			params: TermVectorsParams{Payloads: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"payloads": "true"},
 		},
 		{
 			name:   "payloads=false",
-			params: TermvectorsParams{Payloads: func(b bool) *bool { return &b }(false)},
+			params: TermVectorsParams{Payloads: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"payloads": "false"},
 		},
 		{
 			name:   "positions=true",
-			params: TermvectorsParams{Positions: func(b bool) *bool { return &b }(true)},
+			params: TermVectorsParams{Positions: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"positions": "true"},
 		},
 		{
 			name:   "positions=false",
-			params: TermvectorsParams{Positions: func(b bool) *bool { return &b }(false)},
+			params: TermVectorsParams{Positions: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"positions": "false"},
 		},
 		{
 			name:   "preference",
-			params: TermvectorsParams{Preference: "test-value"},
+			params: TermVectorsParams{Preference: "test-value"},
 			want:   map[string]string{"preference": "test-value"},
 		},
 		{
 			name:   "realtime=true",
-			params: TermvectorsParams{Realtime: func(b bool) *bool { return &b }(true)},
+			params: TermVectorsParams{Realtime: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"realtime": "true"},
 		},
 		{
 			name:   "realtime=false",
-			params: TermvectorsParams{Realtime: func(b bool) *bool { return &b }(false)},
+			params: TermVectorsParams{Realtime: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"realtime": "false"},
 		},
 		{
 			name:   "routing",
-			params: TermvectorsParams{Routing: []string{"a", "b"}},
+			params: TermVectorsParams{Routing: []string{"a", "b"}},
 			want:   map[string]string{"routing": "a,b"},
 		},
 		{
 			name:   "term_statistics=true",
-			params: TermvectorsParams{TermStatistics: func(b bool) *bool { return &b }(true)},
+			params: TermVectorsParams{TermStatistics: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"term_statistics": "true"},
 		},
 		{
 			name:   "term_statistics=false",
-			params: TermvectorsParams{TermStatistics: func(b bool) *bool { return &b }(false)},
+			params: TermVectorsParams{TermStatistics: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"term_statistics": "false"},
 		},
 		{
 			name:   "version",
-			params: TermvectorsParams{Version: 42},
+			params: TermVectorsParams{Version: 42},
 			want:   map[string]string{"version": "42"},
 		},
 		{
 			name:   "version_type",
-			params: TermvectorsParams{VersionType: "test-value"},
+			params: TermVectorsParams{VersionType: "test-value"},
 			want:   map[string]string{"version_type": "test-value"},
 		},
 	}

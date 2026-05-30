@@ -16,57 +16,57 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMgetParams_get(t *testing.T) {
+func TestMGetParams_get(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		params MgetParams
+		params MGetParams
 		want   map[string]string
 	}{
-		{name: "empty", params: MgetParams{}, want: nil},
+		{name: "empty", params: MGetParams{}, want: nil},
 		{
 			name:   "_source",
-			params: MgetParams{Source: "test-value"},
+			params: MGetParams{Source: "test-value"},
 			want:   map[string]string{"_source": "test-value"},
 		},
 		{
 			name:   "_source_excludes",
-			params: MgetParams{SourceExcludes: []string{"a", "b"}},
+			params: MGetParams{SourceExcludes: []string{"a", "b"}},
 			want:   map[string]string{"_source_excludes": "a,b"},
 		},
 		{
 			name:   "_source_includes",
-			params: MgetParams{SourceIncludes: []string{"a", "b"}},
+			params: MGetParams{SourceIncludes: []string{"a", "b"}},
 			want:   map[string]string{"_source_includes": "a,b"},
 		},
 		{
 			name:   "preference",
-			params: MgetParams{Preference: "test-value"},
+			params: MGetParams{Preference: "test-value"},
 			want:   map[string]string{"preference": "test-value"},
 		},
 		{
 			name:   "realtime=true",
-			params: MgetParams{Realtime: func(b bool) *bool { return &b }(true)},
+			params: MGetParams{Realtime: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"realtime": "true"},
 		},
 		{
 			name:   "realtime=false",
-			params: MgetParams{Realtime: func(b bool) *bool { return &b }(false)},
+			params: MGetParams{Realtime: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"realtime": "false"},
 		},
 		{
 			name:   "refresh",
-			params: MgetParams{Refresh: "test-value"},
+			params: MGetParams{Refresh: "test-value"},
 			want:   map[string]string{"refresh": "test-value"},
 		},
 		{
 			name:   "routing",
-			params: MgetParams{Routing: []string{"a", "b"}},
+			params: MGetParams{Routing: []string{"a", "b"}},
 			want:   map[string]string{"routing": "a,b"},
 		},
 		{
 			name:   "stored_fields",
-			params: MgetParams{StoredFields: []string{"a", "b"}},
+			params: MGetParams{StoredFields: []string{"a", "b"}},
 			want:   map[string]string{"stored_fields": "a,b"},
 		},
 	}

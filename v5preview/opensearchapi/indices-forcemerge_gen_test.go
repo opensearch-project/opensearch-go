@@ -22,25 +22,25 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
-func TestIndicesForcemergeReq_GetRequest(t *testing.T) {
+func TestIndicesForceMergeReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.IndicesForcemergeReq
+		req        opensearchapi.IndicesForceMergeReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        opensearchapi.IndicesForcemergeReq{},
+			req:        opensearchapi.IndicesForceMergeReq{},
 			wantMethod: "POST",
 			wantPath:   "/_forcemerge",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesForcemergeReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesForceMergeReq{Index: []string{"a", "b"}},
 			wantMethod: "POST",
 			wantPath:   "/a,b/_forcemerge",
 			wantErr:    false,
@@ -61,7 +61,7 @@ func TestIndicesForcemergeReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestIndicesForcemerge_Roundtrip(t *testing.T) {
+func TestIndicesForceMerge_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -77,7 +77,7 @@ func TestIndicesForcemerge_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Forcemerge(t.Context(), nil)
+		resp, err := client.Indices.ForceMerge(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesForcemerge_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Forcemerge(t.Context(), nil)
+		resp, err := errClient.Indices.ForceMerge(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

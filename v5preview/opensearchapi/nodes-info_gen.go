@@ -106,7 +106,7 @@ func (r NodesInfoParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-info/
 type NodesInfoResp struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// The name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
@@ -474,7 +474,7 @@ type NodesInfoNodeSearchPipelines struct {
 	RequestProcessors []NodesInfoNodeSearchPipelineProcessor `json:"request_processors,omitempty"`
 
 	// The list of response processors in the pipeline.
-	ResponseProcessors []NodesInfoNodeSearchPipelineProcessor `json:"response_processors,omitempty"`
+	RespProcessors []NodesInfoNodeSearchPipelineProcessor `json:"response_processors,omitempty"`
 }
 
 // NodesInfoNodeSearchPipelineProcessor is a typed component of the nodes.info operation.

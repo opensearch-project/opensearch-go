@@ -422,102 +422,108 @@ func (r UpdateByQueryResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// UpdateByQueryResponseBodyObject1 is a typed component of the update_by_query operation.
-type UpdateByQueryResponseBodyObject1 struct {
+// UpdateByQueryRespBodyObject1 is a typed component of the update_by_query operation.
+type UpdateByQueryRespBodyObject1 struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
-// UpdateByQueryResponseBody is a discriminated union type (try-each, newest version first).
+// UpdateByQueryRespBody is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type UpdateByQueryResponseBody struct {
-	typ   UpdateByQueryResponseBodyType
+type UpdateByQueryRespBody struct {
+	typ   UpdateByQueryRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// UpdateByQueryResponseBodyType discriminates the branches of UpdateByQueryResponseBody.
-type UpdateByQueryResponseBodyType int
+// UpdateByQueryRespBodyType discriminates the branches of UpdateByQueryRespBody.
+type UpdateByQueryRespBodyType int
 
 const (
-	UpdateByQueryResponseBodyUnknownType UpdateByQueryResponseBodyType = iota
-	UpdateByQueryResponseBodyBulkByScrollResponseBaseType
-	UpdateByQueryResponseBodyUpdateByQueryResponseBodyObject1Type
+	UpdateByQueryRespBodyUnknownType UpdateByQueryRespBodyType = iota
+	UpdateByQueryRespBodyBulkByScrollRespBaseType
+	UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns UpdateByQueryResponseBodyUnknownType if the value has not been decoded.
-func (u *UpdateByQueryResponseBody) Type() UpdateByQueryResponseBodyType { return u.typ }
+// Returns UpdateByQueryRespBodyUnknownType if the value has not been decoded.
+func (u *UpdateByQueryRespBody) Type() UpdateByQueryRespBodyType { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *UpdateByQueryResponseBody) RawJSON() json.RawMessage { return u.raw }
+func (u *UpdateByQueryRespBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewUpdateByQueryResponseBodyFrom*
+// verbatim when no typed branch is set. Use the NewUpdateByQueryRespBodyFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *UpdateByQueryResponseBody) SetRaw(raw json.RawMessage) {
+func (u *UpdateByQueryRespBody) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = UpdateByQueryResponseBodyUnknownType
+	u.typ = UpdateByQueryRespBodyUnknownType
 }
 
-// BulkByScrollResponseBase returns the BulkByScrollResponseBase branch value.
-func (u *UpdateByQueryResponseBody) BulkByScrollResponseBase() BulkByScrollResponseBase {
-	v, _ := u.value.(BulkByScrollResponseBase)
+// BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
+func (u *UpdateByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
+	v, _ := u.value.(BulkByScrollRespBase)
 	return v
 }
 
-// NewUpdateByQueryResponseBodyFromBulkByScrollResponseBase returns a UpdateByQueryResponseBody populated with v
-// on the BulkByScrollResponseBase branch.
-func NewUpdateByQueryResponseBodyFromBulkByScrollResponseBase(v BulkByScrollResponseBase) UpdateByQueryResponseBody {
-	return UpdateByQueryResponseBody{
-		typ:   UpdateByQueryResponseBodyBulkByScrollResponseBaseType,
+// NewUpdateByQueryRespBodyFromBulkByScrollRespBase returns a UpdateByQueryRespBody populated with v
+// on the BulkByScrollRespBase branch.
+func NewUpdateByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) UpdateByQueryRespBody {
+	return UpdateByQueryRespBody{
+		typ:   UpdateByQueryRespBodyBulkByScrollRespBaseType,
 		value: v,
 	}
 }
 
-// UpdateByQueryResponseBodyObject1 returns the UpdateByQueryResponseBodyObject1 branch value.
-func (u *UpdateByQueryResponseBody) UpdateByQueryResponseBodyObject1() UpdateByQueryResponseBodyObject1 {
-	v, _ := u.value.(UpdateByQueryResponseBodyObject1)
+// UpdateByQueryRespBodyObject1 returns the UpdateByQueryRespBodyObject1 branch value.
+func (u *UpdateByQueryRespBody) UpdateByQueryRespBodyObject1() UpdateByQueryRespBodyObject1 {
+	v, _ := u.value.(UpdateByQueryRespBodyObject1)
 	return v
 }
 
-// NewUpdateByQueryResponseBodyFromUpdateByQueryResponseBodyObject1 returns a UpdateByQueryResponseBody populated with v
-// on the UpdateByQueryResponseBodyObject1 branch.
-func NewUpdateByQueryResponseBodyFromUpdateByQueryResponseBodyObject1(v UpdateByQueryResponseBodyObject1) UpdateByQueryResponseBody {
-	return UpdateByQueryResponseBody{
-		typ:   UpdateByQueryResponseBodyUpdateByQueryResponseBodyObject1Type,
+// NewUpdateByQueryRespBodyFromUpdateByQueryRespBodyObject1 returns a UpdateByQueryRespBody populated with v
+// on the UpdateByQueryRespBodyObject1 branch.
+func NewUpdateByQueryRespBodyFromUpdateByQueryRespBodyObject1(v UpdateByQueryRespBodyObject1) UpdateByQueryRespBody {
+	return UpdateByQueryRespBody{
+		typ:   UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type,
 		value: v,
 	}
 }
 
-func (u *UpdateByQueryResponseBody) UnmarshalJSON(data []byte) error {
+func (u *UpdateByQueryRespBody) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
-		var v BulkByScrollResponseBase
+		var v BulkByScrollRespBase
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = UpdateByQueryResponseBodyBulkByScrollResponseBaseType
+			u.typ = UpdateByQueryRespBodyBulkByScrollRespBaseType
 			u.value = v
 			return nil
 		}
 	}
 	{
-		var v UpdateByQueryResponseBodyObject1
+		var v UpdateByQueryRespBodyObject1
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = UpdateByQueryResponseBodyUpdateByQueryResponseBodyObject1Type
+			u.typ = UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("UpdateByQueryResponseBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return fmt.Errorf("UpdateByQueryRespBody: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u UpdateByQueryResponseBody) MarshalJSON() ([]byte, error) {
+func (u UpdateByQueryRespBody) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

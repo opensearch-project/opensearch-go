@@ -22,32 +22,32 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
-func TestMgetReq_GetRequest(t *testing.T) {
+func TestMGetReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.MgetReq
+		req        opensearchapi.MGetReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        opensearchapi.MgetReq{},
+			req:        opensearchapi.MGetReq{},
 			wantMethod: "GET",
 			wantPath:   "/_mget",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.MgetReq{Index: "test-index"},
+			req:        opensearchapi.MGetReq{Index: "test-index"},
 			wantMethod: "GET",
 			wantPath:   "/test-index/_mget",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.MgetReq{Index: "test", Body: &opensearchapi.MgetBody{}},
+			req:        opensearchapi.MGetReq{Index: "test", Body: &opensearchapi.MGetBody{}},
 			wantMethod: "POST",
 			wantPath:   "/test/_mget",
 			wantErr:    false,
@@ -68,7 +68,7 @@ func TestMgetReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestMget_Roundtrip(t *testing.T) {
+func TestMGet_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestMget_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Mget(t.Context(), opensearchapi.MgetReq{})
+		resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -103,7 +103,7 @@ func TestMget_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Mget(t.Context(), opensearchapi.MgetReq{})
+		resp, err := errClient.MGet(t.Context(), opensearchapi.MGetReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

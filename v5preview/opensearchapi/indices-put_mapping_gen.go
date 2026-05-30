@@ -153,7 +153,7 @@ func (r IndicesPutMappingParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/put-mapping/
 type IndicesPutMappingResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 
 	response *opensearch.Response
@@ -1202,6 +1202,28 @@ func (u *IndicesPutMappingBodyPropertiesValue) UnmarshalJSON(data []byte) error 
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -1230,14 +1252,6 @@ func (u *IndicesPutMappingBodyPropertiesValue) UnmarshalJSON(data []byte) error 
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -1486,14 +1500,6 @@ func (u *IndicesPutMappingBodyPropertiesValue) UnmarshalJSON(data []byte) error 
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}

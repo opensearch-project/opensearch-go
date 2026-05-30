@@ -156,7 +156,7 @@ func (r IndicesSplitParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/split/
 type IndicesSplitResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Index              string `json:"index"`
 	ShardsAcknowledged bool   `json:"shards_acknowledged"`
 

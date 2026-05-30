@@ -95,7 +95,7 @@ func (r StatsParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#stats
 type StatsResp struct {
-	opensearchapi.NodesResponseBase
+	opensearchapi.NodesRespBase
 	CircuitBreakerTriggered *bool `json:"circuit_breaker_triggered,omitempty"`
 
 	// The name of a resource or configuration element.

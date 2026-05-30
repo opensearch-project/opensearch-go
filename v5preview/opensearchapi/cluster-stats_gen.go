@@ -111,7 +111,7 @@ func (r ClusterStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-stats/
 type ClusterStatsResp struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// The name of the cluster.
 	ClusterName string `json:"cluster_name"`

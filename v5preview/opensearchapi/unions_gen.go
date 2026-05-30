@@ -981,7 +981,12 @@ func (u *TopLeftBottomRightGeoBoundsBottomRight) UnmarshalJSON(data []byte) erro
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "lat", "lon") {
 		var v LatLonGeoLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopLeftBottomRightGeoBoundsBottomRightLatlonType
@@ -989,7 +994,7 @@ func (u *TopLeftBottomRightGeoBoundsBottomRight) UnmarshalJSON(data []byte) erro
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "geohash") {
 		var v GeoHashLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopLeftBottomRightGeoBoundsBottomRightGeohashType
@@ -997,6 +1002,7 @@ func (u *TopLeftBottomRightGeoBoundsBottomRight) UnmarshalJSON(data []byte) erro
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v []float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -1130,7 +1136,12 @@ func (u *TopLeftBottomRightGeoBoundsTopLeft) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "lat", "lon") {
 		var v LatLonGeoLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopLeftBottomRightGeoBoundsTopLeftLatlonType
@@ -1138,7 +1149,7 @@ func (u *TopLeftBottomRightGeoBoundsTopLeft) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "geohash") {
 		var v GeoHashLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopLeftBottomRightGeoBoundsTopLeftGeohashType
@@ -1146,6 +1157,7 @@ func (u *TopLeftBottomRightGeoBoundsTopLeft) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v []float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -1279,7 +1291,12 @@ func (u *TopRightBottomLeftGeoBoundsBottomLeft) UnmarshalJSON(data []byte) error
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "lat", "lon") {
 		var v LatLonGeoLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopRightBottomLeftGeoBoundsBottomLeftLatlonType
@@ -1287,7 +1304,7 @@ func (u *TopRightBottomLeftGeoBoundsBottomLeft) UnmarshalJSON(data []byte) error
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "geohash") {
 		var v GeoHashLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopRightBottomLeftGeoBoundsBottomLeftGeohashType
@@ -1295,6 +1312,7 @@ func (u *TopRightBottomLeftGeoBoundsBottomLeft) UnmarshalJSON(data []byte) error
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v []float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -1428,7 +1446,12 @@ func (u *TopRightBottomLeftGeoBoundsTopRight) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "lat", "lon") {
 		var v LatLonGeoLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopRightBottomLeftGeoBoundsTopRightLatlonType
@@ -1436,7 +1459,7 @@ func (u *TopRightBottomLeftGeoBoundsTopRight) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "geohash") {
 		var v GeoHashLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TopRightBottomLeftGeoBoundsTopRightGeohashType
@@ -1444,6 +1467,7 @@ func (u *TopRightBottomLeftGeoBoundsTopRight) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v []float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -1582,7 +1606,12 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) 
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "bottom", "left", "right", "top") {
 		var v CoordsGeoBounds
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonAggregationsGeoBoundsAggregateBoundsCoordsType
@@ -1590,7 +1619,7 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "bottom_right", "top_left") {
 		var v TopLeftBottomRightGeoBounds
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonAggregationsGeoBoundsAggregateBoundsTlbrType
@@ -1598,7 +1627,7 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "bottom_left", "top_right") {
 		var v TopRightBottomLeftGeoBounds
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonAggregationsGeoBoundsAggregateBoundsTrblType
@@ -1606,7 +1635,7 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "wkt") {
 		var v WktGeoBounds
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonAggregationsGeoBoundsAggregateBoundsWktType
@@ -1614,6 +1643,7 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("CommonAggregationsGeoBoundsAggregateBounds: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
@@ -1736,7 +1766,12 @@ func (u *CommonAggregationsGeoCentroidAggregateLocation) UnmarshalJSON(data []by
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "lat", "lon") {
 		var v LatLonGeoLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonAggregationsGeoCentroidAggregateLocationLatlonType
@@ -1744,7 +1779,7 @@ func (u *CommonAggregationsGeoCentroidAggregateLocation) UnmarshalJSON(data []by
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "geohash") {
 		var v GeoHashLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonAggregationsGeoCentroidAggregateLocationGeohashType
@@ -1752,6 +1787,7 @@ func (u *CommonAggregationsGeoCentroidAggregateLocation) UnmarshalJSON(data []by
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v []float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -4718,6 +4754,12 @@ func (u *SearchResultAggregationsValue) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonAggregationsAdjacencyMatrixAggregate
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -5499,6 +5541,12 @@ func (u *SearchResultSuggestValueItem) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v SearchPhraseSuggest
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -6228,6 +6276,12 @@ func (u *CommonQueryDSLRandomScoreFunctionSeed) UnmarshalJSON(data []byte) error
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v int
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -7429,6 +7483,12 @@ func (u *SearchInnerHitsSort) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -8906,6 +8966,12 @@ func (u *CommonQueryDSLQueryContainerRangeValue) UnmarshalJSON(data []byte) erro
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonQueryDSLNumberRangeQuery
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -9990,7 +10056,12 @@ func (u *CommonMappingGeoPointPropertyNullValue) UnmarshalJSON(data []byte) erro
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "lat", "lon") {
 		var v LatLonGeoLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingGeoPointPropertyNullValueLatlonType
@@ -9998,7 +10069,7 @@ func (u *CommonMappingGeoPointPropertyNullValue) UnmarshalJSON(data []byte) erro
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "geohash") {
 		var v GeoHashLocation
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingGeoPointPropertyNullValueGeohashType
@@ -10006,6 +10077,7 @@ func (u *CommonMappingGeoPointPropertyNullValue) UnmarshalJSON(data []byte) erro
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v []float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -11060,6 +11132,28 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) UnmarshalJSON(data []byt
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -11088,14 +11182,6 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) UnmarshalJSON(data []byt
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -11344,14 +11430,6 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) UnmarshalJSON(data []byt
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingMatchOnlyTextPropertyFieldsValueCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}
@@ -12241,6 +12319,28 @@ func (u *CommonMappingPropertyBaseFieldsValue) UnmarshalJSON(data []byte) error 
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingPropertyBaseFieldsValueCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingPropertyBaseFieldsValueCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -12269,14 +12369,6 @@ func (u *CommonMappingPropertyBaseFieldsValue) UnmarshalJSON(data []byte) error 
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingPropertyBaseFieldsValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingPropertyBaseFieldsValueCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -12525,14 +12617,6 @@ func (u *CommonMappingPropertyBaseFieldsValue) UnmarshalJSON(data []byte) error 
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingPropertyBaseFieldsValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingPropertyBaseFieldsValueCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}
@@ -13422,6 +13506,28 @@ func (u *CommonMappingPropertyBasePropertiesValue) UnmarshalJSON(data []byte) er
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingPropertyBasePropertiesValueCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingPropertyBasePropertiesValueCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -13450,14 +13556,6 @@ func (u *CommonMappingPropertyBasePropertiesValue) UnmarshalJSON(data []byte) er
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingPropertyBasePropertiesValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingPropertyBasePropertiesValueCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -13706,14 +13804,6 @@ func (u *CommonMappingPropertyBasePropertiesValue) UnmarshalJSON(data []byte) er
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingPropertyBasePropertiesValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingPropertyBasePropertiesValueCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}
@@ -14601,6 +14691,28 @@ func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingDynamicTemplateCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingDynamicTemplateCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -14629,14 +14741,6 @@ func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingDynamicTemplateCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -14885,14 +14989,6 @@ func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingDynamicTemplateCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}
@@ -15780,6 +15876,28 @@ func (u *CommonMappingTypePropertiesValue) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingTypePropertiesValueCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingTypePropertiesValueCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -15808,14 +15926,6 @@ func (u *CommonMappingTypePropertiesValue) UnmarshalJSON(data []byte) error {
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingTypePropertiesValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingTypePropertiesValueCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -16064,14 +16174,6 @@ func (u *CommonMappingTypePropertiesValue) UnmarshalJSON(data []byte) error {
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingTypePropertiesValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingTypePropertiesValueCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}
@@ -17337,7 +17439,12 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "tokenizer", "type") {
 		var v CommonAnalysisCustomAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisCustomAnalyzerType
@@ -17345,7 +17452,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "max_output_size", "preserve_original", "separator", "type") {
 		var v CommonAnalysisFingerprintAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisFingerprintAnalyzerType
@@ -17353,7 +17460,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisKeywordAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisKeywordAnalyzerType
@@ -17361,7 +17468,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "language", "stem_exclusion", "type") {
 		var v CommonAnalysisLanguageAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisLanguageAnalyzerType
@@ -17369,7 +17476,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisNoriAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisNoriAnalyzerType
@@ -17377,7 +17484,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "pattern", "type") {
 		var v CommonAnalysisPatternAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisPatternAnalyzerType
@@ -17385,7 +17492,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisSimpleAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisSimpleAnalyzerType
@@ -17393,7 +17500,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisStandardAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisStandardAnalyzerType
@@ -17401,7 +17508,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisStopAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisStopAnalyzerType
@@ -17409,7 +17516,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisWhitespaceAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisWhitespaceAnalyzerType
@@ -17417,7 +17524,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "method", "mode", "type") {
 		var v CommonAnalysisIcuAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisIcuAnalyzerType
@@ -17425,7 +17532,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "mode", "type") {
 		var v CommonAnalysisKuromojiAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisKuromojiAnalyzerType
@@ -17433,7 +17540,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "language", "type") {
 		var v CommonAnalysisSnowballAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisSnowballAnalyzerType
@@ -17441,7 +17548,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisDutchAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisAnalyzerValueCommonAnalysisDutchAnalyzerType
@@ -17449,6 +17556,7 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) UnmarshalJSON(data []byte) e
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonAnalysisSmartcnAnalyzer
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -17614,6 +17722,12 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) UnmarshalJSON(data []byte)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonAnalysisHtmlStripCharFilter
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -18818,6 +18932,12 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) UnmarshalJSON(data []byte) err
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonAnalysisAsciiFoldingTokenFilter
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -19303,7 +19423,12 @@ func (u *IndicesIndexSettingsAnalysisNormalizerValue) UnmarshalJSON(data []byte)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisLowercaseNormalizer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisNormalizerValueCommonAnalysisLowercaseNormalizerType
@@ -19311,7 +19436,7 @@ func (u *IndicesIndexSettingsAnalysisNormalizerValue) UnmarshalJSON(data []byte)
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v CommonAnalysisCustomNormalizer
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = IndicesIndexSettingsAnalysisNormalizerValueCommonAnalysisCustomNormalizerType
@@ -19319,6 +19444,7 @@ func (u *IndicesIndexSettingsAnalysisNormalizerValue) UnmarshalJSON(data []byte)
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("IndicesIndexSettingsAnalysisNormalizerValue: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
@@ -19644,6 +19770,12 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) UnmarshalJSON(data []byte) 
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonAnalysisCharGroupTokenizer
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -20786,7 +20918,12 @@ func (u *SegmentsStatsSegmentReplication) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "max_bytes_behind", "max_replication_lag", "total_bytes_behind") {
 		var v SegmentsStatsSegmentReplicationObject1
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject1Type
@@ -20794,7 +20931,7 @@ func (u *SegmentsStatsSegmentReplication) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "max_bytes_behind", "max_replication_lag", "total_bytes_behind") {
 		var v SegmentsStatsSegmentReplicationObject0
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject0Type
@@ -20802,6 +20939,7 @@ func (u *SegmentsStatsSegmentReplication) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("SegmentsStatsSegmentReplication: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
@@ -20885,7 +21023,12 @@ func (u *BulkByScrollTaskStatusSlicesItem) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "batches", "deleted", "noops", "requests_per_second", "retries", "throttled_millis", "throttled_until_millis", "total", "version_conflicts") {
 		var v BulkByScrollTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = BulkByScrollTaskStatusSlicesItemBulkByScrollTaskStatusType
@@ -20893,7 +21036,7 @@ func (u *BulkByScrollTaskStatusSlicesItem) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "type") {
 		var v ErrorCause
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = BulkByScrollTaskStatusSlicesItemExceptionType
@@ -20901,6 +21044,7 @@ func (u *BulkByScrollTaskStatusSlicesItem) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("BulkByScrollTaskStatusSlicesItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
@@ -20914,98 +21058,102 @@ func (u BulkByScrollTaskStatusSlicesItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// BulkByScrollResponseBaseFailuresItem is a discriminated union type (try-each, newest version first).
+// BulkByScrollRespBaseFailuresItem is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type BulkByScrollResponseBaseFailuresItem struct {
-	typ   BulkByScrollResponseBaseFailuresItemType
+type BulkByScrollRespBaseFailuresItem struct {
+	typ   BulkByScrollRespBaseFailuresItemType
 	raw   json.RawMessage
 	value any
 }
 
-// BulkByScrollResponseBaseFailuresItemType discriminates the branches of BulkByScrollResponseBaseFailuresItem.
-type BulkByScrollResponseBaseFailuresItemType int
+// BulkByScrollRespBaseFailuresItemType discriminates the branches of BulkByScrollRespBaseFailuresItem.
+type BulkByScrollRespBaseFailuresItemType int
 
 const (
-	BulkByScrollResponseBaseFailuresItemUnknownType BulkByScrollResponseBaseFailuresItemType = iota
-	BulkByScrollResponseBaseFailuresItemBulkItemResponseFailureType
-	BulkByScrollResponseBaseFailuresItemScrollableHitSourceSearchFailureType
+	BulkByScrollRespBaseFailuresItemUnknownType BulkByScrollRespBaseFailuresItemType = iota
+	BulkByScrollRespBaseFailuresItemBulkItemRespFailureType
+	BulkByScrollRespBaseFailuresItemScrollableHitSourceSearchFailureType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns BulkByScrollResponseBaseFailuresItemUnknownType if the value has not been decoded.
-func (u *BulkByScrollResponseBaseFailuresItem) Type() BulkByScrollResponseBaseFailuresItemType {
-	return u.typ
-}
+// Returns BulkByScrollRespBaseFailuresItemUnknownType if the value has not been decoded.
+func (u *BulkByScrollRespBaseFailuresItem) Type() BulkByScrollRespBaseFailuresItemType { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *BulkByScrollResponseBaseFailuresItem) RawJSON() json.RawMessage { return u.raw }
+func (u *BulkByScrollRespBaseFailuresItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewBulkByScrollResponseBaseFailuresItemFrom*
+// verbatim when no typed branch is set. Use the NewBulkByScrollRespBaseFailuresItemFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *BulkByScrollResponseBaseFailuresItem) SetRaw(raw json.RawMessage) {
+func (u *BulkByScrollRespBaseFailuresItem) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = BulkByScrollResponseBaseFailuresItemUnknownType
+	u.typ = BulkByScrollRespBaseFailuresItemUnknownType
 }
 
-// BulkItemResponseFailure returns the BulkItemResponseFailure branch value.
-func (u *BulkByScrollResponseBaseFailuresItem) BulkItemResponseFailure() BulkItemResponseFailure {
-	v, _ := u.value.(BulkItemResponseFailure)
+// BulkItemRespFailure returns the BulkItemRespFailure branch value.
+func (u *BulkByScrollRespBaseFailuresItem) BulkItemRespFailure() BulkItemRespFailure {
+	v, _ := u.value.(BulkItemRespFailure)
 	return v
 }
 
-// NewBulkByScrollResponseBaseFailuresItemFromBulkItemResponseFailure returns a BulkByScrollResponseBaseFailuresItem populated with v
-// on the BulkItemResponseFailure branch.
-func NewBulkByScrollResponseBaseFailuresItemFromBulkItemResponseFailure(v BulkItemResponseFailure) BulkByScrollResponseBaseFailuresItem {
-	return BulkByScrollResponseBaseFailuresItem{
-		typ:   BulkByScrollResponseBaseFailuresItemBulkItemResponseFailureType,
+// NewBulkByScrollRespBaseFailuresItemFromBulkItemRespFailure returns a BulkByScrollRespBaseFailuresItem populated with v
+// on the BulkItemRespFailure branch.
+func NewBulkByScrollRespBaseFailuresItemFromBulkItemRespFailure(v BulkItemRespFailure) BulkByScrollRespBaseFailuresItem {
+	return BulkByScrollRespBaseFailuresItem{
+		typ:   BulkByScrollRespBaseFailuresItemBulkItemRespFailureType,
 		value: v,
 	}
 }
 
 // ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value.
-func (u *BulkByScrollResponseBaseFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
+func (u *BulkByScrollRespBaseFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
 	v, _ := u.value.(ScrollableHitSourceSearchFailure)
 	return v
 }
 
-// NewBulkByScrollResponseBaseFailuresItemFromScrollableHitSourceSearchFailure returns a BulkByScrollResponseBaseFailuresItem populated with v
+// NewBulkByScrollRespBaseFailuresItemFromScrollableHitSourceSearchFailure returns a BulkByScrollRespBaseFailuresItem populated with v
 // on the ScrollableHitSourceSearchFailure branch.
-func NewBulkByScrollResponseBaseFailuresItemFromScrollableHitSourceSearchFailure(v ScrollableHitSourceSearchFailure) BulkByScrollResponseBaseFailuresItem {
-	return BulkByScrollResponseBaseFailuresItem{
-		typ:   BulkByScrollResponseBaseFailuresItemScrollableHitSourceSearchFailureType,
+func NewBulkByScrollRespBaseFailuresItemFromScrollableHitSourceSearchFailure(v ScrollableHitSourceSearchFailure) BulkByScrollRespBaseFailuresItem {
+	return BulkByScrollRespBaseFailuresItem{
+		typ:   BulkByScrollRespBaseFailuresItemScrollableHitSourceSearchFailureType,
 		value: v,
 	}
 }
 
-func (u *BulkByScrollResponseBaseFailuresItem) UnmarshalJSON(data []byte) error {
+func (u *BulkByScrollRespBaseFailuresItem) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v BulkItemResponseFailure
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "cause", "index", "status") {
+		var v BulkItemRespFailure
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = BulkByScrollResponseBaseFailuresItemBulkItemResponseFailureType
+			u.typ = BulkByScrollRespBaseFailuresItemBulkItemRespFailureType
 			u.value = v
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "reason", "status") {
 		var v ScrollableHitSourceSearchFailure
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = BulkByScrollResponseBaseFailuresItemScrollableHitSourceSearchFailureType
+			u.typ = BulkByScrollRespBaseFailuresItemScrollableHitSourceSearchFailureType
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("BulkByScrollResponseBaseFailuresItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("BulkByScrollRespBaseFailuresItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u BulkByScrollResponseBaseFailuresItem) MarshalJSON() ([]byte, error) {
+func (u BulkByScrollRespBaseFailuresItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -21117,7 +21265,12 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "phase") {
 		var v TasksReplicationTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TasksTaskInfoBaseStatusTasksReplicationTaskStatusType
@@ -21125,7 +21278,7 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "batches", "deleted", "noops", "requests_per_second", "retries", "throttled_millis", "throttled_until_millis", "total", "version_conflicts") {
 		var v BulkByScrollTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TasksTaskInfoBaseStatusBulkByScrollTaskStatusType
@@ -21133,7 +21286,7 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "state") {
 		var v TasksPersistentTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = TasksTaskInfoBaseStatusTasksPersistentTaskStatusType
@@ -21141,6 +21294,7 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v map[string]json.RawMessage
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -21162,72 +21316,72 @@ func (u TasksTaskInfoBaseStatus) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// TasksTaskListResponseBase is a discriminated union type.
+// TasksTaskListRespBase is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type TasksTaskListResponseBase struct {
-	typ   TasksTaskListResponseBaseType
+type TasksTaskListRespBase struct {
+	typ   TasksTaskListRespBaseType
 	raw   json.RawMessage
 	value any
 }
 
-// TasksTaskListResponseBaseType discriminates the branches of TasksTaskListResponseBase.
-type TasksTaskListResponseBaseType int
+// TasksTaskListRespBaseType discriminates the branches of TasksTaskListRespBase.
+type TasksTaskListRespBaseType int
 
 const (
-	TasksTaskListResponseBaseUnknownType TasksTaskListResponseBaseType = iota
-	TasksTaskListResponseBaseArrayType
-	TasksTaskListResponseBaseMapType
+	TasksTaskListRespBaseUnknownType TasksTaskListRespBaseType = iota
+	TasksTaskListRespBaseArrayType
+	TasksTaskListRespBaseMapType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns TasksTaskListResponseBaseUnknownType if the value has not been decoded.
-func (u *TasksTaskListResponseBase) Type() TasksTaskListResponseBaseType { return u.typ }
+// Returns TasksTaskListRespBaseUnknownType if the value has not been decoded.
+func (u *TasksTaskListRespBase) Type() TasksTaskListRespBaseType { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *TasksTaskListResponseBase) RawJSON() json.RawMessage { return u.raw }
+func (u *TasksTaskListRespBase) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewTasksTaskListResponseBaseFrom*
+// verbatim when no typed branch is set. Use the NewTasksTaskListRespBaseFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *TasksTaskListResponseBase) SetRaw(raw json.RawMessage) {
+func (u *TasksTaskListRespBase) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = TasksTaskListResponseBaseUnknownType
+	u.typ = TasksTaskListRespBaseUnknownType
 }
 
 // Array returns the []TasksTaskInfo branch value.
-func (u *TasksTaskListResponseBase) Array() []TasksTaskInfo {
+func (u *TasksTaskListRespBase) Array() []TasksTaskInfo {
 	v, _ := u.value.([]TasksTaskInfo)
 	return v
 }
 
-// NewTasksTaskListResponseBaseFromArray returns a TasksTaskListResponseBase populated with v
+// NewTasksTaskListRespBaseFromArray returns a TasksTaskListRespBase populated with v
 // on the Array branch.
-func NewTasksTaskListResponseBaseFromArray(v []TasksTaskInfo) TasksTaskListResponseBase {
-	return TasksTaskListResponseBase{
-		typ:   TasksTaskListResponseBaseArrayType,
+func NewTasksTaskListRespBaseFromArray(v []TasksTaskInfo) TasksTaskListRespBase {
+	return TasksTaskListRespBase{
+		typ:   TasksTaskListRespBaseArrayType,
 		value: v,
 	}
 }
 
 // Map returns the map[string]json.RawMessage branch value.
-func (u *TasksTaskListResponseBase) Map() map[string]json.RawMessage {
+func (u *TasksTaskListRespBase) Map() map[string]json.RawMessage {
 	v, _ := u.value.(map[string]json.RawMessage)
 	return v
 }
 
-// NewTasksTaskListResponseBaseFromMap returns a TasksTaskListResponseBase populated with v
+// NewTasksTaskListRespBaseFromMap returns a TasksTaskListRespBase populated with v
 // on the Map branch.
-func NewTasksTaskListResponseBaseFromMap(v map[string]json.RawMessage) TasksTaskListResponseBase {
-	return TasksTaskListResponseBase{
-		typ:   TasksTaskListResponseBaseMapType,
+func NewTasksTaskListRespBaseFromMap(v map[string]json.RawMessage) TasksTaskListRespBase {
+	return TasksTaskListRespBase{
+		typ:   TasksTaskListRespBaseMapType,
 		value: v,
 	}
 }
 
-func (u *TasksTaskListResponseBase) UnmarshalJSON(data []byte) error {
+func (u *TasksTaskListRespBase) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
@@ -21238,22 +21392,22 @@ func (u *TasksTaskListResponseBase) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = TasksTaskListResponseBaseArrayType
+		u.typ = TasksTaskListRespBaseArrayType
 		u.value = v
 	case data[0] == '{':
 		var v map[string]json.RawMessage
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = TasksTaskListResponseBaseMapType
+		u.typ = TasksTaskListRespBaseMapType
 		u.value = v
 	default:
-		return fmt.Errorf("TasksTaskListResponseBase: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("TasksTaskListRespBase: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u TasksTaskListResponseBase) MarshalJSON() ([]byte, error) {
+func (u TasksTaskListRespBase) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -22053,6 +22207,28 @@ func (u *CommonMappingFieldMappingValue) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonMappingMatchOnlyTextProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingFieldMappingValueCommonMappingMatchOnlyTextPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "model_id", "type") {
+		var v CommonMappingSemanticProperty
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonMappingFieldMappingValueCommonMappingSemanticPropertyType
+			u.value = v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v CommonMappingBinaryProperty
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -22081,14 +22257,6 @@ func (u *CommonMappingFieldMappingValue) UnmarshalJSON(data []byte) error {
 		var v CommonMappingKeywordProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingFieldMappingValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingFieldMappingValueCommonMappingMatchOnlyTextPropertyType
 			u.value = v
 			return nil
 		}
@@ -22337,14 +22505,6 @@ func (u *CommonMappingFieldMappingValue) UnmarshalJSON(data []byte) error {
 		var v CommonMappingScaledFloatNumberProperty
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = CommonMappingFieldMappingValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingFieldMappingValueCommonMappingSemanticPropertyType
 			u.value = v
 			return nil
 		}
@@ -22948,6 +23108,12 @@ func (u *InsightsSourceSort) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -23095,6 +23261,12 @@ func (u *InsightsSourceSortItem) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -23536,6 +23708,12 @@ func (u *SearchResultJsonValueSuggestValueItem) UnmarshalJSON(data []byte) error
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v SearchResultJsonValueSuggestValueItemObject0
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -23573,98 +23751,104 @@ func (u SearchResultJsonValueSuggestValueItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// MlDeleteAgenticMemoryResponseFailuresItem is a discriminated union type (try-each, newest version first).
+// MlDeleteAgenticMemoryRespFailuresItem is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type MlDeleteAgenticMemoryResponseFailuresItem struct {
-	typ   MlDeleteAgenticMemoryResponseFailuresItemType
+type MlDeleteAgenticMemoryRespFailuresItem struct {
+	typ   MlDeleteAgenticMemoryRespFailuresItemType
 	raw   json.RawMessage
 	value any
 }
 
-// MlDeleteAgenticMemoryResponseFailuresItemType discriminates the branches of MlDeleteAgenticMemoryResponseFailuresItem.
-type MlDeleteAgenticMemoryResponseFailuresItemType int
+// MlDeleteAgenticMemoryRespFailuresItemType discriminates the branches of MlDeleteAgenticMemoryRespFailuresItem.
+type MlDeleteAgenticMemoryRespFailuresItemType int
 
 const (
-	MlDeleteAgenticMemoryResponseFailuresItemUnknownType MlDeleteAgenticMemoryResponseFailuresItemType = iota
-	MlDeleteAgenticMemoryResponseFailuresItemBulkItemResponseFailureType
-	MlDeleteAgenticMemoryResponseFailuresItemScrollableHitSourceSearchFailureType
+	MlDeleteAgenticMemoryRespFailuresItemUnknownType MlDeleteAgenticMemoryRespFailuresItemType = iota
+	MlDeleteAgenticMemoryRespFailuresItemBulkItemRespFailureType
+	MlDeleteAgenticMemoryRespFailuresItemScrollableHitSourceSearchFailureType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns MlDeleteAgenticMemoryResponseFailuresItemUnknownType if the value has not been decoded.
-func (u *MlDeleteAgenticMemoryResponseFailuresItem) Type() MlDeleteAgenticMemoryResponseFailuresItemType {
+// Returns MlDeleteAgenticMemoryRespFailuresItemUnknownType if the value has not been decoded.
+func (u *MlDeleteAgenticMemoryRespFailuresItem) Type() MlDeleteAgenticMemoryRespFailuresItemType {
 	return u.typ
 }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *MlDeleteAgenticMemoryResponseFailuresItem) RawJSON() json.RawMessage { return u.raw }
+func (u *MlDeleteAgenticMemoryRespFailuresItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewMlDeleteAgenticMemoryResponseFailuresItemFrom*
+// verbatim when no typed branch is set. Use the NewMlDeleteAgenticMemoryRespFailuresItemFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *MlDeleteAgenticMemoryResponseFailuresItem) SetRaw(raw json.RawMessage) {
+func (u *MlDeleteAgenticMemoryRespFailuresItem) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = MlDeleteAgenticMemoryResponseFailuresItemUnknownType
+	u.typ = MlDeleteAgenticMemoryRespFailuresItemUnknownType
 }
 
-// BulkItemResponseFailure returns the BulkItemResponseFailure branch value.
-func (u *MlDeleteAgenticMemoryResponseFailuresItem) BulkItemResponseFailure() BulkItemResponseFailure {
-	v, _ := u.value.(BulkItemResponseFailure)
+// BulkItemRespFailure returns the BulkItemRespFailure branch value.
+func (u *MlDeleteAgenticMemoryRespFailuresItem) BulkItemRespFailure() BulkItemRespFailure {
+	v, _ := u.value.(BulkItemRespFailure)
 	return v
 }
 
-// NewMlDeleteAgenticMemoryResponseFailuresItemFromBulkItemResponseFailure returns a MlDeleteAgenticMemoryResponseFailuresItem populated with v
-// on the BulkItemResponseFailure branch.
-func NewMlDeleteAgenticMemoryResponseFailuresItemFromBulkItemResponseFailure(v BulkItemResponseFailure) MlDeleteAgenticMemoryResponseFailuresItem {
-	return MlDeleteAgenticMemoryResponseFailuresItem{
-		typ:   MlDeleteAgenticMemoryResponseFailuresItemBulkItemResponseFailureType,
+// NewMlDeleteAgenticMemoryRespFailuresItemFromBulkItemRespFailure returns a MlDeleteAgenticMemoryRespFailuresItem populated with v
+// on the BulkItemRespFailure branch.
+func NewMlDeleteAgenticMemoryRespFailuresItemFromBulkItemRespFailure(v BulkItemRespFailure) MlDeleteAgenticMemoryRespFailuresItem {
+	return MlDeleteAgenticMemoryRespFailuresItem{
+		typ:   MlDeleteAgenticMemoryRespFailuresItemBulkItemRespFailureType,
 		value: v,
 	}
 }
 
 // ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value.
-func (u *MlDeleteAgenticMemoryResponseFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
+func (u *MlDeleteAgenticMemoryRespFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
 	v, _ := u.value.(ScrollableHitSourceSearchFailure)
 	return v
 }
 
-// NewMlDeleteAgenticMemoryResponseFailuresItemFromScrollableHitSourceSearchFailure returns a MlDeleteAgenticMemoryResponseFailuresItem populated with v
+// NewMlDeleteAgenticMemoryRespFailuresItemFromScrollableHitSourceSearchFailure returns a MlDeleteAgenticMemoryRespFailuresItem populated with v
 // on the ScrollableHitSourceSearchFailure branch.
-func NewMlDeleteAgenticMemoryResponseFailuresItemFromScrollableHitSourceSearchFailure(v ScrollableHitSourceSearchFailure) MlDeleteAgenticMemoryResponseFailuresItem {
-	return MlDeleteAgenticMemoryResponseFailuresItem{
-		typ:   MlDeleteAgenticMemoryResponseFailuresItemScrollableHitSourceSearchFailureType,
+func NewMlDeleteAgenticMemoryRespFailuresItemFromScrollableHitSourceSearchFailure(v ScrollableHitSourceSearchFailure) MlDeleteAgenticMemoryRespFailuresItem {
+	return MlDeleteAgenticMemoryRespFailuresItem{
+		typ:   MlDeleteAgenticMemoryRespFailuresItemScrollableHitSourceSearchFailureType,
 		value: v,
 	}
 }
 
-func (u *MlDeleteAgenticMemoryResponseFailuresItem) UnmarshalJSON(data []byte) error {
+func (u *MlDeleteAgenticMemoryRespFailuresItem) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v BulkItemResponseFailure
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "cause", "index", "status") {
+		var v BulkItemRespFailure
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MlDeleteAgenticMemoryResponseFailuresItemBulkItemResponseFailureType
+			u.typ = MlDeleteAgenticMemoryRespFailuresItemBulkItemRespFailureType
 			u.value = v
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "reason", "status") {
 		var v ScrollableHitSourceSearchFailure
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MlDeleteAgenticMemoryResponseFailuresItemScrollableHitSourceSearchFailureType
+			u.typ = MlDeleteAgenticMemoryRespFailuresItemScrollableHitSourceSearchFailureType
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("MlDeleteAgenticMemoryResponseFailuresItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("MlDeleteAgenticMemoryRespFailuresItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u MlDeleteAgenticMemoryResponseFailuresItem) MarshalJSON() ([]byte, error) {
+func (u MlDeleteAgenticMemoryRespFailuresItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -23689,7 +23873,7 @@ type MlExecuteAlgorithmResponseType int
 const (
 	MlExecuteAlgorithmResponseUnknownType MlExecuteAlgorithmResponseType = iota
 	MlExecuteAlgorithmResponseMlExecuteLocalSampleCalculatorResponseType
-	MlExecuteAlgorithmResponseMlExecuteAlgorithmResponseObject1Type
+	MlExecuteAlgorithmResponseMlExecuteAlgorithmRespObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -23724,17 +23908,17 @@ func NewMlExecuteAlgorithmResponseFromMlExecuteLocalSampleCalculatorResponse(v M
 	}
 }
 
-// MlExecuteAlgorithmResponseObject1 returns the MlExecuteAlgorithmResponseObject1 branch value.
-func (u *MlExecuteAlgorithmResponse) MlExecuteAlgorithmResponseObject1() MlExecuteAlgorithmResponseObject1 {
-	v, _ := u.value.(MlExecuteAlgorithmResponseObject1)
+// MlExecuteAlgorithmRespObject1 returns the MlExecuteAlgorithmRespObject1 branch value.
+func (u *MlExecuteAlgorithmResponse) MlExecuteAlgorithmRespObject1() MlExecuteAlgorithmRespObject1 {
+	v, _ := u.value.(MlExecuteAlgorithmRespObject1)
 	return v
 }
 
-// NewMlExecuteAlgorithmResponseFromMlExecuteAlgorithmResponseObject1 returns a MlExecuteAlgorithmResponse populated with v
-// on the MlExecuteAlgorithmResponseObject1 branch.
-func NewMlExecuteAlgorithmResponseFromMlExecuteAlgorithmResponseObject1(v MlExecuteAlgorithmResponseObject1) MlExecuteAlgorithmResponse {
+// NewMlExecuteAlgorithmResponseFromMlExecuteAlgorithmRespObject1 returns a MlExecuteAlgorithmResponse populated with v
+// on the MlExecuteAlgorithmRespObject1 branch.
+func NewMlExecuteAlgorithmResponseFromMlExecuteAlgorithmRespObject1(v MlExecuteAlgorithmRespObject1) MlExecuteAlgorithmResponse {
 	return MlExecuteAlgorithmResponse{
-		typ:   MlExecuteAlgorithmResponseMlExecuteAlgorithmResponseObject1Type,
+		typ:   MlExecuteAlgorithmResponseMlExecuteAlgorithmRespObject1Type,
 		value: v,
 	}
 }
@@ -23744,6 +23928,12 @@ func (u *MlExecuteAlgorithmResponse) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v MlExecuteLocalSampleCalculatorResponse
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -23753,9 +23943,9 @@ func (u *MlExecuteAlgorithmResponse) UnmarshalJSON(data []byte) error {
 		}
 	}
 	{
-		var v MlExecuteAlgorithmResponseObject1
+		var v MlExecuteAlgorithmRespObject1
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MlExecuteAlgorithmResponseMlExecuteAlgorithmResponseObject1Type
+			u.typ = MlExecuteAlgorithmResponseMlExecuteAlgorithmRespObject1Type
 			u.value = v
 			return nil
 		}
@@ -24451,6 +24641,12 @@ func (u *NeuralStats) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v NeuralNestedStats
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -25396,7 +25592,12 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) UnmarshalJSON(data [
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "normalization-processor") {
 		var v SearchPipelineStructurePhaseResultsProcessorsItemObject0
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject0Type
@@ -25404,7 +25605,7 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) UnmarshalJSON(data [
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "score-ranker-processor") {
 		var v SearchPipelineStructurePhaseResultsProcessorsItemObject1
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject1Type
@@ -25412,6 +25613,7 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) UnmarshalJSON(data [
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("SearchPipelineStructurePhaseResultsProcessorsItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
@@ -25545,7 +25747,12 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "agentic_query_translator") {
 		var v SearchPipelineStructureRequestProcessorsItemObject0
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject0Type
@@ -25553,7 +25760,7 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "filter_query") {
 		var v SearchPipelineStructureRequestProcessorsItemObject1
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject1Type
@@ -25561,7 +25768,7 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "neural_query_enricher") {
 		var v SearchPipelineStructureRequestProcessorsItemObject2
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject2Type
@@ -25569,7 +25776,7 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "script") {
 		var v SearchPipelineStructureRequestProcessorsItemObject3
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject3Type
@@ -25577,7 +25784,7 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "oversample") {
 		var v SearchPipelineStructureRequestProcessorsItemObject4
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject4Type
@@ -25585,6 +25792,7 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("SearchPipelineStructureRequestProcessorsItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
@@ -25598,266 +25806,272 @@ func (u SearchPipelineStructureRequestProcessorsItem) MarshalJSON() ([]byte, err
 	return build.NullJSON, nil
 }
 
-// SearchPipelineStructureResponseProcessorsItem is a discriminated union type (try-each, newest version first).
+// SearchPipelineStructureRespProcessorsItem is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type SearchPipelineStructureResponseProcessorsItem struct {
-	typ   SearchPipelineStructureResponseProcessorsItemType
+type SearchPipelineStructureRespProcessorsItem struct {
+	typ   SearchPipelineStructureRespProcessorsItemType
 	raw   json.RawMessage
 	value any
 }
 
-// SearchPipelineStructureResponseProcessorsItemType discriminates the branches of SearchPipelineStructureResponseProcessorsItem.
-type SearchPipelineStructureResponseProcessorsItemType int
+// SearchPipelineStructureRespProcessorsItemType discriminates the branches of SearchPipelineStructureRespProcessorsItem.
+type SearchPipelineStructureRespProcessorsItemType int
 
 const (
-	SearchPipelineStructureResponseProcessorsItemUnknownType SearchPipelineStructureResponseProcessorsItemType = iota
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject0Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject1Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject2Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject3Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject4Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject5Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject6Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject7Type
-	SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject8Type
+	SearchPipelineStructureRespProcessorsItemUnknownType SearchPipelineStructureRespProcessorsItemType = iota
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject0Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject1Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject2Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject3Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject4Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject5Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject6Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject7Type
+	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject8Type
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns SearchPipelineStructureResponseProcessorsItemUnknownType if the value has not been decoded.
-func (u *SearchPipelineStructureResponseProcessorsItem) Type() SearchPipelineStructureResponseProcessorsItemType {
+// Returns SearchPipelineStructureRespProcessorsItemUnknownType if the value has not been decoded.
+func (u *SearchPipelineStructureRespProcessorsItem) Type() SearchPipelineStructureRespProcessorsItemType {
 	return u.typ
 }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *SearchPipelineStructureResponseProcessorsItem) RawJSON() json.RawMessage { return u.raw }
+func (u *SearchPipelineStructureRespProcessorsItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchPipelineStructureResponseProcessorsItemFrom*
+// verbatim when no typed branch is set. Use the NewSearchPipelineStructureRespProcessorsItemFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *SearchPipelineStructureResponseProcessorsItem) SetRaw(raw json.RawMessage) {
+func (u *SearchPipelineStructureRespProcessorsItem) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = SearchPipelineStructureResponseProcessorsItemUnknownType
+	u.typ = SearchPipelineStructureRespProcessorsItemUnknownType
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject0 returns the SearchPipelineStructureResponseProcessorsItemObject0 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject0() SearchPipelineStructureResponseProcessorsItemObject0 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject0)
+// SearchPipelineStructureRespProcessorsItemObject0 returns the SearchPipelineStructureRespProcessorsItemObject0 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject0() SearchPipelineStructureRespProcessorsItemObject0 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject0)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject0 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject0 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject0(v SearchPipelineStructureResponseProcessorsItemObject0) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject0Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject0 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject0 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject0(v SearchPipelineStructureRespProcessorsItemObject0) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject0Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject1 returns the SearchPipelineStructureResponseProcessorsItemObject1 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject1() SearchPipelineStructureResponseProcessorsItemObject1 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject1)
+// SearchPipelineStructureRespProcessorsItemObject1 returns the SearchPipelineStructureRespProcessorsItemObject1 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject1() SearchPipelineStructureRespProcessorsItemObject1 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject1)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject1 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject1 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject1(v SearchPipelineStructureResponseProcessorsItemObject1) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject1Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject1 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject1 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject1(v SearchPipelineStructureRespProcessorsItemObject1) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject1Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject2 returns the SearchPipelineStructureResponseProcessorsItemObject2 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject2() SearchPipelineStructureResponseProcessorsItemObject2 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject2)
+// SearchPipelineStructureRespProcessorsItemObject2 returns the SearchPipelineStructureRespProcessorsItemObject2 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject2() SearchPipelineStructureRespProcessorsItemObject2 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject2)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject2 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject2 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject2(v SearchPipelineStructureResponseProcessorsItemObject2) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject2Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject2 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject2 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject2(v SearchPipelineStructureRespProcessorsItemObject2) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject2Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject3 returns the SearchPipelineStructureResponseProcessorsItemObject3 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject3() SearchPipelineStructureResponseProcessorsItemObject3 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject3)
+// SearchPipelineStructureRespProcessorsItemObject3 returns the SearchPipelineStructureRespProcessorsItemObject3 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject3() SearchPipelineStructureRespProcessorsItemObject3 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject3)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject3 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject3 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject3(v SearchPipelineStructureResponseProcessorsItemObject3) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject3Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject3 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject3 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject3(v SearchPipelineStructureRespProcessorsItemObject3) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject3Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject4 returns the SearchPipelineStructureResponseProcessorsItemObject4 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject4() SearchPipelineStructureResponseProcessorsItemObject4 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject4)
+// SearchPipelineStructureRespProcessorsItemObject4 returns the SearchPipelineStructureRespProcessorsItemObject4 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject4() SearchPipelineStructureRespProcessorsItemObject4 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject4)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject4 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject4 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject4(v SearchPipelineStructureResponseProcessorsItemObject4) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject4Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject4 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject4 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject4(v SearchPipelineStructureRespProcessorsItemObject4) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject4Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject5 returns the SearchPipelineStructureResponseProcessorsItemObject5 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject5() SearchPipelineStructureResponseProcessorsItemObject5 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject5)
+// SearchPipelineStructureRespProcessorsItemObject5 returns the SearchPipelineStructureRespProcessorsItemObject5 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject5() SearchPipelineStructureRespProcessorsItemObject5 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject5)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject5 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject5 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject5(v SearchPipelineStructureResponseProcessorsItemObject5) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject5Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject5 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject5 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject5(v SearchPipelineStructureRespProcessorsItemObject5) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject5Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject6 returns the SearchPipelineStructureResponseProcessorsItemObject6 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject6() SearchPipelineStructureResponseProcessorsItemObject6 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject6)
+// SearchPipelineStructureRespProcessorsItemObject6 returns the SearchPipelineStructureRespProcessorsItemObject6 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject6() SearchPipelineStructureRespProcessorsItemObject6 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject6)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject6 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject6 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject6(v SearchPipelineStructureResponseProcessorsItemObject6) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject6Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject6 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject6 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject6(v SearchPipelineStructureRespProcessorsItemObject6) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject6Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject7 returns the SearchPipelineStructureResponseProcessorsItemObject7 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject7() SearchPipelineStructureResponseProcessorsItemObject7 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject7)
+// SearchPipelineStructureRespProcessorsItemObject7 returns the SearchPipelineStructureRespProcessorsItemObject7 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject7() SearchPipelineStructureRespProcessorsItemObject7 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject7)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject7 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject7 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject7(v SearchPipelineStructureResponseProcessorsItemObject7) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject7Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject7 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject7 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject7(v SearchPipelineStructureRespProcessorsItemObject7) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject7Type,
 		value: v,
 	}
 }
 
-// SearchPipelineStructureResponseProcessorsItemObject8 returns the SearchPipelineStructureResponseProcessorsItemObject8 branch value.
-func (u *SearchPipelineStructureResponseProcessorsItem) SearchPipelineStructureResponseProcessorsItemObject8() SearchPipelineStructureResponseProcessorsItemObject8 {
-	v, _ := u.value.(SearchPipelineStructureResponseProcessorsItemObject8)
+// SearchPipelineStructureRespProcessorsItemObject8 returns the SearchPipelineStructureRespProcessorsItemObject8 branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject8() SearchPipelineStructureRespProcessorsItemObject8 {
+	v, _ := u.value.(SearchPipelineStructureRespProcessorsItemObject8)
 	return v
 }
 
-// NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject8 returns a SearchPipelineStructureResponseProcessorsItem populated with v
-// on the SearchPipelineStructureResponseProcessorsItemObject8 branch.
-func NewSearchPipelineStructureResponseProcessorsItemFromSearchPipelineStructureResponseProcessorsItemObject8(v SearchPipelineStructureResponseProcessorsItemObject8) SearchPipelineStructureResponseProcessorsItem {
-	return SearchPipelineStructureResponseProcessorsItem{
-		typ:   SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject8Type,
+// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject8 returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the SearchPipelineStructureRespProcessorsItemObject8 branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject8(v SearchPipelineStructureRespProcessorsItemObject8) SearchPipelineStructureRespProcessorsItem {
+	return SearchPipelineStructureRespProcessorsItem{
+		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject8Type,
 		value: v,
 	}
 }
 
-func (u *SearchPipelineStructureResponseProcessorsItem) UnmarshalJSON(data []byte) error {
+func (u *SearchPipelineStructureRespProcessorsItem) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject0
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "agentic_context") {
+		var v SearchPipelineStructureRespProcessorsItemObject0
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject0Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject0Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject1
+	if build.HasJSONKeys(data, "personalize_search_ranking") {
+		var v SearchPipelineStructureRespProcessorsItemObject1
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject1Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject1Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject2
+	if build.HasJSONKeys(data, "retrieval_augmented_generation") {
+		var v SearchPipelineStructureRespProcessorsItemObject2
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject2Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject2Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject3
+	if build.HasJSONKeys(data, "rename_field") {
+		var v SearchPipelineStructureRespProcessorsItemObject3
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject3Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject3Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject4
+	if build.HasJSONKeys(data, "rerank") {
+		var v SearchPipelineStructureRespProcessorsItemObject4
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject4Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject4Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject5
+	if build.HasJSONKeys(data, "collapse") {
+		var v SearchPipelineStructureRespProcessorsItemObject5
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject5Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject5Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject6
+	if build.HasJSONKeys(data, "truncate_hits") {
+		var v SearchPipelineStructureRespProcessorsItemObject6
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject6Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject6Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject7
+	if build.HasJSONKeys(data, "sort") {
+		var v SearchPipelineStructureRespProcessorsItemObject7
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject7Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject7Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v SearchPipelineStructureResponseProcessorsItemObject8
+	if build.HasJSONKeys(data, "split") {
+		var v SearchPipelineStructureRespProcessorsItemObject8
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchPipelineStructureResponseProcessorsItemSearchPipelineStructureResponseProcessorsItemObject8Type
+			u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject8Type
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("SearchPipelineStructureResponseProcessorsItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("SearchPipelineStructureRespProcessorsItem: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u SearchPipelineStructureResponseProcessorsItem) MarshalJSON() ([]byte, error) {
+func (u SearchPipelineStructureRespProcessorsItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -26274,95 +26488,99 @@ func (u SQLSlowlog) MarshalJSON() ([]byte, error) {
 // The resource limits for query requests in the query group.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type WlmQueryGroupResponseResourceLimits struct {
-	typ   WlmQueryGroupResponseResourceLimitsType
+type WlmQueryGroupRespResourceLimits struct {
+	typ   WlmQueryGroupRespResourceLimitsType
 	raw   json.RawMessage
 	value any
 }
 
-// WlmQueryGroupResponseResourceLimitsType discriminates the branches of WlmQueryGroupResponseResourceLimits.
-type WlmQueryGroupResponseResourceLimitsType int
+// WlmQueryGroupRespResourceLimitsType discriminates the branches of WlmQueryGroupRespResourceLimits.
+type WlmQueryGroupRespResourceLimitsType int
 
 const (
-	WlmQueryGroupResponseResourceLimitsUnknownType WlmQueryGroupResponseResourceLimitsType = iota
-	WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject0Type
-	WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject1Type
+	WlmQueryGroupRespResourceLimitsUnknownType WlmQueryGroupRespResourceLimitsType = iota
+	WlmQueryGroupRespResourceLimitsWlmQueryGroupRespResourceLimitsObject0Type
+	WlmQueryGroupRespResourceLimitsWlmQueryGroupRespResourceLimitsObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns WlmQueryGroupResponseResourceLimitsUnknownType if the value has not been decoded.
-func (u *WlmQueryGroupResponseResourceLimits) Type() WlmQueryGroupResponseResourceLimitsType {
-	return u.typ
-}
+// Returns WlmQueryGroupRespResourceLimitsUnknownType if the value has not been decoded.
+func (u *WlmQueryGroupRespResourceLimits) Type() WlmQueryGroupRespResourceLimitsType { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *WlmQueryGroupResponseResourceLimits) RawJSON() json.RawMessage { return u.raw }
+func (u *WlmQueryGroupRespResourceLimits) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewWlmQueryGroupResponseResourceLimitsFrom*
+// verbatim when no typed branch is set. Use the NewWlmQueryGroupRespResourceLimitsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *WlmQueryGroupResponseResourceLimits) SetRaw(raw json.RawMessage) {
+func (u *WlmQueryGroupRespResourceLimits) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = WlmQueryGroupResponseResourceLimitsUnknownType
+	u.typ = WlmQueryGroupRespResourceLimitsUnknownType
 }
 
-// WlmQueryGroupResponseResourceLimitsObject0 returns the WlmQueryGroupResponseResourceLimitsObject0 branch value.
-func (u *WlmQueryGroupResponseResourceLimits) WlmQueryGroupResponseResourceLimitsObject0() WlmQueryGroupResponseResourceLimitsObject0 {
-	v, _ := u.value.(WlmQueryGroupResponseResourceLimitsObject0)
+// WlmQueryGroupRespResourceLimitsObject0 returns the WlmQueryGroupRespResourceLimitsObject0 branch value.
+func (u *WlmQueryGroupRespResourceLimits) WlmQueryGroupRespResourceLimitsObject0() WlmQueryGroupRespResourceLimitsObject0 {
+	v, _ := u.value.(WlmQueryGroupRespResourceLimitsObject0)
 	return v
 }
 
-// NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject0 returns a WlmQueryGroupResponseResourceLimits populated with v
-// on the WlmQueryGroupResponseResourceLimitsObject0 branch.
-func NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject0(v WlmQueryGroupResponseResourceLimitsObject0) WlmQueryGroupResponseResourceLimits {
-	return WlmQueryGroupResponseResourceLimits{
-		typ:   WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject0Type,
+// NewWlmQueryGroupRespResourceLimitsFromWlmQueryGroupRespResourceLimitsObject0 returns a WlmQueryGroupRespResourceLimits populated with v
+// on the WlmQueryGroupRespResourceLimitsObject0 branch.
+func NewWlmQueryGroupRespResourceLimitsFromWlmQueryGroupRespResourceLimitsObject0(v WlmQueryGroupRespResourceLimitsObject0) WlmQueryGroupRespResourceLimits {
+	return WlmQueryGroupRespResourceLimits{
+		typ:   WlmQueryGroupRespResourceLimitsWlmQueryGroupRespResourceLimitsObject0Type,
 		value: v,
 	}
 }
 
-// WlmQueryGroupResponseResourceLimitsObject1 returns the WlmQueryGroupResponseResourceLimitsObject1 branch value.
-func (u *WlmQueryGroupResponseResourceLimits) WlmQueryGroupResponseResourceLimitsObject1() WlmQueryGroupResponseResourceLimitsObject1 {
-	v, _ := u.value.(WlmQueryGroupResponseResourceLimitsObject1)
+// WlmQueryGroupRespResourceLimitsObject1 returns the WlmQueryGroupRespResourceLimitsObject1 branch value.
+func (u *WlmQueryGroupRespResourceLimits) WlmQueryGroupRespResourceLimitsObject1() WlmQueryGroupRespResourceLimitsObject1 {
+	v, _ := u.value.(WlmQueryGroupRespResourceLimitsObject1)
 	return v
 }
 
-// NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject1 returns a WlmQueryGroupResponseResourceLimits populated with v
-// on the WlmQueryGroupResponseResourceLimitsObject1 branch.
-func NewWlmQueryGroupResponseResourceLimitsFromWlmQueryGroupResponseResourceLimitsObject1(v WlmQueryGroupResponseResourceLimitsObject1) WlmQueryGroupResponseResourceLimits {
-	return WlmQueryGroupResponseResourceLimits{
-		typ:   WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject1Type,
+// NewWlmQueryGroupRespResourceLimitsFromWlmQueryGroupRespResourceLimitsObject1 returns a WlmQueryGroupRespResourceLimits populated with v
+// on the WlmQueryGroupRespResourceLimitsObject1 branch.
+func NewWlmQueryGroupRespResourceLimitsFromWlmQueryGroupRespResourceLimitsObject1(v WlmQueryGroupRespResourceLimitsObject1) WlmQueryGroupRespResourceLimits {
+	return WlmQueryGroupRespResourceLimits{
+		typ:   WlmQueryGroupRespResourceLimitsWlmQueryGroupRespResourceLimitsObject1Type,
 		value: v,
 	}
 }
 
-func (u *WlmQueryGroupResponseResourceLimits) UnmarshalJSON(data []byte) error {
+func (u *WlmQueryGroupRespResourceLimits) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v WlmQueryGroupResponseResourceLimitsObject0
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "memory") {
+		var v WlmQueryGroupRespResourceLimitsObject0
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject0Type
+			u.typ = WlmQueryGroupRespResourceLimitsWlmQueryGroupRespResourceLimitsObject0Type
 			u.value = v
 			return nil
 		}
 	}
-	{
-		var v WlmQueryGroupResponseResourceLimitsObject1
+	if build.HasJSONKeys(data, "cpu") {
+		var v WlmQueryGroupRespResourceLimitsObject1
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WlmQueryGroupResponseResourceLimitsWlmQueryGroupResponseResourceLimitsObject1Type
+			u.typ = WlmQueryGroupRespResourceLimitsWlmQueryGroupRespResourceLimitsObject1Type
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("WlmQueryGroupResponseResourceLimits: no branch matched JSON: %s", data[:min(len(data), 64)])
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("WlmQueryGroupRespResourceLimits: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u WlmQueryGroupResponseResourceLimits) MarshalJSON() ([]byte, error) {
+func (u WlmQueryGroupRespResourceLimits) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -26781,6 +26999,12 @@ func (u *AsynchronousSearchSearchSort) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -26928,6 +27152,12 @@ func (u *AsynchronousSearchSearchSortItem) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -27230,7 +27460,12 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialPoint
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeoJSONDataGeometryGeospatialPointType
@@ -27238,7 +27473,7 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialMultiPoint
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeoJSONDataGeometryGeospatialMultiPointType
@@ -27246,7 +27481,7 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialLineString
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeoJSONDataGeometryGeospatialLineStringType
@@ -27254,7 +27489,7 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialMultiLineString
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeoJSONDataGeometryGeospatialMultiLineStringType
@@ -27262,7 +27497,7 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialPolygon
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeoJSONDataGeometryGeospatialPolygonType
@@ -27270,7 +27505,7 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialMultiPolygon
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeoJSONDataGeometryGeospatialMultiPolygonType
@@ -27278,6 +27513,7 @@ func (u *GeospatialGeoJSONDataGeometry) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v [][]float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -27452,7 +27688,12 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialPoint
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeometryCollectionGeometriesItemGeospatialPointType
@@ -27460,7 +27701,7 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialMultiPoint
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeometryCollectionGeometriesItemGeospatialMultiPointType
@@ -27468,7 +27709,7 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialLineString
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeometryCollectionGeometriesItemGeospatialLineStringType
@@ -27476,7 +27717,7 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialMultiLineString
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeometryCollectionGeometriesItemGeospatialMultiLineStringType
@@ -27484,7 +27725,7 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialPolygon
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeometryCollectionGeometriesItemGeospatialPolygonType
@@ -27492,7 +27733,7 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "coordinates", "type") {
 		var v GeospatialMultiPolygon
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = GeospatialGeometryCollectionGeometriesItemGeospatialMultiPolygonType
@@ -27500,6 +27741,7 @@ func (u *GeospatialGeometryCollectionGeometriesItem) UnmarshalJSON(data []byte) 
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v [][]float64
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -27797,7 +28039,12 @@ func (u *WlmQueryGroupCreateResourceLimits) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "memory") {
 		var v WlmQueryGroupCreateResourceLimitsObject0
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = WlmQueryGroupCreateResourceLimitsWlmQueryGroupCreateResourceLimitsObject0Type
@@ -27805,7 +28052,7 @@ func (u *WlmQueryGroupCreateResourceLimits) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "cpu") {
 		var v WlmQueryGroupCreateResourceLimitsObject1
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = WlmQueryGroupCreateResourceLimitsWlmQueryGroupCreateResourceLimitsObject1Type
@@ -27813,6 +28060,7 @@ func (u *WlmQueryGroupCreateResourceLimits) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	return fmt.Errorf("WlmQueryGroupCreateResourceLimits: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 

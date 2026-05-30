@@ -96,7 +96,7 @@ func (r NodesUsageParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type NodesUsageResp struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// The name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`

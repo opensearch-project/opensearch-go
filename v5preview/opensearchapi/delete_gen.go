@@ -17,8 +17,8 @@ import (
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -239,5 +239,5 @@ func (c Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) 
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
 }

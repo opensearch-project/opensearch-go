@@ -22,32 +22,32 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
-func TestTermvectorsReq_GetRequest(t *testing.T) {
+func TestTermVectorsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.TermvectorsReq
+		req        opensearchapi.TermVectorsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        opensearchapi.TermvectorsReq{},
+			req:        opensearchapi.TermVectorsReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.TermvectorsReq{Index: "test-index", ID: "test-id"},
+			req:        opensearchapi.TermVectorsReq{Index: "test-index", ID: "test-id"},
 			wantMethod: "GET",
 			wantPath:   "/test-index/_termvectors/test-id",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.TermvectorsReq{Index: "test", ID: "test", Body: &opensearchapi.TermvectorsBody{}},
+			req:        opensearchapi.TermVectorsReq{Index: "test", ID: "test", Body: &opensearchapi.TermVectorsBody{}},
 			wantMethod: "POST",
 			wantPath:   "/test/_termvectors/test",
 			wantErr:    false,
@@ -68,7 +68,7 @@ func TestTermvectorsReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestTermvectors_Roundtrip(t *testing.T) {
+func TestTermVectors_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestTermvectors_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Termvectors(t.Context(), opensearchapi.TermvectorsReq{Index: "test"})
+		resp, err := client.TermVectors(t.Context(), opensearchapi.TermVectorsReq{Index: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -103,7 +103,7 @@ func TestTermvectors_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Termvectors(t.Context(), opensearchapi.TermvectorsReq{Index: "test"})
+		resp, err := errClient.TermVectors(t.Context(), opensearchapi.TermVectorsReq{Index: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

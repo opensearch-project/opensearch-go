@@ -159,7 +159,7 @@ func (r NodesStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-usage/
 type NodesStatsResp struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
@@ -258,11 +258,11 @@ type NodesStatsAdaptiveSelection struct {
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
 	// without a unit and `-1` to indicate an unspecified value.
-	AvgResponseTime *string `json:"avg_response_time,omitempty"`
+	AvgRespTime *string `json:"avg_response_time,omitempty"`
 
 	// The exponentially weighted moving average response time, in nanoseconds,
 	// of search requests on the keyed node.
-	AvgResponseTimeNs *int64 `json:"avg_response_time_ns,omitempty"`
+	AvgRespTimeNs *int64 `json:"avg_response_time_ns,omitempty"`
 
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
@@ -1217,10 +1217,10 @@ type NodesStatsShardSearchPipeline struct {
 
 // NodesStatsShardSearchPipelinePerPipeline is a typed component of the nodes.stats operation.
 type NodesStatsShardSearchPipelinePerPipeline struct {
-	Request            *NodesStatsShardSearchPipelineOperation                        `json:"request,omitempty"`
-	RequestProcessors  []NodesStatsShardSearchPipelinePerPipelineProcessor            `json:"request_processors,omitempty"`
-	Response           *NodesStatsShardSearchPipelineOperation                        `json:"response,omitempty"`
-	ResponseProcessors []map[string]NodesStatsShardSearchPipelinePerPipelineProcessor `json:"response_processors,omitempty"`
+	Request           *NodesStatsShardSearchPipelineOperation                        `json:"request,omitempty"`
+	RequestProcessors []NodesStatsShardSearchPipelinePerPipelineProcessor            `json:"request_processors,omitempty"`
+	Response          *NodesStatsShardSearchPipelineOperation                        `json:"response,omitempty"`
+	RespProcessors    []map[string]NodesStatsShardSearchPipelinePerPipelineProcessor `json:"response_processors,omitempty"`
 }
 
 // NodesStatsShardSearchPipelineOperation is a typed component of the nodes.stats operation.

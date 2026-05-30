@@ -17,13 +17,13 @@ import (
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// IndicesForcemergeReq represents the request for the indices.forcemerge operation.
+// IndicesForceMergeReq represents the request for the indices.forcemerge operation.
 //
 // Performs the force merge operation on one or more indexes.
 //
@@ -34,7 +34,7 @@ import (
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest
-type IndicesForcemergeReq struct {
+type IndicesForceMergeReq struct {
 	// Index specifies the list of path segments for the request URL.
 	Index []string
 
@@ -42,11 +42,11 @@ type IndicesForcemergeReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *IndicesForcemergeParams
+	Params *IndicesForceMergeParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r IndicesForcemergeReq) GetRequest(method string) (*http.Request, error) {
+func (r IndicesForceMergeReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesForcemergePath{
 		Index: r.Index,
 	}.Build()
@@ -68,8 +68,8 @@ func (r IndicesForcemergeReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// IndicesForcemergeParams represents query parameters for the IndicesForcemergeReq.
-type IndicesForcemergeParams struct {
+// IndicesForceMergeParams represents query parameters for the IndicesForceMergeReq.
+type IndicesForceMergeParams struct {
 	TimeoutParams
 	DebugParams
 	// Whether to ignore if a wildcard indexes expression resolves into no
@@ -115,7 +115,7 @@ type IndicesForcemergeParams struct {
 	WaitForCompletion *bool
 }
 
-func (r IndicesForcemergeParams) get() map[string]string {
+func (r IndicesForceMergeParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -161,15 +161,15 @@ func (r IndicesForcemergeParams) get() map[string]string {
 	return params
 }
 
-// IndicesForcemergeResp represents the response for the indices.forcemerge operation.
+// IndicesForceMergeResp represents the response for the indices.forcemerge operation.
 //
 // Performs the force merge operation on one or more indexes.
 //
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-type IndicesForcemergeResp struct {
-	ShardsOperationResponseBase
+type IndicesForceMergeResp struct {
+	ShardsOperationRespBase
 
 	// Task contains a task id returned when `wait_for_completion=false`, you
 	// can use the `task_id` to get the status of the task at _tasks/<task_id>.
@@ -179,13 +179,13 @@ type IndicesForcemergeResp struct {
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r IndicesForcemergeResp) Inspect() Inspect {
+func (r IndicesForceMergeResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r IndicesForcemergeResp) RawBody() io.Reader {
+func (r IndicesForceMergeResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
@@ -195,7 +195,7 @@ func (r IndicesForcemergeResp) RawBody() io.Reader {
 // BroadcastShardFailures detects partial failures on a broadcast-shape
 // response (one envelope, all-shards aggregate). Returns nil when no
 // shards failed.
-func (r *IndicesForcemergeResp) BroadcastShardFailures() *PartialSearchError {
+func (r *IndicesForceMergeResp) BroadcastShardFailures() *PartialSearchError {
 	if r == nil {
 		return nil
 	}
@@ -210,9 +210,9 @@ func (r *IndicesForcemergeResp) BroadcastShardFailures() *PartialSearchError {
 }
 
 // PartialFailures returns the partial-failure sub-errors detected on the
-// IndicesForcemergeResp, gated by mask. Mask bits suppress their corresponding
+// IndicesForceMergeResp, gated by mask. Mask bits suppress their corresponding
 // wrapper category.
-func (r *IndicesForcemergeResp) PartialFailures(mask errmask.ErrorMask) []error {
+func (r *IndicesForceMergeResp) PartialFailures(mask errmask.ErrorMask) []error {
 	var errs []error
 	if !mask.Has(errmask.BroadcastShards) {
 		if e := r.BroadcastShardFailures(); e != nil {
@@ -222,7 +222,7 @@ func (r *IndicesForcemergeResp) PartialFailures(mask errmask.ErrorMask) []error 
 	return errs
 }
 
-// Forcemerge performs the force merge operation on one or more indexes.
+// ForceMerge performs the force merge operation on one or more indexes.
 //
 // POST /_forcemerge
 //
@@ -231,13 +231,13 @@ func (r *IndicesForcemergeResp) PartialFailures(mask errmask.ErrorMask) []error 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Forcemerge(ctx context.Context, req *IndicesForcemergeReq) (*IndicesForcemergeResp, error) {
+func (c indicesClient) ForceMerge(ctx context.Context, req *IndicesForceMergeReq) (*IndicesForceMergeResp, error) {
 	if req == nil {
-		req = &IndicesForcemergeReq{}
+		req = &IndicesForceMergeReq{}
 	}
 
 	var (
-		data IndicesForcemergeResp
+		data IndicesForceMergeResp
 		err  error
 	)
 	if data.response, err = do(
@@ -248,5 +248,5 @@ func (c indicesClient) Forcemerge(ctx context.Context, req *IndicesForcemergeReq
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errors), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }

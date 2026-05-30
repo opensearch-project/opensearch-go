@@ -149,98 +149,102 @@ type ClusterRemoteInfoClusterRemoteProxyInfo struct {
 	SkipUnavailable           bool   `json:"skip_unavailable"`
 }
 
-// ClusterRemoteInfoResponseBodyValue is a discriminated union type (try-each, newest version first).
+// ClusterRemoteInfoRespBodyValue is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type ClusterRemoteInfoResponseBodyValue struct {
-	typ   ClusterRemoteInfoResponseBodyValueType
+type ClusterRemoteInfoRespBodyValue struct {
+	typ   ClusterRemoteInfoRespBodyValueType
 	raw   json.RawMessage
 	value any
 }
 
-// ClusterRemoteInfoResponseBodyValueType discriminates the branches of ClusterRemoteInfoResponseBodyValue.
-type ClusterRemoteInfoResponseBodyValueType int
+// ClusterRemoteInfoRespBodyValueType discriminates the branches of ClusterRemoteInfoRespBodyValue.
+type ClusterRemoteInfoRespBodyValueType int
 
 const (
-	ClusterRemoteInfoResponseBodyValueUnknownType ClusterRemoteInfoResponseBodyValueType = iota
-	ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteSniffInfoType
-	ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteProxyInfoType
+	ClusterRemoteInfoRespBodyValueUnknownType ClusterRemoteInfoRespBodyValueType = iota
+	ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType
+	ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns ClusterRemoteInfoResponseBodyValueUnknownType if the value has not been decoded.
-func (u *ClusterRemoteInfoResponseBodyValue) Type() ClusterRemoteInfoResponseBodyValueType {
-	return u.typ
-}
+// Returns ClusterRemoteInfoRespBodyValueUnknownType if the value has not been decoded.
+func (u *ClusterRemoteInfoRespBodyValue) Type() ClusterRemoteInfoRespBodyValueType { return u.typ }
 
 // RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *ClusterRemoteInfoResponseBodyValue) RawJSON() json.RawMessage { return u.raw }
+func (u *ClusterRemoteInfoRespBodyValue) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewClusterRemoteInfoResponseBodyValueFrom*
+// verbatim when no typed branch is set. Use the NewClusterRemoteInfoRespBodyValueFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *ClusterRemoteInfoResponseBodyValue) SetRaw(raw json.RawMessage) {
+func (u *ClusterRemoteInfoRespBodyValue) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = ClusterRemoteInfoResponseBodyValueUnknownType
+	u.typ = ClusterRemoteInfoRespBodyValueUnknownType
 }
 
 // ClusterRemoteInfoClusterRemoteSniffInfo returns the ClusterRemoteInfoClusterRemoteSniffInfo branch value.
-func (u *ClusterRemoteInfoResponseBodyValue) ClusterRemoteInfoClusterRemoteSniffInfo() ClusterRemoteInfoClusterRemoteSniffInfo {
+func (u *ClusterRemoteInfoRespBodyValue) ClusterRemoteInfoClusterRemoteSniffInfo() ClusterRemoteInfoClusterRemoteSniffInfo {
 	v, _ := u.value.(ClusterRemoteInfoClusterRemoteSniffInfo)
 	return v
 }
 
-// NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo returns a ClusterRemoteInfoResponseBodyValue populated with v
+// NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo returns a ClusterRemoteInfoRespBodyValue populated with v
 // on the ClusterRemoteInfoClusterRemoteSniffInfo branch.
-func NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo(v ClusterRemoteInfoClusterRemoteSniffInfo) ClusterRemoteInfoResponseBodyValue {
-	return ClusterRemoteInfoResponseBodyValue{
-		typ:   ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteSniffInfoType,
+func NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo(v ClusterRemoteInfoClusterRemoteSniffInfo) ClusterRemoteInfoRespBodyValue {
+	return ClusterRemoteInfoRespBodyValue{
+		typ:   ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType,
 		value: v,
 	}
 }
 
 // ClusterRemoteInfoClusterRemoteProxyInfo returns the ClusterRemoteInfoClusterRemoteProxyInfo branch value.
-func (u *ClusterRemoteInfoResponseBodyValue) ClusterRemoteInfoClusterRemoteProxyInfo() ClusterRemoteInfoClusterRemoteProxyInfo {
+func (u *ClusterRemoteInfoRespBodyValue) ClusterRemoteInfoClusterRemoteProxyInfo() ClusterRemoteInfoClusterRemoteProxyInfo {
 	v, _ := u.value.(ClusterRemoteInfoClusterRemoteProxyInfo)
 	return v
 }
 
-// NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo returns a ClusterRemoteInfoResponseBodyValue populated with v
+// NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo returns a ClusterRemoteInfoRespBodyValue populated with v
 // on the ClusterRemoteInfoClusterRemoteProxyInfo branch.
-func NewClusterRemoteInfoResponseBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo(v ClusterRemoteInfoClusterRemoteProxyInfo) ClusterRemoteInfoResponseBodyValue {
-	return ClusterRemoteInfoResponseBodyValue{
-		typ:   ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteProxyInfoType,
+func NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo(v ClusterRemoteInfoClusterRemoteProxyInfo) ClusterRemoteInfoRespBodyValue {
+	return ClusterRemoteInfoRespBodyValue{
+		typ:   ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType,
 		value: v,
 	}
 }
 
-func (u *ClusterRemoteInfoResponseBodyValue) UnmarshalJSON(data []byte) error {
+func (u *ClusterRemoteInfoRespBodyValue) UnmarshalJSON(data []byte) error {
 	u.raw = append(u.raw[:0], data...)
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "connected", "initial_connect_timeout", "max_connections_per_cluster", "mode", "num_nodes_connected", "seeds", "skip_unavailable") {
 		var v ClusterRemoteInfoClusterRemoteSniffInfo
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteSniffInfoType
+			u.typ = ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType
 			u.value = v
 			return nil
 		}
 	}
-	{
+	if build.HasJSONKeys(data, "connected", "initial_connect_timeout", "max_proxy_socket_connections", "mode", "num_proxy_sockets_connected", "proxy_address", "server_name", "skip_unavailable") {
 		var v ClusterRemoteInfoClusterRemoteProxyInfo
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ClusterRemoteInfoResponseBodyValueClusterRemoteInfoClusterRemoteProxyInfoType
+			u.typ = ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType
 			u.value = v
 			return nil
 		}
 	}
-	return fmt.Errorf("ClusterRemoteInfoResponseBodyValue: no branch matched JSON: %s", data[:min(len(data), 64)])
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("ClusterRemoteInfoRespBodyValue: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u ClusterRemoteInfoResponseBodyValue) MarshalJSON() ([]byte, error) {
+func (u ClusterRemoteInfoRespBodyValue) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

@@ -16,72 +16,72 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestMsearchParams_get(t *testing.T) {
+func TestMSearchParams_get(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		params MsearchParams
+		params MSearchParams
 		want   map[string]string
 	}{
-		{name: "empty", params: MsearchParams{}, want: nil},
+		{name: "empty", params: MSearchParams{}, want: nil},
 		{
 			name:   "allow_partial_results=true",
-			params: MsearchParams{AllowPartialResults: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{AllowPartialResults: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"allow_partial_results": "true"},
 		},
 		{
 			name:   "allow_partial_results=false",
-			params: MsearchParams{AllowPartialResults: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{AllowPartialResults: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"allow_partial_results": "false"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: MsearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: MsearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
 			name:   "max_concurrent_searches",
-			params: MsearchParams{MaxConcurrentSearches: 42},
+			params: MSearchParams{MaxConcurrentSearches: 42},
 			want:   map[string]string{"max_concurrent_searches": "42"},
 		},
 		{
 			name:   "max_concurrent_shard_requests",
-			params: MsearchParams{MaxConcurrentShardRequests: 42},
+			params: MSearchParams{MaxConcurrentShardRequests: 42},
 			want:   map[string]string{"max_concurrent_shard_requests": "42"},
 		},
 		{
 			name:   "pre_filter_shard_size",
-			params: MsearchParams{PreFilterShardSize: 42},
+			params: MSearchParams{PreFilterShardSize: 42},
 			want:   map[string]string{"pre_filter_shard_size": "42"},
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: MsearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: MsearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
 			name:   "search_type",
-			params: MsearchParams{SearchType: "test-value"},
+			params: MSearchParams{SearchType: "test-value"},
 			want:   map[string]string{"search_type": "test-value"},
 		},
 		{
 			name:   "typed_keys=true",
-			params: MsearchParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{TypedKeys: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: MsearchParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{TypedKeys: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 	}
