@@ -18,7 +18,7 @@ import (
 
 // MSearchTemplate executes a /_msearch request with the optional MSearchTemplateReq.
 //
-// Partial-failure detection mirrors MSearch: see [MsearchErrors] for the
+// Partial-failure detection mirrors MSearch: see [MSearchErrors] for the
 // runtime-collapse rule and caller patterns.
 func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*MSearchTemplateResp, error) {
 	var (
@@ -30,7 +30,7 @@ func (c Client) MSearchTemplate(ctx context.Context, req MSearchTemplateReq) (*M
 	}
 
 	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), func(errs []error) error {
-		return &MsearchTemplateErrors{errs: errs}
+		return &MSearchTemplateErrors{errs: errs}
 	})
 }
 

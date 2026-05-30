@@ -42,8 +42,17 @@ func (f *DispatchFragment) Body() (string, error) {
 		return "", nil
 	}
 
-	hasPartial := len(f.emittableWrappers()) > 0
-	perOpType := perOpErrorTypeName(f.Op.Group)
+	emittable := f.emittableWrappers()
+	hasPartial := len(emittable) > 0
+	// The per-op aggregator wrapper is referenced only when 2+ categories can
+	// fire -- exactly the case where collapsePerOpErrors wraps (0 -> nil, 1 ->
+	// bare sub-error, 2+ -> wrap). Gating perOpType on the same count makes that
+	// coupling explicit: a group that ever drops to a single emittable wrapper
+	// stops referencing the per-op type, so it can't dangle into a compile break.
+	perOpType := ""
+	if len(emittable) >= 2 {
+		perOpType = perOpErrorTypeName(f.Op.Group)
+	}
 
 	tmpl := template.Must(template.New("dispatch").Funcs(template.FuncMap{
 		"methodConst":      HTTPMethodConst,
@@ -126,8 +135,8 @@ const (
 )
 
 // Receiver expressions used at API method call sites. Top-level Client
-// methods access mask state via `c.errors`; sub-clients reach the
-// parent via `c.apiClient.errors`.
+// methods read the mask via `c.errorMask()`; sub-clients reach the
+// parent via `c.apiClient.errorMask()`.
 const (
 	recvTopLevel  = "c"
 	recvSubClient = "c.apiClient"
@@ -135,7 +144,7 @@ const (
 
 // errmaskImportPath is the absolute import path used by every generated
 // dispatch handler that emits a wrapper check.
-const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v4/internal/errmask"
+const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v4/errmask"
 
 // wrapperApplyFunc reports whether the wrapper's emission template
 // applies to a given response shape. It is consulted before emission so
@@ -229,14 +238,53 @@ func elementTypeHasShards(goType string, reg *ir.TypeRegistry) bool {
 	return false
 }
 
+// bulkInnerItemType resolves the per-op item type a Bulk-shaped
+// response wrapper must walk. The response carries Items[]<Outer>
+// (e.g. []BulkItem); each Outer in turn has N optional pointer
+// fields (`Create/Delete/Index/Update`) all targeting the same Inner
+// type (e.g. *BulkRespItem). Returns the unwrapped Inner name.
+//
+// Returns ("", false) when:
+//   - Items is missing (no Bulk-shape response)
+//   - the Outer element type isn't in the registry
+//   - the Outer has no pointer fields (malformed schema)
+//
+// In those cases the caller falls back to a hardcoded literal so the
+// emission stays compilable.
+func bulkInnerItemType(resp *ir.Type, reg *ir.TypeRegistry) (string, bool) {
+	if reg == nil {
+		return "", false
+	}
+	itemsField, ok := lookupResponseField(resp, respFieldItems, reg)
+	if !ok {
+		return "", false
+	}
+	outerName := strings.TrimPrefix(itemsField.GoType, "[]")
+	outerName = strings.TrimPrefix(outerName, "*")
+	outer, ok := reg.LookupByName(outerName)
+	if !ok {
+		return "", false
+	}
+	for _, f := range outer.Fields {
+		if !f.IsPointer {
+			continue
+		}
+		inner := strings.TrimPrefix(f.GoType, "*")
+		if inner != "" {
+			return inner, true
+		}
+	}
+	return "", false
+}
+
 // unionShape captures the metadata cmd/osgen needs to emit
 // type-discriminated access into a union element. The success branch
 // is whichever branch carries a Shards field (recursively); the error
-// branch matches the spec's ErrorResponseBase shape (Status + Error).
+// branch matches the spec's ErrorRespBase shape (Status + Error).
 type unionShape struct {
-	unionName   string // e.g. "MsearchMultiSearchResultResponsesItem"
-	success     string // success branch GoType (Shards-bearing), or ""
-	errorBranch string // error branch GoType (Status + Error), or ""
+	unionName   string // e.g. "MSearchMultiSearchResultResponsesItem"
+	success     string // success branch accessor Name (Shards-bearing), or ""
+	errorBranch string // error branch accessor Name (Status + Error), or ""
 }
 
 // resolveUnionShape walks a TypeLazyUnion/TypeUnion's branches and
@@ -254,13 +302,18 @@ func resolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) unionShape {
 		if !ok {
 			continue
 		}
+		// Store b.Name (the accessor/const identifier), not b.GoType: the
+		// dispatch template splices these into "{{UnionName}}{{Success}}Type"
+		// and "resp.{{Success}}()", which the union codegen declares from
+		// b.Name. They coincide only when a $ref branch has no title; a
+		// titled branch (or an abbreviation rule) makes Name != GoType.
 		switch {
 		case responseHasField(bt, respFieldShards, reg) && out.success == "":
-			out.success = b.GoType
+			out.success = b.Name
 		case responseHasField(bt, respFieldStatus, reg) &&
 			responseHasField(bt, respFieldError, reg) &&
 			out.errorBranch == "":
-			out.errorBranch = b.GoType
+			out.errorBranch = b.Name
 		}
 	}
 	return out
@@ -288,6 +341,7 @@ type wrapperRenderCtx struct {
 	Op       *ir.Operation
 	Registry *ir.TypeRegistry
 	RespType string // e.g. "BulkResp" -- non-empty when emitting a method
+	ItemType string // spec-derived element type of `Items[]`; only set by Bulk render
 }
 
 // perOpErrorTypeName returns the hand-written per-op error-aggregator
@@ -297,9 +351,9 @@ type wrapperRenderCtx struct {
 func perOpErrorTypeName(group string) string {
 	switch group {
 	case errwrap.GroupMSearch:
-		return "MsearchErrors"
+		return "MSearchErrors"
 	case errwrap.GroupMSearchTemplate:
-		return "MsearchTemplateErrors"
+		return "MSearchTemplateErrors"
 	}
 	return ""
 }
@@ -352,6 +406,23 @@ func applySearchShards(resp *ir.Type, reg *ir.TypeRegistry) bool {
 }
 
 func renderBulkItemsMethod(ctx wrapperRenderCtx) (string, error) {
+	// The walk needs the inner per-op item type (e.g. BulkRespItem),
+	// not the outer wrapper (BulkItem) that's the element of Items[].
+	// Each outer wrapper carries N optional pointer fields
+	// (Create/Delete/Index/Update for Bulk) all pointing to the inner
+	// type; we resolve the inner by:
+	//   1. lookup Items[] -> outer element type (BulkItem)
+	//   2. inspect the outer's first pointer field -> *BulkRespItem
+	//   3. strip the pointer -> BulkRespItem
+	//
+	// Falls back to the hardcoded literal if either lookup misses;
+	// the Applies guard would have rejected the wrapper at emit time
+	// for any response missing the path.
+	itemType := "BulkRespItem"
+	if outer, ok := bulkInnerItemType(ctx.Op.Response, ctx.Registry); ok {
+		itemType = outer
+	}
+	ctx.ItemType = itemType
 	return execTpl("BulkItemsMethod", `
 // BulkItemFailures detects partial failures on a Bulk response by
 // scanning every per-item op for a non-nil Error. Returns nil when no
@@ -360,10 +431,10 @@ func (r *{{.RespType}}) BulkItemFailures() *PartialBulkError {
 	if r == nil || !r.Errors {
 		return nil
 	}
-	var failed []BulkResponseItem
+	var failed []{{.ItemType}}
 	succeeded := 0
 	for _, item := range r.Items {
-		for _, v := range []*BulkResponseItem{item.Create, item.Delete, item.Index, item.Update} {
+		for _, v := range []*{{.ItemType}}{item.Create, item.Delete, item.Index, item.Update} {
 			if v == nil {
 				continue
 			}
@@ -512,7 +583,7 @@ func (r *{{.RespType}}) MultiSearchItemFailures() *MultiSearchItemError {
 		if resp.Type() == {{.Union.UnionName}}{{.Union.ErrorBranch}}Type {
 			failed = append(failed, MultiSearchItemFailure{
 				Index:             i,
-				ErrorResponseBase: resp.{{.Union.ErrorBranch}}(),
+				ErrorRespBase: resp.{{.Union.ErrorBranch}}(),
 			})
 		} else {
 			succeeded++
@@ -597,6 +668,10 @@ type renderData struct {
 	// { return nil }` guard so the helper stays panic-free when the
 	// wire response omits _shards.
 	ShardsNilGuard bool
+	// ItemType is the spec-derived element type of the response's
+	// `Items` field (e.g. "BulkRespItem"). Empty unless the wrapper
+	// emitter set it; consumed only by the BulkItems template.
+	ItemType string
 }
 
 type unionRenderData struct {
@@ -624,6 +699,7 @@ func execTpl(name, tpl string, ctx wrapperRenderCtx) (string, error) {
 			ErrorBranch: u.errorBranch,
 		},
 		ShardsNilGuard: shardsIsPointer(ctx.Op.Response, ctx.Registry),
+		ItemType:       ctx.ItemType,
 	}
 	var sb strings.Builder
 	if err := t.Execute(&sb, data); err != nil {
@@ -726,7 +802,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 {{- end}}
 {{- if $hasPartial}}
 {{- $recv := recvTopLevel}}{{if not .TopLevel}}{{$recv = recvSubClient}}{{end}}
-	return &data, collapsePerOpErrors(data.PartialFailures({{$recv}}.errors), {{if $.PerOpErrType}}func(errs []error) error {
+	return &data, collapsePerOpErrors(data.PartialFailures({{$recv}}.errorMask()), {{if $.PerOpErrType}}func(errs []error) error {
 		return &{{$.PerOpErrType}}{errs: errs}
 	}{{else}}nil{{end}})
 {{- else}}

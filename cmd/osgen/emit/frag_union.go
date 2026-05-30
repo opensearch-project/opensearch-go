@@ -70,11 +70,12 @@ func (f *UnionFragment) Body() (string, error) {
 
 	var sb strings.Builder
 	tmpl := template.Must(template.New("union").Funcs(template.FuncMap{
-		"comment":   CommentWrap,
-		"constName": unionConstNameIR,
-		"tokenStr":  tokenClassStr,
-		"isTryEach": func(k ir.TypeKind) bool { return k == ir.TypeLazyUnion },
-		"qualify":   qualify,
+		"comment":    CommentWrap,
+		"constName":  unionConstNameIR,
+		"tokenStr":   tokenClassStr,
+		"isTryEach":  func(k ir.TypeKind) bool { return k == ir.TypeLazyUnion },
+		"qualify":    qualify,
+		"quotedKeys": quotedKeys,
 	}).Parse(unionFragTmplText))
 
 	if err := tmpl.Execute(&sb, f.Types); err != nil {
@@ -104,7 +105,17 @@ func unionConstNameIR(unionName, branchName string) string {
 	return unionName + branchName + "Type"
 }
 
-//nolint:gochecknoglobals // const-ish read-only template body
+// quotedKeys renders a slice of field names as a comma-separated list of
+// Go double-quoted string literals, for splicing into a build.HasJSONKeys
+// call in the generated try-each discriminator.
+func quotedKeys(keys []string) string {
+	quoted := make([]string, len(keys))
+	for i, k := range keys {
+		quoted[i] = fmt.Sprintf("%q", k)
+	}
+	return strings.Join(quoted, ", ")
+}
+
 const unionFragTmplText = `{{- range $t := .}}
 {{- if isTryEach $t.Kind}}
 {{- if $t.Comment}}
@@ -167,7 +178,26 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
 {{- range $t.Branches}}
+{{- if .Required}}
+	if build.HasJSONKeys(data, {{quotedKeys .Required}}) {
+		var v {{qualify .GoType}}
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = {{constName $t.Name .Name}}
+			u.value = v
+			return nil
+		}
+	}
+{{- end}}
+{{- end}}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+{{- range $t.Branches}}
+{{- if not .Required}}
 	{
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err == nil {
@@ -176,6 +206,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 			return nil
 		}
 	}
+{{- end}}
 {{- end}}
 	return fmt.Errorf("{{$t.Name}}: no branch matched JSON: %s", data[:min(len(data), 64)])
 }

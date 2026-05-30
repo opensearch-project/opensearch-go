@@ -15,7 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
@@ -209,14 +209,14 @@ func TestNilRespHelperMethods(t *testing.T) {
 func TestPackageErrorsHelper(t *testing.T) {
 	t.Parallel()
 
-	// Pre-build a real *MsearchErrors (multi-wrapper aggregate) by
+	// Pre-build a real *MSearchErrors (multi-wrapper aggregate) by
 	// dispatching against a body that fires both shard-aggregation and
 	// per-item-error wrappers.
 	c := newClient(t, ptrMask(errmask.Empty), map[string]string{"/_msearch": msearchBothFailuresBody})
 	_, multiErr := c.MSearch(context.Background(), opensearchapi.MSearchReq{})
 	require.Error(t, multiErr)
-	var msErr *opensearchapi.MsearchErrors
-	require.True(t, errors.As(multiErr, &msErr), "fixture must yield *MsearchErrors")
+	var msErr *opensearchapi.MSearchErrors
+	require.True(t, errors.As(multiErr, &msErr), "fixture must yield *MSearchErrors")
 
 	tests := []struct {
 		name    string
@@ -247,7 +247,7 @@ func TestPackageErrorsHelper(t *testing.T) {
 			},
 		},
 		{
-			name:    "MsearchErrors aggregate flattens into multi-element slice",
+			name:    "MSearchErrors aggregate flattens into multi-element slice",
 			err:     multiErr,
 			wantLen: 2,
 			wantTypes: []any{

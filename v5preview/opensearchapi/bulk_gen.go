@@ -222,10 +222,10 @@ func (r *BulkResp) BulkItemFailures() *PartialBulkError {
 	if r == nil || !r.Errors {
 		return nil
 	}
-	var failed []BulkResponseItem
+	var failed []BulkRespItem
 	succeeded := 0
 	for _, item := range r.Items {
-		for _, v := range []*BulkResponseItem{item.Create, item.Delete, item.Index, item.Update} {
+		for _, v := range []*BulkRespItem{item.Create, item.Delete, item.Index, item.Update} {
 			if v == nil {
 				continue
 			}

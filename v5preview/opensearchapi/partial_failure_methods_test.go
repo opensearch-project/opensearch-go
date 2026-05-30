@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
@@ -49,8 +49,8 @@ func TestRespHelperMethods(t *testing.T) {
 				r := &opensearchapi.BulkResp{
 					Errors: true,
 					Items: []opensearchapi.BulkItem{
-						{Index: &opensearchapi.BulkResponseItem{ID: &id1, Status: 201}},
-						{Index: &opensearchapi.BulkResponseItem{
+						{Index: &opensearchapi.BulkRespItem{ID: &id1, Status: 201}},
+						{Index: &opensearchapi.BulkRespItem{
 							ID:     &id2,
 							Status: 400,
 							Error:  &opensearchapi.ErrorCause{Type: errType, Reason: &errReason},
@@ -108,15 +108,15 @@ func TestRespHelperMethods(t *testing.T) {
 			},
 		},
 		{
-			name: "MsearchResp aggregator fires both wrappers (union dispatch)",
+			name: "MSearchResp aggregator fires both wrappers (union dispatch)",
 			assert: func(t *testing.T) {
 				t.Helper()
 				shardReason := "shard boom"
 				itemReason := "unknown query"
-				r := &opensearchapi.MsearchResp{
-					Responses: []opensearchapi.MsearchMultiSearchResultResponsesItem{
-						opensearchapi.NewMsearchMultiSearchResultResponsesItemFromMsearchMultiSearchItem(
-							opensearchapi.MsearchMultiSearchItem{
+				r := &opensearchapi.MSearchResp{
+					Responses: []opensearchapi.MSearchMultiSearchResultResponsesItem{
+						opensearchapi.NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(
+							opensearchapi.MSearchMultiSearchItem{
 								SearchResult: opensearchapi.SearchResult{
 									Shards: opensearchapi.ShardStatistics{
 										Total: 5, Successful: 3, Failed: 2,
@@ -127,8 +127,8 @@ func TestRespHelperMethods(t *testing.T) {
 								},
 							},
 						),
-						opensearchapi.NewMsearchMultiSearchResultResponsesItemFromErrorResponseBase(
-							opensearchapi.ErrorResponseBase{
+						opensearchapi.NewMSearchMultiSearchResultResponsesItemFromErrorRespBase(
+							opensearchapi.ErrorRespBase{
 								Status: 400,
 								Error:  opensearchapi.ErrorCause{Type: "parsing_exception", Reason: &itemReason},
 							},
@@ -190,8 +190,8 @@ func TestNilRespHelperMethods(t *testing.T) {
 		{"nil IndexResp", func() any { var r *opensearchapi.IndexResp; return r.WriteShardFailures() }},
 		{"nil DeleteResp", func() any { var r *opensearchapi.DeleteResp; return r.WriteShardFailures() }},
 		{"nil UpdateResp", func() any { var r *opensearchapi.UpdateResp; return r.WriteShardFailures() }},
-		{"nil MsearchResp shard helper", func() any { var r *opensearchapi.MsearchResp; return r.SearchShardFailures() }},
-		{"nil MsearchResp item helper", func() any { var r *opensearchapi.MsearchResp; return r.MultiSearchItemFailures() }},
+		{"nil MSearchResp shard helper", func() any { var r *opensearchapi.MSearchResp; return r.SearchShardFailures() }},
+		{"nil MSearchResp item helper", func() any { var r *opensearchapi.MSearchResp; return r.MultiSearchItemFailures() }},
 	}
 
 	for _, tt := range tests {

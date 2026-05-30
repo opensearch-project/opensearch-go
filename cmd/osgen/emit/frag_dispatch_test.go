@@ -22,7 +22,7 @@ import (
 // adds when it emits any wrapper helpers; DispatchFragment never adds it
 // since the methods (and their errmask references) live in the partial-
 // failure fragment.
-const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v4/internal/errmask"
+const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v4/errmask"
 
 func newRespType(prefix string, fields ...ir.Field) *ir.Type {
 	return &ir.Type{
@@ -105,8 +105,8 @@ func TestDispatchFragment_Body(t *testing.T) {
 				}
 			},
 			contains: []string{
-				"data.PartialFailures(c.errors)",
-				"collapsePerOpErrors(data.PartialFailures(c.errors), nil)",
+				"data.PartialFailures(c.errorMask())",
+				"collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)",
 			},
 		},
 		{
@@ -125,7 +125,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 				}
 			},
 			contains: []string{
-				"data.PartialFailures(c.errors)",
+				"data.PartialFailures(c.errorMask())",
 				"collapsePerOpErrors",
 			},
 			// All wrapper-detection logic moved into PartialFailureFragment.
@@ -146,10 +146,37 @@ func TestDispatchFragment_Body(t *testing.T) {
 					},
 				}
 			},
-			contains: []string{"data.PartialFailures(c.apiClient.errors)"},
+			contains: []string{"data.PartialFailures(c.apiClient.errorMask())"},
 		},
 		{
-			name: "msearch group wraps slice in MsearchErrors",
+			name: "msearch group wraps slice in MSearchErrors when 2+ wrappers fire",
+			buildOp: func(reg *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:       "msearch",
+					TypePrefix:  "MSearch",
+					HTTPMethods: []string{http.MethodPost},
+					PrimaryPath: "/_msearch",
+					Response:    msearchFixtureResp(reg),
+					// Both categories apply: the per-op aggregator is referenced
+					// only when 2+ can fire (matching collapsePerOpErrors' wrap
+					// threshold).
+					ErrorWrappers: []string{errwrap.WrapperSearchShards, errwrap.WrapperMultiSearchItems},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "MSearch", TopLevel: true},
+					},
+				}
+			},
+			contains: []string{
+				"data.PartialFailures(c.errorMask())",
+				"&MSearchErrors{errs: errs}",
+			},
+		},
+		{
+			// F7 guard: an msearch-group op with a single emittable wrapper
+			// must NOT reference the per-op aggregator (collapse never wraps a
+			// 0/1 result), so the coupling can't dangle into a compile break if
+			// a group ever drops to one wrapper.
+			name: "msearch group with single wrapper uses nil collapse closure",
 			buildOp: func(reg *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
 					Group:         "msearch",
@@ -164,9 +191,9 @@ func TestDispatchFragment_Body(t *testing.T) {
 				}
 			},
 			contains: []string{
-				"data.PartialFailures(c.errors)",
-				"&MsearchErrors{errs: errs}",
+				"collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)",
 			},
+			notContains: []string{"MSearchErrors{errs: errs}"},
 		},
 		{
 			name: "wrapper without RenderMethod silently skipped",
@@ -337,6 +364,48 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 			},
 		},
 		{
+			name: "BulkItems resolves spec-derived inner item type when outer is registered",
+			buildOp: func(reg *ir.TypeRegistry) *ir.Operation {
+				// Register the outer item wrapper with its discriminated
+				// pointer fields. bulkInnerItemType walks pointer fields
+				// to find the inner per-op item; emission then keys off
+				// that resolved name rather than the "BulkRespItem" literal
+				// fallback.
+				reg.Register(&ir.Type{
+					Name:      "CustomBulkItem",
+					SchemaRef: "#/test/CustomBulkItem",
+					Scope:     ir.ScopeLocal,
+					Fields: []ir.Field{
+						{GoName: "Create", GoType: "*CustomBulkRespItem", IsPointer: true},
+						{GoName: "Delete", GoType: "*CustomBulkRespItem", IsPointer: true},
+						{GoName: "Index", GoType: "*CustomBulkRespItem", IsPointer: true},
+						{GoName: "Update", GoType: "*CustomBulkRespItem", IsPointer: true},
+					},
+				})
+				return &ir.Operation{
+					Group:      "bulk",
+					TypePrefix: "Bulk",
+					Response: newRespType("Bulk",
+						ir.Field{GoName: "Errors", GoType: "bool"},
+						ir.Field{GoName: "Items", GoType: "[]CustomBulkItem"},
+					),
+					ErrorWrappers: []string{errwrap.WrapperBulkItems},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true},
+					},
+				}
+			},
+			contains: []string{
+				// Resolved inner type appears verbatim in the emission.
+				"var failed []CustomBulkRespItem",
+				"for _, v := range []*CustomBulkRespItem{",
+			},
+			notContains: []string{
+				// Fallback literal must not leak into the emission.
+				"var failed []BulkRespItem",
+			},
+		},
+		{
 			name: "SearchShards emits SearchShardFailures method",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
@@ -389,6 +458,126 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 				}
 			},
 			contains: []string{"if r.Shards == nil"},
+		},
+		{
+			name: "BroadcastShards emits aggregate-shape helper without per-op constant",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:         "indices.refresh",
+					TypePrefix:    "IndicesRefresh",
+					Response:      shardsFixtureResp("IndicesRefresh"),
+					ErrorWrappers: []string{errwrap.WrapperBroadcastShards},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "indicesClient", MethodName: "Refresh", TopLevel: false},
+					},
+				}
+			},
+			contains: []string{
+				"func (r *IndicesRefreshResp) BroadcastShardFailures() *PartialSearchError",
+				"r.Shards.Failed == 0",
+				"Failures:     r.Shards.Failures",
+				"if !mask.Has(errmask.BroadcastShards)",
+				"if e := r.BroadcastShardFailures(); e != nil",
+			},
+			// Broadcast envelope: no per-op Operation constant (that's
+			// WriteShards' surface, not BroadcastShards').
+			notContains: []string{"Operation:"},
+		},
+		{
+			name: "MultiSearchItems flat shape emits Responses iteration over Status/Error",
+			buildOp: func(reg *ir.TypeRegistry) *ir.Operation {
+				// Element type carries both Shards (so applyMultiSearchItems'
+				// elementTypeHasShards guard passes) AND Status+Error (so the
+				// renderer's flat-shape branch produces working code).
+				if _, ok := reg.LookupByName("MSearchFlatItem"); !ok {
+					reg.Register(&ir.Type{
+						Name:      "MSearchFlatItem",
+						SchemaRef: "#/test/MSearchFlatItem",
+						Scope:     ir.ScopeLocal,
+						Fields: []ir.Field{
+							{GoName: "Shards", GoType: "ShardStatistics"},
+							{GoName: "Status", GoType: "int"},
+							{GoName: "Error", GoType: "*DocumentError", IsPointer: true},
+						},
+					})
+				}
+				return &ir.Operation{
+					Group:         "msearch",
+					TypePrefix:    "MSearch",
+					Response:      newRespType("MSearch", ir.Field{GoName: "Responses", GoType: "[]MSearchFlatItem"}),
+					ErrorWrappers: []string{errwrap.WrapperMultiSearchItems},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "MSearch", TopLevel: true},
+					},
+				}
+			},
+			contains: []string{
+				"func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError",
+				"for i, resp := range r.Responses",
+				"if resp.Error != nil",
+				"Status: resp.Status",
+				"Error:  resp.Error",
+				"if !mask.Has(errmask.MultiSearchItems)",
+			},
+			notContains: []string{
+				// Flat shape must not reach the union-discriminator template.
+				".Type() ==",
+				"resp.ErrorRespBase",
+			},
+		},
+		{
+			name: "MultiSearchItems union shape emits union-discriminator dispatch",
+			buildOp: func(reg *ir.TypeRegistry) *ir.Operation {
+				// Build a discriminated-union response item with one
+				// Shards-bearing branch and one ErrorRespBase-shape branch
+				// so resolveUnionShape classifies both sides.
+				reg.Register(&ir.Type{
+					Name:      "MsearchSuccessBranch",
+					SchemaRef: "#/test/MsearchSuccessBranch",
+					Scope:     ir.ScopeLocal,
+					Fields: []ir.Field{
+						{GoName: "Shards", GoType: "ShardStatistics"},
+					},
+				})
+				reg.Register(&ir.Type{
+					Name:      "MsearchErrorBranch",
+					SchemaRef: "#/test/MsearchErrorBranch",
+					Scope:     ir.ScopeLocal,
+					Fields: []ir.Field{
+						{GoName: "Status", GoType: "int"},
+						{GoName: "Error", GoType: "*DocumentError", IsPointer: true},
+					},
+				})
+				reg.Register(&ir.Type{
+					Name:      "MSearchUnionItem",
+					SchemaRef: "#/test/MSearchUnionItem",
+					Kind:      ir.TypeUnion,
+					Scope:     ir.ScopeLocal,
+					Branches: []ir.UnionBranch{
+						// Name deliberately differs from GoType (as a titled
+						// branch would): the dispatch must splice the accessor
+						// Name, not the GoType, into the const/accessor.
+						{Name: "Success", GoType: "MsearchSuccessBranch"},
+						{Name: "ErrorResult", GoType: "MsearchErrorBranch"},
+					},
+				})
+				return &ir.Operation{
+					Group:         "msearch",
+					TypePrefix:    "MSearch",
+					Response:      newRespType("MSearch", ir.Field{GoName: "Responses", GoType: "[]MSearchUnionItem"}),
+					ErrorWrappers: []string{errwrap.WrapperMultiSearchItems},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "MSearch", TopLevel: true},
+					},
+				}
+			},
+			contains: []string{
+				"func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError",
+				"resp.Type() == MSearchUnionItemErrorResultType",
+				"ErrorRespBase: resp.ErrorResult()",
+			},
+			// Union shape must not fall back to the flat template.
+			notContains: []string{"if resp.Error != nil"},
 		},
 	}
 

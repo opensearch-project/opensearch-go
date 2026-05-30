@@ -203,7 +203,10 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 // through SiblingTypesFragment. Without this split, a union sibling
 // rendered as a struct emits as `type Foo struct {}` because its Branches
 // aren't Fields.
-func splitUnionsFromSiblings(types []*ir.Type) (structs, unions []*ir.Type) {
+//
+// Returns (structs, unions).
+func splitUnionsFromSiblings(types []*ir.Type) ([]*ir.Type, []*ir.Type) {
+	var structs, unions []*ir.Type
 	for _, st := range types {
 		if st.Kind == ir.TypeUnion || st.Kind == ir.TypeLazyUnion {
 			unions = append(unions, st)
@@ -571,11 +574,7 @@ func buildIntegCallPrefix(op *ir.Operation, buildCfg BuildConfig, isPlugin bool)
 		}
 		return prefix + route.MethodName
 	}
-	suffix := op.Group
-	if idx := strings.IndexByte(suffix, '.'); idx >= 0 {
-		suffix = suffix[idx+1:]
-	}
-	methodName := PluginMethodName(suffix)
+	methodName := op.MethodName
 	prefix := groupPrefixIR(op.Group)
 	if sc := buildCfg.PluginSubClients[prefix][op.Group]; sc != nil {
 		return testClientVar + sc.FieldName + "." + methodName

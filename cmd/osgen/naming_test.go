@@ -259,7 +259,7 @@ func TestSchemaTypeName(t *testing.T) {
 	}{
 		{name: "common type", schemaKey: "_common___ShardStatistics", want: "ShardStatistics"},
 		{name: "common error cause", schemaKey: "_common___ErrorCause", want: "ErrorCause"},
-		{name: "common acknowledged", schemaKey: "_common___AcknowledgedResponseBase", want: "AcknowledgedResponseBase"},
+		{name: "common acknowledged", schemaKey: "_common___AcknowledgedResponseBase", want: "AcknowledgedRespBase"},
 		{name: "resp body", schemaKey: "cluster.health___HealthResponseBody", isRespBody: true, want: "ClusterHealthResp"},
 		{name: "resp body search", schemaKey: "_core.search___ResponseBody", isRespBody: true, want: "SearchResp"},
 		{name: "de-stutter cluster.health", schemaKey: "cluster.health___IndexHealthStats", want: "ClusterHealthIndexStats"},
@@ -272,11 +272,28 @@ func TestSchemaTypeName(t *testing.T) {
 		{name: "de-stutter cat health", schemaKey: "cat.health___HealthRecord", want: "CatHealthRecord"},
 		{name: "nodes stats", schemaKey: "nodes.stats___ClusterNodes", want: "NodesStatsClusterNodes"},
 		{name: "cluster stats indices", schemaKey: "cluster.stats___ClusterIndices", want: "ClusterStatsClusterIndices"},
-		{name: "group._common", schemaKey: "nodes._common___NodesResponseBase", want: "NodesResponseBase"},
+		{name: "group._common", schemaKey: "nodes._common___NodesResponseBase", want: "NodesRespBase"},
 		{name: "group._common cluster", schemaKey: "cluster._common___ComponentTemplate", want: "ClusterComponentTemplate"},
 		{name: "acronyms", schemaKey: "security._common___SSLInfo", want: "SecuritySSLInfo"},
 		{name: "sql plugin", schemaKey: "sql._common___SQLQuery", want: "SQLQuery"},
 		{name: "de-stutter empty result kept", schemaKey: "cluster.health___Health", want: "ClusterHealthHealth"},
+
+		// Idiomatic abbreviations: M-prefix initialisms, compound nouns,
+		// and the Response -> Resp shortening. Match at PascalCase
+		// boundaries only -- "Responses" (lowercase 's') stays intact.
+		{name: "msearch initialism", schemaKey: "_core.msearch___RequestItem", want: "MSearchRequestItem"},
+		{name: "msearch within name", schemaKey: "_common___MsearchMultiSearchItem", want: "MSearchMultiSearchItem"},
+		{name: "mget initialism", schemaKey: "_core.mget___Operation", want: "MGetOperation"},
+		{name: "mtermvectors initialism + compound", schemaKey: "_core.mtermvectors___Operation", want: "MTermVectorsOperation"},
+		{name: "termvectors compound", schemaKey: "_common___TermvectorsTerm", want: "TermVectorsTerm"},
+		{name: "forcemerge compound", schemaKey: "indices.forcemerge___Stats", want: "IndicesForceMergeStats"},
+		{name: "Response -> Resp at boundary", schemaKey: "_common___BulkResponseItem", want: "BulkRespItem"},
+		{name: "Response standalone preserved", schemaKey: "_common___ErrorResponse", want: "ErrorResponse"},
+		{
+			name:      "Responses (plural) preserved",
+			schemaKey: "_common___MsearchMultiSearchResultResponsesItem",
+			want:      "MSearchMultiSearchResultResponsesItem",
+		},
 	}
 
 	for _, tt := range tests {

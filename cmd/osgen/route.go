@@ -95,6 +95,16 @@ func groupPrefix(group string) string {
 	return ""
 }
 
+// pluginGroupSuffix returns the operation suffix after the plugin prefix
+// (e.g. "ism.add_policy" -> "add_policy"), or the whole group when there
+// is no dot. It is the input to methodNameFromSuffix for plugin methods.
+func pluginGroupSuffix(group string) string {
+	if _, after, ok := strings.Cut(group, "."); ok {
+		return after
+	}
+	return group
+}
+
 // operationFilename returns the base filename (without .gen.go extension) for a
 // generated operation file. The caller appends ".gen.go" or ".gen_test.go".
 //
@@ -307,7 +317,7 @@ func methodNameFromSuffix(suffix string) string {
 	for _, p := range parts {
 		sb.WriteString(titleSegment(p))
 	}
-	return sb.String()
+	return applyIdiomaticAbbreviations(sb.String())
 }
 
 // httpMethodConst converts a method string to the Go net/http constant name.

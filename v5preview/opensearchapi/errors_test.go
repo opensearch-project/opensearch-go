@@ -72,7 +72,7 @@ func TestPartialBulkError(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			items := make([]opensearchapi.BulkResponseItem, tt.failed)
+			items := make([]opensearchapi.BulkRespItem, tt.failed)
 			e := &opensearchapi.PartialBulkError{
 				FailedItems:    items,
 				SucceededCount: tt.succeeded,
@@ -214,7 +214,7 @@ func TestErrorsAs(t *testing.T) {
 	}{
 		{
 			name: "opensearchapi.PartialBulkError unwrapped",
-			err:  &opensearchapi.PartialBulkError{SucceededCount: 5, FailedItems: make([]opensearchapi.BulkResponseItem, 2)},
+			err:  &opensearchapi.PartialBulkError{SucceededCount: 5, FailedItems: make([]opensearchapi.BulkRespItem, 2)},
 			targetNew: func() any {
 				var t *opensearchapi.PartialBulkError
 				return &t
@@ -231,7 +231,7 @@ func TestErrorsAs(t *testing.T) {
 			name: "opensearchapi.PartialBulkError wrapped",
 			err: fmt.Errorf("wrapped: %w", &opensearchapi.PartialBulkError{
 				SucceededCount: 5,
-				FailedItems:    make([]opensearchapi.BulkResponseItem, 2),
+				FailedItems:    make([]opensearchapi.BulkRespItem, 2),
 			}),
 			targetNew: func() any {
 				var t *opensearchapi.PartialBulkError
@@ -276,7 +276,7 @@ func TestErrorsAs(t *testing.T) {
 		},
 		{
 			name: "opensearchapi.PartialFailureError interface",
-			err:  &opensearchapi.PartialBulkError{SucceededCount: 10, FailedItems: make([]opensearchapi.BulkResponseItem, 1)},
+			err:  &opensearchapi.PartialBulkError{SucceededCount: 10, FailedItems: make([]opensearchapi.BulkRespItem, 1)},
 			targetNew: func() any {
 				var t opensearchapi.PartialFailureError
 				return &t
@@ -399,19 +399,19 @@ func TestRequireSuccessRate(t *testing.T) {
 		},
 		{
 			name:      "bulk above threshold",
-			err:       &opensearchapi.PartialBulkError{SucceededCount: 99, FailedItems: make([]opensearchapi.BulkResponseItem, 1)},
+			err:       &opensearchapi.PartialBulkError{SucceededCount: 99, FailedItems: make([]opensearchapi.BulkRespItem, 1)},
 			threshold: 0.99,
 			wantNil:   true,
 		},
 		{
 			name:      "bulk at threshold",
-			err:       &opensearchapi.PartialBulkError{SucceededCount: 95, FailedItems: make([]opensearchapi.BulkResponseItem, 5)},
+			err:       &opensearchapi.PartialBulkError{SucceededCount: 95, FailedItems: make([]opensearchapi.BulkRespItem, 5)},
 			threshold: 0.95,
 			wantNil:   true,
 		},
 		{
 			name:        "bulk below threshold",
-			err:         &opensearchapi.PartialBulkError{SucceededCount: 90, FailedItems: make([]opensearchapi.BulkResponseItem, 10)},
+			err:         &opensearchapi.PartialBulkError{SucceededCount: 90, FailedItems: make([]opensearchapi.BulkRespItem, 10)},
 			threshold:   0.95,
 			wantContain: "90/100",
 			wantWrapped: true,
@@ -443,7 +443,7 @@ func TestRequireSuccessRate(t *testing.T) {
 		{
 			name: "wrapped bulk above threshold",
 			err: fmt.Errorf("context: %w", &opensearchapi.PartialBulkError{
-				SucceededCount: 95, FailedItems: make([]opensearchapi.BulkResponseItem, 5),
+				SucceededCount: 95, FailedItems: make([]opensearchapi.BulkRespItem, 5),
 			}),
 			threshold: 0.95,
 			wantNil:   true,
@@ -451,7 +451,7 @@ func TestRequireSuccessRate(t *testing.T) {
 		{
 			name: "wrapped bulk below threshold",
 			err: fmt.Errorf("context: %w", &opensearchapi.PartialBulkError{
-				SucceededCount: 90, FailedItems: make([]opensearchapi.BulkResponseItem, 10),
+				SucceededCount: 90, FailedItems: make([]opensearchapi.BulkRespItem, 10),
 			}),
 			threshold:   0.99,
 			wantContain: "90/100",

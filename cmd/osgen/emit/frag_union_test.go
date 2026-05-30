@@ -78,10 +78,25 @@ func TestUnionFragment_TryEach(t *testing.T) {
 func TestUnionFragment_Imports(t *testing.T) {
 	t.Parallel()
 
+	// crossPkgRegistry is shared across the cross-pkg cases: the
+	// branch GoType "shared.FieldSort" lives in the core package, so
+	// the registry's CoreImport must be set for hasCrossPkgBranch to
+	// flag it.
+	crossPkgRegistry := ir.NewTypeRegistry("opensearchapi",
+		"github.com/opensearch-project/opensearch-go/v4/opensearchapi")
+	crossPkgRegistry.Register(&ir.Type{
+		Name:      "FieldSort",
+		SchemaRef: "#/test/FieldSort",
+		Scope:     ir.ScopeShared,
+	})
+
 	tests := []struct {
-		name    string
-		types   []*ir.Type
-		wantFmt bool
+		name           string
+		op             *ir.Operation
+		registry       *ir.TypeRegistry
+		types          []*ir.Type
+		wantFmt        bool
+		wantCoreImport bool
 	}{
 		{
 			name:    "strict needs fmt",
@@ -93,26 +108,108 @@ func TestUnionFragment_Imports(t *testing.T) {
 			types:   []*ir.Type{{Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{{TokenClass: ir.TokenObject}}}},
 			wantFmt: true,
 		},
+		{
+			name:    "no types yields no imports",
+			types:   nil,
+			wantFmt: false,
+		},
+		{
+			name:     "plugin op with cross-pkg branch adds core import",
+			op:       &ir.Operation{IsPlugin: true},
+			registry: crossPkgRegistry,
+			types: []*ir.Type{{
+				Name:     "PluginUnion",
+				Kind:     ir.TypeUnion,
+				Branches: []ir.UnionBranch{{Name: "Sort", GoType: "FieldSort"}},
+			}},
+			wantFmt:        true,
+			wantCoreImport: true,
+		},
+		{
+			name:     "plugin op without cross-pkg branch omits core import",
+			op:       &ir.Operation{IsPlugin: true},
+			registry: crossPkgRegistry,
+			types: []*ir.Type{{
+				Name:     "LocalUnion",
+				Kind:     ir.TypeUnion,
+				Branches: []ir.UnionBranch{{Name: "Local", GoType: "LocalOnlyType"}},
+			}},
+			wantFmt:        true,
+			wantCoreImport: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			frag := &emit.UnionFragment{Types: tt.types}
+			frag := &emit.UnionFragment{Op: tt.op, Types: tt.types, Registry: tt.registry}
 			imps := frag.Imports()
 
 			hasFmt := false
 			hasJSON := false
+			hasCore := false
 			for _, imp := range imps {
-				if imp.Path == "fmt" {
+				switch imp.Path {
+				case "fmt":
 					hasFmt = true
-				}
-				if imp.Path == "encoding/json" {
+				case "encoding/json":
 					hasJSON = true
+				case "github.com/opensearch-project/opensearch-go/v4/opensearchapi":
+					hasCore = true
 				}
+			}
+			if len(tt.types) == 0 {
+				require.Empty(t, imps, "no types should yield no imports")
+				return
 			}
 			require.True(t, hasJSON, "all union fragments need encoding/json")
 			require.Equal(t, tt.wantFmt, hasFmt, "fmt import mismatch")
+			require.Equal(t, tt.wantCoreImport, hasCore, "core import mismatch")
+		})
+	}
+}
+
+func TestTokenClassStr(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		tc   ir.TokenClass
+		want string
+	}{
+		{ir.TokenObject, "object"},
+		{ir.TokenArray, "array"},
+		{ir.TokenString, "string"},
+		{ir.TokenNumber, "number"},
+		{ir.TokenBool, "bool"},
+		{ir.TokenClass(99), "unknown"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.want, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.TokenClassStr(tt.tc))
+		})
+	}
+}
+
+func TestQuotedKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		keys []string
+		want string
+	}{
+		{name: "empty slice", keys: nil, want: ""},
+		{name: "single key", keys: []string{"error"}, want: `"error"`},
+		{name: "multiple keys", keys: []string{"index", "type", "id"}, want: `"index", "type", "id"`},
+		{name: "key with embedded quote", keys: []string{`he said "hi"`}, want: `"he said \"hi\""`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.QuotedKeys(tt.keys))
 		})
 	}
 }

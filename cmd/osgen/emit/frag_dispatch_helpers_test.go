@@ -73,8 +73,8 @@ func TestPerOpErrorTypeName(t *testing.T) {
 		want  string
 	}{
 		// Multi-wrapper ops get a per-op error container.
-		{group: errwrap.GroupMSearch, want: "MsearchErrors"},
-		{group: errwrap.GroupMSearchTemplate, want: "MsearchTemplateErrors"},
+		{group: errwrap.GroupMSearch, want: "MSearchErrors"},
+		{group: errwrap.GroupMSearchTemplate, want: "MSearchTemplateErrors"},
 
 		// Single-wrapper / unknown groups get "" -- the dispatch
 		// template emits `nil` as the wrap closure in that case.

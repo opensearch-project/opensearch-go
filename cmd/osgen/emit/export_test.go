@@ -17,33 +17,37 @@ var (
 	// frag_dispatch.go helpers (white-box-style coverage from
 	// _test.go files in the emit package; the test file lives in
 	// emit_test so these names cross the boundary as exports).
-	LookupResponseField  = lookupResponseField
-	ElementTypeHasShards = elementTypeHasShards
-	ApplyHasShards       = applyHasShards
-	ApplyBulkItems       = applyBulkItems
+	LookupResponseField   = lookupResponseField
+	ElementTypeHasShards  = elementTypeHasShards
+	ApplyHasShards        = applyHasShards
+	ApplyBulkItems        = applyBulkItems
 	ApplyMultiSearchItems = applyMultiSearchItems
-	ApplySearchShards    = applySearchShards
-	ShardsIsPointer      = shardsIsPointer
-	WriteOperationConst  = writeOperationConst
-	PerOpErrorTypeName   = perOpErrorTypeName
+	ApplySearchShards     = applySearchShards
+	ShardsIsPointer       = shardsIsPointer
+	WriteOperationConst   = writeOperationConst
+	PerOpErrorTypeName    = perOpErrorTypeName
 
 	// frag_partial_failure.go helper.
 	WrapperMethodName = wrapperMethodName
+
+	// frag_union.go helpers.
+	TokenClassStr = tokenClassStr
+	QuotedKeys    = quotedKeys
 )
 
 // UnionFromResponses returns the resolved union shape for the test
 // caller as three strings (UnionName, Success, ErrorBranch). Returning
 // strings rather than the unexported unionShape avoids leaking the
 // type through export_test.go.
-func UnionFromResponses(resp *ir.Type, reg *ir.TypeRegistry) (unionName, success, errorBranch string) {
+func UnionFromResponses(resp *ir.Type, reg *ir.TypeRegistry) (string, string, string) {
 	u := unionFromResponses(resp, reg)
 	return u.unionName, u.success, u.errorBranch
 }
 
 // ResolveUnionShape mirrors UnionFromResponses for direct calls
 // against a TypeUnion / TypeLazyUnion (skipping the Responses-field
-// indirection).
-func ResolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) (unionName, success, errorBranch string) {
+// indirection). Returns (unionName, success, errorBranch).
+func ResolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) (string, string, string) {
 	u := resolveUnionShape(t, reg)
 	return u.unionName, u.success, u.errorBranch
 }

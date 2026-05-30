@@ -24,7 +24,7 @@ import (
 // independently; results are collapsed per [collapsePerOpErrors]:
 //   - 0 sub-errors: returns nil
 //   - 1 sub-error: returns the sub-error directly
-//   - 2+ sub-errors: returns *MsearchErrors aggregating them
+//   - 2+ sub-errors: returns *MSearchErrors aggregating them
 func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, error) {
 	var (
 		data MSearchResp
@@ -35,7 +35,7 @@ func (c Client) MSearch(ctx context.Context, req MSearchReq) (*MSearchResp, erro
 	}
 
 	return &data, collapsePerOpErrors(data.PartialFailures(c.errors), func(errs []error) error {
-		return &MsearchErrors{errs: errs}
+		return &MSearchErrors{errs: errs}
 	})
 }
 

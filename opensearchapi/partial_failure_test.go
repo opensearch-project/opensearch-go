@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
 )
@@ -421,7 +421,7 @@ func TestMSearchPerItemError(t *testing.T) {
 //
 // When BOTH SearchShards aggregation and MultiSearchItems detection fire
 // on the same response, the dispatch wraps both sub-errors in
-// *MsearchErrors / *MsearchTemplateErrors. Single-sub-error responses
+// *MSearchErrors / *MSearchTemplateErrors. Single-sub-error responses
 // return the bare sub-error (no wrapper). Caller errors.As against
 // either the per-op type or a concrete sub-error works in both cases.
 // ---------------------------------------------------------------------------
@@ -444,14 +444,14 @@ func TestMSearchMultiErrorCollapse(t *testing.T) {
 	cases := []struct {
 		name              string
 		mask              errmask.ErrorMask
-		wantPerOpWrap     bool // true expects *MsearchErrors wrap
+		wantPerOpWrap     bool // true expects *MSearchErrors wrap
 		wantPartialSearch bool // true expects PartialSearchError reachable via errors.As
 		wantMultiItem     bool // true expects MultiSearchItemError reachable via errors.As
 		wantNilErr        bool
-		wantUnwrapLen     int // expected len(MsearchErrors.Unwrap()); 0 means N/A
+		wantUnwrapLen     int // expected len(MSearchErrors.Unwrap()); 0 means N/A
 	}{
 		{
-			name:              "both fire -> wrapped in MsearchErrors",
+			name:              "both fire -> wrapped in MSearchErrors",
 			mask:              errmask.Empty,
 			wantPerOpWrap:     true,
 			wantPartialSearch: true,
@@ -493,7 +493,7 @@ func TestMSearchMultiErrorCollapse(t *testing.T) {
 			}
 			require.Error(t, err)
 
-			var mErrs *opensearchapi.MsearchErrors
+			var mErrs *opensearchapi.MSearchErrors
 			gotPerOp := errors.As(err, &mErrs)
 			require.Equal(t, tc.wantPerOpWrap, gotPerOp,
 				"per-op wrap presence: got %v want %v (err type %T)", gotPerOp, tc.wantPerOpWrap, err)
