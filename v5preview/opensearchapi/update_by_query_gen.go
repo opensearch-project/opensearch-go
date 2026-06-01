@@ -428,7 +428,7 @@ type UpdateByQueryRespBodyObject1 struct {
 	Task *string `json:"task,omitempty"`
 }
 
-// UpdateByQueryRespBody is a discriminated union type (try-each, newest version first).
+// UpdateByQueryRespBody is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type UpdateByQueryRespBody struct {
@@ -450,7 +450,9 @@ const (
 // Returns UpdateByQueryRespBodyUnknownType if the value has not been decoded.
 func (u *UpdateByQueryRespBody) Type() UpdateByQueryRespBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *UpdateByQueryRespBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -465,8 +467,11 @@ func (u *UpdateByQueryRespBody) SetRaw(raw json.RawMessage) {
 
 // BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
 func (u *UpdateByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
-	v, _ := u.value.(BulkByScrollRespBase)
-	return v
+	if v, ok := u.value.(*BulkByScrollRespBase); ok {
+		return *v
+	}
+	var zero BulkByScrollRespBase
+	return zero
 }
 
 // NewUpdateByQueryRespBodyFromBulkByScrollRespBase returns a UpdateByQueryRespBody populated with v
@@ -474,14 +479,17 @@ func (u *UpdateByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
 func NewUpdateByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) UpdateByQueryRespBody {
 	return UpdateByQueryRespBody{
 		typ:   UpdateByQueryRespBodyBulkByScrollRespBaseType,
-		value: v,
+		value: &v,
 	}
 }
 
 // UpdateByQueryRespBodyObject1 returns the UpdateByQueryRespBodyObject1 branch value.
 func (u *UpdateByQueryRespBody) UpdateByQueryRespBodyObject1() UpdateByQueryRespBodyObject1 {
-	v, _ := u.value.(UpdateByQueryRespBodyObject1)
-	return v
+	if v, ok := u.value.(*UpdateByQueryRespBodyObject1); ok {
+		return *v
+	}
+	var zero UpdateByQueryRespBodyObject1
+	return zero
 }
 
 // NewUpdateByQueryRespBodyFromUpdateByQueryRespBodyObject1 returns a UpdateByQueryRespBody populated with v
@@ -489,38 +497,40 @@ func (u *UpdateByQueryRespBody) UpdateByQueryRespBodyObject1() UpdateByQueryResp
 func NewUpdateByQueryRespBodyFromUpdateByQueryRespBodyObject1(v UpdateByQueryRespBodyObject1) UpdateByQueryRespBody {
 	return UpdateByQueryRespBody{
 		typ:   UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *UpdateByQueryRespBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = UpdateByQueryRespBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		UpdateByQueryRespBodyObject1
+		Disc0 json.RawMessage `json:"batches"`
+	}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	if len(m.Disc0) > 0 {
 		var v BulkByScrollRespBase
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = UpdateByQueryRespBodyBulkByScrollRespBaseType
-			u.value = v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = UpdateByQueryRespBodyBulkByScrollRespBaseType
+		u.value = &v
+		return nil
 	}
-	{
-		var v UpdateByQueryRespBodyObject1
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type
-			u.value = v
-			return nil
-		}
-	}
-	return fmt.Errorf("UpdateByQueryRespBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	u.typ = UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type
+	u.value = &m.UpdateByQueryRespBodyObject1
+	return nil
 }
 
 func (u UpdateByQueryRespBody) MarshalJSON() ([]byte, error) {
@@ -571,7 +581,9 @@ const (
 // Returns UpdateByQueryBodyScriptUnknownType if the value has not been decoded.
 func (u *UpdateByQueryBodyScript) Type() UpdateByQueryBodyScriptType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *UpdateByQueryBodyScript) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -586,8 +598,11 @@ func (u *UpdateByQueryBodyScript) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *UpdateByQueryBodyScript) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewUpdateByQueryBodyScriptFromString returns a UpdateByQueryBodyScript populated with v
@@ -595,14 +610,17 @@ func (u *UpdateByQueryBodyScript) String() string {
 func NewUpdateByQueryBodyScriptFromString(v string) UpdateByQueryBodyScript {
 	return UpdateByQueryBodyScript{
 		typ:   UpdateByQueryBodyScriptStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Stored returns the StoredScriptId branch value.
 func (u *UpdateByQueryBodyScript) Stored() StoredScriptId {
-	v, _ := u.value.(StoredScriptId)
-	return v
+	if v, ok := u.value.(*StoredScriptId); ok {
+		return *v
+	}
+	var zero StoredScriptId
+	return zero
 }
 
 // NewUpdateByQueryBodyScriptFromStored returns a UpdateByQueryBodyScript populated with v
@@ -610,12 +628,14 @@ func (u *UpdateByQueryBodyScript) Stored() StoredScriptId {
 func NewUpdateByQueryBodyScriptFromStored(v StoredScriptId) UpdateByQueryBodyScript {
 	return UpdateByQueryBodyScript{
 		typ:   UpdateByQueryBodyScriptStoredType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *UpdateByQueryBodyScript) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = UpdateByQueryBodyScriptUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -626,14 +646,14 @@ func (u *UpdateByQueryBodyScript) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = UpdateByQueryBodyScriptStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v StoredScriptId
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = UpdateByQueryBodyScriptStoredType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("UpdateByQueryBodyScript: unexpected JSON token: %s", data[:1])
 	}

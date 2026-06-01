@@ -205,7 +205,9 @@ func (u *IndicesPutTemplateBodyIndexPatterns) Type() IndicesPutTemplateBodyIndex
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IndicesPutTemplateBodyIndexPatterns) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -220,8 +222,11 @@ func (u *IndicesPutTemplateBodyIndexPatterns) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *IndicesPutTemplateBodyIndexPatterns) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewIndicesPutTemplateBodyIndexPatternsFromString returns a IndicesPutTemplateBodyIndexPatterns populated with v
@@ -229,14 +234,17 @@ func (u *IndicesPutTemplateBodyIndexPatterns) String() string {
 func NewIndicesPutTemplateBodyIndexPatternsFromString(v string) IndicesPutTemplateBodyIndexPatterns {
 	return IndicesPutTemplateBodyIndexPatterns{
 		typ:   IndicesPutTemplateBodyIndexPatternsStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
 func (u *IndicesPutTemplateBodyIndexPatterns) Array() []string {
-	v, _ := u.value.([]string)
-	return v
+	if v, ok := u.value.(*[]string); ok {
+		return *v
+	}
+	var zero []string
+	return zero
 }
 
 // NewIndicesPutTemplateBodyIndexPatternsFromArray returns a IndicesPutTemplateBodyIndexPatterns populated with v
@@ -244,12 +252,14 @@ func (u *IndicesPutTemplateBodyIndexPatterns) Array() []string {
 func NewIndicesPutTemplateBodyIndexPatternsFromArray(v []string) IndicesPutTemplateBodyIndexPatterns {
 	return IndicesPutTemplateBodyIndexPatterns{
 		typ:   IndicesPutTemplateBodyIndexPatternsArrayType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *IndicesPutTemplateBodyIndexPatterns) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesPutTemplateBodyIndexPatternsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -260,14 +270,14 @@ func (u *IndicesPutTemplateBodyIndexPatterns) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = IndicesPutTemplateBodyIndexPatternsStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = IndicesPutTemplateBodyIndexPatternsArrayType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("IndicesPutTemplateBodyIndexPatterns: unexpected JSON token: %s", data[:1])
 	}

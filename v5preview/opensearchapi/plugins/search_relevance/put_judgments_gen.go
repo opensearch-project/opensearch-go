@@ -130,7 +130,9 @@ const (
 // Returns SearchRelevancePutJudgmentsBodyUnknownType if the value has not been decoded.
 func (u *SearchRelevancePutJudgmentsBody) Type() SearchRelevancePutJudgmentsBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchRelevancePutJudgmentsBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -145,8 +147,11 @@ func (u *SearchRelevancePutJudgmentsBody) SetRaw(raw json.RawMessage) {
 
 // SearchRelevancePutLLMJudgmentsRequest returns the opensearchapi.SearchRelevancePutLLMJudgmentsRequest branch value.
 func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutLLMJudgmentsRequest() opensearchapi.SearchRelevancePutLLMJudgmentsRequest {
-	v, _ := u.value.(opensearchapi.SearchRelevancePutLLMJudgmentsRequest)
-	return v
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutLLMJudgmentsRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest
+	return zero
 }
 
 // NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
@@ -154,14 +159,17 @@ func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutLLMJudgmentsRequest(
 func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest(v opensearchapi.SearchRelevancePutLLMJudgmentsRequest) SearchRelevancePutJudgmentsBody {
 	return SearchRelevancePutJudgmentsBody{
 		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchRelevancePutUBIJudgmentsRequest returns the opensearchapi.SearchRelevancePutUBIJudgmentsRequest branch value.
 func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutUBIJudgmentsRequest() opensearchapi.SearchRelevancePutUBIJudgmentsRequest {
-	v, _ := u.value.(opensearchapi.SearchRelevancePutUBIJudgmentsRequest)
-	return v
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutUBIJudgmentsRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest
+	return zero
 }
 
 // NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
@@ -169,14 +177,17 @@ func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutUBIJudgmentsRequest(
 func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest(v opensearchapi.SearchRelevancePutUBIJudgmentsRequest) SearchRelevancePutJudgmentsBody {
 	return SearchRelevancePutJudgmentsBody{
 		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchRelevancePutImportJudgmentsRequest returns the opensearchapi.SearchRelevancePutImportJudgmentsRequest branch value.
 func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutImportJudgmentsRequest() opensearchapi.SearchRelevancePutImportJudgmentsRequest {
-	v, _ := u.value.(opensearchapi.SearchRelevancePutImportJudgmentsRequest)
-	return v
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutImportJudgmentsRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutImportJudgmentsRequest
+	return zero
 }
 
 // NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
@@ -184,12 +195,14 @@ func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutImportJudgmentsReque
 func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest(v opensearchapi.SearchRelevancePutImportJudgmentsRequest) SearchRelevancePutJudgmentsBody {
 	return SearchRelevancePutJudgmentsBody{
 		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchRelevancePutJudgmentsBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -203,7 +216,7 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SearchRelevancePutLLMJudgmentsRequest
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -211,7 +224,7 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SearchRelevancePutUBIJudgmentsRequest
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -219,7 +232,7 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SearchRelevancePutImportJudgmentsRequest
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}

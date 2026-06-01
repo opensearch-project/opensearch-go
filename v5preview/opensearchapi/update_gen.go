@@ -19,8 +19,8 @@ import (
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -297,7 +297,9 @@ const (
 // Returns UpdateBodySourceUnknownType if the value has not been decoded.
 func (u *UpdateBodySource) Type() UpdateBodySourceType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *UpdateBodySource) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -312,8 +314,11 @@ func (u *UpdateBodySource) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *UpdateBodySource) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewUpdateBodySourceFromString returns a UpdateBodySource populated with v
@@ -321,14 +326,17 @@ func (u *UpdateBodySource) String() string {
 func NewUpdateBodySourceFromString(v string) UpdateBodySource {
 	return UpdateBodySource{
 		typ:   UpdateBodySourceStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // UpdateBodySourceObject1 returns the UpdateBodySourceObject1 branch value.
 func (u *UpdateBodySource) UpdateBodySourceObject1() UpdateBodySourceObject1 {
-	v, _ := u.value.(UpdateBodySourceObject1)
-	return v
+	if v, ok := u.value.(*UpdateBodySourceObject1); ok {
+		return *v
+	}
+	var zero UpdateBodySourceObject1
+	return zero
 }
 
 // NewUpdateBodySourceFromUpdateBodySourceObject1 returns a UpdateBodySource populated with v
@@ -336,12 +344,14 @@ func (u *UpdateBodySource) UpdateBodySourceObject1() UpdateBodySourceObject1 {
 func NewUpdateBodySourceFromUpdateBodySourceObject1(v UpdateBodySourceObject1) UpdateBodySource {
 	return UpdateBodySource{
 		typ:   UpdateBodySourceUpdateBodySourceObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *UpdateBodySource) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = UpdateBodySourceUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -352,14 +362,14 @@ func (u *UpdateBodySource) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = UpdateBodySourceStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v UpdateBodySourceObject1
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = UpdateBodySourceUpdateBodySourceObject1Type
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("UpdateBodySource: unexpected JSON token: %s", data[:1])
 	}
@@ -398,7 +408,9 @@ const (
 // Returns UpdateBodyScriptUnknownType if the value has not been decoded.
 func (u *UpdateBodyScript) Type() UpdateBodyScriptType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *UpdateBodyScript) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -413,8 +425,11 @@ func (u *UpdateBodyScript) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *UpdateBodyScript) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewUpdateBodyScriptFromString returns a UpdateBodyScript populated with v
@@ -422,14 +437,17 @@ func (u *UpdateBodyScript) String() string {
 func NewUpdateBodyScriptFromString(v string) UpdateBodyScript {
 	return UpdateBodyScript{
 		typ:   UpdateBodyScriptStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Stored returns the StoredScriptId branch value.
 func (u *UpdateBodyScript) Stored() StoredScriptId {
-	v, _ := u.value.(StoredScriptId)
-	return v
+	if v, ok := u.value.(*StoredScriptId); ok {
+		return *v
+	}
+	var zero StoredScriptId
+	return zero
 }
 
 // NewUpdateBodyScriptFromStored returns a UpdateBodyScript populated with v
@@ -437,12 +455,14 @@ func (u *UpdateBodyScript) Stored() StoredScriptId {
 func NewUpdateBodyScriptFromStored(v StoredScriptId) UpdateBodyScript {
 	return UpdateBodyScript{
 		typ:   UpdateBodyScriptStoredType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *UpdateBodyScript) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = UpdateBodyScriptUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -453,14 +473,14 @@ func (u *UpdateBodyScript) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = UpdateBodyScriptStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v StoredScriptId
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = UpdateBodyScriptStoredType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("UpdateBodyScript: unexpected JSON token: %s", data[:1])
 	}

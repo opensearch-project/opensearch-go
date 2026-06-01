@@ -133,7 +133,9 @@ func (u *SearchRelevancePutExperimentsBody) Type() SearchRelevancePutExperiments
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchRelevancePutExperimentsBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -148,8 +150,11 @@ func (u *SearchRelevancePutExperimentsBody) SetRaw(raw json.RawMessage) {
 
 // SearchRelevancePutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value.
 func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExperimentRequest() opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest {
-	v, _ := u.value.(opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest)
-	return v
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
+	return zero
 }
 
 // NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
@@ -157,14 +162,17 @@ func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExp
 func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest(v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody {
 	return SearchRelevancePutExperimentsBody{
 		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchRelevancePutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value.
 func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimentRequest() opensearchapi.SearchRelevancePutPointwiseExperimentRequest {
-	v, _ := u.value.(opensearchapi.SearchRelevancePutPointwiseExperimentRequest)
-	return v
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPointwiseExperimentRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutPointwiseExperimentRequest
+	return zero
 }
 
 // NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
@@ -172,14 +180,17 @@ func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimen
 func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest(v opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody {
 	return SearchRelevancePutExperimentsBody{
 		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchRelevancePutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value.
 func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperimentRequest() opensearchapi.SearchRelevancePutPairwiseExperimentRequest {
-	v, _ := u.value.(opensearchapi.SearchRelevancePutPairwiseExperimentRequest)
-	return v
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPairwiseExperimentRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutPairwiseExperimentRequest
+	return zero
 }
 
 // NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
@@ -187,12 +198,14 @@ func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperiment
 func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest(v opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody {
 	return SearchRelevancePutExperimentsBody{
 		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchRelevancePutExperimentsBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -206,7 +219,7 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -214,7 +227,7 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SearchRelevancePutPointwiseExperimentRequest
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -222,7 +235,7 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SearchRelevancePutPairwiseExperimentRequest
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}

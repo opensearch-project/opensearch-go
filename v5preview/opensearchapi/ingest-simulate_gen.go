@@ -216,7 +216,9 @@ func (u *IngestSimulateDocumentSimulationVersion) Type() IngestSimulateDocumentS
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IngestSimulateDocumentSimulationVersion) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -231,8 +233,11 @@ func (u *IngestSimulateDocumentSimulationVersion) SetRaw(raw json.RawMessage) {
 
 // Int64 returns the int64 branch value.
 func (u *IngestSimulateDocumentSimulationVersion) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
 }
 
 // NewIngestSimulateDocumentSimulationVersionFromInt64 returns a IngestSimulateDocumentSimulationVersion populated with v
@@ -240,14 +245,17 @@ func (u *IngestSimulateDocumentSimulationVersion) Int64() int64 {
 func NewIngestSimulateDocumentSimulationVersionFromInt64(v int64) IngestSimulateDocumentSimulationVersion {
 	return IngestSimulateDocumentSimulationVersion{
 		typ:   IngestSimulateDocumentSimulationVersionInt64Type,
-		value: v,
+		value: &v,
 	}
 }
 
 // String returns the string branch value.
 func (u *IngestSimulateDocumentSimulationVersion) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewIngestSimulateDocumentSimulationVersionFromString returns a IngestSimulateDocumentSimulationVersion populated with v
@@ -255,12 +263,14 @@ func (u *IngestSimulateDocumentSimulationVersion) String() string {
 func NewIngestSimulateDocumentSimulationVersionFromString(v string) IngestSimulateDocumentSimulationVersion {
 	return IngestSimulateDocumentSimulationVersion{
 		typ:   IngestSimulateDocumentSimulationVersionStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *IngestSimulateDocumentSimulationVersion) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = IngestSimulateDocumentSimulationVersionUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -271,14 +281,14 @@ func (u *IngestSimulateDocumentSimulationVersion) UnmarshalJSON(data []byte) err
 			return err
 		}
 		u.typ = IngestSimulateDocumentSimulationVersionInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = IngestSimulateDocumentSimulationVersionStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("IngestSimulateDocumentSimulationVersion: unexpected JSON token: %s", data[:1])
 	}

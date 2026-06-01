@@ -19,8 +19,8 @@ import (
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -257,7 +257,9 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) Type() IndicesSegmentsIndexSegm
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IndicesSegmentsIndexSegmentShardsValue) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -272,8 +274,11 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) SetRaw(raw json.RawMessage) {
 
 // Array returns the []IndicesSegmentsShardsSegment branch value.
 func (u *IndicesSegmentsIndexSegmentShardsValue) Array() []IndicesSegmentsShardsSegment {
-	v, _ := u.value.([]IndicesSegmentsShardsSegment)
-	return v
+	if v, ok := u.value.(*[]IndicesSegmentsShardsSegment); ok {
+		return *v
+	}
+	var zero []IndicesSegmentsShardsSegment
+	return zero
 }
 
 // NewIndicesSegmentsIndexSegmentShardsValueFromArray returns a IndicesSegmentsIndexSegmentShardsValue populated with v
@@ -281,14 +286,17 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) Array() []IndicesSegmentsShards
 func NewIndicesSegmentsIndexSegmentShardsValueFromArray(v []IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
 	return IndicesSegmentsIndexSegmentShardsValue{
 		typ:   IndicesSegmentsIndexSegmentShardsValueArrayType,
-		value: v,
+		value: &v,
 	}
 }
 
 // IndicesSegmentsShardsSegment returns the IndicesSegmentsShardsSegment branch value.
 func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() IndicesSegmentsShardsSegment {
-	v, _ := u.value.(IndicesSegmentsShardsSegment)
-	return v
+	if v, ok := u.value.(*IndicesSegmentsShardsSegment); ok {
+		return *v
+	}
+	var zero IndicesSegmentsShardsSegment
+	return zero
 }
 
 // NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
@@ -296,12 +304,14 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() 
 func NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
 	return IndicesSegmentsIndexSegmentShardsValue{
 		typ:   IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesSegmentsIndexSegmentShardsValueUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -312,14 +322,14 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) erro
 			return err
 		}
 		u.typ = IndicesSegmentsIndexSegmentShardsValueArrayType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v IndicesSegmentsShardsSegment
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("IndicesSegmentsIndexSegmentShardsValue: unexpected JSON token: %s", data[:1])
 	}

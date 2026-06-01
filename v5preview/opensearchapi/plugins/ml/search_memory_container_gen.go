@@ -166,7 +166,9 @@ const (
 // Returns MlSearchMemoryContainerBodySortUnknownType if the value has not been decoded.
 func (u *MlSearchMemoryContainerBodySort) Type() MlSearchMemoryContainerBodySortType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *MlSearchMemoryContainerBodySort) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -181,8 +183,11 @@ func (u *MlSearchMemoryContainerBodySort) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *MlSearchMemoryContainerBodySort) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewMlSearchMemoryContainerBodySortFromString returns a MlSearchMemoryContainerBodySort populated with v
@@ -190,14 +195,17 @@ func (u *MlSearchMemoryContainerBodySort) String() string {
 func NewMlSearchMemoryContainerBodySortFromString(v string) MlSearchMemoryContainerBodySort {
 	return MlSearchMemoryContainerBodySort{
 		typ:   MlSearchMemoryContainerBodySortStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // StringMap returns the map[string]string branch value.
 func (u *MlSearchMemoryContainerBodySort) StringMap() map[string]string {
-	v, _ := u.value.(map[string]string)
-	return v
+	if v, ok := u.value.(*map[string]string); ok {
+		return *v
+	}
+	var zero map[string]string
+	return zero
 }
 
 // NewMlSearchMemoryContainerBodySortFromStringMap returns a MlSearchMemoryContainerBodySort populated with v
@@ -205,14 +213,17 @@ func (u *MlSearchMemoryContainerBodySort) StringMap() map[string]string {
 func NewMlSearchMemoryContainerBodySortFromStringMap(v map[string]string) MlSearchMemoryContainerBodySort {
 	return MlSearchMemoryContainerBodySort{
 		typ:   MlSearchMemoryContainerBodySortStringMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // FieldSortMap returns the map[string]opensearchapi.FieldSort branch value.
 func (u *MlSearchMemoryContainerBodySort) FieldSortMap() map[string]opensearchapi.FieldSort {
-	v, _ := u.value.(map[string]opensearchapi.FieldSort)
-	return v
+	if v, ok := u.value.(*map[string]opensearchapi.FieldSort); ok {
+		return *v
+	}
+	var zero map[string]opensearchapi.FieldSort
+	return zero
 }
 
 // NewMlSearchMemoryContainerBodySortFromFieldSortMap returns a MlSearchMemoryContainerBodySort populated with v
@@ -220,14 +231,17 @@ func (u *MlSearchMemoryContainerBodySort) FieldSortMap() map[string]opensearchap
 func NewMlSearchMemoryContainerBodySortFromFieldSortMap(v map[string]opensearchapi.FieldSort) MlSearchMemoryContainerBodySort {
 	return MlSearchMemoryContainerBodySort{
 		typ:   MlSearchMemoryContainerBodySortFieldSortMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Options returns the opensearchapi.SortOptions branch value.
 func (u *MlSearchMemoryContainerBodySort) Options() opensearchapi.SortOptions {
-	v, _ := u.value.(opensearchapi.SortOptions)
-	return v
+	if v, ok := u.value.(*opensearchapi.SortOptions); ok {
+		return *v
+	}
+	var zero opensearchapi.SortOptions
+	return zero
 }
 
 // NewMlSearchMemoryContainerBodySortFromOptions returns a MlSearchMemoryContainerBodySort populated with v
@@ -235,12 +249,14 @@ func (u *MlSearchMemoryContainerBodySort) Options() opensearchapi.SortOptions {
 func NewMlSearchMemoryContainerBodySortFromOptions(v opensearchapi.SortOptions) MlSearchMemoryContainerBodySort {
 	return MlSearchMemoryContainerBodySort{
 		typ:   MlSearchMemoryContainerBodySortOptionsType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *MlSearchMemoryContainerBodySort) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = MlSearchMemoryContainerBodySortUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -254,7 +270,7 @@ func (u *MlSearchMemoryContainerBodySort) UnmarshalJSON(data []byte) error {
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = MlSearchMemoryContainerBodySortStringType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -262,7 +278,7 @@ func (u *MlSearchMemoryContainerBodySort) UnmarshalJSON(data []byte) error {
 		var v map[string]string
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = MlSearchMemoryContainerBodySortStringMapType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -270,7 +286,7 @@ func (u *MlSearchMemoryContainerBodySort) UnmarshalJSON(data []byte) error {
 		var v map[string]opensearchapi.FieldSort
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = MlSearchMemoryContainerBodySortFieldSortMapType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -278,7 +294,7 @@ func (u *MlSearchMemoryContainerBodySort) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SortOptions
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = MlSearchMemoryContainerBodySortOptionsType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}

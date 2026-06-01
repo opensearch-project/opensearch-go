@@ -12,14 +12,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -213,7 +212,7 @@ type MSearchMultiSearchItem struct {
 	Status *float64 `json:"status,omitempty"`
 }
 
-// MSearchMultiSearchResultResponsesItem is a discriminated union type (try-each, newest version first).
+// MSearchMultiSearchResultResponsesItem is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type MSearchMultiSearchResultResponsesItem struct {
@@ -237,7 +236,9 @@ func (u *MSearchMultiSearchResultResponsesItem) Type() MSearchMultiSearchResultR
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *MSearchMultiSearchResultResponsesItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -252,8 +253,11 @@ func (u *MSearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
 
 // MSearchMultiSearchItem returns the MSearchMultiSearchItem branch value.
 func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() MSearchMultiSearchItem {
-	v, _ := u.value.(MSearchMultiSearchItem)
-	return v
+	if v, ok := u.value.(*MSearchMultiSearchItem); ok {
+		return *v
+	}
+	var zero MSearchMultiSearchItem
+	return zero
 }
 
 // NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem returns a MSearchMultiSearchResultResponsesItem populated with v
@@ -261,14 +265,17 @@ func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() MSearch
 func NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(v MSearchMultiSearchItem) MSearchMultiSearchResultResponsesItem {
 	return MSearchMultiSearchResultResponsesItem{
 		typ:   MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType,
-		value: v,
+		value: &v,
 	}
 }
 
 // ErrorRespBase returns the ErrorRespBase branch value.
 func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() ErrorRespBase {
-	v, _ := u.value.(ErrorRespBase)
-	return v
+	if v, ok := u.value.(*ErrorRespBase); ok {
+		return *v
+	}
+	var zero ErrorRespBase
+	return zero
 }
 
 // NewMSearchMultiSearchResultResponsesItemFromErrorRespBase returns a MSearchMultiSearchResultResponsesItem populated with v
@@ -276,38 +283,40 @@ func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() ErrorRespBase {
 func NewMSearchMultiSearchResultResponsesItemFromErrorRespBase(v ErrorRespBase) MSearchMultiSearchResultResponsesItem {
 	return MSearchMultiSearchResultResponsesItem{
 		typ:   MSearchMultiSearchResultResponsesItemErrorRespBaseType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *MSearchMultiSearchResultResponsesItem) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = MSearchMultiSearchResultResponsesItemUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	if build.HasJSONKeys(data, "error", "status") {
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		MSearchMultiSearchItem
+		Disc0 json.RawMessage `json:"error"`
+	}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	if len(m.Disc0) > 0 {
 		var v ErrorRespBase
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MSearchMultiSearchResultResponsesItemErrorRespBaseType
-			u.value = v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = MSearchMultiSearchResultResponsesItemErrorRespBaseType
+		u.value = &v
+		return nil
 	}
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v MSearchMultiSearchItem
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType
-			u.value = v
-			return nil
-		}
-	}
-	return fmt.Errorf("MSearchMultiSearchResultResponsesItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	u.typ = MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType
+	u.value = &m.MSearchMultiSearchItem
+	return nil
 }
 
 func (u MSearchMultiSearchResultResponsesItem) MarshalJSON() ([]byte, error) {

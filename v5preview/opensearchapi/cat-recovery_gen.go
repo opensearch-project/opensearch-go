@@ -289,7 +289,9 @@ const (
 // Returns CatRecoveryRecordStartTimeMillisUnknownType if the value has not been decoded.
 func (u *CatRecoveryRecordStartTimeMillis) Type() CatRecoveryRecordStartTimeMillisType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *CatRecoveryRecordStartTimeMillis) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -304,8 +306,11 @@ func (u *CatRecoveryRecordStartTimeMillis) SetRaw(raw json.RawMessage) {
 
 // Int64 returns the int64 branch value.
 func (u *CatRecoveryRecordStartTimeMillis) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
 }
 
 // NewCatRecoveryRecordStartTimeMillisFromInt64 returns a CatRecoveryRecordStartTimeMillis populated with v
@@ -313,14 +318,17 @@ func (u *CatRecoveryRecordStartTimeMillis) Int64() int64 {
 func NewCatRecoveryRecordStartTimeMillisFromInt64(v int64) CatRecoveryRecordStartTimeMillis {
 	return CatRecoveryRecordStartTimeMillis{
 		typ:   CatRecoveryRecordStartTimeMillisInt64Type,
-		value: v,
+		value: &v,
 	}
 }
 
 // String returns the string branch value.
 func (u *CatRecoveryRecordStartTimeMillis) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewCatRecoveryRecordStartTimeMillisFromString returns a CatRecoveryRecordStartTimeMillis populated with v
@@ -328,12 +336,14 @@ func (u *CatRecoveryRecordStartTimeMillis) String() string {
 func NewCatRecoveryRecordStartTimeMillisFromString(v string) CatRecoveryRecordStartTimeMillis {
 	return CatRecoveryRecordStartTimeMillis{
 		typ:   CatRecoveryRecordStartTimeMillisStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *CatRecoveryRecordStartTimeMillis) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = CatRecoveryRecordStartTimeMillisUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -344,14 +354,14 @@ func (u *CatRecoveryRecordStartTimeMillis) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = CatRecoveryRecordStartTimeMillisInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = CatRecoveryRecordStartTimeMillisStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("CatRecoveryRecordStartTimeMillis: unexpected JSON token: %s", data[:1])
 	}
@@ -394,7 +404,9 @@ const (
 // Returns CatRecoveryRecordStopTimeMillisUnknownType if the value has not been decoded.
 func (u *CatRecoveryRecordStopTimeMillis) Type() CatRecoveryRecordStopTimeMillisType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *CatRecoveryRecordStopTimeMillis) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -409,8 +421,11 @@ func (u *CatRecoveryRecordStopTimeMillis) SetRaw(raw json.RawMessage) {
 
 // Int64 returns the int64 branch value.
 func (u *CatRecoveryRecordStopTimeMillis) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
 }
 
 // NewCatRecoveryRecordStopTimeMillisFromInt64 returns a CatRecoveryRecordStopTimeMillis populated with v
@@ -418,14 +433,17 @@ func (u *CatRecoveryRecordStopTimeMillis) Int64() int64 {
 func NewCatRecoveryRecordStopTimeMillisFromInt64(v int64) CatRecoveryRecordStopTimeMillis {
 	return CatRecoveryRecordStopTimeMillis{
 		typ:   CatRecoveryRecordStopTimeMillisInt64Type,
-		value: v,
+		value: &v,
 	}
 }
 
 // String returns the string branch value.
 func (u *CatRecoveryRecordStopTimeMillis) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewCatRecoveryRecordStopTimeMillisFromString returns a CatRecoveryRecordStopTimeMillis populated with v
@@ -433,12 +451,14 @@ func (u *CatRecoveryRecordStopTimeMillis) String() string {
 func NewCatRecoveryRecordStopTimeMillisFromString(v string) CatRecoveryRecordStopTimeMillis {
 	return CatRecoveryRecordStopTimeMillis{
 		typ:   CatRecoveryRecordStopTimeMillisStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *CatRecoveryRecordStopTimeMillis) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = CatRecoveryRecordStopTimeMillisUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -449,14 +469,14 @@ func (u *CatRecoveryRecordStopTimeMillis) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = CatRecoveryRecordStopTimeMillisInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = CatRecoveryRecordStopTimeMillisStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("CatRecoveryRecordStopTimeMillis: unexpected JSON token: %s", data[:1])
 	}

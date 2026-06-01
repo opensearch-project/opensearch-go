@@ -217,7 +217,7 @@ type MGetMultiGetError struct {
 	Error ErrorCause `json:"error"`
 }
 
-// MGetRespBodyDocsItem is a discriminated union type (try-each, newest version first).
+// MGetRespBodyDocsItem is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type MGetRespBodyDocsItem struct {
@@ -239,7 +239,9 @@ const (
 // Returns MGetRespBodyDocsItemUnknownType if the value has not been decoded.
 func (u *MGetRespBodyDocsItem) Type() MGetRespBodyDocsItemType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *MGetRespBodyDocsItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -254,8 +256,11 @@ func (u *MGetRespBodyDocsItem) SetRaw(raw json.RawMessage) {
 
 // GetResult returns the GetResult branch value.
 func (u *MGetRespBodyDocsItem) GetResult() GetResult {
-	v, _ := u.value.(GetResult)
-	return v
+	if v, ok := u.value.(*GetResult); ok {
+		return *v
+	}
+	var zero GetResult
+	return zero
 }
 
 // NewMGetRespBodyDocsItemFromGetResult returns a MGetRespBodyDocsItem populated with v
@@ -263,14 +268,17 @@ func (u *MGetRespBodyDocsItem) GetResult() GetResult {
 func NewMGetRespBodyDocsItemFromGetResult(v GetResult) MGetRespBodyDocsItem {
 	return MGetRespBodyDocsItem{
 		typ:   MGetRespBodyDocsItemGetResultType,
-		value: v,
+		value: &v,
 	}
 }
 
 // MGetMultiGetError returns the MGetMultiGetError branch value.
 func (u *MGetRespBodyDocsItem) MGetMultiGetError() MGetMultiGetError {
-	v, _ := u.value.(MGetMultiGetError)
-	return v
+	if v, ok := u.value.(*MGetMultiGetError); ok {
+		return *v
+	}
+	var zero MGetMultiGetError
+	return zero
 }
 
 // NewMGetRespBodyDocsItemFromMGetMultiGetError returns a MGetRespBodyDocsItem populated with v
@@ -278,38 +286,40 @@ func (u *MGetRespBodyDocsItem) MGetMultiGetError() MGetMultiGetError {
 func NewMGetRespBodyDocsItemFromMGetMultiGetError(v MGetMultiGetError) MGetRespBodyDocsItem {
 	return MGetRespBodyDocsItem{
 		typ:   MGetRespBodyDocsItemMGetMultiGetErrorType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *MGetRespBodyDocsItem) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = MGetRespBodyDocsItemUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	if build.HasJSONKeys(data, "_id", "_index", "error") {
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		GetResult
+		Disc0 json.RawMessage `json:"error"`
+	}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	if len(m.Disc0) > 0 {
 		var v MGetMultiGetError
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MGetRespBodyDocsItemMGetMultiGetErrorType
-			u.value = v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = MGetRespBodyDocsItemMGetMultiGetErrorType
+		u.value = &v
+		return nil
 	}
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v GetResult
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MGetRespBodyDocsItemGetResultType
-			u.value = v
-			return nil
-		}
-	}
-	return fmt.Errorf("MGetRespBodyDocsItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	u.typ = MGetRespBodyDocsItemGetResultType
+	u.value = &m.GetResult
+	return nil
 }
 
 func (u MGetRespBodyDocsItem) MarshalJSON() ([]byte, error) {
@@ -394,7 +404,9 @@ const (
 // Returns MGetOperationSourceUnknownType if the value has not been decoded.
 func (u *MGetOperationSource) Type() MGetOperationSourceType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *MGetOperationSource) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -409,8 +421,11 @@ func (u *MGetOperationSource) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *MGetOperationSource) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewMGetOperationSourceFromString returns a MGetOperationSource populated with v
@@ -418,14 +433,17 @@ func (u *MGetOperationSource) String() string {
 func NewMGetOperationSourceFromString(v string) MGetOperationSource {
 	return MGetOperationSource{
 		typ:   MGetOperationSourceStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // MGetOperationSourceObject1 returns the MGetOperationSourceObject1 branch value.
 func (u *MGetOperationSource) MGetOperationSourceObject1() MGetOperationSourceObject1 {
-	v, _ := u.value.(MGetOperationSourceObject1)
-	return v
+	if v, ok := u.value.(*MGetOperationSourceObject1); ok {
+		return *v
+	}
+	var zero MGetOperationSourceObject1
+	return zero
 }
 
 // NewMGetOperationSourceFromMGetOperationSourceObject1 returns a MGetOperationSource populated with v
@@ -433,12 +451,14 @@ func (u *MGetOperationSource) MGetOperationSourceObject1() MGetOperationSourceOb
 func NewMGetOperationSourceFromMGetOperationSourceObject1(v MGetOperationSourceObject1) MGetOperationSource {
 	return MGetOperationSource{
 		typ:   MGetOperationSourceMGetOperationSourceObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *MGetOperationSource) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = MGetOperationSourceUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -449,14 +469,14 @@ func (u *MGetOperationSource) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = MGetOperationSourceStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v MGetOperationSourceObject1
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = MGetOperationSourceMGetOperationSourceObject1Type
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("MGetOperationSource: unexpected JSON token: %s", data[:1])
 	}

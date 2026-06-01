@@ -219,7 +219,7 @@ type ReindexRespBodyObject1 struct {
 	Task *string `json:"task,omitempty"`
 }
 
-// ReindexRespBody is a discriminated union type (try-each, newest version first).
+// ReindexRespBody is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type ReindexRespBody struct {
@@ -241,7 +241,9 @@ const (
 // Returns ReindexRespBodyUnknownType if the value has not been decoded.
 func (u *ReindexRespBody) Type() ReindexRespBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *ReindexRespBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -256,8 +258,11 @@ func (u *ReindexRespBody) SetRaw(raw json.RawMessage) {
 
 // BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
 func (u *ReindexRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
-	v, _ := u.value.(BulkByScrollRespBase)
-	return v
+	if v, ok := u.value.(*BulkByScrollRespBase); ok {
+		return *v
+	}
+	var zero BulkByScrollRespBase
+	return zero
 }
 
 // NewReindexRespBodyFromBulkByScrollRespBase returns a ReindexRespBody populated with v
@@ -265,14 +270,17 @@ func (u *ReindexRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
 func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexRespBody {
 	return ReindexRespBody{
 		typ:   ReindexRespBodyBulkByScrollRespBaseType,
-		value: v,
+		value: &v,
 	}
 }
 
 // ReindexRespBodyObject1 returns the ReindexRespBodyObject1 branch value.
 func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
-	v, _ := u.value.(ReindexRespBodyObject1)
-	return v
+	if v, ok := u.value.(*ReindexRespBodyObject1); ok {
+		return *v
+	}
+	var zero ReindexRespBodyObject1
+	return zero
 }
 
 // NewReindexRespBodyFromReindexRespBodyObject1 returns a ReindexRespBody populated with v
@@ -280,38 +288,40 @@ func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
 func NewReindexRespBodyFromReindexRespBodyObject1(v ReindexRespBodyObject1) ReindexRespBody {
 	return ReindexRespBody{
 		typ:   ReindexRespBodyReindexRespBodyObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = ReindexRespBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		ReindexRespBodyObject1
+		Disc0 json.RawMessage `json:"batches"`
+	}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	if len(m.Disc0) > 0 {
 		var v BulkByScrollRespBase
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexRespBodyBulkByScrollRespBaseType
-			u.value = v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = ReindexRespBodyBulkByScrollRespBaseType
+		u.value = &v
+		return nil
 	}
-	{
-		var v ReindexRespBodyObject1
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexRespBodyReindexRespBodyObject1Type
-			u.value = v
-			return nil
-		}
-	}
-	return fmt.Errorf("ReindexRespBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	u.typ = ReindexRespBodyReindexRespBodyObject1Type
+	u.value = &m.ReindexRespBodyObject1
+	return nil
 }
 
 func (u ReindexRespBody) MarshalJSON() ([]byte, error) {
@@ -427,7 +437,9 @@ const (
 // Returns ReindexBodyScriptUnknownType if the value has not been decoded.
 func (u *ReindexBodyScript) Type() ReindexBodyScriptType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *ReindexBodyScript) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -442,8 +454,11 @@ func (u *ReindexBodyScript) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *ReindexBodyScript) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewReindexBodyScriptFromString returns a ReindexBodyScript populated with v
@@ -451,14 +466,17 @@ func (u *ReindexBodyScript) String() string {
 func NewReindexBodyScriptFromString(v string) ReindexBodyScript {
 	return ReindexBodyScript{
 		typ:   ReindexBodyScriptStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Stored returns the StoredScriptId branch value.
 func (u *ReindexBodyScript) Stored() StoredScriptId {
-	v, _ := u.value.(StoredScriptId)
-	return v
+	if v, ok := u.value.(*StoredScriptId); ok {
+		return *v
+	}
+	var zero StoredScriptId
+	return zero
 }
 
 // NewReindexBodyScriptFromStored returns a ReindexBodyScript populated with v
@@ -466,12 +484,14 @@ func (u *ReindexBodyScript) Stored() StoredScriptId {
 func NewReindexBodyScriptFromStored(v StoredScriptId) ReindexBodyScript {
 	return ReindexBodyScript{
 		typ:   ReindexBodyScriptStoredType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *ReindexBodyScript) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = ReindexBodyScriptUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -482,14 +502,14 @@ func (u *ReindexBodyScript) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = ReindexBodyScriptStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v StoredScriptId
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = ReindexBodyScriptStoredType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("ReindexBodyScript: unexpected JSON token: %s", data[:1])
 	}
@@ -530,7 +550,9 @@ const (
 // Returns ReindexSourceSortUnknownType if the value has not been decoded.
 func (u *ReindexSourceSort) Type() ReindexSourceSortType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *ReindexSourceSort) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -545,8 +567,11 @@ func (u *ReindexSourceSort) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *ReindexSourceSort) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewReindexSourceSortFromString returns a ReindexSourceSort populated with v
@@ -554,14 +579,17 @@ func (u *ReindexSourceSort) String() string {
 func NewReindexSourceSortFromString(v string) ReindexSourceSort {
 	return ReindexSourceSort{
 		typ:   ReindexSourceSortStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // StringMap returns the map[string]string branch value.
 func (u *ReindexSourceSort) StringMap() map[string]string {
-	v, _ := u.value.(map[string]string)
-	return v
+	if v, ok := u.value.(*map[string]string); ok {
+		return *v
+	}
+	var zero map[string]string
+	return zero
 }
 
 // NewReindexSourceSortFromStringMap returns a ReindexSourceSort populated with v
@@ -569,14 +597,17 @@ func (u *ReindexSourceSort) StringMap() map[string]string {
 func NewReindexSourceSortFromStringMap(v map[string]string) ReindexSourceSort {
 	return ReindexSourceSort{
 		typ:   ReindexSourceSortStringMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *ReindexSourceSort) FieldSortMap() map[string]FieldSort {
-	v, _ := u.value.(map[string]FieldSort)
-	return v
+	if v, ok := u.value.(*map[string]FieldSort); ok {
+		return *v
+	}
+	var zero map[string]FieldSort
+	return zero
 }
 
 // NewReindexSourceSortFromFieldSortMap returns a ReindexSourceSort populated with v
@@ -584,14 +615,17 @@ func (u *ReindexSourceSort) FieldSortMap() map[string]FieldSort {
 func NewReindexSourceSortFromFieldSortMap(v map[string]FieldSort) ReindexSourceSort {
 	return ReindexSourceSort{
 		typ:   ReindexSourceSortFieldSortMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Options returns the SortOptions branch value.
 func (u *ReindexSourceSort) Options() SortOptions {
-	v, _ := u.value.(SortOptions)
-	return v
+	if v, ok := u.value.(*SortOptions); ok {
+		return *v
+	}
+	var zero SortOptions
+	return zero
 }
 
 // NewReindexSourceSortFromOptions returns a ReindexSourceSort populated with v
@@ -599,12 +633,14 @@ func (u *ReindexSourceSort) Options() SortOptions {
 func NewReindexSourceSortFromOptions(v SortOptions) ReindexSourceSort {
 	return ReindexSourceSort{
 		typ:   ReindexSourceSortOptionsType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = ReindexSourceSortUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -618,7 +654,7 @@ func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = ReindexSourceSortStringType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -626,7 +662,7 @@ func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
 		var v map[string]string
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = ReindexSourceSortStringMapType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -634,7 +670,7 @@ func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
 		var v map[string]FieldSort
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = ReindexSourceSortFieldSortMapType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -642,7 +678,7 @@ func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
 		var v SortOptions
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = ReindexSourceSortOptionsType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}

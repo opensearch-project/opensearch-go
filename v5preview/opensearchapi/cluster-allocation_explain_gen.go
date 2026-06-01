@@ -331,7 +331,9 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Type() ClusterAlloc
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -346,8 +348,11 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) SetRaw(raw json.Raw
 
 // Int64 returns the int64 branch value.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
 }
 
 // NewClusterAllocationExplainClusterInfoShardSizesValueFromInt64 returns a ClusterAllocationExplainClusterInfoShardSizesValue populated with v
@@ -355,14 +360,17 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Int64() int64 {
 func NewClusterAllocationExplainClusterInfoShardSizesValueFromInt64(v int64) ClusterAllocationExplainClusterInfoShardSizesValue {
 	return ClusterAllocationExplainClusterInfoShardSizesValue{
 		typ:   ClusterAllocationExplainClusterInfoShardSizesValueInt64Type,
-		value: v,
+		value: &v,
 	}
 }
 
 // String returns the string branch value.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewClusterAllocationExplainClusterInfoShardSizesValueFromString returns a ClusterAllocationExplainClusterInfoShardSizesValue populated with v
@@ -370,12 +378,14 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) String() string {
 func NewClusterAllocationExplainClusterInfoShardSizesValueFromString(v string) ClusterAllocationExplainClusterInfoShardSizesValue {
 	return ClusterAllocationExplainClusterInfoShardSizesValue{
 		typ:   ClusterAllocationExplainClusterInfoShardSizesValueStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = ClusterAllocationExplainClusterInfoShardSizesValueUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -386,14 +396,14 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) UnmarshalJSON(data 
 			return err
 		}
 		u.typ = ClusterAllocationExplainClusterInfoShardSizesValueInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = ClusterAllocationExplainClusterInfoShardSizesValueStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("ClusterAllocationExplainClusterInfoShardSizesValue: unexpected JSON token: %s", data[:1])
 	}

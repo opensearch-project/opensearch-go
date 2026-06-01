@@ -1496,7 +1496,9 @@ const (
 // Returns NodesStatsIPUnknownType if the value has not been decoded.
 func (u *NodesStatsIP) Type() NodesStatsIPType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *NodesStatsIP) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -1511,8 +1513,11 @@ func (u *NodesStatsIP) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *NodesStatsIP) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewNodesStatsIPFromString returns a NodesStatsIP populated with v
@@ -1520,14 +1525,17 @@ func (u *NodesStatsIP) String() string {
 func NewNodesStatsIPFromString(v string) NodesStatsIP {
 	return NodesStatsIP{
 		typ:   NodesStatsIPStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
 func (u *NodesStatsIP) Array() []string {
-	v, _ := u.value.([]string)
-	return v
+	if v, ok := u.value.(*[]string); ok {
+		return *v
+	}
+	var zero []string
+	return zero
 }
 
 // NewNodesStatsIPFromArray returns a NodesStatsIP populated with v
@@ -1535,12 +1543,14 @@ func (u *NodesStatsIP) Array() []string {
 func NewNodesStatsIPFromArray(v []string) NodesStatsIP {
 	return NodesStatsIP{
 		typ:   NodesStatsIPArrayType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *NodesStatsIP) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = NodesStatsIPUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1551,14 +1561,14 @@ func (u *NodesStatsIP) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = NodesStatsIPStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = NodesStatsIPArrayType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("NodesStatsIP: unexpected JSON token: %s", data[:1])
 	}

@@ -161,7 +161,9 @@ const (
 // Returns ClearScrollBodyScrollIDUnknownType if the value has not been decoded.
 func (u *ClearScrollBodyScrollID) Type() ClearScrollBodyScrollIDType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *ClearScrollBodyScrollID) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -176,8 +178,11 @@ func (u *ClearScrollBodyScrollID) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *ClearScrollBodyScrollID) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewClearScrollBodyScrollIDFromString returns a ClearScrollBodyScrollID populated with v
@@ -185,14 +190,17 @@ func (u *ClearScrollBodyScrollID) String() string {
 func NewClearScrollBodyScrollIDFromString(v string) ClearScrollBodyScrollID {
 	return ClearScrollBodyScrollID{
 		typ:   ClearScrollBodyScrollIDStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
 func (u *ClearScrollBodyScrollID) Array() []string {
-	v, _ := u.value.([]string)
-	return v
+	if v, ok := u.value.(*[]string); ok {
+		return *v
+	}
+	var zero []string
+	return zero
 }
 
 // NewClearScrollBodyScrollIDFromArray returns a ClearScrollBodyScrollID populated with v
@@ -200,12 +208,14 @@ func (u *ClearScrollBodyScrollID) Array() []string {
 func NewClearScrollBodyScrollIDFromArray(v []string) ClearScrollBodyScrollID {
 	return ClearScrollBodyScrollID{
 		typ:   ClearScrollBodyScrollIDArrayType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *ClearScrollBodyScrollID) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = ClearScrollBodyScrollIDUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -216,14 +226,14 @@ func (u *ClearScrollBodyScrollID) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = ClearScrollBodyScrollIDStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = ClearScrollBodyScrollIDArrayType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("ClearScrollBodyScrollID: unexpected JSON token: %s", data[:1])
 	}

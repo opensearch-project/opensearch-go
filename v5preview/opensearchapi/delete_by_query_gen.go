@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -416,7 +415,7 @@ type DeleteByQueryRespBodyObject1 struct {
 	Task *string `json:"task,omitempty"`
 }
 
-// DeleteByQueryRespBody is a discriminated union type (try-each, newest version first).
+// DeleteByQueryRespBody is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type DeleteByQueryRespBody struct {
@@ -438,7 +437,9 @@ const (
 // Returns DeleteByQueryRespBodyUnknownType if the value has not been decoded.
 func (u *DeleteByQueryRespBody) Type() DeleteByQueryRespBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *DeleteByQueryRespBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -453,8 +454,11 @@ func (u *DeleteByQueryRespBody) SetRaw(raw json.RawMessage) {
 
 // BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
 func (u *DeleteByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
-	v, _ := u.value.(BulkByScrollRespBase)
-	return v
+	if v, ok := u.value.(*BulkByScrollRespBase); ok {
+		return *v
+	}
+	var zero BulkByScrollRespBase
+	return zero
 }
 
 // NewDeleteByQueryRespBodyFromBulkByScrollRespBase returns a DeleteByQueryRespBody populated with v
@@ -462,14 +466,17 @@ func (u *DeleteByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
 func NewDeleteByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) DeleteByQueryRespBody {
 	return DeleteByQueryRespBody{
 		typ:   DeleteByQueryRespBodyBulkByScrollRespBaseType,
-		value: v,
+		value: &v,
 	}
 }
 
 // DeleteByQueryRespBodyObject1 returns the DeleteByQueryRespBodyObject1 branch value.
 func (u *DeleteByQueryRespBody) DeleteByQueryRespBodyObject1() DeleteByQueryRespBodyObject1 {
-	v, _ := u.value.(DeleteByQueryRespBodyObject1)
-	return v
+	if v, ok := u.value.(*DeleteByQueryRespBodyObject1); ok {
+		return *v
+	}
+	var zero DeleteByQueryRespBodyObject1
+	return zero
 }
 
 // NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1 returns a DeleteByQueryRespBody populated with v
@@ -477,38 +484,40 @@ func (u *DeleteByQueryRespBody) DeleteByQueryRespBodyObject1() DeleteByQueryResp
 func NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1(v DeleteByQueryRespBodyObject1) DeleteByQueryRespBody {
 	return DeleteByQueryRespBody{
 		typ:   DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *DeleteByQueryRespBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = DeleteByQueryRespBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		DeleteByQueryRespBodyObject1
+		Disc0 json.RawMessage `json:"batches"`
+	}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
+	}
+	if len(m.Disc0) > 0 {
 		var v BulkByScrollRespBase
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = DeleteByQueryRespBodyBulkByScrollRespBaseType
-			u.value = v
-			return nil
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
 		}
+		u.typ = DeleteByQueryRespBodyBulkByScrollRespBaseType
+		u.value = &v
+		return nil
 	}
-	{
-		var v DeleteByQueryRespBodyObject1
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
-			u.value = v
-			return nil
-		}
-	}
-	return fmt.Errorf("DeleteByQueryRespBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	u.typ = DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
+	u.value = &m.DeleteByQueryRespBodyObject1
+	return nil
 }
 
 func (u DeleteByQueryRespBody) MarshalJSON() ([]byte, error) {

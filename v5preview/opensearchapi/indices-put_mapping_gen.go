@@ -228,7 +228,9 @@ const (
 // Returns IndicesPutMappingBodyDynamicUnknownType if the value has not been decoded.
 func (u *IndicesPutMappingBodyDynamic) Type() IndicesPutMappingBodyDynamicType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IndicesPutMappingBodyDynamic) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -243,8 +245,11 @@ func (u *IndicesPutMappingBodyDynamic) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *IndicesPutMappingBodyDynamic) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewIndicesPutMappingBodyDynamicFromString returns a IndicesPutMappingBodyDynamic populated with v
@@ -252,14 +257,17 @@ func (u *IndicesPutMappingBodyDynamic) String() string {
 func NewIndicesPutMappingBodyDynamicFromString(v string) IndicesPutMappingBodyDynamic {
 	return IndicesPutMappingBodyDynamic{
 		typ:   IndicesPutMappingBodyDynamicStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Bool returns the bool branch value.
 func (u *IndicesPutMappingBodyDynamic) Bool() bool {
-	v, _ := u.value.(bool)
-	return v
+	if v, ok := u.value.(*bool); ok {
+		return *v
+	}
+	var zero bool
+	return zero
 }
 
 // NewIndicesPutMappingBodyDynamicFromBool returns a IndicesPutMappingBodyDynamic populated with v
@@ -267,12 +275,14 @@ func (u *IndicesPutMappingBodyDynamic) Bool() bool {
 func NewIndicesPutMappingBodyDynamicFromBool(v bool) IndicesPutMappingBodyDynamic {
 	return IndicesPutMappingBodyDynamic{
 		typ:   IndicesPutMappingBodyDynamicBoolType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *IndicesPutMappingBodyDynamic) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesPutMappingBodyDynamicUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -283,14 +293,14 @@ func (u *IndicesPutMappingBodyDynamic) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = IndicesPutMappingBodyDynamicStringType
-		u.value = v
+		u.value = &v
 	case data[0] == 't' || data[0] == 'f':
 		var v bool
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = IndicesPutMappingBodyDynamicBoolType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("IndicesPutMappingBodyDynamic: unexpected JSON token: %s", data[:1])
 	}
@@ -331,7 +341,9 @@ func (u *IndicesPutMappingBodyDynamicTemplates) Type() IndicesPutMappingBodyDyna
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IndicesPutMappingBodyDynamicTemplates) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -346,8 +358,11 @@ func (u *IndicesPutMappingBodyDynamicTemplates) SetRaw(raw json.RawMessage) {
 
 // Map returns the map[string]json.RawMessage branch value.
 func (u *IndicesPutMappingBodyDynamicTemplates) Map() map[string]json.RawMessage {
-	v, _ := u.value.(map[string]json.RawMessage)
-	return v
+	if v, ok := u.value.(*map[string]json.RawMessage); ok {
+		return *v
+	}
+	var zero map[string]json.RawMessage
+	return zero
 }
 
 // NewIndicesPutMappingBodyDynamicTemplatesFromMap returns a IndicesPutMappingBodyDynamicTemplates populated with v
@@ -355,14 +370,17 @@ func (u *IndicesPutMappingBodyDynamicTemplates) Map() map[string]json.RawMessage
 func NewIndicesPutMappingBodyDynamicTemplatesFromMap(v map[string]json.RawMessage) IndicesPutMappingBodyDynamicTemplates {
 	return IndicesPutMappingBodyDynamicTemplates{
 		typ:   IndicesPutMappingBodyDynamicTemplatesMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Array returns the []map[string]CommonMappingDynamicTemplate branch value.
 func (u *IndicesPutMappingBodyDynamicTemplates) Array() []map[string]CommonMappingDynamicTemplate {
-	v, _ := u.value.([]map[string]CommonMappingDynamicTemplate)
-	return v
+	if v, ok := u.value.(*[]map[string]CommonMappingDynamicTemplate); ok {
+		return *v
+	}
+	var zero []map[string]CommonMappingDynamicTemplate
+	return zero
 }
 
 // NewIndicesPutMappingBodyDynamicTemplatesFromArray returns a IndicesPutMappingBodyDynamicTemplates populated with v
@@ -370,12 +388,14 @@ func (u *IndicesPutMappingBodyDynamicTemplates) Array() []map[string]CommonMappi
 func NewIndicesPutMappingBodyDynamicTemplatesFromArray(v []map[string]CommonMappingDynamicTemplate) IndicesPutMappingBodyDynamicTemplates {
 	return IndicesPutMappingBodyDynamicTemplates{
 		typ:   IndicesPutMappingBodyDynamicTemplatesArrayType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *IndicesPutMappingBodyDynamicTemplates) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesPutMappingBodyDynamicTemplatesUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -386,14 +406,14 @@ func (u *IndicesPutMappingBodyDynamicTemplates) UnmarshalJSON(data []byte) error
 			return err
 		}
 		u.typ = IndicesPutMappingBodyDynamicTemplatesMapType
-		u.value = v
+		u.value = &v
 	case data[0] == '[':
 		var v []map[string]CommonMappingDynamicTemplate
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = IndicesPutMappingBodyDynamicTemplatesArrayType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("IndicesPutMappingBodyDynamicTemplates: unexpected JSON token: %s", data[:1])
 	}
@@ -410,1181 +430,1065 @@ func (u IndicesPutMappingBodyDynamicTemplates) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// IndicesPutMappingBodyPropertiesValue is a discriminated union type (try-each, newest version first).
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
+// IndicesPutMappingBodyPropertiesValue is a discriminated union with no wire discriminator.
+// Its branches are indistinguishable from the response bytes alone (the type
+// is determined by the request), so the raw JSON is retained and decoded on
+// demand by the As<Branch>() accessors. There is deliberately no Type() method
+// or discriminant constants: the wire never identifies the branch.
 type IndicesPutMappingBodyPropertiesValue struct {
-	typ   IndicesPutMappingBodyPropertiesValueType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesPutMappingBodyPropertiesValueType discriminates the branches of IndicesPutMappingBodyPropertiesValue.
-type IndicesPutMappingBodyPropertiesValueType int
-
-const (
-	IndicesPutMappingBodyPropertiesValueUnknownType IndicesPutMappingBodyPropertiesValueType = iota
-	IndicesPutMappingBodyPropertiesValueCommonMappingBinaryPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingBooleanPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingJoinPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingKeywordPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingMatchOnlyTextPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingPercolatorPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingRankFeaturePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingRankFeaturesPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingSearchAsYouTypePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingTextPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingVersionPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingWildcardPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingDateNanosPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingDatePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingAggregateMetricDoublePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingFlatObjectPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingNestedPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingObjectPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingCompletionPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingConstantKeywordPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingFieldAliasPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingHistogramPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingIpPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingMurmur3HashPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingTokenCountPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingGeoPointPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingGeoShapePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingXyPointPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingXyShapePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingByteNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingDoubleNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingFloatNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingHalfFloatNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingIntegerNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingLongNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingScaledFloatNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingSemanticPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingShortNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingUnsignedLongNumberPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingDateRangePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingDoubleRangePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingFloatRangePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingIntegerRangePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingIpRangePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingLongRangePropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingKnnVectorPropertyType
-	IndicesPutMappingBodyPropertiesValueCommonMappingIcuCollationKeywordPropertyType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns IndicesPutMappingBodyPropertiesValueUnknownType if the value has not been decoded.
-func (u *IndicesPutMappingBodyPropertiesValue) Type() IndicesPutMappingBodyPropertiesValueType {
-	return u.typ
-}
-
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IndicesPutMappingBodyPropertiesValue) RawJSON() json.RawMessage { return u.raw }
 
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewIndicesPutMappingBodyPropertiesValueFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
+// SetRaw stages pre-encoded JSON for marshaling.
 func (u *IndicesPutMappingBodyPropertiesValue) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = IndicesPutMappingBodyPropertiesValueUnknownType
 }
 
-// CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
-	v, _ := u.value.(CommonMappingBinaryProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBinaryProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingBinaryProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingBinaryPropertyType,
-		value: v,
+// AsCommonMappingSemanticProperty decodes the union as CommonMappingSemanticProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingSemanticProperty() (CommonMappingSemanticProperty, error) {
+	if v, ok := u.value.(*CommonMappingSemanticProperty); ok {
+		return *v, nil
 	}
-}
-
-// CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingBooleanProperty() CommonMappingBooleanProperty {
-	v, _ := u.value.(CommonMappingBooleanProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBooleanProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingBooleanProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingBooleanPropertyType,
-		value: v,
+	var v CommonMappingSemanticProperty
+	if len(u.raw) == 0 {
+		return v, nil
 	}
-}
-
-// CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingJoinProperty() CommonMappingJoinProperty {
-	v, _ := u.value.(CommonMappingJoinProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingJoinProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingJoinProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingJoinPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingKeywordProperty() CommonMappingKeywordProperty {
-	v, _ := u.value.(CommonMappingKeywordProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKeywordProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingKeywordProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingKeywordPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
-	v, _ := u.value.(CommonMappingMatchOnlyTextProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMatchOnlyTextProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingMatchOnlyTextProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingMatchOnlyTextPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingPercolatorProperty() CommonMappingPercolatorProperty {
-	v, _ := u.value.(CommonMappingPercolatorProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingPercolatorProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingPercolatorProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingPercolatorPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
-	v, _ := u.value.(CommonMappingRankFeatureProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeatureProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingRankFeatureProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingRankFeaturePropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingRankFeaturesProperty() CommonMappingRankFeaturesProperty {
-	v, _ := u.value.(CommonMappingRankFeaturesProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeaturesProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingRankFeaturesProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingRankFeaturesPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
-	v, _ := u.value.(CommonMappingSearchAsYouTypeProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingSearchAsYouTypeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingSearchAsYouTypeProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingSearchAsYouTypePropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingTextProperty() CommonMappingTextProperty {
-	v, _ := u.value.(CommonMappingTextProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTextProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingTextProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTextProperty(v CommonMappingTextProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingTextPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingVersionProperty() CommonMappingVersionProperty {
-	v, _ := u.value.(CommonMappingVersionProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingVersionProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingVersionProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingVersionPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingWildcardProperty() CommonMappingWildcardProperty {
-	v, _ := u.value.(CommonMappingWildcardProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingWildcardProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingWildcardProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingWildcardPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
-	v, _ := u.value.(CommonMappingDateNanosProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateNanosProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingDateNanosProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingDateNanosPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingDateProperty() CommonMappingDateProperty {
-	v, _ := u.value.(CommonMappingDateProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingDateProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateProperty(v CommonMappingDateProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingDatePropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
-	v, _ := u.value.(CommonMappingAggregateMetricDoubleProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingAggregateMetricDoubleProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingAggregateMetricDoubleProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingAggregateMetricDoublePropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingFlatObjectProperty() CommonMappingFlatObjectProperty {
-	v, _ := u.value.(CommonMappingFlatObjectProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFlatObjectProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingFlatObjectProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingFlatObjectPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingNestedProperty() CommonMappingNestedProperty {
-	v, _ := u.value.(CommonMappingNestedProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingNestedProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingNestedProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingNestedPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingObjectProperty() CommonMappingObjectProperty {
-	v, _ := u.value.(CommonMappingObjectProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingObjectProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingObjectProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingObjectPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
-	v, _ := u.value.(CommonMappingCompletionProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingCompletionProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingCompletionProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingCompletionPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingConstantKeywordProperty() CommonMappingConstantKeywordProperty {
-	v, _ := u.value.(CommonMappingConstantKeywordProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingConstantKeywordProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingConstantKeywordProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingConstantKeywordPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
-	v, _ := u.value.(CommonMappingFieldAliasProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFieldAliasProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingFieldAliasProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingFieldAliasPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingHistogramProperty() CommonMappingHistogramProperty {
-	v, _ := u.value.(CommonMappingHistogramProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHistogramProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingHistogramProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingHistogramPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingIpProperty() CommonMappingIpProperty {
-	v, _ := u.value.(CommonMappingIpProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingIpPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingMurmur3HashProperty() CommonMappingMurmur3HashProperty {
-	v, _ := u.value.(CommonMappingMurmur3HashProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMurmur3HashProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingMurmur3HashProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingMurmur3HashPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
-	v, _ := u.value.(CommonMappingTokenCountProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTokenCountProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingTokenCountProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingTokenCountPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingGeoPointProperty() CommonMappingGeoPointProperty {
-	v, _ := u.value.(CommonMappingGeoPointProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoPointProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingGeoPointProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingGeoPointPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
-	v, _ := u.value.(CommonMappingGeoShapeProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoShapeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingGeoShapeProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingGeoShapePropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingXyPointProperty() CommonMappingXyPointProperty {
-	v, _ := u.value.(CommonMappingXyPointProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyPointProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingXyPointPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
-	v, _ := u.value.(CommonMappingXyShapeProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyShapeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingXyShapePropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingByteNumberProperty() CommonMappingByteNumberProperty {
-	v, _ := u.value.(CommonMappingByteNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingByteNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingByteNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingByteNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
-	v, _ := u.value.(CommonMappingDoubleNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDoubleNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingDoubleNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingDoubleNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingFloatNumberProperty() CommonMappingFloatNumberProperty {
-	v, _ := u.value.(CommonMappingFloatNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFloatNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingFloatNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingFloatNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
-	v, _ := u.value.(CommonMappingHalfFloatNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHalfFloatNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingHalfFloatNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingHalfFloatNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingIntegerNumberProperty() CommonMappingIntegerNumberProperty {
-	v, _ := u.value.(CommonMappingIntegerNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingIntegerNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingIntegerNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
-	v, _ := u.value.(CommonMappingLongNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingLongNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingLongNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingScaledFloatNumberProperty() CommonMappingScaledFloatNumberProperty {
-	v, _ := u.value.(CommonMappingScaledFloatNumberProperty)
-	return v
-}
-
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingScaledFloatNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingScaledFloatNumberProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) IndicesPutMappingBodyPropertiesValue {
-	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingScaledFloatNumberPropertyType,
-		value: v,
-	}
-}
-
-// CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
-	v, _ := u.value.(CommonMappingSemanticProperty)
-	return v
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingSemanticProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingSemanticProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingSemanticPropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingShortNumberProperty() CommonMappingShortNumberProperty {
-	v, _ := u.value.(CommonMappingShortNumberProperty)
-	return v
+// AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
+	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingXyPointProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyPointProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingXyPointProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
+	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingXyShapeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyShapeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingXyShapeProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingBinaryProperty decodes the union as CommonMappingBinaryProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingBinaryProperty() (CommonMappingBinaryProperty, error) {
+	if v, ok := u.value.(*CommonMappingBinaryProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingBinaryProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBinaryProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingBinaryProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingBooleanProperty decodes the union as CommonMappingBooleanProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingBooleanProperty() (CommonMappingBooleanProperty, error) {
+	if v, ok := u.value.(*CommonMappingBooleanProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingBooleanProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBooleanProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingBooleanProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingJoinProperty decodes the union as CommonMappingJoinProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingJoinProperty() (CommonMappingJoinProperty, error) {
+	if v, ok := u.value.(*CommonMappingJoinProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingJoinProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingJoinProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingJoinProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingKeywordProperty decodes the union as CommonMappingKeywordProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingKeywordProperty() (CommonMappingKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingKeywordProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingKeywordProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKeywordProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingKeywordProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingMatchOnlyTextProperty decodes the union as CommonMappingMatchOnlyTextProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingMatchOnlyTextProperty() (CommonMappingMatchOnlyTextProperty, error) {
+	if v, ok := u.value.(*CommonMappingMatchOnlyTextProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingMatchOnlyTextProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMatchOnlyTextProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingMatchOnlyTextProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingPercolatorProperty decodes the union as CommonMappingPercolatorProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingPercolatorProperty() (CommonMappingPercolatorProperty, error) {
+	if v, ok := u.value.(*CommonMappingPercolatorProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingPercolatorProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingPercolatorProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingPercolatorProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingRankFeatureProperty decodes the union as CommonMappingRankFeatureProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingRankFeatureProperty() (CommonMappingRankFeatureProperty, error) {
+	if v, ok := u.value.(*CommonMappingRankFeatureProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingRankFeatureProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeatureProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingRankFeatureProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingRankFeaturesProperty decodes the union as CommonMappingRankFeaturesProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingRankFeaturesProperty() (CommonMappingRankFeaturesProperty, error) {
+	if v, ok := u.value.(*CommonMappingRankFeaturesProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingRankFeaturesProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeaturesProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingRankFeaturesProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingSearchAsYouTypeProperty decodes the union as CommonMappingSearchAsYouTypeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingSearchAsYouTypeProperty() (CommonMappingSearchAsYouTypeProperty, error) {
+	if v, ok := u.value.(*CommonMappingSearchAsYouTypeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingSearchAsYouTypeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingSearchAsYouTypeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingSearchAsYouTypeProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingTextProperty decodes the union as CommonMappingTextProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingTextProperty() (CommonMappingTextProperty, error) {
+	if v, ok := u.value.(*CommonMappingTextProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingTextProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTextProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingTextProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTextProperty(v CommonMappingTextProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingVersionProperty decodes the union as CommonMappingVersionProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingVersionProperty() (CommonMappingVersionProperty, error) {
+	if v, ok := u.value.(*CommonMappingVersionProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingVersionProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingVersionProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingVersionProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingWildcardProperty decodes the union as CommonMappingWildcardProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingWildcardProperty() (CommonMappingWildcardProperty, error) {
+	if v, ok := u.value.(*CommonMappingWildcardProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingWildcardProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingWildcardProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingWildcardProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingDateNanosProperty decodes the union as CommonMappingDateNanosProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingDateNanosProperty() (CommonMappingDateNanosProperty, error) {
+	if v, ok := u.value.(*CommonMappingDateNanosProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingDateNanosProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateNanosProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingDateNanosProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingDateProperty decodes the union as CommonMappingDateProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingDateProperty() (CommonMappingDateProperty, error) {
+	if v, ok := u.value.(*CommonMappingDateProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingDateProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingDateProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateProperty(v CommonMappingDateProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingAggregateMetricDoubleProperty decodes the union as CommonMappingAggregateMetricDoubleProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingAggregateMetricDoubleProperty() (CommonMappingAggregateMetricDoubleProperty, error) {
+	if v, ok := u.value.(*CommonMappingAggregateMetricDoubleProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingAggregateMetricDoubleProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingAggregateMetricDoubleProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingAggregateMetricDoubleProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingFlatObjectProperty decodes the union as CommonMappingFlatObjectProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingFlatObjectProperty() (CommonMappingFlatObjectProperty, error) {
+	if v, ok := u.value.(*CommonMappingFlatObjectProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingFlatObjectProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFlatObjectProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingFlatObjectProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingNestedProperty decodes the union as CommonMappingNestedProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingNestedProperty() (CommonMappingNestedProperty, error) {
+	if v, ok := u.value.(*CommonMappingNestedProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingNestedProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingNestedProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingNestedProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingObjectProperty decodes the union as CommonMappingObjectProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingObjectProperty() (CommonMappingObjectProperty, error) {
+	if v, ok := u.value.(*CommonMappingObjectProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingObjectProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingObjectProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingObjectProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingCompletionProperty decodes the union as CommonMappingCompletionProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingCompletionProperty() (CommonMappingCompletionProperty, error) {
+	if v, ok := u.value.(*CommonMappingCompletionProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingCompletionProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingCompletionProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingCompletionProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingConstantKeywordProperty decodes the union as CommonMappingConstantKeywordProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingConstantKeywordProperty() (CommonMappingConstantKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingConstantKeywordProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingConstantKeywordProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingConstantKeywordProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingConstantKeywordProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingFieldAliasProperty decodes the union as CommonMappingFieldAliasProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingFieldAliasProperty() (CommonMappingFieldAliasProperty, error) {
+	if v, ok := u.value.(*CommonMappingFieldAliasProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingFieldAliasProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFieldAliasProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingFieldAliasProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingHistogramProperty decodes the union as CommonMappingHistogramProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingHistogramProperty() (CommonMappingHistogramProperty, error) {
+	if v, ok := u.value.(*CommonMappingHistogramProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingHistogramProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHistogramProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingHistogramProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
+	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingIpProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingIpProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingMurmur3HashProperty decodes the union as CommonMappingMurmur3HashProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingMurmur3HashProperty() (CommonMappingMurmur3HashProperty, error) {
+	if v, ok := u.value.(*CommonMappingMurmur3HashProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingMurmur3HashProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMurmur3HashProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingMurmur3HashProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingTokenCountProperty decodes the union as CommonMappingTokenCountProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingTokenCountProperty() (CommonMappingTokenCountProperty, error) {
+	if v, ok := u.value.(*CommonMappingTokenCountProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingTokenCountProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTokenCountProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingTokenCountProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingGeoPointProperty decodes the union as CommonMappingGeoPointProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingGeoPointProperty() (CommonMappingGeoPointProperty, error) {
+	if v, ok := u.value.(*CommonMappingGeoPointProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingGeoPointProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoPointProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingGeoPointProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingGeoShapeProperty decodes the union as CommonMappingGeoShapeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingGeoShapeProperty() (CommonMappingGeoShapeProperty, error) {
+	if v, ok := u.value.(*CommonMappingGeoShapeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingGeoShapeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoShapeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingGeoShapeProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingByteNumberProperty decodes the union as CommonMappingByteNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingByteNumberProperty() (CommonMappingByteNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingByteNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingByteNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingByteNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingByteNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingDoubleNumberProperty decodes the union as CommonMappingDoubleNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingDoubleNumberProperty() (CommonMappingDoubleNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingDoubleNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingDoubleNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDoubleNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingDoubleNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingFloatNumberProperty decodes the union as CommonMappingFloatNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingFloatNumberProperty() (CommonMappingFloatNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingFloatNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingFloatNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFloatNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingFloatNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingHalfFloatNumberProperty decodes the union as CommonMappingHalfFloatNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingHalfFloatNumberProperty() (CommonMappingHalfFloatNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingHalfFloatNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingHalfFloatNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHalfFloatNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingHalfFloatNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingIntegerNumberProperty decodes the union as CommonMappingIntegerNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIntegerNumberProperty() (CommonMappingIntegerNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingIntegerNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingIntegerNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingIntegerNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingLongNumberProperty decodes the union as CommonMappingLongNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingLongNumberProperty() (CommonMappingLongNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingLongNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingLongNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingLongNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingScaledFloatNumberProperty decodes the union as CommonMappingScaledFloatNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingScaledFloatNumberProperty() (CommonMappingScaledFloatNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingScaledFloatNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingScaledFloatNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingScaledFloatNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingScaledFloatNumberProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) IndicesPutMappingBodyPropertiesValue {
+	return IndicesPutMappingBodyPropertiesValue{
+		value: &v,
+	}
+}
+
+// AsCommonMappingShortNumberProperty decodes the union as CommonMappingShortNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingShortNumberProperty() (CommonMappingShortNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingShortNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingShortNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingShortNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingShortNumberProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingShortNumberPropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
-	v, _ := u.value.(CommonMappingUnsignedLongNumberProperty)
-	return v
+// AsCommonMappingUnsignedLongNumberProperty decodes the union as CommonMappingUnsignedLongNumberProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingUnsignedLongNumberProperty() (CommonMappingUnsignedLongNumberProperty, error) {
+	if v, ok := u.value.(*CommonMappingUnsignedLongNumberProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingUnsignedLongNumberProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingUnsignedLongNumberProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingUnsignedLongNumberProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingUnsignedLongNumberPropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingDateRangeProperty() CommonMappingDateRangeProperty {
-	v, _ := u.value.(CommonMappingDateRangeProperty)
-	return v
+// AsCommonMappingDateRangeProperty decodes the union as CommonMappingDateRangeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingDateRangeProperty() (CommonMappingDateRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingDateRangeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingDateRangeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingDateRangeProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingDateRangePropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
-	v, _ := u.value.(CommonMappingDoubleRangeProperty)
-	return v
+// AsCommonMappingDoubleRangeProperty decodes the union as CommonMappingDoubleRangeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingDoubleRangeProperty() (CommonMappingDoubleRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingDoubleRangeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingDoubleRangeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDoubleRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingDoubleRangeProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingDoubleRangePropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingFloatRangeProperty() CommonMappingFloatRangeProperty {
-	v, _ := u.value.(CommonMappingFloatRangeProperty)
-	return v
+// AsCommonMappingFloatRangeProperty decodes the union as CommonMappingFloatRangeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingFloatRangeProperty() (CommonMappingFloatRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingFloatRangeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingFloatRangeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFloatRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingFloatRangeProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingFloatRangePropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
-	v, _ := u.value.(CommonMappingIntegerRangeProperty)
-	return v
+// AsCommonMappingIntegerRangeProperty decodes the union as CommonMappingIntegerRangeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIntegerRangeProperty() (CommonMappingIntegerRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIntegerRangeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingIntegerRangeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingIntegerRangeProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingIntegerRangePropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingIpRangeProperty() CommonMappingIpRangeProperty {
-	v, _ := u.value.(CommonMappingIpRangeProperty)
-	return v
+// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingIpRangeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingIpRangeProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingIpRangePropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
-	v, _ := u.value.(CommonMappingLongRangeProperty)
-	return v
+// AsCommonMappingLongRangeProperty decodes the union as CommonMappingLongRangeProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingLongRangeProperty() (CommonMappingLongRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingLongRangeProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingLongRangeProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingLongRangeProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingLongRangePropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingKnnVectorProperty() CommonMappingKnnVectorProperty {
-	v, _ := u.value.(CommonMappingKnnVectorProperty)
-	return v
+// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingKnnVectorProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKnnVectorProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingKnnVectorProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingKnnVectorPropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
-// CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
-func (u *IndicesPutMappingBodyPropertiesValue) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
-	v, _ := u.value.(CommonMappingIcuCollationKeywordProperty)
-	return v
+// AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
+		return *v, nil
+	}
+	var v CommonMappingIcuCollationKeywordProperty
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
 }
 
 // NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIcuCollationKeywordProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
 // on the CommonMappingIcuCollationKeywordProperty branch.
 func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
-		typ:   IndicesPutMappingBodyPropertiesValueCommonMappingIcuCollationKeywordPropertyType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *IndicesPutMappingBodyPropertiesValue) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingMatchOnlyTextPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "model_id", "type") {
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingSemanticPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v CommonMappingBinaryProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingBinaryPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingBooleanProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingBooleanPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingJoinProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingJoinPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingKeywordProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingPercolatorProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingPercolatorPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingRankFeatureProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingRankFeaturePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingRankFeaturesProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingRankFeaturesPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingSearchAsYouTypeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingSearchAsYouTypePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingTextPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingVersionProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingVersionPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingWildcardProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingWildcardPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingDateNanosProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingDateNanosPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingDateProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingDatePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingAggregateMetricDoubleProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingAggregateMetricDoublePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingFlatObjectProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingFlatObjectPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingNestedProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingNestedPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingObjectProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingObjectPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingCompletionProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingCompletionPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingConstantKeywordProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingConstantKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingFieldAliasProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingFieldAliasPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingHistogramProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingHistogramPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingIpProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingIpPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingMurmur3HashProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingMurmur3HashPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingTokenCountProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingTokenCountPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingGeoPointProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingGeoPointPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingGeoShapeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingGeoShapePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingXyPointProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingXyPointPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingXyShapeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingXyShapePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingByteNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingByteNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingDoubleNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingDoubleNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingFloatNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingHalfFloatNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingHalfFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingIntegerNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingIntegerNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingLongNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingLongNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingScaledFloatNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingScaledFloatNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingShortNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingShortNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingUnsignedLongNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingUnsignedLongNumberPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingDateRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingDateRangePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingDoubleRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingDoubleRangePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingFloatRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingFloatRangePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingIntegerRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingIntegerRangePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingIpRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingIpRangePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingLongRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingLongRangePropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingKnnVectorProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingKnnVectorPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	{
-		var v CommonMappingIcuCollationKeywordProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesPutMappingBodyPropertiesValueCommonMappingIcuCollationKeywordPropertyType
-			u.value = v
-			return nil
-		}
-	}
-	return fmt.Errorf("IndicesPutMappingBodyPropertiesValue: no branch matched JSON: %s", data[:min(len(data), 64)])
+	u.raw = data
+	u.value = nil
+	return nil
 }
 
 func (u IndicesPutMappingBodyPropertiesValue) MarshalJSON() ([]byte, error) {

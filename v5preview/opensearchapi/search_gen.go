@@ -20,8 +20,8 @@ import (
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/errmask"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
@@ -811,7 +811,9 @@ const (
 // Returns SearchBodySourceUnknownType if the value has not been decoded.
 func (u *SearchBodySource) Type() SearchBodySourceType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchBodySource) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -826,8 +828,11 @@ func (u *SearchBodySource) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *SearchBodySource) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewSearchBodySourceFromString returns a SearchBodySource populated with v
@@ -835,14 +840,17 @@ func (u *SearchBodySource) String() string {
 func NewSearchBodySourceFromString(v string) SearchBodySource {
 	return SearchBodySource{
 		typ:   SearchBodySourceStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchBodySourceObject1 returns the SearchBodySourceObject1 branch value.
 func (u *SearchBodySource) SearchBodySourceObject1() SearchBodySourceObject1 {
-	v, _ := u.value.(SearchBodySourceObject1)
-	return v
+	if v, ok := u.value.(*SearchBodySourceObject1); ok {
+		return *v
+	}
+	var zero SearchBodySourceObject1
+	return zero
 }
 
 // NewSearchBodySourceFromSearchBodySourceObject1 returns a SearchBodySource populated with v
@@ -850,12 +858,14 @@ func (u *SearchBodySource) SearchBodySourceObject1() SearchBodySourceObject1 {
 func NewSearchBodySourceFromSearchBodySourceObject1(v SearchBodySourceObject1) SearchBodySource {
 	return SearchBodySource{
 		typ:   SearchBodySourceSearchBodySourceObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchBodySource) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchBodySourceUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -866,14 +876,14 @@ func (u *SearchBodySource) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = SearchBodySourceStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v SearchBodySourceObject1
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = SearchBodySourceSearchBodySourceObject1Type
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodySource: unexpected JSON token: %s", data[:1])
 	}
@@ -912,7 +922,9 @@ const (
 // Returns SearchBodyDocvalueFieldsItemUnknownType if the value has not been decoded.
 func (u *SearchBodyDocvalueFieldsItem) Type() SearchBodyDocvalueFieldsItemType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchBodyDocvalueFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -927,8 +939,11 @@ func (u *SearchBodyDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *SearchBodyDocvalueFieldsItem) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewSearchBodyDocvalueFieldsItemFromString returns a SearchBodyDocvalueFieldsItem populated with v
@@ -936,14 +951,17 @@ func (u *SearchBodyDocvalueFieldsItem) String() string {
 func NewSearchBodyDocvalueFieldsItemFromString(v string) SearchBodyDocvalueFieldsItem {
 	return SearchBodyDocvalueFieldsItem{
 		typ:   SearchBodyDocvalueFieldsItemStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchBodyDocvalueFieldsItemObject1 returns the SearchBodyDocvalueFieldsItemObject1 branch value.
 func (u *SearchBodyDocvalueFieldsItem) SearchBodyDocvalueFieldsItemObject1() SearchBodyDocvalueFieldsItemObject1 {
-	v, _ := u.value.(SearchBodyDocvalueFieldsItemObject1)
-	return v
+	if v, ok := u.value.(*SearchBodyDocvalueFieldsItemObject1); ok {
+		return *v
+	}
+	var zero SearchBodyDocvalueFieldsItemObject1
+	return zero
 }
 
 // NewSearchBodyDocvalueFieldsItemFromSearchBodyDocvalueFieldsItemObject1 returns a SearchBodyDocvalueFieldsItem populated with v
@@ -951,12 +969,14 @@ func (u *SearchBodyDocvalueFieldsItem) SearchBodyDocvalueFieldsItemObject1() Sea
 func NewSearchBodyDocvalueFieldsItemFromSearchBodyDocvalueFieldsItemObject1(v SearchBodyDocvalueFieldsItemObject1) SearchBodyDocvalueFieldsItem {
 	return SearchBodyDocvalueFieldsItem{
 		typ:   SearchBodyDocvalueFieldsItemSearchBodyDocvalueFieldsItemObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchBodyDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchBodyDocvalueFieldsItemUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -967,14 +987,14 @@ func (u *SearchBodyDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = SearchBodyDocvalueFieldsItemStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v SearchBodyDocvalueFieldsItemObject1
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = SearchBodyDocvalueFieldsItemSearchBodyDocvalueFieldsItemObject1Type
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodyDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
 	}
@@ -1013,7 +1033,9 @@ const (
 // Returns SearchBodyFieldsItemUnknownType if the value has not been decoded.
 func (u *SearchBodyFieldsItem) Type() SearchBodyFieldsItemType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchBodyFieldsItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -1028,8 +1050,11 @@ func (u *SearchBodyFieldsItem) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *SearchBodyFieldsItem) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewSearchBodyFieldsItemFromString returns a SearchBodyFieldsItem populated with v
@@ -1037,14 +1062,17 @@ func (u *SearchBodyFieldsItem) String() string {
 func NewSearchBodyFieldsItemFromString(v string) SearchBodyFieldsItem {
 	return SearchBodyFieldsItem{
 		typ:   SearchBodyFieldsItemStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SearchBodyFieldsItemObject1 returns the SearchBodyFieldsItemObject1 branch value.
 func (u *SearchBodyFieldsItem) SearchBodyFieldsItemObject1() SearchBodyFieldsItemObject1 {
-	v, _ := u.value.(SearchBodyFieldsItemObject1)
-	return v
+	if v, ok := u.value.(*SearchBodyFieldsItemObject1); ok {
+		return *v
+	}
+	var zero SearchBodyFieldsItemObject1
+	return zero
 }
 
 // NewSearchBodyFieldsItemFromSearchBodyFieldsItemObject1 returns a SearchBodyFieldsItem populated with v
@@ -1052,12 +1080,14 @@ func (u *SearchBodyFieldsItem) SearchBodyFieldsItemObject1() SearchBodyFieldsIte
 func NewSearchBodyFieldsItemFromSearchBodyFieldsItemObject1(v SearchBodyFieldsItemObject1) SearchBodyFieldsItem {
 	return SearchBodyFieldsItem{
 		typ:   SearchBodyFieldsItemSearchBodyFieldsItemObject1Type,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchBodyFieldsItem) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchBodyFieldsItemUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1068,14 +1098,14 @@ func (u *SearchBodyFieldsItem) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = SearchBodyFieldsItemStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v SearchBodyFieldsItemObject1
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = SearchBodyFieldsItemSearchBodyFieldsItemObject1Type
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodyFieldsItem: unexpected JSON token: %s", data[:1])
 	}
@@ -1114,7 +1144,9 @@ const (
 // Returns SearchBodyRescoreUnknownType if the value has not been decoded.
 func (u *SearchBodyRescore) Type() SearchBodyRescoreType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchBodyRescore) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -1129,8 +1161,11 @@ func (u *SearchBodyRescore) SetRaw(raw json.RawMessage) {
 
 // SearchRescore returns the SearchRescore branch value.
 func (u *SearchBodyRescore) SearchRescore() SearchRescore {
-	v, _ := u.value.(SearchRescore)
-	return v
+	if v, ok := u.value.(*SearchRescore); ok {
+		return *v
+	}
+	var zero SearchRescore
+	return zero
 }
 
 // NewSearchBodyRescoreFromSearchRescore returns a SearchBodyRescore populated with v
@@ -1138,14 +1173,17 @@ func (u *SearchBodyRescore) SearchRescore() SearchRescore {
 func NewSearchBodyRescoreFromSearchRescore(v SearchRescore) SearchBodyRescore {
 	return SearchBodyRescore{
 		typ:   SearchBodyRescoreSearchRescoreType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Array returns the []SearchRescore branch value.
 func (u *SearchBodyRescore) Array() []SearchRescore {
-	v, _ := u.value.([]SearchRescore)
-	return v
+	if v, ok := u.value.(*[]SearchRescore); ok {
+		return *v
+	}
+	var zero []SearchRescore
+	return zero
 }
 
 // NewSearchBodyRescoreFromArray returns a SearchBodyRescore populated with v
@@ -1153,12 +1191,14 @@ func (u *SearchBodyRescore) Array() []SearchRescore {
 func NewSearchBodyRescoreFromArray(v []SearchRescore) SearchBodyRescore {
 	return SearchBodyRescore{
 		typ:   SearchBodyRescoreArrayType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchBodyRescore) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchBodyRescoreUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1169,14 +1209,14 @@ func (u *SearchBodyRescore) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = SearchBodyRescoreSearchRescoreType
-		u.value = v
+		u.value = &v
 	case data[0] == '[':
 		var v []SearchRescore
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = SearchBodyRescoreArrayType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodyRescore: unexpected JSON token: %s", data[:1])
 	}
@@ -1217,7 +1257,9 @@ const (
 // Returns SearchBodySortUnknownType if the value has not been decoded.
 func (u *SearchBodySort) Type() SearchBodySortType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchBodySort) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -1232,8 +1274,11 @@ func (u *SearchBodySort) SetRaw(raw json.RawMessage) {
 
 // String returns the string branch value.
 func (u *SearchBodySort) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
 }
 
 // NewSearchBodySortFromString returns a SearchBodySort populated with v
@@ -1241,14 +1286,17 @@ func (u *SearchBodySort) String() string {
 func NewSearchBodySortFromString(v string) SearchBodySort {
 	return SearchBodySort{
 		typ:   SearchBodySortStringType,
-		value: v,
+		value: &v,
 	}
 }
 
 // StringMap returns the map[string]string branch value.
 func (u *SearchBodySort) StringMap() map[string]string {
-	v, _ := u.value.(map[string]string)
-	return v
+	if v, ok := u.value.(*map[string]string); ok {
+		return *v
+	}
+	var zero map[string]string
+	return zero
 }
 
 // NewSearchBodySortFromStringMap returns a SearchBodySort populated with v
@@ -1256,14 +1304,17 @@ func (u *SearchBodySort) StringMap() map[string]string {
 func NewSearchBodySortFromStringMap(v map[string]string) SearchBodySort {
 	return SearchBodySort{
 		typ:   SearchBodySortStringMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // FieldSortMap returns the map[string]FieldSort branch value.
 func (u *SearchBodySort) FieldSortMap() map[string]FieldSort {
-	v, _ := u.value.(map[string]FieldSort)
-	return v
+	if v, ok := u.value.(*map[string]FieldSort); ok {
+		return *v
+	}
+	var zero map[string]FieldSort
+	return zero
 }
 
 // NewSearchBodySortFromFieldSortMap returns a SearchBodySort populated with v
@@ -1271,14 +1322,17 @@ func (u *SearchBodySort) FieldSortMap() map[string]FieldSort {
 func NewSearchBodySortFromFieldSortMap(v map[string]FieldSort) SearchBodySort {
 	return SearchBodySort{
 		typ:   SearchBodySortFieldSortMapType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Options returns the SortOptions branch value.
 func (u *SearchBodySort) Options() SortOptions {
-	v, _ := u.value.(SortOptions)
-	return v
+	if v, ok := u.value.(*SortOptions); ok {
+		return *v
+	}
+	var zero SortOptions
+	return zero
 }
 
 // NewSearchBodySortFromOptions returns a SearchBodySort populated with v
@@ -1286,12 +1340,14 @@ func (u *SearchBodySort) Options() SortOptions {
 func NewSearchBodySortFromOptions(v SortOptions) SearchBodySort {
 	return SearchBodySort{
 		typ:   SearchBodySortOptionsType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchBodySortUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1305,7 +1361,7 @@ func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
 		var v string
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchBodySortStringType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -1313,7 +1369,7 @@ func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
 		var v map[string]string
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchBodySortStringMapType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -1321,7 +1377,7 @@ func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
 		var v map[string]FieldSort
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchBodySortFieldSortMapType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -1329,7 +1385,7 @@ func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
 		var v SortOptions
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SearchBodySortOptionsType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -1371,7 +1427,9 @@ const (
 // Returns SearchBodyTrackTotalHitsUnknownType if the value has not been decoded.
 func (u *SearchBodyTrackTotalHits) Type() SearchBodyTrackTotalHitsType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SearchBodyTrackTotalHits) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -1386,8 +1444,11 @@ func (u *SearchBodyTrackTotalHits) SetRaw(raw json.RawMessage) {
 
 // Bool returns the bool branch value.
 func (u *SearchBodyTrackTotalHits) Bool() bool {
-	v, _ := u.value.(bool)
-	return v
+	if v, ok := u.value.(*bool); ok {
+		return *v
+	}
+	var zero bool
+	return zero
 }
 
 // NewSearchBodyTrackTotalHitsFromBool returns a SearchBodyTrackTotalHits populated with v
@@ -1395,14 +1456,17 @@ func (u *SearchBodyTrackTotalHits) Bool() bool {
 func NewSearchBodyTrackTotalHitsFromBool(v bool) SearchBodyTrackTotalHits {
 	return SearchBodyTrackTotalHits{
 		typ:   SearchBodyTrackTotalHitsBoolType,
-		value: v,
+		value: &v,
 	}
 }
 
 // Int returns the int branch value.
 func (u *SearchBodyTrackTotalHits) Int() int {
-	v, _ := u.value.(int)
-	return v
+	if v, ok := u.value.(*int); ok {
+		return *v
+	}
+	var zero int
+	return zero
 }
 
 // NewSearchBodyTrackTotalHitsFromInt returns a SearchBodyTrackTotalHits populated with v
@@ -1410,12 +1474,14 @@ func (u *SearchBodyTrackTotalHits) Int() int {
 func NewSearchBodyTrackTotalHitsFromInt(v int) SearchBodyTrackTotalHits {
 	return SearchBodyTrackTotalHits{
 		typ:   SearchBodyTrackTotalHitsIntType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SearchBodyTrackTotalHits) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SearchBodyTrackTotalHitsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1426,14 +1492,14 @@ func (u *SearchBodyTrackTotalHits) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = SearchBodyTrackTotalHitsBoolType
-		u.value = v
+		u.value = &v
 	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
 		var v int
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = SearchBodyTrackTotalHitsIntType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodyTrackTotalHits: unexpected JSON token: %s", data[:1])
 	}

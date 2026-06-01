@@ -203,7 +203,9 @@ const (
 // Returns FlowFrameworkGetStatusRespBodyUnknownType if the value has not been decoded.
 func (u *FlowFrameworkGetStatusRespBody) Type() FlowFrameworkGetStatusRespBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *FlowFrameworkGetStatusRespBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -218,8 +220,11 @@ func (u *FlowFrameworkGetStatusRespBody) SetRaw(raw json.RawMessage) {
 
 // FlowFrameworkCommonWorkFlowStatusFullResponse returns the FlowFrameworkCommonWorkFlowStatusFullResponse branch value.
 func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusFullResponse() FlowFrameworkCommonWorkFlowStatusFullResponse {
-	v, _ := u.value.(FlowFrameworkCommonWorkFlowStatusFullResponse)
-	return v
+	if v, ok := u.value.(*FlowFrameworkCommonWorkFlowStatusFullResponse); ok {
+		return *v
+	}
+	var zero FlowFrameworkCommonWorkFlowStatusFullResponse
+	return zero
 }
 
 // NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse returns a FlowFrameworkGetStatusRespBody populated with v
@@ -227,14 +232,17 @@ func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusFullRe
 func NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse(v FlowFrameworkCommonWorkFlowStatusFullResponse) FlowFrameworkGetStatusRespBody {
 	return FlowFrameworkGetStatusRespBody{
 		typ:   FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusFullResponseType,
-		value: v,
+		value: &v,
 	}
 }
 
 // FlowFrameworkCommonWorkFlowStatusDefaultResponse returns the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch value.
 func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusDefaultResponse() FlowFrameworkCommonWorkFlowStatusDefaultResponse {
-	v, _ := u.value.(FlowFrameworkCommonWorkFlowStatusDefaultResponse)
-	return v
+	if v, ok := u.value.(*FlowFrameworkCommonWorkFlowStatusDefaultResponse); ok {
+		return *v
+	}
+	var zero FlowFrameworkCommonWorkFlowStatusDefaultResponse
+	return zero
 }
 
 // NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse returns a FlowFrameworkGetStatusRespBody populated with v
@@ -242,12 +250,14 @@ func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusDefaul
 func NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse(v FlowFrameworkCommonWorkFlowStatusDefaultResponse) FlowFrameworkGetStatusRespBody {
 	return FlowFrameworkGetStatusRespBody{
 		typ:   FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *FlowFrameworkGetStatusRespBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = FlowFrameworkGetStatusRespBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -261,7 +271,7 @@ func (u *FlowFrameworkGetStatusRespBody) UnmarshalJSON(data []byte) error {
 		var v FlowFrameworkCommonWorkFlowStatusFullResponse
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusFullResponseType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -269,7 +279,7 @@ func (u *FlowFrameworkGetStatusRespBody) UnmarshalJSON(data []byte) error {
 		var v FlowFrameworkCommonWorkFlowStatusDefaultResponse
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}

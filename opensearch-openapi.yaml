@@ -66278,6 +66278,8 @@ components:
           properties:
             reload_exception:
               $ref: '#/components/schemas/_common___ErrorCause'
+          required:
+            - reload_exception
     nodes.reload_secure_settings___NodeReloadResponse:
       type: object
       properties:

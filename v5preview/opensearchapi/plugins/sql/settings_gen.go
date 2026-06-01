@@ -142,7 +142,9 @@ const (
 // Returns SQLSettingsBodyUnknownType if the value has not been decoded.
 func (u *SQLSettingsBody) Type() SQLSettingsBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *SQLSettingsBody) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
@@ -157,8 +159,11 @@ func (u *SQLSettingsBody) SetRaw(raw json.RawMessage) {
 
 // SQLSqlSettingsPlain returns the opensearchapi.SQLSqlSettingsPlain branch value.
 func (u *SQLSettingsBody) SQLSqlSettingsPlain() opensearchapi.SQLSqlSettingsPlain {
-	v, _ := u.value.(opensearchapi.SQLSqlSettingsPlain)
-	return v
+	if v, ok := u.value.(*opensearchapi.SQLSqlSettingsPlain); ok {
+		return *v
+	}
+	var zero opensearchapi.SQLSqlSettingsPlain
+	return zero
 }
 
 // NewSQLSettingsBodyFromSQLSqlSettingsPlain returns a SQLSettingsBody populated with v
@@ -166,14 +171,17 @@ func (u *SQLSettingsBody) SQLSqlSettingsPlain() opensearchapi.SQLSqlSettingsPlai
 func NewSQLSettingsBodyFromSQLSqlSettingsPlain(v opensearchapi.SQLSqlSettingsPlain) SQLSettingsBody {
 	return SQLSettingsBody{
 		typ:   SQLSettingsBodySQLSqlSettingsPlainType,
-		value: v,
+		value: &v,
 	}
 }
 
 // SQLSqlSettings returns the opensearchapi.SQLSqlSettings branch value.
 func (u *SQLSettingsBody) SQLSqlSettings() opensearchapi.SQLSqlSettings {
-	v, _ := u.value.(opensearchapi.SQLSqlSettings)
-	return v
+	if v, ok := u.value.(*opensearchapi.SQLSqlSettings); ok {
+		return *v
+	}
+	var zero opensearchapi.SQLSqlSettings
+	return zero
 }
 
 // NewSQLSettingsBodyFromSQLSqlSettings returns a SQLSettingsBody populated with v
@@ -181,12 +189,14 @@ func (u *SQLSettingsBody) SQLSqlSettings() opensearchapi.SQLSqlSettings {
 func NewSQLSettingsBodyFromSQLSqlSettings(v opensearchapi.SQLSqlSettings) SQLSettingsBody {
 	return SQLSettingsBody{
 		typ:   SQLSettingsBodySQLSqlSettingsType,
-		value: v,
+		value: &v,
 	}
 }
 
 func (u *SQLSettingsBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = SQLSettingsBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -200,7 +210,7 @@ func (u *SQLSettingsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SQLSqlSettingsPlain
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SQLSettingsBodySQLSqlSettingsPlainType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
@@ -208,7 +218,7 @@ func (u *SQLSettingsBody) UnmarshalJSON(data []byte) error {
 		var v opensearchapi.SQLSqlSettings
 		if err := json.Unmarshal(data, &v); err == nil {
 			u.typ = SQLSettingsBodySQLSqlSettingsType
-			u.value = v
+			u.value = &v
 			return nil
 		}
 	}
