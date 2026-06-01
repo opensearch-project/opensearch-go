@@ -8,6 +8,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -54,6 +55,15 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 
 	// Deduplicate branches by GoType (some specs list the same type twice).
 	classified = deduplicateBranches(classified)
+	if len(classified) < 2 {
+		return classified[0].GoType
+	}
+
+	// Collapse branches that are indistinguishable when decoded from the same
+	// JSON token (e.g. int/int32/int64, or float32/float64): a try-each decoder
+	// can only ever reach the first, so the narrower siblings are dead and risk
+	// silent truncation. This can drop the union back to a single branch.
+	classified = collapseEquivalentBranches(classified)
 	if len(classified) < 2 {
 		return classified[0].GoType
 	}
@@ -152,7 +162,7 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 					Name:         branchName,
 					GoType:       goTypeName,
 					TokenClass:   "object",
-					Required:     s.Required,
+					Required:     flattenRequired(s),
 					IsRef:        true,
 					VersionAdded: versionAdded,
 				}
@@ -188,34 +198,73 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 		return unionBranch{}
 	}
 
+	// The x-version-added extension lives on the resolved (referenced) schema.
+	// Without it, sortBranchesNewestFirst orders $ref branches as if unversioned.
+	var versionAdded string
+	if ref.Value != nil {
+		versionAdded = extensionString(ref.Value.Extensions, extVersionAdded)
+	}
+
 	if isPrimitiveType(goTypeName) {
 		return unionBranch{
-			Name:       primitiveBranchName(goTypeName),
-			GoType:     goTypeName,
-			TokenClass: tokenClassForPrimitive(goTypeName),
+			Name:         primitiveBranchName(goTypeName),
+			GoType:       goTypeName,
+			TokenClass:   tokenClassForPrimitive(goTypeName),
+			VersionAdded: versionAdded,
 		}
 	}
 
 	if strings.HasPrefix(goTypeName, "map[") {
-		return unionBranch{Name: "Map", GoType: goTypeName, TokenClass: "object"}
+		return unionBranch{Name: "Map", GoType: goTypeName, TokenClass: "object", VersionAdded: versionAdded}
 	}
 	if strings.HasPrefix(goTypeName, "[]") {
-		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: "array"}
+		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: "array", VersionAdded: versionAdded}
 	}
 
 	branchName := deriveBranchName(ref, goTypeName)
-	var required []string
-	if ref.Value != nil {
-		required = ref.Value.Required
-	}
+	required := flattenRequired(ref.Value)
 
 	return unionBranch{
-		Name:       branchName,
-		GoType:     goTypeName,
-		TokenClass: tokenClassForSchemaValue(ref.Value),
-		Required:   required,
-		IsRef:      true,
+		Name:         branchName,
+		GoType:       goTypeName,
+		TokenClass:   tokenClassForSchemaValue(ref.Value),
+		Required:     required,
+		IsRef:        true,
+		VersionAdded: versionAdded,
 	}
+}
+
+// flattenRequired returns the property names a schema requires, including those
+// contributed by its allOf members (recursively). The OpenAPI bundle does not
+// merge allOf, so a schema that extends a base via allOf and marks a new field
+// required (e.g. NodeReloadError adding required reload_exception) carries that
+// requirement on an allOf member rather than at the root. Union discrimination
+// needs the full set to find a branch's distinguishing keys.
+func flattenRequired(s *openapi3.Schema) []string {
+	if s == nil {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var out []string
+	var walk func(*openapi3.Schema)
+	walk = func(sch *openapi3.Schema) {
+		if sch == nil {
+			return
+		}
+		for _, k := range sch.Required {
+			if _, ok := seen[k]; !ok {
+				seen[k] = struct{}{}
+				out = append(out, k)
+			}
+		}
+		for _, sub := range sch.AllOf {
+			if sub != nil {
+				walk(sub.Value)
+			}
+		}
+	}
+	walk(s)
+	return out
 }
 
 // tokenClassForSchemaValue returns the JSON token class for a resolved schema.
@@ -366,6 +415,56 @@ func deduplicateBranches(branches []unionBranch) []unionBranch {
 		}
 		seen[b.GoType] = true
 		result = append(result, b)
+	}
+	return result
+}
+
+// decodeEquivalentGroups lists Go primitive types that decode from the same
+// JSON token and are therefore indistinguishable in a try-each union: only the
+// first such branch attempted is ever reachable. Each group is ordered widest-
+// first; when a union declares more than one member of a group, only the
+// widest (first-listed) survives so the kept accessor never truncates a value
+// the dropped branches could have held. Integer and float groups stay separate
+// because a float branch accepts integers but an int branch rejects decimals,
+// so the two classes remain mutually reachable. string and bool need no group:
+// each has a single Go type, and exact GoType duplicates are already removed by
+// deduplicateBranches.
+var decodeEquivalentGroups = [][]string{
+	{"int64", "int", "int32"},
+	{"float64", "float32"},
+}
+
+// collapseEquivalentBranches drops branches that are decode-indistinguishable
+// from a wider sibling (see decodeEquivalentGroups), keeping each group's
+// widest member in its original position. Collapsing can reduce a union back to
+// a single branch.
+func collapseEquivalentBranches(branches []unionBranch) []unionBranch {
+	drop := make(map[int]struct{})
+	for _, group := range decodeEquivalentGroups {
+		best, bestRank := -1, len(group)
+		for i := range branches {
+			rank := slices.Index(group, branches[i].GoType)
+			if rank >= 0 && rank < bestRank {
+				best, bestRank = i, rank
+			}
+		}
+		if best < 0 {
+			continue
+		}
+		for i := range branches {
+			if i != best && slices.Index(group, branches[i].GoType) >= 0 {
+				drop[i] = struct{}{}
+			}
+		}
+	}
+	if len(drop) == 0 {
+		return branches
+	}
+	result := make([]unionBranch, 0, len(branches)-len(drop))
+	for i := range branches {
+		if _, dropped := drop[i]; !dropped {
+			result = append(result, branches[i])
+		}
 	}
 	return result
 }

@@ -30,6 +30,8 @@ func convertToIR(ops []apiOperation, reg *typeRegistry) *ir.Spec {
 		spec.Registry.Register(irType)
 	}
 
+	classifyUnions(spec)
+
 	return spec
 }
 

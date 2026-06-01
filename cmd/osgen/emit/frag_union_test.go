@@ -43,8 +43,8 @@ func TestUnionFragment_Strict(t *testing.T) {
 	require.Contains(t, body, "case data[0] == '{'")
 	require.Contains(t, body, "case data[0] >= '0'")
 	require.Contains(t, body, "MarshalJSON")
-	require.Contains(t, body, "u.value.(SearchTotalHits)")
-	require.Contains(t, body, "u.value.(int64)")
+	require.Contains(t, body, "u.value.(*SearchTotalHits)")
+	require.Contains(t, body, "u.value.(*int64)")
 }
 
 func TestUnionFragment_TryEach(t *testing.T) {
@@ -70,9 +70,74 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "value any")
 	require.Contains(t, body, "TryEachValueType")
 	require.Contains(t, body, "func (u *TryEachValue) AsMap() map[string]any")
-	require.Contains(t, body, "u.value.(map[string]any)")
+	require.Contains(t, body, "u.value.(*map[string]any)")
 	require.Contains(t, body, "if err := json.Unmarshal(data, &v); err == nil")
 	require.Contains(t, body, "RawJSON")
+}
+
+func TestUnionFragment_MergedDecode(t *testing.T) {
+	t.Parallel()
+
+	types := []*ir.Type{
+		{
+			Name: "DocsItem",
+			Kind: ir.TypeLazyUnion,
+			Branches: []ir.UnionBranch{
+				{Name: "GetResult", GoType: "GetResult", TokenClass: ir.TokenObject},
+				{Name: "MultiGetError", GoType: "MultiGetError", TokenClass: ir.TokenObject, Required: []string{"error"}},
+			},
+			Merge: &ir.UnionMerge{
+				PrimaryGoType: "GetResult",
+				PrimaryConst:  "DocsItemGetResultType",
+				PrimaryName:   "GetResult",
+				Probes:        []ir.MergeProbe{{GoName: "Disc0", JSONKey: "error"}},
+				Branches: []ir.MergeBranch{
+					{GoType: "MultiGetError", Const: "DocsItemMultiGetErrorType", Name: "MultiGetError", PresentProbes: []string{"Disc0"}},
+				},
+			},
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: types}).Body()
+	require.NoError(t, err)
+
+	// Single-pass merge: embeds the primary, probes for the discriminator,
+	// and never calls the try-each HasJSONKeys probe.
+	require.Contains(t, body, "type merged struct")
+	require.Contains(t, body, "GetResult\n") // embedded primary
+	require.Contains(t, body, "Disc0 json.RawMessage `json:\"error\"`")
+	require.Contains(t, body, "if len(m.Disc0) > 0 {")
+	require.Contains(t, body, "u.value = &m.GetResult")
+	require.NotContains(t, body, "build.HasJSONKeys")
+	require.NotContains(t, body, "append(u.raw")
+	require.Contains(t, body, "u.raw = data")
+}
+
+func TestUnionFragment_LazyAccessors(t *testing.T) {
+	t.Parallel()
+
+	types := []*ir.Type{
+		{
+			Name:          "AggValue",
+			Kind:          ir.TypeLazyUnion,
+			LazyAccessors: true,
+			Branches: []ir.UnionBranch{
+				{Name: "Avg", GoType: "AvgAggregate", TokenClass: ir.TokenObject},
+				{Name: "Sum", GoType: "SumAggregate", TokenClass: ir.TokenObject},
+			},
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: types}).Body()
+	require.NoError(t, err)
+
+	// Lazy: UnmarshalJSON only aliases raw; per-branch As<T>() decode on demand.
+	require.Contains(t, body, "func (u *AggValue) AsAvg() (AvgAggregate, error)")
+	require.Contains(t, body, "func (u *AggValue) AsSum() (SumAggregate, error)")
+	require.Contains(t, body, "err := json.Unmarshal(u.raw, &v)")
+	require.Contains(t, body, "u.raw = data")
+	require.NotContains(t, body, "build.HasJSONKeys")
+	require.NotContains(t, body, "no branch matched")
 }
 
 func TestUnionFragment_Imports(t *testing.T) {
