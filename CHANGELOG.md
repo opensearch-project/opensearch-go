@@ -244,6 +244,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Bump `VachaShah/backport` from v1.1.4 to v2.2.0 ([#845](https://github.com/opensearch-project/opensearch-go/pull/845))
 - Bump golangci-lint from v2.11.2 to v2.11.4
 - Bump `golang.org/x/sync` from v0.19.0 to v0.20.0 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
 - Bump `golang.org/x/mod` from v0.33.0 to v0.35.0 ([#831](https://github.com/opensearch-project/opensearch-go/pull/831))
