@@ -99,10 +99,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `MultiSearchItemError` returned from `MSearch`/`MSearchTemplate` for per-sub-response Error envelopes
   - `MSearchErrors` / `MSearchTemplateErrors` per-op containers (Go 1.20+ multi-error contract via `Unwrap() []error`) when 2+ wrapper categories fire on the same response
   - `PartialFailureError` marker interface with `IsPartial() bool` for type-switching across all partial-failure types
-  - Per-Resp helper methods (`BulkItemFailures`, `SearchShardFailures`, `WriteShardFailures`, `MultiSearchItemFailures`) plus `PartialFailures(mask)` aggregator for focused inspection at the call site
-  - `opensearchapi.Errors(err) []error` package-level helper that flattens single- and multi-wrapper errors into a uniform slice for `switch` dispatch
+  - `opensearchapi.Errors(err) []error` package-level helper that flattens single- and multi-wrapper errors into a uniform slice; recommended call-site pattern is a `for`/`switch` over the result (not `errors.As` against a specific type)
   - Helper functions: `IsPartialFailure`, `ToleratePartialFailures`, `RequireSuccessRate` for threshold-based error tolerance
   - Operation constants: `OperationIndex`, `OperationCreate`, `OperationUpdate`, `OperationDelete`
+  - Per-Resp helper methods (`BulkItemFailures`, `SearchShardFailures`, `WriteShardFailures`, `MultiSearchItemFailures`, `PartialFailures(mask)`) exist on the response types as engine machinery for the dispatch; new code should prefer the `for`/`switch` pattern over `opensearchapi.Errors(err)` for forward compatibility
   - `Config.Errors *errmask.ErrorMask` replaces a single boolean: each bit suppresses one wrapper category. v4 defaults to `errmask.All` (mask everything, preserves pre-bitfield behavior); v5+ defaults to `errmask.Empty` (report everything)
   - `OPENSEARCH_GO_ERROR_MASK` environment variable overrides `Config.Errors` at runtime via comma-separated `+`/`-` tokens (lowercase snake_case wrapper names; unknown tokens silently dropped, debug-logged)
   - Both `(resp, error)` are non-nil on partial failure -- response is fully populated

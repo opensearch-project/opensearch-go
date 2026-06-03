@@ -52,8 +52,9 @@ A v4 caller upgrading to v5 who never set `Config.Errors` will start seeing part
 - Typed errors: `*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, `*MSearchErrors`, `*MSearchTemplateErrors`.
 - `opensearchapi.Errors(err) []error` to flatten single- and multi-wrapper error shapes into a uniform slice.
 - Helper functions: `IsPartialFailure(err)`, `ToleratePartialFailures(err)`, `RequireSuccessRate(err, threshold)`.
-- Per-Resp helper methods: `BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`.
 - Operation constants: `OperationIndex`, `OperationCreate`, `OperationUpdate`, `OperationDelete`.
+
+The recommended call-site pattern is a `for`/`switch` over `opensearchapi.Errors(err)`, not `errors.As` against a specific type. Per-Resp helper methods (`BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`) exist on the response types as engine machinery for the dispatch and remain available for focused inspection of a known category, but new code should use the type switch -- see [`guides/error_handling.md`](guides/error_handling.md#why-a-type-switch-not-errorsas-has-or-per-resp-helpers) for why.
 
 **Where to read more:**
 
