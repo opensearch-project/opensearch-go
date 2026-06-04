@@ -2030,16 +2030,18 @@ client, _ := opensearch.NewClient(opensearch.Config{
 
 Each policy type has a corresponding environment variable:
 
-| Variable                               | Policy Type      |
-| -------------------------------------- | ---------------- |
-| `OPENSEARCH_GO_POLICY_CHAIN`           | PolicyChain      |
-| `OPENSEARCH_GO_POLICY_MUX`             | MuxPolicy        |
-| `OPENSEARCH_GO_POLICY_IFENABLED`       | IfEnabledPolicy  |
-| `OPENSEARCH_GO_POLICY_ROUTER`          | poolRouter       |
-| `OPENSEARCH_GO_POLICY_ROLE`            | RolePolicy       |
-| `OPENSEARCH_GO_POLICY_ROUNDROBIN`      | RoundRobinPolicy |
-| `OPENSEARCH_GO_POLICY_INDEX_ROUTER`    | IndexRouter      |
-| `OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER` | DocRouter        |
+| Variable                               | Policy Type       |
+| -------------------------------------- | ----------------- |
+| `OPENSEARCH_GO_POLICY_CHAIN`           | PolicyChain       |
+| `OPENSEARCH_GO_POLICY_MUX`             | MuxPolicy         |
+| `OPENSEARCH_GO_POLICY_IFENABLED`       | IfEnabledPolicy   |
+| `OPENSEARCH_GO_POLICY_ROUTER`          | poolRouter        |
+| `OPENSEARCH_GO_POLICY_ROLE`            | RolePolicy        |
+| `OPENSEARCH_GO_POLICY_ROUNDROBIN`      | RoundRobinPolicy  |
+| `OPENSEARCH_GO_POLICY_COORDINATOR`     | CoordinatorPolicy |
+| `OPENSEARCH_GO_POLICY_NULL`            | NullPolicy        |
+| `OPENSEARCH_GO_POLICY_INDEX_ROUTER`    | IndexRouter       |
+| `OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER` | DocRouter         |
 
 #### Value Format
 
