@@ -501,16 +501,35 @@ cluster.docker-up:
 		fi \
 	))
 	$(eval OPENSEARCH_HEAP_SIZE ?= 1g)
-	@echo "Starting OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role), secure: $(SECURE_INTEGRATION), heap: $(OPENSEARCH_HEAP_SIZE)"
+	$(eval OPENSEARCH_NODE_COUNT ?= 3)
+	@# OpenSearch <=2.17.x carries a node-join/node-left race condition
+	@# (fixed in 2.18 via opensearch-project/OpenSearch#15521, backported
+	@# via opensearch-project/OpenSearch#16118) that leaves a node in
+	@# cluster state but disconnected at the transport layer, breaking
+	@# NodesStats RPC fan-out indefinitely. Single-node clusters cannot
+	@# hit the race; the workflow sets OPENSEARCH_NODE_COUNT=1 for those
+	@# versions. Scale flags are derived inline below; an earlier form
+	@# that nested a case statement inside an eval/shell broke CI.
+	@echo "Starting OpenSearch $(OPENSEARCH_VERSION) with role: $(manager_role), secure: $(SECURE_INTEGRATION), heap: $(OPENSEARCH_HEAP_SIZE), nodes: $(OPENSEARCH_NODE_COUNT)"
 	@OVERRIDES="$$(ls $(COMPOSE_DIR)/docker-compose.*-override.yml 2>/dev/null | xargs -n1 basename 2>/dev/null)"; \
 	if [ -n "$$OVERRIDES" ]; then echo "Active overrides: $$OVERRIDES"; fi
-	export SECURE_INTEGRATION=$(SECURE_INTEGRATION); \
+	@export SECURE_INTEGRATION=$(SECURE_INTEGRATION); \
 	export OPENSEARCH_VERSION=$(OPENSEARCH_VERSION); \
 	export OPENSEARCH_MANAGER_ROLE=$(manager_role); \
 	export OPENSEARCH_MANAGER_SETTING=$(manager_role); \
 	export OPENSEARCH_HEAP_SIZE=$(OPENSEARCH_HEAP_SIZE); \
 	export OPENSEARCH_JAVA_OPTS_EXTRA="$(java_opts_extra)"; \
-	$(CTR_COMPOSE) up -d
+	SCALE_ARGS=""; \
+	if [ "$(OPENSEARCH_NODE_COUNT)" = "1" ]; then \
+		SCALE_ARGS="--scale opensearch-node2=0 --scale opensearch-node3=0"; \
+		export OPENSEARCH_SEED_HOSTS="opensearch-node1"; \
+		export OPENSEARCH_INITIAL_MANAGER_NODES="opensearch-node1"; \
+	elif [ "$(OPENSEARCH_NODE_COUNT)" = "2" ]; then \
+		SCALE_ARGS="--scale opensearch-node3=0"; \
+		export OPENSEARCH_SEED_HOSTS="opensearch-node1,opensearch-node2"; \
+		export OPENSEARCH_INITIAL_MANAGER_NODES="opensearch-node1,opensearch-node2"; \
+	fi; \
+	$(CTR_COMPOSE) up -d $$SCALE_ARGS
 
 ##@ Cluster Scaling & Configuration
 cluster.scale.1: ## Start single-node cluster

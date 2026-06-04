@@ -101,10 +101,10 @@ func (r TasksGetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/tasks/
 type TasksGetResp struct {
-	Completed bool                      `json:"completed"`
-	Error     *ErrorCause               `json:"error,omitempty"`
-	Response  *BulkByScrollResponseBase `json:"response,omitempty"`
-	Task      TasksTaskInfo             `json:"task"`
+	Completed bool                  `json:"completed"`
+	Error     *ErrorCause           `json:"error,omitempty"`
+	Response  *BulkByScrollRespBase `json:"response,omitempty"`
+	Task      TasksTaskInfo         `json:"task"`
 
 	response *opensearch.Response
 }
@@ -143,6 +143,5 @@ func (c tasksClient) Get(ctx context.Context, req TasksGetReq) (*TasksGetResp, e
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

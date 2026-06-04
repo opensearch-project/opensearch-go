@@ -453,6 +453,5 @@ func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

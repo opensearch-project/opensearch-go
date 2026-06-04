@@ -131,6 +131,5 @@ func (c catClient) Help(ctx context.Context, req *CatHelpReq) (*CatHelpResp, err
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

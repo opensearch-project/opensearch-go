@@ -176,7 +176,6 @@ func (c snapshotClient) CreateRepository(ctx context.Context, req SnapshotCreate
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -194,6 +193,5 @@ func (c repositoryClient) Create(ctx context.Context, req SnapshotCreateReposito
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

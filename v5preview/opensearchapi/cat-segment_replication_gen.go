@@ -279,6 +279,5 @@ func (c catClient) SegmentReplication(ctx context.Context, req *CatSegmentReplic
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

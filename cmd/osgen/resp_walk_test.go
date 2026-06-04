@@ -323,6 +323,45 @@ func TestWalkerCycleDetection(t *testing.T) {
 	require.Equal(t, "*ErrorCause", fieldMap["caused_by"].GoType)
 }
 
+func TestWalkerUnderscoreCollisionDisambiguation(t *testing.T) {
+	t.Parallel()
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+	// baseGoName strips leading underscores, so all three properties want the
+	// Go name "Score". The non-underscore field keeps it; the underscore-
+	// prefixed siblings disambiguate to unique "Raw"-suffixed names.
+	schema := openapi3.NewObjectSchema()
+	schema.Properties = openapi3.Schemas{
+		"score":   &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()},
+		"_score":  &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()},
+		"__score": &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()},
+	}
+
+	ref := &openapi3.SchemaRef{Value: schema}
+	got := w.walkSchema(ref, "test___ScoreCollision", "test", false)
+	require.Equal(t, "TestScoreCollision", got)
+
+	registered, ok := reg.lookupByName("TestScoreCollision")
+	require.True(t, ok)
+	require.Len(t, registered.Fields, 3)
+
+	byJSON := make(map[string]string, len(registered.Fields))
+	seenGo := make(map[string]string, len(registered.Fields))
+	for _, f := range registered.Fields {
+		if prev, dup := seenGo[f.GoName]; dup {
+			t.Fatalf("duplicate Go field name %q (both %q and %q)", f.GoName, prev, f.JSONName)
+		}
+		seenGo[f.GoName] = f.JSONName
+		byJSON[f.JSONName] = f.GoName
+	}
+
+	require.Equal(t, "Score", byJSON["score"], "non-underscore field claims the bare name")
+	require.Equal(t, "ScoreRaw", byJSON["__score"])
+	require.Equal(t, "ScoreRaw2", byJSON["_score"])
+}
+
 func TestIsSharedSchema(t *testing.T) {
 	t.Parallel()
 

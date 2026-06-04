@@ -30,6 +30,9 @@ func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }
 

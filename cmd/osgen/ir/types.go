@@ -91,10 +91,25 @@ type Operation struct {
 	IsPointerReq   bool
 	IsNoBody       bool
 
+	// ErrorWrappers lists the partial-failure wrapper-schema names this
+	// operation may surface alongside its primary success response.
+	// Mirrors the proposed `x-error-responses` OpenAPI extension; until
+	// that extension lands upstream, cmd/osgen carries a hardcoded map
+	// (see internal/errwrap.OperationWrappers) populated during
+	// extraction. Order is stable (sorted) so codegen output is
+	// deterministic.
+	ErrorWrappers []string
+
 	// Routing (computed during parse from group name).
 	Package    string
 	ImportPath string
 	IsPlugin   bool
+
+	// MethodName is the flat client method name for plugin operations,
+	// computed in package main so it shares the same acronym and
+	// idiomatic-abbreviation rules as core method names. Empty for core
+	// operations, which carry their method names on DispatchRoutes.
+	MethodName string
 }
 
 // PathField is one URL path placeholder exposed as a struct field on the Req.
@@ -181,6 +196,61 @@ type Type struct {
 	OwnerGroup string
 	Package    string
 	ImportPath string
+
+	// Merge, when non-nil, directs a try-each union to be decoded in a
+	// single json.Unmarshal pass instead of attempting each branch in turn.
+	// It applies to "success | error(s)" response unions whose branches are
+	// all objects and where exactly one branch is permissive (the success
+	// branch, embedded as the primary) while the others carry discriminating
+	// keys. See [UnionMerge].
+	Merge *UnionMerge
+
+	// LazyAccessors marks a union whose branches cannot be discriminated from
+	// the wire bytes (e.g. aggregation results: avg/sum/min/max all serialize
+	// as {"value": N}). Such unions are decoded lazily: UnmarshalJSON only
+	// retains the raw bytes, and generated As<Branch>() accessors decode into
+	// the concrete type the caller requested, on demand.
+	LazyAccessors bool
+}
+
+// UnionMerge describes how to decode a "success | error(s)" union in one pass.
+// The generated UnmarshalJSON decodes into a struct embedding PrimaryGoType
+// plus one presence probe per [UnionMerge.Probes] entry, then fans in: if a
+// discriminated branch's probe keys are all present, it decodes that branch
+// (rare error path); otherwise it yields the embedded primary value (the
+// common path, with no field copy).
+type UnionMerge struct {
+	// PrimaryGoType is the permissive branch embedded in the merged struct
+	// (e.g. "GetResult"). PrimaryConst/PrimaryName carry its const and
+	// accessor names for the fan-in default.
+	PrimaryGoType string
+	PrimaryConst  string
+	PrimaryName   string
+
+	// Probes are the presence-detection fields added alongside the embedded
+	// primary, one per distinguishing JSON key across all discriminated
+	// branches (deduplicated). Each is emitted as
+	// `GoName json.RawMessage `json:"JSONKey"``.
+	Probes []MergeProbe
+
+	// Branches are the discriminated (error) branches in fan-in priority
+	// order (newest/most-specific first).
+	Branches []MergeBranch
+}
+
+// MergeProbe is a presence-detection field in a merged-union decode struct.
+type MergeProbe struct {
+	GoName  string // exported field name, e.g. "Disc0"
+	JSONKey string // wire key probed for presence, e.g. "error"
+}
+
+// MergeBranch is one discriminated branch of a merged union. The branch is
+// selected when every probe in PresentProbes decoded a non-empty value.
+type MergeBranch struct {
+	GoType        string   // branch type to decode into, e.g. "MGetMultiGetError"
+	Const         string   // discriminant const name
+	Name          string   // accessor name
+	PresentProbes []string // GoNames of probes that must all be present
 }
 
 // TypeKind discriminates between struct and union type forms.

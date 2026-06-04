@@ -390,6 +390,10 @@ func (r *unsupportedRoute) PoolName() string {
 	return ""
 }
 
+func (r *unsupportedRoute) OpID() OperationID {
+	return 0
+}
+
 // testMCSRPolicy is a test stub that always returns a NextHop with the
 // given connection and MaxConcurrentShardRequests value. Used to verify
 // that MuxPolicy.Eval gates MCSR based on route attributes.

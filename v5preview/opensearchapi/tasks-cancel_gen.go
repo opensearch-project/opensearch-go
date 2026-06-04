@@ -184,6 +184,5 @@ func (c tasksClient) Cancel(ctx context.Context, req TasksCancelReq) (*TasksCanc
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

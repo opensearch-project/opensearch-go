@@ -165,23 +165,61 @@ const (
 // Returns CatCountRecordEpochUnknownType if the value has not been decoded.
 func (u *CatCountRecordEpoch) Type() CatCountRecordEpochType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *CatCountRecordEpoch) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatCountRecordEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatCountRecordEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatCountRecordEpochUnknownType
+}
 
 // Int64 returns the int64 branch value.
 func (u *CatCountRecordEpoch) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
+}
+
+// NewCatCountRecordEpochFromInt64 returns a CatCountRecordEpoch populated with v
+// on the Int64 branch.
+func NewCatCountRecordEpochFromInt64(v int64) CatCountRecordEpoch {
+	return CatCountRecordEpoch{
+		typ:   CatCountRecordEpochInt64Type,
+		value: &v,
+	}
 }
 
 // String returns the string branch value.
 func (u *CatCountRecordEpoch) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewCatCountRecordEpochFromString returns a CatCountRecordEpoch populated with v
+// on the String branch.
+func NewCatCountRecordEpochFromString(v string) CatCountRecordEpoch {
+	return CatCountRecordEpoch{
+		typ:   CatCountRecordEpochStringType,
+		value: &v,
+	}
 }
 
 func (u *CatCountRecordEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = CatCountRecordEpochUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -192,14 +230,14 @@ func (u *CatCountRecordEpoch) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = CatCountRecordEpochInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = CatCountRecordEpochStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("CatCountRecordEpoch: unexpected JSON token: %s", data[:1])
 	}
@@ -240,6 +278,5 @@ func (c catClient) Count(ctx context.Context, req *CatCountReq) (*CatCountResp, 
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

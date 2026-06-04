@@ -21,12 +21,12 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
-func TestMsearchTemplate(t *testing.T) {
+func TestMSearchTemplate(t *testing.T) {
 	t.Skip("requires NDJSON multi-search body") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	index := testutil.MustUniqueString(t, "test-msearch-template")
+	index := testutil.MustUniqueString(t, "test-m-search-template")
 	t.Cleanup(func() {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
@@ -35,7 +35,7 @@ func TestMsearchTemplate(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.MsearchTemplate(t.Context(), &opensearchapi.MsearchTemplateReq{Index: []string{index}})
+		resp, err := client.MSearchTemplate(t.Context(), &opensearchapi.MSearchTemplateReq{Index: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestMsearchTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.MsearchTemplate(t.Context(), &opensearchapi.MsearchTemplateReq{Index: []string{index}})
+		res, err := failingClient.MSearchTemplate(t.Context(), &opensearchapi.MSearchTemplateReq{Index: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

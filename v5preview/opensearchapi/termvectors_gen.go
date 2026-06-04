@@ -23,7 +23,7 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// TermvectorsReq represents the request for the termvectors operation.
+// TermVectorsReq represents the request for the termvectors operation.
 //
 // Returns information and statistics about terms in the fields of a particular document.
 //
@@ -34,7 +34,7 @@ import (
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-type TermvectorsReq struct {
+type TermVectorsReq struct {
 	// Index specifies the path segment for the request URL.
 	Index string
 
@@ -43,7 +43,7 @@ type TermvectorsReq struct {
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *TermvectorsBody
+	Body *TermVectorsBody
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -53,11 +53,11 @@ type TermvectorsReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *TermvectorsParams
+	Params *TermVectorsParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r TermvectorsReq) GetRequest(method string) (*http.Request, error) {
+func (r TermVectorsReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.TermvectorsPath{
 		Index: r.Index,
 		ID:    r.ID,
@@ -91,8 +91,8 @@ func (r TermvectorsReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// TermvectorsParams represents query parameters for the TermvectorsReq.
-type TermvectorsParams struct {
+// TermVectorsParams represents query parameters for the TermVectorsReq.
+type TermVectorsParams struct {
 	TimeoutParams
 	DebugParams
 	// If `true`, the response includes the document count, sum of document
@@ -146,7 +146,7 @@ type TermvectorsParams struct {
 	VersionType string
 }
 
-func (r TermvectorsParams) get() map[string]string {
+func (r TermVectorsParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -204,14 +204,14 @@ func (r TermvectorsParams) get() map[string]string {
 	return params
 }
 
-// TermvectorsResp represents the response for the termvectors operation.
+// TermVectorsResp represents the response for the termvectors operation.
 //
 // Returns information and statistics about terms in the fields of a particular document.
 //
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-type TermvectorsResp struct {
+type TermVectorsResp struct {
 	// The unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
@@ -222,41 +222,41 @@ type TermvectorsResp struct {
 
 	Version     int64                            `json:"_version"`
 	Found       bool                             `json:"found"`
-	TermVectors map[string]TermvectorsTermVector `json:"term_vectors,omitempty"`
+	TermVectors map[string]TermVectorsTermVector `json:"term_vectors,omitempty"`
 	Took        int64                            `json:"took"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r TermvectorsResp) Inspect() Inspect {
+func (r TermVectorsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r TermvectorsResp) RawBody() io.Reader {
+func (r TermVectorsResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// TermvectorsBody is a typed component of the termvectors operation.
+// TermVectorsBody is a typed component of the termvectors operation.
 //
 // Define parameters and or supply a document to get termvectors for. See documentation.
-type TermvectorsBody struct {
+type TermVectorsBody struct {
 	// An artificial document (a document not present in the index) for which
 	// you want to retrieve term vectors.
 	Doc json.RawMessage `json:"doc"`
 
-	Filter *TermvectorsFilter `json:"filter,omitempty"`
+	Filter *TermVectorsFilter `json:"filter,omitempty"`
 
 	// Overrides the default per-field analyzer.
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
 }
 
-// Termvectors returns information and statistics about terms in the fields of a particular document.
+// TermVectors returns information and statistics about terms in the fields of a particular document.
 //
 // Path: /{index}/_termvectors
 //
@@ -265,9 +265,9 @@ type TermvectorsBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c Client) Termvectors(ctx context.Context, req TermvectorsReq) (*TermvectorsResp, error) {
+func (c Client) TermVectors(ctx context.Context, req TermVectorsReq) (*TermVectorsResp, error) {
 	var (
-		data TermvectorsResp
+		data TermVectorsResp
 		err  error
 	)
 	method := http.MethodGet
@@ -282,6 +282,5 @@ func (c Client) Termvectors(ctx context.Context, req TermvectorsReq) (*Termvecto
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -11,6 +11,7 @@ import (
 	"maps"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -28,6 +29,22 @@ const (
 	respBodySuffix = "___ResponseBody"
 	reqBodySuffix  = "___Body"
 )
+
+// successResponseCodes lists the HTTP success codes the response-schema
+// extractor walks in priority order. [http.StatusOK] is the common case;
+// [http.StatusCreated] is the only success code for _create-style ops
+// and several similar resource-creation endpoints;
+// [http.StatusAccepted] / [http.StatusNoContent] cover async or
+// body-less success paths. The first match with a JSON content schema
+// wins.
+//
+//nolint:gochecknoglobals // const-ish read-only catalog
+var successResponseCodes = []int{
+	http.StatusOK,
+	http.StatusCreated,
+	http.StatusAccepted,
+	http.StatusNoContent,
+}
 
 // apiOperation holds everything needed to generate one set of API files.
 type apiOperation struct {
@@ -53,10 +70,15 @@ type apiOperation struct {
 	HasBody           bool
 	PathFields        []apiPathField
 	QueryParams       []apiQueryParam
-	ResponseRef       string // schema key for the 200 response body (e.g. "cluster.health___HealthResponseBody")
+	ResponseRef       string // schema key for the JSON 2xx response body (e.g. "cluster.health___HealthResponseBody")
 
-	// ResponseSchemaRef is the resolved schema for the 200 response body,
-	// used to walk inline schemas that aren't in Components.Schemas.
+	// ErrorWrappers lists the partial-failure wrapper-schema names this
+	// operation may surface alongside its primary 2xx response. Populated
+	// from the x-error-responses extension on the spec operation.
+	ErrorWrappers []string
+
+	// ResponseSchemaRef is the resolved schema for the JSON 2xx response
+	// body, used to walk inline schemas that aren't in Components.Schemas.
 	ResponseSchemaRef *openapi3.SchemaRef
 
 	RequestRef       string              // schema key for request body (e.g. "ml.register_model___Body")
@@ -309,6 +331,7 @@ func buildAPIOperation(group string, ops []struct {
 		DocsURL:           docsURL,
 		ExcludedDistros:   extensionStringSlice(op.Extensions, extDistributionsExcluded),
 		HasBody:           op.RequestBody != nil,
+		ErrorWrappers:     errorResponseWrappers(op),
 	}
 
 	// Extract request body schema ref.
@@ -404,17 +427,29 @@ func buildAPIOperation(group string, ops []struct {
 	queryParams, paramExc := extractQueryParamsUnion(group, ops, vrange)
 	apiOp.QueryParams = queryParams
 
-	// Extract response schema ref from the first variant with a 200 response.
+	// Extract response schema ref from the first variant with a JSON 2xx
+	// response. The OpenAPI spec uses 200 for most ops but some (notably
+	// _create) only return 201; walk the full 2xx range so the resulting
+	// Resp struct picks up _shards / similar fields the dispatch handler's
+	// wrapper checks rely on. The JSON-content check is part of the scan so
+	// a non-JSON 2xx (e.g. a text/plain 200) doesn't shadow a JSON 2xx at a
+	// higher code on the same operation.
 	for _, o := range ops {
 		if o.op.Responses == nil {
 			continue
 		}
-		resp := o.op.Responses.Value("200")
-		if resp == nil || resp.Value == nil || resp.Value.Content == nil {
-			continue
+		var mt *openapi3.MediaType
+		for _, code := range successResponseCodes {
+			resp := o.op.Responses.Value(strconv.Itoa(code))
+			if resp == nil || resp.Value == nil || resp.Value.Content == nil {
+				continue
+			}
+			if m := resp.Value.Content.Get(contentJSON); m != nil && m.Schema != nil {
+				mt = m
+				break
+			}
 		}
-		mt := resp.Value.Content.Get(contentJSON)
-		if mt == nil || mt.Schema == nil {
+		if mt == nil {
 			continue
 		}
 		apiOp.ResponseRef = refToSchemaKey(mt.Schema.Ref)

@@ -157,6 +157,5 @@ func (c clusterClient) DeleteWeightedRouting(ctx context.Context, req *ClusterDe
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

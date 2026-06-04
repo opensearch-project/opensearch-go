@@ -50,6 +50,8 @@ import (
 
 var called int
 
+func boolPtr(v bool) *bool { return &v }
+
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
 
@@ -77,8 +79,6 @@ type testReq struct {
 	Error   bool
 	Headers http.Header
 }
-
-func boolPtr(v bool) *bool { return &v }
 
 func (r testReq) GetRequest(method string) (*http.Request, error) {
 	if r.Error {

@@ -139,7 +139,7 @@ func (r ClusterRerouteParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type ClusterRerouteResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Explanations []ClusterRerouteExplanation `json:"explanations,omitempty"`
 
 	// Shows the internal representation of the structure, which can differ
@@ -336,6 +336,5 @@ func (c clusterClient) Reroute(ctx context.Context, req *ClusterRerouteReq) (*Cl
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

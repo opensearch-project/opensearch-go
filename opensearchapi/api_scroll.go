@@ -38,5 +38,8 @@ func (c scrollClient) Get(ctx context.Context, req ScrollGetReq) (*ScrollGetResp
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.apiClient.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }

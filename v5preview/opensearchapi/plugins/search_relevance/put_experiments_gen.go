@@ -10,6 +10,8 @@ package search_relevance
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -106,6 +108,146 @@ func (r PutExperimentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutExperimentsBody is a typed component of the search_relevance.put_experiments operation.
+// SearchRelevancePutExperimentsBody is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type SearchRelevancePutExperimentsBody struct {
+	typ   SearchRelevancePutExperimentsBodyType
+	raw   json.RawMessage
+	value any
+}
+
+// SearchRelevancePutExperimentsBodyType discriminates the branches of SearchRelevancePutExperimentsBody.
+type SearchRelevancePutExperimentsBodyType int
+
+const (
+	SearchRelevancePutExperimentsBodyUnknownType SearchRelevancePutExperimentsBodyType = iota
+	SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
+	SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
+	SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns SearchRelevancePutExperimentsBodyUnknownType if the value has not been decoded.
+func (u *SearchRelevancePutExperimentsBody) Type() SearchRelevancePutExperimentsBodyType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *SearchRelevancePutExperimentsBody) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchRelevancePutExperimentsBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchRelevancePutExperimentsBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchRelevancePutExperimentsBodyUnknownType
+}
+
+// SearchRelevancePutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExperimentRequest() opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest {
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
+	return zero
+}
+
+// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the SearchRelevancePutHybridOptimizerExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest(v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody {
+	return SearchRelevancePutExperimentsBody{
+		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType,
+		value: &v,
+	}
+}
+
+// SearchRelevancePutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimentRequest() opensearchapi.SearchRelevancePutPointwiseExperimentRequest {
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPointwiseExperimentRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutPointwiseExperimentRequest
+	return zero
+}
+
+// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the SearchRelevancePutPointwiseExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest(v opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+	return SearchRelevancePutExperimentsBody{
+		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType,
+		value: &v,
+	}
+}
+
+// SearchRelevancePutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperimentRequest() opensearchapi.SearchRelevancePutPairwiseExperimentRequest {
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPairwiseExperimentRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutPairwiseExperimentRequest
+	return zero
+}
+
+// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the SearchRelevancePutPairwiseExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest(v opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+	return SearchRelevancePutExperimentsBody{
+		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType,
+		value: &v,
+	}
+}
+
+func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = SearchRelevancePutExperimentsBodyUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	{
+		var v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SearchRelevancePutPointwiseExperimentRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SearchRelevancePutPairwiseExperimentRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
+			u.value = &v
+			return nil
+		}
+	}
+	return fmt.Errorf("SearchRelevancePutExperimentsBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u SearchRelevancePutExperimentsBody) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

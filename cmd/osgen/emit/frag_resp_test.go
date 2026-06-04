@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -120,7 +121,7 @@ func TestDispatchFragment(t *testing.T) {
 				IsPointerReq: true,
 				HasBody:      true,
 				HasTypedBody: true,
-				HTTPMethods:  []string{"GET", "POST"},
+				HTTPMethods:  []string{http.MethodGet, http.MethodPost},
 				DispatchRoutes: []ir.DispatchRoute{
 					{ReceiverType: "Client", MethodName: "Search", TopLevel: true},
 				},
@@ -144,7 +145,7 @@ func TestDispatchFragment(t *testing.T) {
 				IsPointerReq: false,
 				HasBody:      true,
 				HasTypedBody: true,
-				HTTPMethods:  []string{"POST"},
+				HTTPMethods:  []string{http.MethodPost},
 				DispatchRoutes: []ir.DispatchRoute{
 					{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true},
 				},

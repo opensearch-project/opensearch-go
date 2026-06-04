@@ -155,6 +155,5 @@ func (c Client) GetScriptContext(ctx context.Context, req *GetScriptContextReq) 
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

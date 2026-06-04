@@ -91,7 +91,7 @@ func (r StatsParams) get() map[string]string {
 //
 // Available: >= 2.19.0.
 type StatsResp struct {
-	opensearchapi.NodesResponseBase
+	opensearchapi.NodesRespBase
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`

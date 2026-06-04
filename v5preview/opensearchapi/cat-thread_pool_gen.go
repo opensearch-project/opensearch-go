@@ -233,6 +233,5 @@ func (c catClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatT
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

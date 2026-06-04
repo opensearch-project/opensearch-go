@@ -122,7 +122,7 @@ func (r GetStatsParams) get() map[string]string {
 //
 // Available: >= 3.1.0.
 type GetStatsResp struct {
-	opensearchapi.NodesResponseBase
+	opensearchapi.NodesRespBase
 	AllNodes json.RawMessage `json:"all_nodes"`
 
 	// The name of a resource or configuration element.

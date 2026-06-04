@@ -183,6 +183,5 @@ func (c catClient) Aliases(ctx context.Context, req *CatAliasesReq) (*CatAliases
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

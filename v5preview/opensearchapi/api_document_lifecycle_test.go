@@ -127,7 +127,7 @@ func TestManual_DocumentMget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Mget(t.Context(), opensearchapi.MgetReq{
+			resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{
 				BodyReader: strings.NewReader(tt.body),
 			})
 			require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestManual_DocumentMget(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Mget(t.Context(), opensearchapi.MgetReq{
+		res, err := failingClient.MGet(t.Context(), opensearchapi.MGetReq{
 			BodyReader: strings.NewReader(`{"docs":[]}`),
 		})
 		require.Error(t, err)

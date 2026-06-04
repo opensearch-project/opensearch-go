@@ -121,7 +121,7 @@ func (r IndicesAddBlockParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesAddBlockResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Indices            []IndicesAddBlockIndicesBlockStatus `json:"indices"`
 	ShardsAcknowledged bool                                `json:"shards_acknowledged"`
 
@@ -172,6 +172,5 @@ func (c indicesClient) AddBlock(ctx context.Context, req IndicesAddBlockReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

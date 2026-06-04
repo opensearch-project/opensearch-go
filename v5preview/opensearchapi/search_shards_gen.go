@@ -233,6 +233,5 @@ func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*Search
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

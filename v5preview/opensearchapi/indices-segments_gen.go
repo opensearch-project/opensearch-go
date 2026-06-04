@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
@@ -256,23 +257,61 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) Type() IndicesSegmentsIndexSegm
 	return u.typ
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *IndicesSegmentsIndexSegmentShardsValue) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesSegmentsIndexSegmentShardsValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesSegmentsIndexSegmentShardsValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesSegmentsIndexSegmentShardsValueUnknownType
+}
 
 // Array returns the []IndicesSegmentsShardsSegment branch value.
 func (u *IndicesSegmentsIndexSegmentShardsValue) Array() []IndicesSegmentsShardsSegment {
-	v, _ := u.value.([]IndicesSegmentsShardsSegment)
-	return v
+	if v, ok := u.value.(*[]IndicesSegmentsShardsSegment); ok {
+		return *v
+	}
+	var zero []IndicesSegmentsShardsSegment
+	return zero
+}
+
+// NewIndicesSegmentsIndexSegmentShardsValueFromArray returns a IndicesSegmentsIndexSegmentShardsValue populated with v
+// on the Array branch.
+func NewIndicesSegmentsIndexSegmentShardsValueFromArray(v []IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
+	return IndicesSegmentsIndexSegmentShardsValue{
+		typ:   IndicesSegmentsIndexSegmentShardsValueArrayType,
+		value: &v,
+	}
 }
 
 // IndicesSegmentsShardsSegment returns the IndicesSegmentsShardsSegment branch value.
 func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() IndicesSegmentsShardsSegment {
-	v, _ := u.value.(IndicesSegmentsShardsSegment)
-	return v
+	if v, ok := u.value.(*IndicesSegmentsShardsSegment); ok {
+		return *v
+	}
+	var zero IndicesSegmentsShardsSegment
+	return zero
+}
+
+// NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
+// on the IndicesSegmentsShardsSegment branch.
+func NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
+	return IndicesSegmentsIndexSegmentShardsValue{
+		typ:   IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType,
+		value: &v,
+	}
 }
 
 func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesSegmentsIndexSegmentShardsValueUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -283,14 +322,14 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) erro
 			return err
 		}
 		u.typ = IndicesSegmentsIndexSegmentShardsValueArrayType
-		u.value = v
+		u.value = &v
 	case data[0] == '{':
 		var v IndicesSegmentsShardsSegment
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("IndicesSegmentsIndexSegmentShardsValue: unexpected JSON token: %s", data[:1])
 	}
@@ -305,6 +344,36 @@ func (u IndicesSegmentsIndexSegmentShardsValue) MarshalJSON() ([]byte, error) {
 		return u.raw, nil
 	}
 	return build.NullJSON, nil
+}
+
+// BroadcastShardFailures detects partial failures on a broadcast-shape
+// response (one envelope, all-shards aggregate). Returns nil when no
+// shards failed.
+func (r *IndicesSegmentsResp) BroadcastShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// IndicesSegmentsResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *IndicesSegmentsResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.BroadcastShards) {
+		if e := r.BroadcastShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
 }
 
 // Segments provides low-level information about segments in a Lucene index.
@@ -333,6 +402,5 @@ func (c indicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }

@@ -13,6 +13,71 @@ import (
 	"strings"
 )
 
+// idiomaticAbbreviations rewrites non-idiomatic substrings produced
+// by pascal-casing spec names into idiomatic Go forms (acronym
+// capitalization, compound-noun splits, established short forms).
+// Applied as the last step of every Go-identifier constructor.
+//
+// Each entry has a `tailUpperOnly` flag controlling whether the
+// match must be followed by an uppercase letter (true) or accepts
+// end-of-string + uppercase (false). `tailUpperOnly` exists for
+// `Response` specifically: a standalone `Response` name (like the
+// spec's `_common___SearchResponse` wrapper schema) collides with
+// the operation-level response-body name `<Op>Resp`, so the
+// substitution is restricted to compound forms (e.g.
+// `BulkResponseItem` -> `BulkRespItem`) where the trailing PascalCase
+// segment is preserved.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var idiomaticAbbreviations = []struct {
+	from, to      string
+	tailUpperOnly bool
+}{
+	{from: "Msearch", to: "MSearch"},
+	{from: "Mget", to: "MGet"},
+	{from: "Mtermvectors", to: "MTermVectors"},
+	{from: "Termvectors", to: "TermVectors"},
+	{from: "Forcemerge", to: "ForceMerge"},
+	{from: "Response", to: "Resp", tailUpperOnly: true},
+}
+
+// applyIdiomaticAbbreviations applies all [idiomaticAbbreviations] to
+// s, matching each pattern at PascalCase boundaries (followed by
+// uppercase, or end-of-string for entries with tailUpperOnly=false).
+func applyIdiomaticAbbreviations(s string) string {
+	for _, a := range idiomaticAbbreviations {
+		s = replaceAtPascalBoundary(s, a.from, a.to, a.tailUpperOnly)
+	}
+	return s
+}
+
+// replaceAtPascalBoundary replaces every occurrence of old in s with
+// next, but only when old is followed by an uppercase letter -- or
+// end-of-string if tailUpperOnly is false. Lowercase-suffix variants
+// (e.g. "Responses", "Responsible") are left intact in either mode.
+func replaceAtPascalBoundary(s, old, next string, tailUpperOnly bool) string {
+	if old == "" || !strings.Contains(s, old) {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); {
+		if i+len(old) <= len(s) && s[i:i+len(old)] == old {
+			after := i + len(old)
+			atEnd := after == len(s)
+			atUpper := !atEnd && s[after] >= 'A' && s[after] <= 'Z'
+			if atUpper || (atEnd && !tailUpperOnly) {
+				b.WriteString(next)
+				i = after
+				continue
+			}
+		}
+		b.WriteByte(s[i])
+		i++
+	}
+	return b.String()
+}
+
 // acronyms maps lowercase segments to their Go-idiomatic uppercase form.
 // Keys are sorted alphabetically; keep them that way when adding entries.
 //
@@ -123,7 +188,7 @@ func baseGoName(jsonName string) string {
 	for _, p := range parts {
 		sb.WriteString(titleSegment(p))
 	}
-	result := sb.String()
+	result := applyIdiomaticAbbreviations(sb.String())
 	if len(result) > 0 && result[0] >= '0' && result[0] <= '9' {
 		result = "N" + result
 	}
@@ -149,7 +214,7 @@ func pkgScopedName(group string) string {
 	for _, p := range parts {
 		sb.WriteString(titleSegment(p))
 	}
-	return sb.String()
+	return applyIdiomaticAbbreviations(sb.String())
 }
 
 // scopedNameForPkg returns the input to titleSegment-ize for pkgScopedName.
@@ -258,7 +323,7 @@ func pascalFromSegments(s string) string {
 	for _, p := range parts {
 		sb.WriteString(titleSegment(p))
 	}
-	return sb.String()
+	return applyIdiomaticAbbreviations(sb.String())
 }
 
 // scalarAliases maps OpenAPI spec $ref suffixes to their Go primitive types.

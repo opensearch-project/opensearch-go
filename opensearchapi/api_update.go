@@ -26,6 +26,9 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }
 

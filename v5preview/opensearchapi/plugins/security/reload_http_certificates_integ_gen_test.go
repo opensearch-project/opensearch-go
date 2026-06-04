@@ -29,7 +29,7 @@ func TestReloadHTTPCertificates(t *testing.T) {
 	testutil.SkipIfVersion(t, osClient, "<", "2.8", "ReloadHTTPCertificates")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.ReloadHttpCertificates(t.Context(), nil)
+		resp, err := client.ReloadHTTPCertificates(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -39,7 +39,7 @@ func TestReloadHTTPCertificates(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.ReloadHttpCertificates(t.Context(), nil)
+		res, err := failingClient.ReloadHTTPCertificates(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

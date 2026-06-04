@@ -181,70 +181,112 @@ type FlowFrameworkCommonWorkFlowStatusDefaultResponse struct {
 	WorkflowID *string `json:"workflow_id,omitempty"`
 }
 
-// FlowFrameworkGetStatusResponseBody is a discriminated union type (try-each, newest version first).
+// FlowFrameworkGetStatusRespBody is a discriminated union type (try-each, newest version first).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type FlowFrameworkGetStatusResponseBody struct {
-	typ   FlowFrameworkGetStatusResponseBodyType
+type FlowFrameworkGetStatusRespBody struct {
+	typ   FlowFrameworkGetStatusRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// FlowFrameworkGetStatusResponseBodyType discriminates the branches of FlowFrameworkGetStatusResponseBody.
-type FlowFrameworkGetStatusResponseBodyType int
+// FlowFrameworkGetStatusRespBodyType discriminates the branches of FlowFrameworkGetStatusRespBody.
+type FlowFrameworkGetStatusRespBodyType int
 
 const (
-	FlowFrameworkGetStatusResponseBodyUnknownType FlowFrameworkGetStatusResponseBodyType = iota
-	FlowFrameworkGetStatusResponseBodyFlowFrameworkCommonWorkFlowStatusFullResponseType
-	FlowFrameworkGetStatusResponseBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType
+	FlowFrameworkGetStatusRespBodyUnknownType FlowFrameworkGetStatusRespBodyType = iota
+	FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusFullResponseType
+	FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns FlowFrameworkGetStatusResponseBodyUnknownType if the value has not been decoded.
-func (u *FlowFrameworkGetStatusResponseBody) Type() FlowFrameworkGetStatusResponseBodyType {
-	return u.typ
+// Returns FlowFrameworkGetStatusRespBodyUnknownType if the value has not been decoded.
+func (u *FlowFrameworkGetStatusRespBody) Type() FlowFrameworkGetStatusRespBodyType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *FlowFrameworkGetStatusRespBody) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewFlowFrameworkGetStatusRespBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *FlowFrameworkGetStatusRespBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = FlowFrameworkGetStatusRespBodyUnknownType
 }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *FlowFrameworkGetStatusResponseBody) RawJSON() json.RawMessage { return u.raw }
-
 // FlowFrameworkCommonWorkFlowStatusFullResponse returns the FlowFrameworkCommonWorkFlowStatusFullResponse branch value.
-func (u *FlowFrameworkGetStatusResponseBody) FlowFrameworkCommonWorkFlowStatusFullResponse() FlowFrameworkCommonWorkFlowStatusFullResponse {
-	v, _ := u.value.(FlowFrameworkCommonWorkFlowStatusFullResponse)
-	return v
+func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusFullResponse() FlowFrameworkCommonWorkFlowStatusFullResponse {
+	if v, ok := u.value.(*FlowFrameworkCommonWorkFlowStatusFullResponse); ok {
+		return *v
+	}
+	var zero FlowFrameworkCommonWorkFlowStatusFullResponse
+	return zero
+}
+
+// NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse returns a FlowFrameworkGetStatusRespBody populated with v
+// on the FlowFrameworkCommonWorkFlowStatusFullResponse branch.
+func NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse(v FlowFrameworkCommonWorkFlowStatusFullResponse) FlowFrameworkGetStatusRespBody {
+	return FlowFrameworkGetStatusRespBody{
+		typ:   FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusFullResponseType,
+		value: &v,
+	}
 }
 
 // FlowFrameworkCommonWorkFlowStatusDefaultResponse returns the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch value.
-func (u *FlowFrameworkGetStatusResponseBody) FlowFrameworkCommonWorkFlowStatusDefaultResponse() FlowFrameworkCommonWorkFlowStatusDefaultResponse {
-	v, _ := u.value.(FlowFrameworkCommonWorkFlowStatusDefaultResponse)
-	return v
+func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusDefaultResponse() FlowFrameworkCommonWorkFlowStatusDefaultResponse {
+	if v, ok := u.value.(*FlowFrameworkCommonWorkFlowStatusDefaultResponse); ok {
+		return *v
+	}
+	var zero FlowFrameworkCommonWorkFlowStatusDefaultResponse
+	return zero
 }
 
-func (u *FlowFrameworkGetStatusResponseBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+// NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse returns a FlowFrameworkGetStatusRespBody populated with v
+// on the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch.
+func NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse(v FlowFrameworkCommonWorkFlowStatusDefaultResponse) FlowFrameworkGetStatusRespBody {
+	return FlowFrameworkGetStatusRespBody{
+		typ:   FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType,
+		value: &v,
+	}
+}
+
+func (u *FlowFrameworkGetStatusRespBody) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = FlowFrameworkGetStatusRespBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
 	{
 		var v FlowFrameworkCommonWorkFlowStatusFullResponse
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = FlowFrameworkGetStatusResponseBodyFlowFrameworkCommonWorkFlowStatusFullResponseType
-			u.value = v
+			u.typ = FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusFullResponseType
+			u.value = &v
 			return nil
 		}
 	}
 	{
 		var v FlowFrameworkCommonWorkFlowStatusDefaultResponse
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = FlowFrameworkGetStatusResponseBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType
-			u.value = v
+			u.typ = FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType
+			u.value = &v
 			return nil
 		}
 	}
-	return fmt.Errorf("FlowFrameworkGetStatusResponseBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return fmt.Errorf("FlowFrameworkGetStatusRespBody: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u FlowFrameworkGetStatusResponseBody) MarshalJSON() ([]byte, error) {
+func (u FlowFrameworkGetStatusRespBody) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

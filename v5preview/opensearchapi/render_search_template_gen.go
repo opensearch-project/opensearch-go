@@ -175,6 +175,5 @@ func (c Client) RenderSearchTemplate(ctx context.Context, req RenderSearchTempla
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

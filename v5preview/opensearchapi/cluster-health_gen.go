@@ -317,6 +317,5 @@ func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq) (*Clus
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -136,7 +136,6 @@ func (c snapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerify
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -154,6 +153,5 @@ func (c repositoryClient) Verify(ctx context.Context, req SnapshotVerifyReposito
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

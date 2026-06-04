@@ -147,7 +147,7 @@ func (r IndicesCloneParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clone/
 type IndicesCloneResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Index              string `json:"index"`
 	ShardsAcknowledged bool   `json:"shards_acknowledged"`
 
@@ -201,6 +201,5 @@ func (c indicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*Indices
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

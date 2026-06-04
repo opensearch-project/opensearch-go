@@ -281,6 +281,5 @@ func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*S
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

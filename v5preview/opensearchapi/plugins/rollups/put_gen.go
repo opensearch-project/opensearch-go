@@ -127,6 +127,20 @@ func (r PutParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#create-or-update-an-index-rollup-job
 type PutResp struct {
+	// The unique identifier for a resource.
+	ID *string `json:"_id,omitempty"`
+
+	// The primary term of the document.
+	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
+
+	// The sequence number of the document.
+	SeqNo *int64 `json:"_seq_no,omitempty"`
+
+	Version *int64 `json:"_version,omitempty"`
+
+	// Defines the configuration for a rollup job.
+	Rollup *opensearchapi.RollupsRollup `json:"rollup,omitempty"`
+
 	response *opensearch.Response
 }
 

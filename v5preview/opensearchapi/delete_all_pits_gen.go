@@ -136,6 +136,5 @@ func (c Client) DeleteAllPits(ctx context.Context, req *DeleteAllPitsReq) (*Dele
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -129,7 +129,7 @@ func (r IndicesCloseParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/close-index/
 type IndicesCloseResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Indices            map[string]IndicesCloseIndexResult `json:"indices"`
 	ShardsAcknowledged bool                               `json:"shards_acknowledged"`
 
@@ -193,6 +193,5 @@ func (c indicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*Indice
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -141,6 +141,5 @@ func (c clusterClient) DeleteVotingConfigExclusions(ctx context.Context, req *Cl
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

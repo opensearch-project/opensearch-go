@@ -139,6 +139,5 @@ func (c ingestClient) GetPipeline(ctx context.Context, req IngestGetPipelineReq)
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

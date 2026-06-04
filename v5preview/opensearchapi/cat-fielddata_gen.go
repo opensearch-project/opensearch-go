@@ -182,6 +182,5 @@ func (c catClient) Fielddata(ctx context.Context, req *CatFielddataReq) (*CatFie
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

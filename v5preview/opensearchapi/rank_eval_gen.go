@@ -358,6 +358,5 @@ func (c Client) RankEval(ctx context.Context, req *RankEvalReq) (*RankEvalResp, 
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

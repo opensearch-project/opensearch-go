@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -286,22 +287,2242 @@ type IndicesAnalyzeBody struct {
 	Tokenizer *IndicesAnalyzeBodyTokenizer `json:"tokenizer,omitempty"`
 }
 
-// IndicesAnalyzeBodyCharFilterItem is a typed component of the indices.analyze operation.
+// IndicesAnalyzeBodyCharFilterItem is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type IndicesAnalyzeBodyCharFilterItem struct {
+	typ   IndicesAnalyzeBodyCharFilterItemType
+	raw   json.RawMessage
+	value any
 }
 
-// IndicesAnalyzeBodyFilterItem is a typed component of the indices.analyze operation.
+// IndicesAnalyzeBodyCharFilterItemType discriminates the branches of IndicesAnalyzeBodyCharFilterItem.
+type IndicesAnalyzeBodyCharFilterItemType int
+
+const (
+	IndicesAnalyzeBodyCharFilterItemUnknownType IndicesAnalyzeBodyCharFilterItemType = iota
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisHtmlStripCharFilterType
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisMappingCharFilterType
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisPatternReplaceCharFilterType
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisIcuNormalizationCharFilterType
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisKuromojiIterationMarkCharFilterType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesAnalyzeBodyCharFilterItemUnknownType if the value has not been decoded.
+func (u *IndicesAnalyzeBodyCharFilterItem) Type() IndicesAnalyzeBodyCharFilterItemType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *IndicesAnalyzeBodyCharFilterItem) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesAnalyzeBodyCharFilterItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesAnalyzeBodyCharFilterItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyCharFilterItemUnknownType
+}
+
+// CommonAnalysisHtmlStripCharFilter returns the CommonAnalysisHtmlStripCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisHtmlStripCharFilter() CommonAnalysisHtmlStripCharFilter {
+	if v, ok := u.value.(*CommonAnalysisHtmlStripCharFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisHtmlStripCharFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHtmlStripCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisHtmlStripCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHtmlStripCharFilter(v CommonAnalysisHtmlStripCharFilter) IndicesAnalyzeBodyCharFilterItem {
+	return IndicesAnalyzeBodyCharFilterItem{
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisHtmlStripCharFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisMappingCharFilter returns the CommonAnalysisMappingCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisMappingCharFilter() CommonAnalysisMappingCharFilter {
+	if v, ok := u.value.(*CommonAnalysisMappingCharFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisMappingCharFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisMappingCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisMappingCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisMappingCharFilter(v CommonAnalysisMappingCharFilter) IndicesAnalyzeBodyCharFilterItem {
+	return IndicesAnalyzeBodyCharFilterItem{
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisMappingCharFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPatternReplaceCharFilter returns the CommonAnalysisPatternReplaceCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisPatternReplaceCharFilter() CommonAnalysisPatternReplaceCharFilter {
+	if v, ok := u.value.(*CommonAnalysisPatternReplaceCharFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPatternReplaceCharFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisPatternReplaceCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisPatternReplaceCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisPatternReplaceCharFilter(v CommonAnalysisPatternReplaceCharFilter) IndicesAnalyzeBodyCharFilterItem {
+	return IndicesAnalyzeBodyCharFilterItem{
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisPatternReplaceCharFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuNormalizationCharFilter returns the CommonAnalysisIcuNormalizationCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisIcuNormalizationCharFilter() CommonAnalysisIcuNormalizationCharFilter {
+	if v, ok := u.value.(*CommonAnalysisIcuNormalizationCharFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuNormalizationCharFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisIcuNormalizationCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisIcuNormalizationCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisIcuNormalizationCharFilter(v CommonAnalysisIcuNormalizationCharFilter) IndicesAnalyzeBodyCharFilterItem {
+	return IndicesAnalyzeBodyCharFilterItem{
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisIcuNormalizationCharFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKuromojiIterationMarkCharFilter returns the CommonAnalysisKuromojiIterationMarkCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisKuromojiIterationMarkCharFilter() CommonAnalysisKuromojiIterationMarkCharFilter {
+	if v, ok := u.value.(*CommonAnalysisKuromojiIterationMarkCharFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKuromojiIterationMarkCharFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisKuromojiIterationMarkCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisKuromojiIterationMarkCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisKuromojiIterationMarkCharFilter(v CommonAnalysisKuromojiIterationMarkCharFilter) IndicesAnalyzeBodyCharFilterItem {
+	return IndicesAnalyzeBodyCharFilterItem{
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisKuromojiIterationMarkCharFilterType,
+		value: &v,
+	}
+}
+
+func (u *IndicesAnalyzeBodyCharFilterItem) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyCharFilterItemUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisHtmlStripCharFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisHtmlStripCharFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisMappingCharFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisMappingCharFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "pattern", "type") {
+		var v CommonAnalysisPatternReplaceCharFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisPatternReplaceCharFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisIcuNormalizationCharFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisIcuNormalizationCharFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "normalize_kana", "normalize_kanji", "type") {
+		var v CommonAnalysisKuromojiIterationMarkCharFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisKuromojiIterationMarkCharFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("IndicesAnalyzeBodyCharFilterItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u IndicesAnalyzeBodyCharFilterItem) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// IndicesAnalyzeBodyFilterItem is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type IndicesAnalyzeBodyFilterItem struct {
+	typ   IndicesAnalyzeBodyFilterItemType
+	raw   json.RawMessage
+	value any
 }
 
-// IndicesAnalyzeBodyText is a typed component of the indices.analyze operation.
-//
+// IndicesAnalyzeBodyFilterItemType discriminates the branches of IndicesAnalyzeBodyFilterItem.
+type IndicesAnalyzeBodyFilterItemType int
+
+const (
+	IndicesAnalyzeBodyFilterItemUnknownType IndicesAnalyzeBodyFilterItemType = iota
+	IndicesAnalyzeBodyFilterItemCommonAnalysisAsciiFoldingTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisCommonGramsTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisConditionTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisDelimitedPayloadTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisEdgeNGramTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisElisionTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisFingerprintTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisHunspellTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisHyphenationDecompounderTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKeepTypesTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKeepWordsTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKeywordMarkerTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKStemTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisLengthTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisLimitTokenCountTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisLowercaseTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisMultiplexerTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisNGramTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisNoriPartOfSpeechTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisPatternCaptureTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisPatternReplaceTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisPersianStemTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisPorterStemTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisPredicateTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisRemoveDuplicatesTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisReverseTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisShingleTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisSnowballTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisStemmerOverrideTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisStemmerTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisStopTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisSynonymGraphTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisSynonymTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisTrimTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisTruncateTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisUniqueTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisUppercaseTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisWordDelimiterGraphTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisWordDelimiterTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiStemmerTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiReadingFormTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiPartOfSpeechTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTokenizerType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuCollationTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuFoldingTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuNormalizationTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTransformTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisPhoneticTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisDictionaryDecompounderTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisSmartcnStopTokenFilterType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesAnalyzeBodyFilterItemUnknownType if the value has not been decoded.
+func (u *IndicesAnalyzeBodyFilterItem) Type() IndicesAnalyzeBodyFilterItemType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *IndicesAnalyzeBodyFilterItem) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesAnalyzeBodyFilterItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesAnalyzeBodyFilterItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyFilterItemUnknownType
+}
+
+// CommonAnalysisAsciiFoldingTokenFilter returns the CommonAnalysisAsciiFoldingTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisAsciiFoldingTokenFilter() CommonAnalysisAsciiFoldingTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisAsciiFoldingTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisAsciiFoldingTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisAsciiFoldingTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisAsciiFoldingTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisAsciiFoldingTokenFilter(v CommonAnalysisAsciiFoldingTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisAsciiFoldingTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisCommonGramsTokenFilter returns the CommonAnalysisCommonGramsTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisCommonGramsTokenFilter() CommonAnalysisCommonGramsTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisCommonGramsTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisCommonGramsTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisCommonGramsTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisCommonGramsTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisCommonGramsTokenFilter(v CommonAnalysisCommonGramsTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisCommonGramsTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisConditionTokenFilter returns the CommonAnalysisConditionTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisConditionTokenFilter() CommonAnalysisConditionTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisConditionTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisConditionTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisConditionTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisConditionTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisConditionTokenFilter(v CommonAnalysisConditionTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisConditionTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisDelimitedPayloadTokenFilter returns the CommonAnalysisDelimitedPayloadTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisDelimitedPayloadTokenFilter() CommonAnalysisDelimitedPayloadTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisDelimitedPayloadTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisDelimitedPayloadTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDelimitedPayloadTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisDelimitedPayloadTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDelimitedPayloadTokenFilter(v CommonAnalysisDelimitedPayloadTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisDelimitedPayloadTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisEdgeNGramTokenFilter returns the CommonAnalysisEdgeNGramTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisEdgeNGramTokenFilter() CommonAnalysisEdgeNGramTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisEdgeNGramTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisEdgeNGramTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisEdgeNGramTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisEdgeNGramTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisEdgeNGramTokenFilter(v CommonAnalysisEdgeNGramTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisEdgeNGramTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisElisionTokenFilter returns the CommonAnalysisElisionTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisElisionTokenFilter() CommonAnalysisElisionTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisElisionTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisElisionTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisElisionTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisElisionTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisElisionTokenFilter(v CommonAnalysisElisionTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisElisionTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisFingerprintTokenFilter returns the CommonAnalysisFingerprintTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisFingerprintTokenFilter() CommonAnalysisFingerprintTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisFingerprintTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisFingerprintTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisFingerprintTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisFingerprintTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisFingerprintTokenFilter(v CommonAnalysisFingerprintTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisFingerprintTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisHunspellTokenFilter returns the CommonAnalysisHunspellTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisHunspellTokenFilter() CommonAnalysisHunspellTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisHunspellTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisHunspellTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHunspellTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisHunspellTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHunspellTokenFilter(v CommonAnalysisHunspellTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisHunspellTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisHyphenationDecompounderTokenFilter returns the CommonAnalysisHyphenationDecompounderTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisHyphenationDecompounderTokenFilter() CommonAnalysisHyphenationDecompounderTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisHyphenationDecompounderTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisHyphenationDecompounderTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHyphenationDecompounderTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisHyphenationDecompounderTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHyphenationDecompounderTokenFilter(v CommonAnalysisHyphenationDecompounderTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisHyphenationDecompounderTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKeepTypesTokenFilter returns the CommonAnalysisKeepTypesTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKeepTypesTokenFilter() CommonAnalysisKeepTypesTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKeepTypesTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKeepTypesTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepTypesTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKeepTypesTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepTypesTokenFilter(v CommonAnalysisKeepTypesTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKeepTypesTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKeepWordsTokenFilter returns the CommonAnalysisKeepWordsTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKeepWordsTokenFilter() CommonAnalysisKeepWordsTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKeepWordsTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKeepWordsTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepWordsTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKeepWordsTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepWordsTokenFilter(v CommonAnalysisKeepWordsTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKeepWordsTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKeywordMarkerTokenFilter returns the CommonAnalysisKeywordMarkerTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKeywordMarkerTokenFilter() CommonAnalysisKeywordMarkerTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKeywordMarkerTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKeywordMarkerTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeywordMarkerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKeywordMarkerTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeywordMarkerTokenFilter(v CommonAnalysisKeywordMarkerTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKeywordMarkerTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKStemTokenFilter returns the CommonAnalysisKStemTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKStemTokenFilter() CommonAnalysisKStemTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKStemTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKStemTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKStemTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKStemTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKStemTokenFilter(v CommonAnalysisKStemTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKStemTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisLengthTokenFilter returns the CommonAnalysisLengthTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisLengthTokenFilter() CommonAnalysisLengthTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisLengthTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisLengthTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLengthTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisLengthTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLengthTokenFilter(v CommonAnalysisLengthTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisLengthTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisLimitTokenCountTokenFilter returns the CommonAnalysisLimitTokenCountTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisLimitTokenCountTokenFilter() CommonAnalysisLimitTokenCountTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisLimitTokenCountTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisLimitTokenCountTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLimitTokenCountTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisLimitTokenCountTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLimitTokenCountTokenFilter(v CommonAnalysisLimitTokenCountTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisLimitTokenCountTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisLowercaseTokenFilter returns the CommonAnalysisLowercaseTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisLowercaseTokenFilter() CommonAnalysisLowercaseTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisLowercaseTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisLowercaseTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLowercaseTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisLowercaseTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLowercaseTokenFilter(v CommonAnalysisLowercaseTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisLowercaseTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisMultiplexerTokenFilter returns the CommonAnalysisMultiplexerTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisMultiplexerTokenFilter() CommonAnalysisMultiplexerTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisMultiplexerTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisMultiplexerTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisMultiplexerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisMultiplexerTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisMultiplexerTokenFilter(v CommonAnalysisMultiplexerTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisMultiplexerTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisNGramTokenFilter returns the CommonAnalysisNGramTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisNGramTokenFilter() CommonAnalysisNGramTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisNGramTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisNGramTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNGramTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisNGramTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNGramTokenFilter(v CommonAnalysisNGramTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisNGramTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisNoriPartOfSpeechTokenFilter returns the CommonAnalysisNoriPartOfSpeechTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisNoriPartOfSpeechTokenFilter() CommonAnalysisNoriPartOfSpeechTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisNoriPartOfSpeechTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisNoriPartOfSpeechTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNoriPartOfSpeechTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisNoriPartOfSpeechTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNoriPartOfSpeechTokenFilter(v CommonAnalysisNoriPartOfSpeechTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisNoriPartOfSpeechTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPatternCaptureTokenFilter returns the CommonAnalysisPatternCaptureTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPatternCaptureTokenFilter() CommonAnalysisPatternCaptureTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisPatternCaptureTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPatternCaptureTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternCaptureTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisPatternCaptureTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternCaptureTokenFilter(v CommonAnalysisPatternCaptureTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisPatternCaptureTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPatternReplaceTokenFilter returns the CommonAnalysisPatternReplaceTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPatternReplaceTokenFilter() CommonAnalysisPatternReplaceTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisPatternReplaceTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPatternReplaceTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternReplaceTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisPatternReplaceTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternReplaceTokenFilter(v CommonAnalysisPatternReplaceTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisPatternReplaceTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPersianStemTokenFilter returns the CommonAnalysisPersianStemTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPersianStemTokenFilter() CommonAnalysisPersianStemTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisPersianStemTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPersianStemTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPersianStemTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisPersianStemTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPersianStemTokenFilter(v CommonAnalysisPersianStemTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisPersianStemTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPorterStemTokenFilter returns the CommonAnalysisPorterStemTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPorterStemTokenFilter() CommonAnalysisPorterStemTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisPorterStemTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPorterStemTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPorterStemTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisPorterStemTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPorterStemTokenFilter(v CommonAnalysisPorterStemTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisPorterStemTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPredicateTokenFilter returns the CommonAnalysisPredicateTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPredicateTokenFilter() CommonAnalysisPredicateTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisPredicateTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPredicateTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPredicateTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisPredicateTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPredicateTokenFilter(v CommonAnalysisPredicateTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisPredicateTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisRemoveDuplicatesTokenFilter returns the CommonAnalysisRemoveDuplicatesTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisRemoveDuplicatesTokenFilter() CommonAnalysisRemoveDuplicatesTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisRemoveDuplicatesTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisRemoveDuplicatesTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisRemoveDuplicatesTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisRemoveDuplicatesTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisRemoveDuplicatesTokenFilter(v CommonAnalysisRemoveDuplicatesTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisRemoveDuplicatesTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisReverseTokenFilter returns the CommonAnalysisReverseTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisReverseTokenFilter() CommonAnalysisReverseTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisReverseTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisReverseTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisReverseTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisReverseTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisReverseTokenFilter(v CommonAnalysisReverseTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisReverseTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisShingleTokenFilter returns the CommonAnalysisShingleTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisShingleTokenFilter() CommonAnalysisShingleTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisShingleTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisShingleTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisShingleTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisShingleTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisShingleTokenFilter(v CommonAnalysisShingleTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisShingleTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSnowballTokenFilter returns the CommonAnalysisSnowballTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSnowballTokenFilter() CommonAnalysisSnowballTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisSnowballTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisSnowballTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSnowballTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisSnowballTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSnowballTokenFilter(v CommonAnalysisSnowballTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisSnowballTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisStemmerOverrideTokenFilter returns the CommonAnalysisStemmerOverrideTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisStemmerOverrideTokenFilter() CommonAnalysisStemmerOverrideTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisStemmerOverrideTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisStemmerOverrideTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerOverrideTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisStemmerOverrideTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerOverrideTokenFilter(v CommonAnalysisStemmerOverrideTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisStemmerOverrideTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisStemmerTokenFilter returns the CommonAnalysisStemmerTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisStemmerTokenFilter() CommonAnalysisStemmerTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisStemmerTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisStemmerTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisStemmerTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerTokenFilter(v CommonAnalysisStemmerTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisStemmerTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisStopTokenFilter returns the CommonAnalysisStopTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisStopTokenFilter() CommonAnalysisStopTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisStopTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisStopTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStopTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisStopTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStopTokenFilter(v CommonAnalysisStopTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisStopTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSynonymGraphTokenFilter returns the CommonAnalysisSynonymGraphTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSynonymGraphTokenFilter() CommonAnalysisSynonymGraphTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisSynonymGraphTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisSynonymGraphTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymGraphTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisSynonymGraphTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymGraphTokenFilter(v CommonAnalysisSynonymGraphTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisSynonymGraphTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSynonymTokenFilter returns the CommonAnalysisSynonymTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSynonymTokenFilter() CommonAnalysisSynonymTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisSynonymTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisSynonymTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisSynonymTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymTokenFilter(v CommonAnalysisSynonymTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisSynonymTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisTrimTokenFilter returns the CommonAnalysisTrimTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisTrimTokenFilter() CommonAnalysisTrimTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisTrimTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisTrimTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTrimTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisTrimTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTrimTokenFilter(v CommonAnalysisTrimTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisTrimTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisTruncateTokenFilter returns the CommonAnalysisTruncateTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisTruncateTokenFilter() CommonAnalysisTruncateTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisTruncateTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisTruncateTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTruncateTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisTruncateTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTruncateTokenFilter(v CommonAnalysisTruncateTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisTruncateTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisUniqueTokenFilter returns the CommonAnalysisUniqueTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisUniqueTokenFilter() CommonAnalysisUniqueTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisUniqueTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisUniqueTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUniqueTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisUniqueTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUniqueTokenFilter(v CommonAnalysisUniqueTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisUniqueTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisUppercaseTokenFilter returns the CommonAnalysisUppercaseTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisUppercaseTokenFilter() CommonAnalysisUppercaseTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisUppercaseTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisUppercaseTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUppercaseTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisUppercaseTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUppercaseTokenFilter(v CommonAnalysisUppercaseTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisUppercaseTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisWordDelimiterGraphTokenFilter returns the CommonAnalysisWordDelimiterGraphTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisWordDelimiterGraphTokenFilter() CommonAnalysisWordDelimiterGraphTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisWordDelimiterGraphTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisWordDelimiterGraphTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterGraphTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisWordDelimiterGraphTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterGraphTokenFilter(v CommonAnalysisWordDelimiterGraphTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisWordDelimiterGraphTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisWordDelimiterTokenFilter returns the CommonAnalysisWordDelimiterTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisWordDelimiterTokenFilter() CommonAnalysisWordDelimiterTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisWordDelimiterTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisWordDelimiterTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisWordDelimiterTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterTokenFilter(v CommonAnalysisWordDelimiterTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisWordDelimiterTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKuromojiStemmerTokenFilter returns the CommonAnalysisKuromojiStemmerTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKuromojiStemmerTokenFilter() CommonAnalysisKuromojiStemmerTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKuromojiStemmerTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKuromojiStemmerTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiStemmerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKuromojiStemmerTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiStemmerTokenFilter(v CommonAnalysisKuromojiStemmerTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiStemmerTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKuromojiReadingFormTokenFilter returns the CommonAnalysisKuromojiReadingFormTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKuromojiReadingFormTokenFilter() CommonAnalysisKuromojiReadingFormTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKuromojiReadingFormTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKuromojiReadingFormTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiReadingFormTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKuromojiReadingFormTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiReadingFormTokenFilter(v CommonAnalysisKuromojiReadingFormTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiReadingFormTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKuromojiPartOfSpeechTokenFilter returns the CommonAnalysisKuromojiPartOfSpeechTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKuromojiPartOfSpeechTokenFilter() CommonAnalysisKuromojiPartOfSpeechTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisKuromojiPartOfSpeechTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisKuromojiPartOfSpeechTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiPartOfSpeechTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisKuromojiPartOfSpeechTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiPartOfSpeechTokenFilter(v CommonAnalysisKuromojiPartOfSpeechTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiPartOfSpeechTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuTokenizer returns the CommonAnalysisIcuTokenizer branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuTokenizer() CommonAnalysisIcuTokenizer {
+	if v, ok := u.value.(*CommonAnalysisIcuTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTokenizer returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisIcuTokenizer branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuCollationTokenFilter returns the CommonAnalysisIcuCollationTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuCollationTokenFilter() CommonAnalysisIcuCollationTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisIcuCollationTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuCollationTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuCollationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisIcuCollationTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuCollationTokenFilter(v CommonAnalysisIcuCollationTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuCollationTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuFoldingTokenFilter returns the CommonAnalysisIcuFoldingTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuFoldingTokenFilter() CommonAnalysisIcuFoldingTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisIcuFoldingTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuFoldingTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuFoldingTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisIcuFoldingTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuFoldingTokenFilter(v CommonAnalysisIcuFoldingTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuFoldingTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuNormalizationTokenFilter returns the CommonAnalysisIcuNormalizationTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuNormalizationTokenFilter() CommonAnalysisIcuNormalizationTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisIcuNormalizationTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuNormalizationTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuNormalizationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisIcuNormalizationTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuNormalizationTokenFilter(v CommonAnalysisIcuNormalizationTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuNormalizationTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuTransformTokenFilter returns the CommonAnalysisIcuTransformTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuTransformTokenFilter() CommonAnalysisIcuTransformTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisIcuTransformTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuTransformTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTransformTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisIcuTransformTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTransformTokenFilter(v CommonAnalysisIcuTransformTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTransformTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPhoneticTokenFilter returns the CommonAnalysisPhoneticTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPhoneticTokenFilter() CommonAnalysisPhoneticTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisPhoneticTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisPhoneticTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPhoneticTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisPhoneticTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPhoneticTokenFilter(v CommonAnalysisPhoneticTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisPhoneticTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisDictionaryDecompounderTokenFilter returns the CommonAnalysisDictionaryDecompounderTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisDictionaryDecompounderTokenFilter() CommonAnalysisDictionaryDecompounderTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisDictionaryDecompounderTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisDictionaryDecompounderTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDictionaryDecompounderTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisDictionaryDecompounderTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDictionaryDecompounderTokenFilter(v CommonAnalysisDictionaryDecompounderTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisDictionaryDecompounderTokenFilterType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSmartcnStopTokenFilter returns the CommonAnalysisSmartcnStopTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSmartcnStopTokenFilter() CommonAnalysisSmartcnStopTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisSmartcnStopTokenFilter); ok {
+		return *v
+	}
+	var zero CommonAnalysisSmartcnStopTokenFilter
+	return zero
+}
+
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSmartcnStopTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisSmartcnStopTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSmartcnStopTokenFilter(v CommonAnalysisSmartcnStopTokenFilter) IndicesAnalyzeBodyFilterItem {
+	return IndicesAnalyzeBodyFilterItem{
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisSmartcnStopTokenFilterType,
+		value: &v,
+	}
+}
+
+func (u *IndicesAnalyzeBodyFilterItem) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyFilterItemUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisAsciiFoldingTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisAsciiFoldingTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisCommonGramsTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisCommonGramsTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "filter", "script", "type") {
+		var v CommonAnalysisConditionTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisConditionTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisDelimitedPayloadTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisDelimitedPayloadTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisEdgeNGramTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisEdgeNGramTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisElisionTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisElisionTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisFingerprintTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisFingerprintTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "locale", "type") {
+		var v CommonAnalysisHunspellTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisHunspellTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisHyphenationDecompounderTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisHyphenationDecompounderTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisKeepTypesTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKeepTypesTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisKeepWordsTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKeepWordsTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisKeywordMarkerTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKeywordMarkerTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisKStemTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKStemTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisLengthTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisLengthTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisLimitTokenCountTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisLimitTokenCountTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisLowercaseTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisLowercaseTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "filters", "type") {
+		var v CommonAnalysisMultiplexerTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisMultiplexerTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisNGramTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisNGramTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisNoriPartOfSpeechTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisNoriPartOfSpeechTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "patterns", "type") {
+		var v CommonAnalysisPatternCaptureTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisPatternCaptureTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "pattern", "type") {
+		var v CommonAnalysisPatternReplaceTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisPatternReplaceTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisPersianStemTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisPersianStemTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisPorterStemTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisPorterStemTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "script", "type") {
+		var v CommonAnalysisPredicateTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisPredicateTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisRemoveDuplicatesTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisRemoveDuplicatesTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisReverseTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisReverseTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisShingleTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisShingleTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "language", "type") {
+		var v CommonAnalysisSnowballTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisSnowballTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisStemmerOverrideTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisStemmerOverrideTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisStemmerTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisStemmerTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisStopTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisStopTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisSynonymGraphTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisSynonymGraphTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisSynonymTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisSynonymTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisTrimTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisTrimTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisTruncateTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisTruncateTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisUniqueTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisUniqueTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisUppercaseTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisUppercaseTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisWordDelimiterGraphTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisWordDelimiterGraphTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisWordDelimiterTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisWordDelimiterTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "minimum_length", "type") {
+		var v CommonAnalysisKuromojiStemmerTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiStemmerTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type", "use_romaji") {
+		var v CommonAnalysisKuromojiReadingFormTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiReadingFormTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "stoptags", "type") {
+		var v CommonAnalysisKuromojiPartOfSpeechTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiPartOfSpeechTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "rule_files", "type") {
+		var v CommonAnalysisIcuTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisIcuCollationTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuCollationTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type", "unicode_set_filter") {
+		var v CommonAnalysisIcuFoldingTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuFoldingTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "name", "type") {
+		var v CommonAnalysisIcuNormalizationTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuNormalizationTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "id", "type") {
+		var v CommonAnalysisIcuTransformTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTransformTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "encoder", "languageset", "name_type", "rule_type", "type") {
+		var v CommonAnalysisPhoneticTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisPhoneticTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisDictionaryDecompounderTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisDictionaryDecompounderTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisSmartcnStopTokenFilter
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisSmartcnStopTokenFilterType
+			u.value = &v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("IndicesAnalyzeBodyFilterItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u IndicesAnalyzeBodyFilterItem) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // The text or array of text to analyze.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type IndicesAnalyzeBodyText struct {
+	typ   IndicesAnalyzeBodyTextType
+	raw   json.RawMessage
+	value any
 }
 
-// IndicesAnalyzeBodyTokenizer is a typed component of the indices.analyze operation.
+// IndicesAnalyzeBodyTextType discriminates the branches of IndicesAnalyzeBodyText.
+type IndicesAnalyzeBodyTextType int
+
+const (
+	IndicesAnalyzeBodyTextUnknownType IndicesAnalyzeBodyTextType = iota
+	IndicesAnalyzeBodyTextStringType
+	IndicesAnalyzeBodyTextArrayType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesAnalyzeBodyTextUnknownType if the value has not been decoded.
+func (u *IndicesAnalyzeBodyText) Type() IndicesAnalyzeBodyTextType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *IndicesAnalyzeBodyText) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesAnalyzeBodyTextFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesAnalyzeBodyText) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyTextUnknownType
+}
+
+// String returns the string branch value.
+func (u *IndicesAnalyzeBodyText) String() string {
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTextFromString returns a IndicesAnalyzeBodyText populated with v
+// on the String branch.
+func NewIndicesAnalyzeBodyTextFromString(v string) IndicesAnalyzeBodyText {
+	return IndicesAnalyzeBodyText{
+		typ:   IndicesAnalyzeBodyTextStringType,
+		value: &v,
+	}
+}
+
+// Array returns the []string branch value.
+func (u *IndicesAnalyzeBodyText) Array() []string {
+	if v, ok := u.value.(*[]string); ok {
+		return *v
+	}
+	var zero []string
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTextFromArray returns a IndicesAnalyzeBodyText populated with v
+// on the Array branch.
+func NewIndicesAnalyzeBodyTextFromArray(v []string) IndicesAnalyzeBodyText {
+	return IndicesAnalyzeBodyText{
+		typ:   IndicesAnalyzeBodyTextArrayType,
+		value: &v,
+	}
+}
+
+func (u *IndicesAnalyzeBodyText) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyTextUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesAnalyzeBodyTextStringType
+		u.value = &v
+	case data[0] == '[':
+		var v []string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesAnalyzeBodyTextArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("IndicesAnalyzeBodyText: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u IndicesAnalyzeBodyText) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// IndicesAnalyzeBodyTokenizer is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type IndicesAnalyzeBodyTokenizer struct {
+	typ   IndicesAnalyzeBodyTokenizerType
+	raw   json.RawMessage
+	value any
+}
+
+// IndicesAnalyzeBodyTokenizerType discriminates the branches of IndicesAnalyzeBodyTokenizer.
+type IndicesAnalyzeBodyTokenizerType int
+
+const (
+	IndicesAnalyzeBodyTokenizerUnknownType IndicesAnalyzeBodyTokenizerType = iota
+	IndicesAnalyzeBodyTokenizerCommonAnalysisCharGroupTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisEdgeNGramTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisKeywordTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisLetterTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisLowercaseTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisNGramTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisNoriTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisPathHierarchyTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisStandardTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailUrlTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisWhitespaceTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisKuromojiTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisPatternTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternSplitTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisIcuTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisSmartcnTokenizerType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns IndicesAnalyzeBodyTokenizerUnknownType if the value has not been decoded.
+func (u *IndicesAnalyzeBodyTokenizer) Type() IndicesAnalyzeBodyTokenizerType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *IndicesAnalyzeBodyTokenizer) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesAnalyzeBodyTokenizerFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesAnalyzeBodyTokenizer) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyTokenizerUnknownType
+}
+
+// CommonAnalysisCharGroupTokenizer returns the CommonAnalysisCharGroupTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisCharGroupTokenizer() CommonAnalysisCharGroupTokenizer {
+	if v, ok := u.value.(*CommonAnalysisCharGroupTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisCharGroupTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisCharGroupTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisCharGroupTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisCharGroupTokenizer(v CommonAnalysisCharGroupTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisCharGroupTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisEdgeNGramTokenizer returns the CommonAnalysisEdgeNGramTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisEdgeNGramTokenizer() CommonAnalysisEdgeNGramTokenizer {
+	if v, ok := u.value.(*CommonAnalysisEdgeNGramTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisEdgeNGramTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisEdgeNGramTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisEdgeNGramTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisEdgeNGramTokenizer(v CommonAnalysisEdgeNGramTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisEdgeNGramTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKeywordTokenizer returns the CommonAnalysisKeywordTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisKeywordTokenizer() CommonAnalysisKeywordTokenizer {
+	if v, ok := u.value.(*CommonAnalysisKeywordTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisKeywordTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKeywordTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisKeywordTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKeywordTokenizer(v CommonAnalysisKeywordTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisKeywordTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisLetterTokenizer returns the CommonAnalysisLetterTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisLetterTokenizer() CommonAnalysisLetterTokenizer {
+	if v, ok := u.value.(*CommonAnalysisLetterTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisLetterTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLetterTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisLetterTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLetterTokenizer(v CommonAnalysisLetterTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisLetterTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisLowercaseTokenizer returns the CommonAnalysisLowercaseTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisLowercaseTokenizer() CommonAnalysisLowercaseTokenizer {
+	if v, ok := u.value.(*CommonAnalysisLowercaseTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisLowercaseTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLowercaseTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisLowercaseTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLowercaseTokenizer(v CommonAnalysisLowercaseTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisLowercaseTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisNGramTokenizer returns the CommonAnalysisNGramTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisNGramTokenizer() CommonAnalysisNGramTokenizer {
+	if v, ok := u.value.(*CommonAnalysisNGramTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisNGramTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNGramTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisNGramTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNGramTokenizer(v CommonAnalysisNGramTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisNGramTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisNoriTokenizer returns the CommonAnalysisNoriTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisNoriTokenizer() CommonAnalysisNoriTokenizer {
+	if v, ok := u.value.(*CommonAnalysisNoriTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisNoriTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNoriTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisNoriTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNoriTokenizer(v CommonAnalysisNoriTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisNoriTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPathHierarchyTokenizer returns the CommonAnalysisPathHierarchyTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisPathHierarchyTokenizer() CommonAnalysisPathHierarchyTokenizer {
+	if v, ok := u.value.(*CommonAnalysisPathHierarchyTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisPathHierarchyTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPathHierarchyTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisPathHierarchyTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPathHierarchyTokenizer(v CommonAnalysisPathHierarchyTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisPathHierarchyTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisStandardTokenizer returns the CommonAnalysisStandardTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisStandardTokenizer() CommonAnalysisStandardTokenizer {
+	if v, ok := u.value.(*CommonAnalysisStandardTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisStandardTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisStandardTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisStandardTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisStandardTokenizer(v CommonAnalysisStandardTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisStandardTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisUaxEmailUrlTokenizer returns the CommonAnalysisUaxEmailUrlTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisUaxEmailUrlTokenizer() CommonAnalysisUaxEmailUrlTokenizer {
+	if v, ok := u.value.(*CommonAnalysisUaxEmailUrlTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisUaxEmailUrlTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailUrlTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisUaxEmailUrlTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailUrlTokenizer(v CommonAnalysisUaxEmailUrlTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailUrlTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisWhitespaceTokenizer returns the CommonAnalysisWhitespaceTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisWhitespaceTokenizer() CommonAnalysisWhitespaceTokenizer {
+	if v, ok := u.value.(*CommonAnalysisWhitespaceTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisWhitespaceTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisWhitespaceTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisWhitespaceTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisWhitespaceTokenizer(v CommonAnalysisWhitespaceTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisWhitespaceTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisKuromojiTokenizer returns the CommonAnalysisKuromojiTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisKuromojiTokenizer() CommonAnalysisKuromojiTokenizer {
+	if v, ok := u.value.(*CommonAnalysisKuromojiTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisKuromojiTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKuromojiTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisKuromojiTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKuromojiTokenizer(v CommonAnalysisKuromojiTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisKuromojiTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisPatternTokenizer returns the CommonAnalysisPatternTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisPatternTokenizer() CommonAnalysisPatternTokenizer {
+	if v, ok := u.value.(*CommonAnalysisPatternTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisPatternTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPatternTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisPatternTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPatternTokenizer(v CommonAnalysisPatternTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisPatternTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSimplePatternTokenizer returns the CommonAnalysisSimplePatternTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisSimplePatternTokenizer() CommonAnalysisSimplePatternTokenizer {
+	if v, ok := u.value.(*CommonAnalysisSimplePatternTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisSimplePatternTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisSimplePatternTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternTokenizer(v CommonAnalysisSimplePatternTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSimplePatternSplitTokenizer returns the CommonAnalysisSimplePatternSplitTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisSimplePatternSplitTokenizer() CommonAnalysisSimplePatternSplitTokenizer {
+	if v, ok := u.value.(*CommonAnalysisSimplePatternSplitTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisSimplePatternSplitTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternSplitTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisSimplePatternSplitTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternSplitTokenizer(v CommonAnalysisSimplePatternSplitTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternSplitTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisIcuTokenizer returns the CommonAnalysisIcuTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisIcuTokenizer() CommonAnalysisIcuTokenizer {
+	if v, ok := u.value.(*CommonAnalysisIcuTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisIcuTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisIcuTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisIcuTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisIcuTokenizerType,
+		value: &v,
+	}
+}
+
+// CommonAnalysisSmartcnTokenizer returns the CommonAnalysisSmartcnTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisSmartcnTokenizer() CommonAnalysisSmartcnTokenizer {
+	if v, ok := u.value.(*CommonAnalysisSmartcnTokenizer); ok {
+		return *v
+	}
+	var zero CommonAnalysisSmartcnTokenizer
+	return zero
+}
+
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSmartcnTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisSmartcnTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSmartcnTokenizer(v CommonAnalysisSmartcnTokenizer) IndicesAnalyzeBodyTokenizer {
+	return IndicesAnalyzeBodyTokenizer{
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisSmartcnTokenizerType,
+		value: &v,
+	}
+}
+
+func (u *IndicesAnalyzeBodyTokenizer) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesAnalyzeBodyTokenizerUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "tokenize_on_chars", "type") {
+		var v CommonAnalysisCharGroupTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisCharGroupTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "max_gram", "min_gram", "token_chars", "type") {
+		var v CommonAnalysisEdgeNGramTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisEdgeNGramTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "buffer_size", "type") {
+		var v CommonAnalysisKeywordTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisKeywordTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisLetterTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisLetterTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisLowercaseTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisLowercaseTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "max_gram", "min_gram", "token_chars", "type") {
+		var v CommonAnalysisNGramTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisNGramTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisNoriTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisNoriTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "buffer_size", "delimiter", "reverse", "skip", "type") {
+		var v CommonAnalysisPathHierarchyTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisPathHierarchyTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisStandardTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisStandardTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisUaxEmailUrlTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailUrlTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisWhitespaceTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisWhitespaceTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "mode", "type") {
+		var v CommonAnalysisKuromojiTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisKuromojiTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisPatternTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisPatternTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisSimplePatternTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisSimplePatternSplitTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternSplitTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "rule_files", "type") {
+		var v CommonAnalysisIcuTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisIcuTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "type") {
+		var v CommonAnalysisSmartcnTokenizer
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisSmartcnTokenizerType
+			u.value = &v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	return fmt.Errorf("IndicesAnalyzeBodyTokenizer: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u IndicesAnalyzeBodyTokenizer) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
 
 // Analyze performs the analysis process on a text and return the tokens breakdown of the text.
@@ -330,6 +2551,5 @@ func (c indicesClient) Analyze(ctx context.Context, req IndicesAnalyzeReq) (*Ind
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

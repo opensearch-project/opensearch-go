@@ -193,7 +193,6 @@ func (c indicesClient) GetAlias(ctx context.Context, req *IndicesGetAliasReq) (*
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -215,6 +214,5 @@ func (c aliasClient) Get(ctx context.Context, req *IndicesGetAliasReq) (*Indices
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

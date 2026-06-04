@@ -87,7 +87,7 @@ func (r StatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#monitor-stats
 type StatsResp struct {
-	opensearchapi.NodesResponseBase
+	opensearchapi.NodesRespBase
 	ClusterName *string                                               `json:"cluster_name,omitempty"`
 	Nodes       map[string]opensearchapi.AsynchronousSearchNodesStats `json:"nodes,omitempty"`
 

@@ -132,6 +132,5 @@ func (c ingestClient) DeletePipeline(ctx context.Context, req IngestDeletePipeli
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

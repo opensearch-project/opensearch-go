@@ -132,6 +132,5 @@ func (c clusterClient) DeleteDecommissionAwareness(ctx context.Context, req *Clu
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

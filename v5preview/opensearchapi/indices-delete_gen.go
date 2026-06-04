@@ -124,7 +124,7 @@ func (r IndicesDeleteParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/delete-index/
 type IndicesDeleteResp struct {
-	AcknowledgedResponseBase
+	AcknowledgedRespBase
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 
 	response *opensearch.Response
@@ -168,6 +168,5 @@ func (c indicesClient) Delete(ctx context.Context, req *IndicesDeleteReq) (*Indi
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

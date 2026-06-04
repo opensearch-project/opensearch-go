@@ -7,6 +7,7 @@
 package main
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -298,7 +299,7 @@ func TestExpandUnionPaths(t *testing.T) {
 		return pathVariant{
 			path:        path,
 			pathParams:  append([]string(nil), params...),
-			methods:     map[string]struct{}{"GET": {}},
+			methods:     map[string]struct{}{http.MethodGet: {}},
 			arrayParams: map[string]bool{},
 		}
 	}
@@ -429,18 +430,18 @@ func TestExpandUnionPaths_DeepCopiesMaps(t *testing.T) {
 	original := pathVariant{
 		path:        "/_nodes/{node_id_or_metric}",
 		pathParams:  []string{"node_id_or_metric"},
-		methods:     map[string]struct{}{"GET": {}},
+		methods:     map[string]struct{}{http.MethodGet: {}},
 		arrayParams: map[string]bool{"node_id_or_metric": true},
 	}
 	g := opGroup{
 		name: "nodes.info",
 		pathSpecs: []pathVariant{
-			{path: "/_nodes", methods: map[string]struct{}{"GET": {}}},
+			{path: "/_nodes", methods: map[string]struct{}{http.MethodGet: {}}},
 			original,
 			{
 				path:        "/_nodes/{node_id}/{metric}",
 				pathParams:  []string{"node_id", "metric"},
-				methods:     map[string]struct{}{"GET": {}},
+				methods:     map[string]struct{}{http.MethodGet: {}},
 				arrayParams: map[string]bool{},
 			},
 		},
@@ -465,7 +466,7 @@ func TestExpandUnionPaths_DeepCopiesMaps(t *testing.T) {
 	require.NotNil(t, syn1, "expected /_nodes/{node_id} synthetic variant")
 	require.NotNil(t, syn2, "expected /_nodes/{metric} synthetic variant")
 
-	syn1.methods["POST"] = struct{}{}
-	require.NotContains(t, syn2.methods, "POST", "synthetic variants share no method map")
-	require.NotContains(t, original.methods, "POST", "synthetic mutation leaked into original")
+	syn1.methods[http.MethodPost] = struct{}{}
+	require.NotContains(t, syn2.methods, http.MethodPost, "synthetic variants share no method map")
+	require.NotContains(t, original.methods, http.MethodPost, "synthetic mutation leaked into original")
 }

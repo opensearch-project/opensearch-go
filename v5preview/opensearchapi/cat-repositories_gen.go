@@ -161,6 +161,5 @@ func (c catClient) Repositories(ctx context.Context, req *CatRepositoriesReq) (*
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

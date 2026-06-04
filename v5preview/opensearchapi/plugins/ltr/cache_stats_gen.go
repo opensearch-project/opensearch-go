@@ -84,7 +84,7 @@ func (r CacheStatsParams) get() map[string]string {
 //
 // Available: >= 2.19.0.
 type CacheStatsResp struct {
-	opensearchapi.NodesResponseBase
+	opensearchapi.NodesRespBase
 
 	// Aggregate cache statistics across all nodes.
 	All *opensearchapi.LtrCacheAllStats `json:"all,omitempty"`

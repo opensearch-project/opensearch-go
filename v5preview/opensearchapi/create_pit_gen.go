@@ -18,6 +18,7 @@ import (
 	"time"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
@@ -152,6 +153,39 @@ func (r CreatePITResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
+// SearchShardFailures detects partial failures on a CreatePITResp by
+// inspecting the top-level _shards envelope. Returns nil when no
+// shards failed.
+func (r *CreatePITResp) SearchShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// CreatePITResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *CreatePITResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.SearchShards) {
+		if e := r.SearchShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
 // CreatePIT creates point in time context.
 //
 // POST /{index}/_search/point_in_time
@@ -176,6 +210,5 @@ func (c Client) CreatePIT(ctx context.Context, req *CreatePITReq) (*CreatePITRes
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
 }

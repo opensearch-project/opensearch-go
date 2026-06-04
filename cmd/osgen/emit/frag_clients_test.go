@@ -36,9 +36,11 @@ func TestClientsFragment_Body(t *testing.T) {
 	}{
 		{name: "Client struct", want: "type Client struct"},
 		{name: "Client field", want: "Client *opensearch.Client"},
+		{name: "errors mask field", want: "errors *errMaskWidth"},
 		{name: "top-level Cat", want: "Cat catClient"},
 		{name: "top-level Indices", want: "Indices indicesClient"},
-		{name: "clientInit", want: "func clientInit(rootClient *opensearch.Client) *Client"},
+		{name: "clientInit", want: "func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client"},
+		{name: "errors init", want: "errors: newErrMask(mask),"},
 		{name: "init Cat", want: "client.Cat = catClient{apiClient: client}"},
 		{name: "init Indices", want: "client.Indices = indicesClient{apiClient: client}"},
 		{name: "nested init Alias", want: "client.Indices.Alias = aliasClient{apiClient: client}"},
@@ -70,7 +72,7 @@ func TestClientsFragment_Imports(t *testing.T) {
 	}}
 
 	imps := frag.Imports()
-	require.Len(t, imps, 2)
+	require.Len(t, imps, 3)
 }
 
 func TestNewClientsFile_Render(t *testing.T) {
@@ -92,6 +94,7 @@ func TestNewClientsFile_Render(t *testing.T) {
 	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4"`)
 	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"`)
+	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4/errmask"`)
 }
 
 func TestNewClientsFile_NilWhenEmpty(t *testing.T) {

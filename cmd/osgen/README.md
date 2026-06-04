@@ -157,6 +157,7 @@ go run . api \
 3. Routes each operation to either the core `opensearchapi` package or a plugin package based on the operation group prefix.
 4. Renders Req structs (with path builder embedding, optional body, and header support), Params structs (with typed encode methods), and Resp stubs.
 5. Annotates generated code with availability (`x-version-added`), deprecation (`x-version-deprecated`, `x-deprecation-message`), and distribution exclusion metadata.
+6. Reads each operation's `x-error-responses` extension to emit typed partial-failure errors (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, ...), the corresponding `errmask` bits and env-var tokens, per-Resp helper methods (`BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`), and -- for operations declaring two or more categories -- a per-op multi-error container implementing `Unwrap() []error`. See [`DEVELOPER_GUIDE.md` Partial-failure error generation](../../DEVELOPER_GUIDE.md#partial-failure-error-generation) for the full surface this produces, and [`v5preview/opensearchapi/README.md` Partial Failure Errors](../../v5preview/opensearchapi/README.md#partial-failure-errors) for the user-facing usage guide.
 
 ## Separate Module
 

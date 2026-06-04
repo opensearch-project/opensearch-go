@@ -238,6 +238,5 @@ func (c Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

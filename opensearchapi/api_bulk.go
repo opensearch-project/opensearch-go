@@ -26,6 +26,9 @@ func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }
 

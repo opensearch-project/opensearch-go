@@ -173,6 +173,5 @@ func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*Indic
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

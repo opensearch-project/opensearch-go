@@ -16,12 +16,13 @@ import (
 	"strconv"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// MsearchTemplateReq represents the request for the msearch_template operation.
+// MSearchTemplateReq represents the request for the msearch_template operation.
 //
 // Allows to execute several search template operations in one request.
 //
@@ -32,7 +33,7 @@ import (
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
-type MsearchTemplateReq struct {
+type MSearchTemplateReq struct {
 	// Index specifies the list of path segments for the request URL.
 	Index []string
 
@@ -43,11 +44,11 @@ type MsearchTemplateReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *MsearchTemplateParams
+	Params *MSearchTemplateParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r MsearchTemplateReq) GetRequest(method string) (*http.Request, error) {
+func (r MSearchTemplateReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.MsearchTemplatePath{
 		Index: r.Index,
 	}.Build()
@@ -81,8 +82,8 @@ func (r MsearchTemplateReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// MsearchTemplateParams represents query parameters for the MsearchTemplateReq.
-type MsearchTemplateParams struct {
+// MSearchTemplateParams represents query parameters for the MSearchTemplateReq.
+type MSearchTemplateParams struct {
 	TimeoutParams
 	DebugParams
 	// If `true`, network round-trips are minimized for cross-cluster search
@@ -109,7 +110,7 @@ type MsearchTemplateParams struct {
 	TypedKeys *bool
 }
 
-func (r MsearchTemplateParams) get() map[string]string {
+func (r MSearchTemplateParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -143,35 +144,107 @@ func (r MsearchTemplateParams) get() map[string]string {
 	return params
 }
 
-// MsearchTemplateResp represents the response for the msearch_template operation.
+// MSearchTemplateResp represents the response for the msearch_template operation.
 //
 // Allows to execute several search template operations in one request.
 //
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
-type MsearchTemplateResp struct {
-	Responses []MsearchMultiSearchResultResponsesItem `json:"responses"`
+type MSearchTemplateResp struct {
+	Responses []MSearchMultiSearchResultResponsesItem `json:"responses"`
 	Took      float64                                 `json:"took"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r MsearchTemplateResp) Inspect() Inspect {
+func (r MSearchTemplateResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r MsearchTemplateResp) RawBody() io.Reader {
+func (r MSearchTemplateResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// MsearchTemplate allows to execute several search template operations in one request.
+// SearchShardFailures detects partial failures on a MSearchTemplateResp by
+// aggregating shard envelopes across union-typed sub-responses.
+func (r *MSearchTemplateResp) SearchShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	var totalShards, failedShards int
+	var failures []ShardSearchFailure
+	for _, resp := range r.Responses {
+		if resp.Type() == MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType {
+			item := resp.MSearchMultiSearchItem()
+			totalShards += item.Shards.Total
+			failedShards += item.Shards.Failed
+			failures = append(failures, item.Shards.Failures...)
+		}
+	}
+	if failedShards == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: failedShards,
+		TotalShards:  totalShards,
+		Failures:     failures,
+	}
+}
+
+// MultiSearchItemFailures detects per-sub-response Error objects on a
+// MSearchTemplateResp via union-branch dispatch. Returns nil when every
+// sub-response succeeded.
+func (r *MSearchTemplateResp) MultiSearchItemFailures() *MultiSearchItemError {
+	if r == nil {
+		return nil
+	}
+	var failed []MultiSearchItemFailure
+	succeeded := 0
+	for i, resp := range r.Responses {
+		if resp.Type() == MSearchMultiSearchResultResponsesItemErrorRespBaseType {
+			failed = append(failed, MultiSearchItemFailure{
+				Index:         i,
+				ErrorRespBase: resp.ErrorRespBase(),
+			})
+		} else {
+			succeeded++
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return &MultiSearchItemError{
+		Items:          failed,
+		SucceededCount: succeeded,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// MSearchTemplateResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *MSearchTemplateResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.SearchShards) {
+		if e := r.SearchShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	if !mask.Has(errmask.MultiSearchItems) {
+		if e := r.MultiSearchItemFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
+}
+
+// MSearchTemplate allows to execute several search template operations in one request.
 //
 // Path: /_msearch/template
 //
@@ -180,13 +253,13 @@ func (r MsearchTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
-func (c Client) MsearchTemplate(ctx context.Context, req *MsearchTemplateReq) (*MsearchTemplateResp, error) {
+func (c Client) MSearchTemplate(ctx context.Context, req *MSearchTemplateReq) (*MSearchTemplateResp, error) {
 	if req == nil {
-		req = &MsearchTemplateReq{}
+		req = &MSearchTemplateReq{}
 	}
 
 	var (
-		data MsearchTemplateResp
+		data MSearchTemplateResp
 		err  error
 	)
 	method := http.MethodGet
@@ -201,6 +274,7 @@ func (c Client) MsearchTemplate(ctx context.Context, req *MsearchTemplateReq) (*
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), func(errs []error) error {
+		return &MSearchTemplateErrors{errs: errs}
+	})
 }

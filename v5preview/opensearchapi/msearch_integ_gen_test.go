@@ -21,12 +21,12 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
-func TestMsearch(t *testing.T) {
+func TestMSearch(t *testing.T) {
 	t.Skip("requires NDJSON multi-search body") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	index := testutil.MustUniqueString(t, "test-msearch")
+	index := testutil.MustUniqueString(t, "test-m-search")
 	t.Cleanup(func() {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
@@ -35,7 +35,7 @@ func TestMsearch(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Msearch(t.Context(), &opensearchapi.MsearchReq{Index: []string{index}})
+		resp, err := client.MSearch(t.Context(), &opensearchapi.MSearchReq{Index: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestMsearch(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Msearch(t.Context(), &opensearchapi.MsearchReq{Index: []string{index}})
+		res, err := failingClient.MSearch(t.Context(), &opensearchapi.MSearchReq{Index: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

@@ -132,6 +132,5 @@ func (c Client) DeleteScript(ctx context.Context, req DeleteScriptReq) (*DeleteS
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

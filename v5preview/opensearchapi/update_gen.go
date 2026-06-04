@@ -12,12 +12,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
@@ -207,7 +209,7 @@ func (r UpdateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/update-document/
 type UpdateResp struct {
-	WriteResponseBase
+	WriteRespBase
 
 	// The result of an inline get operation.
 	Get *InlineGet `json:"get,omitempty"`
@@ -258,10 +260,6 @@ type UpdateBody struct {
 	Upsert json.RawMessage `json:"upsert"`
 }
 
-// UpdateBodySource is a typed component of the update operation.
-type UpdateBodySource struct {
-}
-
 // UpdateBodySourceObject1 is a typed component of the update operation.
 type UpdateBodySourceObject1 struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
@@ -277,8 +275,255 @@ type UpdateBodySourceObject1 struct {
 	Includes *string `json:"includes,omitempty"`
 }
 
-// UpdateBodyScript is a typed component of the update operation.
+// UpdateBodySource is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type UpdateBodySource struct {
+	typ   UpdateBodySourceType
+	raw   json.RawMessage
+	value any
+}
+
+// UpdateBodySourceType discriminates the branches of UpdateBodySource.
+type UpdateBodySourceType int
+
+const (
+	UpdateBodySourceUnknownType UpdateBodySourceType = iota
+	UpdateBodySourceStringType
+	UpdateBodySourceUpdateBodySourceObject1Type
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns UpdateBodySourceUnknownType if the value has not been decoded.
+func (u *UpdateBodySource) Type() UpdateBodySourceType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *UpdateBodySource) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewUpdateBodySourceFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *UpdateBodySource) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = UpdateBodySourceUnknownType
+}
+
+// String returns the string branch value.
+func (u *UpdateBodySource) String() string {
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewUpdateBodySourceFromString returns a UpdateBodySource populated with v
+// on the String branch.
+func NewUpdateBodySourceFromString(v string) UpdateBodySource {
+	return UpdateBodySource{
+		typ:   UpdateBodySourceStringType,
+		value: &v,
+	}
+}
+
+// UpdateBodySourceObject1 returns the UpdateBodySourceObject1 branch value.
+func (u *UpdateBodySource) UpdateBodySourceObject1() UpdateBodySourceObject1 {
+	if v, ok := u.value.(*UpdateBodySourceObject1); ok {
+		return *v
+	}
+	var zero UpdateBodySourceObject1
+	return zero
+}
+
+// NewUpdateBodySourceFromUpdateBodySourceObject1 returns a UpdateBodySource populated with v
+// on the UpdateBodySourceObject1 branch.
+func NewUpdateBodySourceFromUpdateBodySourceObject1(v UpdateBodySourceObject1) UpdateBodySource {
+	return UpdateBodySource{
+		typ:   UpdateBodySourceUpdateBodySourceObject1Type,
+		value: &v,
+	}
+}
+
+func (u *UpdateBodySource) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = UpdateBodySourceUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = UpdateBodySourceStringType
+		u.value = &v
+	case data[0] == '{':
+		var v UpdateBodySourceObject1
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = UpdateBodySourceUpdateBodySourceObject1Type
+		u.value = &v
+	default:
+		return fmt.Errorf("UpdateBodySource: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u UpdateBodySource) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// UpdateBodyScript is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type UpdateBodyScript struct {
+	typ   UpdateBodyScriptType
+	raw   json.RawMessage
+	value any
+}
+
+// UpdateBodyScriptType discriminates the branches of UpdateBodyScript.
+type UpdateBodyScriptType int
+
+const (
+	UpdateBodyScriptUnknownType UpdateBodyScriptType = iota
+	UpdateBodyScriptStringType
+	UpdateBodyScriptStoredType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns UpdateBodyScriptUnknownType if the value has not been decoded.
+func (u *UpdateBodyScript) Type() UpdateBodyScriptType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *UpdateBodyScript) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewUpdateBodyScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *UpdateBodyScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = UpdateBodyScriptUnknownType
+}
+
+// String returns the string branch value.
+func (u *UpdateBodyScript) String() string {
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewUpdateBodyScriptFromString returns a UpdateBodyScript populated with v
+// on the String branch.
+func NewUpdateBodyScriptFromString(v string) UpdateBodyScript {
+	return UpdateBodyScript{
+		typ:   UpdateBodyScriptStringType,
+		value: &v,
+	}
+}
+
+// Stored returns the StoredScriptId branch value.
+func (u *UpdateBodyScript) Stored() StoredScriptId {
+	if v, ok := u.value.(*StoredScriptId); ok {
+		return *v
+	}
+	var zero StoredScriptId
+	return zero
+}
+
+// NewUpdateBodyScriptFromStored returns a UpdateBodyScript populated with v
+// on the Stored branch.
+func NewUpdateBodyScriptFromStored(v StoredScriptId) UpdateBodyScript {
+	return UpdateBodyScript{
+		typ:   UpdateBodyScriptStoredType,
+		value: &v,
+	}
+}
+
+func (u *UpdateBodyScript) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = UpdateBodyScriptUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = UpdateBodyScriptStringType
+		u.value = &v
+	case data[0] == '{':
+		var v StoredScriptId
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = UpdateBodyScriptStoredType
+		u.value = &v
+	default:
+		return fmt.Errorf("UpdateBodyScript: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u UpdateBodyScript) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// WriteShardFailures detects replica-shard failures on a UpdateResp.
+// Returns nil when no shards failed.
+func (r *UpdateResp) WriteShardFailures() *ShardFailureError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &ShardFailureError{
+		Operation:    OperationUpdate,
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// UpdateResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *UpdateResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.WriteShards) {
+		if e := r.WriteShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
 }
 
 // Update updates a document with a script or partial document.
@@ -301,6 +546,5 @@ func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) 
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
 }

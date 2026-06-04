@@ -48,6 +48,14 @@ import (
 // connection pool is left untouched.
 var errDiscoveryEmpty = errors.New("discovery returned zero successful nodes")
 
+// errDiscoveryInterrupted is returned to a waiting caller when the discovery
+// it blocked on was aborted by the cancellation of the goroutine that ran it,
+// rather than by the waiter's own context. The waiter's context is still
+// healthy, so it must not inherit the runner's context.Canceled (which would
+// look like the waiter's own cancellation and could suppress a legitimate
+// retry); it receives this sentinel instead and may retry discovery.
+var errDiscoveryInterrupted = errors.New("discovery interrupted by another caller's cancellation")
+
 // Node role constants matching upstream OpenSearch server definitions.
 const (
 	// RoleData nodes store and retrieve data, perform indexing, searching, and
@@ -252,26 +260,92 @@ func (m *_NodesMeta) formatFailures() string {
 	return string(b)
 }
 
-// DiscoverNodes reloads the client connections by fetching information from the cluster.
+// DiscoverNodes reloads the client connections by fetching information from
+// the cluster. If another discovery is already in progress, DiscoverNodes
+// blocks until that discovery completes (or ctx is cancelled) and returns
+// its result.
 func (c *Client) DiscoverNodes(ctx context.Context) error {
-	// Bail out early if the context is already cancelled (e.g. client shutting down).
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
 
-	// Prevent concurrent discovery operations
-	c.mu.Lock()
-	if c.mu.discoveryInProgress {
-		c.mu.Unlock()
+	c.discoverMu.Lock()
+
+	if c.discoverMu.inProgress {
+		// Another goroutine is running discovery. Wait for it using
+		// sync.Cond + context.AfterFunc so that context cancellation
+		// wakes us even though Cond.Wait is not context-aware.
+		stopf := context.AfterFunc(ctx, func() {
+			c.discoverMu.Lock()
+			defer c.discoverMu.Unlock()
+			c.discoverMu.cond.Broadcast()
+		})
+		defer stopf()
+
+		for c.discoverMu.inProgress {
+			c.discoverMu.cond.Wait()
+			if ctx.Err() != nil {
+				c.discoverMu.Unlock()
+				return ctx.Err()
+			}
+		}
+		err := c.discoverMu.lastErr
+		c.discoverMu.Unlock()
+		// If our own context was cancelled (it can race the final
+		// Broadcast and skip the in-loop check), that takes precedence.
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		// Otherwise the discovery we waited on may have been aborted by the
+		// runner's context, not ours. Don't inherit a cancellation we never
+		// initiated -- report a retryable sentinel instead.
+		if err != nil && (errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)) {
+			return errDiscoveryInterrupted
+		}
+		return err
+	}
+
+	// We won the race: start discovery.
+	// Lock is held — doDiscoverNodes takes ownership and releases it.
+	return c.doDiscoverNodes(ctx)
+}
+
+// tryDiscoverNodes attempts to start a discovery cycle. If discovery is
+// already in progress it returns nil immediately without waiting.
+//
+// This is used by the internal discoveryLoop, which must never block on
+// another discovery. It could be exported in the future if callers need
+// fire-and-forget semantics on the public API.
+func (c *Client) tryDiscoverNodes(ctx context.Context) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	c.discoverMu.Lock()
+	if c.discoverMu.inProgress {
+		c.discoverMu.Unlock()
 		return nil
 	}
-	c.mu.discoveryInProgress = true
-	c.mu.Unlock()
+	// Lock is held — doDiscoverNodes takes ownership and releases it.
+	return c.doDiscoverNodes(ctx)
+}
 
+// doDiscoverNodes performs the discovery work.
+//
+// Called with c.discoverMu held. It sets inProgress = true, releases the
+// lock for I/O, then re-acquires it on completion to clear inProgress,
+// store the result, and wake any waiters.
+func (c *Client) doDiscoverNodes(ctx context.Context) error {
+	c.discoverMu.inProgress = true
+	c.discoverMu.Unlock()
+
+	var discoverErr error
 	defer func() {
-		c.mu.Lock()
-		c.mu.discoveryInProgress = false
-		c.mu.Unlock()
+		c.discoverMu.Lock()
+		c.discoverMu.inProgress = false
+		c.discoverMu.lastErr = discoverErr
+		c.discoverMu.cond.Broadcast()
+		c.discoverMu.Unlock()
 	}()
 
 	discovered, err := c.getNodesInfo(ctx)
@@ -279,7 +353,8 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 		if dl := loadDebugLogger(); dl != nil {
 			dl.Logf("Error getting nodes info: %s\n", err)
 		}
-		return fmt.Errorf("discovery: get nodes: %w", err)
+		discoverErr = fmt.Errorf("discovery: get nodes: %w", err)
+		return discoverErr
 	}
 
 	c.mu.RLock()
@@ -289,11 +364,13 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 
 	if isColdStart {
 		if err := c.nodeDiscoveryAsyncStart(ctx, discovered); err != nil {
-			return err
+			discoverErr = err
+			return discoverErr
 		}
 	} else {
 		if err := c.nodeDiscovery(ctx, discovered); err != nil {
-			return err
+			discoverErr = err
+			return discoverErr
 		}
 	}
 
@@ -1217,7 +1294,7 @@ func (c *Client) discoveryLoop() {
 		switch {
 		case !now.Before(nextNodes):
 			// Full node + shard discovery.
-			c.DiscoverNodes(c.ctx) //nolint:errcheck // errors logged inside
+			c.tryDiscoverNodes(c.ctx) //nolint:errcheck // errors logged inside
 
 			nextNodes = time.Now().Add(c.discoverNodesInterval)
 			nextCat = time.Time{}

@@ -136,6 +136,5 @@ func (c indicesClient) DeleteDataStream(ctx context.Context, req *IndicesDeleteD
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -1,6 +1,10 @@
 - [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
-  - [Response.Body becomes a method](#responsebody-becomes-a-method)
+  - [Partial failure errors (Config.Errors)](#partial-failure-errors-configerrors)
+  - [Default Router Injection in v5preview](#default-router-injection-in-v5preview)
+  - [DiscoverNodes() blocking semantics](#discovernodes-blocking-semantics)
+  - [opensearchtransport.Route interface gained OpID()](#opensearchtransportroute-interface-gained-opid)
   - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
+  - [Response.Body becomes a method](#responsebody-becomes-a-method)
 - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
   - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
   - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
@@ -27,6 +31,110 @@
 # Upgrading OpenSearch Go Client
 
 ## Upgrading to >= 5.0.0
+
+### Partial Failure Errors (Config.Errors)
+
+Version 5.0.0 introduces typed partial-failure errors and a per-category bitmask that controls which categories surface as Go errors. OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). The new model turns those partial failures into typed errors callers can match on with `errors.As`.
+
+**Default behavior change:**
+
+| Surface | `Config.Errors == nil` means | Effect                                            |
+| ------- | ---------------------------- | ------------------------------------------------- |
+| v4      | `errmask.All`                | mask everything (preserves pre-bitfield behavior) |
+| v5+     | `errmask.Empty`              | report every partial-failure category             |
+
+A v4 caller upgrading to v5 who never set `Config.Errors` will start seeing partial failures as `error`. To preserve v4-style silence on v5, set `Errors: errmask.New(errmask.All)` explicitly. To opt v4 in to v5-style surfacing today, set `Errors: errmask.New()`.
+
+**New surface (v5):**
+
+- `Config.Errors *errmask.ErrorMask` field with the matrix above.
+- `OPENSEARCH_GO_ERROR_MASK` environment-variable override (comma-separated `+`/`-` tokens of lowercase snake_case wrapper names like `bulk_items`, `search_shards`, `write_shards`, `multi_search_items`).
+- Typed errors: `*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, `*MSearchErrors`, `*MSearchTemplateErrors`.
+- `opensearchapi.Errors(err) []error` to flatten single- and multi-wrapper error shapes into a uniform slice.
+- Helper functions: `IsPartialFailure(err)`, `ToleratePartialFailures(err)`, `RequireSuccessRate(err, threshold)`.
+- Per-Resp helper methods: `BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`.
+- Operation constants: `OperationIndex`, `OperationCreate`, `OperationUpdate`, `OperationDelete`.
+
+**Where to read more:**
+
+- [`v5preview/opensearchapi/README.md`](v5preview/opensearchapi/README.md) - full v5preview usage guide for these errors, including the type-switch pattern and the rationale for preferring it over `errors.As`/`Has`.
+- [`guides/error_handling.md`](guides/error_handling.md) - cross-version best-practices guide with v4 and v5preview examples side-by-side.
+- [`v5preview/opensearchapi/MIGRATING.md`](v5preview/opensearchapi/MIGRATING.md) - v4 -> v5preview surface delta.
+
+**Error types in v4 `opensearchapi/`** (the upgrade source):
+
+| Error Type               | Returned By                                                                                                                         | Key Fields                                                                |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `*PartialBulkError`      | `Bulk`                                                                                                                              | `FailedItems []BulkRespItem`, `SucceededCount int`                        |
+| `*PartialSearchError`    | `Search`, `Scroll.Get`, `SearchTemplate` (single-bit); also via `*MSearchErrors` and `*MSearchTemplateErrors` for shard aggregation | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
+| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                                                             | `Operation string`, `FailedShards int`, `TotalShards int`                 |
+| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                                                                    | `Items []MultiSearchItemFailure`, `SucceededCount int`                    |
+| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                                                                     | `Unwrap() []error` (multi-error contract)                                 |
+| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                                             | `Unwrap() []error`                                                        |
+
+The v5preview surface ports the same model with internal field types regenerated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification) ([see MIGRATING.md](v5preview/opensearchapi/MIGRATING.md#partial-failure-type-renames) for the table).
+
+### Default Router Injection in v5preview
+
+`v5preview/opensearchapi.NewClient` (and `NewDefaultClient`) now inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
+
+| `OPENSEARCH_GO_ROUTER` | v4                                                  | v5preview                                                   |
+| ---------------------- | --------------------------------------------------- | ----------------------------------------------------------- |
+| unset                  | no Router, no auto-discovery                        | **default Router injected**, no auto-discovery              |
+| `true` / `1`           | default Router (transport layer), auto-discovery on | **default Router injected, auto-discovery on**              |
+| `false` / `0`          | no Router, no auto-discovery                        | **injection skipped (Router stays nil)**, no auto-discovery |
+| unparseable            | no Router, no auto-discovery                        | default Router injected, no auto-discovery                  |
+
+Truthy and falsy semantics are preserved end-to-end: a v4 caller running with `OPENSEARCH_GO_ROUTER=true` keeps auto-discovery when migrating to v5preview, and `=false` opts out of both Router injection and auto-discovery. A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect.
+
+v4's `opensearchapi.NewClient` is unchanged: it doesn't auto-inject a Router, so existing v4 code keeps its current behavior.
+
+For full usage and rationale see [`v5preview/opensearchapi/README.md` Default Router Injection](v5preview/opensearchapi/README.md#default-router-injection).
+
+### `DiscoverNodes()` blocking semantics
+
+`opensearch.Client.DiscoverNodes()` and `opensearchtransport.Client.DiscoverNodes()` now **block** when an in-flight discovery cycle is active and return that cycle's error verbatim, instead of the previous immediate `nil` no-op.
+
+The previous "fire-and-forget" behavior masked discovery failures: a caller that handed control back after a failing discovery saw `err == nil` and continued against a stale node list. The new behavior surfaces the failure synchronously so callers can react (retry, alert, fall back to seed nodes).
+
+Client construction itself never blocks on discovery: when `Config.DiscoverNodesOnStart` is `&true`, `opensearch.NewClient` launches a detached goroutine that calls `DiscoverNodes()`, then returns. Callers who want fully manual control set `DiscoverNodesOnStart: &false` and `DiscoverNodesInterval: 0` -- no on-start goroutine, no polling loop -- and call `client.DiscoverNodes(ctx)` themselves before issuing requests:
+
+```go
+discoverOnStart := false
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:             []string{"https://localhost:9200"},
+    DiscoverNodesOnStart:  &discoverOnStart, // skip auto-discovery
+    DiscoverNodesInterval: 0,                // disable polling loop
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+if err := client.DiscoverNodes(ctx); err != nil {
+    log.Printf("initial discovery failed: %s", err)
+}
+
+// proceed to use the client; topology data is ready.
+```
+
+The signature already changed earlier in this version to take `context.Context` (see CHANGELOG); this is a behavioral change on top of the signature change.
+
+### `opensearchtransport.Route` interface gained `OpID()`
+
+The exported `Route` interface in `opensearchtransport` gained a new method:
+
+```go
+type Route interface {
+    Policy() Policy
+    Attrs() routeAttr
+    PoolName() string
+    OpID() OperationID  // new in v5
+}
+```
+
+External code that implements `Route` (custom routing policies) must add an `OpID() OperationID` method returning the [`OperationID`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4/opensearchtransport#OperationID) for the route -- typically the `Op*` constant matching the route's HTTP method+path. Built-in routes built via `NewRouteMux` are populated automatically; only hand-written `Route` implementations are affected.
 
 ### StringError for Unknown JSON Responses
 
@@ -125,7 +233,7 @@ If your code intentionally passes percent-encoded values, decode them with `url.
 
 ### `v5preview/opensearchapi/` package — v5 preview API surface
 
-This release introduces a new `v5preview/opensearchapi/` package alongside the existing top-level `opensearchapi/` package. The new package is the **preview of the v5 API in the v4 branch** and is generated from the OpenSearch OpenAPI spec by `cmd/osgen`. It deliberately reuses the package name `opensearchapi` so that callers who migrate during the v4 branch only need to change the import path at v5 release time -- every reference in code (e.g. `opensearchapi.IndexReq`, `opensearchapi.NewClient`) stays the same.
+This release introduces a new `v5preview/opensearchapi/` package alongside the existing top-level `opensearchapi/` package. The new package is the **preview of the v5 API in the v4 branch** and is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification) by `cmd/osgen`. It deliberately reuses the package name `opensearchapi` so that callers who migrate during the v4 branch only need to change the import path at v5 release time -- every reference in code (e.g. `opensearchapi.IndexReq`, `opensearchapi.NewClient`) stays the same.
 
 **Migration Considerations:**
 
@@ -140,29 +248,14 @@ import "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 client, err := opensearchapi.NewClient(opensearchapi.Config{...})
 ```
 
-**Forward-compatible replace directive:**
-
-To write code today against the eventual v5 import path, add a `replace` directive to your `go.mod` so the `opensearchapi` package resolves to the v5preview:
-
-```
-replace github.com/opensearch-project/opensearch-go/v5/opensearchapi => github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi v4.7.0
-```
-
-Then write your imports as if v5 already shipped:
-
-```go
-import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
-```
-
-When v5 ships, drop the `replace` line; nothing else has to change.
-
 **Surface differences worth knowing about:**
 
 - Optional `Params` are `*Params` pointer fields (nil-safe; pass `&opensearchapi.IndexParams{...}` to set).
 - Optional boolean query parameters are `*bool` so a deliberate `false` can be sent over the wire.
+- Multi-index `Req` types use `Index []string` (the spec spelling); v4's hand-written `Indices` is renamed.
 - Plugin APIs (k-NN, ML, Security, ISM, etc.) live in `v5preview/opensearchapi/plugins/`.
 
-See `v5preview/opensearchapi/README.md` for the full usage guide.
+For the full v4 -> v5preview surface delta and the optional forward-compatible `replace` directive, see [`v5preview/opensearchapi/MIGRATING.md`](v5preview/opensearchapi/MIGRATING.md). For everyday usage (errors, routing, response handling) see [`v5preview/opensearchapi/README.md`](v5preview/opensearchapi/README.md).
 
 ## Upgrading to >= 4.0.0
 
@@ -605,8 +698,8 @@ Version 3.0.0 reorganized APIs into logical sub-clients. The following tables co
 | `client.Count(...)`                      | `client.Indices.Count(ctx, req)`        |
 | `client.FieldCaps(...)`                  | `client.Indices.FieldCaps(ctx, req)`    |
 | `client.Mget(...)`                       | `client.MGet(ctx, req)`                 |
-| `client.Msearch(...)`                    | `client.MSearch(ctx, req)`              |
-| `client.MsearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
+| `client.MSearch(...)`                    | `client.MSearch(ctx, req)`              |
+| `client.MSearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
 | `client.Mtermvectors(...)`               | `client.MTermvectors(ctx, req)`         |
 | `client.Indices.AddBlock(...)`           | `client.Indices.Block(ctx, req)`        |
 | `client.Indices.ResolveIndex(...)`       | `client.Indices.Resolve(ctx, req)`      |

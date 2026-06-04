@@ -2,6 +2,14 @@
 
 In this guide, you'll learn how to use the OpenSearch Golang Client API to perform bulk operations. You'll learn how to index, update, and delete multiple documents in a single request.
 
+> **Surface note**: examples below use the v4 `opensearchapi/` package. v5preview callers should substitute the v5preview import path and a few renamed fields. The most visible differences for bulk:
+>
+> - Multi-index Req types use `Index []string` in v5preview (v4 uses `Indices`). `BulkReq.Index` (singular, the default per-request `_index`) keeps its name in both surfaces.
+> - `BulkResp.Items` is `[]map[string]BulkRespItem` in v4 and `[]BulkItem` (a struct with named fields per operation) in v5preview. See the [Handling errors](#handling-errors) section for paired examples.
+> - `BulkRespItem.ID` is `*string` in v5preview (v4: `string`); deref before formatting.
+>
+> See [`v5preview/opensearchapi/MIGRATING.md`](../v5preview/opensearchapi/MIGRATING.md) for the full delta.
+
 ## Setup
 
 First, create a client instance with the following code:
@@ -233,9 +241,11 @@ You can mix and match the different operations in a single request. The followin
 
 The `bulk` API returns an array of responses for each operation in the request body. Each response contains a `status` field that indicates whether the operation was successful or not. If the operation was successful, the `status` field is set to a `2xx` code. Otherwise, the response contains an error message in the `error` field.
 
-For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](error_handling.md).
+For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
 
-The following code shows an example on how to look for errors in the response:
+The following code shows an example on how to look for errors in the response.
+
+**v4** (`BulkResp.Items` is `[]map[string]BulkRespItem`):
 
 ```go
 	bulkResp, err = client.Bulk(
@@ -252,6 +262,37 @@ The following code shows an example on how to look for errors in the response:
 			if resp.Status > 299 {
 				fmt.Printf("Bulk %s Error: %s\n", operation, resp.Result)
 			}
+		}
+	}
+```
+
+**v5preview** (`BulkResp.Items` is `[]BulkItem`; each `BulkItem` has named operation fields, and `BulkRespItem.ID` is `*string`):
+
+```go
+	bulkResp, err = client.Bulk(
+		ctx,
+		opensearchapi.BulkReq{
+			Body: strings.NewReader("{\"delete\":{\"_index\":\"movies\",\"_id\":1}}\n"),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	for _, item := range bulkResp.Items {
+		var op string
+		var sub *opensearchapi.BulkRespItem
+		switch {
+		case item.Index != nil:
+			op, sub = "index", item.Index
+		case item.Create != nil:
+			op, sub = "create", item.Create
+		case item.Update != nil:
+			op, sub = "update", item.Update
+		case item.Delete != nil:
+			op, sub = "delete", item.Delete
+		}
+		if sub != nil && sub.Error != nil {
+			fmt.Printf("Bulk %s Error: %s\n", op, sub.Error.Reason)
 		}
 	}
 ```

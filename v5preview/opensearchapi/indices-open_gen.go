@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -187,80 +186,124 @@ func (r IndicesOpenResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// IndicesOpenResponseBodyObject0 is a typed component of the indices.open operation.
-type IndicesOpenResponseBodyObject0 struct {
+// IndicesOpenRespBodyObject0 is a typed component of the indices.open operation.
+type IndicesOpenRespBodyObject0 struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
-// IndicesOpenResponseBodyObject1 is a typed component of the indices.open operation.
-type IndicesOpenResponseBodyObject1 struct {
+// IndicesOpenRespBodyObject1 is a typed component of the indices.open operation.
+type IndicesOpenRespBodyObject1 struct {
 	Acknowledged       bool `json:"acknowledged"`
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 }
 
-// IndicesOpenResponseBody is a discriminated union type (try-each, newest version first).
+// IndicesOpenRespBody is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type IndicesOpenResponseBody struct {
-	typ   IndicesOpenResponseBodyType
+type IndicesOpenRespBody struct {
+	typ   IndicesOpenRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesOpenResponseBodyType discriminates the branches of IndicesOpenResponseBody.
-type IndicesOpenResponseBodyType int
+// IndicesOpenRespBodyType discriminates the branches of IndicesOpenRespBody.
+type IndicesOpenRespBodyType int
 
 const (
-	IndicesOpenResponseBodyUnknownType IndicesOpenResponseBodyType = iota
-	IndicesOpenResponseBodyIndicesOpenResponseBodyObject0Type
-	IndicesOpenResponseBodyIndicesOpenResponseBodyObject1Type
+	IndicesOpenRespBodyUnknownType IndicesOpenRespBodyType = iota
+	IndicesOpenRespBodyIndicesOpenRespBodyObject0Type
+	IndicesOpenRespBodyIndicesOpenRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns IndicesOpenResponseBodyUnknownType if the value has not been decoded.
-func (u *IndicesOpenResponseBody) Type() IndicesOpenResponseBodyType { return u.typ }
+// Returns IndicesOpenRespBodyUnknownType if the value has not been decoded.
+func (u *IndicesOpenRespBody) Type() IndicesOpenRespBodyType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *IndicesOpenResponseBody) RawJSON() json.RawMessage { return u.raw }
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *IndicesOpenRespBody) RawJSON() json.RawMessage { return u.raw }
 
-// IndicesOpenResponseBodyObject0 returns the IndicesOpenResponseBodyObject0 branch value.
-func (u *IndicesOpenResponseBody) IndicesOpenResponseBodyObject0() IndicesOpenResponseBodyObject0 {
-	v, _ := u.value.(IndicesOpenResponseBodyObject0)
-	return v
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewIndicesOpenRespBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *IndicesOpenRespBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = IndicesOpenRespBodyUnknownType
 }
 
-// IndicesOpenResponseBodyObject1 returns the IndicesOpenResponseBodyObject1 branch value.
-func (u *IndicesOpenResponseBody) IndicesOpenResponseBodyObject1() IndicesOpenResponseBodyObject1 {
-	v, _ := u.value.(IndicesOpenResponseBodyObject1)
-	return v
+// IndicesOpenRespBodyObject0 returns the IndicesOpenRespBodyObject0 branch value.
+func (u *IndicesOpenRespBody) IndicesOpenRespBodyObject0() IndicesOpenRespBodyObject0 {
+	if v, ok := u.value.(*IndicesOpenRespBodyObject0); ok {
+		return *v
+	}
+	var zero IndicesOpenRespBodyObject0
+	return zero
 }
 
-func (u *IndicesOpenResponseBody) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+// NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject0 returns a IndicesOpenRespBody populated with v
+// on the IndicesOpenRespBodyObject0 branch.
+func NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject0(v IndicesOpenRespBodyObject0) IndicesOpenRespBody {
+	return IndicesOpenRespBody{
+		typ:   IndicesOpenRespBodyIndicesOpenRespBodyObject0Type,
+		value: &v,
+	}
+}
+
+// IndicesOpenRespBodyObject1 returns the IndicesOpenRespBodyObject1 branch value.
+func (u *IndicesOpenRespBody) IndicesOpenRespBodyObject1() IndicesOpenRespBodyObject1 {
+	if v, ok := u.value.(*IndicesOpenRespBodyObject1); ok {
+		return *v
+	}
+	var zero IndicesOpenRespBodyObject1
+	return zero
+}
+
+// NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject1 returns a IndicesOpenRespBody populated with v
+// on the IndicesOpenRespBodyObject1 branch.
+func NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject1(v IndicesOpenRespBodyObject1) IndicesOpenRespBody {
+	return IndicesOpenRespBody{
+		typ:   IndicesOpenRespBodyIndicesOpenRespBodyObject1Type,
+		value: &v,
+	}
+}
+
+func (u *IndicesOpenRespBody) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = IndicesOpenRespBodyUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v IndicesOpenResponseBodyObject0
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesOpenResponseBodyIndicesOpenResponseBodyObject0Type
-			u.value = v
-			return nil
-		}
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		IndicesOpenRespBodyObject0
+		Disc0 json.RawMessage `json:"acknowledged"`
 	}
-	{
-		var v IndicesOpenResponseBodyObject1
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesOpenResponseBodyIndicesOpenResponseBodyObject1Type
-			u.value = v
-			return nil
-		}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
 	}
-	return fmt.Errorf("IndicesOpenResponseBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+	if len(m.Disc0) > 0 {
+		var v IndicesOpenRespBodyObject1
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = IndicesOpenRespBodyIndicesOpenRespBodyObject1Type
+		u.value = &v
+		return nil
+	}
+	u.typ = IndicesOpenRespBodyIndicesOpenRespBodyObject0Type
+	u.value = &m.IndicesOpenRespBodyObject0
+	return nil
 }
 
-func (u IndicesOpenResponseBody) MarshalJSON() ([]byte, error) {
+func (u IndicesOpenRespBody) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -294,6 +337,5 @@ func (c indicesClient) Open(ctx context.Context, req *IndicesOpenReq) (*IndicesO
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

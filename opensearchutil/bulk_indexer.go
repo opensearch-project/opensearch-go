@@ -30,6 +30,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -549,7 +550,13 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	blk, err = w.bi.config.Client.Bulk(ctx, req)
-	if err != nil {
+	// Treat opensearchapi.PartialBulkError as success-with-failed-items:
+	// the indexer's whole job is per-item dispatch, so the per-item loop
+	// below already handles `info.Error != nil`. A real flush failure
+	// (transport error, HTTP error, JSON parse error) flows through
+	// handleBulkError as before.
+	var partial *opensearchapi.PartialBulkError
+	if err != nil && !errors.As(err, &partial) {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
 	}
 

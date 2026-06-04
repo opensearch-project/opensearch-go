@@ -10,6 +10,8 @@ package search_relevance
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -105,6 +107,144 @@ func (r PutJudgmentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutJudgmentsBody is a typed component of the search_relevance.put_judgments operation.
+// SearchRelevancePutJudgmentsBody is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type SearchRelevancePutJudgmentsBody struct {
+	typ   SearchRelevancePutJudgmentsBodyType
+	raw   json.RawMessage
+	value any
+}
+
+// SearchRelevancePutJudgmentsBodyType discriminates the branches of SearchRelevancePutJudgmentsBody.
+type SearchRelevancePutJudgmentsBodyType int
+
+const (
+	SearchRelevancePutJudgmentsBodyUnknownType SearchRelevancePutJudgmentsBodyType = iota
+	SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType
+	SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType
+	SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns SearchRelevancePutJudgmentsBodyUnknownType if the value has not been decoded.
+func (u *SearchRelevancePutJudgmentsBody) Type() SearchRelevancePutJudgmentsBodyType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *SearchRelevancePutJudgmentsBody) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchRelevancePutJudgmentsBodyFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchRelevancePutJudgmentsBody) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchRelevancePutJudgmentsBodyUnknownType
+}
+
+// SearchRelevancePutLLMJudgmentsRequest returns the opensearchapi.SearchRelevancePutLLMJudgmentsRequest branch value.
+func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutLLMJudgmentsRequest() opensearchapi.SearchRelevancePutLLMJudgmentsRequest {
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutLLMJudgmentsRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest
+	return zero
+}
+
+// NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
+// on the SearchRelevancePutLLMJudgmentsRequest branch.
+func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest(v opensearchapi.SearchRelevancePutLLMJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+	return SearchRelevancePutJudgmentsBody{
+		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType,
+		value: &v,
+	}
+}
+
+// SearchRelevancePutUBIJudgmentsRequest returns the opensearchapi.SearchRelevancePutUBIJudgmentsRequest branch value.
+func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutUBIJudgmentsRequest() opensearchapi.SearchRelevancePutUBIJudgmentsRequest {
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutUBIJudgmentsRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest
+	return zero
+}
+
+// NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
+// on the SearchRelevancePutUBIJudgmentsRequest branch.
+func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest(v opensearchapi.SearchRelevancePutUBIJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+	return SearchRelevancePutJudgmentsBody{
+		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType,
+		value: &v,
+	}
+}
+
+// SearchRelevancePutImportJudgmentsRequest returns the opensearchapi.SearchRelevancePutImportJudgmentsRequest branch value.
+func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutImportJudgmentsRequest() opensearchapi.SearchRelevancePutImportJudgmentsRequest {
+	if v, ok := u.value.(*opensearchapi.SearchRelevancePutImportJudgmentsRequest); ok {
+		return *v
+	}
+	var zero opensearchapi.SearchRelevancePutImportJudgmentsRequest
+	return zero
+}
+
+// NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
+// on the SearchRelevancePutImportJudgmentsRequest branch.
+func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest(v opensearchapi.SearchRelevancePutImportJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+	return SearchRelevancePutJudgmentsBody{
+		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType,
+		value: &v,
+	}
+}
+
+func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = SearchRelevancePutJudgmentsBodyUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	{
+		var v opensearchapi.SearchRelevancePutLLMJudgmentsRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SearchRelevancePutUBIJudgmentsRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SearchRelevancePutImportJudgmentsRequest
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType
+			u.value = &v
+			return nil
+		}
+	}
+	return fmt.Errorf("SearchRelevancePutJudgmentsBody: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u SearchRelevancePutJudgmentsBody) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

@@ -7,6 +7,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 
 - Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
+- v5preview/opensearchapi: `NewClient` and `NewDefaultClient` now inject `opensearchtransport.NewDefaultRouter` when `config.Client.Router` is nil, opting every v5preview client into intelligent request routing by default. The `OPENSEARCH_GO_ROUTER` env var preserves its v4 semantics end-to-end: `=true`/`=1` enables auto-discovery (via `DiscoverNodesOnStart`); `=false`/`=0` suppresses both Router injection and auto-discovery; unset injects the Router without auto-discovery. v4's `opensearchapi.NewClient` is unchanged. ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
+- Add `envvars.Falsy(name)` helper that distinguishes "explicitly opted out" from "unset" (Truthy collapses both into false). Used by v5preview's router injection rule.
 - Add `v5preview/opensearchapi/` package: regenerated v5-track API surface produced by `cmd/osgen` from the OpenAPI spec. Fully typed Req/Resp/Params structs, sub-clients matching OpenSearch namespaces (`client.Cat`, `client.Cluster`, `client.Indices`, etc.), and a `plugins/` subtree for ML/k-NN/security/ISM/etc. Coexists with `opensearchapi/` during the v4 -> v5 transition; see `v5preview/opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add generic `opensearch.Do[T]()` function for compile-time pointer enforcement on response types, preventing a class of bugs where non-pointer values are silently passed to `Client.Do()` and fail at runtime during JSON unmarshaling. Includes `opensearch.NoBody` marker type for calls that expect no response body, unifying all internal dispatch through a single generic path ([#809](https://github.com/opensearch-project/opensearch-go/pull/809))
@@ -89,6 +91,27 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Document environment variables in `guides/routing.md`
   - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
 - Add adaptive `max_concurrent_shard_requests` derived from cluster-wide AIMD congestion window ([#800](https://github.com/opensearch-project/opensearch-go/issues/800))
+- Add partial failure error types (`PartialBulkError`, `PartialSearchError`, `ShardFailureError`, `MultiSearchItemError`) that surface HTTP 200 partial failures as typed Go errors, controlled by a per-category `errmask.ErrorMask` bitfield on `Config.Errors` ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
+  - `PartialBulkError` returned from `Bulk` when `resp.Errors` is true, carries `FailedItems` and `SucceededCount`
+  - `PartialSearchError` returned from `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` when `_shards.failed > 0`
+  - `ShardFailureError` returned from `Index`, `Document.Create`, `Document.Delete`, `Update` when replica shards fail
+  - `MultiSearchItemError` returned from `MSearch`/`MSearchTemplate` for per-sub-response Error envelopes
+  - `MSearchErrors` / `MSearchTemplateErrors` per-op containers (Go 1.20+ multi-error contract via `Unwrap() []error`) when 2+ wrapper categories fire on the same response
+  - `PartialFailureError` marker interface with `IsPartial() bool` for type-switching across all partial-failure types
+  - Per-Resp helper methods (`BulkItemFailures`, `SearchShardFailures`, `WriteShardFailures`, `MultiSearchItemFailures`) plus `PartialFailures(mask)` aggregator for focused inspection at the call site
+  - `opensearchapi.Errors(err) []error` package-level helper that flattens single- and multi-wrapper errors into a uniform slice for `switch` dispatch
+  - Helper functions: `IsPartialFailure`, `ToleratePartialFailures`, `RequireSuccessRate` for threshold-based error tolerance
+  - Operation constants: `OperationIndex`, `OperationCreate`, `OperationUpdate`, `OperationDelete`
+  - `Config.Errors *errmask.ErrorMask` replaces a single boolean: each bit suppresses one wrapper category. v4 defaults to `errmask.All` (mask everything, preserves pre-bitfield behavior); v5+ defaults to `errmask.Empty` (report everything)
+  - `OPENSEARCH_GO_ERROR_MASK` environment variable overrides `Config.Errors` at runtime via comma-separated `+`/`-` tokens (lowercase snake_case wrapper names; unknown tokens silently dropped, debug-logged)
+  - Both `(resp, error)` are non-nil on partial failure -- response is fully populated
+  - `v5preview/opensearchapi` ports the same model with spec-driven types (regenerated from the OpenAPI `x-error-responses` extension on every `cmd/osgen` run)
+- Add `OperationClassifier` for zero-allocation HTTP method+path to `OperationID` mapping ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
+  - Bit-packed `OperationID` (int64) encoding R/W flag, category, and minor operation
+  - Masking helpers: `IsWrite`, `IsRead`, `Category`, `Minor`
+  - `String()` returns Prometheus-friendly labels (e.g., `"search"`, `"bulk"`, `"doc_get"`)
+  - Reuses existing `routeTrie` for O(path-segments) lookup, safe for concurrent use
+  - Enables transparent metrics/tracing middleware at the `http.RoundTripper` layer
   - Transport automatically sets `max_concurrent_shard_requests` query parameter on search requests routed through a coordinator node
   - Value derived from a cluster-wide aggregate of all polled nodes' search pool wait-time and completion deltas, clamped to `[floor, cap]` (default: 5–256)
   - Cluster-wide signal correctly models data-node fan-out capacity: single hot nodes are diluted by healthy peers, and MCSR only drops when aggregate cluster pressure rises
@@ -198,6 +221,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix flaky `TestDefaultHealthCheck_RetryAfterMaxRetry`: replace wall-clock `time.Sleep` + `atomic.Int64` synchronization with context cancellation (`ctx.Done()`), and widen `maxRetryClusterHealth` to 5s so the baseline HTTP round-trip cannot race past the retry interval ([#787](https://github.com/opensearch-project/opensearch-go/pull/787))
 - Skip opensearchtransport integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
+- Skip shard routing integration tests on OpenSearch < 2.2.0 with security plugin due to server-side `OptionalDataException` from non-thread-safe User serialization (opensearch-project/security#1970)
 - Fix connection lifecycle bug in multiServerPool.OnFailure where connections were scheduled for resurrection before being moved from ready to dead list, causing potential race conditions
 - Fix flaky connection integration test by replacing arbitrary sleep times with proper server readiness polling
 - Fix cluster readiness checks in integration tests to handle HTTPS cold start delays (increase timeout to 15s)

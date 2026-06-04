@@ -140,7 +140,6 @@ func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -162,6 +161,5 @@ func (c aliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*I
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

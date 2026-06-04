@@ -22,32 +22,32 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 )
 
-func TestMtermvectorsReq_GetRequest(t *testing.T) {
+func TestMTermVectorsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.MtermvectorsReq
+		req        opensearchapi.MTermVectorsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        opensearchapi.MtermvectorsReq{},
+			req:        opensearchapi.MTermVectorsReq{},
 			wantMethod: "GET",
 			wantPath:   "/_mtermvectors",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.MtermvectorsReq{Index: "test-index"},
+			req:        opensearchapi.MTermVectorsReq{Index: "test-index"},
 			wantMethod: "GET",
 			wantPath:   "/test-index/_mtermvectors",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.MtermvectorsReq{Index: "test", Body: &opensearchapi.MtermvectorsBody{}},
+			req:        opensearchapi.MTermVectorsReq{Index: "test", Body: &opensearchapi.MTermVectorsBody{}},
 			wantMethod: "POST",
 			wantPath:   "/test/_mtermvectors",
 			wantErr:    false,
@@ -68,7 +68,7 @@ func TestMtermvectorsReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestMtermvectors_Roundtrip(t *testing.T) {
+func TestMTermVectors_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestMtermvectors_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Mtermvectors(t.Context(), opensearchapi.MtermvectorsReq{})
+		resp, err := client.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -103,7 +103,7 @@ func TestMtermvectors_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Mtermvectors(t.Context(), opensearchapi.MtermvectorsReq{})
+		resp, err := errClient.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

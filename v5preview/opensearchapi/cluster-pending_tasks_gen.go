@@ -179,6 +179,5 @@ func (c clusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTask
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

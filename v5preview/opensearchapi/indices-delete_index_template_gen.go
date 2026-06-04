@@ -132,6 +132,5 @@ func (c indicesClient) DeleteIndexTemplate(ctx context.Context, req IndicesDelet
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

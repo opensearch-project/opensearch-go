@@ -144,6 +144,5 @@ func (c Client) UpdateByQueryRethrottle(ctx context.Context, req UpdateByQueryRe
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -26,6 +26,9 @@ func (c Client) SearchTemplate(ctx context.Context, req SearchTemplateReq) (*Sea
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }
 

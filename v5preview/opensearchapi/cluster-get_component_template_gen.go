@@ -152,6 +152,5 @@ func (c clusterClient) GetComponentTemplate(ctx context.Context, req ClusterGetC
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

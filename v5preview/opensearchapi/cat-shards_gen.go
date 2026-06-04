@@ -169,6 +169,5 @@ func (c catClient) Shards(ctx context.Context, req *CatShardsReq) (*CatShardsRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

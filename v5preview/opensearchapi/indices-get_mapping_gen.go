@@ -198,7 +198,6 @@ func (c indicesClient) GetMapping(ctx context.Context, req *IndicesGetMappingReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -220,6 +219,5 @@ func (c mappingClient) Get(ctx context.Context, req *IndicesGetMappingReq) (*Ind
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

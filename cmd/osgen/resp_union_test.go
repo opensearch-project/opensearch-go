@@ -106,6 +106,40 @@ func TestResolveUnionType(t *testing.T) {
 			wantCount:  2,
 			wantBranch: []string{"String", "Bool"},
 		},
+		{
+			// int and int64 decode from the same JSON integer token, so the
+			// narrower int branch is unreachable in try-each order. Only the
+			// widest integer survives, keeping its original position.
+			name: "int and int64 collapse to widest",
+			schema: &openapi3.Schema{
+				OneOf: openapi3.SchemaRefs{
+					{Value: openapi3.NewIntegerSchema()},
+					{Value: openapi3.NewInt64Schema()},
+					{Value: openapi3.NewStringSchema()},
+				},
+			},
+			schemaKey:  "test___SeedLike",
+			wantName:   "TestSeedLike",
+			wantLazy:   false,
+			wantCount:  2,
+			wantBranch: []string{"Int64", "String"},
+		},
+		{
+			// float32/float64 collapse the same way as the integer class.
+			name: "float32 and float64 collapse to widest",
+			schema: &openapi3.Schema{
+				OneOf: openapi3.SchemaRefs{
+					{Value: &openapi3.Schema{Type: &openapi3.Types{"number"}, Format: "float"}},
+					{Value: openapi3.NewFloat64Schema()},
+					{Value: openapi3.NewStringSchema()},
+				},
+			},
+			schemaKey:  "test___FloatLike",
+			wantName:   "TestFloatLike",
+			wantLazy:   false,
+			wantCount:  2,
+			wantBranch: []string{"Float64", "String"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -176,6 +210,48 @@ func TestResolveUnionTypeDeduplicates(t *testing.T) {
 	registered, ok := reg.lookup("test___Dedup")
 	require.True(t, ok)
 	require.Len(t, registered.Branches, 2, "duplicate string branches should be deduplicated")
+}
+
+func TestResolveUnionTypeCollapsesToSingle(t *testing.T) {
+	t.Parallel()
+
+	intSchema := func() *openapi3.SchemaRef { return &openapi3.SchemaRef{Value: openapi3.NewIntegerSchema()} }
+	int32Schema := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{"integer"}, Format: "int32"}}
+	}
+	int64Schema := func() *openapi3.SchemaRef { return &openapi3.SchemaRef{Value: openapi3.NewInt64Schema()} }
+	float32Schema := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{"number"}, Format: "float"}}
+	}
+	float64Schema := func() *openapi3.SchemaRef { return &openapi3.SchemaRef{Value: openapi3.NewFloat64Schema()} }
+
+	tests := []struct {
+		name     string
+		branches openapi3.SchemaRefs
+		want     string
+	}{
+		{name: "int and int64", branches: openapi3.SchemaRefs{intSchema(), int64Schema()}, want: "int64"},
+		{name: "int32 and int64", branches: openapi3.SchemaRefs{int32Schema(), int64Schema()}, want: "int64"},
+		{name: "int and int32 keeps wider int", branches: openapi3.SchemaRefs{intSchema(), int32Schema()}, want: "int"},
+		{name: "all three integers", branches: openapi3.SchemaRefs{int32Schema(), intSchema(), int64Schema()}, want: "int64"},
+		{name: "float32 and float64", branches: openapi3.SchemaRefs{float32Schema(), float64Schema()}, want: "float64"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+			key := "test___" + tt.name
+
+			got := w.resolveUnionType(&openapi3.Schema{OneOf: tt.branches}, key, "test")
+			require.Equal(t, tt.want, got, "same-class numeric branches collapse to the widest; not a union")
+
+			_, ok := reg.lookup(key)
+			require.False(t, ok, "a union that collapses to one branch should not register")
+		})
+	}
 }
 
 func TestUnionNeedsTryEach(t *testing.T) {

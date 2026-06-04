@@ -200,7 +200,6 @@ func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetField
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
 
@@ -222,6 +221,5 @@ func (c mappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

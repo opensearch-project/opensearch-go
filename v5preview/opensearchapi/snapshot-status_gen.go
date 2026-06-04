@@ -144,6 +144,5 @@ func (c snapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*Sna
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

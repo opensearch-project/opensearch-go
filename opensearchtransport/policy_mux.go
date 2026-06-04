@@ -83,14 +83,17 @@ type Route interface {
 	// PoolName returns the thread pool name for congestion tracking.
 	// Empty string means use the default pool.
 	PoolName() string
+	// OpID returns the operation identifier for this route.
+	OpID() OperationID
 }
 
 // RouteMux represents a route with an HTTP method+path pattern.
 type RouteMux struct {
-	Pattern  string    // HTTP pattern (e.g., "POST /_bulk", "GET /_search", "/")
-	policy   Policy    // Policy to use for matching requests
-	attrs    routeAttr // Per-route attributes applied when the route matches
-	poolName string    // Thread pool name for congestion tracking (e.g., "search", "write")
+	Pattern     string      // HTTP pattern (e.g., "POST /_bulk", "GET /_search", "/")
+	policy      Policy      // Policy to use for matching requests
+	operationID OperationID // Operation identifier for classification
+	attrs       routeAttr   // Per-route attributes applied when the route matches
+	poolName    string      // Thread pool name for congestion tracking (e.g., "search", "write")
 }
 
 // NewRouteMux creates a new route with validation.
@@ -135,10 +138,11 @@ func mustNewRouteMuxAttrs(pattern string, policy Policy, attrs routeAttr) Route 
 // create a builder, chain methods for attributes and pool name, then call
 // [MustBuild] to produce the [Route].
 type RouteBuilder struct {
-	pattern  string
-	policy   Policy
-	attrs    routeAttr
-	poolName string
+	pattern     string
+	policy      Policy
+	operationID OperationID
+	attrs       routeAttr
+	poolName    string
 }
 
 // NewRoute creates a RouteBuilder for the given pattern and policy.
@@ -149,6 +153,12 @@ func NewRoute(pattern string, policy Policy) *RouteBuilder {
 // Pool sets the thread pool name for congestion tracking.
 func (b *RouteBuilder) Pool(name string) *RouteBuilder {
 	b.poolName = name
+	return b
+}
+
+// Op sets the operation identifier for this route.
+func (b *RouteBuilder) Op(id OperationID) *RouteBuilder {
+	b.operationID = id
 	return b
 }
 
@@ -170,10 +180,11 @@ func (b *RouteBuilder) MustBuild() Route {
 		panic("RouteBuilder: invalid pattern: " + err.Error())
 	}
 	return &RouteMux{
-		Pattern:  b.pattern,
-		policy:   b.policy,
-		attrs:    b.attrs,
-		poolName: b.poolName,
+		Pattern:     b.pattern,
+		policy:      b.policy,
+		operationID: b.operationID,
+		attrs:       b.attrs,
+		poolName:    b.poolName,
 	}
 }
 
@@ -185,6 +196,9 @@ func (r *RouteMux) Attrs() routeAttr { return r.attrs }
 
 // PoolName returns the thread pool name for congestion tracking.
 func (r *RouteMux) PoolName() string { return r.poolName }
+
+// OpID returns the operation identifier for this route.
+func (r *RouteMux) OpID() OperationID { return r.operationID }
 
 // MuxPolicy is a connection policy multiplexer that routes requests to different policies
 // based on HTTP patterns, using a trie for endpoints. Literal children always match
@@ -220,7 +234,7 @@ func NewMuxPolicy(routes []Route) Policy {
 
 			p.pathTrie.add(
 				[]string{method}, path,
-				r.Policy(), r.Attrs(), r.PoolName(),
+				r.Policy(), r.Attrs(), r.PoolName(), r.OpID(),
 			)
 
 		default:

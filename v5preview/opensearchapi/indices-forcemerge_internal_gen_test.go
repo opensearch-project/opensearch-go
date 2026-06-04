@@ -16,82 +16,82 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIndicesForcemergeParams_get(t *testing.T) {
+func TestIndicesForceMergeParams_get(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name   string
-		params IndicesForcemergeParams
+		params IndicesForceMergeParams
 		want   map[string]string
 	}{
-		{name: "empty", params: IndicesForcemergeParams{}, want: nil},
+		{name: "empty", params: IndicesForceMergeParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesForcemergeParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesForcemergeParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "expand_wildcards",
-			params: IndicesForcemergeParams{ExpandWildcards: []string{"a", "b"}},
+			params: IndicesForceMergeParams{ExpandWildcards: []string{"a", "b"}},
 			want:   map[string]string{"expand_wildcards": "a,b"},
 		},
 		{
 			name:   "flush=true",
-			params: IndicesForcemergeParams{Flush: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{Flush: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"flush": "true"},
 		},
 		{
 			name:   "flush=false",
-			params: IndicesForcemergeParams{Flush: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{Flush: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"flush": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesForcemergeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesForcemergeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "max_num_segments",
-			params: IndicesForcemergeParams{MaxNumSegments: 42},
+			params: IndicesForceMergeParams{MaxNumSegments: 42},
 			want:   map[string]string{"max_num_segments": "42"},
 		},
 		{
 			name:   "only_expunge_deletes=true",
-			params: IndicesForcemergeParams{OnlyExpungeDeletes: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{OnlyExpungeDeletes: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"only_expunge_deletes": "true"},
 		},
 		{
 			name:   "only_expunge_deletes=false",
-			params: IndicesForcemergeParams{OnlyExpungeDeletes: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{OnlyExpungeDeletes: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"only_expunge_deletes": "false"},
 		},
 		{
 			name:   "primary_only=true",
-			params: IndicesForcemergeParams{PrimaryOnly: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{PrimaryOnly: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"primary_only": "true"},
 		},
 		{
 			name:   "primary_only=false",
-			params: IndicesForcemergeParams{PrimaryOnly: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{PrimaryOnly: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"primary_only": "false"},
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: IndicesForcemergeParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: IndicesForcemergeParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

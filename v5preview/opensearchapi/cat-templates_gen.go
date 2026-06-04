@@ -170,6 +170,5 @@ func (c catClient) Templates(ctx context.Context, req CatTemplatesReq) (*CatTemp
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

@@ -48,9 +48,31 @@ func MustUniqueString(t *testing.T, prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, rand.Int64()) // #nosec G404 -- Using math/rand for test resource names, not cryptographic purposes
 }
 
+// BackoffDelay returns the delay for the given attempt using exponential
+// backoff with optional jitter. The formula is:
+//
+//	delay = baseDelay * 2^attempt ± (jitter * delay)
+//
+// jitter is a factor in [0.0, 1.0] that randomizes the delay symmetrically
+// around the exponential value. A jitter of 0.0 returns the exact
+// exponential delay; 0.5 returns a value in [delay*0.5, delay*1.5].
+// The attempt is capped at 30 to prevent overflow.
+func BackoffDelay(baseDelay time.Duration, attempt int, jitter float64) time.Duration {
+	cappedAttempt := min(attempt, 30)
+	delay := time.Duration(int64(baseDelay) * (1 << cappedAttempt))
+
+	// #nosec G404 -- Using math/rand for test retry jitter, not cryptographic purposes
+	if jitter > 0.0 {
+		jitterRange := float64(delay) * jitter
+		jitterOffset := (rand.Float64()*2 - 1) * jitterRange // -jitter to +jitter
+		delay = time.Duration(float64(delay) + jitterOffset)
+	}
+
+	return delay
+}
+
 // PollUntil repeatedly calls checkFn until it returns true or the context times out.
-// It uses exponential backoff with jitter between attempts, based on the retry logic
-// from opensearchtransport.backoffRetry().
+// It uses exponential backoff with jitter between attempts via [BackoffDelay].
 //
 // This is useful for waiting for eventual consistency in integration tests, such as
 // waiting for ISM policies to be applied, indices to be ready, or cluster state changes.
@@ -103,18 +125,7 @@ func PollUntil(
 
 		// If this is not the last attempt, wait before retrying
 		if attempt < maxAttempts-1 && baseDelay > 0 {
-			// Exponential backoff: base delay * 2^attempt
-			// Cap attempt to prevent overflow (2^30 is ~1 billion, more than enough)
-			cappedAttempt := min(attempt, 30)
-			delay := time.Duration(int64(baseDelay) * (1 << cappedAttempt))
-
-			// Apply jitter to avoid thundering herd
-			// #nosec G404 -- Using math/rand for test retry jitter, not cryptographic purposes
-			if jitter > 0.0 {
-				jitterRange := float64(delay) * jitter
-				jitterOffset := (rand.Float64()*2 - 1) * jitterRange // -jitter to +jitter
-				delay = time.Duration(float64(delay) + jitterOffset)
-			}
+			delay := BackoffDelay(baseDelay, attempt, jitter)
 
 			// Wait with context cancellation support
 			timer := time.NewTimer(delay)

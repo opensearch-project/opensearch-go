@@ -224,6 +224,5 @@ func (c Client) GetSource(ctx context.Context, req GetSourceReq) (*GetSourceResp
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

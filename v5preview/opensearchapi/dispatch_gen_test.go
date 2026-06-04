@@ -555,10 +555,10 @@ func TestDispatch_IndicesFlush(t *testing.T) {
 	var _ func(context.Context, *opensearchapi.IndicesFlushReq) (*opensearchapi.IndicesFlushResp, error) = c.Indices.Flush
 }
 
-func TestDispatch_IndicesForcemerge(t *testing.T) {
+func TestDispatch_IndicesForceMerge(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesForcemergeReq) (*opensearchapi.IndicesForcemergeResp, error) = c.Indices.Forcemerge
+	var _ func(context.Context, *opensearchapi.IndicesForceMergeReq) (*opensearchapi.IndicesForceMergeResp, error) = c.Indices.ForceMerge
 }
 
 func TestDispatch_IndicesGet(t *testing.T) {
@@ -771,28 +771,28 @@ func TestDispatch_IngestSimulate(t *testing.T) {
 	var _ func(context.Context, opensearchapi.IngestSimulateReq) (*opensearchapi.IngestSimulateResp, error) = c.Ingest.Simulate
 }
 
-func TestDispatch_Mget(t *testing.T) {
+func TestDispatch_MGet(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.MgetReq) (*opensearchapi.MgetResp, error) = c.Mget
+	var _ func(context.Context, opensearchapi.MGetReq) (*opensearchapi.MGetResp, error) = c.MGet
 }
 
-func TestDispatch_Msearch(t *testing.T) {
+func TestDispatch_MSearch(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.MsearchReq) (*opensearchapi.MsearchResp, error) = c.Msearch
+	var _ func(context.Context, *opensearchapi.MSearchReq) (*opensearchapi.MSearchResp, error) = c.MSearch
 }
 
-func TestDispatch_MsearchTemplate(t *testing.T) {
+func TestDispatch_MSearchTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.MsearchTemplateReq) (*opensearchapi.MsearchTemplateResp, error) = c.MsearchTemplate
+	var _ func(context.Context, *opensearchapi.MSearchTemplateReq) (*opensearchapi.MSearchTemplateResp, error) = c.MSearchTemplate
 }
 
-func TestDispatch_Mtermvectors(t *testing.T) {
+func TestDispatch_MTermVectors(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.MtermvectorsReq) (*opensearchapi.MtermvectorsResp, error) = c.Mtermvectors
+	var _ func(context.Context, opensearchapi.MTermVectorsReq) (*opensearchapi.MTermVectorsResp, error) = c.MTermVectors
 }
 
 func TestDispatch_NodesHotThreads(t *testing.T) {
@@ -999,10 +999,10 @@ func TestDispatch_TasksList(t *testing.T) {
 	var _ func(context.Context, *opensearchapi.TasksListReq) (*opensearchapi.TasksListResp, error) = c.Tasks.List
 }
 
-func TestDispatch_Termvectors(t *testing.T) {
+func TestDispatch_TermVectors(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.TermvectorsReq) (*opensearchapi.TermvectorsResp, error) = c.Termvectors
+	var _ func(context.Context, opensearchapi.TermVectorsReq) (*opensearchapi.TermVectorsResp, error) = c.TermVectors
 }
 
 func TestDispatch_Update(t *testing.T) {

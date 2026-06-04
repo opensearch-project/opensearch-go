@@ -118,7 +118,7 @@ type UpdateQueryGroupResp struct {
 	ResiliencyMode string `json:"resiliency_mode"`
 
 	// The resource limits for query requests in the query group.
-	ResourceLimits opensearchapi.WlmQueryGroupResponseResourceLimits `json:"resource_limits"`
+	ResourceLimits opensearchapi.WlmQueryGroupRespResourceLimits `json:"resource_limits"`
 
 	// The time at which the query group was last updated.
 	UpdatedAt int64 `json:"updated_at"`

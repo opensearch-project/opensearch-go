@@ -159,7 +159,7 @@ func (r NodesStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-usage/
 type NodesStatsResp struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
@@ -258,11 +258,11 @@ type NodesStatsAdaptiveSelection struct {
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
 	// without a unit and `-1` to indicate an unspecified value.
-	AvgResponseTime *string `json:"avg_response_time,omitempty"`
+	AvgRespTime *string `json:"avg_response_time,omitempty"`
 
 	// The exponentially weighted moving average response time, in nanoseconds,
 	// of search requests on the keyed node.
-	AvgResponseTimeNs *int64 `json:"avg_response_time_ns,omitempty"`
+	AvgRespTimeNs *int64 `json:"avg_response_time_ns,omitempty"`
 
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
@@ -1217,10 +1217,10 @@ type NodesStatsShardSearchPipeline struct {
 
 // NodesStatsShardSearchPipelinePerPipeline is a typed component of the nodes.stats operation.
 type NodesStatsShardSearchPipelinePerPipeline struct {
-	Request            *NodesStatsShardSearchPipelineOperation                        `json:"request,omitempty"`
-	RequestProcessors  []NodesStatsShardSearchPipelinePerPipelineProcessor            `json:"request_processors,omitempty"`
-	Response           *NodesStatsShardSearchPipelineOperation                        `json:"response,omitempty"`
-	ResponseProcessors []map[string]NodesStatsShardSearchPipelinePerPipelineProcessor `json:"response_processors,omitempty"`
+	Request           *NodesStatsShardSearchPipelineOperation                        `json:"request,omitempty"`
+	RequestProcessors []NodesStatsShardSearchPipelinePerPipelineProcessor            `json:"request_processors,omitempty"`
+	Response          *NodesStatsShardSearchPipelineOperation                        `json:"response,omitempty"`
+	RespProcessors    []map[string]NodesStatsShardSearchPipelinePerPipelineProcessor `json:"response_processors,omitempty"`
 }
 
 // NodesStatsShardSearchPipelineOperation is a typed component of the nodes.stats operation.
@@ -1496,23 +1496,61 @@ const (
 // Returns NodesStatsIPUnknownType if the value has not been decoded.
 func (u *NodesStatsIP) Type() NodesStatsIPType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *NodesStatsIP) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNodesStatsIPFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NodesStatsIP) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NodesStatsIPUnknownType
+}
 
 // String returns the string branch value.
 func (u *NodesStatsIP) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewNodesStatsIPFromString returns a NodesStatsIP populated with v
+// on the String branch.
+func NewNodesStatsIPFromString(v string) NodesStatsIP {
+	return NodesStatsIP{
+		typ:   NodesStatsIPStringType,
+		value: &v,
+	}
 }
 
 // Array returns the []string branch value.
 func (u *NodesStatsIP) Array() []string {
-	v, _ := u.value.([]string)
-	return v
+	if v, ok := u.value.(*[]string); ok {
+		return *v
+	}
+	var zero []string
+	return zero
+}
+
+// NewNodesStatsIPFromArray returns a NodesStatsIP populated with v
+// on the Array branch.
+func NewNodesStatsIPFromArray(v []string) NodesStatsIP {
+	return NodesStatsIP{
+		typ:   NodesStatsIPArrayType,
+		value: &v,
+	}
 }
 
 func (u *NodesStatsIP) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = NodesStatsIPUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1523,14 +1561,14 @@ func (u *NodesStatsIP) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = NodesStatsIPStringType
-		u.value = v
+		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = NodesStatsIPArrayType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("NodesStatsIP: unexpected JSON token: %s", data[:1])
 	}
@@ -1571,6 +1609,5 @@ func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStats
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

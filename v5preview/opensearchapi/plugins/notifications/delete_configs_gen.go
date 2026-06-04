@@ -100,7 +100,7 @@ func (r DeleteConfigsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#delete-channel-configuration
 type DeleteConfigsResp struct {
-	DeleteResponseList map[string]string `json:"delete_response_list,omitempty"`
+	DeleteRespList map[string]string `json:"delete_response_list,omitempty"`
 
 	response *opensearch.Response
 }

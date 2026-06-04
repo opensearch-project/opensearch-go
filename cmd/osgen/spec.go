@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
 )
@@ -44,6 +45,15 @@ const (
 	// (e.g. _core.search___T). These have no concrete type and should be treated
 	// as json.RawMessage in generated code.
 	extGenericTypeParam = "x-is-generic-type-parameter"
+
+	// extErrorResponses lists wrapper-schema $refs for partial-failure
+	// shapes an operation may surface alongside its primary 2xx response
+	// (per the proposed x-error-responses OpenAPI extension). Each entry
+	// is an object {$ref: "#/components/schemas/_common.errors___WrapperName"};
+	// the codegen extracts the terminal segment after the last underscore-
+	// triple as the wrapper name (e.g. "BulkItems") and feeds it into the
+	// emit phase.
+	extErrorResponses = "x-error-responses"
 )
 
 // operationGroup reads the logical group name from an operation's extensions.
@@ -166,4 +176,62 @@ func extensionStringSlice(extensions map[string]any, key string) []string {
 	default:
 		return nil
 	}
+}
+
+// errorResponseWrappers reads the x-error-responses extension and returns
+// the wrapper-schema names referenced by each entry. The bundled spec
+// uses internal $refs of the form
+// "#/components/schemas/_common.errors___<WrapperName>"; the wrapper name
+// is the segment after the final triple-underscore.
+//
+// Returns nil when the extension is absent or empty. Malformed entries
+// are skipped; the caller treats absence as "no auxiliary error
+// responses".
+func errorResponseWrappers(op *openapi3.Operation) []string {
+	if op == nil || op.Extensions == nil {
+		return nil
+	}
+	raw, ok := op.Extensions[extErrorResponses]
+	if !ok {
+		return nil
+	}
+
+	type refEntry struct {
+		Ref string `json:"$ref"`
+	}
+	var entries []refEntry
+	switch v := raw.(type) {
+	case json.RawMessage:
+		if err := json.Unmarshal(v, &entries); err != nil {
+			return nil
+		}
+	case []any:
+		for _, item := range v {
+			obj, ok := item.(map[string]any)
+			if !ok {
+				continue
+			}
+			if r, ok := obj["$ref"].(string); ok {
+				entries = append(entries, refEntry{Ref: r})
+			}
+		}
+	default:
+		return nil
+	}
+
+	var out []string
+	for _, e := range entries {
+		// Wrapper names live under #/components/schemas/<...>___<Name>;
+		// the segment after the last "___" is the wrapper.
+		ref := e.Ref
+		if i := strings.LastIndex(ref, "___"); i >= 0 {
+			ref = ref[i+3:]
+		} else if i := strings.LastIndex(ref, "/"); i >= 0 {
+			ref = ref[i+1:]
+		}
+		if ref != "" {
+			out = append(out, ref)
+		}
+	}
+	return out
 }

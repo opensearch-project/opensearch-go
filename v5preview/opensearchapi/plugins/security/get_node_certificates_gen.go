@@ -96,7 +96,7 @@ func (r GetNodeCertificatesParams) get() map[string]string {
 //
 // Available: >= 2.15.0.
 type GetNodeCertificatesResp struct {
-	opensearchapi.NodesResponseBase
+	opensearchapi.NodesRespBase
 
 	// Name of this cluster.
 	ClusterName *string `json:"cluster_name,omitempty"`

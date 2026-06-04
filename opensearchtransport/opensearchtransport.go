@@ -472,8 +472,17 @@ type Client struct {
 
 	mu struct {
 		sync.RWMutex
-		connectionPool      ConnectionPool // Used for both single-node and multi-node
-		discoveryInProgress bool           // Prevents concurrent discovery operations
+		connectionPool ConnectionPool // Used for both single-node and multi-node
+	}
+
+	// discoverMu serializes discovery and lets callers block until an
+	// in-flight discovery completes.  Separate from mu so that
+	// discovery waiters never contend with normal request-path readers.
+	discoverMu struct {
+		sync.Mutex
+		cond       *sync.Cond // signaled when inProgress transitions to false
+		lastErr    error      // result of the most recent completed discovery
+		inProgress bool       // true while a discovery cycle is running
 	}
 }
 
@@ -845,6 +854,7 @@ func New(cfg Config) (*Client, error) {
 	}
 
 	client.userAgent = initUserAgent()
+	client.discoverMu.cond = sync.NewCond(&client.discoverMu)
 
 	// Parse discovery feature config from environment variable.
 	// Controls which server calls are made during the discovery cycle.

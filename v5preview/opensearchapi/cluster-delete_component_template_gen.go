@@ -132,6 +132,5 @@ func (c clusterClient) DeleteComponentTemplate(ctx context.Context, req ClusterD
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

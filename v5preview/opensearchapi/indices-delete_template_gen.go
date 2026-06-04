@@ -132,6 +132,5 @@ func (c indicesClient) DeleteTemplate(ctx context.Context, req IndicesDeleteTemp
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

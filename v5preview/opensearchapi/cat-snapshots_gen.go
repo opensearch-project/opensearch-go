@@ -235,23 +235,61 @@ const (
 // Returns CatSnapshotsRecordEndEpochUnknownType if the value has not been decoded.
 func (u *CatSnapshotsRecordEndEpoch) Type() CatSnapshotsRecordEndEpochType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *CatSnapshotsRecordEndEpoch) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatSnapshotsRecordEndEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatSnapshotsRecordEndEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatSnapshotsRecordEndEpochUnknownType
+}
 
 // Int64 returns the int64 branch value.
 func (u *CatSnapshotsRecordEndEpoch) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
+}
+
+// NewCatSnapshotsRecordEndEpochFromInt64 returns a CatSnapshotsRecordEndEpoch populated with v
+// on the Int64 branch.
+func NewCatSnapshotsRecordEndEpochFromInt64(v int64) CatSnapshotsRecordEndEpoch {
+	return CatSnapshotsRecordEndEpoch{
+		typ:   CatSnapshotsRecordEndEpochInt64Type,
+		value: &v,
+	}
 }
 
 // String returns the string branch value.
 func (u *CatSnapshotsRecordEndEpoch) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewCatSnapshotsRecordEndEpochFromString returns a CatSnapshotsRecordEndEpoch populated with v
+// on the String branch.
+func NewCatSnapshotsRecordEndEpochFromString(v string) CatSnapshotsRecordEndEpoch {
+	return CatSnapshotsRecordEndEpoch{
+		typ:   CatSnapshotsRecordEndEpochStringType,
+		value: &v,
+	}
 }
 
 func (u *CatSnapshotsRecordEndEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = CatSnapshotsRecordEndEpochUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -262,14 +300,14 @@ func (u *CatSnapshotsRecordEndEpoch) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = CatSnapshotsRecordEndEpochInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = CatSnapshotsRecordEndEpochStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("CatSnapshotsRecordEndEpoch: unexpected JSON token: %s", data[:1])
 	}
@@ -312,23 +350,61 @@ const (
 // Returns CatSnapshotsRecordStartEpochUnknownType if the value has not been decoded.
 func (u *CatSnapshotsRecordStartEpoch) Type() CatSnapshotsRecordStartEpochType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *CatSnapshotsRecordStartEpoch) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatSnapshotsRecordStartEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatSnapshotsRecordStartEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatSnapshotsRecordStartEpochUnknownType
+}
 
 // Int64 returns the int64 branch value.
 func (u *CatSnapshotsRecordStartEpoch) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
+}
+
+// NewCatSnapshotsRecordStartEpochFromInt64 returns a CatSnapshotsRecordStartEpoch populated with v
+// on the Int64 branch.
+func NewCatSnapshotsRecordStartEpochFromInt64(v int64) CatSnapshotsRecordStartEpoch {
+	return CatSnapshotsRecordStartEpoch{
+		typ:   CatSnapshotsRecordStartEpochInt64Type,
+		value: &v,
+	}
 }
 
 // String returns the string branch value.
 func (u *CatSnapshotsRecordStartEpoch) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewCatSnapshotsRecordStartEpochFromString returns a CatSnapshotsRecordStartEpoch populated with v
+// on the String branch.
+func NewCatSnapshotsRecordStartEpochFromString(v string) CatSnapshotsRecordStartEpoch {
+	return CatSnapshotsRecordStartEpoch{
+		typ:   CatSnapshotsRecordStartEpochStringType,
+		value: &v,
+	}
 }
 
 func (u *CatSnapshotsRecordStartEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = CatSnapshotsRecordStartEpochUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -339,14 +415,14 @@ func (u *CatSnapshotsRecordStartEpoch) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = CatSnapshotsRecordStartEpochInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = CatSnapshotsRecordStartEpochStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("CatSnapshotsRecordStartEpoch: unexpected JSON token: %s", data[:1])
 	}
@@ -387,6 +463,5 @@ func (c catClient) Snapshots(ctx context.Context, req *CatSnapshotsReq) (*CatSna
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

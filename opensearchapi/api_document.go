@@ -26,6 +26,9 @@ func (c documentClient) Create(ctx context.Context, req DocumentCreateReq) (*Doc
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.apiClient.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }
 
@@ -39,6 +42,9 @@ func (c documentClient) Delete(ctx context.Context, req DocumentDeleteReq) (*Doc
 		return &data, err
 	}
 
+	if errs := data.PartialFailures(c.apiClient.errors); len(errs) > 0 {
+		return &data, errs[0]
+	}
 	return &data, nil
 }
 

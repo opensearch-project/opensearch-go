@@ -21,12 +21,12 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi/testutil"
 )
 
-func TestTermvectors(t *testing.T) {
+func TestTermVectors(t *testing.T) {
 	t.Skip("requires index with term vectors enabled") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 
-	index := testutil.MustUniqueString(t, "test-termvectors")
+	index := testutil.MustUniqueString(t, "test-term-vectors")
 	t.Cleanup(func() {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
@@ -35,7 +35,7 @@ func TestTermvectors(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Termvectors(t.Context(), opensearchapi.TermvectorsReq{Index: index})
+		resp, err := client.TermVectors(t.Context(), opensearchapi.TermVectorsReq{Index: index})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestTermvectors(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Termvectors(t.Context(), opensearchapi.TermvectorsReq{Index: index})
+		res, err := failingClient.TermVectors(t.Context(), opensearchapi.TermVectorsReq{Index: index})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

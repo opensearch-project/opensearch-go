@@ -176,6 +176,5 @@ func (c Client) PutScript(ctx context.Context, req PutScriptReq) (*PutScriptResp
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

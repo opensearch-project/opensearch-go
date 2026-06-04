@@ -183,6 +183,5 @@ func (c catClient) Nodeattrs(ctx context.Context, req *CatNodeattrsReq) (*CatNod
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

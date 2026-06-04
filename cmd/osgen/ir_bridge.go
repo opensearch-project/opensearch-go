@@ -8,6 +8,7 @@ package main
 
 import (
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/errwrap"
 	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
 )
 
@@ -28,6 +29,8 @@ func convertToIR(ops []apiOperation, reg *typeRegistry) *ir.Spec {
 		spec.Types = append(spec.Types, irType)
 		spec.Registry.Register(irType)
 	}
+
+	classifyUnions(spec)
 
 	return spec
 }
@@ -51,6 +54,14 @@ func convertOperation(op *apiOperation) *ir.Operation {
 		IsNoBody:          op.IsNoBody,
 		IsPlugin:          !coreGroups[groupPrefix(op.Group)],
 		ResponseRef:       op.ResponseRef,
+		ErrorWrappers:     resolveErrorWrappers(op),
+	}
+
+	// Plugin operations dispatch through their own flat client method; its
+	// name shares the core acronym/idiomatic-abbreviation rules via
+	// methodNameFromSuffix. Core operations carry names on DispatchRoutes.
+	if irOp.IsPlugin {
+		irOp.MethodName = methodNameFromSuffix(pluginGroupSuffix(op.Group))
 	}
 
 	// Build a set of required path param names from the path builder.
@@ -328,4 +339,17 @@ func convertTokenClass(tc string) ir.TokenClass {
 	default:
 		return ir.TokenObject
 	}
+}
+
+// resolveErrorWrappers returns the partial-failure wrapper-schema names
+// for an operation. The bundled spec ships with the proposed
+// x-error-responses extension; until upstream merges, we fall back to
+// the local errwrap catalog so plugin operations and other ops that
+// haven't been annotated still get coverage when the local hardcoded
+// map knows about them.
+func resolveErrorWrappers(op *apiOperation) []string {
+	if len(op.ErrorWrappers) > 0 {
+		return op.ErrorWrappers
+	}
+	return errwrap.For(op.Group)
 }

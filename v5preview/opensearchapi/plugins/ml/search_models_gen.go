@@ -11,6 +11,7 @@ package ml
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -151,6 +152,171 @@ type MlSearchModelsBody struct {
 	Sort *MlSearchModelsBodySort `json:"sort,omitempty"`
 }
 
-// MlSearchModelsBodySort is a typed component of the ml.search_models operation.
+// MlSearchModelsBodySort is a discriminated union type (try-each, newest version first).
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type MlSearchModelsBodySort struct {
+	typ   MlSearchModelsBodySortType
+	raw   json.RawMessage
+	value any
+}
+
+// MlSearchModelsBodySortType discriminates the branches of MlSearchModelsBodySort.
+type MlSearchModelsBodySortType int
+
+const (
+	MlSearchModelsBodySortUnknownType MlSearchModelsBodySortType = iota
+	MlSearchModelsBodySortStringType
+	MlSearchModelsBodySortStringMapType
+	MlSearchModelsBodySortFieldSortMapType
+	MlSearchModelsBodySortOptionsType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns MlSearchModelsBodySortUnknownType if the value has not been decoded.
+func (u *MlSearchModelsBodySort) Type() MlSearchModelsBodySortType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *MlSearchModelsBodySort) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMlSearchModelsBodySortFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MlSearchModelsBodySort) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MlSearchModelsBodySortUnknownType
+}
+
+// String returns the string branch value.
+func (u *MlSearchModelsBodySort) String() string {
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewMlSearchModelsBodySortFromString returns a MlSearchModelsBodySort populated with v
+// on the String branch.
+func NewMlSearchModelsBodySortFromString(v string) MlSearchModelsBodySort {
+	return MlSearchModelsBodySort{
+		typ:   MlSearchModelsBodySortStringType,
+		value: &v,
+	}
+}
+
+// StringMap returns the map[string]string branch value.
+func (u *MlSearchModelsBodySort) StringMap() map[string]string {
+	if v, ok := u.value.(*map[string]string); ok {
+		return *v
+	}
+	var zero map[string]string
+	return zero
+}
+
+// NewMlSearchModelsBodySortFromStringMap returns a MlSearchModelsBodySort populated with v
+// on the StringMap branch.
+func NewMlSearchModelsBodySortFromStringMap(v map[string]string) MlSearchModelsBodySort {
+	return MlSearchModelsBodySort{
+		typ:   MlSearchModelsBodySortStringMapType,
+		value: &v,
+	}
+}
+
+// FieldSortMap returns the map[string]opensearchapi.FieldSort branch value.
+func (u *MlSearchModelsBodySort) FieldSortMap() map[string]opensearchapi.FieldSort {
+	if v, ok := u.value.(*map[string]opensearchapi.FieldSort); ok {
+		return *v
+	}
+	var zero map[string]opensearchapi.FieldSort
+	return zero
+}
+
+// NewMlSearchModelsBodySortFromFieldSortMap returns a MlSearchModelsBodySort populated with v
+// on the FieldSortMap branch.
+func NewMlSearchModelsBodySortFromFieldSortMap(v map[string]opensearchapi.FieldSort) MlSearchModelsBodySort {
+	return MlSearchModelsBodySort{
+		typ:   MlSearchModelsBodySortFieldSortMapType,
+		value: &v,
+	}
+}
+
+// Options returns the opensearchapi.SortOptions branch value.
+func (u *MlSearchModelsBodySort) Options() opensearchapi.SortOptions {
+	if v, ok := u.value.(*opensearchapi.SortOptions); ok {
+		return *v
+	}
+	var zero opensearchapi.SortOptions
+	return zero
+}
+
+// NewMlSearchModelsBodySortFromOptions returns a MlSearchModelsBodySort populated with v
+// on the Options branch.
+func NewMlSearchModelsBodySortFromOptions(v opensearchapi.SortOptions) MlSearchModelsBodySort {
+	return MlSearchModelsBodySort{
+		typ:   MlSearchModelsBodySortOptionsType,
+		value: &v,
+	}
+}
+
+func (u *MlSearchModelsBodySort) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = MlSearchModelsBodySortUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required (discriminator) fields. A branch
+	// is eligible only when the payload carries every required key, so a more
+	// specific branch (e.g. an error sub-response keyed by "error") is not
+	// absorbed by a structurally permissive success branch. encoding/json does
+	// not enforce a schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required fields, tried newest-first.
+	{
+		var v string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchModelsBodySortStringType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v map[string]string
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchModelsBodySortStringMapType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v map[string]opensearchapi.FieldSort
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchModelsBodySortFieldSortMapType
+			u.value = &v
+			return nil
+		}
+	}
+	{
+		var v opensearchapi.SortOptions
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = MlSearchModelsBodySortOptionsType
+			u.value = &v
+			return nil
+		}
+	}
+	return fmt.Errorf("MlSearchModelsBodySort: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u MlSearchModelsBodySort) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }

@@ -216,23 +216,61 @@ const (
 // Returns CatHealthRecordEpochUnknownType if the value has not been decoded.
 func (u *CatHealthRecordEpoch) Type() CatHealthRecordEpochType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
 func (u *CatHealthRecordEpoch) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCatHealthRecordEpochFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CatHealthRecordEpoch) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CatHealthRecordEpochUnknownType
+}
 
 // Int64 returns the int64 branch value.
 func (u *CatHealthRecordEpoch) Int64() int64 {
-	v, _ := u.value.(int64)
-	return v
+	if v, ok := u.value.(*int64); ok {
+		return *v
+	}
+	var zero int64
+	return zero
+}
+
+// NewCatHealthRecordEpochFromInt64 returns a CatHealthRecordEpoch populated with v
+// on the Int64 branch.
+func NewCatHealthRecordEpochFromInt64(v int64) CatHealthRecordEpoch {
+	return CatHealthRecordEpoch{
+		typ:   CatHealthRecordEpochInt64Type,
+		value: &v,
+	}
 }
 
 // String returns the string branch value.
 func (u *CatHealthRecordEpoch) String() string {
-	v, _ := u.value.(string)
-	return v
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewCatHealthRecordEpochFromString returns a CatHealthRecordEpoch populated with v
+// on the String branch.
+func NewCatHealthRecordEpochFromString(v string) CatHealthRecordEpoch {
+	return CatHealthRecordEpoch{
+		typ:   CatHealthRecordEpochStringType,
+		value: &v,
+	}
 }
 
 func (u *CatHealthRecordEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+	u.raw = data
+	u.value = nil
+	u.typ = CatHealthRecordEpochUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -243,14 +281,14 @@ func (u *CatHealthRecordEpoch) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		u.typ = CatHealthRecordEpochInt64Type
-		u.value = v
+		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
 		u.typ = CatHealthRecordEpochStringType
-		u.value = v
+		u.value = &v
 	default:
 		return fmt.Errorf("CatHealthRecordEpoch: unexpected JSON token: %s", data[:1])
 	}
@@ -291,6 +329,5 @@ func (c catClient) Health(ctx context.Context, req *CatHealthReq) (*CatHealthRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

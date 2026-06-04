@@ -157,6 +157,5 @@ func (c Client) DeletePIT(ctx context.Context, req *DeletePITReq) (*DeletePITRes
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

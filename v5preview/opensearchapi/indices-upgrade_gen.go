@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/errmask"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v4/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
@@ -137,7 +138,7 @@ func (r IndicesUpgradeParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesUpgradeResp struct {
-	ShardsOperationResponseBase
+	ShardsOperationRespBase
 	UpgradedIndices map[string]IndicesUpgradeVersionStatus `json:"upgraded_indices,omitempty"`
 
 	response *opensearch.Response
@@ -155,6 +156,36 @@ func (r IndicesUpgradeResp) RawBody() io.Reader {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
+}
+
+// BroadcastShardFailures detects partial failures on a broadcast-shape
+// response (one envelope, all-shards aggregate). Returns nil when no
+// shards failed.
+func (r *IndicesUpgradeResp) BroadcastShardFailures() *PartialSearchError {
+	if r == nil {
+		return nil
+	}
+	if r.Shards.Failed == 0 {
+		return nil
+	}
+	return &PartialSearchError{
+		FailedShards: r.Shards.Failed,
+		TotalShards:  r.Shards.Total,
+		Failures:     r.Shards.Failures,
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// IndicesUpgradeResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *IndicesUpgradeResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.BroadcastShards) {
+		if e := r.BroadcastShardFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
 }
 
 // Upgrade the `_upgrade` API is no longer useful and will be removed.
@@ -181,6 +212,5 @@ func (c indicesClient) Upgrade(ctx context.Context, req *IndicesUpgradeReq) (*In
 	); err != nil {
 		return &data, err
 	}
-
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }

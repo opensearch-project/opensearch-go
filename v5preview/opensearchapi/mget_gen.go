@@ -24,7 +24,7 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
 )
 
-// MgetReq represents the request for the mget operation.
+// MGetReq represents the request for the mget operation.
 //
 // Allows to get multiple documents in one request.
 //
@@ -35,13 +35,13 @@ import (
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
-type MgetReq struct {
+type MGetReq struct {
 	// Index specifies the path segment for the request URL.
 	Index string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
-	Body *MgetBody
+	Body *MGetBody
 
 	// BodyReader provides an escape hatch for sending a raw request
 	// body. It is used only when Body is nil.
@@ -51,11 +51,11 @@ type MgetReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *MgetParams
+	Params *MGetParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r MgetReq) GetRequest(method string) (*http.Request, error) {
+func (r MGetReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.MgetPath{
 		Index: r.Index,
 	}.Build()
@@ -88,8 +88,8 @@ func (r MgetReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// MgetParams represents query parameters for the MgetReq.
-type MgetParams struct {
+// MGetParams represents query parameters for the MGetReq.
+type MGetParams struct {
 	TimeoutParams
 	DebugParams
 	// Set to `true` or `false` to return the `_source` field or not, or a list
@@ -129,7 +129,7 @@ type MgetParams struct {
 	StoredFields []string
 }
 
-func (r MgetParams) get() map[string]string {
+func (r MGetParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -175,27 +175,27 @@ func (r MgetParams) get() map[string]string {
 	return params
 }
 
-// MgetResp represents the response for the mget operation.
+// MGetResp represents the response for the mget operation.
 //
 // Allows to get multiple documents in one request.
 //
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
-type MgetResp struct {
-	Docs []MgetResponseBodyDocsItem `json:"docs"`
+type MGetResp struct {
+	Docs []MGetRespBodyDocsItem `json:"docs"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r MgetResp) Inspect() Inspect {
+func (r MGetResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r MgetResp) RawBody() io.Reader {
+func (r MGetResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
@@ -208,8 +208,8 @@ type GetResult struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-// MgetMultiGetError is a typed component of the mget operation.
-type MgetMultiGetError struct {
+// MGetMultiGetError is a typed component of the mget operation.
+type MGetMultiGetError struct {
 	// The unique identifier for a resource.
 	ID string `json:"_id"`
 
@@ -217,68 +217,112 @@ type MgetMultiGetError struct {
 	Error ErrorCause `json:"error"`
 }
 
-// MgetResponseBodyDocsItem is a discriminated union type (try-each, newest version first).
+// MGetRespBodyDocsItem is a discriminated union type (single-pass merge decode).
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type MgetResponseBodyDocsItem struct {
-	typ   MgetResponseBodyDocsItemType
+type MGetRespBodyDocsItem struct {
+	typ   MGetRespBodyDocsItemType
 	raw   json.RawMessage
 	value any
 }
 
-// MgetResponseBodyDocsItemType discriminates the branches of MgetResponseBodyDocsItem.
-type MgetResponseBodyDocsItemType int
+// MGetRespBodyDocsItemType discriminates the branches of MGetRespBodyDocsItem.
+type MGetRespBodyDocsItemType int
 
 const (
-	MgetResponseBodyDocsItemUnknownType MgetResponseBodyDocsItemType = iota
-	MgetResponseBodyDocsItemGetResultType
-	MgetResponseBodyDocsItemMgetMultiGetErrorType
+	MGetRespBodyDocsItemUnknownType MGetRespBodyDocsItemType = iota
+	MGetRespBodyDocsItemGetResultType
+	MGetRespBodyDocsItemMGetMultiGetErrorType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns MgetResponseBodyDocsItemUnknownType if the value has not been decoded.
-func (u *MgetResponseBodyDocsItem) Type() MgetResponseBodyDocsItemType { return u.typ }
+// Returns MGetRespBodyDocsItemUnknownType if the value has not been decoded.
+func (u *MGetRespBodyDocsItem) Type() MGetRespBodyDocsItemType { return u.typ }
 
-// RawJSON returns the original JSON bytes for escape-hatch decoding.
-func (u *MgetResponseBodyDocsItem) RawJSON() json.RawMessage { return u.raw }
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *MGetRespBodyDocsItem) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMGetRespBodyDocsItemFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MGetRespBodyDocsItem) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MGetRespBodyDocsItemUnknownType
+}
 
 // GetResult returns the GetResult branch value.
-func (u *MgetResponseBodyDocsItem) GetResult() GetResult {
-	v, _ := u.value.(GetResult)
-	return v
+func (u *MGetRespBodyDocsItem) GetResult() GetResult {
+	if v, ok := u.value.(*GetResult); ok {
+		return *v
+	}
+	var zero GetResult
+	return zero
 }
 
-// MgetMultiGetError returns the MgetMultiGetError branch value.
-func (u *MgetResponseBodyDocsItem) MgetMultiGetError() MgetMultiGetError {
-	v, _ := u.value.(MgetMultiGetError)
-	return v
+// NewMGetRespBodyDocsItemFromGetResult returns a MGetRespBodyDocsItem populated with v
+// on the GetResult branch.
+func NewMGetRespBodyDocsItemFromGetResult(v GetResult) MGetRespBodyDocsItem {
+	return MGetRespBodyDocsItem{
+		typ:   MGetRespBodyDocsItemGetResultType,
+		value: &v,
+	}
 }
 
-func (u *MgetResponseBodyDocsItem) UnmarshalJSON(data []byte) error {
-	u.raw = append(u.raw[:0], data...)
+// MGetMultiGetError returns the MGetMultiGetError branch value.
+func (u *MGetRespBodyDocsItem) MGetMultiGetError() MGetMultiGetError {
+	if v, ok := u.value.(*MGetMultiGetError); ok {
+		return *v
+	}
+	var zero MGetMultiGetError
+	return zero
+}
+
+// NewMGetRespBodyDocsItemFromMGetMultiGetError returns a MGetRespBodyDocsItem populated with v
+// on the MGetMultiGetError branch.
+func NewMGetRespBodyDocsItemFromMGetMultiGetError(v MGetMultiGetError) MGetRespBodyDocsItem {
+	return MGetRespBodyDocsItem{
+		typ:   MGetRespBodyDocsItemMGetMultiGetErrorType,
+		value: &v,
+	}
+}
+
+func (u *MGetRespBodyDocsItem) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = MGetRespBodyDocsItemUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	{
-		var v GetResult
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MgetResponseBodyDocsItemGetResultType
-			u.value = v
-			return nil
-		}
+	// Single decode: embed the permissive (primary) branch and probe for the
+	// discriminating keys of the other branches in one pass. encoding/json
+	// populates the embedded primary directly; the probes only test presence.
+	type merged struct {
+		GetResult
+		Disc0 json.RawMessage `json:"error"`
 	}
-	{
-		var v MgetMultiGetError
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MgetResponseBodyDocsItemMgetMultiGetErrorType
-			u.value = v
-			return nil
-		}
+	var m merged
+	if err := json.Unmarshal(data, &m); err != nil {
+		return err
 	}
-	return fmt.Errorf("MgetResponseBodyDocsItem: no branch matched JSON: %s", data[:min(len(data), 64)])
+	if len(m.Disc0) > 0 {
+		var v MGetMultiGetError
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = MGetRespBodyDocsItemMGetMultiGetErrorType
+		u.value = &v
+		return nil
+	}
+	u.typ = MGetRespBodyDocsItemGetResultType
+	u.value = &m.GetResult
+	return nil
 }
 
-func (u MgetResponseBodyDocsItem) MarshalJSON() ([]byte, error) {
+func (u MGetRespBodyDocsItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -288,19 +332,19 @@ func (u MgetResponseBodyDocsItem) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// MgetBody is a typed component of the mget operation.
+// MGetBody is a typed component of the mget operation.
 //
 // Document identifiers; can be either `docs` (containing full document information) or `ids` (when index is provided in the URL.
-type MgetBody struct {
+type MGetBody struct {
 	// The documents you want to retrieve. Required if no index is specified in
 	// the request URI.
-	Docs []MgetOperation `json:"docs,omitempty"`
+	Docs []MGetOperation `json:"docs,omitempty"`
 
 	Ids *string `json:"ids,omitempty"`
 }
 
-// MgetOperation is a typed component of the mget operation.
-type MgetOperation struct {
+// MGetOperation is a typed component of the mget operation.
+type MGetOperation struct {
 	// The unique identifier for a resource.
 	ID string `json:"_id"`
 
@@ -308,7 +352,7 @@ type MgetOperation struct {
 
 	// Defines how to fetch a source. Fetching can be disabled entirely, or the
 	// source can be filtered.
-	Source *MgetOperationSource `json:"_source,omitempty"`
+	Source *MGetOperationSource `json:"_source,omitempty"`
 
 	// The routing value for the document.
 	Routing *string `json:"routing,omitempty"`
@@ -323,12 +367,8 @@ type MgetOperation struct {
 	VersionType *string `json:"version_type,omitempty"`
 }
 
-// MgetOperationSource is a typed component of the mget operation.
-type MgetOperationSource struct {
-}
-
-// MgetOperationSourceObject1 is a typed component of the mget operation.
-type MgetOperationSourceObject1 struct {
+// MGetOperationSourceObject1 is a typed component of the mget operation.
+type MGetOperationSourceObject1 struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -342,7 +382,118 @@ type MgetOperationSourceObject1 struct {
 	Includes *string `json:"includes,omitempty"`
 }
 
-// Mget allows to get multiple documents in one request.
+// MGetOperationSource is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type MGetOperationSource struct {
+	typ   MGetOperationSourceType
+	raw   json.RawMessage
+	value any
+}
+
+// MGetOperationSourceType discriminates the branches of MGetOperationSource.
+type MGetOperationSourceType int
+
+const (
+	MGetOperationSourceUnknownType MGetOperationSourceType = iota
+	MGetOperationSourceStringType
+	MGetOperationSourceMGetOperationSourceObject1Type
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns MGetOperationSourceUnknownType if the value has not been decoded.
+func (u *MGetOperationSource) Type() MGetOperationSourceType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *MGetOperationSource) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewMGetOperationSourceFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *MGetOperationSource) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = MGetOperationSourceUnknownType
+}
+
+// String returns the string branch value.
+func (u *MGetOperationSource) String() string {
+	if v, ok := u.value.(*string); ok {
+		return *v
+	}
+	var zero string
+	return zero
+}
+
+// NewMGetOperationSourceFromString returns a MGetOperationSource populated with v
+// on the String branch.
+func NewMGetOperationSourceFromString(v string) MGetOperationSource {
+	return MGetOperationSource{
+		typ:   MGetOperationSourceStringType,
+		value: &v,
+	}
+}
+
+// MGetOperationSourceObject1 returns the MGetOperationSourceObject1 branch value.
+func (u *MGetOperationSource) MGetOperationSourceObject1() MGetOperationSourceObject1 {
+	if v, ok := u.value.(*MGetOperationSourceObject1); ok {
+		return *v
+	}
+	var zero MGetOperationSourceObject1
+	return zero
+}
+
+// NewMGetOperationSourceFromMGetOperationSourceObject1 returns a MGetOperationSource populated with v
+// on the MGetOperationSourceObject1 branch.
+func NewMGetOperationSourceFromMGetOperationSourceObject1(v MGetOperationSourceObject1) MGetOperationSource {
+	return MGetOperationSource{
+		typ:   MGetOperationSourceMGetOperationSourceObject1Type,
+		value: &v,
+	}
+}
+
+func (u *MGetOperationSource) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = MGetOperationSourceUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = MGetOperationSourceStringType
+		u.value = &v
+	case data[0] == '{':
+		var v MGetOperationSourceObject1
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = MGetOperationSourceMGetOperationSourceObject1Type
+		u.value = &v
+	default:
+		return fmt.Errorf("MGetOperationSource: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u MGetOperationSource) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// MGet allows to get multiple documents in one request.
 //
 // Path: /_mget
 //
@@ -351,9 +502,9 @@ type MgetOperationSourceObject1 struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
-func (c Client) Mget(ctx context.Context, req MgetReq) (*MgetResp, error) {
+func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
 	var (
-		data MgetResp
+		data MGetResp
 		err  error
 	)
 	method := http.MethodGet
@@ -368,6 +519,5 @@ func (c Client) Mget(ctx context.Context, req MgetReq) (*MgetResp, error) {
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

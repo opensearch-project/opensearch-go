@@ -99,7 +99,7 @@ type ErrorCause struct {
 	// `response_limit_breached_exception` responses.
 	//
 	// Available: >= 3.0.0.
-	ResponseLimit *int `json:"response_limit,omitempty"`
+	RespLimit *int `json:"response_limit,omitempty"`
 
 	RootCause []ErrorCause `json:"root_cause,omitempty"`
 
@@ -1020,7 +1020,7 @@ type SearchResponse struct {
 	SearchResult
 }
 
-type AsynchronousSearchResponseBody struct {
+type AsynchronousSearchRespBody struct {
 	ExpirationTimeInMillis *float64        `json:"expiration_time_in_millis,omitempty"`
 	ID                     *string         `json:"id,omitempty"`
 	Response               *SearchResponse `json:"response,omitempty"`
@@ -1046,7 +1046,7 @@ type NodeStatistics struct {
 }
 
 // Provides base response structure for node-related operations.
-type NodesResponseBase struct {
+type NodesRespBase struct {
 	// Contains statistics about the number of nodes selected by the request's
 	// node filters.
 	Nodes *NodeStatistics `json:"_nodes,omitempty"`
@@ -1069,7 +1069,7 @@ type AsynchronousSearchNodesStats struct {
 }
 
 type AsynchronousSearchStatsResponse struct {
-	NodesResponseBase
+	NodesRespBase
 	ClusterName *string                                 `json:"cluster_name,omitempty"`
 	Nodes       map[string]AsynchronousSearchNodesStats `json:"nodes,omitempty"`
 }
@@ -1102,7 +1102,7 @@ type InlineGetDictUserDefined struct {
 	Found bool `json:"found"`
 }
 
-type BulkResponseItem struct {
+type BulkRespItem struct {
 	// The document ID associated with the operation.
 	ID *string `json:"_id,omitempty"`
 
@@ -1138,10 +1138,10 @@ type BulkResponseItem struct {
 }
 
 type BulkItem struct {
-	Create *BulkResponseItem `json:"create,omitempty"`
-	Delete *BulkResponseItem `json:"delete,omitempty"`
-	Index  *BulkResponseItem `json:"index,omitempty"`
-	Update *BulkResponseItem `json:"update,omitempty"`
+	Create *BulkRespItem `json:"create,omitempty"`
+	Delete *BulkRespItem `json:"delete,omitempty"`
+	Index  *BulkRespItem `json:"index,omitempty"`
+	Update *BulkRespItem `json:"update,omitempty"`
 }
 
 type CatIndicesRecord struct {
@@ -1850,7 +1850,7 @@ type ClusterAllocationExplainUnassignedInformation struct {
 	Reason                   string  `json:"reason"`
 }
 
-type AcknowledgedResponseBase struct {
+type AcknowledgedRespBase struct {
 	// For a successful response, this value is always true. On failure, an
 	// exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
@@ -6460,7 +6460,7 @@ type PluginStats struct {
 }
 
 // The base response for write operations.
-type WriteResponseBase struct {
+type WriteRespBase struct {
 	// The unique identifier for a resource.
 	ID string `json:"_id"`
 
@@ -6543,7 +6543,7 @@ type BulkByScrollTaskStatus struct {
 }
 
 // The details of a bulk item operation failure.
-type BulkItemResponseFailure struct {
+type BulkItemRespFailure struct {
 	Cause ErrorCause `json:"cause"`
 
 	// The unique identifier for a resource.
@@ -6562,11 +6562,11 @@ type ScrollableHitSourceSearchFailure struct {
 	Status int        `json:"status"`
 }
 
-type BulkByScrollResponseBase struct {
+type BulkByScrollRespBase struct {
 	BulkByScrollTaskStatus
 
 	// The list of failures that occurred during the operation.
-	Failures []BulkByScrollResponseBaseFailuresItem `json:"failures"`
+	Failures []BulkByScrollRespBaseFailuresItem `json:"failures"`
 
 	// Whether the operation timed out.
 	TimedOut bool `json:"timed_out"`
@@ -6840,7 +6840,7 @@ type StoredScript struct {
 }
 
 // The base response for operations involving shards.
-type ShardsOperationResponseBase struct {
+type ShardsOperationRespBase struct {
 	Shards ShardStatistics `json:"_shards"`
 }
 
@@ -6863,8 +6863,8 @@ type IndicesDataStreamStats struct {
 	StoreSizeBytes int64 `json:"store_size_bytes"`
 }
 
-type IndicesResponseBase struct {
-	AcknowledgedResponseBase
+type IndicesRespBase struct {
+	AcknowledgedRespBase
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 }
 
@@ -8912,7 +8912,7 @@ type IsmPutPolicyResponse struct {
 	Policy *IsmPolicyEnvelope `json:"policy,omitempty"`
 }
 
-type IsmRefreshSearchAnalyzersResponseDetails struct {
+type IsmRefreshSearchAnalyzersRespDetails struct {
 	// The name of the index.
 	Index *string `json:"index,omitempty"`
 
@@ -8924,7 +8924,7 @@ type IsmRefreshSearchAnalyzersResponse struct {
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 
 	// The details of successful analyzer refreshes.
-	SuccessfulRefreshDetails []IsmRefreshSearchAnalyzersResponseDetails `json:"successful_refresh_details,omitempty"`
+	SuccessfulRefreshDetails []IsmRefreshSearchAnalyzersRespDetails `json:"successful_refresh_details,omitempty"`
 }
 
 type KnnDeletedModel struct {
@@ -9088,7 +9088,7 @@ type KnnNodeStats struct {
 }
 
 type KnnStats struct {
-	NodesResponseBase
+	NodesRespBase
 	CircuitBreakerTriggered *bool `json:"circuit_breaker_triggered,omitempty"`
 
 	// The name of a resource or configuration element.
@@ -9134,7 +9134,7 @@ type LtrNodeDetails struct {
 }
 
 type LtrCacheStatsResponse struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// Aggregate cache statistics across all nodes.
 	All *LtrCacheAllStats `json:"all,omitempty"`
@@ -9212,7 +9212,7 @@ type LtrStoreStat struct {
 }
 
 type LtrStats struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// The name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
@@ -9233,7 +9233,7 @@ type MlDeleteAgenticMemoryResponse struct {
 	Deleted *int64 `json:"deleted,omitempty"`
 
 	// Any failures occurred during the operation.
-	Failures []MlDeleteAgenticMemoryResponseFailuresItem `json:"failures,omitempty"`
+	Failures []MlDeleteAgenticMemoryRespFailuresItem `json:"failures,omitempty"`
 
 	// Number of no-operation updates.
 	Noops *int64 `json:"noops,omitempty"`
@@ -9379,7 +9379,7 @@ type MlExecuteAnomalyLocalizationResponse struct {
 	Result *MlResult `json:"result,omitempty"`
 }
 
-type MlExecuteAlgorithmResponseObject1 struct {
+type MlExecuteAlgorithmRespObject1 struct {
 	Results []MlExecuteAnomalyLocalizationResponse `json:"results,omitempty"`
 }
 
@@ -10250,7 +10250,7 @@ type MlUpdateModelGroupResponse struct {
 }
 
 // The base structure for error responses.
-type ErrorResponseBase struct {
+type ErrorRespBase struct {
 	Error ErrorCause `json:"error"`
 
 	// The HTTP status code.
@@ -10371,7 +10371,7 @@ type NeuralNestedInfoStats struct {
 }
 
 type NeuralNestedStats struct {
-	NodesResponseBase
+	NodesRespBase
 	AllNodes    *NeuralNestedNodeStats           `json:"all_nodes,omitempty"`
 	ClusterName *string                          `json:"cluster_name,omitempty"`
 	Info        *NeuralNestedInfoStats           `json:"info,omitempty"`
@@ -10440,7 +10440,7 @@ type NeuralFlatInfoStats struct {
 }
 
 type NeuralFlatStats struct {
-	NodesResponseBase
+	NodesRespBase
 	AllNodes    *NeuralFlatNodeStats           `json:"all_nodes,omitempty"`
 	ClusterName *string                        `json:"cluster_name,omitempty"`
 	Info        *NeuralFlatInfoStats           `json:"info,omitempty"`
@@ -10448,7 +10448,7 @@ type NeuralFlatStats struct {
 }
 
 type NotificationsDeleteConfigsResponse struct {
-	DeleteResponseList map[string]string `json:"delete_response_list,omitempty"`
+	DeleteRespList map[string]string `json:"delete_response_list,omitempty"`
 }
 
 type NotificationsChime struct {
@@ -11386,7 +11386,7 @@ type SearchPipelineStructureRequestProcessorsItemObject4 struct {
 	Oversample SearchPipelineOversampleRequestProcessor `json:"oversample"`
 }
 
-type SearchPipelineAgenticContextResponseProcessor struct {
+type SearchPipelineAgenticContextRespProcessor struct {
 	// Whether to include the agent's execution step summary in the response.
 	// Available for conversational agents only.
 	AgentStepsSummary *bool `json:"agent_steps_summary,omitempty"`
@@ -11401,12 +11401,12 @@ type SearchPipelineAgenticContextResponseProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject0 struct {
+type SearchPipelineStructureRespProcessorsItemObject0 struct {
 	// Available: >= 3.3.0.
-	AgenticContext SearchPipelineAgenticContextResponseProcessor `json:"agentic_context"`
+	AgenticContext SearchPipelineAgenticContextRespProcessor `json:"agentic_context"`
 }
 
-type SearchPipelinePersonalizeSearchRankingResponseProcessor struct {
+type SearchPipelinePersonalizeSearchRankingRespProcessor struct {
 	CampaignArn   string  `json:"campaign_arn"`
 	Description   *string `json:"description,omitempty"`
 	IamRoleArn    *string `json:"iam_role_arn,omitempty"`
@@ -11417,11 +11417,11 @@ type SearchPipelinePersonalizeSearchRankingResponseProcessor struct {
 	Weight        float32 `json:"weight"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject1 struct {
-	PersonalizeSearchRanking SearchPipelinePersonalizeSearchRankingResponseProcessor `json:"personalize_search_ranking"`
+type SearchPipelineStructureRespProcessorsItemObject1 struct {
+	PersonalizeSearchRanking SearchPipelinePersonalizeSearchRankingRespProcessor `json:"personalize_search_ranking"`
 }
 
-type SearchPipelineRetrievalAugmentedGenerationResponseProcessor struct {
+type SearchPipelineRetrievalAugmentedGenerationRespProcessor struct {
 	ContextFieldList []string `json:"context_field_list"`
 	Description      *string  `json:"description,omitempty"`
 	ModelID          string   `json:"model_id"`
@@ -11430,11 +11430,11 @@ type SearchPipelineRetrievalAugmentedGenerationResponseProcessor struct {
 	UserInstructions *string  `json:"user_instructions,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject2 struct {
-	RetrievalAugmentedGeneration SearchPipelineRetrievalAugmentedGenerationResponseProcessor `json:"retrieval_augmented_generation"`
+type SearchPipelineStructureRespProcessorsItemObject2 struct {
+	RetrievalAugmentedGeneration SearchPipelineRetrievalAugmentedGenerationRespProcessor `json:"retrieval_augmented_generation"`
 }
 
-type SearchPipelineRenameFieldResponseProcessor struct {
+type SearchPipelineRenameFieldRespProcessor struct {
 	Description   *string `json:"description,omitempty"`
 	Field         string  `json:"field"`
 	IgnoreFailure *bool   `json:"ignore_failure,omitempty"`
@@ -11442,8 +11442,8 @@ type SearchPipelineRenameFieldResponseProcessor struct {
 	TargetField   string  `json:"target_field"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject3 struct {
-	RenameField SearchPipelineRenameFieldResponseProcessor `json:"rename_field"`
+type SearchPipelineStructureRespProcessorsItemObject3 struct {
+	RenameField SearchPipelineRenameFieldRespProcessor `json:"rename_field"`
 }
 
 type SearchPipelineRerankContext struct {
@@ -11454,7 +11454,7 @@ type SearchPipelineMLOpenSearchReranker struct {
 	ModelID string `json:"model_id"`
 }
 
-type SearchPipelineRerankResponseProcessor struct {
+type SearchPipelineRerankRespProcessor struct {
 	Context       *SearchPipelineRerankContext        `json:"context,omitempty"`
 	Description   *string                             `json:"description,omitempty"`
 	IgnoreFailure *bool                               `json:"ignore_failure,omitempty"`
@@ -11462,11 +11462,11 @@ type SearchPipelineRerankResponseProcessor struct {
 	Tag           *string                             `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject4 struct {
-	Rerank SearchPipelineRerankResponseProcessor `json:"rerank"`
+type SearchPipelineStructureRespProcessorsItemObject4 struct {
+	Rerank SearchPipelineRerankRespProcessor `json:"rerank"`
 }
 
-type SearchPipelineCollapseResponseProcessor struct {
+type SearchPipelineCollapseRespProcessor struct {
 	ContextPrefix *string `json:"context_prefix,omitempty"`
 	Description   *string `json:"description,omitempty"`
 	Field         string  `json:"field"`
@@ -11474,11 +11474,11 @@ type SearchPipelineCollapseResponseProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject5 struct {
-	Collapse SearchPipelineCollapseResponseProcessor `json:"collapse"`
+type SearchPipelineStructureRespProcessorsItemObject5 struct {
+	Collapse SearchPipelineCollapseRespProcessor `json:"collapse"`
 }
 
-type SearchPipelineTruncateHitsResponseProcessor struct {
+type SearchPipelineTruncateHitsRespProcessor struct {
 	ContextPrefix *string `json:"context_prefix,omitempty"`
 	Description   *string `json:"description,omitempty"`
 	IgnoreFailure *bool   `json:"ignore_failure,omitempty"`
@@ -11486,11 +11486,11 @@ type SearchPipelineTruncateHitsResponseProcessor struct {
 	TargetSize    *int    `json:"target_size,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject6 struct {
-	TruncateHits SearchPipelineTruncateHitsResponseProcessor `json:"truncate_hits"`
+type SearchPipelineStructureRespProcessorsItemObject6 struct {
+	TruncateHits SearchPipelineTruncateHitsRespProcessor `json:"truncate_hits"`
 }
 
-type SearchPipelineSortResponseProcessor struct {
+type SearchPipelineSortRespProcessor struct {
 	Description   *string `json:"description,omitempty"`
 	Field         string  `json:"field"`
 	IgnoreFailure *bool   `json:"ignore_failure,omitempty"`
@@ -11499,11 +11499,11 @@ type SearchPipelineSortResponseProcessor struct {
 	TargetField   *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject7 struct {
-	Sort SearchPipelineSortResponseProcessor `json:"sort"`
+type SearchPipelineStructureRespProcessorsItemObject7 struct {
+	Sort SearchPipelineSortRespProcessor `json:"sort"`
 }
 
-type SearchPipelineSplitResponseProcessor struct {
+type SearchPipelineSplitRespProcessor struct {
 	Description      *string `json:"description,omitempty"`
 	Field            string  `json:"field"`
 	IgnoreFailure    *bool   `json:"ignore_failure,omitempty"`
@@ -11513,15 +11513,15 @@ type SearchPipelineSplitResponseProcessor struct {
 	TargetField      *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureResponseProcessorsItemObject8 struct {
-	Split SearchPipelineSplitResponseProcessor `json:"split"`
+type SearchPipelineStructureRespProcessorsItemObject8 struct {
+	Split SearchPipelineSplitRespProcessor `json:"split"`
 }
 
 type SearchPipelineStructure struct {
 	Description            *string                                             `json:"description,omitempty"`
 	PhaseResultsProcessors []SearchPipelineStructurePhaseResultsProcessorsItem `json:"phase_results_processors,omitempty"`
 	RequestProcessors      []SearchPipelineStructureRequestProcessorsItem      `json:"request_processors,omitempty"`
-	ResponseProcessors     []SearchPipelineStructureResponseProcessorsItem     `json:"response_processors,omitempty"`
+	RespProcessors         []SearchPipelineStructureRespProcessorsItem         `json:"response_processors,omitempty"`
 	Version                *int                                                `json:"version,omitempty"`
 }
 
@@ -11739,7 +11739,7 @@ type SecurityCertificatesPerNode struct {
 }
 
 type SecurityGetCertificatesNew struct {
-	NodesResponseBase
+	NodesRespBase
 
 	// Name of this cluster.
 	ClusterName *string `json:"cluster_name,omitempty"`
@@ -11981,58 +11981,6 @@ type SecurityWhoAmI struct {
 	IsNodeCertificateRequest *bool           `json:"is_node_certificate_request,omitempty"`
 }
 
-type SmExecutionInfo struct {
-	// The reason policy execution failed, if applicable.
-	Cause *string `json:"cause,omitempty"`
-
-	// A detailed message about the policy execution result.
-	Message *string `json:"message,omitempty"`
-}
-
-// Details about the most recent policy execution.
-type SmExecutionMetadata struct {
-	Info *SmExecutionInfo `json:"info,omitempty"`
-}
-
-// Information about any retry attempts that occurred.
-type SmRetryMetadata struct {
-	// The number of retry attempts made.
-	Count *int `json:"count,omitempty"`
-}
-
-// Any information about what triggered the policy execution.
-type SmTriggerMetadata struct {
-	// When the policy was triggered.
-	Time *int `json:"time,omitempty"`
-}
-
-type SmStateMetadata struct {
-	// The current state of the policy execution.
-	CurrentState *string `json:"current_state,omitempty"`
-
-	// Details about the most recent policy execution.
-	LatestExecution *SmExecutionMetadata `json:"latest_execution,omitempty"`
-
-	// Information about any retry attempts that occurred.
-	Retry *SmRetryMetadata `json:"retry,omitempty"`
-
-	// Any information about what triggered the policy execution.
-	Trigger *SmTriggerMetadata `json:"trigger,omitempty"`
-}
-
-type SmExplainedPolicy struct {
-	Creation          *SmStateMetadata `json:"creation,omitempty"`
-	Deletion          *SmStateMetadata `json:"deletion,omitempty"`
-	Enabled           *bool            `json:"enabled,omitempty"`
-	Name              *string          `json:"name,omitempty"`
-	PolicyPrimaryTerm *int             `json:"policy_primary_term,omitempty"`
-	PolicySeqNo       *int             `json:"policy_seq_no,omitempty"`
-}
-
-type SmPolicyExplanation struct {
-	Policies []SmExplainedPolicy `json:"policies,omitempty"`
-}
-
 type SmCronExpression struct {
 	// The cron expression that defines the schedule.
 	Expression string `json:"expression"`
@@ -12160,6 +12108,75 @@ type SmSMPolicy struct {
 	SnapshotConfig SmSnapshotConfig `json:"snapshot_config"`
 }
 
+type SmPolicyResponse struct {
+	// The policy ID.
+	ID string `json:"_id"`
+
+	// The primary term for optimistic concurrency control.
+	PrimaryTerm int `json:"_primary_term"`
+
+	// The sequence number for optimistic concurrency control.
+	SeqNo int `json:"_seq_no"`
+
+	// The version number of the policy document.
+	Version int `json:"_version"`
+
+	// The complete snapshot management policy configuration.
+	SmPolicy SmSMPolicy `json:"sm_policy"`
+}
+
+type SmExecutionInfo struct {
+	// The reason policy execution failed, if applicable.
+	Cause *string `json:"cause,omitempty"`
+
+	// A detailed message about the policy execution result.
+	Message *string `json:"message,omitempty"`
+}
+
+// Details about the most recent policy execution.
+type SmExecutionMetadata struct {
+	Info *SmExecutionInfo `json:"info,omitempty"`
+}
+
+// Information about any retry attempts that occurred.
+type SmRetryMetadata struct {
+	// The number of retry attempts made.
+	Count *int `json:"count,omitempty"`
+}
+
+// Any information about what triggered the policy execution.
+type SmTriggerMetadata struct {
+	// When the policy was triggered.
+	Time *int `json:"time,omitempty"`
+}
+
+type SmStateMetadata struct {
+	// The current state of the policy execution.
+	CurrentState *string `json:"current_state,omitempty"`
+
+	// Details about the most recent policy execution.
+	LatestExecution *SmExecutionMetadata `json:"latest_execution,omitempty"`
+
+	// Information about any retry attempts that occurred.
+	Retry *SmRetryMetadata `json:"retry,omitempty"`
+
+	// Any information about what triggered the policy execution.
+	Trigger *SmTriggerMetadata `json:"trigger,omitempty"`
+}
+
+type SmExplainedPolicy struct {
+	Creation          *SmStateMetadata `json:"creation,omitempty"`
+	Deletion          *SmStateMetadata `json:"deletion,omitempty"`
+	Enabled           *bool            `json:"enabled,omitempty"`
+	Name              *string          `json:"name,omitempty"`
+	PolicyPrimaryTerm *int             `json:"policy_primary_term,omitempty"`
+	PolicySeqNo       *int             `json:"policy_seq_no,omitempty"`
+}
+
+type SmPolicyExplanation struct {
+	Policies []SmExplainedPolicy `json:"policies,omitempty"`
+}
+
 type SmListedPolicy struct {
 	// The policy ID.
 	ID string `json:"_id"`
@@ -12180,23 +12197,6 @@ type SmGetPoliciesResponse struct {
 
 	// The total number of policies found.
 	TotalPolicies int `json:"total_policies"`
-}
-
-type SmPolicyResponse struct {
-	// The policy ID.
-	ID string `json:"_id"`
-
-	// The primary term for optimistic concurrency control.
-	PrimaryTerm int `json:"_primary_term"`
-
-	// The sequence number for optimistic concurrency control.
-	SeqNo int `json:"_seq_no"`
-
-	// The version number of the policy document.
-	Version int `json:"_version"`
-
-	// The complete snapshot management policy configuration.
-	SmPolicy SmSMPolicy `json:"sm_policy"`
 }
 
 type SnapshotShardFailure struct {
@@ -12596,12 +12596,12 @@ type TransformsResponse struct {
 	Transforms      []TransformsTransformResponse `json:"transforms,omitempty"`
 }
 
-type WlmQueryGroupResponseResourceLimitsObject0 struct {
+type WlmQueryGroupRespResourceLimitsObject0 struct {
 	Cpu    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
-type WlmQueryGroupResponseResourceLimitsObject1 struct {
+type WlmQueryGroupRespResourceLimitsObject1 struct {
 	Cpu    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }
@@ -12618,7 +12618,7 @@ type WlmQueryGroupResponse struct {
 	ResiliencyMode string `json:"resiliency_mode"`
 
 	// The resource limits for query requests in the query group.
-	ResourceLimits WlmQueryGroupResponseResourceLimits `json:"resource_limits"`
+	ResourceLimits WlmQueryGroupRespResourceLimits `json:"resource_limits"`
 
 	// The time at which the query group was last updated.
 	UpdatedAt int64 `json:"updated_at"`
@@ -12988,7 +12988,7 @@ type MlGuardrailsInputOutput struct {
 	ModelID *string `json:"model_id,omitempty"`
 
 	// The response validation regex.
-	ResponseValidationRegex *string `json:"response_validation_regex,omitempty"`
+	RespValidationRegex *string `json:"response_validation_regex,omitempty"`
 }
 
 type MlGuardrails struct {
@@ -13004,10 +13004,10 @@ type MlGuardrails struct {
 	Regex json.RawMessage `json:"regex"`
 
 	// The response filter.
-	ResponseFilter *string `json:"response_filter,omitempty"`
+	RespFilter *string `json:"response_filter,omitempty"`
 
 	// The response validation regex.
-	ResponseValidationRegex *string `json:"response_validation_regex,omitempty"`
+	RespValidationRegex *string `json:"response_validation_regex,omitempty"`
 
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific

@@ -21,6 +21,7 @@ func TestExtractOperations(t *testing.T) {
 
 	spec := buildTestSpec(t)
 
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, nil, VersionRange{})
 	require.NoError(t, err)
 	require.NotEmpty(t, ops)
@@ -40,6 +41,7 @@ func TestExtractOperations_Filter(t *testing.T) {
 	spec := buildTestSpec(t)
 
 	filter := map[string]bool{"cluster.health": true}
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, filter, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -51,6 +53,7 @@ func TestExtractOperations_SkipsIgnorable(t *testing.T) {
 
 	spec := buildTestSpecWithIgnorable(t)
 
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, nil, VersionRange{})
 	require.NoError(t, err)
 
@@ -63,6 +66,7 @@ func TestBuildAPIOperation_Metadata(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"cluster.health": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -82,6 +86,7 @@ func TestBuildAPIOperation_WithBody(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -95,6 +100,7 @@ func TestBuildAPIOperation_Deprecated(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithDeprecated(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"old.api": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -109,6 +115,7 @@ func TestBuildAPIOperation_PathFields(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpec(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -123,6 +130,7 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithQueryParams(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"search": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -456,6 +464,7 @@ func TestBuildAPIOperation_PathFieldUnion(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithMultipleVariants(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"indices.refresh": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)
@@ -470,6 +479,7 @@ func TestBuildAPIOperation_ResponseRef(t *testing.T) {
 	t.Parallel()
 
 	spec := buildTestSpecWithResponseSchema(t)
+	//nolint:dogsled // test only cares about ops + err
 	ops, _, _, _, err := extractOperations(spec, map[string]bool{"cluster.health": true}, VersionRange{})
 	require.NoError(t, err)
 	require.Len(t, ops, 1)

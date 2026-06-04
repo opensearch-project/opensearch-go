@@ -136,6 +136,5 @@ func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*Sna
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }

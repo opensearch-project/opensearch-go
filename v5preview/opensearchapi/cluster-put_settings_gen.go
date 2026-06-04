@@ -172,6 +172,5 @@ func (c clusterClient) PutSettings(ctx context.Context, req *ClusterPutSettingsR
 	); err != nil {
 		return &data, err
 	}
-
 	return &data, nil
 }
