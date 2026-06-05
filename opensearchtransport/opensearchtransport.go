@@ -1738,7 +1738,7 @@ func (c *Client) setReqGlobalHeader(req *http.Request) {
 			req.Header = make(http.Header, len(c.header))
 		}
 		for k, v := range c.header {
-			if req.Header.Get(k) != k {
+			if _, ok := req.Header[http.CanonicalHeaderKey(k)]; !ok {
 				for _, vv := range v {
 					req.Header.Add(k, vv)
 				}
