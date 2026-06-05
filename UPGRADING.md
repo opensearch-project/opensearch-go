@@ -34,7 +34,7 @@
 
 ### Partial Failure Errors (Config.Errors)
 
-Version 5.0.0 introduces typed partial-failure errors and a per-category bitmask that controls which categories surface as Go errors. OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). The new model turns those partial failures into typed errors callers can match on with `errors.As`.
+Version 5.0.0 introduces typed partial-failure errors and a per-category bitmask that controls which categories surface as Go errors. OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). The new model turns those partial failures into typed errors that callers can dispatch on; idiomatic partial error handling is shown below.
 
 **Default behavior change:**
 

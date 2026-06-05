@@ -26,22 +26,6 @@ import "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 
 The package qualifier (`opensearchapi.X`) does not change. When v5 ships, the only edit per file is dropping `/v4/v5preview` from the import path and replacing `v4` with `v5`.
 
-### Forward-compatible `replace` directive (optional)
-
-To write code today against the eventual v5 import path, add a `replace` to `go.mod`:
-
-```
-replace github.com/opensearch-project/opensearch-go/v5/opensearchapi => github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi v4.7.0
-```
-
-Then import as if v5 already shipped:
-
-```go
-import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
-```
-
-When v5 ships, drop the `replace` line; nothing else changes.
-
 ## Field renames you'll hit
 
 ### `Indices` -> `Index` on multi-index Req types

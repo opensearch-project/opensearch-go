@@ -34,39 +34,39 @@ The top-level `Metrics` struct contains aggregate counters, per-connection detai
 
 ### Request Counters
 
-| Field       | Type          | Description                               |
-| ----------- | ------------- | ----------------------------------------- |
-| `requests`  | `int`         | Total requests performed by the transport |
-| `failures`  | `int`         | Total request failures                    |
-| `responses` | `map[int]int` | Response count by HTTP status code        |
+| Field       | JSON        | Type          | Description                               |
+| ----------- | ----------- | ------------- | ----------------------------------------- |
+| `Requests`  | `requests`  | `int`         | Total requests performed by the transport |
+| `Failures`  | `failures`  | `int`         | Total request failures                    |
+| `Responses` | `responses` | `map[int]int` | Response count by HTTP status code        |
 
 ### Connection Pool State
 
-| Field                 | Type  | Description                                 |
-| --------------------- | ----- | ------------------------------------------- |
-| `live_connections`    | `int` | Non-dead connections (active + standby)     |
-| `dead_connections`    | `int` | Connections in the dead list                |
-| `standby_connections` | `int` | Connections in the standby partition        |
-| `overloaded_servers`  | `int` | Connections the client considers overloaded |
+| Field                | JSON                  | Type  | Description                                 |
+| -------------------- | --------------------- | ----- | ------------------------------------------- |
+| `LiveConnections`    | `live_connections`    | `int` | Non-dead connections (active + standby)     |
+| `DeadConnections`    | `dead_connections`    | `int` | Connections in the dead list                |
+| `StandbyConnections` | `standby_connections` | `int` | Connections in the standby partition        |
+| `OverloadedServers`  | `overloaded_servers`  | `int` | Connections the client considers overloaded |
 
 ### Connection Lifecycle Counters
 
-| Field                  | Type  | Description                                          |
-| ---------------------- | ----- | ---------------------------------------------------- |
-| `connections_promoted` | `int` | Dead to ready transitions (successful resurrections) |
-| `connections_demoted`  | `int` | Ready to dead transitions                            |
-| `zombie_connections`   | `int` | Dead connections forcibly retried                    |
-| `standby_promotions`   | `int` | Standby to active transitions                        |
-| `standby_demotions`    | `int` | Active to standby transitions                        |
+| Field                 | JSON                   | Type  | Description                                          |
+| --------------------- | ---------------------- | ----- | ---------------------------------------------------- |
+| `ConnectionsPromoted` | `connections_promoted` | `int` | Dead to ready transitions (successful resurrections) |
+| `ConnectionsDemoted`  | `connections_demoted`  | `int` | Ready to dead transitions                            |
+| `ZombieConnections`   | `zombie_connections`   | `int` | Dead connections forcibly retried                    |
+| `StandbyPromotions`   | `standby_promotions`   | `int` | Standby to active transitions                        |
+| `StandbyDemotions`    | `standby_demotions`    | `int` | Active to standby transitions                        |
 
 ### Health Check Counters
 
-| Field                   | Type  | Description                                        |
-| ----------------------- | ----- | -------------------------------------------------- |
-| `health_checks`         | `int` | Baseline `GET /` health checks performed           |
-| `cluster_health_checks` | `int` | `GET /_cluster/health?local=true` checks performed |
-| `health_checks_success` | `int` | Successful health check outcomes                   |
-| `health_checks_failed`  | `int` | Failed health check outcomes                       |
+| Field                 | JSON                    | Type  | Description                                        |
+| --------------------- | ----------------------- | ----- | -------------------------------------------------- |
+| `HealthChecks`        | `health_checks`         | `int` | Baseline `GET /` health checks performed           |
+| `ClusterHealthChecks` | `cluster_health_checks` | `int` | `GET /_cluster/health?local=true` checks performed |
+| `HealthChecksSuccess` | `health_checks_success` | `int` | Successful health check outcomes                   |
+| `HealthChecksFailed`  | `health_checks_failed`  | `int` | Failed health check outcomes                       |
 
 ---
 
@@ -76,20 +76,20 @@ Each connection produces a `ConnectionMetric` in `Metrics.Connections`. Connecti
 
 ### Core Fields
 
-| Field              | JSON               | Type         | Description                         |
-| ------------------ | ------------------ | ------------ | ----------------------------------- |
-| `URL`              | `url`              | `string`     | Node URL                            |
-| `Failures`         | `failures`         | `int`        | Failure count (omitted when zero)   |
-| `IsDead`           | `dead`             | `bool`       | In the dead list                    |
-| `IsStandby`        | `standby`          | `bool`       | In the standby partition            |
-| `IsOverloaded`     | `overloaded`       | `bool`       | Marked overloaded by stats poller   |
-| `IsWarmingUp`      | `warming_up`       | `bool`       | In warmup phase after promotion     |
-| `IsHealthChecking` | `health_checking`  | `bool`       | Currently being health-checked      |
-| `NeedsCatUpdate`   | `needs_cat_update` | `bool`       | Shard placement data is stale       |
-| `Weight`           | `weight`           | `int`        | Effective weight for selection      |
-| `DeadSince`        | `dead_since`       | `*time.Time` | When the connection was marked dead |
-| `OverloadedSince`  | `overloaded_since` | `*time.Time` | When overload was detected          |
-| `State`            | `state`            | `ConnState`  | Packed connection state word        |
+| Field              | JSON               | Type         | Description                                            |
+| ------------------ | ------------------ | ------------ | ------------------------------------------------------ |
+| `URL`              | `url`              | `string`     | Node URL                                               |
+| `Failures`         | `failures`         | `int`        | Failure count (omitted when zero)                      |
+| `IsDead`           | `dead`             | `bool`       | In the dead list                                       |
+| `IsStandby`        | `standby`          | `bool`       | In the standby partition                               |
+| `IsOverloaded`     | `overloaded`       | `bool`       | Whether the connection is currently flagged overloaded |
+| `IsWarmingUp`      | `warming_up`       | `bool`       | In warmup phase after promotion                        |
+| `IsHealthChecking` | `health_checking`  | `bool`       | Currently being health-checked                         |
+| `NeedsCatUpdate`   | `needs_cat_update` | `bool`       | Shard placement data is stale                          |
+| `Weight`           | `weight`           | `int`        | Effective weight for selection                         |
+| `DeadSince`        | `dead_since`       | `*time.Time` | When the connection was marked dead                    |
+| `OverloadedSince`  | `overloaded_since` | `*time.Time` | When overload was detected                             |
+| `State`            | `state`            | `ConnState`  | Packed connection state word                           |
 
 ### Router Fields
 
@@ -97,9 +97,9 @@ Populated when request routing is active and the connection has observed traffic
 
 | Field       | JSON         | Type       | Description                                                        |
 | ----------- | ------------ | ---------- | ------------------------------------------------------------------ |
-| `RTTBucket` | `rtt_bucket` | `*int64`   | Quantized RTT tier (lower is closer)                               |
-| `RTTMedian` | `rtt_median` | `*string`  | Median RTT as a human-readable duration                            |
-| `EstLoad`   | `est_load`   | `*float64` | Estimated load: `inFlight / cwnd`                                  |
+| `RTTBucket` | `rtt_bucket` | `*int64`   | Quantized RTT tier (smaller values indicate lower observed RTT)    |
+| `RTTMedian` | `rtt_median` | `*string`  | Median observed RTT as a human-readable duration                   |
+| `EstLoad`   | `est_load`   | `*float64` | Estimated per-connection load                                      |
 | `MCSR`      | `mcsr`       | `*int`     | Adaptive `max_concurrent_shard_requests` value (nil when disabled) |
 
 ### Node Metadata
@@ -169,6 +169,13 @@ Each index with an active routing slot produces an entry in `Router.Indexes`.
 Poll metrics on a timer for logging or export to an external monitoring system.
 
 ```go
+func safeFloat(f *float64) float64 {
+    if f == nil {
+        return 0
+    }
+    return *f
+}
+
 ticker := time.NewTicker(30 * time.Second)
 defer ticker.Stop()
 
@@ -207,13 +214,6 @@ for range ticker.C {
         }
     }
 }
-
-func safeFloat(f *float64) float64 {
-    if f == nil {
-        return 0
-    }
-    return *f
-}
 ```
 
 ## JSON Export
@@ -249,6 +249,6 @@ The metrics API is pull-based: call `client.Metrics()` inside your collector's `
 
 ## Observer API
 
-For event-driven observability (as opposed to polling), implement the `ConnectionObserver` interface and pass it via `opensearchtransport.WithObserver()`. The observer receives callbacks for connection lifecycle events (promote, demote, overload), routing decisions, health checks, and shard map invalidations. See the [routing guide](routing.md) for details on observer events.
+For event-driven observability (as opposed to polling), implement the `opensearchtransport.ConnectionObserver` interface and set it on the `Observer` field of `opensearch.Config`. The observer receives callbacks for connection lifecycle events (promote, demote, overload), routing decisions, health checks, and shard map invalidations. See the [routing guide](routing.md) for details on observer events.
 
 The metrics API and observer API are complementary: metrics give you aggregate snapshots for dashboards, while the observer gives you per-event detail for tracing and debugging.

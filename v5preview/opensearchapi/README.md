@@ -238,10 +238,6 @@ for _, sub := range opensearchapi.Errors(err) {
         log.Printf("shard agg: %d/%d shards failed", e.FailedShards, e.TotalShards)
     case *opensearchapi.MultiSearchItemError:
         log.Printf("%d sub-queries failed", len(e.Items))
-    case *opensearchapi.PartialBulkError:
-        log.Printf("%d items failed", len(e.FailedItems))
-    case *opensearchapi.ShardFailureError:
-        log.Printf("%s: %d/%d shards failed", e.Operation, e.FailedShards, e.TotalShards)
     default:
         return err // transport / HTTP / decoding error
     }
@@ -284,14 +280,10 @@ if err != nil {
 resp, err := client.MSearch(ctx, req)
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
-    case *opensearchapi.PartialBulkError:
-        log.Printf("%d items failed", len(e.FailedItems))
     case *opensearchapi.PartialSearchError:
         log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
     case *opensearchapi.MultiSearchItemError:
         log.Printf("%d sub-queries failed", len(e.Items))
-    case *opensearchapi.ShardFailureError:
-        log.Printf("%s: %d/%d shards failed", e.Operation, e.FailedShards, e.TotalShards)
     default:
         return err
     }
@@ -351,7 +343,7 @@ client, _ := opensearchapi.NewClient(opensearchapi.Config{
 })
 
 // Caller-provided Router is preserved.
-custom, _ := opensearchtransport.NewMuxRouter()
+custom := opensearchtransport.NewMuxRouter()
 client, _ = opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{Addresses: addrs, Router: custom},
 })

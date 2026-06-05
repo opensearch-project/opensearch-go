@@ -86,14 +86,18 @@ for _, sub := range opensearchapi.Errors(err) {
             len(e.FailedItems),
             e.SucceededCount+len(e.FailedItems))
         for _, item := range e.FailedItems {
-            // BulkRespItem.ID and BulkRespItem.Error are pointers in v5preview.
+            // BulkRespItem.ID, BulkRespItem.Error, and ErrorCause.Reason are pointers in v5preview.
             id := ""
             if item.ID != nil {
                 id = *item.ID
             }
             if item.Error != nil {
+                reason := ""
+                if item.Error.Reason != nil {
+                    reason = *item.Error.Reason
+                }
                 log.Printf("  %s %s/%s: %s",
-                    item.Error.Type, item.Index, id, item.Error.Reason)
+                    item.Error.Type, item.Index, id, reason)
             }
         }
     default:
@@ -219,7 +223,9 @@ resp, err := client.Bulk(ctx, req)
 if err != nil {
     return err
 }
-// resp is fully populated; partial failures (if any) are folded into err.
+// resp is fully populated; partial failures (if any) are folded into err
+// when the wrapper bits are unmasked (the v5preview default, or v4 with
+// Config.Errors: errmask.New()).
 ```
 
 **Inspect categories with a `for`/`switch`** -- when partial error handling is appropriate. Partial error handling lets the client and its application recover from known failure modes they can tolerate (e.g. continue serving a search with a few failed shards, or retry only the bulk items the server rejected) instead of failing the whole operation. The `default` arm catches transport / HTTP / decode errors and any partial-failure category added in a future release:
@@ -228,14 +234,10 @@ if err != nil {
 resp, err := client.MSearch(ctx, req)
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
-    case *opensearchapi.PartialBulkError:
-        log.Printf("%d items failed", len(e.FailedItems))
     case *opensearchapi.PartialSearchError:
         log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
     case *opensearchapi.MultiSearchItemError:
         log.Printf("%d sub-queries failed", len(e.Items))
-    case *opensearchapi.ShardFailureError:
-        log.Printf("%s: %d/%d shards failed", e.Operation, e.FailedShards, e.TotalShards)
     default:
         return err
     }
@@ -289,7 +291,7 @@ func handleMSearchError(err error) {
             metrics.ShardFailures.Add(int64(e.FailedShards))
         case *opensearchapi.MultiSearchItemError:
             for _, item := range e.Items {
-                log.Printf("sub-query %d failed: %s", item.Index, item.Error.Reason)
+                log.Printf("sub-query %d failed (status=%d)", item.Index, item.Status)
             }
         default:
             log.Printf("non-partial msearch error: %v", e)
