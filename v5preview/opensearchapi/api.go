@@ -9,6 +9,7 @@ package opensearchapi
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -243,9 +244,13 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 	if resp.IsError() {
 		if dataPointer != nil {
 			return resp, opensearch.ParseError(resp)
-		} else {
-			return resp, fmt.Errorf("status: %s", resp.Status())
 		}
+		if resp.Body != nil {
+			//nolint:errcheck // best-effort drain so the connection can be reused
+			io.Copy(io.Discard, resp.Body)
+			resp.Body.Close()
+		}
+		return resp, fmt.Errorf("status: %s", resp.Status())
 	}
 
 	return resp, nil
