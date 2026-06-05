@@ -429,6 +429,8 @@ func deduplicateBranches(branches []unionBranch) []unionBranch {
 // so the two classes remain mutually reachable. string and bool need no group:
 // each has a single Go type, and exact GoType duplicates are already removed by
 // deduplicateBranches.
+//
+//nolint:gochecknoglobals // static lookup table; package-level so it's visible next to its doc comment and the funcs that consult it
 var decodeEquivalentGroups = [][]string{
 	{"int64", "int", "int32"},
 	{"float64", "float32"},
