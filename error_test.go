@@ -267,22 +267,63 @@ func TestStructError_Unmarshal(t *testing.T) {
 	}
 }
 
-func TestParseError_PreservesBody(t *testing.T) {
+// TestParseError_BodyState exercises the Body invariant on both arms: on
+// success ParseError must restore Body with the original bytes, and on the
+// io.ReadAll error path it must still leave resp.Body in a usable state -- a
+// NopCloser the caller can Read or Close without observing a closed reader.
+func TestParseError_BodyState(t *testing.T) {
 	t.Parallel()
 
-	expectedBody := `{"error":{"type":"resource_already_exists_exception","reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"},"status":400}`
+	const okBody = `{"error":{"type":"resource_already_exists_exception",` +
+		`"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"},"status":400}`
 
-	resp := opensearch.NewResponse(
-		http.StatusBadRequest,
-		io.NopCloser(strings.NewReader(expectedBody)),
-		nil,
-	)
+	syntheticReadErr := errors.New("synthetic read failure")
 
-	err := opensearch.ParseError(resp)
-	require.Error(t, err)
+	tests := []struct {
+		name       string
+		statusCode int
+		body       io.ReadCloser
+		// expectedBody, when non-empty, is JSON-compared against what the
+		// restored Body produces after ParseError returns.
+		expectedBody string
+		// errIs lists sentinel errors the returned err must wrap.
+		errIs []error
+	}{
+		{
+			name:         "success path restores body bytes",
+			statusCode:   http.StatusBadRequest,
+			body:         io.NopCloser(strings.NewReader(okBody)),
+			expectedBody: okBody,
+		},
+		{
+			name:       "read error path leaves body readable",
+			statusCode: http.StatusInternalServerError,
+			body:       io.NopCloser(iotest.ErrReader(syntheticReadErr)),
+			errIs:      []error{opensearch.ErrReadBody, syntheticReadErr},
+		},
+	}
 
-	body, readErr := io.ReadAll(resp.Body)
-	require.NoError(t, readErr)
-	require.NotEmpty(t, body)
-	require.JSONEq(t, expectedBody, string(body))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := opensearch.NewResponse(tt.statusCode, tt.body, nil)
+			err := opensearch.ParseError(resp)
+			require.Error(t, err)
+
+			for _, target := range tt.errIs {
+				require.ErrorIs(t, err, target)
+			}
+
+			require.NotNil(t, resp.Body, "Body must be restored, not left nil")
+			body, readErr := io.ReadAll(resp.Body)
+			require.NoError(t, readErr, "restored Body must be readable without error")
+			require.NoError(t, resp.Body.Close())
+
+			if tt.expectedBody != "" {
+				require.NotEmpty(t, body)
+				require.JSONEq(t, tt.expectedBody, string(body))
+			}
+		})
+	}
 }

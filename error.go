@@ -146,7 +146,14 @@ func ParseError(resp *Response) error {
 	}
 
 	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
+		// Restore Body so callers don't see a closed reader. The partial
+		// bytes are intentionally dropped because the underlying read
+		// already failed; what matters is keeping the Body field
+		// consistent with the success branch below (an in-memory
+		// NopCloser the caller can safely Read or Close).
+		resp.Body = io.NopCloser(bytes.NewReader(body))
 		return fmt.Errorf("%w: %w", ErrReadBody, err)
 	}
 
