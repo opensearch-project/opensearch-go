@@ -1459,10 +1459,11 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	// Skipped when DisableResponseBuffering is set -- the caller is responsible
 	// for fully reading and closing the body.
 	if !c.disableResponseBuffering && res != nil && res.Body != nil {
-		body, err := io.ReadAll(res.Body)
+		body, rerr := io.ReadAll(res.Body)
 		res.Body.Close()
-		if err == nil {
-			res.Body = io.NopCloser(bytes.NewReader(body))
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		if rerr != nil && err == nil {
+			err = fmt.Errorf("error reading response body: %w", rerr)
 		}
 	}
 

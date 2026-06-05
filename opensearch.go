@@ -433,7 +433,7 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 
 	//nolint:bodyclose // body got already closed by Perform, this is a nopcloser
 	resp, err := c.Perform(httpReq)
-	if err != nil {
+	if resp == nil {
 		return nil, err
 	}
 
@@ -441,6 +441,10 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
 		Body:       resp.Body,
+	}
+
+	if err != nil {
+		return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
 	}
 
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {
