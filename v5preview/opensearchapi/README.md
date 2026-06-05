@@ -238,10 +238,6 @@ for _, sub := range opensearchapi.Errors(err) {
         log.Printf("shard agg: %d/%d shards failed", e.FailedShards, e.TotalShards)
     case *opensearchapi.MultiSearchItemError:
         log.Printf("%d sub-queries failed", len(e.Items))
-    case *opensearchapi.PartialBulkError:
-        log.Printf("%d items failed", len(e.FailedItems))
-    case *opensearchapi.ShardFailureError:
-        log.Printf("%s: %d/%d shards failed", e.Operation, e.FailedShards, e.TotalShards)
     default:
         return err // transport / HTTP / decoding error
     }
@@ -264,25 +260,38 @@ for _, sub := range opensearchapi.Errors(err) {
 
 All single-bit error types implement the `PartialFailureError` interface and work with `errors.As`. Per-op multi-error containers (`*MSearchErrors`, ...) implement `Unwrap() []error`, so `errors.As` against any sub-error type still matches whether the response carried one or many.
 
-### Per-Resp helper methods
+### Recommended pattern
 
-Every operation that can return a partial failure exposes per-category helper methods on its typed response, plus a `PartialFailures(mask)` aggregator. Use these when you want focused inspection at the call site without going through the dispatch error:
+Two patterns cover every partial-failure use case. Pick the one that matches your operation's tolerance:
+
+**Treat any server or API failure as a hard error** -- the simplest and most idiomatic Go path. Use this when the operation has no meaningful "partial success" -- any error is a reason to stop:
 
 ```go
-resp, _ := client.Bulk(ctx, req)
-if e := resp.BulkItemFailures(); e != nil {
-    log.Printf("%d items failed", len(e.FailedItems))
+resp, err := client.Bulk(ctx, req)
+if err != nil {
+    return err
 }
-
-resp2, _ := client.MSearch(ctx, req)
-if e := resp2.SearchShardFailures(); e != nil { /* ... */ }
-if e := resp2.MultiSearchItemFailures(); e != nil { /* ... */ }
-
-resp3, _ := client.Index(ctx, req)
-if e := resp3.WriteShardFailures(); e != nil { /* ... */ }
+// resp is fully populated; partial failures (if any) are folded into err.
 ```
 
-The helpers are nil-safe on a nil receiver and return `nil` when the category did not fire. `r.PartialFailures(mask errmask.ErrorMask) []error` reports every category not suppressed by `mask` -- useful for reusing the dispatch's mask gating outside the dispatch path.
+**Inspect categories with a `for`/`switch`** -- when partial error handling is appropriate. Partial error handling lets the client and its application recover from known failure modes they can tolerate (e.g. continue serving a search with a few failed shards, or retry only the bulk items that the server rejected) instead of failing the whole operation. The `default` arm catches transport / HTTP / decode errors and any partial-failure category added in a future release:
+
+```go
+resp, err := client.MSearch(ctx, req)
+for _, sub := range opensearchapi.Errors(err) {
+    switch e := sub.(type) {
+    case *opensearchapi.PartialSearchError:
+        log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
+    case *opensearchapi.MultiSearchItemError:
+        log.Printf("%d sub-queries failed", len(e.Items))
+    default:
+        return err
+    }
+}
+// resp is fully populated; use it regardless of partial failure.
+```
+
+`opensearchapi.Errors(err)` flattens every error shape into a uniform slice -- single sub-error, multi-wrapper container, transport error, or `nil` (returns `nil`). The switch is the only pattern this guide recommends for category-aware handling: it stays correct when the API adds new categories, and a missing `case` is reviewable / lint-able.
 
 ### Helper functions
 
@@ -306,9 +315,11 @@ opensearchapi.OperationUpdate  // "update"
 opensearchapi.OperationDelete  // "delete"
 ```
 
-### Why a type switch, not `errors.As` or `Has`-style helpers
+### Why a type switch, not `errors.As`, `Has`, or per-Resp helpers
 
-The set of partial-failure categories grows as the OpenSearch API evolves: a future server release can add a category today's call sites have never seen. A type switch over `opensearchapi.Errors(err)` makes that growth visible: review and static analysis can grep for the switch and flag missing cases, and the `default` arm keeps existing call sites safe in the meantime. `errors.As` and HashiCorp-style `Has` helpers only answer "did _this_ category happen?" -- they cannot tell a call site that a _new_ category appeared. Treat `As` / `Has` against the partial-failure error types as an antipattern.
+The set of partial-failure categories grows as the OpenSearch API evolves: a future server release can add a category today's call sites have never seen. A type switch over `opensearchapi.Errors(err)` makes that growth visible -- review and static analysis can grep for the switch and flag missing cases, and the `default` arm keeps existing call sites safe in the meantime.
+
+`errors.As` and `Has`-style helpers and per-Resp helper methods (`resp.BulkItemFailures()`, `resp.SearchShardFailures()`, ...) all answer the same narrow question: "did _this_ category happen?" None of them can tell a call site that a _new_ category appeared and is being silently dropped. Treat them as an antipattern. The per-Resp helpers exist on the response types as engine machinery for the dispatch and remain available for focused inspection of a known category, but new code should use the type switch.
 
 For the full best-practices guide (retry strategies, threshold tuning, manual partial-failure inspection), see [`../../guides/error_handling.md`](../../guides/error_handling.md).
 
@@ -332,7 +343,7 @@ client, _ := opensearchapi.NewClient(opensearchapi.Config{
 })
 
 // Caller-provided Router is preserved.
-custom, _ := opensearchtransport.NewMuxRouter()
+custom := opensearchtransport.NewMuxRouter()
 client, _ = opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{Addresses: addrs, Router: custom},
 })

@@ -10,25 +10,33 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/errmask"
 )
 
-// This file pairs every operation that declares x-error-responses with
-// per-Resp helper methods that detect each wrapper category. The
-// per-wrapper methods (e.g. SearchShardFailures) absorb every
+// This file pairs every operation that can return a partial failure
+// with per-Resp helper methods that detect each category. The
+// per-category methods (e.g. SearchShardFailures) absorb every
 // shape-specific concern: pointer guards on optional `_shards`
 // envelopes, per-sub-response iteration, union-branch dispatch (in
 // v5preview).
 //
 // Two surfaces are exposed for each op:
 //
-//   - Per-wrapper public method, returning *<TypedError> or nil:
-//     `func (r *<Op>Resp) <Wrapper>Failures() *<TypedError>`
+//   - Per-category public method, returning *<TypedError> or nil:
+//     `func (r *<Op>Resp) <Category>Failures() *<TypedError>`
 //
 //   - Aggregator method, consulting the caller-supplied mask:
 //     `func (r *<Op>Resp) PartialFailures(mask errmask.ErrorMask) []error`
 //
 // The dispatch handler in api_*.go calls the aggregator + collapses
-// via [collapsePerOpErrors]. Callers wanting focused inspection at the
-// call site invoke the per-wrapper methods directly without going
-// through the dispatch error.
+// via [collapsePerOpErrors] to produce the error returned to callers.
+//
+// The per-Resp helpers exposed by this file are not the recommended
+// way for callers to inspect partial failures. They answer the narrow
+// question "did this category happen?" -- a category added in a
+// future release is silently missed by call sites that only check the
+// existing helpers. The idiomatic pattern is a for/switch over
+// [Errors] applied to the dispatch error; see guides/error_handling.md
+// (Recommended pattern). The methods are kept here as engine
+// machinery for the dispatch and remain available for code that needs
+// focused inspection of a known category.
 
 // ---------------------------------------------------------------------------
 // Bulk: BulkItems

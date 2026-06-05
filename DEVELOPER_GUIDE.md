@@ -399,7 +399,7 @@ The `x-error-responses` extension on a spec operation declares the categories of
 
 - A typed Go error (e.g. `*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`) decoded from the response body when that category fires.
 - A bit on `errmask.ErrorMask` (PascalCase, e.g. `errmask.BulkItems`) plus the corresponding env-var token (`bulk_items`) so callers can suppress or surface it via `Config.Errors` or `OPENSEARCH_GO_ERROR_MASK`.
-- A per-Resp helper method on the operation's typed response (e.g. `BulkResp.BulkItemFailures()`, `SearchResp.SearchShardFailures()`).
+- A per-Resp helper method on the operation's typed response (e.g. `BulkResp.BulkItemFailures()`, `SearchResp.SearchShardFailures()`). These exist as engine machinery for the dispatch and are not the recommended call-site pattern; user docs point callers at a `for`/`switch` over `opensearchapi.Errors(err)` instead.
 - A `PartialFailures(mask)` aggregator on the same Resp.
 
 Operations that declare two or more categories also get a per-op error container (e.g. `*MSearchErrors`) implementing `Unwrap() []error`, used when more than one category fires on a single response.

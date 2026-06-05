@@ -64,9 +64,7 @@ For search-heavy applications, you can configure the client to automatically rou
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure automatic routing to data nodes for search operations
-		Transport: &opensearchtransport.Client{
-			Router: router,
-		},
+		Router: router,
 	})
 	if err != nil {
 		return err
@@ -311,15 +309,13 @@ For production search workloads, you can optimize performance by ensuring search
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Use data-preferred router for search optimization
-		Transport: &opensearchtransport.Client{
-			Router: opensearchtransport.NewRouter(
-				func() opensearchtransport.Policy {
-					policy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleData)
-					return policy
-				}(),
-				opensearchtransport.NewRoundRobinPolicy(),
-			),
-		},
+		Router: opensearchtransport.NewRouter(
+			func() opensearchtransport.Policy {
+				policy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleData)
+				return policy
+			}(),
+			opensearchtransport.NewRoundRobinPolicy(),
+		),
 	})
 	if err != nil {
 		return err
@@ -360,9 +356,7 @@ The router automatically detects operation types and routes them to the most app
 		DiscoverNodesOnStart:  &discoverOnStart,
 		DiscoverNodesInterval: 5 * time.Minute,
 
-		Transport: &opensearchtransport.Client{
-			Router: router,
-		},
+		Router: router,
 	})
 	if err != nil {
 		return err
