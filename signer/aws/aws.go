@@ -158,6 +158,7 @@ func hexEncodedSha256OfRequest(r *http.Request) (string, error) {
 
 	reqBodyBytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		r.Body.Close()
 		return "", fmt.Errorf("failed to read request body: %w", err)
 	}
 

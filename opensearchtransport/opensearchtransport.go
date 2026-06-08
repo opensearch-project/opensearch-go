@@ -1922,6 +1922,8 @@ func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModif
 
 	if res.StatusCode != http.StatusOK {
 		if res.Body != nil {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 		return nil, fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
@@ -1933,6 +1935,8 @@ func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModif
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
 		res.Body.Close()
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
@@ -1997,6 +2001,8 @@ func (c *Client) hardwareInfoHealthCheck(
 
 	if res.StatusCode != http.StatusOK {
 		if res.Body != nil {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 		// Non-200 (e.g. 403 from security plugin) -- fall back to baseline.
@@ -2013,6 +2019,8 @@ func (c *Client) hardwareInfoHealthCheck(
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
 		res.Body.Close()
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
@@ -2122,6 +2130,13 @@ func (c *Client) fetchClusterHealth(ctx context.Context, u *url.URL, applyModifi
 	}
 	defer func() {
 		if res.Body != nil {
+			// Drain on close: raw RoundTrip path with no Perform buffering
+			// safety net. Closing a partially-read body (the non-200 early
+			// return below, or the io.ReadAll error path) would otherwise
+			// defeat keep-alive. On the success path io.ReadAll has already
+			// reached EOF, so the drain is a cheap no-op.
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 	}()

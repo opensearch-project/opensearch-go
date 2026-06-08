@@ -22,6 +22,7 @@
 package opensearch
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -78,11 +79,22 @@ func NewResponse(statusCode int, body io.ReadCloser, header http.Header) *Respon
 }
 
 // String returns the response as a string.
-func (r Response) String() string {
+//
+// String is non-consuming: it reads the body to render it, then restores
+// Body with an in-memory reader over the same bytes so subsequent reads
+// (or a later String call) still see the full payload. This matters because
+// Response.Body is typically the buffered NopCloser produced by Client.Do;
+// without the restore, calling String for logging would silently empty the
+// body other code expects to read.
+func (r *Response) String() string {
 	if r.Body != nil {
 		body, err := io.ReadAll(r.Body)
+		// Restore Body even on a partial read, so the non-consuming
+		// invariant holds on the error path too: whatever bytes were
+		// read remain available to subsequent reads.
+		r.Body = io.NopCloser(bytes.NewReader(body))
 		if err != nil {
-			body = fmt.Appendf(nil, "<error reading response body: %v>", err)
+			return fmt.Sprintf("%s <error reading response body: %v>", r.Status(), err)
 		}
 		return fmt.Sprintf("%s %s", r.Status(), body)
 	}

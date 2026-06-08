@@ -14,6 +14,7 @@ package awsv2_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"testing"
@@ -220,4 +221,43 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		_, err = awsv2.NewSignerWithService(awsCfg, "")
 		assert.EqualError(t, err, "service cannot be empty")
 	})
+
+	t.Run("closes request body when read fails", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, "https://localhost:9200", nil)
+		require.NoError(t, err)
+
+		body := &brokenReadCloser{err: "boom"}
+		req.Body = body
+
+		region := os.Getenv("AWS_REGION")
+		os.Setenv("AWS_REGION", "us-west-2")
+		t.Cleanup(func() {
+			os.Setenv("AWS_REGION", region)
+		})
+
+		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion("us-west-2"),
+			config.WithCredentialsProvider(
+				getCredentialProvider(),
+			),
+		)
+		require.NoError(t, err)
+
+		signer, err := awsv2.NewSigner(awsCfg)
+		require.NoError(t, err)
+
+		err = signer.SignRequest(req)
+		require.Error(t, err)
+		assert.True(t, body.closed, "request body must be closed even when the read fails")
+	})
 }
+
+// brokenReadCloser fails on Read and records whether Close was called, so a
+// test can assert the signer closes the request body on the read-error path.
+type brokenReadCloser struct {
+	err    string
+	closed bool
+}
+
+func (b *brokenReadCloser) Read([]byte) (int, error) { return 0, errors.New(b.err) }
+func (b *brokenReadCloser) Close() error             { b.closed = true; return nil }
