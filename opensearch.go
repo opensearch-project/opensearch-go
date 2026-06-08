@@ -83,6 +83,7 @@ var (
 	ErrPathRequired                        = path.ErrRequired
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
+	ErrTransportMissingMethodStream        = errors.New("transport is missing method Stream()")
 )
 
 // Config represents the client configuration.
@@ -120,11 +121,6 @@ type Config struct {
 	RequestTimeout time.Duration
 
 	CompressRequestBody bool // Default: false.
-
-	// DisableResponseBuffering, when true, skips buffering the entire response
-	// body in Perform(). The caller receives the raw body stream and must fully
-	// read and close it. Useful for proxy and streaming use cases.
-	DisableResponseBuffering bool // Default: false.
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
 	// as NewClient returns. nil (the default) means "auto": if Router is
@@ -296,8 +292,7 @@ func NewClient(cfg Config) (*Client, error) {
 		RetryBackoff:         cfg.RetryBackoff,
 		RequestTimeout:       cfg.RequestTimeout,
 
-		CompressRequestBody:      cfg.CompressRequestBody,
-		DisableResponseBuffering: cfg.DisableResponseBuffering,
+		CompressRequestBody: cfg.CompressRequestBody,
 
 		EnableMetrics:     cfg.EnableMetrics,
 		EnableDebugLogger: cfg.EnableDebugLogger,
@@ -403,6 +398,11 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 }
 
 // Perform delegates to Transport to execute a request and return a response.
+//
+// Deprecated: Perform follows the v4 buffered-response contract and will be
+// removed in v5 alongside [opensearchtransport.Client.Perform]. Use [Client.Stream]
+// when you need raw byte forwarding (the caller owns the body) or the typed
+// [Do] helpers when you want a decoded Go value.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	if req.Header == nil {
 		// Pre-allocate for the headers the transport layer sets on every
@@ -413,6 +413,39 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		req.Header = make(http.Header, defaultHeaderCount)
 	}
 	return c.Transport.Perform(req)
+}
+
+// Streamer is implemented by transports that expose an unbuffered Stream
+// path: [opensearchtransport.Client] satisfies it. Custom [opensearchtransport.Interface]
+// implementations may opt in by adding a Stream method with the same
+// signature; [Client.Stream] reports [ErrTransportMissingMethodStream] when
+// the underlying transport does not.
+type Streamer interface {
+	Stream(*http.Request) (*http.Response, error)
+}
+
+// Stream delegates to Transport.Stream when available, returning the raw
+// [http.Response] from the underlying [http.RoundTripper]. The caller owns
+// the response body and must close it. Use Stream for proxy and streaming
+// use cases where bytes are forwarded incrementally; use [Do] when you want
+// a decoded Go value.
+//
+// Stream returns [ErrTransportMissingMethodStream] when the configured
+// transport does not implement [Streamer].
+func (c *Client) Stream(req *http.Request) (*http.Response, error) {
+	st, ok := c.Transport.(Streamer)
+	if !ok {
+		return nil, ErrTransportMissingMethodStream
+	}
+	if req.Header == nil {
+		// Pre-allocate for the headers the transport layer sets on every
+		// outgoing request (User-Agent, Authorization, Content-Type,
+		// Content-Encoding, etc.) so the map does not have to resize on
+		// the hot path.
+		const defaultHeaderCount = 8
+		req.Header = make(http.Header, defaultHeaderCount)
+	}
+	return st.Stream(req)
 }
 
 // Do gets and performs the request. It also tries to parse the response into the dataPointer.
