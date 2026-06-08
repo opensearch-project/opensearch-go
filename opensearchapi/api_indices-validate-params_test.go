@@ -12,7 +12,7 @@ package opensearchapi
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIndicesValidateQueryParams_get(t *testing.T) {
@@ -152,7 +152,7 @@ func TestIndicesValidateQueryParams_get(t *testing.T) {
 				FilterPath:        tt.fields.FilterPath,
 			}
 			got := r.get()
-			assert.Equal(t, tt.want, got)
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

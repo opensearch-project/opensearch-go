@@ -102,6 +102,12 @@ const (
 	policyTypeNameDocumentRouter = "document_router"
 )
 
+// Human-readable action words used in policy-override debug logging.
+const (
+	overrideActionEnabled  = "enabled"
+	overrideActionDisabled = "disabled"
+)
+
 // policySortKey returns a structural identity string for a policy that
 // encodes its type name plus distinguishing configuration and children.
 // Used as a deterministic sort key when sibling policies share the same
@@ -344,9 +350,9 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 			}
 			overrider.setEnvOverride(*override.applyAll)
 			if dl := loadDebugLogger(); dl != nil {
-				action := "enabled"
+				action := overrideActionEnabled
 				if !*override.applyAll {
-					action = "disabled"
+					action = overrideActionDisabled
 				}
 				dl.Logf("Policy override: %s %s at path %q (env: %s)\n",
 					action, typeName, path, override.envKey)
@@ -374,9 +380,9 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 
 			overrider.setEnvOverride(m.enable)
 			if dl := loadDebugLogger(); dl != nil {
-				action := "enabled"
+				action := overrideActionEnabled
 				if !m.enable {
-					action = "disabled"
+					action = overrideActionDisabled
 				}
 				dl.Logf("Policy override: %s %s at path %q (env: %s, matcher: %q)\n",
 					action, typeName, path, override.envKey, m.raw)

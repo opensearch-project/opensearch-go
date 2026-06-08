@@ -21,7 +21,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
@@ -80,7 +79,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		require.NoError(t, err)
 		err = signer.SignRequest(req)
 
-		assert.EqualErrorf(
+		require.EqualErrorf(
 			t, err, "aws region cannot be empty", "unexpected error")
 	})
 
@@ -108,16 +107,16 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		require.NoError(t, err)
 
 		q := req.Header
-		assert.Equal(t, "localhost:9200", req.Host)
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
+		require.Equal(t, "localhost:9200", req.Host)
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("with signature port override", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
 		require.NoError(t, err)
-		assert.Equal(t, "localhost:9200", req.Host)
+		require.Equal(t, "localhost:9200", req.Host)
 
 		region := os.Getenv("AWS_REGION")
 		os.Setenv("AWS_REGION", "us-west-2")
@@ -141,11 +140,11 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		require.NoError(t, err)
 
 		// Should have stripped off the port given it was 443 (80 would have also gotten removed)
-		assert.Equal(t, "localhost", req.Host)
+		require.Equal(t, "localhost", req.Host)
 		q := req.Header
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body", func(t *testing.T) {
@@ -173,9 +172,9 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		err = signer.SignRequest(req)
 		require.NoError(t, err)
 		q := req.Header
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body for other AWS Services", func(t *testing.T) {
@@ -204,9 +203,9 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		err = signer.SignRequest(req)
 		require.NoError(t, err)
 		q := req.Header
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request failed due to invalid service", func(t *testing.T) {
@@ -219,7 +218,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		require.NoError(t, err)
 
 		_, err = awsv2.NewSignerWithService(awsCfg, "")
-		assert.EqualError(t, err, "service cannot be empty")
+		require.EqualError(t, err, "service cannot be empty")
 	})
 
 	t.Run("closes request body when read fails", func(t *testing.T) {
@@ -248,7 +247,7 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 
 		err = signer.SignRequest(req)
 		require.Error(t, err)
-		assert.True(t, body.closed, "request body must be closed even when the read fails")
+		require.True(t, body.closed, "request body must be closed even when the read fails")
 	})
 }
 

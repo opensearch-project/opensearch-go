@@ -10,6 +10,7 @@ package build
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"testing"
@@ -146,7 +147,7 @@ func TestRequest(t *testing.T) {
 
 			req, err := Request(tt.method, tt.path, tt.body, tt.params, tt.headers)
 			if tt.wantErr != nil {
-				if tt.wantErr == errAny {
+				if errors.Is(tt.wantErr, errAny) {
 					require.Error(t, err)
 				} else {
 					require.ErrorIs(t, err, tt.wantErr)
@@ -235,7 +236,7 @@ func TestRequest_GetBody(t *testing.T) {
 
 	t.Run("bytes.Buffer is replayable", func(t *testing.T) {
 		t.Parallel()
-		body := bytes.NewBuffer([]byte(`{"hello":"world"}`))
+		body := bytes.NewBufferString(`{"hello":"world"}`)
 		req, err := Request("POST", "/test", body, nil, nil)
 		require.NoError(t, err)
 		require.NotNil(t, req.GetBody)
@@ -243,7 +244,7 @@ func TestRequest_GetBody(t *testing.T) {
 		replay, err := req.GetBody()
 		require.NoError(t, err)
 		got, _ := io.ReadAll(replay)
-		require.Equal(t, `{"hello":"world"}`, string(got))
+		require.JSONEq(t, `{"hello":"world"}`, string(got))
 	})
 
 	t.Run("bytes.Reader is replayable", func(t *testing.T) {
@@ -256,7 +257,7 @@ func TestRequest_GetBody(t *testing.T) {
 		replay, err := req.GetBody()
 		require.NoError(t, err)
 		got, _ := io.ReadAll(replay)
-		require.Equal(t, `{"hello":"world"}`, string(got))
+		require.JSONEq(t, `{"hello":"world"}`, string(got))
 	})
 
 	t.Run("nil Header on GET with no body", func(t *testing.T) {

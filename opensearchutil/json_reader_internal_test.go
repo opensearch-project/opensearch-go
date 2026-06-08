@@ -72,7 +72,13 @@ func TestJSONReader(t *testing.T) {
 	t.Run("WriteTo", func(t *testing.T) {
 		b := bytes.NewBuffer([]byte{})
 		r := JSONReader{val: map[string]string{"foo": "bar"}}
-		r.WriteTo(b)
+		n, err := r.WriteTo(b)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+		if int(n) != b.Len() {
+			t.Fatalf("WriteTo returned %d, but wrote %d bytes", n, b.Len())
+		}
 		if b.String() != `{"foo":"bar"}`+"\n" {
 			t.Fatalf("Unexpected output: %s", b.String())
 		}
@@ -119,7 +125,13 @@ func TestJSONReader(t *testing.T) {
 			t.Run(tt.name+"/WriteTo", func(t *testing.T) {
 				var b bytes.Buffer
 				r := JSONReader{val: tt.val}
-				r.WriteTo(&b)
+				n, err := r.WriteTo(&b)
+				if err != nil {
+					t.Fatalf("Unexpected error: %s", err)
+				}
+				if int(n) != b.Len() {
+					t.Fatalf("WriteTo returned %d, but wrote %d bytes", n, b.Len())
+				}
 				if b.String() != tt.want {
 					t.Fatalf("got %s, want %s", b.String(), tt.want)
 				}

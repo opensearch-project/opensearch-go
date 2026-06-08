@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
@@ -117,7 +116,7 @@ func TestOperationClassifier(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			got := c.Classify(tt.method, tt.path)
-			assert.Equal(t, tt.want, got, "Classify(%q, %q) = %s, want %s",
+			require.Equal(t, tt.want, got, "Classify(%q, %q) = %s, want %s",
 				tt.method, tt.path, got, tt.want)
 		})
 	}
@@ -149,29 +148,29 @@ func TestOperationID_Masking(t *testing.T) {
 
 	t.Run("IsWrite", func(t *testing.T) {
 		t.Parallel()
-		assert.False(t, opensearchtransport.OpSearch.IsWrite())
-		assert.False(t, opensearchtransport.OpDocGet.IsWrite())
-		assert.True(t, opensearchtransport.OpBulk.IsWrite())
-		assert.True(t, opensearchtransport.OpDocIndex.IsWrite())
-		assert.True(t, opensearchtransport.OpDocDelete.IsWrite())
+		require.False(t, opensearchtransport.OpSearch.IsWrite())
+		require.False(t, opensearchtransport.OpDocGet.IsWrite())
+		require.True(t, opensearchtransport.OpBulk.IsWrite())
+		require.True(t, opensearchtransport.OpDocIndex.IsWrite())
+		require.True(t, opensearchtransport.OpDocDelete.IsWrite())
 	})
 
 	t.Run("IsRead", func(t *testing.T) {
 		t.Parallel()
-		assert.True(t, opensearchtransport.OpSearch.IsRead())
-		assert.True(t, opensearchtransport.OpDocGet.IsRead())
-		assert.False(t, opensearchtransport.OpBulk.IsRead())
-		assert.False(t, opensearchtransport.OpDocIndex.IsRead())
+		require.True(t, opensearchtransport.OpSearch.IsRead())
+		require.True(t, opensearchtransport.OpDocGet.IsRead())
+		require.False(t, opensearchtransport.OpBulk.IsRead())
+		require.False(t, opensearchtransport.OpDocIndex.IsRead())
 	})
 
 	t.Run("Category", func(t *testing.T) {
 		t.Parallel()
-		assert.Equal(t, opensearchtransport.CatSearch, opensearchtransport.OpSearch.Category())
-		assert.Equal(t, opensearchtransport.CatSearch, opensearchtransport.OpMSearch.Category())
-		assert.Equal(t, opensearchtransport.CatSearch, opensearchtransport.OpCount.Category())
-		assert.Equal(t, opensearchtransport.CatBulk, opensearchtransport.OpBulk.Category())
-		assert.Equal(t, opensearchtransport.CatDocRead, opensearchtransport.OpDocGet.Category())
-		assert.Equal(t, opensearchtransport.CatDocWrite, opensearchtransport.OpDocIndex.Category())
+		require.Equal(t, opensearchtransport.CatSearch, opensearchtransport.OpSearch.Category())
+		require.Equal(t, opensearchtransport.CatSearch, opensearchtransport.OpMSearch.Category())
+		require.Equal(t, opensearchtransport.CatSearch, opensearchtransport.OpCount.Category())
+		require.Equal(t, opensearchtransport.CatBulk, opensearchtransport.OpBulk.Category())
+		require.Equal(t, opensearchtransport.CatDocRead, opensearchtransport.OpDocGet.Category())
+		require.Equal(t, opensearchtransport.CatDocWrite, opensearchtransport.OpDocIndex.Category())
 	})
 
 	t.Run("IsSearchFamily", func(t *testing.T) {
@@ -179,11 +178,11 @@ func TestOperationID_Masking(t *testing.T) {
 		isSearchFamily := func(op opensearchtransport.OperationID) bool {
 			return op.Category() == opensearchtransport.CatSearch
 		}
-		assert.True(t, isSearchFamily(opensearchtransport.OpSearch))
-		assert.True(t, isSearchFamily(opensearchtransport.OpMSearch))
-		assert.True(t, isSearchFamily(opensearchtransport.OpCount))
-		assert.False(t, isSearchFamily(opensearchtransport.OpBulk))
-		assert.False(t, isSearchFamily(opensearchtransport.OpDocGet))
+		require.True(t, isSearchFamily(opensearchtransport.OpSearch))
+		require.True(t, isSearchFamily(opensearchtransport.OpMSearch))
+		require.True(t, isSearchFamily(opensearchtransport.OpCount))
+		require.False(t, isSearchFamily(opensearchtransport.OpBulk))
+		require.False(t, isSearchFamily(opensearchtransport.OpDocGet))
 	})
 }
 

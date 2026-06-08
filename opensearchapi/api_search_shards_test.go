@@ -12,7 +12,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -42,7 +41,7 @@ func TestSearchShards(t *testing.T) {
 		t.Parallel()
 		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
@@ -50,7 +49,7 @@ func TestSearchShards(t *testing.T) {
 		t.Parallel()
 		resp, err := client.SearchShards(t.Context(), &opensearchapi.SearchShardsReq{Indices: []string{index}})
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
@@ -61,7 +60,7 @@ func TestSearchShards(t *testing.T) {
 
 		res, err := failingClient.SearchShards(t.Context(), nil)
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

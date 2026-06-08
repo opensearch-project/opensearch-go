@@ -29,7 +29,6 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -38,20 +37,20 @@ import (
 func TestResponse(t *testing.T) {
 	t.Run("empty response", func(t *testing.T) {
 		resp := opensearch.NewResponse(0, nil, nil)
-		assert.Equal(t, "[0 <nil>]", resp.Status())
-		assert.Equal(t, "[0 <nil>]", resp.String())
+		require.Equal(t, "[0 <nil>]", resp.Status())
+		require.Equal(t, "[0 <nil>]", resp.String())
 	})
 
 	t.Run("with StatusCode", func(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, nil, nil)
-		assert.Equal(t, "[200 OK]", resp.Status())
-		assert.Equal(t, "[200 OK]", resp.String())
+		require.Equal(t, "[200 OK]", resp.Status())
+		require.Equal(t, "[200 OK]", resp.String())
 	})
 
 	t.Run("with StatusCode and Body", func(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(strings.NewReader("{\"test\": true}")), nil)
-		assert.Equal(t, "[200 OK]", resp.Status())
-		assert.Equal(t, "[200 OK] {\"test\": true}", resp.String())
+		require.Equal(t, "[200 OK]", resp.Status())
+		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
 	})
 
 	t.Run("with StatusCode and failing Body", func(t *testing.T) {
@@ -72,11 +71,11 @@ func TestResponse(t *testing.T) {
 
 		// First call renders the body; it must restore Body so a second
 		// call (and any later body read) still sees the full payload.
-		assert.Equal(t, "[200 OK] {\"test\": true}", resp.String())
-		assert.Equal(t, "[200 OK] {\"test\": true}", resp.String())
+		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
+		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
 
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
-		assert.Equal(t, `{"test": true}`, string(body))
+		require.Equal(t, `{"test": true}`, string(body))
 	})
 }

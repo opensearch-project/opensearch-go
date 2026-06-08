@@ -19,21 +19,20 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	osaws "github.com/opensearch-project/opensearch-go/v4/signer/aws"
 )
 
 func TestConstants(t *testing.T) {
-	assert.Equal(t, "es", osaws.OpenSearchService)
-	assert.Equal(t, "aoss", osaws.OpenSearchServerless)
+	require.Equal(t, "es", osaws.OpenSearchService)
+	require.Equal(t, "aoss", osaws.OpenSearchServerless)
 }
 
 func TestV4Signer(t *testing.T) {
 	t.Run("sign request failed due to no region found", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		cfg := aws.Config{
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
@@ -41,30 +40,30 @@ func TestV4Signer(t *testing.T) {
 		}
 
 		signer, err := osaws.NewSigner(cfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.EqualError(t, err, "aws region cannot be empty")
+		require.EqualError(t, err, "aws region cannot be empty")
 	})
 
 	t.Run("sign request success", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		cfg := aws.Config{
 			Region:      "us-west-2",
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 		signer, err := osaws.NewSigner(cfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		q := req.Header
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success - port override", func(t *testing.T) {
@@ -91,53 +90,53 @@ func TestV4Signer(t *testing.T) {
 
 		q := req.Header
 
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.Equal(t, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
 			bytes.NewBufferString("some data"))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		cfg := aws.Config{
 			Region:      "us-west-2",
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 		signer, err := osaws.NewSigner(cfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		q := req.Header
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.Equal(t, "1307990e6ba5ca145eb35e99182a9bec46531bc54ddf656a602c780fa0240dee", q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.Equal(t, "1307990e6ba5ca145eb35e99182a9bec46531bc54ddf656a602c780fa0240dee", q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("sign request success with body for OpenSearch Service Serverless", func(t *testing.T) {
 		req, err := http.NewRequest(
 			http.MethodPost, "https://localhost:9200",
 			bytes.NewBufferString("some data"))
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		cfg := aws.Config{
 			Region:      "us-west-2",
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 		signer, err := osaws.NewSignerWithService(cfg, osaws.OpenSearchServerless)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		q := req.Header
-		assert.NotEmpty(t, q.Get("Authorization"))
-		assert.NotEmpty(t, q.Get("X-Amz-Date"))
-		assert.Equal(t, "1307990e6ba5ca145eb35e99182a9bec46531bc54ddf656a602c780fa0240dee", q.Get("X-Amz-Content-Sha256"))
+		require.NotEmpty(t, q.Get("Authorization"))
+		require.NotEmpty(t, q.Get("X-Amz-Date"))
+		require.Equal(t, "1307990e6ba5ca145eb35e99182a9bec46531bc54ddf656a602c780fa0240dee", q.Get("X-Amz-Content-Sha256"))
 	})
 
 	t.Run("new signer failed due to empty service", func(t *testing.T) {
@@ -146,7 +145,7 @@ func TestV4Signer(t *testing.T) {
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 		_, err := osaws.NewSignerWithService(cfg, "")
-		assert.EqualError(t, err, "service cannot be empty")
+		require.EqualError(t, err, "service cannot be empty")
 	})
 
 	t.Run("new signer failed due to blank service", func(t *testing.T) {
@@ -155,12 +154,12 @@ func TestV4Signer(t *testing.T) {
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 		_, err := osaws.NewSignerWithService(cfg, "	 ")
-		assert.EqualError(t, err, "service cannot be empty")
+		require.EqualError(t, err, "service cannot be empty")
 	})
 
 	t.Run("sign request failed due to invalid body", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "https://localhost:9200", nil)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		body := &brokenReadCloser{err: "boom"}
 		req.Body = body
@@ -170,11 +169,11 @@ func TestV4Signer(t *testing.T) {
 			Credentials: credentials.NewStaticCredentialsProvider("AKID", "SECRET_KEY", "TOKEN"),
 		}
 		signer, err := osaws.NewSigner(cfg)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = signer.SignRequest(req)
-		assert.EqualError(t, err, "failed to calculate request hash: failed to read request body: boom")
-		assert.True(t, body.closed, "request body must be closed even when the read fails")
+		require.EqualError(t, err, "failed to calculate request hash: failed to read request body: boom")
+		require.True(t, body.closed, "request body must be closed even when the read fails")
 	})
 }
 
