@@ -109,6 +109,7 @@ type ReqTestFragment struct {
 // Imports returns the imports the Req-test fragment needs.
 func (f *ReqTestFragment) Imports() []Import {
 	imps := []Import{
+		{Path: "net/http"},
 		{Path: "testing"},
 		{Path: "github.com/stretchr/testify/require"},
 		{Path: f.ImportPath},
@@ -134,7 +135,8 @@ func (f *ReqTestFragment) Body() (string, error) {
 
 //nolint:gochecknoglobals // const-ish read-only template
 var reqTestFragTmpl = template.Must(template.New("reqTest").Funcs(template.FuncMap{
-	"quote": func(s string) string { return fmt.Sprintf("%q", s) },
+	"quote":      func(s string) string { return fmt.Sprintf("%q", s) },
+	"methodExpr": HTTPMethodConst,
 }).Parse(`func Test{{.TypePrefix}}Req_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -148,7 +150,7 @@ var reqTestFragTmpl = template.Must(template.New("reqTest").Funcs(template.FuncM
 		{
 			name:       {{quote .Name}},
 			req:        {{$.PkgName}}.{{$.TypePrefix}}Req{ {{.FieldAssign}} },
-			wantMethod: {{quote .WantMethod}},
+			wantMethod: {{methodExpr .WantMethod}},
 			wantPath:   {{quote .WantPath}},
 			wantErr:    {{.WantErr}},
 		},
