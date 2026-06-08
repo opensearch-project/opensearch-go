@@ -11,6 +11,7 @@
 package ingestion_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestResumeReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ingestion.ResumeReq{Index: "test-index"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test-index/ingestion/_resume",
 			wantErr:    false,
 		},

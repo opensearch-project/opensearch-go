@@ -34,7 +34,7 @@ func TestCatRepositoriesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatRepositoriesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/repositories",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package sm_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestExplainPolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        sm.ExplainPolicyReq{PolicyName: "test-policyname"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_sm/policies/test-policyname/_explain",
 			wantErr:    false,
 		},

@@ -34,14 +34,14 @@ func TestClusterGetComponentTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterGetComponentTemplateReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_component_template",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterGetComponentTemplateReq{Name: "test-name"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_component_template/test-name",
 			wantErr:    false,
 		},

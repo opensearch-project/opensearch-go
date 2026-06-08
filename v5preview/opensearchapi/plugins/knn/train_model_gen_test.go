@@ -11,6 +11,7 @@
 package knn_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestTrainModelReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        knn.TrainModelReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_knn/models/_train",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        knn.TrainModelReq{ModelID: "test-modelid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_knn/models/test-modelid/_train",
 			wantErr:    false,
 		},

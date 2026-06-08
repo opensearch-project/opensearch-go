@@ -41,7 +41,7 @@ func TestIndicesExistsTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesExistsTemplateReq{Name: []string{"a", "b"}},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/_template/a,b",
 			wantErr:    false,
 		},

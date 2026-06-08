@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetAgentReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.GetAgentReq{AgentID: "test-agentid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/agents/test-agentid",
 			wantErr:    false,
 		},

@@ -34,7 +34,7 @@ func TestClusterRemoteInfoReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterRemoteInfoReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_remote/info",
 			wantErr:    false,
 		},

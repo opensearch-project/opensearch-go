@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestPatchAllowlistReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.PatchAllowlistReq{},
-			wantMethod: "PATCH",
+			wantMethod: http.MethodPatch,
 			wantPath:   "/_plugins/_security/api/allowlist",
 			wantErr:    false,
 		},

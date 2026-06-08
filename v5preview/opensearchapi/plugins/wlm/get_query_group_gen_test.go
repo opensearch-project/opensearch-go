@@ -11,6 +11,7 @@
 package wlm_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetQueryGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        wlm.GetQueryGroupReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_wlm/query_group",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        wlm.GetQueryGroupReq{Name: "test-name"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_wlm/query_group/test-name",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGenerateUserTokenLegacyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.GenerateUserTokenLegacyReq{Username: "test-username"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_security/api/user/test-username/authtoken",
 			wantErr:    false,
 		},

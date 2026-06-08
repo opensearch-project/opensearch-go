@@ -41,7 +41,7 @@ func TestSearchPipelineDeleteReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SearchPipelineDeleteReq{ID: "test-id"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_search/pipeline/test-id",
 			wantErr:    false,
 		},

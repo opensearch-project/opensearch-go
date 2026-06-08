@@ -11,6 +11,7 @@
 package list_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestIndicesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        list.IndicesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_list/indices",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        list.IndicesReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_list/indices/a,b",
 			wantErr:    false,
 		},

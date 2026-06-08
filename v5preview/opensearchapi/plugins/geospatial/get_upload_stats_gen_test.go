@@ -11,6 +11,7 @@
 package geospatial_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetUploadStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        geospatial.GetUploadStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/_upload/stats",
 			wantErr:    false,
 		},

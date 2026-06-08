@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestRetryIndexReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ism.RetryIndexReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/retry",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ism.RetryIndexReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/retry/a,b",
 			wantErr:    false,
 		},

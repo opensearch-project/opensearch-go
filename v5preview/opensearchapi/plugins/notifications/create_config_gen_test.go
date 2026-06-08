@@ -11,6 +11,7 @@
 package notifications_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateConfigReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        notifications.CreateConfigReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_notifications/configs",
 			wantErr:    false,
 		},

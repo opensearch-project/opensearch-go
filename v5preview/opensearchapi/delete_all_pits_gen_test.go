@@ -34,7 +34,7 @@ func TestDeleteAllPitsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.DeleteAllPitsReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_search/point_in_time/_all",
 			wantErr:    false,
 		},

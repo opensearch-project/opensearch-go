@@ -11,6 +11,7 @@
 package search_relevance_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetScheduledExperimentsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        search_relevance.GetScheduledExperimentsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/experiments/schedule",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        search_relevance.GetScheduledExperimentsReq{ExperimentID: "test-experimentid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/experiments/schedule/test-experimentid",
 			wantErr:    false,
 		},

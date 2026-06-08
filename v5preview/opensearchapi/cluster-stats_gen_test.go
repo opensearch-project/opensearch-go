@@ -34,14 +34,14 @@ func TestClusterStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/stats",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterStatsReq{NodeID: []string{"a", "b"}, Metric: []string{"a", "b"}, IndexMetric: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/stats/a,b/a,b/nodes/a,b",
 			wantErr:    false,
 		},

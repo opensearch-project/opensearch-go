@@ -41,7 +41,7 @@ func TestIndicesAddBlockReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesAddBlockReq{Index: []string{"a", "b"}, Block: "test-block"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/a,b/_block/test-block",
 			wantErr:    false,
 		},

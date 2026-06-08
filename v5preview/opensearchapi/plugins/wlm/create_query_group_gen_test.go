@@ -11,6 +11,7 @@
 package wlm_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateQueryGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        wlm.CreateQueryGroupReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_wlm/query_group",
 			wantErr:    false,
 		},

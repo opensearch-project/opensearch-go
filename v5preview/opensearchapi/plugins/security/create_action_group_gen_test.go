@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestCreateActionGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.CreateActionGroupReq{ActionGroup: "test-actiongroup"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_security/api/actiongroups/test-actiongroup",
 			wantErr:    false,
 		},

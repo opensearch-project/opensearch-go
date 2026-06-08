@@ -42,7 +42,7 @@ func TestIndicesCloneReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesCloneReq{Index: "test-index", Target: "test-target"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test-index/_clone/test-target",
 			wantErr:    false,
 		},

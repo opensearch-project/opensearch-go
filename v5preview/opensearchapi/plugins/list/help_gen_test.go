@@ -11,6 +11,7 @@
 package list_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestHelpReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        list.HelpReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_list",
 			wantErr:    false,
 		},

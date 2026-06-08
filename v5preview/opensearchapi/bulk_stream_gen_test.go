@@ -35,14 +35,14 @@ func TestBulkStreamReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.BulkStreamReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_bulk/stream",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.BulkStreamReq{Index: "test-index"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test-index/_bulk/stream",
 			wantErr:    false,
 		},

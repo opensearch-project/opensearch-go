@@ -41,7 +41,7 @@ func TestIndicesDeleteIndexTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesDeleteIndexTemplateReq{Name: "test-name"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_index_template/test-name",
 			wantErr:    false,
 		},

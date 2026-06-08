@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestRegisterModelGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.RegisterModelGroupReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/model_groups/_register",
 			wantErr:    false,
 		},

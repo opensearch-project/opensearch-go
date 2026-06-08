@@ -42,7 +42,7 @@ func TestUpdateByQueryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.UpdateByQueryReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_update_by_query",
 			wantErr:    false,
 		},

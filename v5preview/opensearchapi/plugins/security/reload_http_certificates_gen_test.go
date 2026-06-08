@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestReloadHTTPCertificatesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.ReloadHTTPCertificatesReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_security/api/ssl/http/reloadcerts",
 			wantErr:    false,
 		},

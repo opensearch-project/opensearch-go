@@ -11,6 +11,7 @@
 package list_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestShardsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        list.ShardsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_list/shards",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        list.ShardsReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_list/shards/a,b",
 			wantErr:    false,
 		},
