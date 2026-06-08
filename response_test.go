@@ -78,4 +78,17 @@ func TestResponse(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, `{"test": true}`, string(body))
 	})
+
+	t.Run("String is non-consuming", func(t *testing.T) {
+		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(strings.NewReader(`{"test": true}`)), nil)
+
+		// First call renders the body; it must restore Body so a second
+		// call (and any later body read) still sees the full payload.
+		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
+		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		require.Equal(t, `{"test": true}`, string(body))
+	})
 }
