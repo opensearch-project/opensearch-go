@@ -42,7 +42,7 @@ func TestSearchPipelinePutReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SearchPipelinePutReq{ID: "test-id"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_search/pipeline/test-id",
 			wantErr:    false,
 		},

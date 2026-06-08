@@ -34,14 +34,14 @@ func TestIndicesGetUpgradeReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesGetUpgradeReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_upgrade",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesGetUpgradeReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_upgrade",
 			wantErr:    false,
 		},

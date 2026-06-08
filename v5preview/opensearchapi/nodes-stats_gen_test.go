@@ -34,14 +34,14 @@ func TestNodesStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.NodesStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_nodes/stats",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.NodesStatsReq{Metric: []string{"a", "b"}, IndexMetric: []string{"a", "b"}, NodeID: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_nodes/a,b/stats/a,b/a,b",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package sql_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestQueryReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        sql.QueryReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_sql",
 			wantErr:    false,
 		},

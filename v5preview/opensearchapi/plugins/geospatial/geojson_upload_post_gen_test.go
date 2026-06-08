@@ -11,6 +11,7 @@
 package geospatial_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGeojsonUploadPostReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        geospatial.GeojsonUploadPostReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/geospatial/geojson/_upload",
 			wantErr:    false,
 		},

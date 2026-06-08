@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -31,21 +32,21 @@ func TestExplainPolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ism.ExplainPolicyReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ism/explain",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ism.ExplainPolicyReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ism/explain/a,b",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        ism.ExplainPolicyReq{Index: []string{"x"}, Body: strings.NewReader("{}")},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/explain/x",
 			wantErr:    false,
 		},

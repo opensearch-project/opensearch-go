@@ -34,14 +34,14 @@ func TestIndicesForceMergeReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesForceMergeReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_forcemerge",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesForceMergeReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_forcemerge",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestUpdateModelReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.UpdateModelReq{ModelID: "test-modelid"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_ml/models/test-modelid",
 			wantErr:    false,
 		},

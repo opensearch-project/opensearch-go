@@ -41,7 +41,7 @@ func TestDanglingIndicesImportDanglingIndexReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test-indexuuid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_dangling/test-indexuuid",
 			wantErr:    false,
 		},

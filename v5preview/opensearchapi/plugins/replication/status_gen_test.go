@@ -11,6 +11,7 @@
 package replication_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestStatusReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        replication.StatusReq{Index: "test-index"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_replication/test-index/_status",
 			wantErr:    false,
 		},

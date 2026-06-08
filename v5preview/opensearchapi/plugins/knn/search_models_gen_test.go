@@ -11,6 +11,7 @@
 package knn_test
 
 import (
+	"net/http"
 	"strings"
 	"testing"
 
@@ -31,14 +32,14 @@ func TestSearchModelsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        knn.SearchModelsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_knn/models/_search",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        knn.SearchModelsReq{Body: strings.NewReader("{}")},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_knn/models/_search",
 			wantErr:    false,
 		},

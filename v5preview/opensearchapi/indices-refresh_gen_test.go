@@ -34,14 +34,14 @@ func TestIndicesRefreshReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesRefreshReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_refresh",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesRefreshReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_refresh",
 			wantErr:    false,
 		},

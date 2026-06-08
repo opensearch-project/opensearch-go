@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestSearchModelGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.SearchModelGroupReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/model_groups/_search",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        ml.SearchModelGroupReq{Body: &ml.MlSearchModelGroupBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/model_groups/_search",
 			wantErr:    false,
 		},

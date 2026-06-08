@@ -11,6 +11,7 @@
 package insights_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestTopQueriesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        insights.TopQueriesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_insights/top_queries",
 			wantErr:    false,
 		},

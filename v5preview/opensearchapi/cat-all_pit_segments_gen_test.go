@@ -34,7 +34,7 @@ func TestCatAllPITSegmentsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatAllPITSegmentsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/pit_segments/_all",
 			wantErr:    false,
 		},

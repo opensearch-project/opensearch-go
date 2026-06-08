@@ -34,14 +34,14 @@ func TestIndicesGetMappingReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesGetMappingReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_mapping",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesGetMappingReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_mapping",
 			wantErr:    false,
 		},

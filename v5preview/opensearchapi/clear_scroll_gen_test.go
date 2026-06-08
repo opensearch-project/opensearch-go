@@ -35,14 +35,14 @@ func TestClearScrollReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClearScrollReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_search/scroll",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClearScrollReq{ScrollID: []string{"a", "b"}},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_search/scroll/a,b",
 			wantErr:    false,
 		},

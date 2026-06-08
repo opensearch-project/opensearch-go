@@ -11,6 +11,7 @@
 package observability_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateObjectReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        observability.CreateObjectReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_observability/object",
 			wantErr:    false,
 		},

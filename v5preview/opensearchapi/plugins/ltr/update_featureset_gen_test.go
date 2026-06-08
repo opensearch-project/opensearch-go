@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestUpdateFeaturesetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ltr.UpdateFeaturesetReq{ID: "test-id", Store: "test-store"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_ltr/test-store/_featureset/test-id",
 			wantErr:    false,
 		},

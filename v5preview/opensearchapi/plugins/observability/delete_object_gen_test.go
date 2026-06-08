@@ -11,6 +11,7 @@
 package observability_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteObjectReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        observability.DeleteObjectReq{ObjectID: "test-objectid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_observability/object/test-objectid",
 			wantErr:    false,
 		},

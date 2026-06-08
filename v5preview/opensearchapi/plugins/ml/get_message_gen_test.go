@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetMessageReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.GetMessageReq{MessageID: "test-messageid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/memory/message/test-messageid",
 			wantErr:    false,
 		},

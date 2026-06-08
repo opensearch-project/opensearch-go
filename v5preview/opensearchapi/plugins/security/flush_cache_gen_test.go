@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestFlushCacheReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.FlushCacheReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_security/api/cache",
 			wantErr:    false,
 		},

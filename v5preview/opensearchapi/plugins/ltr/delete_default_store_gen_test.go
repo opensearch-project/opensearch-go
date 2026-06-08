@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestDeleteDefaultStoreReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ltr.DeleteDefaultStoreReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_ltr",
 			wantErr:    false,
 		},

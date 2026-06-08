@@ -11,6 +11,7 @@
 package replication_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestStartReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        replication.StartReq{Index: "test-index"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_replication/test-index/_start",
 			wantErr:    false,
 		},

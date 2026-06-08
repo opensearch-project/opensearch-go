@@ -34,7 +34,7 @@ func TestGetAllPitsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.GetAllPitsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_search/point_in_time/_all",
 			wantErr:    false,
 		},

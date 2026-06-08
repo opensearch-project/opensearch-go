@@ -34,14 +34,14 @@ func TestNodesHotThreadsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.NodesHotThreadsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_nodes/hot_threads",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.NodesHotThreadsReq{NodeID: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_nodes/a,b/hot_threads",
 			wantErr:    false,
 		},

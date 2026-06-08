@@ -41,7 +41,7 @@ func TestIndicesCloseReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesCloseReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_close",
 			wantErr:    false,
 		},

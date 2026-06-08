@@ -11,6 +11,7 @@
 package wlm_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteQueryGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        wlm.DeleteQueryGroupReq{Name: "test-name"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_wlm/query_group/test-name",
 			wantErr:    false,
 		},

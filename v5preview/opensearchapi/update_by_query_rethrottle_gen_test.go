@@ -41,7 +41,7 @@ func TestUpdateByQueryRethrottleReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.UpdateByQueryRethrottleReq{TaskID: "test-taskid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_update_by_query/test-taskid/_rethrottle",
 			wantErr:    false,
 		},

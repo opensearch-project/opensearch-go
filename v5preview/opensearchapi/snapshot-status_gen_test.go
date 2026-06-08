@@ -34,14 +34,14 @@ func TestSnapshotStatusReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.SnapshotStatusReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_snapshot/_status",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotStatusReq{Repository: "test-repository", Snapshot: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_snapshot/test-repository/a,b/_status",
 			wantErr:    false,
 		},

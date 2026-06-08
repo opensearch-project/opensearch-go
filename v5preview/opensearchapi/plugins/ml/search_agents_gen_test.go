@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestSearchAgentsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.SearchAgentsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/agents/_search",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        ml.SearchAgentsReq{Body: &ml.MlSearchAgentsBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/agents/_search",
 			wantErr:    false,
 		},
