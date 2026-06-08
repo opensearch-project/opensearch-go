@@ -9,7 +9,6 @@ package opensearchapi
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strconv"
