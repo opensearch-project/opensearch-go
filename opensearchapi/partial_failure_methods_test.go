@@ -11,6 +11,7 @@ package opensearchapi_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -29,10 +30,10 @@ func TestRespHelperMethods(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		path    string
-		body    string
-		fetch   func(*opensearchapi.Client, context.Context) (any, error)
+		name  string
+		path  string
+		body  string
+		fetch func(*opensearchapi.Client, context.Context) (any, error)
 		// assertHelper inspects the per-wrapper method + PartialFailures
 		// aggregator on the returned Resp. resp is the typed *Resp; mask
 		// is whatever was configured on the client.
@@ -46,6 +47,7 @@ func TestRespHelperMethods(t *testing.T) {
 				return c.Bulk(ctx, opensearchapi.BulkReq{})
 			},
 			assertHelper: func(t *testing.T, resp any, mask errmask.ErrorMask) {
+				t.Helper()
 				r := resp.(*opensearchapi.BulkResp)
 				e := r.BulkItemFailures()
 				require.NotNil(t, e)
@@ -56,7 +58,8 @@ func TestRespHelperMethods(t *testing.T) {
 				// returns the helper's value; BulkItems masked drops it.
 				gotUnmasked := r.PartialFailures(errmask.Empty)
 				require.Len(t, gotUnmasked, 1)
-				require.IsType(t, &opensearchapi.PartialBulkError{}, gotUnmasked[0])
+				var bulkErr *opensearchapi.PartialBulkError
+				require.ErrorAs(t, gotUnmasked[0], &bulkErr)
 
 				gotMasked := r.PartialFailures(errmask.BulkItems)
 				require.Empty(t, gotMasked)
@@ -70,6 +73,7 @@ func TestRespHelperMethods(t *testing.T) {
 				return c.Search(ctx, nil)
 			},
 			assertHelper: func(t *testing.T, resp any, mask errmask.ErrorMask) {
+				t.Helper()
 				r := resp.(*opensearchapi.SearchResp)
 				e := r.SearchShardFailures()
 				require.NotNil(t, e)
@@ -91,6 +95,7 @@ func TestRespHelperMethods(t *testing.T) {
 				return c.Index(ctx, opensearchapi.IndexReq{Index: "i"})
 			},
 			assertHelper: func(t *testing.T, resp any, mask errmask.ErrorMask) {
+				t.Helper()
 				r := resp.(*opensearchapi.IndexResp)
 				e := r.WriteShardFailures()
 				require.NotNil(t, e)
@@ -115,6 +120,7 @@ func TestRespHelperMethods(t *testing.T) {
 				return c.MSearch(ctx, opensearchapi.MSearchReq{})
 			},
 			assertHelper: func(t *testing.T, resp any, mask errmask.ErrorMask) {
+				t.Helper()
 				r := resp.(*opensearchapi.MSearchResp)
 				require.Nil(t, r.SearchShardFailures(), "no shard failures in fixture")
 				e := r.MultiSearchItemFailures()
@@ -125,7 +131,8 @@ func TestRespHelperMethods(t *testing.T) {
 				// Aggregator: with everything reported, only MultiSearchItems fires.
 				gotUnmasked := r.PartialFailures(errmask.Empty)
 				require.Len(t, gotUnmasked, 1)
-				require.IsType(t, &opensearchapi.MultiSearchItemError{}, gotUnmasked[0])
+				var itemErr *opensearchapi.MultiSearchItemError
+				require.ErrorAs(t, gotUnmasked[0], &itemErr)
 
 				// Mask MultiSearchItems -> aggregator returns nothing.
 				gotMasked := r.PartialFailures(errmask.MultiSearchItems)
@@ -140,6 +147,7 @@ func TestRespHelperMethods(t *testing.T) {
 				return c.MSearch(ctx, opensearchapi.MSearchReq{})
 			},
 			assertHelper: func(t *testing.T, resp any, mask errmask.ErrorMask) {
+				t.Helper()
 				r := resp.(*opensearchapi.MSearchResp)
 				// Both per-wrapper helpers return non-nil.
 				require.NotNil(t, r.SearchShardFailures())
@@ -152,7 +160,8 @@ func TestRespHelperMethods(t *testing.T) {
 				// Masking one bit drops just that sub-error.
 				got = r.PartialFailures(errmask.SearchShards)
 				require.Len(t, got, 1)
-				require.IsType(t, &opensearchapi.MultiSearchItemError{}, got[0])
+				var itemErr *opensearchapi.MultiSearchItemError
+				require.ErrorAs(t, got[0], &itemErr)
 			},
 		},
 	}
@@ -216,7 +225,7 @@ func TestPackageErrorsHelper(t *testing.T) {
 	_, multiErr := c.MSearch(context.Background(), opensearchapi.MSearchReq{})
 	require.Error(t, multiErr)
 	var msErr *opensearchapi.MSearchErrors
-	require.True(t, errors.As(multiErr, &msErr), "fixture must yield *MSearchErrors")
+	require.ErrorAs(t, multiErr, &msErr, "fixture must yield *MSearchErrors")
 
 	tests := []struct {
 		name    string
@@ -263,7 +272,12 @@ func TestPackageErrorsHelper(t *testing.T) {
 			got := opensearchapi.Errors(tt.err)
 			require.Len(t, got, tt.wantLen)
 			for i, want := range tt.wantTypes {
-				require.IsType(t, want, got[i], "element %d", i)
+				// want is a representative pointer instance (e.g.
+				// &PartialBulkError{}). Error() is defined on the pointer type,
+				// so allocate a **ConcreteError target -- ErrorAs needs a pointer
+				// to a type that implements error.
+				target := reflect.New(reflect.TypeOf(want)).Interface()
+				require.ErrorAsf(t, got[i], target, "element %d", i)
 			}
 		})
 	}

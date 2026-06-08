@@ -307,7 +307,9 @@ func TestTransportPerform(t *testing.T) {
 			Config{
 				URLs:              []*url.URL{u},
 				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
-				Transport:         mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK"}, nil
+				}),
 			},
 		)
 
@@ -989,8 +991,14 @@ func TestURLs(t *testing.T) {
 	t.Run("Returns URLs", func(t *testing.T) {
 		tp, _ := New(Config{
 			URLs: []*url.URL{
-				{Scheme: mockhttp.DefaultOpenSearchSchemeInsecure, Host: net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort))},
-				{Scheme: mockhttp.DefaultOpenSearchSchemeInsecure, Host: net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort+1))},
+				{
+					Scheme: mockhttp.DefaultOpenSearchSchemeInsecure,
+					Host:   net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort)),
+				},
+				{
+					Scheme: mockhttp.DefaultOpenSearchSchemeInsecure,
+					Host:   net.JoinHostPort(mockhttp.DefaultOpenSearchHost, strconv.Itoa(mockhttp.DefaultOpenSearchPort+1)),
+				},
 			},
 			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 		})
@@ -1327,7 +1335,9 @@ func TestRequestSigning(t *testing.T) {
 }
 
 func TestConnectionPoolPromotion(t *testing.T) {
+	t.Parallel()
 	t.Run("promoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
+		t.Parallel()
 		// Create a client with metrics enabled and single connection
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
@@ -1363,6 +1373,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 	})
 
 	t.Run("demoteConnectionPoolWithLock preserves metrics", func(t *testing.T) {
+		t.Parallel()
 		// Create a multiServerPool with metrics
 		liveConn := &Connection{URL: &url.URL{Host: "live:9200"}, Name: "live-node"}
 		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}
@@ -1402,6 +1413,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 	})
 
 	t.Run("demoteConnectionPoolWithLock prefers ready connections", func(t *testing.T) {
+		t.Parallel()
 		liveConn1 := &Connection{URL: &url.URL{Host: "live1:9200"}, Name: "live-node-1"}
 		liveConn2 := &Connection{URL: &url.URL{Host: "live2:9200"}, Name: "live-node-2"}
 		deadConn := &Connection{URL: &url.URL{Host: "dead:9200"}, Name: "dead-node"}

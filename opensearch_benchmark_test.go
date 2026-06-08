@@ -165,7 +165,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			Indices: []string{"bench-index"},
 			Body:    strings.NewReader(body),
 			Params: opensearchapi.SearchParams{
-				Size:    opensearchapi.ToPointer(25),
+				Size:    ptr(25),
 				Pretty:  true,
 				Timeout: 100,
 			},
@@ -206,3 +206,7 @@ func BenchmarkClientAPI(b *testing.B) {
 		}
 	})
 }
+
+// ptr returns a pointer to v. It replaces the deprecated
+// opensearchapi.ToPointer for the one benchmark param that needs an *int.
+func ptr[T any](v T) *T { return &v }

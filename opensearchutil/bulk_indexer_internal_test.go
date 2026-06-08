@@ -178,7 +178,8 @@ func TestWriteMeta(t *testing.T) {
 				VersionType:         strPointer("external"),
 				WaitForActiveShards: 1,
 			}},
-			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":1}}`, testIndex) + "\n",
+			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,`+
+				`"version_type":"external","wait_for_active_shards":1}}`, testIndex) + "\n",
 		},
 		{
 			name: "wait_for_active_shards, all",
@@ -190,7 +191,8 @@ func TestWriteMeta(t *testing.T) {
 				VersionType:         strPointer("external"),
 				WaitForActiveShards: "all",
 			}},
-			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","wait_for_active_shards":"all"}}`, testIndex) + "\n",
+			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,`+
+				`"version_type":"external","wait_for_active_shards":"all"}}`, testIndex) + "\n",
 		},
 		{
 			name: "with retry_on_conflict",
@@ -246,7 +248,11 @@ func TestWriteMeta(t *testing.T) {
 			}
 			err := w.writeMeta(tt.args.item)
 			if tt.wantErr != nil {
-				require.ErrorAs(t, err, &tt.wantErr)
+				// The only error case expects a *json.UnsupportedValueError;
+				// match the concrete type via a typed target so ErrorAs does
+				// not receive a *error.
+				var target *json.UnsupportedValueError
+				require.ErrorAs(t, err, &target)
 				return
 			}
 			require.NoError(t, err)
@@ -264,6 +270,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 		{
 			name: "3-batch sequential responses",
 			run: func(t *testing.T) BulkIndexerStats {
+				t.Helper()
 				var (
 					wg        sync.WaitGroup
 					countReqs int
@@ -333,6 +340,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 		{
 			name: "automatic flush on interval",
 			run: func(t *testing.T) BulkIndexerStats {
+				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
 						if request.URL.Path == "/" {
@@ -382,6 +390,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 		{
 			name: "retry on 429 TooManyRequests",
 			run: func(t *testing.T) BulkIndexerStats {
+				t.Helper()
 				var (
 					wg        sync.WaitGroup
 					countReqs int
@@ -477,6 +486,7 @@ func TestBulkIndexerContext(t *testing.T) {
 		{
 			name: "Add returns error on expired context",
 			run: func(t *testing.T) {
+				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 				ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
@@ -502,6 +512,7 @@ func TestBulkIndexerContext(t *testing.T) {
 		{
 			name: "Add does not increment NumAdded when context is already cancelled",
 			run: func(t *testing.T) {
+				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 
@@ -534,6 +545,7 @@ func TestBulkIndexerContext(t *testing.T) {
 		{
 			name: "Close returns error on cancelled context",
 			run: func(t *testing.T) {
+				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
@@ -567,6 +579,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 		{
 			name: "OnError called on transport failure",
 			run: func(t *testing.T) {
+				t.Helper()
 				config := opensearchapi.Config{
 					Client: opensearch.Config{
 						Transport: &mockTransport{
@@ -609,13 +622,14 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{Action: "foo"}))
 				require.NoError(t, bi.Close(context.Background()))
 
-				require.NotNil(t, indexerError, "expected indexer OnError to be called")
+				require.Error(t, indexerError, "expected indexer OnError to be called")
 				require.Equal(t, 1, onErrorCount, "OnError call count")
 			},
 		},
 		{
 			name: "per-item OnSuccess and OnFailure",
 			run: func(t *testing.T) {
+				t.Helper()
 				var (
 					countSuccessful      uint64
 					countFailed          uint64
@@ -721,6 +735,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 		{
 			name: "OnFlushStart and OnFlushEnd",
 			run: func(t *testing.T) {
+				t.Helper()
 				type contextKey string
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
@@ -763,6 +778,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 		{
 			name: "per-item OnFailure on bulk request error",
 			run: func(t *testing.T) {
+				t.Helper()
 				var (
 					numItems          uint64 = 5
 					idsExpectedToFail        = make(map[string]struct{}, numItems)
@@ -825,7 +841,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 
 				require.Equal(t, numItems, onErrorCallCount, "OnError call count")
 				require.Equal(t, numItems, stats.NumFailed, "NumFailed")
-				require.Equal(t, int(numItems), len(idsFailureCount), "idsFailureCount length")
+				require.Len(t, idsFailureCount, int(numItems), "idsFailureCount length")
 
 				for k, v := range idsFailureCount {
 					_, ok := idsExpectedToFail[k]

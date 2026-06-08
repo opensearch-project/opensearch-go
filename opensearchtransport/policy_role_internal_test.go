@@ -142,6 +142,38 @@ func TestRolePolicy(t *testing.T) {
 		require.True(t, policy.IsEnabled())
 	})
 
+	t.Run("DiscoveryUpdate role-filters dead connections", func(t *testing.T) {
+		// A connection can arrive in the "added" list already classified as
+		// unhealthy (the allConns pool placed it on its dead list). RolePolicy
+		// must still apply role filtering to such connections: a dead conn that
+		// matches is admitted to the pool's dead list for later health checks,
+		// while a dead conn that does not match is dropped entirely. This is the
+		// scenario createDeadTestConnection's roles argument exists for.
+		policy, err := NewRolePolicy(RoleData)
+		require.NoError(t, err)
+
+		rolePolicy := policy.(*RolePolicy)
+		rolePolicy.configurePolicySettings(createTestConfig())
+
+		deadDataConn := createDeadTestConnection("http://localhost:9200", RoleData)
+		deadIngestConn := createDeadTestConnection("http://localhost:9201", RoleIngest)
+
+		err = rolePolicy.DiscoveryUpdate([]*Connection{deadDataConn, deadIngestConn}, nil, nil)
+		require.NoError(t, err)
+
+		rolePolicy.pool.RLock()
+		_, dataAdmitted := rolePolicy.pool.mu.members[deadDataConn]
+		_, ingestAdmitted := rolePolicy.pool.mu.members[deadIngestConn]
+		deadCount := len(rolePolicy.pool.mu.dead)
+		readyCount := len(rolePolicy.pool.mu.ready)
+		rolePolicy.pool.RUnlock()
+
+		require.True(t, dataAdmitted, "role-matching dead connection must be admitted to the pool")
+		require.False(t, ingestAdmitted, "non-matching dead connection must be dropped")
+		require.Equal(t, 1, deadCount, "the matching dead connection belongs on the dead list")
+		require.Zero(t, readyCount, "a dead connection must not enter the ready list")
+	})
+
 	t.Run("DiscoveryUpdate removes connections", func(t *testing.T) {
 		policy, err := NewRolePolicy(RoleData)
 		require.NoError(t, err)

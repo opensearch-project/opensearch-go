@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -375,12 +374,12 @@ func TestCatClient(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
-						assert.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res)
+						require.NotNil(t, res.Inspect().Response)
 					}
 				})
 			}
@@ -391,127 +390,127 @@ func TestCatClient(t *testing.T) {
 		t.Run("Aliases", func(t *testing.T) {
 			resp, err := client.Cat.Aliases(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Aliases, resp.Inspect().Response)
 		})
 		t.Run("Allocation", func(t *testing.T) {
 			resp, err := client.Cat.Allocation(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Allocations, resp.Inspect().Response)
 		})
 		t.Run("ClusterManager", func(t *testing.T) {
 			testutil.SkipIfVersion(t, client, "<", "2.0", "ClusterManager")
 			resp, err := client.Cat.ClusterManager(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.ClusterManagers, resp.Inspect().Response)
 		})
 		t.Run("Count", func(t *testing.T) {
 			resp, err := client.Cat.Count(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Counts, resp.Inspect().Response)
 		})
 		t.Run("FieldData", func(t *testing.T) {
 			resp, err := client.Cat.FieldData(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.FieldData, resp.Inspect().Response)
 		})
 		t.Run("Health", func(t *testing.T) {
 			resp, err := client.Cat.Health(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Health, resp.Inspect().Response)
 		})
 		t.Run("Indices", func(t *testing.T) {
 			resp, err := client.Cat.Indices(t.Context(), &opensearchapi.CatIndicesReq{Params: opensearchapi.CatIndicesParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Indices, resp.Inspect().Response)
 		})
 		t.Run("Master", func(t *testing.T) {
 			resp, err := client.Cat.Master(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Master, resp.Inspect().Response)
 		})
 		t.Run("NodeAttrs", func(t *testing.T) {
 			resp, err := client.Cat.NodeAttrs(t.Context(),
 				&opensearchapi.CatNodeAttrsReq{Params: opensearchapi.CatNodeAttrsParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.NodeAttrs, resp.Inspect().Response)
 		})
 		t.Run("Nodes", func(t *testing.T) {
 			resp, err := client.Cat.Nodes(t.Context(), &opensearchapi.CatNodesReq{Params: opensearchapi.CatNodesParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Nodes, resp.Inspect().Response)
 		})
 		t.Run("PendingTasks", func(t *testing.T) {
 			resp, err := client.Cat.PendingTasks(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.PendingTasks, resp.Inspect().Response)
 		})
 		t.Run("Plugins", func(t *testing.T) {
 			resp, err := client.Cat.Plugins(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Plugins, resp.Inspect().Response)
 		})
 		t.Run("Recovery", func(t *testing.T) {
 			resp, err := client.Cat.Recovery(t.Context(), &opensearchapi.CatRecoveryReq{Params: opensearchapi.CatRecoveryParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Recovery, resp.Inspect().Response)
 		})
 		t.Run("Repositories", func(t *testing.T) {
 			resp, err := client.Cat.Repositories(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Repositories, resp.Inspect().Response)
 		})
 		t.Run("Segments", func(t *testing.T) {
 			resp, err := client.Cat.Segments(t.Context(), &opensearchapi.CatSegmentsReq{Params: opensearchapi.CatSegmentsParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Segments, resp.Inspect().Response)
 		})
 		t.Run("Shards", func(t *testing.T) {
 			resp, err := client.Cat.Shards(t.Context(), &opensearchapi.CatShardsReq{Params: opensearchapi.CatShardsParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Shards, resp.Inspect().Response)
 		})
 		/* Need to create Snapshot + Repo
 		t.Run("Snapshots", func(t *testing.T) {
 			resp, err := client.Cat.Snapshots(t.Context(),
 				&opensearchapi.CatSnapshotsReq{Repository: snapshotRepo, Params: opensearchapi.CatSnapshotsParams{H: []string{"*"}}})
-			assert.Nil(t, err)
-			assert.NotNil(t, resp)
+			require.Nil(t, err)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Snapshots, resp.Inspect().Response)
 		})
 		*/
 		t.Run("Tasks", func(t *testing.T) {
 			resp, err := client.Cat.Tasks(t.Context(), &opensearchapi.CatTasksReq{Params: opensearchapi.CatTasksParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Tasks, resp.Inspect().Response)
 		})
 		t.Run("Templates", func(t *testing.T) {
 			resp, err := client.Cat.Templates(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
 		})
 		t.Run("ThreadPool", func(t *testing.T) {
 			resp, err := client.Cat.ThreadPool(t.Context(),
 				&opensearchapi.CatThreadPoolReq{Params: opensearchapi.CatThreadPoolParams{H: []string{"*"}}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.ThreadPool, resp.Inspect().Response)
 		})
 	})
