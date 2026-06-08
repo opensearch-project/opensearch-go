@@ -199,6 +199,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Replace inline `_shards` struct with `ResponseShards` in `IndexResp`, `DocumentCreateResp`, `DocumentDeleteResp`, `UpdateResp`, `IndicesRefreshResp`, and `IndicesCountResp` to expose shard `Failures` and `Skipped` fields ([#797](https://github.com/opensearch-project/opensearch-go/issues/797)). Code accessing `resp.Shards.Total`, `resp.Shards.Successful`, or `resp.Shards.Failed` compiles unchanged.
 - Add `omitempty` to all deprecated `_type` JSON tags so empty values are omitted during marshaling
 - Modernize tests to use Go 1.25's `WaitGroup.Go()` ([#834](https://github.com/opensearch-project/opensearch-go/pull/834))
+- Change `opensearch.Response.String()` receiver from value to pointer so the body-restore mutation is observable to subsequent reads; consequently a `Response` value (non-pointer) no longer satisfies `fmt.Stringer`. Pointer values continue to satisfy `fmt.Stringer` and behave as before; callers passing a `Response` by value to `fmt.Print*`/`fmt.Sprintf("%s", ...)` should pass `&resp` instead ([#859](https://github.com/opensearch-project/opensearch-go/pull/859))
 
 ### Deprecated
 

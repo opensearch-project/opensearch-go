@@ -14,7 +14,6 @@ package aws_test
 import (
 	"bytes"
 	"errors"
-	"io"
 	"net/http"
 	"testing"
 
@@ -163,7 +162,8 @@ func TestV4Signer(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "https://localhost:9200", nil)
 		assert.NoError(t, err)
 
-		req.Body = io.NopCloser(brokenReader("boom"))
+		body := &brokenReadCloser{err: "boom"}
+		req.Body = body
 
 		cfg := aws.Config{
 			Region:      "us-west-2",
@@ -174,11 +174,16 @@ func TestV4Signer(t *testing.T) {
 
 		err = signer.SignRequest(req)
 		assert.EqualError(t, err, "failed to calculate request hash: failed to read request body: boom")
+		assert.True(t, body.closed, "request body must be closed even when the read fails")
 	})
 }
 
-type brokenReader string
-
-func (br brokenReader) Read([]byte) (int, error) {
-	return 0, errors.New(string(br))
+// brokenReadCloser fails on Read and records whether Close was called, so a
+// test can assert the signer closes the request body on the read-error path.
+type brokenReadCloser struct {
+	err    string
+	closed bool
 }
+
+func (b *brokenReadCloser) Read([]byte) (int, error) { return 0, errors.New(b.err) }
+func (b *brokenReadCloser) Close() error             { b.closed = true; return nil }

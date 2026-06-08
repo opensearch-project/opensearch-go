@@ -1118,7 +1118,14 @@ func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	if res.Body == nil {
 		return nil, fmt.Errorf("unexpected empty body")
 	}
-	defer res.Body.Close()
+	// Drain on close: raw RoundTrip path, and the success path uses json.Decode
+	// below, which stops at the end of the JSON value without consuming trailing
+	// bytes; a plain Close would then defeat keep-alive.
+	defer func() {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
+		res.Body.Close()
+	}()
 
 	if res.StatusCode > http.StatusOK {
 		body, err := io.ReadAll(res.Body)
@@ -1554,8 +1561,14 @@ func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardP
 	if res == nil {
 		return nil, fmt.Errorf("nil response from /_cat/shards")
 	}
+	// Drain on close: this raw RoundTrip path has no Perform buffering, and
+	// json.Decode below stops at the end of the JSON value without consuming any
+	// trailing bytes, so a plain Close would defeat keep-alive on both the
+	// non-200 return and the healthy path.
 	defer func() {
 		if res.Body != nil {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 	}()
@@ -1801,8 +1814,13 @@ func (c *Client) getRoutingMeta(ctx context.Context, indexes []string) (map[stri
 	if res == nil {
 		return nil, fmt.Errorf("nil response from _cluster/state/metadata")
 	}
+	// Drain on close: raw RoundTrip path, and the json.Decode below leaves any
+	// trailing bytes unread, so a plain Close would defeat keep-alive on both
+	// the non-200 return and the healthy path.
 	defer func() {
 		if res.Body != nil {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 	}()
