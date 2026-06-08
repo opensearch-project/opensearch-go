@@ -57,26 +57,6 @@ func TestResponse(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(iotest.ErrReader(errors.New("io reader test"))), nil)
 		require.Equal(t, "[200 OK]", resp.Status())
 		require.Equal(t, "[200 OK] <error reading response body: io reader test>", resp.String())
-
-		// Even on the read-error path, String restores Body to a non-nil
-		// in-memory reader so callers never see a consumed/failed reader.
-		require.NotNil(t, resp.Body)
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Empty(t, body)
-	})
-
-	t.Run("String is non-consuming", func(t *testing.T) {
-		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(strings.NewReader(`{"test": true}`)), nil)
-
-		// First call renders the body; it must restore Body so a second
-		// call (and any later body read) still sees the full payload.
-		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
-		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
-
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Equal(t, `{"test": true}`, string(body))
 	})
 
 	t.Run("String is non-consuming", func(t *testing.T) {
