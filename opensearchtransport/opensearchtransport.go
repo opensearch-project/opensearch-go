@@ -67,6 +67,14 @@ const (
 var (
 	reGoVersion          = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 	errHealthCheckFailed = errors.New("connection health check error")
+
+	// ErrResponseBodyRead identifies an error that occurred while buffering the
+	// response body inside [Client.Perform]. Callers that receive a non-nil
+	// response together with a non-nil error can use [errors.Is] against this
+	// sentinel to distinguish a genuine body-read failure from an unrelated
+	// transport error returned alongside a response (for example, context
+	// cancellation during retry backoff after a retryable status was received).
+	ErrResponseBodyRead = errors.New("error reading response body")
 )
 
 // getConnectionFromPool gets a connection and handles client locking internally.
@@ -86,6 +94,11 @@ func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
 }
 
 // Interface is the HTTP client contract used by the OpenSearch API layer.
+//
+// Implementations may return a non-nil *http.Response together with a non-nil
+// error (for example, when the response was received but buffering its body
+// failed). Callers must treat a nil response, not a non-nil error, as the
+// signal for a hard transport failure. See [Client.Perform] for details.
 type Interface interface {
 	Perform(*http.Request) (*http.Response, error)
 }
@@ -1120,7 +1133,19 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// Perform executes the request and returns a response or error.
+// Perform executes the request and returns a response.
+//
+// Perform may return a non-nil *http.Response together with a non-nil error.
+// This happens when the request reached a server and a response was received,
+// but a subsequent step failed -- most notably when buffering the response
+// body fails (see [ErrResponseBodyRead]), or when the request context is
+// cancelled during retry backoff after a retryable status was received. In
+// those cases the returned response is still usable (its body, if any, holds
+// whatever bytes were read before the failure).
+//
+// Callers must therefore treat resp == nil, not err != nil, as the signal for
+// a hard transport failure where no response is available. The same contract
+// applies to any custom [Interface] implementation.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	var (
 		res *http.Response
@@ -1463,7 +1488,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		res.Body.Close()
 		res.Body = io.NopCloser(bytes.NewReader(body))
 		if rerr != nil && err == nil {
-			err = fmt.Errorf("error reading response body: %w", rerr)
+			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
 		}
 	}
 

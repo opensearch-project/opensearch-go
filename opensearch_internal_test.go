@@ -296,6 +296,89 @@ func TestClientInterfe(t *testing.T) {
 	})
 }
 
+// fakeTransport is an opensearchtransport.Interface that returns a fixed
+// (response, error) pair, used to exercise Client.Do's handling of the
+// (resp != nil, err != nil) contract that Perform may now return.
+type fakeTransport struct {
+	resp *http.Response
+	err  error
+}
+
+func (f fakeTransport) Perform(*http.Request) (*http.Response, error) {
+	return f.resp, f.err
+}
+
+// TestDoPerformErrorClassification verifies that Client.Do only labels a
+// returned error as ErrReadBody when it is a genuine body-read failure
+// (signalled by opensearchtransport.ErrResponseBodyRead). An unrelated transport
+// error returned alongside a response -- e.g. context cancellation during retry
+// backoff -- must surface with its identity intact and without the misleading
+// "failed to read body" prefix.
+func TestDoPerformErrorClassification(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		performErr  error
+		wantReadErr bool   // expect errors.Is(err, ErrReadBody)
+		wantIs      error  // an error the result must still wrap (nil to skip)
+		wantNotMsg  string // substring that must NOT appear in the message (empty to skip)
+	}{
+		{
+			name:        "genuine body-read failure is labeled ErrReadBody",
+			performErr:  fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, io.ErrUnexpectedEOF),
+			wantReadErr: true,
+			wantIs:      io.ErrUnexpectedEOF,
+		},
+		{
+			name:        "context cancellation during backoff is not ErrReadBody",
+			performErr:  context.Canceled,
+			wantReadErr: false,
+			wantIs:      context.Canceled,
+			wantNotMsg:  "failed to read body",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c, err := NewClient(Config{
+				Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+			})
+			require.NoError(t, err)
+
+			// Replace the transport with one that returns a fixed
+			// (response, error) pair so Do exercises the (resp != nil,
+			// err != nil) classification path.
+			c.Transport = fakeTransport{
+				resp: &http.Response{
+					StatusCode: http.StatusServiceUnavailable,
+					Header:     http.Header{},
+					Body:       io.NopCloser(strings.NewReader("")),
+				},
+				err: tt.performErr,
+			}
+
+			resp, err := c.Do(context.TODO(), http.MethodGet, testReq{Path: "/test"}, nil)
+			require.Error(t, err)
+			require.NotNil(t, resp, "response must be returned alongside the error")
+
+			if tt.wantReadErr {
+				require.ErrorIs(t, err, ErrReadBody)
+			} else {
+				require.NotErrorIs(t, err, ErrReadBody)
+			}
+			if tt.wantIs != nil {
+				require.ErrorIs(t, err, tt.wantIs)
+			}
+			if tt.wantNotMsg != "" {
+				require.NotContains(t, err.Error(), tt.wantNotMsg)
+			}
+		})
+	}
+}
+
 func TestAddrsToURLs(t *testing.T) {
 	tt := []struct {
 		name  string

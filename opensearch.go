@@ -417,6 +417,14 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 
 // Do gets and performs the request. It also tries to parse the response into the dataPointer.
 //
+// On error, Do may return a non-nil *Response alongside a non-nil error. This
+// happens when the transport received a response but a subsequent failure
+// occurred (a body-read failure during buffering, or an unrelated transport
+// error such as context cancellation during retry backoff). Callers that need
+// to distinguish a hard transport failure should check resp == nil rather than
+// err != nil, and may inspect the returned *Response in the error case. A nil
+// *Response always signals that no usable response was produced.
+//
 // Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
 // Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
 // unmarshaling. The method remains fully functional and will not be removed; this annotation
@@ -444,7 +452,17 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	if err != nil {
-		return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
+		// Perform returns (resp != nil, err != nil) in two distinct cases:
+		// a genuine body-read failure during response buffering, and an
+		// unrelated transport error returned alongside a response (e.g. the
+		// context being cancelled during retry backoff after a retryable
+		// status). Only label the former as ErrReadBody; otherwise surface
+		// the underlying error so its identity (such as context.Canceled)
+		// is preserved without a misleading "failed to read body" prefix.
+		if errors.Is(err, opensearchtransport.ErrResponseBodyRead) {
+			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
+		}
+		return response, fmt.Errorf("status: %d, err: %w", resp.StatusCode, err)
 	}
 
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {
