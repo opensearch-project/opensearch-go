@@ -7,6 +7,7 @@
 package opensearchapi
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -245,10 +246,17 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 		if dataPointer != nil {
 			return resp, opensearch.ParseError(resp)
 		}
+		// Read the error body to completion and re-wrap it. Reading to EOF
+		// lets http.Transport reuse the connection when DisableResponseBuffering
+		// is set; re-wrapping keeps resp.Body readable for the caller, matching
+		// the dataPointer != nil branch (which routes through ParseError). In the
+		// default buffered mode the body is already an in-memory NopCloser, so the
+		// read is cheap and non-destructive.
 		if resp.Body != nil {
 			//nolint:errcheck // best-effort drain so the connection can be reused
-			io.Copy(io.Discard, resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
+			resp.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		return resp, fmt.Errorf("status: %s", resp.Status())
 	}
