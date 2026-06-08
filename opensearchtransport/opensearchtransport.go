@@ -1269,6 +1269,12 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 			// (ErrNoConnections), break to allow post-loop seed fallback.
 			err = fmt.Errorf("cannot get connection: %w", err)
 			if errors.Is(err, ErrNoConnections) {
+				// No round-trip occurred this iteration -- clear any stale
+				// response from a prior retryable status (e.g. 503 from the
+				// previous attempt) so the documented (resp == nil signals
+				// hard transport failure) invariant holds when seed fallback
+				// is unavailable.
+				res = nil
 				break
 			}
 			return nil, err
