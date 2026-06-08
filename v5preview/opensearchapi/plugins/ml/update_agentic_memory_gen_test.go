@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestUpdateAgenticMemoryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.UpdateAgenticMemoryReq{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id",
 			wantErr:    false,
 		},

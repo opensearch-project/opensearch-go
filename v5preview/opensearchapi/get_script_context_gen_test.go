@@ -34,7 +34,7 @@ func TestGetScriptContextReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.GetScriptContextReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_script_context",
 			wantErr:    false,
 		},

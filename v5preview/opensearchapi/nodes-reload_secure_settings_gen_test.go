@@ -35,14 +35,14 @@ func TestNodesReloadSecureSettingsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.NodesReloadSecureSettingsReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_nodes/reload_secure_settings",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.NodesReloadSecureSettingsReq{NodeID: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_nodes/a,b/reload_secure_settings",
 			wantErr:    false,
 		},

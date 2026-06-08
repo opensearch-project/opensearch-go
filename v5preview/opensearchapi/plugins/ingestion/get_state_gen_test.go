@@ -11,6 +11,7 @@
 package ingestion_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetStateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ingestion.GetStateReq{Index: "test-index"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/test-index/ingestion/_state",
 			wantErr:    false,
 		},

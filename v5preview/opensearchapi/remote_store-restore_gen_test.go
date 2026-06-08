@@ -35,7 +35,7 @@ func TestRemoteStoreRestoreReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.RemoteStoreRestoreReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_remotestore/_restore",
 			wantErr:    false,
 		},

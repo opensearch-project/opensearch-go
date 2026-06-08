@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetFeatureReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ltr.GetFeatureReq{ID: "test-id", Store: "test-store"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_ltr/test-store/_feature/test-id",
 			wantErr:    false,
 		},

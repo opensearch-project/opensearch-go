@@ -11,6 +11,7 @@
 package search_relevance_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetSearchConfigurationsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        search_relevance.GetSearchConfigurationsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/search_configurations",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        search_relevance.GetSearchConfigurationsReq{SearchConfigurationID: "test-searchconfigurationid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/search_configurations/test-searchconfigurationid",
 			wantErr:    false,
 		},

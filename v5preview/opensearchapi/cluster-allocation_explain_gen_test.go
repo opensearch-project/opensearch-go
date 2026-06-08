@@ -34,14 +34,14 @@ func TestClusterAllocationExplainReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterAllocationExplainReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/allocation/explain",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        opensearchapi.ClusterAllocationExplainReq{Body: &opensearchapi.ClusterAllocationExplainBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_cluster/allocation/explain",
 			wantErr:    false,
 		},

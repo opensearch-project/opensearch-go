@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetUserLegacyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.GetUserLegacyReq{Username: "test-username"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security/api/user/test-username",
 			wantErr:    false,
 		},

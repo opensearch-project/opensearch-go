@@ -34,7 +34,7 @@ func TestDanglingIndicesListDanglingIndicesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.DanglingIndicesListDanglingIndicesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_dangling",
 			wantErr:    false,
 		},

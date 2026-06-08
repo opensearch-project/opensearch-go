@@ -34,7 +34,7 @@ func TestCatClusterManagerReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatClusterManagerReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/cluster_manager",
 			wantErr:    false,
 		},

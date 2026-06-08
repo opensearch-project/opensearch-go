@@ -35,7 +35,7 @@ func TestDeletePITReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.DeletePITReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_search/point_in_time",
 			wantErr:    false,
 		},

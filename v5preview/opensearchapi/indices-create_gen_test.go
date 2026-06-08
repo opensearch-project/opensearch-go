@@ -42,7 +42,7 @@ func TestIndicesCreateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesCreateReq{Index: "test-index"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/test-index",
 			wantErr:    false,
 		},

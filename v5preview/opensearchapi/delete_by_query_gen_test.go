@@ -42,7 +42,7 @@ func TestDeleteByQueryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.DeleteByQueryReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_delete_by_query",
 			wantErr:    false,
 		},

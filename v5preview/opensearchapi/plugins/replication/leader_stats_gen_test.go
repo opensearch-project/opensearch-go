@@ -11,6 +11,7 @@
 package replication_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestLeaderStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        replication.LeaderStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_replication/leader_stats",
 			wantErr:    false,
 		},

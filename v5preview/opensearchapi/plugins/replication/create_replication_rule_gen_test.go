@@ -11,6 +11,7 @@
 package replication_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateReplicationRuleReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        replication.CreateReplicationRuleReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_replication/_autofollow",
 			wantErr:    false,
 		},

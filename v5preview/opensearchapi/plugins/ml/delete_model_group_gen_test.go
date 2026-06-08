@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteModelGroupReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.DeleteModelGroupReq{ModelGroupID: "test-modelgroupid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_ml/model_groups/test-modelgroupid",
 			wantErr:    false,
 		},

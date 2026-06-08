@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestAddPolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ism.AddPolicyReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/add",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ism.AddPolicyReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/add/a,b",
 			wantErr:    false,
 		},

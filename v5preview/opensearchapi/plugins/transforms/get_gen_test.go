@@ -11,6 +11,7 @@
 package transforms_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        transforms.GetReq{ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_transform/test-id",
 			wantErr:    false,
 		},

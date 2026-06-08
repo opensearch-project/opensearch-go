@@ -11,6 +11,7 @@
 package ppl_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestExplainReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ppl.ExplainReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ppl/_explain",
 			wantErr:    false,
 		},

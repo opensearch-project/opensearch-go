@@ -34,14 +34,14 @@ func TestCatTemplatesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatTemplatesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/templates",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.CatTemplatesReq{Name: "test-name"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/templates/test-name",
 			wantErr:    false,
 		},

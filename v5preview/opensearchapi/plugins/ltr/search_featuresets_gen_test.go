@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestSearchFeaturesetsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ltr.SearchFeaturesetsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_ltr/_featureset",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ltr.SearchFeaturesetsReq{Store: "test-store"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_ltr/test-store/_featureset",
 			wantErr:    false,
 		},

@@ -34,14 +34,14 @@ func TestIndicesGetAliasReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesGetAliasReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_alias",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesGetAliasReq{Name: []string{"a", "b"}, Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_alias/a,b",
 			wantErr:    false,
 		},

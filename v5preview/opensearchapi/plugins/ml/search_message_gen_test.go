@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,14 +38,14 @@ func TestSearchMessageReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.SearchMessageReq{MemoryID: "test-memoryid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/memory/test-memoryid/_search",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        ml.SearchMessageReq{MemoryID: "test", Body: &ml.MlSearchMessageBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/memory/test/_search",
 			wantErr:    false,
 		},

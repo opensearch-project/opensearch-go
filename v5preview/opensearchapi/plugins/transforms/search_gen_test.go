@@ -11,6 +11,7 @@
 package transforms_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestSearchReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        transforms.SearchReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_transform",
 			wantErr:    false,
 		},

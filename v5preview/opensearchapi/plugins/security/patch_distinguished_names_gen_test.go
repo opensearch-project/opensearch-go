@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestPatchDistinguishedNamesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.PatchDistinguishedNamesReq{},
-			wantMethod: "PATCH",
+			wantMethod: http.MethodPatch,
 			wantPath:   "/_plugins/_security/api/nodesdn",
 			wantErr:    false,
 		},

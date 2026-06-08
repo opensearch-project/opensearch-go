@@ -42,7 +42,7 @@ func TestIndicesCreateDataStreamReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesCreateDataStreamReq{Name: "test-name"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_data_stream/test-name",
 			wantErr:    false,
 		},

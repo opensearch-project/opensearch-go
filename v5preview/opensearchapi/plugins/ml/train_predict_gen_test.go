@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestTrainPredictReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.TrainPredictReq{AlgorithmName: "test-algorithmname"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/_train_predict/test-algorithmname",
 			wantErr:    false,
 		},

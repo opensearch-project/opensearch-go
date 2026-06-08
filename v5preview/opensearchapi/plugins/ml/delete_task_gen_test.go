@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteTaskReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.DeleteTaskReq{TaskID: "test-taskid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_ml/tasks/test-taskid",
 			wantErr:    false,
 		},

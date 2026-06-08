@@ -34,7 +34,7 @@ func TestPingReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.PingReq{},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/",
 			wantErr:    false,
 		},

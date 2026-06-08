@@ -11,6 +11,7 @@
 package geospatial_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteIp2geoDatasourceReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        geospatial.DeleteIp2geoDatasourceReq{Name: "test-name"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource/test-name",
 			wantErr:    false,
 		},

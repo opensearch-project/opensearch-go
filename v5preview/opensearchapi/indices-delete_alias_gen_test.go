@@ -41,7 +41,7 @@ func TestIndicesDeleteAliasReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesDeleteAliasReq{Index: []string{"a", "b"}, Name: []string{"a", "b"}},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/a,b/_alias/a,b",
 			wantErr:    false,
 		},

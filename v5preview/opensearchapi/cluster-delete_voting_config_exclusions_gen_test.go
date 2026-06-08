@@ -34,7 +34,7 @@ func TestClusterDeleteVotingConfigExclusionsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterDeleteVotingConfigExclusionsReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_cluster/voting_config_exclusions",
 			wantErr:    false,
 		},

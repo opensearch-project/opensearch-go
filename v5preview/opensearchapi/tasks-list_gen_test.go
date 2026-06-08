@@ -34,7 +34,7 @@ func TestTasksListReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.TasksListReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_tasks",
 			wantErr:    false,
 		},

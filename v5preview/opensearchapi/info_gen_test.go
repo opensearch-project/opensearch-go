@@ -34,7 +34,7 @@ func TestInfoReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.InfoReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/",
 			wantErr:    false,
 		},

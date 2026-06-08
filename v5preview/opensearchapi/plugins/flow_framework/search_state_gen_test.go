@@ -11,6 +11,7 @@
 package flow_framework_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestSearchStateReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        flow_framework.SearchStateReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_flow_framework/workflow/state/_search",
 			wantErr:    false,
 		},

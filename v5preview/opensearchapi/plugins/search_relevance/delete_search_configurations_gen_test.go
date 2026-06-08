@@ -11,6 +11,7 @@
 package search_relevance_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteSearchConfigurationsReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        search_relevance.DeleteSearchConfigurationsReq{SearchConfigurationID: "test-searchconfigurationid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_search_relevance/search_configurations/test-searchconfigurationid",
 			wantErr:    false,
 		},

@@ -41,14 +41,14 @@ func TestTermVectorsReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.TermVectorsReq{Index: "test-index", ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/test-index/_termvectors/test-id",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        opensearchapi.TermVectorsReq{Index: "test", ID: "test", Body: &opensearchapi.TermVectorsBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test/_termvectors/test",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package observability_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetLocalstatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        observability.GetLocalstatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_observability/_local/stats",
 			wantErr:    false,
 		},

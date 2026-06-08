@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestValidateReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.ValidateReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security/api/validate",
 			wantErr:    false,
 		},
