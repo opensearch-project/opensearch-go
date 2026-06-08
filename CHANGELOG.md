@@ -13,7 +13,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `primary_terms_map` and `split_shards_metadata` fields to ClusterState index metadata for OpenSearch >=3.6.0 compatibility
 - Add address resolver handler to rewrite discovered node addresses before they enter the connection pool ([#822](https://github.com/opensearch-project/opensearch-go/pull/822))
 - Add `InsecureSkipVerify` config option to disable TLS certificate verification without constructing a custom `http.Transport`, preserving `DefaultTransport` connection pooling, HTTP/2, and timeout defaults ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
-- Add `DisableResponseBuffering` config option to skip eager `io.ReadAll` buffering of response bodies in `Perform()`, reducing per-request allocations and TTFB for proxy and streaming use cases ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
+- Add `(*opensearchtransport.Client).Stream(*http.Request) (*http.Response, error)` and a `(*opensearch.Client).Stream` passthrough for raw byte forwarding (proxy and streaming use cases). Stream returns the unbuffered response body from `RoundTrip`; the caller owns reading and closing `res.Body`. Pairs with `opensearch.Do[T]` for typed, decoded results (the SDK owns the body). Stream is exposed only on the concrete `*Client` in v4; v5 will add it to `opensearchtransport.Interface` and remove the deprecated `Perform` ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add per-attempt `RequestTimeout` to bound individual HTTP round-trips, preventing indefinite hangs on stalled connections ([#786](https://github.com/opensearch-project/opensearch-go/issues/786))
 - Add `opensearchutil/shardhash` package with exported `Hash` and `ForRouting` functions for computing OpenSearch shard routing
 - Enhanced cluster readiness checking for improved test reliability: `testutil.NewClient()` now includes readiness validation (health + cluster state + nodes info)
@@ -199,6 +199,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Deprecated
 
+- Mark `opensearchtransport.Client.Perform` and the `opensearch.Client.Perform` passthrough as deprecated; both remain fully functional in v4 (still buffering the response body via `io.ReadAll` + `NopCloser`) and will be removed in v5. New code should call `opensearch.Do[T]` for typed, decoded results or `opensearchtransport.Client.Stream` / `opensearch.Client.Stream` for raw byte forwarding.
 - Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
 - Mark `opensearch.ToPointer` and `opensearchapi.ToPointer` as deprecated; they remain fully functional but will be removed in v5. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
 
