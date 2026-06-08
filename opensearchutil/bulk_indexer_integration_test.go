@@ -207,14 +207,15 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 		// Wait for the index to be fully ready before bulk indexing
 		for attempt := range 10 {
-			healthReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, "/_cluster/health/"+indexName+"?wait_for_status=green&timeout=5s", nil)
-			healthResp, healthErr := client.Client.Perform(healthReq)
-			if healthErr == nil && healthResp.StatusCode == http.StatusOK {
-				healthResp.Body.Close()
+			healthResp, healthErr := client.Cluster.Health(ctx, &opensearchapi.ClusterHealthReq{
+				Indices: []string{indexName},
+				Params: opensearchapi.ClusterHealthParams{
+					WaitForStatus: "green",
+					Timeout:       5 * time.Second,
+				},
+			})
+			if healthErr == nil && healthResp.Inspect().Response.StatusCode == http.StatusOK {
 				break
-			}
-			if healthResp != nil && healthResp.Body != nil {
-				healthResp.Body.Close()
 			}
 			if attempt == 9 {
 				t.Fatalf("Index %s not ready after waiting", indexName)
