@@ -149,8 +149,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var bErr *opensearchapi.PartialBulkError
-				require.True(t, errors.As(err, &bErr), "expected PartialBulkError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &bErr, "expected PartialBulkError, got %T: %v", err, err)
 				require.Len(t, bErr.FailedItems, 1)
 				require.Equal(t, 1, bErr.SucceededCount)
 			},
@@ -164,8 +165,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				return c.Search(ctx, nil)
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.PartialSearchError
-				require.True(t, errors.As(err, &sErr), "expected PartialSearchError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected PartialSearchError, got %T: %v", err, err)
 				require.Equal(t, 2, sErr.FailedShards)
 				require.Equal(t, 5, sErr.TotalShards)
 			},
@@ -179,8 +181,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				return c.Scroll.Get(ctx, opensearchapi.ScrollGetReq{ScrollID: "abc"})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.PartialSearchError
-				require.True(t, errors.As(err, &sErr), "expected PartialSearchError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected PartialSearchError, got %T: %v", err, err)
 				require.Equal(t, 2, sErr.FailedShards)
 			},
 		},
@@ -195,8 +198,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.PartialSearchError
-				require.True(t, errors.As(err, &sErr), "expected PartialSearchError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected PartialSearchError, got %T: %v", err, err)
 				require.Equal(t, 2, sErr.FailedShards)
 			},
 		},
@@ -213,8 +217,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.ShardFailureError
-				require.True(t, errors.As(err, &sErr), "expected ShardFailureError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected ShardFailureError, got %T: %v", err, err)
 				require.Equal(t, opensearchapi.OperationIndex, sErr.Operation)
 				require.Equal(t, 1, sErr.FailedShards)
 			},
@@ -232,8 +237,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.ShardFailureError
-				require.True(t, errors.As(err, &sErr), "expected ShardFailureError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected ShardFailureError, got %T: %v", err, err)
 				require.Equal(t, opensearchapi.OperationCreate, sErr.Operation)
 			},
 		},
@@ -249,8 +255,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.ShardFailureError
-				require.True(t, errors.As(err, &sErr), "expected ShardFailureError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected ShardFailureError, got %T: %v", err, err)
 				require.Equal(t, opensearchapi.OperationDelete, sErr.Operation)
 			},
 		},
@@ -267,8 +274,9 @@ func TestSingleOpDispatch(t *testing.T) {
 				})
 			},
 			assert: func(t *testing.T, err error) {
+				t.Helper()
 				var sErr *opensearchapi.ShardFailureError
-				require.True(t, errors.As(err, &sErr), "expected ShardFailureError, got %T: %v", err, err)
+				require.ErrorAs(t, err, &sErr, "expected ShardFailureError, got %T: %v", err, err)
 				require.Equal(t, opensearchapi.OperationUpdate, sErr.Operation)
 			},
 		},
@@ -340,7 +348,7 @@ func TestMSearchShardAggregation(t *testing.T) {
 			resp, err := tc.dispatch(context.Background(), c)
 			require.NotNil(t, resp)
 			var sErr *opensearchapi.PartialSearchError
-			require.True(t, errors.As(err, &sErr), "expected PartialSearchError, got %T: %v", err, err)
+			require.ErrorAs(t, err, &sErr, "expected PartialSearchError, got %T: %v", err, err)
 			require.Equal(t, 2, sErr.FailedShards)
 			require.Equal(t, 10, sErr.TotalShards)
 		})
@@ -397,7 +405,7 @@ func TestMSearchPerItemError(t *testing.T) {
 			resp, err := tc.dispatch(context.Background(), c)
 			require.NotNil(t, resp)
 			var iErr *opensearchapi.MultiSearchItemError
-			require.True(t, errors.As(err, &iErr), "expected MultiSearchItemError, got %T: %v", err, err)
+			require.ErrorAs(t, err, &iErr, "expected MultiSearchItemError, got %T: %v", err, err)
 			require.Len(t, iErr.Items, 1)
 			require.Equal(t, 1, iErr.SucceededCount)
 			require.Equal(t, 1, iErr.Items[0].Index)

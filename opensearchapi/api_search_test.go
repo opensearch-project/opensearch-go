@@ -15,7 +15,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -72,9 +71,9 @@ func TestSearch(t *testing.T) {
 		t.Parallel()
 		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}})
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
-		assert.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits)
 	})
 
 	t.Run("with request", func(t *testing.T) {
@@ -84,9 +83,9 @@ func TestSearch(t *testing.T) {
 			Body:    strings.NewReader(""),
 		})
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
-		assert.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
@@ -96,7 +95,7 @@ func TestSearch(t *testing.T) {
 
 		res, err := failingClient.Search(t.Context(), nil)
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 
@@ -111,8 +110,8 @@ func TestSearch(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Hits.Hits)
-		assert.NotNil(t, resp.Hits.Hits[0].Explanation)
+		require.NotEmpty(t, resp.Hits.Hits)
+		require.NotNil(t, resp.Hits.Hits[0].Explanation)
 	})
 
 	t.Run("request with retrieve specific fields", func(t *testing.T) {
@@ -135,8 +134,8 @@ func TestSearch(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Hits.Hits)
-		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
+		require.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits[0].Fields)
 	})
 
 	t.Run("url path", func(t *testing.T) {
@@ -145,13 +144,13 @@ func TestSearch(t *testing.T) {
 		httpReq, err := req.GetRequest(http.MethodPost)
 		require.NoError(t, err)
 		require.NotNil(t, httpReq)
-		assert.Equal(t, "/_search", httpReq.URL.Path)
+		require.Equal(t, "/_search", httpReq.URL.Path)
 
 		req = &opensearchapi.SearchReq{Indices: []string{index}}
 		httpReq, err = req.GetRequest(http.MethodPost)
 		require.NoError(t, err)
 		require.NotNil(t, httpReq)
-		assert.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
+		require.Equal(t, fmt.Sprintf("/%s/_search", index), httpReq.URL.Path)
 	})
 	t.Run("request to retrieve response with routing key", func(t *testing.T) {
 		t.Parallel()
@@ -170,10 +169,10 @@ func TestSearch(t *testing.T) {
 		}`),
 		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Hits.Hits)
-		assert.NotEmpty(t, resp.Hits.Hits[0].Fields)
-		assert.NotEmpty(t, resp.Hits.Hits[0].Routing)
-		assert.Equal(t, "foo", resp.Hits.Hits[0].Routing)
+		require.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits[0].Fields)
+		require.NotEmpty(t, resp.Hits.Hits[0].Routing)
+		require.Equal(t, "foo", resp.Hits.Hits[0].Routing)
 	})
 
 	t.Run("with seq_no and primary_term", func(t *testing.T) {
@@ -187,12 +186,12 @@ func TestSearch(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
-		assert.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits)
 		for _, hit := range resp.Hits.Hits {
-			assert.NotNil(t, hit.SeqNo)
-			assert.NotNil(t, hit.PrimaryTerm)
+			require.NotNil(t, hit.SeqNo)
+			require.NotNil(t, hit.PrimaryTerm)
 		}
 	})
 
@@ -207,12 +206,12 @@ func TestSearch(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
-		assert.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits)
 		for _, hit := range resp.Hits.Hits {
-			assert.Nil(t, hit.SeqNo)
-			assert.Nil(t, hit.PrimaryTerm)
+			require.Nil(t, hit.SeqNo)
+			require.Nil(t, hit.PrimaryTerm)
 		}
 	})
 
@@ -232,7 +231,7 @@ func TestSearch(t *testing.T) {
 		  }`),
 		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Suggest)
+		require.NotEmpty(t, resp.Suggest)
 	})
 
 	t.Run("request with completion suggest", func(t *testing.T) {
@@ -252,12 +251,12 @@ func TestSearch(t *testing.T) {
 		  }`),
 		})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Suggest)
-		assert.NotEmpty(t, resp.Suggest["my-suggest"])
+		require.NotEmpty(t, resp.Suggest)
+		require.NotEmpty(t, resp.Suggest["my-suggest"])
 		for _, suggestion := range resp.Suggest["my-suggest"] {
-			assert.Equal(t, "bar", suggestion.Text)
-			assert.NotEmpty(t, suggestion.Options)
-			assert.Equal(t, "bar", suggestion.Options[0].Text)
+			require.Equal(t, "bar", suggestion.Text)
+			require.NotEmpty(t, suggestion.Options)
+			require.Equal(t, "bar", suggestion.Options[0].Text)
 		}
 	})
 
@@ -282,8 +281,8 @@ func TestSearch(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Hits.Hits)
-		assert.Equal(t, map[string][]string{"foo": {"<em>bar</em>"}}, resp.Hits.Hits[0].Highlight)
+		require.NotEmpty(t, resp.Hits.Hits)
+		require.Equal(t, map[string][]string{"foo": {"<em>bar</em>"}}, resp.Hits.Hits[0].Highlight)
 	})
 
 	t.Run("request with matched queries", func(t *testing.T) {
@@ -305,8 +304,8 @@ func TestSearch(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Hits.Hits)
-		assert.Equal(t, []string{"test"}, resp.Hits.Hits[0].MatchedQueries)
+		require.NotEmpty(t, resp.Hits.Hits)
+		require.Equal(t, []string{"test"}, resp.Hits.Hits[0].MatchedQueries)
 	})
 
 	t.Run("request with inner hits", func(t *testing.T) {
@@ -331,10 +330,10 @@ func TestSearch(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp.Hits.Hits)
-		assert.NotEmpty(t, resp.Hits.Hits[0].InnerHits)
-		assert.NotNil(t, resp.Hits.Hits[0].InnerHits["baz"])
-		assert.NotEmpty(t, resp.Hits.Hits[0].InnerHits["baz"].Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits)
+		require.NotEmpty(t, resp.Hits.Hits[0].InnerHits)
+		require.NotNil(t, resp.Hits.Hits[0].InnerHits["baz"])
+		require.NotEmpty(t, resp.Hits.Hits[0].InnerHits["baz"].Hits.Hits)
 	})
 
 	t.Run("request with phase took", func(t *testing.T) {
@@ -361,6 +360,6 @@ func TestSearch(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotNil(t, resp.PhaseTook)
+		require.NotNil(t, resp.PhaseTook)
 	})
 }

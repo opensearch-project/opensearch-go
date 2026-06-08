@@ -46,7 +46,6 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
@@ -334,7 +333,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 
 		// Create a client with specific configuration
 		osClient, err := opensearch.NewClient(cfg.Client)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Retrieve the config
 		retrievedConfig := osClient.GetConfig()
@@ -348,7 +347,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 	t.Run("GetConfig with live client", func(t *testing.T) {
 		// Create a client from test helper
 		apiClient, err := testutil.NewClient(t)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Get config from the underlying opensearch client
 		config := apiClient.Client.GetConfig()
@@ -358,15 +357,15 @@ func TestClientGetConfigIntegration(t *testing.T) {
 
 		// Verify we can create a new client with the retrieved config
 		newClient, err := opensearch.NewClient(*config)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, newClient)
 
 		// Verify the new client works by making a request
 		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		resp, err := newClient.Perform(req)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, resp)
 		defer resp.Body.Close()
 	})
@@ -379,7 +378,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 
 		// Create a base opensearch.Client
 		osClient, err := opensearch.NewClient(cfg.Client)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, osClient)
 
 		// Create an opensearchapi.Client from the opensearch.Client
@@ -387,8 +386,8 @@ func TestNewFromClientIntegration(t *testing.T) {
 		require.NotNil(t, apiClient)
 
 		// Verify the api client can make requests
-		resp, err := apiClient.Info(nil, nil)
-		require.Nil(t, err)
+		resp, err := apiClient.Info(t.Context(), nil)
+		require.NoError(t, err)
 		require.NotEmpty(t, resp)
 		require.NotEmpty(t, resp.ClusterName)
 	})
@@ -399,7 +398,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 
 		// Create a base opensearch.Client
 		osClient, err := opensearch.NewClient(cfg.Client)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Create an opensearchapi.Client from the opensearch.Client
 		apiClient := opensearchapi.NewFromClient(osClient)
@@ -409,15 +408,15 @@ func TestNewFromClientIntegration(t *testing.T) {
 
 		// Verify both clients can make requests successfully
 		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		resp1, err := osClient.Perform(req)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotNil(t, resp1)
 		defer resp1.Body.Close()
 
-		resp2, err := apiClient.Info(nil, nil)
-		require.Nil(t, err)
+		resp2, err := apiClient.Info(t.Context(), nil)
+		require.NoError(t, err)
 		require.NotNil(t, resp2)
 	})
 
@@ -427,7 +426,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 
 		// Create a base opensearch.Client with specific config
 		osClient, err := opensearch.NewClient(cfg.Client)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Create an opensearchapi.Client from the opensearch.Client
 		apiClient := opensearchapi.NewFromClient(osClient)
@@ -447,25 +446,25 @@ func TestNewFromClientIntegration(t *testing.T) {
 
 		// Create a base opensearch.Client
 		osClient, err := opensearch.NewClient(cfg.Client)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		// Create an opensearchapi.Client from the opensearch.Client
 		apiClient := opensearchapi.NewFromClient(osClient)
 
 		// Test a few sub-clients to ensure they're properly initialized
 		// Cat client
-		catResp, err := apiClient.Cat.Health(nil, nil)
-		require.Nil(t, err)
+		catResp, err := apiClient.Cat.Health(t.Context(), nil)
+		require.NoError(t, err)
 		require.NotNil(t, catResp)
 
 		// Cluster client
-		clusterResp, err := apiClient.Cluster.Health(nil, nil)
-		require.Nil(t, err)
+		clusterResp, err := apiClient.Cluster.Health(t.Context(), nil)
+		require.NoError(t, err)
 		require.NotNil(t, clusterResp)
 
 		// Nodes client
-		nodesResp, err := apiClient.Nodes.Info(nil, nil)
-		require.Nil(t, err)
+		nodesResp, err := apiClient.Nodes.Info(t.Context(), nil)
+		require.NoError(t, err)
 		require.NotNil(t, nodesResp)
 	})
 }

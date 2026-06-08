@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSearchParams_get(t *testing.T) {
@@ -237,7 +237,7 @@ func TestSearchParams_get(t *testing.T) {
 				Human:                      tt.fields.Human,
 				ErrorTrace:                 tt.fields.ErrorTrace,
 			}
-			assert.Equalf(t, tt.want, r.get(), "get()")
+			require.Equalf(t, tt.want, r.get(), "get()")
 		})
 	}
 }

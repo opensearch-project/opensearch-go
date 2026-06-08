@@ -51,6 +51,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 				"status":400
 			}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StructError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusBadRequest, e.Status)
@@ -88,6 +89,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 				"status":400
 			}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StructError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusBadRequest, e.Status)
@@ -108,6 +110,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusMethodNotAllowed,
 			body:       `{"error":"Incorrect HTTP method for uri [/_doc] and method [POST], allowed: [HEAD, DELETE, PUT, GET]","status":405}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StringError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusMethodNotAllowed, e.Status)
@@ -119,6 +122,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusNotFound,
 			body:       `{"_index":"index","_id":"2","matched":false}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StringError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusNotFound, e.Status)
@@ -130,6 +134,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			body:       `{"error":"no handler found for uri [/_plugins/_security/xxx] and method [GET]"}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.Error
 				require.ErrorAs(t, err, &e)
 				require.Contains(t, e.Err, "no handler found for uri [/_plugins/_security/xxx] and method [GET]")
@@ -140,6 +145,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			body:       `{"status":"error","reason":"Invalid configuration","invalid_keys":{"keys":"dynamic"}}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.ReasonError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, "error", e.Status)
@@ -151,6 +157,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			body:       `{"status":"BAD_REQUEST","message":"Wrong request body"}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.MessageError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, "BAD_REQUEST", e.Status)
@@ -242,6 +249,7 @@ func TestStructError_Unmarshal(t *testing.T) {
 			name: "status as string instead of int",
 			body: `{"status": "400"}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var jsonError *json.UnmarshalTypeError
 				require.ErrorAs(t, err, &jsonError)
 			},
@@ -250,6 +258,7 @@ func TestStructError_Unmarshal(t *testing.T) {
 			name: "error as number triggers StringError",
 			body: `{"error": 0, "status": 500}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var errStr *opensearch.StringError
 				require.ErrorAs(t, err, &errStr)
 			},

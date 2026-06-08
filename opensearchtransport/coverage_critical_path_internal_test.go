@@ -10,8 +10,10 @@ package opensearchtransport
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -139,6 +141,15 @@ func (s *testSelector) selectNext(ready []*Connection, activeCount int) (*Connec
 	return ready[0], s.activeCap, capRemain, nil
 }
 
+// testPoolCounter yields unique pool names across makeTestPool calls so each
+// test pool is independently identifiable in failures and logs.
+var testPoolCounter atomic.Int64
+
+// nextTestPoolName returns a unique "test-N" pool name.
+func nextTestPoolName() string {
+	return fmt.Sprintf("test-%d", testPoolCounter.Add(1))
+}
+
 func makeTestPool(name string, conns []*Connection, activeCount int, sel poolSelector) *multiServerPool {
 	pool := &multiServerPool{
 		name:     name,
@@ -166,7 +177,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		t.Parallel()
 		conns := makeConns(3)
 		sel := &testSelector{conn: conns[1], activeCap: capRemain}
-		pool := makeTestPool("test", conns, 3, sel)
+		pool := makeTestPool(nextTestPoolName(), conns, 3, sel)
 
 		pool.mu.RLock()
 		got, _ := pool.getNextActiveConnWithLock()
@@ -179,7 +190,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		t.Parallel()
 		conns := makeConns(2)
 		sel := &testSelector{err: errors.New("selection failed")}
-		pool := makeTestPool("test", conns, 2, sel)
+		pool := makeTestPool(nextTestPoolName(), conns, 2, sel)
 
 		pool.mu.RLock()
 		got, _ := pool.getNextActiveConnWithLock()
@@ -195,7 +206,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 			conns[i].state.Store(int64(newConnState(lcStandby)))
 		}
 		sel := &testSelector{conn: conns[0], activeCap: capGrow}
-		pool := makeTestPool("test", conns, 2, sel)
+		pool := makeTestPool(nextTestPoolName(), conns, 2, sel)
 
 		pool.mu.RLock()
 		got, _ := pool.getNextActiveConnWithLock()
@@ -213,7 +224,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 	t.Run("nil selector uses round-robin", func(t *testing.T) {
 		t.Parallel()
 		conns := makeConns(3)
-		pool := makeTestPool("test", conns, 3, nil)
+		pool := makeTestPool(nextTestPoolName(), conns, 3, nil)
 
 		pool.mu.RLock()
 		c1, _ := pool.getNextActiveConnWithLock()
@@ -241,7 +252,7 @@ func TestDeferredStandbyPromotion(t *testing.T) {
 		conns[1].state.Store(int64(newConnState(lcActive)))
 		conns[2].state.Store(int64(newConnState(lcStandby | lcNeedsWarmup)))
 
-		pool := makeTestPool("test", conns, 2, nil)
+		pool := makeTestPool(nextTestPoolName(), conns, 2, nil)
 
 		pool.deferredStandbyPromotion()
 
@@ -256,7 +267,7 @@ func TestDeferredStandbyPromotion(t *testing.T) {
 			conns[i] = &Connection{URL: u}
 			conns[i].state.Store(int64(newConnState(lcActive)))
 		}
-		pool := makeTestPool("test", conns, 2, nil)
+		pool := makeTestPool(nextTestPoolName(), conns, 2, nil)
 
 		pool.deferredStandbyPromotion()
 
