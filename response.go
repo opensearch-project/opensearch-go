@@ -22,7 +22,6 @@
 package opensearch
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -36,6 +35,21 @@ type Response struct {
 	Header     http.Header
 	Body       io.ReadCloser
 	rawBody    []byte
+
+	// render caches String's rendered bytes behind a pointer so value copies
+	// (such as the one fmt makes) share one cache and String can use a value
+	// receiver while staying non-consuming. Set by NewResponse and Client.Do.
+	render *renderCache
+}
+
+// renderCache holds the bytes String renders, filled at most once. It is
+// referenced through a pointer so a value copy of Response observes a cache
+// populated by any other copy. Concurrent String calls on copies sharing one
+// renderCache are not safe.
+type renderCache struct {
+	buf    []byte
+	err    error
+	loaded bool
 }
 
 // RawBody returns the buffered response bytes for inspection or
@@ -47,12 +61,12 @@ type Response struct {
 // handling: copy with bytes.Clone if either is needed, or use
 // HijackBody to transfer ownership to the caller.
 //
-// Populated only for non-error responses where Client.Do successfully
-// decoded the body into a typed dataPointer. Returns nil when:
+// Populated for both success and error responses buffered by Client.Do
+// (the default buffered mode). Returns nil when:
 //
-//   - The response was streamed without buffering (no dataPointer).
-//   - The response was an error (4xx/5xx); read Body directly for
-//     error-response bodies, or use ParseError to extract a typed error.
+//   - The response was streamed without buffering (DisableResponseBuffering).
+//   - The Response was constructed directly (e.g. via NewResponse) rather
+//     than returned by Client.Do.
 func (r *Response) RawBody() []byte {
 	return r.rawBody
 }
@@ -75,30 +89,66 @@ func NewResponse(statusCode int, body io.ReadCloser, header http.Header) *Respon
 		StatusCode: statusCode,
 		Body:       body,
 		Header:     header,
+		render:     &renderCache{},
 	}
 }
 
-// String returns the response as a string.
+// String returns the response status and body as a string.
 //
-// String is non-consuming: it reads the body to render it, then restores
-// Body with an in-memory reader over the same bytes so subsequent reads
-// (or a later String call) still see the full payload. This matters because
-// Response.Body is typically the buffered NopCloser produced by Client.Do;
-// without the restore, calling String for logging would silently empty the
-// body other code expects to read.
-func (r *Response) String() string {
-	if r.Body != nil {
-		body, err := io.ReadAll(r.Body)
-		// Restore Body even on a partial read, so the non-consuming
-		// invariant holds on the error path too: whatever bytes were
-		// read remain available to subsequent reads.
-		r.Body = io.NopCloser(bytes.NewReader(body))
-		if err != nil {
-			return fmt.Sprintf("%s <error reading response body: %v>", r.Status(), err)
-		}
-		return fmt.Sprintf("%s %s", r.Status(), body)
+// String uses a value receiver, so both Response and *Response satisfy
+// fmt.Stringer. For any Response returned by Client.Do (success or error, in
+// the default buffered mode) it renders from the buffered rawBody and never
+// touches Body, so logging a response does not drain it. For a Response
+// holding only an unbuffered Body -- a streamed response
+// (DisableResponseBuffering) or a hand-built Response -- String reads Body
+// once to render it; repeat calls stay consistent via an internal cache, but
+// a value receiver cannot restore the caller's Body field, so that single-use
+// stream is consumed.
+func (r Response) String() string {
+	body, rerr, ok := r.renderedBody()
+	if !ok {
+		return r.Status()
 	}
-	return r.Status()
+	if rerr != nil {
+		return fmt.Sprintf("%s <error reading response body: %v>", r.Status(), rerr)
+	}
+	return fmt.Sprintf("%s %s", r.Status(), body)
+}
+
+// renderedBody returns the bytes String should render, any read error, and
+// whether a body is present.
+//
+// Reading is idempotent for any Response built by NewResponse or Client.Do:
+// both provision r.render, so the first read caches its result and every later
+// call returns it without touching Body. A bare Response{} struct literal has a
+// nil r.render and cannot get one here -- a value receiver only sees a copy, so
+// it cannot initialize a pointer field that outlives the call. For such a
+// literal the rawBody/cache fast-paths are skipped and Body is read (and
+// consumed) on every call. Nothing in this module builds a Response that way;
+// the SDK always routes through NewResponse or Do.
+func (r Response) renderedBody() ([]byte, error, bool) {
+	// Prefer bytes already buffered by Client.Do: rendering from rawBody (or
+	// a prior cached render) never touches Body, so it is fully value-safe.
+	if r.rawBody != nil {
+		return r.rawBody, nil, true
+	}
+	if r.render != nil && r.render.loaded {
+		return r.render.buf, r.render.err, true
+	}
+	if r.Body == nil {
+		return nil, nil, false
+	}
+
+	// Body has not been buffered yet. Read it and cache the result behind the
+	// shared pointer (when one exists) so repeat String calls, including fmt's
+	// value copies, return the same bytes without re-reading. The read drains
+	// Body; a value receiver cannot hand a restored reader back to the caller,
+	// which is why responses that must stay readable carry rawBody.
+	read, err := io.ReadAll(r.Body)
+	if r.render != nil {
+		r.render.buf, r.render.err, r.render.loaded = read, err, true
+	}
+	return read, err, true
 }
 
 // Status retuens the response status as string.
