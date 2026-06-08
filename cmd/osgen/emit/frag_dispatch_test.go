@@ -343,22 +343,22 @@ func TestPerOpErrorTypeName_CatalogConsistency(t *testing.T) {
 
 	// (1) Forward: every group the catalog names with a per-op
 	// aggregator type must declare 2+ wrappers there.
-	for group := range errwrap.OperationWrappers {
+	for group := range errwrap.OperationWrappers() {
 		typeName := emit.PerOpErrorTypeName(group)
 		if typeName == "" {
 			continue
 		}
 		t.Run("type_for_"+group, func(t *testing.T) {
 			t.Parallel()
-			require.GreaterOrEqual(t, len(errwrap.OperationWrappers[group]), 2,
+			require.GreaterOrEqual(t, len(errwrap.OperationWrappers()[group]), 2,
 				"group %q has per-op error type %q but only %d wrapper(s) in OperationWrappers; either add wrappers or remove the switch arm",
-				group, typeName, len(errwrap.OperationWrappers[group]))
+				group, typeName, len(errwrap.OperationWrappers()[group]))
 		})
 	}
 
 	// (2) Reverse: every catalog entry with 2+ wrappers must name a
 	// per-op aggregator type.
-	for group, wrappers := range errwrap.OperationWrappers {
+	for group, wrappers := range errwrap.OperationWrappers() {
 		if len(wrappers) < 2 {
 			continue
 		}
@@ -378,7 +378,7 @@ func TestPerOpErrorTypeName_CatalogConsistency(t *testing.T) {
 	for _, group := range switchGroups {
 		t.Run("switch_arm_in_catalog_"+group, func(t *testing.T) {
 			t.Parallel()
-			_, ok := errwrap.OperationWrappers[group]
+			_, ok := errwrap.OperationWrappers()[group]
 			require.True(t, ok,
 				"perOpErrorTypeName has a switch arm for group %q but the group is absent from errwrap.OperationWrappers; remove the arm or restore the catalog entry",
 				group)
