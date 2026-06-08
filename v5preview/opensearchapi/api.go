@@ -7,10 +7,8 @@
 package opensearchapi
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"strconv"
@@ -236,6 +234,11 @@ func (c *Client) Clone() *Client {
 }
 
 // do calls [opensearch.Do] and checks the response for OpenSearch API errors.
+//
+// [opensearch.Do] routes through the buffered [opensearchtransport.Client.Perform],
+// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
+// connection has been drained and returned to the pool. The helper only needs
+// to translate IsError into a typed error.
 func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
 	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
@@ -245,18 +248,6 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 	if resp.IsError() {
 		if dataPointer != nil {
 			return resp, opensearch.ParseError(resp)
-		}
-		// Read the error body to completion and re-wrap it. Reading to EOF
-		// lets http.Transport reuse the connection when DisableResponseBuffering
-		// is set; re-wrapping keeps resp.Body readable for the caller, matching
-		// the dataPointer != nil branch (which routes through ParseError). In the
-		// default buffered mode the body is already an in-memory NopCloser, so the
-		// read is cheap and non-destructive.
-		if resp.Body != nil {
-			//nolint:errcheck // best-effort drain so the connection can be reused
-			body, _ := io.ReadAll(resp.Body)
-			resp.Body.Close()
-			resp.Body = io.NopCloser(bytes.NewReader(body))
 		}
 		return resp, fmt.Errorf("status: %s", resp.Status())
 	}
