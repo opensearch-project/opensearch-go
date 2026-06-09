@@ -43,7 +43,7 @@ type ExplainReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r ExplainReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.IsmExplainPolicyPath{Index: r.Indices}.Build()
+	path, err := ospath.ISMExplainPolicyPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}

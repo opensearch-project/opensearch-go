@@ -13,107 +13,68 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/opensearch-project/opensearch-go/v4/errmask"
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
 )
 
-func ptrMask(m errmask.ErrorMask) *errmask.ErrorMask { return &m }
+// TestErrors_FlattensMultiWrapper covers the multi-error branch of
+// Errors(). The exported test in errors_test.go covers nil and single
+// err cases but never constructs a wrapper that satisfies the
+// `Unwrap() []error` interface, so the `return multi.Unwrap()` branch
+// stays uncovered. This internal test reaches the unexported errs
+// field directly to construct an MSearchErrors and assert flattening.
+func TestErrors_FlattensMultiWrapper(t *testing.T) {
+	t.Parallel()
 
-func TestResolveErrorMask(t *testing.T) {
+	multiSubs := []error{
+		&PartialSearchError{FailedShards: 1, TotalShards: 5},
+		&MultiSearchItemError{
+			Items:          []MultiSearchItemFailure{{Index: 0}},
+			SucceededCount: 2,
+		},
+	}
+	transportErr := errors.New("connection refused")
+	joinedNonPartial := errors.Join(errors.New("a"), errors.New("b"))
+
 	tests := []struct {
 		name string
-		env  *string // nil = unset, non-nil = set to this value
-		cfg  Config
-		want errmask.ErrorMask
+		in   error
+		want []error
 	}{
 		{
-			name: "v4 default nil config masks everything",
-			env:  nil,
-			cfg:  Config{},
-			want: errmask.All,
+			name: "nil returns nil",
+			in:   nil,
+			want: nil,
 		},
 		{
-			name: "explicit Empty pointer reports everything",
-			env:  nil,
-			cfg:  Config{Errors: ptrMask(errmask.Empty)},
-			want: errmask.Empty,
+			name: "non-partial err returns single-element slice",
+			in:   transportErr,
+			want: []error{transportErr},
 		},
 		{
-			name: "explicit All pointer masks everything",
-			env:  nil,
-			cfg:  Config{Errors: ptrMask(errmask.All)},
-			want: errmask.All,
+			// F8: a joined error that is not itself a partial failure must
+			// stay intact -- flattening it would lose its top-level identity.
+			name: "non-partial joined error is not exploded",
+			in:   joinedNonPartial,
+			want: []error{joinedNonPartial},
 		},
 		{
-			name: "explicit single-bit mask honored",
-			env:  nil,
-			cfg:  Config{Errors: ptrMask(errmask.BulkItems)},
-			want: errmask.BulkItems,
+			name: "MSearchErrors wrapper flattens to its sub-error slice",
+			in:   &MSearchErrors{errs: multiSubs},
+			want: multiSubs,
 		},
 		{
-			name: "env adds bit on top of cfg base",
-			env:  strPtr("+search_shards"),
-			cfg:  Config{Errors: ptrMask(errmask.BulkItems)},
-			want: errmask.BulkItems | errmask.SearchShards,
-		},
-		{
-			name: "env clears bit from cfg base",
-			env:  strPtr("-bulk_items"),
-			cfg:  Config{Errors: ptrMask(errmask.All)},
-			want: errmask.All &^ errmask.BulkItems,
-		},
-		{
-			name: "env empty token unmasks everything",
-			env:  strPtr("empty"),
-			cfg:  Config{Errors: ptrMask(errmask.All)},
-			want: errmask.Empty,
-		},
-		{
-			name: "env none alias unmasks everything",
-			env:  strPtr("none"),
-			cfg:  Config{Errors: ptrMask(errmask.All)},
-			want: errmask.Empty,
-		},
-		{
-			name: "env composite resets and sets",
-			env:  strPtr("empty,+write_shards"),
-			cfg:  Config{Errors: ptrMask(errmask.All)},
-			want: errmask.WriteShards,
-		},
-		{
-			name: "env unknown tokens silently dropped",
-			env:  strPtr("garbage"),
-			cfg:  Config{Errors: ptrMask(errmask.BulkItems)},
-			want: errmask.BulkItems,
-		},
-		{
-			name: "env empty string falls through to base",
-			env:  strPtr(""),
-			cfg:  Config{Errors: ptrMask(errmask.SearchShards)},
-			want: errmask.SearchShards,
-		},
-		{
-			name: "pascal case rejected as unknown tokens",
-			env:  strPtr("+BulkItems,+SearchShards"),
-			cfg:  Config{Errors: ptrMask(errmask.Empty)},
-			want: errmask.Empty, // both tokens fall through to unknown; mask unchanged
+			name: "MSearchTemplateErrors wrapper flattens to its sub-error slice",
+			in:   &MSearchTemplateErrors{errs: multiSubs},
+			want: multiSubs,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.env != nil {
-				t.Setenv(envvars.ErrorMask, *tt.env)
-			}
-
-			got := resolveErrorMask(tt.cfg)
-			require.Equal(t, tt.want, got)
+			t.Parallel()
+			require.Equal(t, tt.want, Errors(tt.in))
 		})
 	}
 }
-
-func strPtr(s string) *string { return &s }
 
 // TestPerOpErrorWrappers locks the surface of the unexported per-op
 // multi-error containers (MSearchErrors, MSearchTemplateErrors).
@@ -131,7 +92,7 @@ func TestPerOpErrorWrappers(t *testing.T) {
 	subErrs := []error{
 		&PartialSearchError{FailedShards: 1, TotalShards: 5},
 		&MultiSearchItemError{
-			Items:          []MultiSearchItemFailure{{Index: 0, Status: 400}},
+			Items:          []MultiSearchItemFailure{{Index: 0, ErrorRespBase: ErrorRespBase{Status: 400}}},
 			SucceededCount: 2,
 		},
 	}
@@ -168,7 +129,7 @@ func TestPerOpErrorWrappers(t *testing.T) {
 	t.Run("MultiSearchItemError_Error_format", func(t *testing.T) {
 		t.Parallel()
 		e := &MultiSearchItemError{
-			Items:          []MultiSearchItemFailure{{Index: 2, Status: 400}},
+			Items:          []MultiSearchItemFailure{{Index: 2, ErrorRespBase: ErrorRespBase{Status: 400}}},
 			SucceededCount: 3,
 		}
 		require.Equal(t, "multi-search partially failed: 1/4 sub-queries failed", e.Error())
@@ -251,7 +212,10 @@ func TestCollapsePerOpErrors(t *testing.T) {
 		t.Parallel()
 		subs := []error{
 			&PartialSearchError{FailedShards: 1, TotalShards: 5},
-			&MultiSearchItemError{Items: []MultiSearchItemFailure{{Index: 0}}, SucceededCount: 1},
+			&MultiSearchItemError{
+				Items:          []MultiSearchItemFailure{{Index: 0}},
+				SucceededCount: 1,
+			},
 		}
 		got := collapsePerOpErrors(subs, mkWrap)
 		require.Error(t, got)
@@ -344,9 +308,7 @@ func TestRequireSuccessRate_MSearchItemError(t *testing.T) {
 // when an *MSearchErrors wraps both a PartialSearchError and a
 // MultiSearchItemError, every category must be evaluated against the
 // threshold. A first-match check matched PartialSearchError (listed first)
-// and returned, so a healthy shard rate masked a failed-sub-query rate --
-// 9/10 sub-queries failing entirely would still pass RequireSuccessRate(0.9)
-// as long as shards were >=90% healthy.
+// and returned, so a healthy shard rate masked a failed-sub-query rate.
 func TestRequireSuccessRate_MSearchErrorsBothFired(t *testing.T) {
 	t.Parallel()
 
@@ -367,14 +329,12 @@ func TestRequireSuccessRate_MSearchErrorsBothFired(t *testing.T) {
 		wantContain string
 	}{
 		{
-			// The reviewer's exact scenario: shards healthy first, items failed.
 			name:        "shards healthy, items failed -> below threshold",
 			errs:        []error{shardsHealthy, itemsBad},
 			threshold:   0.90,
 			wantContain: "1/10",
 		},
 		{
-			// Reverse order: item category healthy first, shards failed second.
 			name:        "items healthy, shards failed -> below threshold",
 			errs:        []error{itemsHealthy, shardsBad},
 			threshold:   0.90,
@@ -399,52 +359,6 @@ func TestRequireSuccessRate_MSearchErrorsBothFired(t *testing.T) {
 			}
 			require.Error(t, got)
 			require.Contains(t, got.Error(), tt.wantContain)
-		})
-	}
-}
-
-// TestErrors guards the F8 regression: Errors() must only flatten recognized
-// partial-failure wrappers. A joined (or third-party) multi-error that is not
-// itself a partial failure has to be returned as a single element so its
-// top-level identity survives and its sub-errors are not silently exploded.
-func TestErrors(t *testing.T) {
-	t.Parallel()
-
-	searchSub := &PartialSearchError{FailedShards: 1, TotalShards: 5}
-	itemSub := &MultiSearchItemError{Items: []MultiSearchItemFailure{{Index: 0}}, SucceededCount: 1}
-	joinedNonPartial := errors.Join(errors.New("a"), errors.New("b"))
-
-	tests := []struct {
-		name string
-		err  error
-		want []error
-	}{
-		{
-			name: "nil returns nil",
-			err:  nil,
-			want: nil,
-		},
-		{
-			name: "non-partial joined error is not exploded",
-			err:  joinedNonPartial,
-			want: []error{joinedNonPartial},
-		},
-		{
-			name: "partial-failure wrapper is flattened",
-			err:  &MSearchErrors{errs: []error{searchSub, itemSub}},
-			want: []error{searchSub, itemSub},
-		},
-		{
-			name: "bare partial failure is a single element",
-			err:  searchSub,
-			want: []error{searchSub},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, Errors(tt.err))
 		})
 	}
 }

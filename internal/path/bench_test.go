@@ -9,7 +9,7 @@ package path_test
 import (
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 func BenchmarkBuild_Search(b *testing.B) {

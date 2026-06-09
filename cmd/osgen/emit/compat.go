@@ -11,7 +11,7 @@ type CompatInspectFragment struct{}
 
 // Imports returns the imports the Inspect type-alias fragment needs.
 func (f *CompatInspectFragment) Imports() []Import {
-	return []Import{{Path: "github.com/opensearch-project/opensearch-go/v4/internal/apiutil"}}
+	return []Import{{Path: "github.com/opensearch-project/opensearch-go/v5/internal/apiutil"}}
 }
 
 // Body renders the Inspect type-alias declaration.
@@ -28,7 +28,7 @@ type CompatDurationFragment struct{}
 func (f *CompatDurationFragment) Imports() []Import {
 	return []Import{
 		{Path: "time"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4/internal/apiutil"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5/internal/apiutil"},
 	}
 }
 

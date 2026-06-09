@@ -14,7 +14,7 @@ import (
 
 // PartialFailureError is implemented by error types that represent partial
 // operation success. When a caller receives a PartialFailureError, the
-// accompanying response is fully populated — use errors.As to inspect
+// accompanying response is fully populated -- use errors.As to inspect
 // the failure details while still processing the partial results.
 //
 // Use [IsPartialFailure] to test, [ToleratePartialFailures] to suppress,
@@ -58,7 +58,7 @@ func (e *PartialBulkError) IsPartial() bool { return true }
 type PartialSearchError struct {
 	FailedShards int
 	TotalShards  int
-	Failures     []ResponseShardsFailure
+	Failures     []ShardSearchFailure
 }
 
 //nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
@@ -77,20 +77,20 @@ func (e *PartialSearchError) IsPartial() bool { return true }
 
 // MultiSearchItemFailure captures one failed sub-response inside an
 // MSearch / MSearchTemplate result: the position within the Responses
-// slice, the per-sub-response HTTP-like status, and the server-side
-// error detail.
+// slice plus the spec-driven [ErrorRespBase] envelope (Status int
+// and Error ErrorCause). The embedded fields are accessed directly:
+// `failure.Status`, `failure.Error`.
 type MultiSearchItemFailure struct {
-	Index  int
-	Status int
-	Error  *DocumentError
+	Index int
+	ErrorRespBase
 }
 
 // MultiSearchItemError indicates that an MSearch / MSearchTemplate
-// response carries one or more sub-queries whose top-level Error field
-// is set (a fully-failed sub-query within an otherwise-successful
-// envelope). The accompanying response is fully populated; callers can
-// inspect successful sub-queries directly while iterating Items for the
-// failures.
+// response carries one or more sub-queries whose union branch decoded
+// as [ErrorRespBase] (a fully-failed sub-query within an
+// otherwise-successful envelope). The accompanying response is fully
+// populated; callers can inspect successful sub-queries directly while
+// iterating Items for the failures.
 //
 // This is distinct from [PartialSearchError]: shard-level failures are
 // masked by the SearchShards bit, while the per-sub-response Error
@@ -204,6 +204,47 @@ func collapsePerOpErrors(errs []error, wrap func([]error) error) error {
 	}
 }
 
+// ---------------------------------------------------------------------------
+// ShardFailureError
+// ---------------------------------------------------------------------------
+
+// Write operation names used in [ShardFailureError.Operation].
+const (
+	OperationIndex  = "index"
+	OperationCreate = "create"
+	OperationUpdate = "update"
+	OperationDelete = "delete"
+)
+
+// ShardFailureError indicates that a single-document write operation
+// succeeded on the primary shard but one or more replica shards failed.
+// The accompanying response is fully populated.
+type ShardFailureError struct {
+	Operation    string // one of OperationIndex, OperationCreate, OperationUpdate, OperationDelete
+	FailedShards int
+	TotalShards  int
+}
+
+//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
+var _ PartialFailureError = (*ShardFailureError)(nil)
+
+func (e *ShardFailureError) Error() string {
+	return fmt.Sprintf("%s had shard failures: %d/%d shards failed", e.Operation, e.FailedShards, e.TotalShards)
+}
+
+// IsPartial implements [PartialFailureError].
+func (e *ShardFailureError) IsPartial() bool { return true }
+
+// ---------------------------------------------------------------------------
+// Helper functions
+// ---------------------------------------------------------------------------
+
+// IsPartialFailure reports whether err is a partial failure.
+func IsPartialFailure(err error) bool {
+	var partial PartialFailureError
+	return errors.As(err, &partial)
+}
+
 // Errors returns the partial-failure sub-errors carried by err,
 // flattening any per-op multi-error wrapper (e.g. [MSearchErrors]) into
 // a flat slice.
@@ -251,47 +292,6 @@ func partialSubErrors(err error) []error {
 		}
 	}
 	return []error{err}
-}
-
-// ---------------------------------------------------------------------------
-// ShardFailureError
-// ---------------------------------------------------------------------------
-
-// Write operation names used in [ShardFailureError.Operation].
-const (
-	OperationIndex  = "index"
-	OperationCreate = "create"
-	OperationUpdate = "update"
-	OperationDelete = "delete"
-)
-
-// ShardFailureError indicates that a single-document write operation
-// succeeded on the primary shard but one or more replica shards failed.
-// The accompanying response is fully populated.
-type ShardFailureError struct {
-	Operation    string // one of OperationIndex, OperationCreate, OperationUpdate, OperationDelete
-	FailedShards int
-	TotalShards  int
-}
-
-//nolint:errcheck // false positive: check-blank flags error-embedding interface assertions
-var _ PartialFailureError = (*ShardFailureError)(nil)
-
-func (e *ShardFailureError) Error() string {
-	return fmt.Sprintf("%s had shard failures: %d/%d shards failed", e.Operation, e.FailedShards, e.TotalShards)
-}
-
-// IsPartial implements [PartialFailureError].
-func (e *ShardFailureError) IsPartial() bool { return true }
-
-// ---------------------------------------------------------------------------
-// Helper functions
-// ---------------------------------------------------------------------------
-
-// IsPartialFailure reports whether err is a partial failure.
-func IsPartialFailure(err error) bool {
-	var partial PartialFailureError
-	return errors.As(err, &partial)
 }
 
 // ToleratePartialFailures returns nil for partial failure errors,

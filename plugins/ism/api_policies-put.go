@@ -32,7 +32,7 @@ func (r PoliciesPutReq) GetRequest(method string) (*http.Request, error) {
 		return nil, err
 	}
 
-	path, err := ospath.IsmPutPolicyPath{PolicyID: r.Policy}.Build()
+	path, err := ospath.ISMPutPolicyPath{PolicyID: r.Policy}.Build()
 	if err != nil {
 		return nil, err
 	}

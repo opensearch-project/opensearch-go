@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestReqFragment_SimpleOp(t *testing.T) {
@@ -222,7 +222,7 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 
 	netIdx := strings.Index(output, `"net/http"`)
-	buildIdx := strings.Index(output, `"github.com/opensearch-project/opensearch-go/v4/internal/build"`)
+	buildIdx := strings.Index(output, `"github.com/opensearch-project/opensearch-go/v5/internal/build"`)
 	require.Positive(t, netIdx, "missing net/http import")
 	require.Positive(t, buildIdx, "missing internal/build import")
 	require.Less(t, netIdx, buildIdx, "stdlib imports should precede local module imports")

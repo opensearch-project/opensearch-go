@@ -37,7 +37,7 @@ type RemoveReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RemoveReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.IsmRemovePolicyPath{Index: r.Indices}.Build()
+	path, err := ospath.ISMRemovePolicyPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}

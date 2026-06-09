@@ -6,7 +6,7 @@
 
 package emit
 
-import "github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+import "github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 
 // Test bridges for unexported helpers used by black-box tests.
 var (

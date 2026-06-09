@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
 )
 
 func TestCompatFileTarget_MatchesLegacy(t *testing.T) {
@@ -42,14 +42,14 @@ func TestCompatFileTarget_MatchesLegacy(t *testing.T) {
 			src := string(newOutput)
 			require.Contains(t, src, "package "+tt.pkg)
 			require.Contains(t, src, "type Inspect = apiutil.Inspect")
-			require.Contains(t, src, `"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"`)
+			require.Contains(t, src, `"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"`)
 
 			if tt.hasDuration {
 				require.Contains(t, src, `"time"`)
 				require.Contains(t, src, "func formatDuration")
 				// goimports style: stdlib before local module
 				timeIdx := strings.Index(src, `"time"`)
-				apiutilIdx := strings.Index(src, `"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"`)
+				apiutilIdx := strings.Index(src, `"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"`)
 				require.Less(t, timeIdx, apiutilIdx, "stdlib imports should precede local module imports")
 			} else {
 				require.NotContains(t, src, `"time"`)

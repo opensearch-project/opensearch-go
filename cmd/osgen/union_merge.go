@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // classifyUnions inspects every try-each (TypeLazyUnion) union and, where it

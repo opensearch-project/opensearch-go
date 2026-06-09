@@ -50,7 +50,7 @@ func (r RetryReq) GetRequest(method string) (*http.Request, error) {
 		reqBody = bytes.NewReader(body)
 	}
 
-	path, err := ospath.IsmRetryIndexPath{Index: r.Indices}.Build()
+	path, err := ospath.ISMRetryIndexPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}

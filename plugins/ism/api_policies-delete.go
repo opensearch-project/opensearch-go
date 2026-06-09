@@ -23,7 +23,7 @@ type PoliciesDeleteReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r PoliciesDeleteReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.IsmDeletePolicyPath{PolicyID: r.Policy}.Build()
+	path, err := ospath.ISMDeletePolicyPath{PolicyID: r.Policy}.Build()
 	if err != nil {
 		return nil, err
 	}

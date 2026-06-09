@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // PluginSubClient describes a sub-client within a plugin package.
@@ -53,7 +53,7 @@ func (f *PluginClientFragment) Imports() []Import {
 		{Path: "context"},
 		{Path: "fmt"},
 		{Path: "net/http"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
 	}
 }
 
@@ -276,7 +276,7 @@ func (f *PluginTestHelperFragment) Imports() []Import {
 		{Path: "strings"},
 		{Path: "testing"},
 		{Path: "github.com/stretchr/testify/require"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
 		{Path: f.CoreImport},
 		{Path: f.PluginImport},
 		{Path: f.CoreImport + "/testutil"},
