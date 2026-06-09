@@ -39,42 +39,51 @@ import (
 	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
-type FakeTransport struct {
-	FakeResponse *http.Response
-}
+// FakeTransport is a test http.RoundTripper that returns a fresh response per
+// call. We must not share the Body across iterations: a strings.Reader is
+// stateful, and after one Perform drains it the next iteration sees EOF.
+type FakeTransport struct{}
 
 func (t *FakeTransport) RoundTrip(_ *http.Request) (*http.Response, error) {
-	return t.FakeResponse, nil
+	return &http.Response{
+		Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
+		StatusCode:    http.StatusOK,
+		ContentLength: 13,
+		Header:        http.Header{"Content-Type": []string{"application/json"}},
+		Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
+	}, nil
 }
 
-func newFakeTransport(_ *testing.B) *FakeTransport {
-	return &FakeTransport{
-		FakeResponse: &http.Response{
-			Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
-			StatusCode:    http.StatusOK,
-			ContentLength: 13,
-			Header:        http.Header(map[string][]string{"Content-Type": {"application/json"}}),
-			Body:          io.NopCloser(strings.NewReader(`{"foo":"bar"}`)),
-		},
-	}
-}
+func newFakeTransport(_ *testing.B) *FakeTransport { return &FakeTransport{} }
 
+// BenchmarkTransport measures the per-Perform cost on a steady-state client.
+// opensearchtransport.New is hoisted out of the loop because it's a one-time
+// cost in real usage and on this branch it spawns long-lived health-check
+// goroutines that would otherwise leak across iterations.
 func BenchmarkTransport(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("Defaults", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			tp, _ := opensearchtransport.New(opensearchtransport.Config{
-				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-				Transport: newFakeTransport(b),
-			})
+		tp, err := opensearchtransport.New(opensearchtransport.Config{
+			URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
+			Transport: newFakeTransport(b),
+			// Disable the load-shedding poller; it touches the fake transport
+			// every few seconds and would skew the steady-state measurement.
+			NodeStatsInterval: -1,
+		})
+		if err != nil {
+			b.Fatalf("Unexpected error: %q", err)
+		}
+		b.Cleanup(func() { _ = tp.Close() })
 
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			res, err := tp.Perform(req)
 			if err != nil {
-				b.Fatalf("Unexpected error: %s", err)
+				b.Fatalf("Unexpected error: %q", err)
 			}
-			defer res.Body.Close()
+			res.Body.Close()
 		}
 	})
 
@@ -82,19 +91,25 @@ func BenchmarkTransport(b *testing.B) {
 		hdr := http.Header{}
 		hdr.Set("Accept", "application/yaml")
 
-		for i := 0; i < b.N; i++ {
-			tp, _ := opensearchtransport.New(opensearchtransport.Config{
-				URLs:      []*url.URL{{Scheme: "http", Host: "foo"}},
-				Header:    hdr,
-				Transport: newFakeTransport(b),
-			})
+		tp, err := opensearchtransport.New(opensearchtransport.Config{
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			Header:            hdr,
+			Transport:         newFakeTransport(b),
+			NodeStatsInterval: -1,
+		})
+		if err != nil {
+			b.Fatalf("Unexpected error: %q", err)
+		}
+		b.Cleanup(func() { _ = tp.Close() })
 
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			res, err := tp.Perform(req)
 			if err != nil {
-				b.Fatalf("Unexpected error: %s", err)
+				b.Fatalf("Unexpected error: %q", err)
 			}
-			defer res.Body.Close()
+			res.Body.Close()
 		}
 	})
 }
