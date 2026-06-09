@@ -34,7 +34,7 @@ This design maximizes availability but requires careful error checking in client
 
 ## Automatic Partial Failure Errors (Recommended)
 
-Configure the client's error mask to control which categories of partial failure surface as typed Go errors. In v4, partial failures are masked by default (preserving pre-bitfield behavior); opt in by setting `Config.Errors: errmask.New()`. In v5+ the default flips and partial failures surface as typed errors automatically.
+Configure the client's error mask to control which categories of partial failure surface as typed Go errors. By default, partial failures surface as typed errors automatically (`Config.Errors == nil` resolves to `errmask.Empty`). To suppress them and restore the older mask-everything behavior, set `Config.Errors: errmask.New(errmask.All)` or use the `OPENSEARCH_GO_ERROR_MASK` environment variable.
 
 > **Where category names come from.** Partial-failure categories (`BulkItems`, `SearchShards`, `WriteShards`, `MultiSearchItems`, ...) are stable identifiers in the client surface. The bit constant on `errmask` uses the PascalCase form (`errmask.BulkItems`); the env-var token is the lowercase snake_case form (`bulk_items`, `search_shards`, `write_shards`). The categories are derived from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), but you do not need to read the spec to use them -- the [Error Type Reference](#error-type-reference) below lists every category, and new categories arrive as additive surface in subsequent client releases.
 
@@ -246,24 +246,24 @@ Treat `As`/`Has` and the per-Resp helpers against the partial-failure error type
 
 ### Error Type Reference
 
-| Error Type               | Returned By                                                                                              | Key fields                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `*PartialBulkError`      | `Bulk`, `BulkStream`                                                                                     | `FailedItems []BulkRespItem`, `SucceededCount int`                              |
-| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `Count`, `CreatePIT`             | `FailedShards int`, `TotalShards int`, `Failures` (per-shard slice; type below) |
-| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                                  | `Operation string`, `FailedShards int`, `TotalShards int`                       |
-| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                                         | `Items []MultiSearchItemFailure`, `SucceededCount int`                          |
-| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                                          | `Unwrap() []error` (multi-error contract)                                       |
-| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                  | `Unwrap() []error`                                                              |
+| Error Type               | Returned By                                                                                  | Key fields                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `*PartialBulkError`      | `Bulk`, `BulkStream`                                                                         | `FailedItems []BulkRespItem`, `SucceededCount int`                              |
+| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `Count`, `CreatePIT` | `FailedShards int`, `TotalShards int`, `Failures` (per-shard slice; type below) |
+| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                      | `Operation string`, `FailedShards int`, `TotalShards int`                       |
+| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                             | `Items []MultiSearchItemFailure`, `SucceededCount int`                          |
+| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                              | `Unwrap() []error` (multi-error contract)                                       |
+| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                      | `Unwrap() []error`                                                              |
 
 Every single-bit error type implements the `PartialFailureError` interface and works with `errors.As`. Per-op multi-error containers (`*MSearchErrors`, ...) implement `Unwrap() []error`, so `errors.As` against any sub-error type still matches whether the response carried one or many.
 
 The error types expose top-level fields directly. The internal field types are generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification):
 
-| Field role                      | Type                  |
-| ------------------------------- | --------------------- |
-| Per-shard failure element       | `ShardSearchFailure`  |
+| Field role                      | Type                     |
+| ------------------------------- | ------------------------ |
+| Per-shard failure element       | `ShardSearchFailure`     |
 | Per-sub-response error envelope | embedded `ErrorRespBase` |
-| Shard envelope on responses     | `ShardStatistics`     |
+| Shard envelope on responses     | `ShardStatistics`        |
 
 Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) needs nothing further. Code that walks the per-shard failure slice uses the `ShardSearchFailure` element type. Multi-index `Req` types use the `Index` field (e.g. `SearchReq.Index []string`); see [`opensearchapi/MIGRATING.md`](../opensearchapi/MIGRATING.md) for the full surface delta.
 

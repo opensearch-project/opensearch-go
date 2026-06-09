@@ -1,23 +1,25 @@
 # Request Routing and Connection Management
 
-The opensearch-go v4 transport layer replaces round-robin connection selection with a per-request scoring model that routes operations to shard-hosting nodes based on network proximity, server-side load, and data placement. The result is elimination of coordinator proxy hops, concentration of OS page-cache utilization, AZ-aware load distribution, and automatic resilience against node failures and overload.
+The opensearch-go transport layer replaces round-robin connection selection with a per-request scoring model that routes operations to shard-hosting nodes based on network proximity, server-side load, and data placement. The result is elimination of coordinator proxy hops, concentration of OS page-cache utilization, AZ-aware load distribution, and automatic resilience against node failures and overload.
 
 This document covers the scoring formula and its three input signals, the policy chain architecture, the connection pool lifecycle, the efficiency model for cross-AZ hop reduction, and the operational knobs available to operators.
 
 ## Quick Start
 
-### Via environment variable (no code changes)
+The router is on by default. When no programmatic `Config.Router` is provided, the client automatically creates a `NewDefaultRouter()` and sets `DiscoverNodesOnStart` to `true` (async). The client uses the seed URLs until discovery completes; call `client.DiscoverNodes(ctx)` after construction to block until topology data is available.
+
+### Disabling via environment variable (no code changes)
 
 ```bash
-export OPENSEARCH_GO_ROUTER=true
+export OPENSEARCH_GO_ROUTER=false
 ```
 
-When set to a truthy value and no programmatic `Config.Router` is provided, the client automatically creates a `NewDefaultRouter()` and sets `DiscoverNodesOnStart` to `true` (async). The client uses the seed URLs until discovery completes; call `client.DiscoverNodes(ctx)` after construction to block until topology data is available. In v4 the router is off by default; in v5 the default will flip (on unless `=false`). This environment variable is transitional and will be removed in v6, where the router is unconditionally enabled. Use `OPENSEARCH_GO_POLICY_*` to disable individual policies if needed.
+Set `OPENSEARCH_GO_ROUTER` to `false` (or `0`) to suppress automatic router construction and fall back to round-robin selection. A programmatic `Config.Router` always takes precedence and ignores this variable. The variable is transitional and will be removed once the router is unconditionally enabled; use `OPENSEARCH_GO_POLICY_*` to disable individual policies instead of turning the router off entirely.
 
 ### Via code
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 
 router, err := opensearchtransport.NewDefaultRouter()
 if err != nil {
@@ -870,6 +872,34 @@ This matches the server's `OperationRouting.generateShardId()` algorithm. The cl
 
 When the shard map is not yet available (first seconds after startup), the path falls back to rendezvous hashing.
 
+### Read-Your-Writes Consistency
+
+Routing a `GET /index/_doc/{id}` (or `_mget`) at a replica is a deliberate part of the read-cost-table design (§4): under sustained write load the dynamic primary cost rises and reads shed to replicas. Whether that replica can see a just-acknowledged write depends on the index's replication model:
+
+| Replication model    | `index.replication.type` | Replica visibility for a just-acked write                                           |
+| -------------------- | ------------------------ | ----------------------------------------------------------------------------------- |
+| Document replication | `DOCUMENT` (default)     | Immediate. Realtime GET on a replica returns the new doc even with `refresh=false`. |
+| Segment replication  | `SEGMENT`                | Deferred. Replica is stale (or returns `found:false`) until the next segment copy.  |
+
+**Why document replication is safe.** OpenSearch's replication semantics differ from Dynamo-style quorum writes. The `wait_for_active_shards` parameter is a pre-flight availability gate -- it decides whether a write may _start_ -- not an ack-count threshold. Once the write proceeds, the primary forwards it to **every** replica in the in-sync set; the operation only returns to the client after each replica has either acknowledged or been ejected from the in-sync set (`failShardIfNeeded` in `ReplicationOperation`). Under document replication, every in-sync replica indexes the document into its own translog and version map. `GET _doc/{id}` and `_mget` are realtime APIs -- they consult the version map and translog directly, not the searcher -- so `refresh=false` does not affect their visibility. By the time the write returns 200, every replica that is still in the in-sync routing table has the doc and can serve a realtime GET for it. Replicas that failed to ack are no longer in-sync (and a recovering one is `INITIALIZING` with cost 16.0), so the router will not pick them for reads either.
+
+**Why segment replication is not.** Under segment replication only the primary indexes the document; replicas receive new data via segment file copies, which are tied to refresh. A realtime GET on a segrep replica reads from local segments that may not yet contain the write, so it can return the prior version (or `found:false` for a brand-new ID) until the next refresh-and-copy completes. The gap is bounded by the refresh interval plus segment-copy time, typically subsecond, but it is non-zero.
+
+Replica states that the cost table already steers reads away from -- regardless of replication model:
+
+- `INITIALIZING` (cost 16.0): not yet in the in-sync set, holds no data for this op.
+- `RELOCATING` (cost 8.0): mid-move, may proxy.
+
+These can never legitimately serve a fresh GET, and they score worse than any healthy active replica, so the scoring formula already excludes them in practice.
+
+**If you need read-your-writes on a segrep index:**
+
+1. Use `?preference=_primary` on the GET / `_mget` to pin the read to the primary shard. The primary always has the latest acked write regardless of replication model.
+2. Use `?refresh=true` (or `wait_for`) on the _write_ to force a refresh and segment copy before the write returns. Expensive on hot indices.
+3. Switch the index to document replication if read-your-writes correctness matters more than indexing throughput on that index.
+
+Option 1 is the lightest -- it only redirects the read; it doesn't force a refresh and doesn't change index settings. The router honors `preference=_primary` by treating it as the same shard-exact lookup but restricting the candidate set to the primary-hosting node before scoring.
+
 ---
 
 ## 7. Thread Pool Congestion Control
@@ -1606,7 +1636,7 @@ Affinity routing amplifies the benefits of right-sized shards. A 1.5 TiB index:
 ### Enabling Request Routing
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 
 router, err := opensearchtransport.NewDefaultRouter()
 if err != nil {

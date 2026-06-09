@@ -82,7 +82,7 @@ To take full control of when discovery runs, leave `DiscoverNodesInterval` at `0
 OpenSearch nodes have roles that determine their capabilities. The Go client provides constants for these roles:
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 
 opensearchtransport.RoleData                // Data nodes: store documents, handle indexing and search (1.0+)
 opensearchtransport.RoleIngest              // Ingest nodes: pre-process documents via pipelines (1.0+)
@@ -248,8 +248,8 @@ import (
     "log"
     "time"
 
-    "github.com/opensearch-project/opensearch-go/v4"
-    "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+    "github.com/opensearch-project/opensearch-go/v5"
+    "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 func main() {

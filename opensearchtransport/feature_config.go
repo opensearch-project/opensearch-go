@@ -78,8 +78,8 @@ const (
 	// Config.Router always takes precedence: if already set, this env var
 	// is ignored.
 	//
-	// This variable is transitional: it will be removed in v6, where the
-	// router is unconditionally on (disable individual policies via
+	// This variable is transitional: it will be removed once the router is
+	// unconditionally on (disable individual policies via
 	// OPENSEARCH_GO_POLICY_* instead).
 	//
 	// Example: OPENSEARCH_GO_ROUTER=false
