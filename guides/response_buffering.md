@@ -11,7 +11,7 @@ There is intentionally no typed streaming helper. "Stream and decode into `T`" i
 
 ## `Do[T]`: typed, buffered, default
 
-`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi`, `v5preview/opensearchapi`, and `plugins/*`) call into `opensearchtransport.Client.Perform`, which:
+`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi` and `plugins/*`) call into `opensearchtransport.Client.Perform`, which:
 
 1. Reads the entire response body into memory.
 2. Closes the underlying body.
