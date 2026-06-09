@@ -500,6 +500,38 @@ func TestBulkIndexerContext(t *testing.T) {
 			},
 		},
 		{
+			name: "Add does not increment NumAdded when context is already cancelled",
+			run: func(t *testing.T) {
+				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
+
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+
+				// select{} chooses randomly between the two ready cases when the
+				// queue still has room, so we cannot assert every Add fails. We can
+				// assert the bookkeeping invariant: each Add ends up in exactly one
+				// of NumAdded or BulkAddFailCount, never both, never neither.
+				const numAttempts = 50
+				var nilReturns, errReturns uint64
+				for range numAttempts {
+					if err := bi.Add(ctx, BulkIndexerItem{Action: "index", DocumentID: "cancelled"}); err == nil {
+						nilReturns++
+					} else {
+						require.ErrorIs(t, err, context.Canceled)
+						errReturns++
+					}
+				}
+				require.NoError(t, bi.Close(context.Background()))
+
+				stats := bi.Stats()
+				require.Equal(t, nilReturns, stats.NumAdded, "NumAdded must equal the number of Add() calls that returned nil")
+				require.Equal(t, errReturns, stats.BulkAddFailCount, "BulkAddFailCount must equal the number of Add() calls that returned ctx.Err()")
+				require.Equal(t, uint64(numAttempts), stats.NumAdded+stats.BulkAddFailCount, "every Add() must be accounted for exactly once")
+				require.Greater(t, errReturns, uint64(0), "at least one Add() should fail when context is already cancelled")
+			},
+		},
+		{
 			name: "Close returns error on cancelled context",
 			run: func(t *testing.T) {
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
