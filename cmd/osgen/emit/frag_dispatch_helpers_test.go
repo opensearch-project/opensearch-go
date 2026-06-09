@@ -11,9 +11,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/errwrap"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // regType is a small helper that registers an ir.Type in the test

@@ -45,7 +45,7 @@ func (r AddReq) GetRequest(method string) (*http.Request, error) {
 		return nil, err
 	}
 
-	path, err := ospath.IsmAddPolicyPath{Index: r.Indices}.Build()
+	path, err := ospath.ISMAddPolicyPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}

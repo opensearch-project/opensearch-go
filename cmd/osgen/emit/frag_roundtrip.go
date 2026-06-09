@@ -46,7 +46,7 @@ func (f *RoundtripTestFragment) Imports() []Import {
 		{Path: "net/http/httptest"},
 		{Path: "testing"},
 		{Path: "github.com/stretchr/testify/require"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
 		{Path: f.ImportPath},
 	}
 	if f.NeedsStrings {

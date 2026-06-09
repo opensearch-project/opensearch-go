@@ -13,7 +13,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // ReqFragment renders the Req struct and its GetRequest() method.

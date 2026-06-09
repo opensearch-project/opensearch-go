@@ -10,7 +10,7 @@
 //
 // Until the spec carries the extension natively, this package ships the
 // per-operation map cmd/osgen needs at codegen time. Wrapper names match
-// the catalog 1:1; the bit positions assigned by [github.com/opensearch-project/opensearch-go/v4/errmask]
+// the catalog 1:1; the bit positions assigned by [github.com/opensearch-project/opensearch-go/v5/errmask]
 // are kept in lock-step with the order of [Wrappers].
 package errwrap
 
@@ -38,10 +38,10 @@ const (
 )
 
 // Identifiers used by the codegen to populate
-// ShardFailureError.Operation in v5preview/opensearchapi. These match
+// ShardFailureError.Operation in opensearchapi. These match
 // the OperationXxx const values declared in the package's hand-written
 // errors.go; cmd/osgen carries duplicates because it is a separate Go
-// module and cannot import the v5preview package directly.
+// module and cannot import the opensearchapi package directly.
 const (
 	WriteOpIndex  = "OperationIndex"
 	WriteOpCreate = "OperationCreate"

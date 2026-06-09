@@ -38,7 +38,7 @@ type RefreshSearchAnalyzersReq struct {
 
 // GetRequest returns the *http.Request that gets executed by the client
 func (r RefreshSearchAnalyzersReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.IsmRefreshSearchAnalyzersPath{Index: r.Indices}.Build()
+	path, err := ospath.ISMRefreshSearchAnalyzersPath{Index: r.Indices}.Build()
 	if err != nil {
 		return nil, err
 	}

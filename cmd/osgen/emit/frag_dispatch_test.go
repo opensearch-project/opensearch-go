@@ -13,16 +13,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/errwrap"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // errmaskImportPath is the absolute import path that PartialFailureFragment
 // adds when it emits any wrapper helpers; DispatchFragment never adds it
 // since the methods (and their errmask references) live in the partial-
 // failure fragment.
-const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v4/errmask"
+const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v5/errmask"
 
 func newRespType(prefix string, fields ...ir.Field) *ir.Type {
 	return &ir.Type{
@@ -56,7 +56,7 @@ func msearchFixtureResp(reg *ir.TypeRegistry) *ir.Type {
 }
 
 func newRegistry() *ir.TypeRegistry {
-	return ir.NewTypeRegistry("opensearchapi", "github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi")
+	return ir.NewTypeRegistry("opensearchapi", "github.com/opensearch-project/opensearch-go/v5/opensearchapi")
 }
 
 // ---------------------------------------------------------------------------
@@ -365,7 +365,8 @@ func TestPerOpErrorTypeName_CatalogConsistency(t *testing.T) {
 		t.Run("catalog_entry_"+group, func(t *testing.T) {
 			t.Parallel()
 			require.NotEmpty(t, emit.PerOpErrorTypeName(group),
-				"group %q declares %d wrappers %v in OperationWrappers but PerOpErrorTypeName returns empty; add a switch arm and a hand-written %q-style aggregator type",
+				"group %q declares %d wrappers %v in OperationWrappers but PerOpErrorTypeName returns empty; "+
+					"add a switch arm and a hand-written %q-style aggregator type",
 				group, len(wrappers), wrappers, group)
 		})
 	}
@@ -380,7 +381,8 @@ func TestPerOpErrorTypeName_CatalogConsistency(t *testing.T) {
 			t.Parallel()
 			_, ok := errwrap.OperationWrappers()[group]
 			require.True(t, ok,
-				"perOpErrorTypeName has a switch arm for group %q but the group is absent from errwrap.OperationWrappers; remove the arm or restore the catalog entry",
+				"perOpErrorTypeName has a switch arm for group %q but the group is absent from errwrap.OperationWrappers; "+
+					"remove the arm or restore the catalog entry",
 				group)
 		})
 	}

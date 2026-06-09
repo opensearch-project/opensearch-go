@@ -26,9 +26,9 @@ func (r PoliciesGetReq) GetRequest(method string) (*http.Request, error) {
 	var path string
 	var err error
 	if r.Policy == "" {
-		path, err = ospath.IsmGetPoliciesPath{}.Build()
+		path, err = ospath.ISMGetPoliciesPath{}.Build()
 	} else {
-		path, err = ospath.IsmGetPolicyPath{PolicyID: r.Policy}.Build()
+		path, err = ospath.ISMGetPolicyPath{PolicyID: r.Policy}.Build()
 	}
 	if err != nil {
 		return nil, err

@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 //
-//go:build integration && (core || opensearchapi)
+//go:build integration
 
 package opensearchapi_test
 
@@ -16,104 +16,95 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v5/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 )
 
-func TestScrollClient(t *testing.T) {
+func TestManual_Scroll(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	failingClient, err := osapitest.CreateFailingClient(t)
-	require.NoError(t, err)
 
-	testIndex := testutil.MustUniqueString(t, "test-scroll")
+	index := testutil.MustUniqueString(t, "test-scroll")
 	t.Cleanup(func() {
-		client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: []string{testIndex}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Document.Create(
-		t.Context(),
-		opensearchapi.DocumentCreateReq{
-			Index:      testIndex,
-			Body:       strings.NewReader(`{"foo": "bar"}`),
-			DocumentID: "scroll-doc-1",
-			Params:     opensearchapi.DocumentCreateParams{Refresh: "true"},
-		},
-	)
+	ndjson := strings.Join([]string{
+		`{"index":{"_index":"` + index + `","_id":"s1"}}`,
+		`{"title":"Scroll Doc 1"}`,
+		`{"index":{"_index":"` + index + `","_id":"s2"}}`,
+		`{"title":"Scroll Doc 2"}`,
+		`{"index":{"_index":"` + index + `","_id":"s3"}}`,
+		`{"title":"Scroll Doc 3"}`,
+		"",
+	}, "\n")
+	_, err = client.Bulk(t.Context(), opensearchapi.BulkReq{
+		Body:   strings.NewReader(ndjson),
+		Params: &opensearchapi.BulkParams{Refresh: "true"},
+	})
 	require.NoError(t, err)
 
-	search, err := client.Search(
-		t.Context(),
-		&opensearchapi.SearchReq{
-			Indices: []string{testIndex},
-			Params:  opensearchapi.SearchParams{Scroll: 5 * time.Minute},
-		},
-	)
-	require.NoError(t, err)
-	require.NotNil(t, search.ScrollID, "ScrollID is nil")
-
-	type scrollTests struct {
-		Name    string
-		Results func() (osapitest.Response, error)
-	}
-
-	testCases := []struct {
-		Name  string
-		Tests []scrollTests
-	}{
-		{
-			Name: "Get",
-			Tests: []scrollTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Scroll.Get(t.Context(), opensearchapi.ScrollGetReq{ScrollID: *search.ScrollID})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Scroll.Get(t.Context(), opensearchapi.ScrollGetReq{})
-					},
-				},
-			},
-		},
-		{
-			Name: "Delete",
-			Tests: []scrollTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Scroll.Delete(t.Context(), opensearchapi.ScrollDeleteReq{ScrollIDs: []string{"_all"}})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Scroll.Delete(t.Context(), opensearchapi.ScrollDeleteReq{})
-					},
-				},
-			},
-		},
-	}
-	for _, value := range testCases {
-		t.Run(value.Name, func(t *testing.T) {
-			for _, testCase := range value.Tests {
-				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
-					if testCase.Name == "inspect" {
-						require.Error(t, err)
-						require.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
-					} else {
-						require.NoError(t, err)
-						require.NotNil(t, res)
-						require.NotNil(t, res.Inspect().Response)
-						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
-					}
-				})
-			}
+	t.Run("scroll lifecycle", func(t *testing.T) {
+		searchResp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+			Index:      []string{index},
+			BodyReader: strings.NewReader(`{"query":{"match_all":{}},"size":1}`),
+			Params:     &opensearchapi.SearchParams{Scroll: 1 * time.Minute},
 		})
-	}
+		require.NoError(t, err)
+		require.NotNil(t, searchResp.ScrollID)
+		require.Len(t, searchResp.Hits.Hits, 1)
+		testutil.CompareRawJSONwithParsedJSON(t, searchResp, searchResp.Inspect().Response)
+
+		scrollID := *searchResp.ScrollID
+
+		tests := []struct {
+			name    string
+			wantHit bool
+		}{
+			{name: "page 2", wantHit: true},
+			{name: "page 3", wantHit: true},
+			{name: "page 4 (empty)", wantHit: false},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				scrollResp, err := client.Scroll.Get(t.Context(), opensearchapi.ScrollReq{
+					BodyReader: strings.NewReader(`{"scroll_id":"` + scrollID + `","scroll":"1m"}`),
+				})
+				require.NoError(t, err)
+				if tt.wantHit {
+					require.NotEmpty(t, scrollResp.Hits.Hits)
+				} else {
+					require.Empty(t, scrollResp.Hits.Hits)
+				}
+				if scrollResp.ScrollID != nil {
+					scrollID = *scrollResp.ScrollID
+				}
+				testutil.CompareRawJSONwithParsedJSON(t, scrollResp, scrollResp.Inspect().Response)
+			})
+		}
+
+		t.Run("clear scroll", func(t *testing.T) {
+			clearResp, err := client.Scroll.Delete(t.Context(), &opensearchapi.ClearScrollReq{
+				ScrollID: []string{scrollID},
+			})
+			require.NoError(t, err)
+			require.True(t, clearResp.Succeeded)
+			require.Positive(t, clearResp.NumFreed)
+			testutil.CompareRawJSONwithParsedJSON(t, clearResp, clearResp.Inspect().Response)
+		})
+	})
+
+	t.Run("inspect", func(t *testing.T) {
+		failingClient, err := osapitest.CreateFailingClient(t)
+		require.NoError(t, err)
+
+		res, err := failingClient.Scroll.Get(t.Context(), opensearchapi.ScrollReq{
+			BodyReader: strings.NewReader(`{"scroll_id":"fake","scroll":"1m"}`),
+		})
+		require.Error(t, err)
+		require.NotNil(t, res)
+		osapitest.VerifyInspect(t, res.Inspect())
+	})
 }
