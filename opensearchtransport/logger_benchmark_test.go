@@ -34,7 +34,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 // BenchmarkTransportLogger measures the per-Perform cost when a logger is

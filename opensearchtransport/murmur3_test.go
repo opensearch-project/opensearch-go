@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil/shardhash"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
 // TestOpensearchShardHash_DelegatesToShardHash verifies the unexported wrapper

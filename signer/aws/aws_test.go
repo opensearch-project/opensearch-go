@@ -21,7 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/stretchr/testify/require"
 
-	osaws "github.com/opensearch-project/opensearch-go/v4/signer/aws"
+	osaws "github.com/opensearch-project/opensearch-go/v5/signer/aws"
 )
 
 func TestConstants(t *testing.T) {

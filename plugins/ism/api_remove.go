@@ -10,9 +10,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 // Remove executes a remove policy request with the required RemoveReq

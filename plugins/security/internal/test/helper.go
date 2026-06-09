@@ -16,9 +16,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/plugins/security"
 )
 
 // Response is a dummy interface to run tests with Inspect()
@@ -34,6 +34,20 @@ func NewClient(t *testing.T) (*security.Client, error) {
 		return nil, fmt.Errorf("failed to get config: requires secure opensearch")
 	}
 	return security.NewClient(*config)
+}
+
+// SkipPreWriteRaceVersion skips a security write test on OpenSearch < 2.2.0.
+//
+// Those releases have a non-thread-safe User serialization race
+// (java.io.OptionalDataException) during inter-node transport, which surfaces
+// as a 500 on any write to the .opendistro_security index. Fixed in 2.2.0 by
+// opensearch-project/security#1970. Read-only security tests are unaffected and
+// should not call this.
+func SkipPreWriteRaceVersion(t *testing.T) {
+	t.Helper()
+	apiClient, err := testutil.NewClient(t)
+	require.NoError(t, err)
+	testutil.SkipIfVersion(t, apiClient, "<", "2.2.0", "security plugin OptionalDataException (opensearch-project/security#1970)")
 }
 
 // ClientConfig returns a security.Config for secure opensearch

@@ -11,8 +11,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 )
 
 // ConfigPutReq represents possible options for the securityconfig get request

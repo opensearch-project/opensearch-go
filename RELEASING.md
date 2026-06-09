@@ -60,4 +60,4 @@ The release process is standard across repositories in this org and is run by a 
    ### Dependencies
    ```
 
-9. Run `go list` with the new version to refresh [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4), e.g. `go list -m github.com/opensearch-project/opensearch-go/v4@v4.3.0`.
+9. Run `go list` with the new version to refresh [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5), e.g. `go list -m github.com/opensearch-project/opensearch-go/v5@v5.0.0`.

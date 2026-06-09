@@ -15,13 +15,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
-	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/plugins/security"
+	ossectest "github.com/opensearch-project/opensearch-go/v5/plugins/security/internal/test"
 )
 
 func TestSecurityInternalUsersClient(t *testing.T) {
 	testutil.SkipIfNotSecure(t)
+	ossectest.SkipPreWriteRaceVersion(t)
 	client, err := ossectest.NewClient(t)
 	require.NoError(t, err)
 

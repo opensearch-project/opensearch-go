@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {

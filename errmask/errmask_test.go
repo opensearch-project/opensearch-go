@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/errmask"
 )
 
 func TestErrorMask_Has(t *testing.T) {

@@ -36,7 +36,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 var _ = fmt.Print

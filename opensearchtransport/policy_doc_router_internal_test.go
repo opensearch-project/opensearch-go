@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 func TestExtractDocumentFromPath(t *testing.T) {

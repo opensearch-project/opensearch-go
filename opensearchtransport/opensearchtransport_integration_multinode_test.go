@@ -35,8 +35,8 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 var _ = fmt.Print

@@ -13,14 +13,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestEnvRouterAutoConstruction verifies that OPENSEARCH_GO_ROUTER triggers
-// auto-construction of the DefaultRouter when no programmatic Config.Router
-// is provided, honors precedence rules, and surfaces parse errors from
-// ShardCostConfig.
+// TestEnvRouterAutoConstruction verifies that the DefaultRouter is
+// auto-constructed by default when no programmatic Config.Router is provided,
+// that OPENSEARCH_GO_ROUTER=false opts out, honors precedence rules, and
+// surfaces parse errors from ShardCostConfig.
 func TestEnvRouterAutoConstruction(t *testing.T) {
 	tests := []struct {
 		name            string
-		envValue        string // empty value is treated the same as unset by envvars.Truthy
+		envValue        string // empty value is treated as unset; the router defaults on
 		shardCostConfig string
 		programmaticSet bool // when true, test uses a non-nil Config.Router
 
@@ -29,29 +29,29 @@ func TestEnvRouterAutoConstruction(t *testing.T) {
 		errSubstr  string // substring expected in error message
 	}{
 		{
-			name:       "env empty, no programmatic router",
+			name:       "env empty, no programmatic router defaults on",
 			envValue:   "",
-			wantRouter: false,
+			wantRouter: true,
 		},
 		{
-			name:       "env=true triggers auto-construction",
+			name:       "env=true keeps auto-construction",
 			envValue:   "true",
 			wantRouter: true,
 		},
 		{
-			name:       "env=1 triggers auto-construction",
+			name:       "env=1 keeps auto-construction",
 			envValue:   "1",
 			wantRouter: true,
 		},
 		{
-			name:       "env=false leaves router nil",
+			name:       "env=false opts out, leaving router nil",
 			envValue:   "false",
 			wantRouter: false,
 		},
 		{
-			name:       "env=garbage leaves router nil",
+			name:       "env=garbage is non-falsy, router defaults on",
 			envValue:   "yes-please",
-			wantRouter: false,
+			wantRouter: true,
 		},
 		{
 			name:            "env=true with valid ShardCostConfig",

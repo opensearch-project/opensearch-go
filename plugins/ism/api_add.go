@@ -12,9 +12,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 // Add executes a add policy request with the required AddReq

@@ -35,9 +35,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 func TestJSONReaderIntegration(t *testing.T) {
@@ -51,7 +51,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-json-reader")
 		t.Cleanup(func() {
-			client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: []string{index}})
+			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 		})
 
 		doc := struct {
@@ -61,7 +61,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 		_, err = client.Index(ctx, opensearchapi.IndexReq{
 			Index:  index,
 			Body:   opensearchutil.NewJSONReader(&doc),
-			Params: opensearchapi.IndexParams{Refresh: "true"},
+			Params: &opensearchapi.IndexParams{Refresh: "true"},
 		})
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
@@ -75,14 +75,14 @@ func TestJSONReaderIntegration(t *testing.T) {
 			},
 		}
 		req := &opensearchapi.SearchReq{
-			Indices: []string{index},
-			Body:    opensearchutil.NewJSONReader(&query),
+			Index:      []string{index},
+			BodyReader: opensearchutil.NewJSONReader(&query),
 		}
 		res, err := client.Search(ctx, req)
 		if err != nil {
 			t.Fatalf("Error getting response: %s", err)
 		}
-		containsFooBar := func(c opensearchapi.SearchHit) bool {
+		containsFooBar := func(c opensearchapi.SearchResultHitsHitsItem) bool {
 			return strings.Contains(fmt.Sprintf("%v", c.Source), "Foo Bar")
 		}
 		if len(res.Hits.Hits) == 0 && !slices.ContainsFunc(res.Hits.Hits, containsFooBar) {

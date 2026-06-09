@@ -10,8 +10,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 )
 
 // Health executes a get health request with the optional HealthReq

@@ -26,8 +26,8 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
-	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // readinessSem limits how many goroutines can run WaitForClusterReady
@@ -286,34 +286,49 @@ func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Re
 	body, err := io.ReadAll(rawResp.Body)
 	require.NoError(t, err)
 
-	if string(parsedBody) != string(body) {
-		patch, err := jsondiff.CompareJSON(body, parsedBody)
-		require.NoError(t, err)
-		operations := make([]jsondiff.Operation, 0)
-		for _, operation := range patch {
-			if operation.Type == "add" && operation.Path != "" {
-				continue
-			}
-
-			if operation.Type == "remove" && isEmptyCollection(operation.OldValue) {
-				continue
-			}
-
-			if tptestutil.ShouldIgnoreField(t, operation.Path, "") {
-				continue
-			}
-
-			operations = append(operations, operation)
-		}
-		if len(operations) == 0 {
-			return
-		}
-		for _, op := range operations {
-			t.Logf("%s", op)
-		}
-		t.Logf("raw body: %s", body)
-		require.Empty(t, operations)
+	if string(parsedBody) == string(body) {
+		return
 	}
+
+	patch, err := jsondiff.CompareJSON(body, parsedBody)
+	require.NoError(t, err)
+
+	operations := make([]jsondiff.Operation, 0)
+	for _, operation := range patch {
+		if ignoreDiffOperation(t, operation) {
+			continue
+		}
+		operations = append(operations, operation)
+	}
+	if len(operations) == 0 {
+		return
+	}
+	for _, op := range operations {
+		t.Logf("%s", op)
+	}
+	t.Logf("raw body: %s", body)
+	require.Empty(t, operations)
+}
+
+// ignoreDiffOperation reports whether a raw-vs-parsed JSON diff operation is
+// benign and should not be treated as a missing-field signal.
+func ignoreDiffOperation(t *testing.T, operation jsondiff.Operation) bool {
+	t.Helper()
+
+	// Extra fields present in the parsed output but absent from the raw body.
+	if operation.Type == "add" && operation.Path != "" {
+		return true
+	}
+
+	// A removed empty collection ({}/[]) or null value carries no data: a
+	// typed struct represents "absent/null/empty" as a nil pointer or zero
+	// value that omitempty drops on re-marshal, which is semantically
+	// equivalent to the server emitting it empty or null.
+	if operation.Type == "remove" && (isEmptyCollection(operation.OldValue) || operation.OldValue == nil) {
+		return true
+	}
+
+	return tptestutil.ShouldIgnoreField(t, operation.Path, "")
 }
 
 func isEmptyCollection(v any) bool {

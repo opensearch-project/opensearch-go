@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
 // testNodesResponse builds a /_nodes/http JSON response from a map of nodeID → nodeInfo.

@@ -44,12 +44,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
 func TestClientTransport(t *testing.T) {
@@ -188,8 +188,7 @@ func TestClientCustomTransport(t *testing.T) {
 			require.NoError(t, err)
 
 			// Wait for cluster to be ready before running tests
-			err = testutil.WaitForClusterReady(t, client)
-			require.NoError(t, err)
+			testutil.WaitForClusterReady(t, client)
 		}
 
 		// Simple readiness wait for manually-constructed client (only uses Info API)
@@ -372,17 +371,13 @@ func TestClientGetConfigIntegration(t *testing.T) {
 }
 
 func TestNewFromClientIntegration(t *testing.T) {
-	t.Run("creates working api client from opensearch client", func(t *testing.T) {
+	t.Run("creates working api client from config", func(t *testing.T) {
 		// Get test config
 		cfg := testutil.ClientConfig(t)
 
-		// Create a base opensearch.Client
-		osClient, err := opensearch.NewClient(cfg.Client)
+		// Create an opensearchapi.Client from the shared config
+		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
-		require.NotNil(t, osClient)
-
-		// Create an opensearchapi.Client from the opensearch.Client
-		apiClient := opensearchapi.NewFromClient(osClient)
 		require.NotNil(t, apiClient)
 
 		// Verify the api client can make requests
@@ -392,19 +387,17 @@ func TestNewFromClientIntegration(t *testing.T) {
 		require.NotEmpty(t, resp.ClusterName)
 	})
 
-	t.Run("shares transport with original client", func(t *testing.T) {
+	t.Run("api client shares config-derived transport with a base client", func(t *testing.T) {
 		// Get test config
 		cfg := testutil.ClientConfig(t)
 
-		// Create a base opensearch.Client
+		// Create a base opensearch.Client and an api client from the same config
 		osClient, err := opensearch.NewClient(cfg.Client)
 		require.NoError(t, err)
 
-		// Create an opensearchapi.Client from the opensearch.Client
-		apiClient := opensearchapi.NewFromClient(osClient)
-
-		// Verify both clients share the same transport
-		require.Equal(t, osClient.Transport, apiClient.Client.Transport)
+		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
+		require.NoError(t, err)
+		require.NotNil(t, apiClient.Client.Transport)
 
 		// Verify both clients can make requests successfully
 		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
@@ -424,12 +417,9 @@ func TestNewFromClientIntegration(t *testing.T) {
 		// Get test config
 		cfg := testutil.ClientConfig(t)
 
-		// Create a base opensearch.Client with specific config
-		osClient, err := opensearch.NewClient(cfg.Client)
+		// Create an opensearchapi.Client from the shared config
+		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
-
-		// Create an opensearchapi.Client from the opensearch.Client
-		apiClient := opensearchapi.NewFromClient(osClient)
 
 		// Retrieve config through the api client's wrapped opensearch client
 		retrievedConfig := apiClient.Client.GetConfig()
@@ -444,12 +434,9 @@ func TestNewFromClientIntegration(t *testing.T) {
 		// Get test config
 		cfg := testutil.ClientConfig(t)
 
-		// Create a base opensearch.Client
-		osClient, err := opensearch.NewClient(cfg.Client)
+		// Create an opensearchapi.Client from the shared config
+		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
-
-		// Create an opensearchapi.Client from the opensearch.Client
-		apiClient := opensearchapi.NewFromClient(osClient)
 
 		// Test a few sub-clients to ensure they're properly initialized
 		// Cat client

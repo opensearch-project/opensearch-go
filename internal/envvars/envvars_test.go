@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // TestTruthyAndFalsy covers the two boolean env-var helpers. Note the

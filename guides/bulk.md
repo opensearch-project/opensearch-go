@@ -2,13 +2,9 @@
 
 In this guide, you'll learn how to use the OpenSearch Golang Client API to perform bulk operations. You'll learn how to index, update, and delete multiple documents in a single request.
 
-> **Surface note**: examples below use the v4 `opensearchapi/` package. v5preview callers should substitute the v5preview import path and a few renamed fields. The most visible differences for bulk:
+> **Surface note**: the `bulk` API returns `BulkResp.Items` as `[]BulkItem` -- a struct with named fields per operation (`Index`, `Create`, `Update`, `Delete`), each a `*BulkRespItem`. `BulkRespItem.ID` is a `*string`, so deref before formatting. Multi-index `Req` types use `Index []string` (e.g. `IndicesDeleteReq.Index`); `BulkReq.Index` (singular, the default per-request `_index`) is unchanged. See the [Handling errors](#handling-errors) section for an example.
 >
-> - Multi-index Req types use `Index []string` in v5preview (v4 uses `Indices`). `BulkReq.Index` (singular, the default per-request `_index`) keeps its name in both surfaces.
-> - `BulkResp.Items` is `[]map[string]BulkRespItem` in v4 and `[]BulkItem` (a struct with named fields per operation) in v5preview. See the [Handling errors](#handling-errors) section for paired examples.
-> - `BulkRespItem.ID` is `*string` in v5preview (v4: `string`); deref before formatting.
->
-> See [`v5preview/opensearchapi/MIGRATING.md`](../v5preview/opensearchapi/MIGRATING.md) for the full delta.
+> See [`opensearchapi/MIGRATING.md`](../opensearchapi/MIGRATING.md) for the full delta from the hand-written v4 surface.
 
 ## Setup
 
@@ -25,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 func main() {
@@ -243,30 +239,7 @@ The `bulk` API returns an array of responses for each operation in the request b
 
 For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
 
-The following code shows an example on how to look for errors in the response.
-
-**v4** (`BulkResp.Items` is `[]map[string]BulkRespItem`):
-
-```go
-	bulkResp, err = client.Bulk(
-		ctx,
-		opensearchapi.BulkReq{
-			Body: strings.NewReader("{\"delete\":{\"_index\":\"movies\",\"_id\":1}}\n"),
-		},
-	)
-	if err != nil {
-		return err
-	}
-	for _, item := range bulkResp.Items {
-		for operation, resp := range item {
-			if resp.Status > 299 {
-				fmt.Printf("Bulk %s Error: %s\n", operation, resp.Result)
-			}
-		}
-	}
-```
-
-**v5preview** (`BulkResp.Items` is `[]BulkItem`; each `BulkItem` has named operation fields, and `BulkRespItem.ID` is `*string`):
+The following code shows an example on how to look for errors in the response. `BulkResp.Items` is `[]BulkItem`; each `BulkItem` has named operation fields (`Index`, `Create`, `Update`, `Delete`), and `BulkRespItem.Error.Reason` is a `*string`:
 
 ```go
 	bulkResp, err = client.Bulk(
@@ -292,7 +265,11 @@ The following code shows an example on how to look for errors in the response.
 			op, sub = "delete", item.Delete
 		}
 		if sub != nil && sub.Error != nil {
-			fmt.Printf("Bulk %s Error: %s\n", op, sub.Error.Reason)
+			reason := ""
+			if sub.Error.Reason != nil {
+				reason = *sub.Error.Reason
+			}
+			fmt.Printf("Bulk %s Error: %s\n", op, reason)
 		}
 	}
 ```
@@ -316,8 +293,8 @@ Bulk operations can be long-running, especially when indexing large batches. Two
 { "index": { "_id": 2 } }
 { "title": "Beauty and the Beast - Live Action", "year": 2017 }
 `),
-			Params: opensearchapi.BulkParams{
-				Timeout: 30 * time.Second,
+			Params: &opensearchapi.BulkParams{
+				TimeoutParams: opensearchapi.TimeoutParams{Timeout: 30 * time.Second},
 			},
 		},
 	)
@@ -341,8 +318,8 @@ Set the server-side timeout shorter than the client-side context deadline. This 
 		opensearchapi.BulkReq{
 			Index: "movies",
 			Body:  body,
-			Params: opensearchapi.BulkParams{
-				Timeout: 45 * time.Second,
+			Params: &opensearchapi.BulkParams{
+				TimeoutParams: opensearchapi.TimeoutParams{Timeout: 45 * time.Second},
 			},
 		},
 	)
@@ -477,8 +454,8 @@ To clean up the resources created in this guide, delete the `movies` and `books`
 	delResp, err := client.Indices.Delete(
 		ctx,
 		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies", "books"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+			Index:  []string{"movies", "books"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {
