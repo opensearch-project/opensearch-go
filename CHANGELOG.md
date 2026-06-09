@@ -206,6 +206,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Mark `opensearch.ToPointer` and `opensearchapi.ToPointer` as deprecated; they remain fully functional but will be removed in v5. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
 
 ### Removed
+- Remove backport.yml and dependabot_pr.yml as we are not using backport app anymore
 
 ### Fixed
 
