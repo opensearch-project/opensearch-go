@@ -1,32 +1,30 @@
-- [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
-  - [Partial failure errors (Config.Errors)](#partial-failure-errors-configerrors)
-  - [Default Router Injection in v5preview](#default-router-injection-in-v5preview)
-  - [DiscoverNodes() blocking semantics](#discovernodes-blocking-semantics)
-  - [opensearchtransport.Route interface gained OpID()](#opensearchtransportroute-interface-gained-opid)
-  - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
-  - [Response.Body becomes a method](#responsebody-becomes-a-method)
-- [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
-  - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
-  - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
-  - [v5preview/opensearchapi/ package - v5 preview API surface](#v5previewopensearchapi-package---v5-preview-api-surface)
-- [Upgrading to >= 4.0.0](#upgrading-to->=-4.0.0)
-  - [Import path](#import-path)
-  - [Error types](#error-types)
-  - [AWS signer](#aws-signer)
-  - [Typed failure arrays in by-query and reindex responses](#typed-failure-arrays-in-by-query-and-reindex-responses)
-  - [Inline `_shards` structs replaced with ResponseShards](#inline-_shards-structs-replaced-with-responseshards)
-  - [`_type` field tags now include omitempty](#_type-field-tags-now-include-omitempty)
-  - [Import path](#import-path)
-  - [Error types](#error-types)
-  - [AWS signer](#aws-signer)
-- [Upgrading to >= 3.0.0](#upgrading-to->=-3.0.0)
-  - [Client creation](#client-creation)
-  - [Requests](#requests)
-  - [Responses](#responses)
-  - [Error handling](#error-handling)
-  - [API reorganization](#api-reorganization)
-- [Upgrading to >= 2.3.0](#upgrading-to->=-2.3.0)
-  - [Snapshot delete](#snapshot-delete)
+- [Upgrading OpenSearch Go Client](#upgrading-opensearch-go-client)
+  - [Upgrading to >= 5.0.0](#upgrading-to->=-5.0.0)
+    - [Partial failure errors (Config.Errors)](#partial-failure-errors-configerrors)
+    - [Default Router Injection in v5preview](#default-router-injection-in-v5preview)
+    - [DiscoverNodes() blocking semantics](#discovernodes-blocking-semantics)
+    - [opensearchtransport.Route interface gained OpID()](#opensearchtransportroute-interface-gained-opid)
+    - [Response.Body becomes a method](#responsebody-becomes-a-method)
+  - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
+    - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
+    - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
+    - [v5preview/opensearchapi/ package - v5 preview API surface](#v5previewopensearchapi-package---v5-preview-api-surface)
+  - [Upgrading to >= 4.0.0](#upgrading-to->=-4.0.0)
+    - [Import path](#import-path)
+    - [Error types](#error-types)
+    - [StringError for unknown JSON responses](#stringerror-for-unknown-json-responses)
+    - [AWS signer](#aws-signer)
+    - [Typed failure arrays in by-query and reindex responses](#typed-failure-arrays-in-by-query-and-reindex-responses)
+    - [Inline `_shards` structs replaced with ResponseShards](#inline-_shards-structs-replaced-with-responseshards)
+    - [`_type` field tags now include omitempty](#_type-field-tags-now-include-omitempty)
+  - [Upgrading to >= 3.0.0](#upgrading-to->=-3.0.0)
+    - [Client creation](#client-creation)
+    - [Requests](#requests)
+    - [Responses](#responses)
+    - [Error handling](#error-handling)
+    - [API reorganization](#api-reorganization)
+  - [Upgrading to >= 2.3.0](#upgrading-to->=-2.3.0)
+    - [Snapshot delete](#snapshot-delete)
 
 # Upgrading OpenSearch Go Client
 
@@ -136,48 +134,6 @@ type Route interface {
 ```
 
 External code that implements `Route` (custom routing policies) must add an `OpID() OperationID` method returning the [`OperationID`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4/opensearchtransport#OperationID) for the route -- typically the `Op*` constant matching the route's HTTP method+path. Built-in routes built via `NewRouteMux` are populated automatically; only hand-written `Route` implementations are affected.
-
-### StringError for Unknown JSON Responses
-
-Version 5.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.
-
-Before 5.0.0:
-
-```go
-docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
-if err != nil {
-	fmt.Println(err)
-
-	if !errors.Is(err, opensearch.ErrJSONUnmarshalBody) && docDelResp != nil {
-		resp := docDelResp.Inspect().Response
-		// get http status
-		fmt.Println(resp.StatusCode)
-		body := strings.TrimPrefix(err.Error(), "opensearch error response could not be parsed as error: ")
-		errResp := opensearchapi.DocumentDeleteResp{}
-		json.Unmarshal([]byte(body), &errResp)
-		// extract result field from the body
-		fmt.Println(errResp.Result)
-	}
-}
-```
-
-After 5.0.0:
-
-```go
-docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
-if err != nil {
-	// parse into *opensearch.StringError
-	var myStringErr *opensearch.StringError
-	if errors.As(err, &myStringErr) {
-		// get http status
-		fmt.Println(myStringErr.Status)
-		errResp := opensearchapi.DocumentDeleteResp{}
-		json.Unmarshal([]byte(myStringErr.Err), &errResp)
-		// extract result field from the body
-		fmt.Println(errResp.Result)
-	}
-}
-```
 
 ### `Response.Body` becomes a method
 
@@ -314,6 +270,48 @@ if errors.As(err, &opensearchError) {
 var opensearchError *opensearch.StructError
 if errors.As(err, &opensearchError) {
     fmt.Println(opensearchError.Err.Type)
+}
+```
+
+### StringError for Unknown JSON Responses
+
+Version 4.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.
+
+Before 4.0.0:
+
+```go
+docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
+if err != nil {
+	fmt.Println(err)
+
+	if !errors.Is(err, opensearch.ErrJSONUnmarshalBody) && docDelResp != nil {
+		resp := docDelResp.Inspect().Response
+		// get http status
+		fmt.Println(resp.StatusCode)
+		body := strings.TrimPrefix(err.Error(), "opensearch error response could not be parsed as error: ")
+		errResp := opensearchapi.DocumentDeleteResp{}
+		json.Unmarshal([]byte(body), &errResp)
+		// extract result field from the body
+		fmt.Println(errResp.Result)
+	}
+}
+```
+
+After 4.0.0:
+
+```go
+docDelResp, err = client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "3"})
+if err != nil {
+	// parse into *opensearch.StringError
+	var myStringErr *opensearch.StringError
+	if errors.As(err, &myStringErr) {
+		// get http status
+		fmt.Println(myStringErr.Status)
+		errResp := opensearchapi.DocumentDeleteResp{}
+		json.Unmarshal([]byte(myStringErr.Err), &errResp)
+		// extract result field from the body
+		fmt.Println(errResp.Result)
+	}
 }
 ```
 
