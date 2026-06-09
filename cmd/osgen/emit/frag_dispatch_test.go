@@ -306,6 +306,86 @@ func TestDispatchFragment_Imports(t *testing.T) {
 	}
 }
 
+// TestPerOpErrorTypeName_CatalogConsistency pins the catalog <-> switch
+// coupling between [emit.PerOpErrorTypeName] and
+// [errwrap.OperationWrappers]. It asserts three directions, all keyed
+// off groups present in either side:
+//
+//  1. every group naming a per-op aggregator type has 2+ wrappers in
+//     the catalog (otherwise the per-op type is referenced from
+//     generated code but the catalog says only 0 or 1 wrappers exist);
+//  2. every catalog entry with 2+ wrappers names a per-op aggregator
+//     type (otherwise the dispatch emits an empty per-op type name);
+//  3. every group named by the switch is present in the catalog at all
+//     (otherwise a switch arm exists for a group neither loop above
+//     would iterate, so it could go stale silently).
+//
+// What this does NOT pin: the runtime emission decision is gated by
+// `len(emittable) >= 2` from [DispatchFragment.emittableWrappers],
+// which further filters the catalog through the emission `wrappers`
+// map and per-wrapper `Applies` predicates, and by
+// `resolveErrorWrappers` (which prefers the spec extension
+// `x-error-responses` over the catalog). Today those sets coincide for
+// the only 2+-wrapper groups (`msearch` / `msearch_template`); a
+// future spec edit or wrapper-table change could still desync those
+// without this test failing. Tracked separately if it ever matters.
+func TestPerOpErrorTypeName_CatalogConsistency(t *testing.T) {
+	t.Parallel()
+
+	// switchGroups enumerates every group named by perOpErrorTypeName's
+	// hardcoded switch. Kept in sync with the switch by hand: when a new
+	// arm is added there, add it here too. (3) below catches the inverse
+	// drift -- a switch arm whose group never reaches the catalog.
+	switchGroups := []string{
+		errwrap.GroupMSearch,
+		errwrap.GroupMSearchTemplate,
+	}
+
+	// (1) Forward: every group the catalog names with a per-op
+	// aggregator type must declare 2+ wrappers there.
+	for group := range errwrap.OperationWrappers {
+		typeName := emit.PerOpErrorTypeName(group)
+		if typeName == "" {
+			continue
+		}
+		t.Run("type_for_"+group, func(t *testing.T) {
+			t.Parallel()
+			require.GreaterOrEqual(t, len(errwrap.OperationWrappers[group]), 2,
+				"group %q has per-op error type %q but only %d wrapper(s) in OperationWrappers; either add wrappers or remove the switch arm",
+				group, typeName, len(errwrap.OperationWrappers[group]))
+		})
+	}
+
+	// (2) Reverse: every catalog entry with 2+ wrappers must name a
+	// per-op aggregator type.
+	for group, wrappers := range errwrap.OperationWrappers {
+		if len(wrappers) < 2 {
+			continue
+		}
+		t.Run("catalog_entry_"+group, func(t *testing.T) {
+			t.Parallel()
+			require.NotEmpty(t, emit.PerOpErrorTypeName(group),
+				"group %q declares %d wrappers %v in OperationWrappers but PerOpErrorTypeName returns empty; add a switch arm and a hand-written %q-style aggregator type",
+				group, len(wrappers), wrappers, group)
+		})
+	}
+
+	// (3) Switch-arm catalog presence: every group named by the
+	// per-op switch must appear in OperationWrappers. A switch arm
+	// for a group missing from the catalog is dead code: neither
+	// loop above iterates it, so without this check it could
+	// outlive the catalog entry that justified it.
+	for _, group := range switchGroups {
+		t.Run("switch_arm_in_catalog_"+group, func(t *testing.T) {
+			t.Parallel()
+			_, ok := errwrap.OperationWrappers[group]
+			require.True(t, ok,
+				"perOpErrorTypeName has a switch arm for group %q but the group is absent from errwrap.OperationWrappers; remove the arm or restore the catalog entry",
+				group)
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // PartialFailureFragment: per-Resp helper methods + aggregator
 // ---------------------------------------------------------------------------
