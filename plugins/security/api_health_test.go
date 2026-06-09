@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	ossectest "github.com/opensearch-project/opensearch-go/v5/plugins/security/internal/test"
 )
 
 func TestSecurityHealthClient(t *testing.T) {

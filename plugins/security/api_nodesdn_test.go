@@ -17,13 +17,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/plugins/security"
-	ossectest "github.com/opensearch-project/opensearch-go/v4/plugins/security/internal/test"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/plugins/security"
+	ossectest "github.com/opensearch-project/opensearch-go/v5/plugins/security/internal/test"
 )
 
 func TestSecurityNodesDNClient(t *testing.T) {
 	testutil.SkipIfNotSecure(t)
+	ossectest.SkipPreWriteRaceVersion(t)
 	config := ossectest.ClientConfig(t)
 
 	clientTLSCert, err := tls.LoadX509KeyPair("../../admin.pem", "../../admin.key")

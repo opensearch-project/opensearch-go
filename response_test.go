@@ -32,7 +32,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v5"
 )
 
 // String uses a value receiver and is non-consuming, so both Response and

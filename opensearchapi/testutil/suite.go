@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/mod/semver"
 
-	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // OpenSearchTestSuite provides a testify suite with automatic client setup and readiness checking

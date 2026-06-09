@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // getTestConfig returns a Config configured for the test environment (secure or insecure).

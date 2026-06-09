@@ -22,8 +22,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // TestMurmur3ShardRouting_Integration creates a real index, queries the

@@ -10,8 +10,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 )
 
 // ConfigGetReq represents possible options for the securityconfig get request
@@ -61,6 +61,18 @@ type ConfigDynamic struct {
 	OnBehalfOf                   *struct {
 		Enabled bool `json:"enabled"`
 	} `json:"on_behalf_of,omitempty"`
+	// Added in OpenSearch 3.7.0.
+	PrivilegesEvaluationIgnoreUnauthorizedIndices *bool `json:"privileges_evaluation_ignore_unauthorized_indices,omitempty"`
+	// Added in OpenSearch 3.7.0.
+	APITokens *ConfigDynamicAPITokens `json:"api_tokens,omitempty"`
+}
+
+// ConfigDynamicAPITokens is a sub type of ConfigDynamic describing the API
+// token service settings. Added in OpenSearch 3.7.0.
+type ConfigDynamicAPITokens struct {
+	Enabled            *bool  `json:"enabled,omitempty"`
+	MaxDurationSeconds *int64 `json:"max_duration_seconds,omitempty"`
+	MaxTokens          *int64 `json:"max_tokens,omitempty"`
 }
 
 // ConfigDynamicKibana is a sub type of ConfigDynamic containing security settings for kibana

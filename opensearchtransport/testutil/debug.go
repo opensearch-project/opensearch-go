@@ -38,7 +38,7 @@ package testutil
 import (
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // IsDebugEnabled returns true when OPENSEARCH_GO_DEBUG is set to a

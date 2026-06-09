@@ -13,8 +13,8 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
-	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 // TestNewClient_RouterInjection covers the v5-specific contract

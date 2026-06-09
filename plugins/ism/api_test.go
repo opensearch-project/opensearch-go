@@ -14,10 +14,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/plugins/ism"
-	osismtest "github.com/opensearch-project/opensearch-go/v4/plugins/ism/internal/test"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/plugins/ism"
+	osismtest "github.com/opensearch-project/opensearch-go/v5/plugins/ism/internal/test"
 )
 
 func TestClient(t *testing.T) {
@@ -84,7 +84,7 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		osClient.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: testIndex})
+		osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: testIndex})
 	})
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: testIndex[0]})
 	require.NoError(t, err)
@@ -100,7 +100,7 @@ func TestClient(t *testing.T) {
 			t.Parallel()
 			addIndex := []string{testutil.MustUniqueString(t, "test-add-okay")}
 			t.Cleanup(func() {
-				osClient.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{Indices: addIndex})
+				osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: addIndex})
 			})
 			_, err := osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: addIndex[0]})
 			require.NoError(t, err)

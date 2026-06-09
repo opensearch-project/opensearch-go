@@ -1,6 +1,6 @@
-# opensearchapi (v5 preview)
+# opensearchapi
 
-Package `opensearchapi` (v5 preview) provides a strongly-typed Go client for the OpenSearch REST API. It is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification) by `cmd/osgen`.
+Package `opensearchapi` provides a strongly-typed Go client for the OpenSearch REST API. It is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification) by `cmd/osgen`.
 
 ## Installation
 
@@ -140,7 +140,7 @@ if err != nil {
 }
 ```
 
-OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). v5 surfaces those as typed Go errors by default. See [Partial Failure Errors](#partial-failure-errors) for the full model.
+OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). `opensearchapi` surfaces those as typed Go errors by default. See [Partial Failure Errors](#partial-failure-errors) for the full model.
 
 ## Query Parameters
 
@@ -172,22 +172,22 @@ params := opensearchapi.SomeParams{
 }
 ```
 
-`ToPointer` is deprecated and will be removed in v5. Once the module's go directive moves to Go 1.26, callers can drop it entirely in favor of the native `new(value)` literal form (e.g. `new("all")`).
+`ToPointer` is deprecated. Once the module's go directive reaches Go 1.26, callers can drop it in favor of the native `new(value)` literal form (e.g. `new("all")`).
 
 ## Partial Failure Errors
 
-OpenSearch returns HTTP 200 even when a request only partially succeeded: bulk operations whose items failed individually, searches that lost some shards, writes whose replica shards rejected the request. v5 turns those partial failures into typed Go errors so they surface through the idiomatic `if err != nil` path.
+OpenSearch returns HTTP 200 even when a request only partially succeeded: bulk operations whose items failed individually, searches that lost some shards, writes whose replica shards rejected the request. `opensearchapi` turns those partial failures into typed Go errors so they surface through the idiomatic `if err != nil` path.
 
 ### Default behavior
 
 `Config.Errors` is a `*errmask.ErrorMask` pointer. A set bit suppresses (masks) that category; an unset bit reports it.
 
-| Value                               | Meaning                                                |
-| ----------------------------------- | ------------------------------------------------------ |
-| `nil` (default)                     | Use v5's default: `errmask.Empty` -- report everything |
-| `errmask.New()`                     | Report every category                                  |
-| `errmask.New(errmask.All)`          | Mask everything (mimics the v4 default)                |
-| `errmask.New(errmask.SearchShards)` | Mask only that category                                |
+| Value                               | Meaning                                 |
+| ----------------------------------- | --------------------------------------- |
+| `nil` (default)                     | `errmask.Empty` -- report everything    |
+| `errmask.New()`                     | Report every category                   |
+| `errmask.New(errmask.All)`          | Mask everything (mimics the v4 default) |
+| `errmask.New(errmask.SearchShards)` | Mask only that category                 |
 
 `errmask.None` and `errmask.Unknown` are aliases for `errmask.Empty`. The named values are constants and are not addressable, so build the `*errmask.ErrorMask` with `errmask.New(...)`.
 
@@ -214,7 +214,7 @@ export OPENSEARCH_GO_ERROR_MASK="search_shards"
 # Mask everything (mimics the v4 default)
 export OPENSEARCH_GO_ERROR_MASK="all"
 
-# Report everything (the v5 default)
+# Report everything (the default)
 export OPENSEARCH_GO_ERROR_MASK="none"
 ```
 
@@ -325,16 +325,16 @@ For the full best-practices guide (retry strategies, threshold tuning, manual pa
 
 ## Default Router Injection
 
-`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. v5 opts every client into intelligent request routing -- role-aware dispatch with RTT-based scoring, congestion-window AIMD, and shard-cost weighting -- by default.
+`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil, so requests are routed by node role by default. Set `Config.Client.Router` to supply your own, or `OPENSEARCH_GO_ROUTER=false` to opt out. See [`../guides/routing.md`](../guides/routing.md) for the routing model.
 
 The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
 
-| `OPENSEARCH_GO_ROUTER` | v5 behavior                                             |
+| `OPENSEARCH_GO_ROUTER` | Behavior                                                |
 | ---------------------- | ------------------------------------------------------- |
-| unset                  | default Router injected, no auto-discovery              |
+| unset                  | default Router injected, auto-discovery on              |
 | `true` / `1`           | default Router injected, auto-discovery on              |
 | `false` / `0`          | injection skipped (Router stays nil), no auto-discovery |
-| unparseable            | default Router injected, no auto-discovery              |
+| unparseable            | default Router injected, auto-discovery on              |
 
 ```go
 // Default: NewDefaultRouter is injected.

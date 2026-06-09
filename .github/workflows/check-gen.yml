@@ -17,7 +17,7 @@ jobs:
         run: make -j gen
       - name: Check for diff
         run: |
-          if ! git diff --exit-code internal/path/builders_gen.go internal/path/builders_gen_test.go v5preview/opensearchapi/; then
+          if ! git diff --exit-code internal/path/builders_gen.go internal/path/builders_gen_test.go opensearchapi/; then
             echo "::warning::Generated code is out of date. Run 'make gen' and commit the result."
             exit 1
           fi

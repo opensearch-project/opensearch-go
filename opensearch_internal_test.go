@@ -42,9 +42,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
 var called int
@@ -356,7 +356,8 @@ func TestResponseString_ErrorBodyNotDrained(t *testing.T) {
 	require.NotNil(t, resp.rawBody, "Do should buffer error-response bodies into rawBody")
 
 	// Logging the error via String (value copy, as fmt makes) must not drain Body.
-	_ = fmt.Sprintf("%s", *resp)
+	valueCopy := *resp
+	_ = valueCopy.String()
 
 	// ParseError still reads the intact body and surfaces the real API error,
 	// not ErrJSONUnmarshalBody from an empty payload.
@@ -413,8 +414,13 @@ func TestDoPerformErrorClassification(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Disable on-start discovery: this test swaps c.Transport after
+			// construction, which would race with the discovery goroutine that
+			// the default (router-on) config otherwise spawns.
+			noDiscovery := false
 			c, err := NewClient(Config{
-				Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+				Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+				DiscoverNodesOnStart: &noDiscovery,
 			})
 			require.NoError(t, err)
 

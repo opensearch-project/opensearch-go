@@ -9,9 +9,9 @@ package ism
 import (
 	"net/http"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 // PoliciesDeleteReq represents possible options for the policies get request

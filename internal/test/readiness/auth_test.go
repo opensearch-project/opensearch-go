@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
+	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
 )
 
 func TestIsPermanentAuthErr(t *testing.T) {
