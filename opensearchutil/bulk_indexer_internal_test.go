@@ -539,7 +539,7 @@ func TestBulkIndexerContext(t *testing.T) {
 				require.Equal(t, nilReturns, stats.NumAdded, "NumAdded must equal the number of Add() calls that returned nil")
 				require.Equal(t, errReturns, stats.BulkAddFailCount, "BulkAddFailCount must equal the number of Add() calls that returned ctx.Err()")
 				require.Equal(t, uint64(numAttempts), stats.NumAdded+stats.BulkAddFailCount, "every Add() must be accounted for exactly once")
-				require.Greater(t, errReturns, uint64(0), "at least one Add() should fail when context is already cancelled")
+				require.Positive(t, errReturns, "at least one Add() should fail when context is already cancelled")
 			},
 		},
 		{
