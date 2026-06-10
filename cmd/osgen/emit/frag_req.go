@@ -57,6 +57,9 @@ func (f *ReqFragment) Body() (string, error) {
 		"availabilityNote": AvailabilityNote,
 		"qualify":          qualify,
 		"hasSensitiveBody": hasSensitiveBody,
+		"hasFormatOverride": func(group string) bool {
+			return HasFormatOverride(group) != ""
+		},
 	}).Parse(reqTmplStr))
 
 	var sb strings.Builder
@@ -188,6 +191,13 @@ func (r {{.TypePrefix}}Req) GetRequest(method string) (*http.Request, error) {
 	var params map[string]string
 	if r.Params != nil {
 		params = r.Params.get()
+{{- if hasFormatOverride .Group}}
+	} else {
+		// This operation defaults the format query param (the typed Resp
+		// only decodes that format). The default lives in Params.get(), so
+		// build it from a zero-value Params when the caller passes none.
+		params = {{.TypePrefix}}Params{}.get()
+{{- end}}
 	}
 
 {{- if .IsNDJSON}}
