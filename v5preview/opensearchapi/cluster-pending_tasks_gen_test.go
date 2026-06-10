@@ -34,7 +34,7 @@ func TestClusterPendingTasksReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterPendingTasksReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/pending_tasks",
 			wantErr:    false,
 		},

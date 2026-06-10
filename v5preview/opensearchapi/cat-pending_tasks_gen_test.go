@@ -34,7 +34,7 @@ func TestCatPendingTasksReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatPendingTasksReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/pending_tasks",
 			wantErr:    false,
 		},

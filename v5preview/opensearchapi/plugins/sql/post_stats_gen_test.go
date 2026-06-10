@@ -11,6 +11,7 @@
 package sql_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestPostStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        sql.PostStatsReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_sql/stats",
 			wantErr:    false,
 		},

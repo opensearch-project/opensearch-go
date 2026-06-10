@@ -34,7 +34,7 @@ func TestCatHealthReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatHealthReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/health",
 			wantErr:    false,
 		},

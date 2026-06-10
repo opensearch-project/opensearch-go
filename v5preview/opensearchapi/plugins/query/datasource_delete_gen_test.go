@@ -11,6 +11,7 @@
 package query_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDatasourceDeleteReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        query.DatasourceDeleteReq{DatasourceName: "test-datasourcename"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_query/_datasources/test-datasourcename",
 			wantErr:    false,
 		},

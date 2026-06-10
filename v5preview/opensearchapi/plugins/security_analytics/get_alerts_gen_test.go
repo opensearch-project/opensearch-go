@@ -11,6 +11,7 @@
 package security_analytics_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetAlertsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security_analytics.GetAlertsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security_analytics/alerts",
 			wantErr:    false,
 		},

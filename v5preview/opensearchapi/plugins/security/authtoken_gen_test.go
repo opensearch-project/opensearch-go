@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestAuthtokenReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.AuthtokenReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_security/api/authtoken",
 			wantErr:    false,
 		},

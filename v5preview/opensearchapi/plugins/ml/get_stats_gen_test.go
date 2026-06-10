@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.GetStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/stats",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ml.GetStatsReq{Stat: []string{"a", "b"}, NodeID: "test-nodeid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/test-nodeid/stats/a,b",
 			wantErr:    false,
 		},

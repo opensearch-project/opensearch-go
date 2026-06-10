@@ -41,7 +41,7 @@ func TestSnapshotGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotGetReq{Repository: "test-repository", Snapshot: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_snapshot/test-repository/a,b",
 			wantErr:    false,
 		},

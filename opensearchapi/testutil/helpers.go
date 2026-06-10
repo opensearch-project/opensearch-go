@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wI2L/jsondiff"
 	"golang.org/x/mod/semver"
@@ -432,13 +431,15 @@ func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Re
 
 			operations = append(operations, operation)
 		}
-		assert.Empty(t, operations)
-		if len(operations) == 0 {
-			return
+		// Print per-operation diagnostics before asserting so a failing
+		// schema comparison surfaces the diff. require.Empty halts the
+		// test, so anything after it would be unreachable.
+		if len(operations) > 0 {
+			for _, op := range operations {
+				t.Logf("%s", op)
+			}
+			t.Logf("%s", body)
 		}
-		for _, op := range operations {
-			fmt.Printf("%s\n", op)
-		}
-		fmt.Printf("%s\n", body)
+		require.Empty(t, operations)
 	}
 }

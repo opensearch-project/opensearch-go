@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ltr.StatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ltr/stats",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ltr.StatsReq{Stat: []string{"a", "b"}, NodeID: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ltr/a,b/stats/a,b",
 			wantErr:    false,
 		},

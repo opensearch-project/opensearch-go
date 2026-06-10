@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteDistinguishedNameReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.DeleteDistinguishedNameReq{ClusterName: "test-clustername"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_security/api/nodesdn/test-clustername",
 			wantErr:    false,
 		},

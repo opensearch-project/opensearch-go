@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestCreateModelFromSetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ltr.CreateModelFromSetReq{Name: "test-name", Store: "test-store"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_ltr/test-store/_featureset/test-name/_createmodel",
 			wantErr:    false,
 		},

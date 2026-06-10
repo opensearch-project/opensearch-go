@@ -234,6 +234,11 @@ func (c *Client) Clone() *Client {
 }
 
 // do calls [opensearch.Do] and checks the response for OpenSearch API errors.
+//
+// [opensearch.Do] routes through the buffered [opensearchtransport.Client.Perform],
+// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
+// connection has been drained and returned to the pool. The helper only needs
+// to translate IsError into a typed error.
 func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
 	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
@@ -243,9 +248,8 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 	if resp.IsError() {
 		if dataPointer != nil {
 			return resp, opensearch.ParseError(resp)
-		} else {
-			return resp, fmt.Errorf("status: %s", resp.Status())
 		}
+		return resp, fmt.Errorf("status: %s", resp.Status())
 	}
 
 	return resp, nil

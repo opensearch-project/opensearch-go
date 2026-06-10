@@ -41,7 +41,7 @@ func TestSnapshotCleanupRepositoryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotCleanupRepositoryReq{Repository: "test-repository"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_snapshot/test-repository/_cleanup",
 			wantErr:    false,
 		},

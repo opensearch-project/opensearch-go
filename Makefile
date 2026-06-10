@@ -3,7 +3,29 @@ SHELL := /bin/bash
 # Tool versions
 GOLANGCI_LINT_VERSION := v2.12.2
 
-GOLANGCI_LINT_BUILD_TAGS := "integration core plugins plugin_security plugin_index_management multinode"
+# Build tags for linting.
+#
+# golangci-lint can only compile ONE point in the build-tag space per run, so a
+# single invocation can never lint every file. Two mutually-exclusive boolean
+# axes partition the tree:
+#   - integration vs !integration: every unit *_test.go is `!integration`; every
+#     integration test is `integration`. Setting `integration` drops all unit
+#     test files from the type-check, and omitting it drops all integration ones.
+#   - multinode vs !multinode (within integration only): the single-node
+#     integration files are `!multinode`; the multinode ones require `multinode`.
+# The feature tags below are pure-OR alternatives -- `core` satisfies every
+# `(core || X)` constraint and `plugins` every `(plugins || X)` one -- so they
+# union harmlessly into every run. Complete coverage therefore requires running
+# golangci-lint once per (integration, multinode) combination with the feature
+# tags unioned in. GOLANGCI_LINT_TAG_SETS enumerates those runs; each element is
+# one quoted --build-tags argument. GOLANGCI_LINT_BUILD_TAGS is retained as the
+# maximal set for the osgen module, which has no build-constrained files.
+GOLANGCI_LINT_FEATURE_TAGS := core plugins plugin_security plugin_index_management
+GOLANGCI_LINT_BUILD_TAGS := "integration $(GOLANGCI_LINT_FEATURE_TAGS) multinode"
+GOLANGCI_LINT_TAG_SETS := \
+	"$(GOLANGCI_LINT_FEATURE_TAGS)" \
+	"integration $(GOLANGCI_LINT_FEATURE_TAGS)" \
+	"integration $(GOLANGCI_LINT_FEATURE_TAGS) multinode"
 
 # Container runtime detection: prefer nerdctl (containerd), fall back to docker.
 # Override with CONTAINER_RUNTIME=docker or CONTAINER_RUNTIME=nerdctl.
@@ -204,9 +226,12 @@ lint:  ## Run lint on the package
 lint.headers:  ## Check license headers on all Go files (same check as CI)
 	@.github/check-license-headers.sh
 
-lint.local:  ## Run lint locally (not in Docker) with all build tags
-	@printf "\033[2m-> Running golangci-lint locally with all build tags...\033[0m\n"
-	golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
+lint.local:  ## Run lint locally (not in Docker) across all build-tag combinations
+	@printf "\033[2m-> Running golangci-lint locally across all build-tag sets...\033[0m\n"
+	@for tags in $(GOLANGCI_LINT_TAG_SETS); do \
+		printf "\033[2m   --build-tags %s\033[0m\n" "$$tags"; \
+		golangci-lint run --fix --build-tags "$$tags" --timeout=5m -v ./... || exit $$?; \
+	done
 	@printf "\033[2m-> Running golangci-lint in cmd/osgen (separate Go module)...\033[0m\n"
 	cd cmd/osgen && golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
 
@@ -781,7 +806,10 @@ cluster.latency.show:  ## Show current tc qdisc rules on each node
 	done
 
 linters:
-	$(CTR) run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/$(GOLANGCI_LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
+	@for tags in $(GOLANGCI_LINT_TAG_SETS); do \
+		printf "\033[2m-> golangci-lint --build-tags %s\033[0m\n" "$$tags"; \
+		$(CTR) run -t --rm -v $$(pwd):/app -v ~/.cache/golangci-lint/$(GOLANGCI_LINT_VERSION):/root/.cache -w /app golangci/golangci-lint:$(GOLANGCI_LINT_VERSION) golangci-lint run --fix --build-tags "$$tags" --timeout=5m -v ./... || exit $$?; \
+	done
 
 ##@ GitHub CI
 #------------------------------------------------------------------------------

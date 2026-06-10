@@ -41,7 +41,7 @@ func TestClusterDeleteComponentTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterDeleteComponentTemplateReq{Name: "test-name"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_component_template/test-name",
 			wantErr:    false,
 		},

@@ -41,7 +41,7 @@ func TestIndicesExistsReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesExistsReq{Index: []string{"a", "b"}},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/a,b",
 			wantErr:    false,
 		},

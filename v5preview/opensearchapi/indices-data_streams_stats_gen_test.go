@@ -34,14 +34,14 @@ func TestIndicesDataStreamsStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesDataStreamsStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_data_stream/_stats",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesDataStreamsStatsReq{Name: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_data_stream/a,b/_stats",
 			wantErr:    false,
 		},

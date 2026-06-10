@@ -42,7 +42,7 @@ func TestClusterPutComponentTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterPutComponentTemplateReq{Name: "test-name"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_component_template/test-name",
 			wantErr:    false,
 		},

@@ -35,14 +35,14 @@ func TestIndicesSimulateTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesSimulateTemplateReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_index_template/_simulate",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesSimulateTemplateReq{Name: "test-name"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_index_template/_simulate/test-name",
 			wantErr:    false,
 		},

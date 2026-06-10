@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestRemovePolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ism.RemovePolicyReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/remove",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ism.RemovePolicyReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/remove/a,b",
 			wantErr:    false,
 		},

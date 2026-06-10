@@ -11,6 +11,7 @@
 package rollups_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        rollups.GetReq{ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_rollup/jobs/test-id",
 			wantErr:    false,
 		},

@@ -41,7 +41,7 @@ func TestIndicesGetFieldMappingReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesGetFieldMappingReq{Fields: []string{"a", "b"}, Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_mapping/field/a,b",
 			wantErr:    false,
 		},

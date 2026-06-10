@@ -226,7 +226,7 @@ func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (NextHop
 // PolicySnapshot returns a point-in-time snapshot of this policy's pool.
 func (p *RoundRobinPolicy) PolicySnapshot() PolicySnapshot {
 	if p.pool == nil {
-		return PolicySnapshot{Name: "roundrobin"}
+		return PolicySnapshot{Name: policyTypeNameRoundRobin}
 	}
 	snap := p.pool.snapshot()
 	snap.Enabled = psIsEnabled(p.policyState.Load())

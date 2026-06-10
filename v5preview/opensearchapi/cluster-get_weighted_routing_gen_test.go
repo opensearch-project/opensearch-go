@@ -41,7 +41,7 @@ func TestClusterGetWeightedRoutingReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterGetWeightedRoutingReq{Attribute: "test-attribute"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/routing/awareness/test-attribute/weights",
 			wantErr:    false,
 		},

@@ -42,7 +42,7 @@ func TestIndexReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndexReq{Index: "test-index", ID: "test-id"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test-index/_doc/test-id",
 			wantErr:    false,
 		},

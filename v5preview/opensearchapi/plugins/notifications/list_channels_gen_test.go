@@ -11,6 +11,7 @@
 package notifications_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestListChannelsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        notifications.ListChannelsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_notifications/channels",
 			wantErr:    false,
 		},

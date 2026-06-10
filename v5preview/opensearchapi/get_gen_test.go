@@ -41,7 +41,7 @@ func TestGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.GetReq{Index: "test-index", ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/test-index/_doc/test-id",
 			wantErr:    false,
 		},

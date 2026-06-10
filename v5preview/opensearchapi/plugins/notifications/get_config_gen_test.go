@@ -11,6 +11,7 @@
 package notifications_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetConfigReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        notifications.GetConfigReq{ConfigID: "test-configid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_notifications/configs/test-configid",
 			wantErr:    false,
 		},

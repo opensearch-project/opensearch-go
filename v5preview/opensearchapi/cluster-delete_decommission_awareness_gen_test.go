@@ -34,7 +34,7 @@ func TestClusterDeleteDecommissionAwarenessReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterDeleteDecommissionAwarenessReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_cluster/decommission/awareness",
 			wantErr:    false,
 		},
