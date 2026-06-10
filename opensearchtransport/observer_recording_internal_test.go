@@ -13,9 +13,10 @@ import "sync"
 type recordingObserver struct {
 	BaseConnectionObserver
 
-	mu          sync.Mutex
-	events      map[string][]ConnectionEvent
-	routeEvents []RouteEvent
+	mu            sync.Mutex
+	events        map[string][]ConnectionEvent
+	routeEvents   []RouteEvent
+	rewriteEvents []AddressRewriteEvent
 }
 
 func newRecordingObserver() *recordingObserver {
@@ -64,4 +65,16 @@ func (o *recordingObserver) OnRoute(e RouteEvent) {
 	o.mu.Lock()
 	o.routeEvents = append(o.routeEvents, e)
 	o.mu.Unlock()
+}
+
+func (o *recordingObserver) OnAddressRewrite(e AddressRewriteEvent) {
+	o.mu.Lock()
+	o.rewriteEvents = append(o.rewriteEvents, e)
+	o.mu.Unlock()
+}
+
+func (o *recordingObserver) getRewriteEvents() []AddressRewriteEvent {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return append([]AddressRewriteEvent(nil), o.rewriteEvents...)
 }
