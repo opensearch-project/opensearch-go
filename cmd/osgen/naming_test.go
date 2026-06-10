@@ -33,6 +33,15 @@ func TestTitleSegment(t *testing.T) {
 		{name: "ssl acronym", input: "ssl", want: "SSL"},
 		{name: "api acronym", input: "api", want: "API"},
 		{name: "json acronym", input: "json", want: "JSON"},
+		{name: "ism acronym", input: "ism", want: "ISM"},
+		{name: "knn acronym", input: "knn", want: "KNN"},
+		{name: "ltr acronym", input: "ltr", want: "LTR"},
+		{name: "ml acronym", input: "ml", want: "ML"},
+		{name: "ppl acronym", input: "ppl", want: "PPL"},
+		{name: "sm acronym", input: "sm", want: "SM"},
+		{name: "ubi acronym", input: "ubi", want: "UBI"},
+		{name: "wlm acronym", input: "wlm", want: "WLM"},
+		{name: "whole-segment only, not substring", input: "smile", want: "Smile"},
 		{name: "empty", input: "", want: ""},
 		{name: "mixed case id", input: "ID", want: "ID"},
 		{name: "mixed case uuid", input: "UUID", want: "UUID"},
@@ -276,6 +285,12 @@ func TestSchemaTypeName(t *testing.T) {
 		{name: "group._common cluster", schemaKey: "cluster._common___ComponentTemplate", want: "ClusterComponentTemplate"},
 		{name: "acronyms", schemaKey: "security._common___SSLInfo", want: "SecuritySSLInfo"},
 		{name: "sql plugin", schemaKey: "sql._common___SQLQuery", want: "SQLQuery"},
+		{name: "ism plugin acronym", schemaKey: "ism._common___Policy", want: "ISMPolicy"},
+		{name: "knn plugin acronym", schemaKey: "knn._common___Stats", want: "KNNStats"},
+		// Embedded acronym in the local part must normalize and de-stutter:
+		// "IsmTemplate" -> "ISMTemplate", not "ISMIsmTemplate".
+		{name: "ism embedded acronym de-stutters", schemaKey: "ism._common___IsmTemplate", want: "ISMTemplate"},
+		{name: "knn embedded acronym de-stutters", schemaKey: "knn._common___KnnMethod", want: "KNNMethod"},
 		{name: "de-stutter empty result kept", schemaKey: "cluster.health___Health", want: "ClusterHealthHealth"},
 
 		// Idiomatic abbreviations: M-prefix initialisms, compound nouns,
