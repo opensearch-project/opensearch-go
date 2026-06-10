@@ -419,9 +419,9 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 {{- if .Config.FixtureCode}}
 	t.Cleanup(func() {
 {{- if .Config.IsPlugin}}
-		_, _ = osClient.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Indices: []string{index}})
 {{- else}}
-		_, _ = client.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Indices: []string{index}})
 {{- end}}
 	})
 

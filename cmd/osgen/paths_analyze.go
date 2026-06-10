@@ -249,7 +249,7 @@ func groupMetadata(paths []pathVariant) (string, string, string, string, []strin
 func (b *builder) export() {
 	rename := make(map[string]string, len(b.Fields))
 	for i, f := range b.Fields {
-		exported := pathFieldName(f.Param)
+		exported := pathFieldNameList(f.Param, f.IsList)
 		rename[f.Name] = exported
 		b.Fields[i].Name = exported
 	}
@@ -295,7 +295,7 @@ func (b *builder) export() {
 // Example: cluster.state has paths /_cluster/state, /_cluster/state/{metric},
 // and /_cluster/state/{metric}/{index}. No spec path contains {index} without
 // {metric}, so derivePositionalDeps yields {Dependent: index, Predecessor:
-// metric} and Build() rejects ClusterStatePath{Index: []string{"myidx"}} with
+// metric} and Build() rejects ClusterStatePath{Indices: []string{"myidx"}} with
 // errRequired. Without this guard, writeSegments would shift "myidx" into the
 // {metric} slot and the server would silently match against /_cluster/state/myidx.
 func derivePositionalDeps(paths []pathVariant, fields []builderField) []positionalDep {

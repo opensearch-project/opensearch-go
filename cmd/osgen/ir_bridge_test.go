@@ -54,7 +54,8 @@ func TestConvertToIR_BasicStructure(t *testing.T) {
 	require.NotNil(t, refreshOp, "indices.refresh operation not found")
 	require.Equal(t, "IndicesRefresh", refreshOp.TypePrefix)
 	require.Len(t, refreshOp.PathFields, 1)
-	require.Equal(t, "Index", refreshOp.PathFields[0].GoName)
+	// The array-capable "index" path parameter is pluralized to Indices.
+	require.Equal(t, "Indices", refreshOp.PathFields[0].GoName)
 	require.True(t, refreshOp.PathFields[0].IsList)
 }
 

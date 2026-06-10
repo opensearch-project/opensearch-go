@@ -21,6 +21,7 @@ import (
 // require special handling (dedicated test indices, valid enum values, etc.).
 const (
 	fieldIndex          = "Index"
+	fieldIndices        = "Indices"
 	fieldID             = "ID"
 	fieldDocumentID     = "DocumentID"
 	fieldNewIndex       = "NewIndex"
@@ -591,9 +592,11 @@ func optionalPathFieldAssign(f ir.PathBuilderField, skip map[string]bool) string
 		return ""
 	}
 	switch f.Name {
+	case fieldIndices:
+		return "Indices: []string{index}"
 	case fieldIndex:
 		if f.IsList {
-			return "Index: []string{index}"
+			return "Indices: []string{index}"
 		}
 		return "Index: index"
 	case fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
@@ -650,13 +653,13 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 	hasOptionalIndex := false
 	for _, f := range op.PathBuilder.Fields {
 		if !f.Required {
-			if f.Name == fieldIndex {
+			if f.Name == fieldIndex || f.Name == fieldIndices {
 				hasOptionalIndex = true
 			}
 			continue
 		}
 		switch f.Name {
-		case fieldIndex:
+		case fieldIndex, fieldIndices:
 			hasRequiredIndex = true
 		case fieldID, fieldDocumentID:
 			hasRequiredID = true
@@ -805,9 +808,11 @@ func buildReqLiteralIR(
 			continue
 		}
 		switch f.Name {
+		case fieldIndices:
+			fields = append(fields, "Indices: []string{index}")
 		case fieldIndex:
 			if f.IsList {
-				fields = append(fields, "Index: []string{index}")
+				fields = append(fields, "Indices: []string{index}")
 			} else {
 				fields = append(fields, "Index: index")
 			}
@@ -993,7 +998,7 @@ func hasOptionalNameField(op *ir.Operation) bool {
 			continue
 		}
 		switch f.Name {
-		case fieldIndex, fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
+		case fieldIndex, fieldIndices, fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
 			fieldMetric, fieldIndexMetric, fieldNodeIDOrMetric:
 			continue
 		default:
@@ -1170,7 +1175,7 @@ func buildAliasFixtureIR(corePkg string, isPlugin bool) string {
 	require.NoError(t, err)
 
 	_, err = %s.Indices.PutAlias(t.Context(), %s.IndicesPutAliasReq{
-		Index: []string{index},
+		Indices: []string{index},
 		Name: name,
 	})
 	require.NoError(t, err)`, c, corePkg, c, corePkg)
@@ -1186,7 +1191,7 @@ func buildWriteAliasFixtureIR(corePkg string, isPlugin bool) string {
 	require.NoError(t, err)
 
 	_, err = %s.Indices.PutAlias(t.Context(), %s.IndicesPutAliasReq{
-		Index: []string{index},
+		Indices: []string{index},
 		Name: name,
 		BodyReader: strings.NewReader(`+"`"+`{"is_write_index":true}`+"`"+`),
 	})

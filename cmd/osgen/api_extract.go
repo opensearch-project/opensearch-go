@@ -359,7 +359,7 @@ func buildAPIOperation(group string, ops []struct {
 			if _, isUnion := unionParams[pp.name]; isUnion {
 				continue
 			}
-			goName := pathFieldName(pp.name)
+			goName := pathFieldNameList(pp.name, pp.isList)
 			if seenPath[goName] {
 				continue
 			}
@@ -590,7 +590,6 @@ func extractQueryParamsUnion(group string, ops []struct {
 				seen[p.Name] = true
 
 				qp := apiQueryParam{
-					GoName:            pathFieldName(p.Name),
 					ParamName:         p.Name,
 					Description:       p.Description,
 					Required:          p.Required,
@@ -609,6 +608,11 @@ func extractQueryParamsUnion(group string, ops []struct {
 				} else {
 					qp.GoType = "string"
 				}
+
+				// Set GoName after classification so list-valued params can be
+				// pluralized (e.g. the array-capable "index" query param becomes
+				// Indices, matching the path-field naming).
+				qp.GoName = pathFieldNameList(p.Name, qp.IsList)
 
 				params = append(params, qp)
 			}

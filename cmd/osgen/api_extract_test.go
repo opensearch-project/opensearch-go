@@ -122,7 +122,8 @@ func TestBuildAPIOperation_PathFields(t *testing.T) {
 
 	op := ops[0]
 	require.Len(t, op.PathFields, 1)
-	require.Equal(t, "Index", op.PathFields[0].GoName)
+	// The array-capable "index" path parameter is pluralized to Indices.
+	require.Equal(t, "Indices", op.PathFields[0].GoName)
 	require.True(t, op.PathFields[0].IsList)
 }
 
@@ -471,7 +472,8 @@ func TestBuildAPIOperation_PathFieldUnion(t *testing.T) {
 
 	op := ops[0]
 	require.Len(t, op.PathFields, 1)
-	require.Equal(t, "Index", op.PathFields[0].GoName)
+	// The array-capable "index" path parameter is pluralized to Indices.
+	require.Equal(t, "Indices", op.PathFields[0].GoName)
 	require.True(t, op.PathFields[0].IsList)
 }
 
