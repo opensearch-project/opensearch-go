@@ -1001,13 +1001,13 @@ func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingHistogramProperty(v
 	}
 }
 
-// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpProperty
+	var v CommonMappingIPProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -1015,9 +1015,9 @@ func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIpProperty() (Comm
 	return v, err
 }
 
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) IndicesPutMappingBodyPropertiesValue {
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIPProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingIPProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIPProperty(v CommonMappingIPProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
 		value: &v,
 	}
@@ -1397,13 +1397,13 @@ func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIntegerRangePropert
 	}
 }
 
-// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpRangeProperty
+	var v CommonMappingIPRangeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -1411,9 +1411,9 @@ func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingIpRangeProperty() 
 	return v, err
 }
 
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) IndicesPutMappingBodyPropertiesValue {
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIPRangeProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
 		value: &v,
 	}
@@ -1441,13 +1441,13 @@ func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingLongRangeProperty(v
 	}
 }
 
-// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingKnnVectorProperty
+	var v CommonMappingKNNVectorProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -1455,9 +1455,9 @@ func (u *IndicesPutMappingBodyPropertiesValue) AsCommonMappingKnnVectorProperty(
 	return v, err
 }
 
-// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKnnVectorProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) IndicesPutMappingBodyPropertiesValue {
+// NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKNNVectorProperty returns a IndicesPutMappingBodyPropertiesValue populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewIndicesPutMappingBodyPropertiesValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) IndicesPutMappingBodyPropertiesValue {
 	return IndicesPutMappingBodyPropertiesValue{
 		value: &v,
 	}

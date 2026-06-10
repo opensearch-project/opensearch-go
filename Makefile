@@ -160,7 +160,7 @@ OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specifi
 # Generated code output directories.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
 GEN_OSAPI_DIR   := $(REPO_ROOT)/opensearchapi
-GEN_PLUGINS_DIR := $(GEN_OSAPI_DIR)/plugins
+GEN_PLUGINS_DIR := $(REPO_ROOT)/plugins
 
 # Version filtering defaults for code generation.
 # Override on the command line to scope generated code to a version window:

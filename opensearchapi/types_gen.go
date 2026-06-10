@@ -492,13 +492,13 @@ type CommonAggregationsHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBaseHistogramBucket
 }
 
-type CommonAggregationsMultiBucketAggregateBaseIpRangeBucket struct {
+type CommonAggregationsMultiBucketAggregateBaseIPRangeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets `json:"buckets"`
 }
 
-type CommonAggregationsIpRangeAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseIpRangeBucket
+type CommonAggregationsIPRangeAggregate struct {
+	CommonAggregationsMultiBucketAggregateBaseIPRangeBucket
 }
 
 type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket struct {
@@ -770,18 +770,18 @@ type SearchHitsMetadata struct {
 	Total *SearchHitsMetadataTotal `json:"total,omitempty"`
 }
 
-type SearchHitsMetadataJsonValueHitsItem struct {
+type SearchHitsMetadataJSONValueHitsItem struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-type SearchHitsMetadataJsonValue struct {
+type SearchHitsMetadataJSONValue struct {
 	SearchHitsMetadata
-	Hits []SearchHitsMetadataJsonValueHitsItem `json:"hits,omitempty"`
+	Hits []SearchHitsMetadataJSONValueHitsItem `json:"hits,omitempty"`
 }
 
 type CommonAggregationsTopHitsAggregate struct {
 	CommonAggregationsAggregateBase
-	Hits SearchHitsMetadataJsonValue `json:"hits"`
+	Hits SearchHitsMetadataJSONValue `json:"hits"`
 }
 
 // Terms bucket for `unsigned_long` field type. The server returns 64-bit unsigned integer values
@@ -2107,7 +2107,7 @@ type ScriptBase struct {
 	Params map[string]json.RawMessage `json:"params,omitempty"`
 }
 
-type StoredScriptId struct {
+type StoredScriptID struct {
 	ScriptBase
 
 	// The unique identifier for a resource.
@@ -2646,7 +2646,7 @@ type CommonQueryDSLRescoreContext struct {
 	OversampleFactor *float32 `json:"oversample_factor,omitempty"`
 }
 
-type CommonQueryDSLKnnQuery struct {
+type CommonQueryDSLKNNQuery struct {
 	CommonQueryDSLQueryBase
 
 	// Available: >= 2.19.0.
@@ -2672,7 +2672,7 @@ type CommonQueryDSLKnnQuery struct {
 	// Available: >= 2.14.0.
 	MinScore *float32 `json:"min_score,omitempty"`
 
-	Rescore *CommonQueryDSLKnnQueryRescore `json:"rescore,omitempty"`
+	Rescore *CommonQueryDSLKNNQueryRescore `json:"rescore,omitempty"`
 	Vector  []float32                      `json:"vector"`
 }
 
@@ -2868,7 +2868,7 @@ type CommonQueryDSLNeuralQuery struct {
 	QueryText   *string                       `json:"query_text,omitempty"`
 }
 
-type CommonQueryDSLParentIdQuery struct {
+type CommonQueryDSLParentIDQuery struct {
 	CommonQueryDSLQueryBase
 
 	// The unique identifier for a resource.
@@ -3235,7 +3235,7 @@ type CommonQueryDSLQueryContainer struct {
 	// Returns documents based on the order and proximity of matching terms.
 	Intervals map[string]CommonQueryDSLIntervalsQuery `json:"intervals,omitempty"`
 
-	KNN map[string]CommonQueryDSLKnnQuery `json:"knn,omitempty"`
+	KNN map[string]CommonQueryDSLKNNQuery `json:"knn,omitempty"`
 
 	// Returns documents that match a provided text, number, date or Boolean
 	// value. The provided text is analyzed before matching.
@@ -3262,7 +3262,7 @@ type CommonQueryDSLQueryContainer struct {
 	MultiMatch   *CommonQueryDSLMultiMatchQuery       `json:"multi_match,omitempty"`
 	Nested       *CommonQueryDSLNestedQuery           `json:"nested,omitempty"`
 	Neural       map[string]CommonQueryDSLNeuralQuery `json:"neural,omitempty"`
-	ParentID     *CommonQueryDSLParentIdQuery         `json:"parent_id,omitempty"`
+	ParentID     *CommonQueryDSLParentIDQuery         `json:"parent_id,omitempty"`
 	Percolate    *CommonQueryDSLPercolateQuery        `json:"percolate,omitempty"`
 
 	// Returns documents that contain a specific prefix in a provided field.
@@ -3614,7 +3614,7 @@ type CommonMappingHistogramProperty struct {
 	Type            string `json:"type"`
 }
 
-type CommonMappingIpProperty struct {
+type CommonMappingIPProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Boost           *float64 `json:"boost,omitempty"`
 	IgnoreMalformed *bool    `json:"ignore_malformed,omitempty"`
@@ -3755,7 +3755,7 @@ type CommonMappingSemanticChunkingStrategy struct {
 	Parameters map[string]json.RawMessage `json:"parameters,omitempty"`
 }
 
-type CommonMappingKnnVectorMethod struct {
+type CommonMappingKNNVectorMethod struct {
 	Engine     *string                    `json:"engine,omitempty"`
 	Name       string                     `json:"name"`
 	Parameters map[string]json.RawMessage `json:"parameters,omitempty"`
@@ -3765,7 +3765,7 @@ type CommonMappingKnnVectorMethod struct {
 type CommonMappingSemanticDenseEmbeddingConfig struct {
 	CompressionLevel *string                       `json:"compression_level,omitempty"`
 	DataType         *string                       `json:"data_type,omitempty"`
-	Method           *CommonMappingKnnVectorMethod `json:"method,omitempty"`
+	Method           *CommonMappingKNNVectorMethod `json:"method,omitempty"`
 	Mode             *string                       `json:"mode,omitempty"`
 }
 
@@ -3833,7 +3833,7 @@ type CommonMappingIntegerRangeProperty struct {
 	Type string `json:"type"`
 }
 
-type CommonMappingIpRangeProperty struct {
+type CommonMappingIPRangeProperty struct {
 	CommonMappingRangePropertyBase
 	Type string `json:"type"`
 }
@@ -3843,12 +3843,12 @@ type CommonMappingLongRangeProperty struct {
 	Type string `json:"type"`
 }
 
-type CommonMappingKnnVectorProperty struct {
+type CommonMappingKNNVectorProperty struct {
 	CommonMappingDocValuesPropertyBase
 	CompressionLevel *string                       `json:"compression_level,omitempty"`
 	DataType         *string                       `json:"data_type,omitempty"`
 	Dimension        int                           `json:"dimension"`
-	Method           *CommonMappingKnnVectorMethod `json:"method,omitempty"`
+	Method           *CommonMappingKNNVectorMethod `json:"method,omitempty"`
 	Mode             *string                       `json:"mode,omitempty"`
 	ModelID          *string                       `json:"model_id,omitempty"`
 	SpaceType        *string                       `json:"space_type,omitempty"`
@@ -4736,7 +4736,7 @@ type CommonAnalysisStandardTokenizer struct {
 	Type           string `json:"type"`
 }
 
-type CommonAnalysisUaxEmailUrlTokenizer struct {
+type CommonAnalysisUaxEmailURLTokenizer struct {
 	CommonAnalysisTokenizerBase
 	MaxTokenLength *int   `json:"max_token_length,omitempty"`
 	Type           string `json:"type"`
@@ -7847,7 +7847,7 @@ type IngestForeachProcessor struct {
 	Processor IngestProcessorContainer `json:"processor"`
 }
 
-type IngestGeoIpProcessor struct {
+type IngestGeoIPProcessor struct {
 	IngestProcessorBase
 
 	// The database filename referring to a database the module ships with
@@ -7939,7 +7939,7 @@ type IngestJoinProcessor struct {
 	TargetField *string `json:"target_field,omitempty"`
 }
 
-type IngestJsonProcessor struct {
+type IngestJSONProcessor struct {
 	IngestProcessorBase
 
 	// Flag that forces the parsed JSON to be added at the top level of the
@@ -8183,7 +8183,7 @@ type IngestUppercaseProcessor struct {
 	TargetField *string `json:"target_field,omitempty"`
 }
 
-type IngestUrlDecodeProcessor struct {
+type IngestURLDecodeProcessor struct {
 	IngestProcessorBase
 
 	// The path to a field or an array of paths. Some APIs support wildcards in
@@ -8238,11 +8238,11 @@ type IngestProcessorContainer struct {
 	Drop            *IngestDropProcessor            `json:"drop,omitempty"`
 	Fail            *IngestFailProcessor            `json:"fail,omitempty"`
 	Foreach         *IngestForeachProcessor         `json:"foreach,omitempty"`
-	Geoip           *IngestGeoIpProcessor           `json:"geoip,omitempty"`
+	Geoip           *IngestGeoIPProcessor           `json:"geoip,omitempty"`
 	Grok            *IngestGrokProcessor            `json:"grok,omitempty"`
 	Gsub            *IngestGsubProcessor            `json:"gsub,omitempty"`
 	Join            *IngestJoinProcessor            `json:"join,omitempty"`
-	JSON            *IngestJsonProcessor            `json:"json,omitempty"`
+	JSON            *IngestJSONProcessor            `json:"json,omitempty"`
 	Kv              *IngestKeyValueProcessor        `json:"kv,omitempty"`
 	Lowercase       *IngestLowercaseProcessor       `json:"lowercase,omitempty"`
 	Pipeline        *IngestPipelineProcessor        `json:"pipeline,omitempty"`
@@ -8256,7 +8256,7 @@ type IngestProcessorContainer struct {
 	TextEmbedding   *IngestTextEmbeddingProcessor   `json:"text_embedding,omitempty"`
 	Trim            *IngestTrimProcessor            `json:"trim,omitempty"`
 	Uppercase       *IngestUppercaseProcessor       `json:"uppercase,omitempty"`
-	Urldecode       *IngestUrlDecodeProcessor       `json:"urldecode,omitempty"`
+	Urldecode       *IngestURLDecodeProcessor       `json:"urldecode,omitempty"`
 	UserAgent       *IngestUserAgentProcessor       `json:"user_agent,omitempty"`
 }
 
@@ -8542,13 +8542,13 @@ type InsightsTaskResourceUsages struct {
 	Action *string `json:"action,omitempty"`
 
 	// The node ID where the task was executed.
-	NodeId *string `json:"nodeId,omitempty"`
+	NodeID *string `json:"nodeId,omitempty"`
 
 	// The parent task ID.
-	ParentTaskId *int `json:"parentTaskId,omitempty"`
+	ParentTaskID *int `json:"parentTaskId,omitempty"`
 
 	// The task ID.
-	TaskId *int `json:"taskId,omitempty"`
+	TaskID *int `json:"taskId,omitempty"`
 
 	TaskResourceUsage *InsightsTaskResourceUsage `json:"taskResourceUsage,omitempty"`
 }
@@ -8662,7 +8662,7 @@ type ISMErrorNotification struct {
 	MessageTemplate map[string]json.RawMessage `json:"message_template,omitempty"`
 }
 
-type ISMIsmTemplate struct {
+type ISMTemplate struct {
 	// The index patterns for the ISM template.
 	IndexPatterns []string `json:"index_patterns,omitempty"`
 
@@ -8932,30 +8932,30 @@ type KNNDeletedModel struct {
 	Result  string `json:"result"`
 }
 
-type SearchResultJsonValueHitsHitsItem struct {
+type SearchResultJSONValueHitsHitsItem struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-type SearchResultJsonValueHits struct {
-	Hits []SearchResultJsonValueHitsHitsItem `json:"hits,omitempty"`
+type SearchResultJSONValueHits struct {
+	Hits []SearchResultJSONValueHitsHitsItem `json:"hits,omitempty"`
 }
 
-type SearchResultJsonValueSuggestValueItemObject0OptionsObject0 struct {
+type SearchResultJSONValueSuggestValueItemObject0OptionsObject0 struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-type SearchResultJsonValueSuggestValueItemObject0OptionsItem struct {
+type SearchResultJSONValueSuggestValueItemObject0OptionsItem struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-type SearchResultJsonValueSuggestValueItemObject0 struct {
-	Options *SearchResultJsonValueSuggestValueItemObject0Options `json:"options,omitempty"`
+type SearchResultJSONValueSuggestValueItemObject0 struct {
+	Options *SearchResultJSONValueSuggestValueItemObject0Options `json:"options,omitempty"`
 }
 
-type SearchResultJsonValue struct {
+type SearchResultJSONValue struct {
 	SearchResult
-	Hits    *SearchResultJsonValueHits                         `json:"hits,omitempty"`
-	Suggest map[string][]SearchResultJsonValueSuggestValueItem `json:"suggest,omitempty"`
+	Hits    *SearchResultJSONValueHits                         `json:"hits,omitempty"`
+	Suggest map[string][]SearchResultJSONValueSuggestValueItem `json:"suggest,omitempty"`
 }
 
 type KNNGraphMergeStats struct {
@@ -10600,7 +10600,7 @@ type ObservabilityVisualization struct {
 	ID string `json:"id"`
 
 	// The identifier of the saved visualization.
-	SavedVisualizationId string `json:"savedVisualizationId"`
+	SavedVisualizationID string `json:"savedVisualizationId"`
 
 	// The width of the visualization.
 	W int `json:"w"`
@@ -10615,7 +10615,7 @@ type ObservabilityVisualization struct {
 // The panel configuration for operational visualizations.
 type ObservabilityOperationalPanel struct {
 	// The identifier of the associated application.
-	ApplicationId string `json:"applicationId"`
+	ApplicationID string `json:"applicationId"`
 
 	// The name of the operational panel.
 	Name string `json:"name"`
@@ -10723,7 +10723,7 @@ type ObservabilityObject struct {
 	LastUpdatedTimeMs *int `json:"lastUpdatedTimeMs,omitempty"`
 
 	// The unique identifier of the observability object.
-	ObjectId string `json:"objectId"`
+	ObjectID string `json:"objectId"`
 
 	// The panel configuration for operational visualizations.
 	OperationalPanel *ObservabilityOperationalPanel `json:"operationalPanel,omitempty"`
@@ -12440,7 +12440,7 @@ type SnapshotStatus struct {
 	UUID *string `json:"uuid,omitempty"`
 }
 
-type SQLSqlCloseResponse struct {
+type SQLCloseResponse struct {
 	// Whether the cursor was closed successfully.
 	Succeeded *bool `json:"succeeded,omitempty"`
 }
@@ -12483,7 +12483,7 @@ type SQLTransient struct {
 	Plugins *SQLPlugins `json:"plugins,omitempty"`
 }
 
-type SQLSqlSettingsResponse struct {
+type SQLSettingsResponse struct {
 	// Whether the settings were acknowledged.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
@@ -12900,7 +12900,7 @@ type ISMRetryIndexRequest struct {
 	State string `json:"state"`
 }
 
-type KNNKnnMethod struct {
+type KNNMethod struct {
 	Engine     *string                    `json:"engine,omitempty"`
 	Name       string                     `json:"name"`
 	Parameters map[string]json.RawMessage `json:"parameters,omitempty"`
@@ -12908,16 +12908,16 @@ type KNNKnnMethod struct {
 }
 
 type KNNTrainedModel struct {
-	CompressionLevel       *string       `json:"compression_level,omitempty"`
-	Description            *string       `json:"description,omitempty"`
-	Dimension              int           `json:"dimension"`
-	MaxTrainingVectorCount *int          `json:"max_training_vector_count,omitempty"`
-	Method                 *KNNKnnMethod `json:"method,omitempty"`
-	Mode                   *string       `json:"mode,omitempty"`
-	SearchSize             *int          `json:"search_size,omitempty"`
-	SpaceType              *string       `json:"spaceType,omitempty"`
-	TrainingField          string        `json:"training_field"`
-	TrainingIndex          string        `json:"training_index"`
+	CompressionLevel       *string    `json:"compression_level,omitempty"`
+	Description            *string    `json:"description,omitempty"`
+	Dimension              int        `json:"dimension"`
+	MaxTrainingVectorCount *int       `json:"max_training_vector_count,omitempty"`
+	Method                 *KNNMethod `json:"method,omitempty"`
+	Mode                   *string    `json:"mode,omitempty"`
+	SearchSize             *int       `json:"search_size,omitempty"`
+	SpaceType              *string    `json:"spaceType,omitempty"`
+	TrainingField          string     `json:"training_field"`
+	TrainingIndex          string     `json:"training_index"`
 }
 
 type MLClientConfig struct {
@@ -13159,13 +13159,13 @@ type SearchRelevancePostQuerySetsRequest struct {
 // The schema for scheduling experiments.
 type SearchRelevancePostScheduledExperimentsRequest struct {
 	CronExpression *string `json:"cronExpression,omitempty"`
-	ExperimentId   *string `json:"experimentId,omitempty"`
+	ExperimentID   *string `json:"experimentId,omitempty"`
 }
 
 // The schema for a hybrid optimizer experiment.
 type SearchRelevancePutHybridOptimizerExperimentRequest struct {
 	JudgmentList            []string `json:"judgmentList,omitempty"`
-	QuerySetId              *string  `json:"querySetId,omitempty"`
+	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
 	Type                    *string  `json:"type,omitempty"`
@@ -13174,7 +13174,7 @@ type SearchRelevancePutHybridOptimizerExperimentRequest struct {
 // The schema for a pointwise experiment.
 type SearchRelevancePutPointwiseExperimentRequest struct {
 	JudgmentList            []string `json:"judgmentList,omitempty"`
-	QuerySetId              *string  `json:"querySetId,omitempty"`
+	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
 	Type                    *string  `json:"type,omitempty"`
@@ -13182,7 +13182,7 @@ type SearchRelevancePutPointwiseExperimentRequest struct {
 
 // The schema for a pairwise experiment.
 type SearchRelevancePutPairwiseExperimentRequest struct {
-	QuerySetId              *string  `json:"querySetId,omitempty"`
+	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
 	Type                    *string  `json:"type,omitempty"`
@@ -13193,9 +13193,9 @@ type SearchRelevancePutLLMJudgmentsRequest struct {
 	ContextFields           []string `json:"contextFields,omitempty"`
 	Description             *string  `json:"description,omitempty"`
 	IgnoreFailure           *bool    `json:"ignoreFailure,omitempty"`
-	ModelId                 *string  `json:"modelId,omitempty"`
+	ModelID                 *string  `json:"modelId,omitempty"`
 	Name                    *string  `json:"name,omitempty"`
-	QuerySetId              *string  `json:"querySetId,omitempty"`
+	QuerySetID              *string  `json:"querySetId,omitempty"`
 	SearchConfigurationList []string `json:"searchConfigurationList,omitempty"`
 	Size                    *int     `json:"size,omitempty"`
 	Type                    *string  `json:"type,omitempty"`
@@ -13293,7 +13293,7 @@ type SMCreateUpdatePolicyRequest struct {
 	SnapshotConfig SMSnapshotConfig `json:"snapshot_config"`
 }
 
-type SQLSqlClose struct {
+type SQLClose struct {
 	// The cursor identifier to close.
 	Cursor *string `json:"cursor,omitempty"`
 }
@@ -13318,11 +13318,11 @@ type SQLTransientPlain struct {
 	PluginsSQLSlowlog *int `json:"plugins.sql.slowlog,omitempty"`
 }
 
-type SQLSqlSettingsPlain struct {
+type SQLSettingsPlain struct {
 	Transient *SQLTransientPlain `json:"transient,omitempty"`
 }
 
-type SQLSqlSettings struct {
+type SQLSettings struct {
 	Transient *SQLTransient `json:"transient,omitempty"`
 }
 

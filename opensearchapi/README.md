@@ -355,14 +355,6 @@ For routing semantics (role awareness, AIMD, shard-cost weighting) see [`../guid
 
 ## Plugins
 
-Plugin APIs (k-NN, ML, Security, ISM, etc.) live in separate packages under `opensearchapi/plugins/`. They share the same `opensearch.Client` transport but have independent type hierarchies.
+Plugin APIs (k-NN, ML, Security, ISM, etc.) live in separate top-level packages under [`plugins/`](../plugins/) (`github.com/opensearch-project/opensearch-go/v5/plugins/<name>`). They share the same `opensearch.Client` transport but have independent type hierarchies.
 
 See [plugins/README.md](plugins/README.md) for usage details and available plugins.
-
-## Migrating from v4
-
-Existing v4 `opensearchapi/` callers moving to v5 need a handful of code changes (import path, `Indices` -> `Index` rename, optional `Params` becomes `*Params`, optional `bool` query params become `*bool`). These renames are a one-time cost: `opensearchapi` is switching from hand-written types to a code-generated client sourced from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), so subsequent spec evolutions arrive as additive types rather than coordinated rename pulls. See [`MIGRATING.md`](MIGRATING.md) for the full delta and a quick checklist.
-
-## Status
-
-`opensearchapi/` is a preview of the v5 API surface, shipped inside the v4 module. Types, field names, and method shapes may change before v5 ships. Track [issue #835](https://github.com/opensearch-project/opensearch-go/issues/835) for breakage notices.

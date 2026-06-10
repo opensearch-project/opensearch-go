@@ -150,7 +150,7 @@ type NodesInfoNode struct {
 	Host *string `json:"host,omitempty"`
 
 	// Provides HTTP connection information for the node.
-	HTTP *NodesInfoNodeHttp `json:"http,omitempty"`
+	HTTP *NodesInfoNodeHTTP `json:"http,omitempty"`
 
 	// The ingest pipeline configuration.
 	Ingest *NodesInfoNodeIngest `json:"ingest,omitempty"`
@@ -215,10 +215,10 @@ type NodesInfoNodeAggregation struct {
 	Types []string `json:"types"`
 }
 
-// NodesInfoNodeHttp is a typed component of the nodes.info operation.
+// NodesInfoNodeHTTP is a typed component of the nodes.info operation.
 //
 // Provides HTTP connection information for the node.
-type NodesInfoNodeHttp struct {
+type NodesInfoNodeHTTP struct {
 	// The addresses the node is bound to for HTTP traffic.
 	BoundAddress []string `json:"bound_address"`
 
@@ -505,7 +505,7 @@ type NodesInfoNodeSettings struct {
 	Discovery *NodesInfoNodeDiscovery `json:"discovery,omitempty"`
 
 	// The HTTP server configuration.
-	HTTP NodesInfoNodeSettingsHttp `json:"http"`
+	HTTP NodesInfoNodeSettingsHTTP `json:"http"`
 
 	// The index-level settings configuration.
 	Index *NodesInfoNodeSettingsIndex `json:"index,omitempty"`
@@ -613,10 +613,10 @@ type NodesInfoNodeDiscovery struct {
 	Type *string `json:"type,omitempty"`
 }
 
-// NodesInfoNodeSettingsHttp is a typed component of the nodes.info operation.
+// NodesInfoNodeSettingsHTTP is a typed component of the nodes.info operation.
 //
 // The HTTP server configuration.
-type NodesInfoNodeSettingsHttp struct {
+type NodesInfoNodeSettingsHTTP struct {
 	// Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
@@ -624,7 +624,7 @@ type NodesInfoNodeSettingsHttp struct {
 	// parse strings to the target type.
 	Compression *string `json:"compression,omitempty"`
 
-	Host *NodesInfoNodeSettingsHttpHost `json:"host,omitempty"`
+	Host *NodesInfoNodeSettingsHTTPHost `json:"host,omitempty"`
 
 	// Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
@@ -633,7 +633,7 @@ type NodesInfoNodeSettingsHttp struct {
 	// parse strings to the target type.
 	Port *string `json:"port,omitempty"`
 
-	PublishHost *NodesInfoNodeSettingsHttpPublishHost `json:"publish_host,omitempty"`
+	PublishHost *NodesInfoNodeSettingsHTTPPublishHost `json:"publish_host,omitempty"`
 
 	// Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
@@ -643,16 +643,16 @@ type NodesInfoNodeSettingsHttp struct {
 	PublishPort *string `json:"publish_port,omitempty"`
 
 	// The HTTP server type configuration.
-	Type NodesInfoNodeSettingsHttpType `json:"type"`
+	Type NodesInfoNodeSettingsHTTPType `json:"type"`
 
 	// The default HTTP server type.
 	TypeDefault *string `json:"type.default,omitempty"`
 }
 
-// NodesInfoNodeSettingsHttpTypeConfig is a typed component of the nodes.info operation.
+// NodesInfoNodeSettingsHTTPTypeConfig is a typed component of the nodes.info operation.
 //
 // The HTTP server type configuration details.
-type NodesInfoNodeSettingsHttpTypeConfig struct {
+type NodesInfoNodeSettingsHTTPTypeConfig struct {
 	// The default HTTP server implementation.
 	Default *string `json:"default,omitempty"`
 }
@@ -858,13 +858,13 @@ type NodesInfoNodePath struct {
 // The repository configuration information.
 type NodesInfoNodeRepositories struct {
 	// Specifies allowed repository URLs.
-	URL NodesInfoNodeRepositoriesUrl `json:"url"`
+	URL NodesInfoNodeRepositoriesURL `json:"url"`
 }
 
-// NodesInfoNodeRepositoriesUrl is a typed component of the nodes.info operation.
+// NodesInfoNodeRepositoriesURL is a typed component of the nodes.info operation.
 //
 // Specifies allowed repository URLs.
-type NodesInfoNodeRepositoriesUrl struct {
+type NodesInfoNodeRepositoriesURL struct {
 	// The pattern for allowed repository URLs.
 	AllowedUrls string `json:"allowed_urls"`
 }
@@ -1184,45 +1184,45 @@ func (u NodesInfoNodeSettingsClusterInitialMasterNodes) MarshalJSON() ([]byte, e
 	return build.NullJSON, nil
 }
 
-// NodesInfoNodeSettingsHttpHost is a discriminated union type.
+// NodesInfoNodeSettingsHTTPHost is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type NodesInfoNodeSettingsHttpHost struct {
-	typ   NodesInfoNodeSettingsHttpHostType
+type NodesInfoNodeSettingsHTTPHost struct {
+	typ   NodesInfoNodeSettingsHTTPHostType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeSettingsHttpHostType discriminates the branches of NodesInfoNodeSettingsHttpHost.
-type NodesInfoNodeSettingsHttpHostType int
+// NodesInfoNodeSettingsHTTPHostType discriminates the branches of NodesInfoNodeSettingsHTTPHost.
+type NodesInfoNodeSettingsHTTPHostType int
 
 const (
-	NodesInfoNodeSettingsHttpHostUnknownType NodesInfoNodeSettingsHttpHostType = iota
-	NodesInfoNodeSettingsHttpHostStringType
-	NodesInfoNodeSettingsHttpHostArrayType
+	NodesInfoNodeSettingsHTTPHostUnknownType NodesInfoNodeSettingsHTTPHostType = iota
+	NodesInfoNodeSettingsHTTPHostStringType
+	NodesInfoNodeSettingsHTTPHostArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsHttpHostUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsHttpHost) Type() NodesInfoNodeSettingsHttpHostType { return u.typ }
+// Returns NodesInfoNodeSettingsHTTPHostUnknownType if the value has not been decoded.
+func (u *NodesInfoNodeSettingsHTTPHost) Type() NodesInfoNodeSettingsHTTPHostType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsHttpHost) RawJSON() json.RawMessage { return u.raw }
+func (u *NodesInfoNodeSettingsHTTPHost) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHttpHostFrom*
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHTTPHostFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsHttpHost) SetRaw(raw json.RawMessage) {
+func (u *NodesInfoNodeSettingsHTTPHost) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = NodesInfoNodeSettingsHttpHostUnknownType
+	u.typ = NodesInfoNodeSettingsHTTPHostUnknownType
 }
 
 // String returns the string branch value.
-func (u *NodesInfoNodeSettingsHttpHost) String() string {
+func (u *NodesInfoNodeSettingsHTTPHost) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -1230,17 +1230,17 @@ func (u *NodesInfoNodeSettingsHttpHost) String() string {
 	return zero
 }
 
-// NewNodesInfoNodeSettingsHttpHostFromString returns a NodesInfoNodeSettingsHttpHost populated with v
+// NewNodesInfoNodeSettingsHTTPHostFromString returns a NodesInfoNodeSettingsHTTPHost populated with v
 // on the String branch.
-func NewNodesInfoNodeSettingsHttpHostFromString(v string) NodesInfoNodeSettingsHttpHost {
-	return NodesInfoNodeSettingsHttpHost{
-		typ:   NodesInfoNodeSettingsHttpHostStringType,
+func NewNodesInfoNodeSettingsHTTPHostFromString(v string) NodesInfoNodeSettingsHTTPHost {
+	return NodesInfoNodeSettingsHTTPHost{
+		typ:   NodesInfoNodeSettingsHTTPHostStringType,
 		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsHttpHost) Array() []string {
+func (u *NodesInfoNodeSettingsHTTPHost) Array() []string {
 	if v, ok := u.value.(*[]string); ok {
 		return *v
 	}
@@ -1248,19 +1248,19 @@ func (u *NodesInfoNodeSettingsHttpHost) Array() []string {
 	return zero
 }
 
-// NewNodesInfoNodeSettingsHttpHostFromArray returns a NodesInfoNodeSettingsHttpHost populated with v
+// NewNodesInfoNodeSettingsHTTPHostFromArray returns a NodesInfoNodeSettingsHTTPHost populated with v
 // on the Array branch.
-func NewNodesInfoNodeSettingsHttpHostFromArray(v []string) NodesInfoNodeSettingsHttpHost {
-	return NodesInfoNodeSettingsHttpHost{
-		typ:   NodesInfoNodeSettingsHttpHostArrayType,
+func NewNodesInfoNodeSettingsHTTPHostFromArray(v []string) NodesInfoNodeSettingsHTTPHost {
+	return NodesInfoNodeSettingsHTTPHost{
+		typ:   NodesInfoNodeSettingsHTTPHostArrayType,
 		value: &v,
 	}
 }
 
-func (u *NodesInfoNodeSettingsHttpHost) UnmarshalJSON(data []byte) error {
+func (u *NodesInfoNodeSettingsHTTPHost) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = NodesInfoNodeSettingsHttpHostUnknownType
+	u.typ = NodesInfoNodeSettingsHTTPHostUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1270,22 +1270,22 @@ func (u *NodesInfoNodeSettingsHttpHost) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHttpHostStringType
+		u.typ = NodesInfoNodeSettingsHTTPHostStringType
 		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHttpHostArrayType
+		u.typ = NodesInfoNodeSettingsHTTPHostArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("NodesInfoNodeSettingsHttpHost: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("NodesInfoNodeSettingsHTTPHost: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u NodesInfoNodeSettingsHttpHost) MarshalJSON() ([]byte, error) {
+func (u NodesInfoNodeSettingsHTTPHost) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -1295,47 +1295,47 @@ func (u NodesInfoNodeSettingsHttpHost) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// NodesInfoNodeSettingsHttpPublishHost is a discriminated union type.
+// NodesInfoNodeSettingsHTTPPublishHost is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type NodesInfoNodeSettingsHttpPublishHost struct {
-	typ   NodesInfoNodeSettingsHttpPublishHostType
+type NodesInfoNodeSettingsHTTPPublishHost struct {
+	typ   NodesInfoNodeSettingsHTTPPublishHostType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeSettingsHttpPublishHostType discriminates the branches of NodesInfoNodeSettingsHttpPublishHost.
-type NodesInfoNodeSettingsHttpPublishHostType int
+// NodesInfoNodeSettingsHTTPPublishHostType discriminates the branches of NodesInfoNodeSettingsHTTPPublishHost.
+type NodesInfoNodeSettingsHTTPPublishHostType int
 
 const (
-	NodesInfoNodeSettingsHttpPublishHostUnknownType NodesInfoNodeSettingsHttpPublishHostType = iota
-	NodesInfoNodeSettingsHttpPublishHostStringType
-	NodesInfoNodeSettingsHttpPublishHostArrayType
+	NodesInfoNodeSettingsHTTPPublishHostUnknownType NodesInfoNodeSettingsHTTPPublishHostType = iota
+	NodesInfoNodeSettingsHTTPPublishHostStringType
+	NodesInfoNodeSettingsHTTPPublishHostArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsHttpPublishHostUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsHttpPublishHost) Type() NodesInfoNodeSettingsHttpPublishHostType {
+// Returns NodesInfoNodeSettingsHTTPPublishHostUnknownType if the value has not been decoded.
+func (u *NodesInfoNodeSettingsHTTPPublishHost) Type() NodesInfoNodeSettingsHTTPPublishHostType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsHttpPublishHost) RawJSON() json.RawMessage { return u.raw }
+func (u *NodesInfoNodeSettingsHTTPPublishHost) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHttpPublishHostFrom*
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHTTPPublishHostFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsHttpPublishHost) SetRaw(raw json.RawMessage) {
+func (u *NodesInfoNodeSettingsHTTPPublishHost) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = NodesInfoNodeSettingsHttpPublishHostUnknownType
+	u.typ = NodesInfoNodeSettingsHTTPPublishHostUnknownType
 }
 
 // String returns the string branch value.
-func (u *NodesInfoNodeSettingsHttpPublishHost) String() string {
+func (u *NodesInfoNodeSettingsHTTPPublishHost) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -1343,17 +1343,17 @@ func (u *NodesInfoNodeSettingsHttpPublishHost) String() string {
 	return zero
 }
 
-// NewNodesInfoNodeSettingsHttpPublishHostFromString returns a NodesInfoNodeSettingsHttpPublishHost populated with v
+// NewNodesInfoNodeSettingsHTTPPublishHostFromString returns a NodesInfoNodeSettingsHTTPPublishHost populated with v
 // on the String branch.
-func NewNodesInfoNodeSettingsHttpPublishHostFromString(v string) NodesInfoNodeSettingsHttpPublishHost {
-	return NodesInfoNodeSettingsHttpPublishHost{
-		typ:   NodesInfoNodeSettingsHttpPublishHostStringType,
+func NewNodesInfoNodeSettingsHTTPPublishHostFromString(v string) NodesInfoNodeSettingsHTTPPublishHost {
+	return NodesInfoNodeSettingsHTTPPublishHost{
+		typ:   NodesInfoNodeSettingsHTTPPublishHostStringType,
 		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsHttpPublishHost) Array() []string {
+func (u *NodesInfoNodeSettingsHTTPPublishHost) Array() []string {
 	if v, ok := u.value.(*[]string); ok {
 		return *v
 	}
@@ -1361,19 +1361,19 @@ func (u *NodesInfoNodeSettingsHttpPublishHost) Array() []string {
 	return zero
 }
 
-// NewNodesInfoNodeSettingsHttpPublishHostFromArray returns a NodesInfoNodeSettingsHttpPublishHost populated with v
+// NewNodesInfoNodeSettingsHTTPPublishHostFromArray returns a NodesInfoNodeSettingsHTTPPublishHost populated with v
 // on the Array branch.
-func NewNodesInfoNodeSettingsHttpPublishHostFromArray(v []string) NodesInfoNodeSettingsHttpPublishHost {
-	return NodesInfoNodeSettingsHttpPublishHost{
-		typ:   NodesInfoNodeSettingsHttpPublishHostArrayType,
+func NewNodesInfoNodeSettingsHTTPPublishHostFromArray(v []string) NodesInfoNodeSettingsHTTPPublishHost {
+	return NodesInfoNodeSettingsHTTPPublishHost{
+		typ:   NodesInfoNodeSettingsHTTPPublishHostArrayType,
 		value: &v,
 	}
 }
 
-func (u *NodesInfoNodeSettingsHttpPublishHost) UnmarshalJSON(data []byte) error {
+func (u *NodesInfoNodeSettingsHTTPPublishHost) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = NodesInfoNodeSettingsHttpPublishHostUnknownType
+	u.typ = NodesInfoNodeSettingsHTTPPublishHostUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1383,22 +1383,22 @@ func (u *NodesInfoNodeSettingsHttpPublishHost) UnmarshalJSON(data []byte) error 
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHttpPublishHostStringType
+		u.typ = NodesInfoNodeSettingsHTTPPublishHostStringType
 		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHttpPublishHostArrayType
+		u.typ = NodesInfoNodeSettingsHTTPPublishHostArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("NodesInfoNodeSettingsHttpPublishHost: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("NodesInfoNodeSettingsHTTPPublishHost: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u NodesInfoNodeSettingsHttpPublishHost) MarshalJSON() ([]byte, error) {
+func (u NodesInfoNodeSettingsHTTPPublishHost) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -1411,42 +1411,42 @@ func (u NodesInfoNodeSettingsHttpPublishHost) MarshalJSON() ([]byte, error) {
 // The HTTP server type configuration.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type NodesInfoNodeSettingsHttpType struct {
-	typ   NodesInfoNodeSettingsHttpTypeType
+type NodesInfoNodeSettingsHTTPType struct {
+	typ   NodesInfoNodeSettingsHTTPTypeType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeSettingsHttpTypeType discriminates the branches of NodesInfoNodeSettingsHttpType.
-type NodesInfoNodeSettingsHttpTypeType int
+// NodesInfoNodeSettingsHTTPTypeType discriminates the branches of NodesInfoNodeSettingsHTTPType.
+type NodesInfoNodeSettingsHTTPTypeType int
 
 const (
-	NodesInfoNodeSettingsHttpTypeUnknownType NodesInfoNodeSettingsHttpTypeType = iota
-	NodesInfoNodeSettingsHttpTypeStringType
-	NodesInfoNodeSettingsHttpTypeConfigType
+	NodesInfoNodeSettingsHTTPTypeUnknownType NodesInfoNodeSettingsHTTPTypeType = iota
+	NodesInfoNodeSettingsHTTPTypeStringType
+	NodesInfoNodeSettingsHTTPTypeConfigType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsHttpTypeUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsHttpType) Type() NodesInfoNodeSettingsHttpTypeType { return u.typ }
+// Returns NodesInfoNodeSettingsHTTPTypeUnknownType if the value has not been decoded.
+func (u *NodesInfoNodeSettingsHTTPType) Type() NodesInfoNodeSettingsHTTPTypeType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsHttpType) RawJSON() json.RawMessage { return u.raw }
+func (u *NodesInfoNodeSettingsHTTPType) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHttpTypeFrom*
+// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHTTPTypeFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsHttpType) SetRaw(raw json.RawMessage) {
+func (u *NodesInfoNodeSettingsHTTPType) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = NodesInfoNodeSettingsHttpTypeUnknownType
+	u.typ = NodesInfoNodeSettingsHTTPTypeUnknownType
 }
 
 // String returns the string branch value.
-func (u *NodesInfoNodeSettingsHttpType) String() string {
+func (u *NodesInfoNodeSettingsHTTPType) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -1454,37 +1454,37 @@ func (u *NodesInfoNodeSettingsHttpType) String() string {
 	return zero
 }
 
-// NewNodesInfoNodeSettingsHttpTypeFromString returns a NodesInfoNodeSettingsHttpType populated with v
+// NewNodesInfoNodeSettingsHTTPTypeFromString returns a NodesInfoNodeSettingsHTTPType populated with v
 // on the String branch.
-func NewNodesInfoNodeSettingsHttpTypeFromString(v string) NodesInfoNodeSettingsHttpType {
-	return NodesInfoNodeSettingsHttpType{
-		typ:   NodesInfoNodeSettingsHttpTypeStringType,
+func NewNodesInfoNodeSettingsHTTPTypeFromString(v string) NodesInfoNodeSettingsHTTPType {
+	return NodesInfoNodeSettingsHTTPType{
+		typ:   NodesInfoNodeSettingsHTTPTypeStringType,
 		value: &v,
 	}
 }
 
-// Config returns the NodesInfoNodeSettingsHttpTypeConfig branch value.
-func (u *NodesInfoNodeSettingsHttpType) Config() NodesInfoNodeSettingsHttpTypeConfig {
-	if v, ok := u.value.(*NodesInfoNodeSettingsHttpTypeConfig); ok {
+// Config returns the NodesInfoNodeSettingsHTTPTypeConfig branch value.
+func (u *NodesInfoNodeSettingsHTTPType) Config() NodesInfoNodeSettingsHTTPTypeConfig {
+	if v, ok := u.value.(*NodesInfoNodeSettingsHTTPTypeConfig); ok {
 		return *v
 	}
-	var zero NodesInfoNodeSettingsHttpTypeConfig
+	var zero NodesInfoNodeSettingsHTTPTypeConfig
 	return zero
 }
 
-// NewNodesInfoNodeSettingsHttpTypeFromConfig returns a NodesInfoNodeSettingsHttpType populated with v
+// NewNodesInfoNodeSettingsHTTPTypeFromConfig returns a NodesInfoNodeSettingsHTTPType populated with v
 // on the Config branch.
-func NewNodesInfoNodeSettingsHttpTypeFromConfig(v NodesInfoNodeSettingsHttpTypeConfig) NodesInfoNodeSettingsHttpType {
-	return NodesInfoNodeSettingsHttpType{
-		typ:   NodesInfoNodeSettingsHttpTypeConfigType,
+func NewNodesInfoNodeSettingsHTTPTypeFromConfig(v NodesInfoNodeSettingsHTTPTypeConfig) NodesInfoNodeSettingsHTTPType {
+	return NodesInfoNodeSettingsHTTPType{
+		typ:   NodesInfoNodeSettingsHTTPTypeConfigType,
 		value: &v,
 	}
 }
 
-func (u *NodesInfoNodeSettingsHttpType) UnmarshalJSON(data []byte) error {
+func (u *NodesInfoNodeSettingsHTTPType) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = NodesInfoNodeSettingsHttpTypeUnknownType
+	u.typ = NodesInfoNodeSettingsHTTPTypeUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1494,22 +1494,22 @@ func (u *NodesInfoNodeSettingsHttpType) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHttpTypeStringType
+		u.typ = NodesInfoNodeSettingsHTTPTypeStringType
 		u.value = &v
 	case data[0] == '{':
-		var v NodesInfoNodeSettingsHttpTypeConfig
+		var v NodesInfoNodeSettingsHTTPTypeConfig
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHttpTypeConfigType
+		u.typ = NodesInfoNodeSettingsHTTPTypeConfigType
 		u.value = &v
 	default:
-		return fmt.Errorf("NodesInfoNodeSettingsHttpType: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("NodesInfoNodeSettingsHTTPType: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u NodesInfoNodeSettingsHttpType) MarshalJSON() ([]byte, error) {
+func (u NodesInfoNodeSettingsHTTPType) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

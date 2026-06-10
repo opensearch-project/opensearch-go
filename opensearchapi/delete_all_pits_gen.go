@@ -87,7 +87,7 @@ func (r DeleteAllPitsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
 type DeleteAllPitsResp struct {
-	Pits []PITDeletedPit `json:"pits,omitempty"`
+	Pits []PITDeleted `json:"pits,omitempty"`
 
 	response *opensearch.Response
 }
@@ -106,8 +106,8 @@ func (r DeleteAllPitsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// PITDeletedPit is a typed component of the delete_all_pits operation.
-type PITDeletedPit struct {
+// PITDeleted is a typed component of the delete_all_pits operation.
+type PITDeleted struct {
 	PITID      *string `json:"pit_id,omitempty"`
 	Successful *bool   `json:"successful,omitempty"`
 }

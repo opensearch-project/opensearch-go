@@ -205,7 +205,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{...})
 - Optional `Params` are `*Params` pointer fields (nil-safe; pass `&opensearchapi.IndexParams{...}` to set).
 - Optional boolean query parameters are `*bool` so a deliberate `false` can be sent over the wire.
 - Multi-index `Req` types use `Index []string` (the spec spelling); v4's hand-written `Indices` is renamed.
-- Plugin APIs (k-NN, ML, Security, ISM, etc.) live in `opensearchapi/plugins/`.
+- Plugin APIs (k-NN, ML, Security, ISM, etc.) live in top-level `plugins/<name>` packages, imported as `github.com/opensearch-project/opensearch-go/v5/plugins/<name>`. v4's hand-written plugin clients (`opensearch-go/v4/plugins/{ism,security}`) are replaced by generated, spec-driven clients covering all 25 plugins; the package qualifier (e.g. `ism.X`) is unchanged.
 
 For the full v4 -> v5 surface delta and the optional forward-compatible `replace` directive, see [`opensearchapi/MIGRATING.md`](opensearchapi/MIGRATING.md). For everyday usage (errors, routing, response handling) see [`opensearchapi/README.md`](opensearchapi/README.md).
 

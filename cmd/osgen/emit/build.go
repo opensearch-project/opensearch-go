@@ -1355,11 +1355,12 @@ func routeOp(group, outDir, pluginsDir string) (string, string) {
 
 func importPathForGroup(group, corePkg, modulePath string) string {
 	prefix := groupPrefixIR(group)
-	core := coreImportPath(corePkg, modulePath)
 	if coreGroupPrefixes[prefix] {
-		return core
+		return coreImportPath(corePkg, modulePath)
 	}
-	return core + "/plugins/" + prefix
+	// Plugin packages are siblings of the core package at the module root,
+	// not nested under it.
+	return modulePath + "/" + ir.DefaultPluginsSubpath + "/" + prefix
 }
 
 // coreImportPath returns the full import path for the core API package.

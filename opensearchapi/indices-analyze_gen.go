@@ -2028,7 +2028,7 @@ const (
 	IndicesAnalyzeBodyTokenizerCommonAnalysisNoriTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisPathHierarchyTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisStandardTokenizerType
-	IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailUrlTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailURLTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisWhitespaceTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisKuromojiTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisPatternTokenizerType
@@ -2219,20 +2219,20 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisStandardTokenizer(v CommonA
 	}
 }
 
-// CommonAnalysisUaxEmailUrlTokenizer returns the CommonAnalysisUaxEmailUrlTokenizer branch value.
-func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisUaxEmailUrlTokenizer() CommonAnalysisUaxEmailUrlTokenizer {
-	if v, ok := u.value.(*CommonAnalysisUaxEmailUrlTokenizer); ok {
+// CommonAnalysisUaxEmailURLTokenizer returns the CommonAnalysisUaxEmailURLTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisUaxEmailURLTokenizer() CommonAnalysisUaxEmailURLTokenizer {
+	if v, ok := u.value.(*CommonAnalysisUaxEmailURLTokenizer); ok {
 		return *v
 	}
-	var zero CommonAnalysisUaxEmailUrlTokenizer
+	var zero CommonAnalysisUaxEmailURLTokenizer
 	return zero
 }
 
-// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailUrlTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
-// on the CommonAnalysisUaxEmailUrlTokenizer branch.
-func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailUrlTokenizer(v CommonAnalysisUaxEmailUrlTokenizer) IndicesAnalyzeBodyTokenizer {
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailURLTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisUaxEmailURLTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailURLTokenizer(v CommonAnalysisUaxEmailURLTokenizer) IndicesAnalyzeBodyTokenizer {
 	return IndicesAnalyzeBodyTokenizer{
-		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailUrlTokenizerType,
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailURLTokenizerType,
 		value: &v,
 	}
 }
@@ -2448,9 +2448,9 @@ func (u *IndicesAnalyzeBodyTokenizer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "type") {
-		var v CommonAnalysisUaxEmailUrlTokenizer
+		var v CommonAnalysisUaxEmailURLTokenizer
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailUrlTokenizerType
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailURLTokenizerType
 			u.value = &v
 			return nil
 		}

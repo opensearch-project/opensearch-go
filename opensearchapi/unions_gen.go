@@ -2578,46 +2578,46 @@ func (u CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Marsha
 // the different buckets, the result is a dictionary.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsType
+type CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets struct {
+	typ   CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsType int
+// CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets.
+type CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsArrayType
+	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType = iota
+	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType
+	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsType {
+// Returns CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) RawJSON() json.RawMessage {
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) RawJSON() json.RawMessage {
 	return u.raw
 }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsUnknownType
+	u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Map() map[string]json.RawMessage {
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Map() map[string]json.RawMessage {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v
 	}
@@ -2625,17 +2625,17 @@ func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Map() m
 	return zero
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets populated with v
+// NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsMapType,
+func NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType,
 		value: &v,
 	}
 }
 
 // Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Array() []json.RawMessage {
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Array() []json.RawMessage {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
 		return *v
 	}
@@ -2643,19 +2643,19 @@ func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Array()
 	return zero
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets populated with v
+// NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsArrayType,
+func NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromArray(v []json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets {
+	return CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets{
+		typ:   CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsUnknownType
+	u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -2665,22 +2665,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) Unmarsh
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsMapType
+		u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []json.RawMessage
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBucketsArrayType
+		u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseIpRangeBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -4661,13 +4661,13 @@ func NewSearchResultAggregationsValueFromHistogram(v CommonAggregationsHistogram
 	}
 }
 
-// AsIPRange decodes the union as CommonAggregationsIpRangeAggregate. The caller selects the
+// AsIPRange decodes the union as CommonAggregationsIPRangeAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsIpRangeAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsIpRangeAggregate); ok {
+func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsIPRangeAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsIPRangeAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsIpRangeAggregate
+	var v CommonAggregationsIPRangeAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -4677,7 +4677,7 @@ func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsIpRangeAg
 
 // NewSearchResultAggregationsValueFromIPRange returns a SearchResultAggregationsValue populated with v
 // on the IPRange branch.
-func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsIpRangeAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsIPRangeAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6636,18 +6636,18 @@ func NewCommonQueryDSLScriptScoreFunctionScriptFromString(v string) CommonQueryD
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonQueryDSLScriptScoreFunctionScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonQueryDSLScriptScoreFunctionScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonQueryDSLScriptScoreFunctionScriptFromStored returns a CommonQueryDSLScriptScoreFunctionScript populated with v
 // on the Stored branch.
-func NewCommonQueryDSLScriptScoreFunctionScriptFromStored(v StoredScriptId) CommonQueryDSLScriptScoreFunctionScript {
+func NewCommonQueryDSLScriptScoreFunctionScriptFromStored(v StoredScriptID) CommonQueryDSLScriptScoreFunctionScript {
 	return CommonQueryDSLScriptScoreFunctionScript{
 		typ:   CommonQueryDSLScriptScoreFunctionScriptStoredType,
 		value: &v,
@@ -6670,7 +6670,7 @@ func (u *CommonQueryDSLScriptScoreFunctionScript) UnmarshalJSON(data []byte) err
 		u.typ = CommonQueryDSLScriptScoreFunctionScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -7443,18 +7443,18 @@ func NewScriptFieldScriptFromString(v string) ScriptFieldScript {
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *ScriptFieldScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *ScriptFieldScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewScriptFieldScriptFromStored returns a ScriptFieldScript populated with v
 // on the Stored branch.
-func NewScriptFieldScriptFromStored(v StoredScriptId) ScriptFieldScript {
+func NewScriptFieldScriptFromStored(v StoredScriptID) ScriptFieldScript {
 	return ScriptFieldScript{
 		typ:   ScriptFieldScriptStoredType,
 		value: &v,
@@ -7477,7 +7477,7 @@ func (u *ScriptFieldScript) UnmarshalJSON(data []byte) error {
 		u.typ = ScriptFieldScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -7691,18 +7691,18 @@ func NewScriptSortScriptFromString(v string) ScriptSortScript {
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *ScriptSortScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *ScriptSortScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewScriptSortScriptFromStored returns a ScriptSortScript populated with v
 // on the Stored branch.
-func NewScriptSortScriptFromStored(v StoredScriptId) ScriptSortScript {
+func NewScriptSortScriptFromStored(v StoredScriptID) ScriptSortScript {
 	return ScriptSortScript{
 		typ:   ScriptSortScriptStoredType,
 		value: &v,
@@ -7725,7 +7725,7 @@ func (u *ScriptSortScript) UnmarshalJSON(data []byte) error {
 		u.typ = ScriptSortScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -7973,18 +7973,18 @@ func NewCommonQueryDSLIntervalsFilterScriptFromString(v string) CommonQueryDSLIn
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonQueryDSLIntervalsFilterScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonQueryDSLIntervalsFilterScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonQueryDSLIntervalsFilterScriptFromStored returns a CommonQueryDSLIntervalsFilterScript populated with v
 // on the Stored branch.
-func NewCommonQueryDSLIntervalsFilterScriptFromStored(v StoredScriptId) CommonQueryDSLIntervalsFilterScript {
+func NewCommonQueryDSLIntervalsFilterScriptFromStored(v StoredScriptID) CommonQueryDSLIntervalsFilterScript {
 	return CommonQueryDSLIntervalsFilterScript{
 		typ:   CommonQueryDSLIntervalsFilterScriptStoredType,
 		value: &v,
@@ -8007,7 +8007,7 @@ func (u *CommonQueryDSLIntervalsFilterScript) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLIntervalsFilterScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -8029,45 +8029,45 @@ func (u CommonQueryDSLIntervalsFilterScript) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// CommonQueryDSLKnnQueryRescore is a discriminated union type.
+// CommonQueryDSLKNNQueryRescore is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonQueryDSLKnnQueryRescore struct {
-	typ   CommonQueryDSLKnnQueryRescoreType
+type CommonQueryDSLKNNQueryRescore struct {
+	typ   CommonQueryDSLKNNQueryRescoreType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonQueryDSLKnnQueryRescoreType discriminates the branches of CommonQueryDSLKnnQueryRescore.
-type CommonQueryDSLKnnQueryRescoreType int
+// CommonQueryDSLKNNQueryRescoreType discriminates the branches of CommonQueryDSLKNNQueryRescore.
+type CommonQueryDSLKNNQueryRescoreType int
 
 const (
-	CommonQueryDSLKnnQueryRescoreUnknownType CommonQueryDSLKnnQueryRescoreType = iota
-	CommonQueryDSLKnnQueryRescoreBoolType
-	CommonQueryDSLKnnQueryRescoreContextType
+	CommonQueryDSLKNNQueryRescoreUnknownType CommonQueryDSLKNNQueryRescoreType = iota
+	CommonQueryDSLKNNQueryRescoreBoolType
+	CommonQueryDSLKNNQueryRescoreContextType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonQueryDSLKnnQueryRescoreUnknownType if the value has not been decoded.
-func (u *CommonQueryDSLKnnQueryRescore) Type() CommonQueryDSLKnnQueryRescoreType { return u.typ }
+// Returns CommonQueryDSLKNNQueryRescoreUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLKNNQueryRescore) Type() CommonQueryDSLKNNQueryRescoreType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonQueryDSLKnnQueryRescore) RawJSON() json.RawMessage { return u.raw }
+func (u *CommonQueryDSLKNNQueryRescore) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonQueryDSLKnnQueryRescoreFrom*
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLKNNQueryRescoreFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonQueryDSLKnnQueryRescore) SetRaw(raw json.RawMessage) {
+func (u *CommonQueryDSLKNNQueryRescore) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonQueryDSLKnnQueryRescoreUnknownType
+	u.typ = CommonQueryDSLKNNQueryRescoreUnknownType
 }
 
 // Bool returns the bool branch value.
-func (u *CommonQueryDSLKnnQueryRescore) Bool() bool {
+func (u *CommonQueryDSLKNNQueryRescore) Bool() bool {
 	if v, ok := u.value.(*bool); ok {
 		return *v
 	}
@@ -8075,17 +8075,17 @@ func (u *CommonQueryDSLKnnQueryRescore) Bool() bool {
 	return zero
 }
 
-// NewCommonQueryDSLKnnQueryRescoreFromBool returns a CommonQueryDSLKnnQueryRescore populated with v
+// NewCommonQueryDSLKNNQueryRescoreFromBool returns a CommonQueryDSLKNNQueryRescore populated with v
 // on the Bool branch.
-func NewCommonQueryDSLKnnQueryRescoreFromBool(v bool) CommonQueryDSLKnnQueryRescore {
-	return CommonQueryDSLKnnQueryRescore{
-		typ:   CommonQueryDSLKnnQueryRescoreBoolType,
+func NewCommonQueryDSLKNNQueryRescoreFromBool(v bool) CommonQueryDSLKNNQueryRescore {
+	return CommonQueryDSLKNNQueryRescore{
+		typ:   CommonQueryDSLKNNQueryRescoreBoolType,
 		value: &v,
 	}
 }
 
 // Context returns the CommonQueryDSLRescoreContext branch value.
-func (u *CommonQueryDSLKnnQueryRescore) Context() CommonQueryDSLRescoreContext {
+func (u *CommonQueryDSLKNNQueryRescore) Context() CommonQueryDSLRescoreContext {
 	if v, ok := u.value.(*CommonQueryDSLRescoreContext); ok {
 		return *v
 	}
@@ -8093,19 +8093,19 @@ func (u *CommonQueryDSLKnnQueryRescore) Context() CommonQueryDSLRescoreContext {
 	return zero
 }
 
-// NewCommonQueryDSLKnnQueryRescoreFromContext returns a CommonQueryDSLKnnQueryRescore populated with v
+// NewCommonQueryDSLKNNQueryRescoreFromContext returns a CommonQueryDSLKNNQueryRescore populated with v
 // on the Context branch.
-func NewCommonQueryDSLKnnQueryRescoreFromContext(v CommonQueryDSLRescoreContext) CommonQueryDSLKnnQueryRescore {
-	return CommonQueryDSLKnnQueryRescore{
-		typ:   CommonQueryDSLKnnQueryRescoreContextType,
+func NewCommonQueryDSLKNNQueryRescoreFromContext(v CommonQueryDSLRescoreContext) CommonQueryDSLKNNQueryRescore {
+	return CommonQueryDSLKNNQueryRescore{
+		typ:   CommonQueryDSLKNNQueryRescoreContextType,
 		value: &v,
 	}
 }
 
-func (u *CommonQueryDSLKnnQueryRescore) UnmarshalJSON(data []byte) error {
+func (u *CommonQueryDSLKNNQueryRescore) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonQueryDSLKnnQueryRescoreUnknownType
+	u.typ = CommonQueryDSLKNNQueryRescoreUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -8115,22 +8115,22 @@ func (u *CommonQueryDSLKnnQueryRescore) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLKnnQueryRescoreBoolType
+		u.typ = CommonQueryDSLKNNQueryRescoreBoolType
 		u.value = &v
 	case data[0] == '{':
 		var v CommonQueryDSLRescoreContext
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLKnnQueryRescoreContextType
+		u.typ = CommonQueryDSLKNNQueryRescoreContextType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonQueryDSLKnnQueryRescore: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonQueryDSLKNNQueryRescore: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonQueryDSLKnnQueryRescore) MarshalJSON() ([]byte, error) {
+func (u CommonQueryDSLKNNQueryRescore) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -9545,18 +9545,18 @@ func NewCommonQueryDSLScriptQueryScriptFromString(v string) CommonQueryDSLScript
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonQueryDSLScriptQueryScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonQueryDSLScriptQueryScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonQueryDSLScriptQueryScriptFromStored returns a CommonQueryDSLScriptQueryScript populated with v
 // on the Stored branch.
-func NewCommonQueryDSLScriptQueryScriptFromStored(v StoredScriptId) CommonQueryDSLScriptQueryScript {
+func NewCommonQueryDSLScriptQueryScriptFromStored(v StoredScriptID) CommonQueryDSLScriptQueryScript {
 	return CommonQueryDSLScriptQueryScript{
 		typ:   CommonQueryDSLScriptQueryScriptStoredType,
 		value: &v,
@@ -9579,7 +9579,7 @@ func (u *CommonQueryDSLScriptQueryScript) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLScriptQueryScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -9658,18 +9658,18 @@ func NewCommonQueryDSLScriptScoreQueryScriptFromString(v string) CommonQueryDSLS
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonQueryDSLScriptScoreQueryScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonQueryDSLScriptScoreQueryScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonQueryDSLScriptScoreQueryScriptFromStored returns a CommonQueryDSLScriptScoreQueryScript populated with v
 // on the Stored branch.
-func NewCommonQueryDSLScriptScoreQueryScriptFromStored(v StoredScriptId) CommonQueryDSLScriptScoreQueryScript {
+func NewCommonQueryDSLScriptScoreQueryScriptFromStored(v StoredScriptID) CommonQueryDSLScriptScoreQueryScript {
 	return CommonQueryDSLScriptScoreQueryScript{
 		typ:   CommonQueryDSLScriptScoreQueryScriptStoredType,
 		value: &v,
@@ -9692,7 +9692,7 @@ func (u *CommonQueryDSLScriptScoreQueryScript) UnmarshalJSON(data []byte) error 
 		u.typ = CommonQueryDSLScriptScoreQueryScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -10025,18 +10025,18 @@ func NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromString(v string) 
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromStored returns a CommonQueryDSLTermsSetQueryMinimumShouldMatchScript populated with v
 // on the Stored branch.
-func NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromStored(v StoredScriptId) CommonQueryDSLTermsSetQueryMinimumShouldMatchScript {
+func NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromStored(v StoredScriptID) CommonQueryDSLTermsSetQueryMinimumShouldMatchScript {
 	return CommonQueryDSLTermsSetQueryMinimumShouldMatchScript{
 		typ:   CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStoredType,
 		value: &v,
@@ -10059,7 +10059,7 @@ func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) UnmarshalJSON(data
 		u.typ = CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -11532,13 +11532,13 @@ func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingHistogramP
 	}
 }
 
-// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpProperty
+	var v CommonMappingIPProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -11546,9 +11546,9 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIpPropert
 	return v, err
 }
 
-// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIPProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIPProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
 	return CommonMappingMatchOnlyTextPropertyFieldsValue{
 		value: &v,
 	}
@@ -11928,13 +11928,13 @@ func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIntegerRan
 	}
 }
 
-// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpRangeProperty
+	var v CommonMappingIPRangeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -11942,9 +11942,9 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIpRangePr
 	return v, err
 }
 
-// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIPRangeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
 	return CommonMappingMatchOnlyTextPropertyFieldsValue{
 		value: &v,
 	}
@@ -11972,13 +11972,13 @@ func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingLongRangeP
 	}
 }
 
-// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingKnnVectorProperty
+	var v CommonMappingKNNVectorProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -11986,9 +11986,9 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingKnnVector
 	return v, err
 }
 
-// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKnnVectorProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKNNVectorProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
 	return CommonMappingMatchOnlyTextPropertyFieldsValue{
 		value: &v,
 	}
@@ -12603,13 +12603,13 @@ func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingHistogramProperty(v
 	}
 }
 
-// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpProperty
+	var v CommonMappingIPProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -12617,9 +12617,9 @@ func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIpProperty() (Comm
 	return v, err
 }
 
-// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingPropertyBaseFieldsValue {
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIPProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIPProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingPropertyBaseFieldsValue {
 	return CommonMappingPropertyBaseFieldsValue{
 		value: &v,
 	}
@@ -12999,13 +12999,13 @@ func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIntegerRangePropert
 	}
 }
 
-// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpRangeProperty
+	var v CommonMappingIPRangeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -13013,9 +13013,9 @@ func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIpRangeProperty() 
 	return v, err
 }
 
-// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingPropertyBaseFieldsValue {
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIPRangeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingPropertyBaseFieldsValue {
 	return CommonMappingPropertyBaseFieldsValue{
 		value: &v,
 	}
@@ -13043,13 +13043,13 @@ func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingLongRangeProperty(v
 	}
 }
 
-// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingKnnVectorProperty
+	var v CommonMappingKNNVectorProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -13057,9 +13057,9 @@ func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingKnnVectorProperty(
 	return v, err
 }
 
-// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKnnVectorProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingPropertyBaseFieldsValue {
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKNNVectorProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingPropertyBaseFieldsValue {
 	return CommonMappingPropertyBaseFieldsValue{
 		value: &v,
 	}
@@ -13674,13 +13674,13 @@ func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingHistogramProper
 	}
 }
 
-// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpProperty
+	var v CommonMappingIPProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -13688,9 +13688,9 @@ func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIpProperty() (
 	return v, err
 }
 
-// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingPropertyBasePropertiesValue {
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIPProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIPProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingPropertyBasePropertiesValue {
 	return CommonMappingPropertyBasePropertiesValue{
 		value: &v,
 	}
@@ -14070,13 +14070,13 @@ func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIntegerRangePro
 	}
 }
 
-// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpRangeProperty
+	var v CommonMappingIPRangeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -14084,9 +14084,9 @@ func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIpRangePropert
 	return v, err
 }
 
-// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingPropertyBasePropertiesValue {
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIPRangeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingPropertyBasePropertiesValue {
 	return CommonMappingPropertyBasePropertiesValue{
 		value: &v,
 	}
@@ -14114,13 +14114,13 @@ func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingLongRangeProper
 	}
 }
 
-// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingKnnVectorProperty
+	var v CommonMappingKNNVectorProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -14128,9 +14128,9 @@ func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingKnnVectorPrope
 	return v, err
 }
 
-// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKnnVectorProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingPropertyBasePropertiesValue {
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKNNVectorProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingPropertyBasePropertiesValue {
 	return CommonMappingPropertyBasePropertiesValue{
 		value: &v,
 	}
@@ -14213,7 +14213,7 @@ const (
 	CommonMappingDynamicTemplateCommonMappingConstantKeywordPropertyType
 	CommonMappingDynamicTemplateCommonMappingFieldAliasPropertyType
 	CommonMappingDynamicTemplateCommonMappingHistogramPropertyType
-	CommonMappingDynamicTemplateCommonMappingIpPropertyType
+	CommonMappingDynamicTemplateCommonMappingIPPropertyType
 	CommonMappingDynamicTemplateCommonMappingMurmur3HashPropertyType
 	CommonMappingDynamicTemplateCommonMappingTokenCountPropertyType
 	CommonMappingDynamicTemplateCommonMappingGeoPointPropertyType
@@ -14231,9 +14231,9 @@ const (
 	CommonMappingDynamicTemplateCommonMappingDoubleRangePropertyType
 	CommonMappingDynamicTemplateCommonMappingFloatRangePropertyType
 	CommonMappingDynamicTemplateCommonMappingIntegerRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingIpRangePropertyType
+	CommonMappingDynamicTemplateCommonMappingIPRangePropertyType
 	CommonMappingDynamicTemplateCommonMappingLongRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingKnnVectorPropertyType
+	CommonMappingDynamicTemplateCommonMappingKNNVectorPropertyType
 	CommonMappingDynamicTemplateCommonMappingIcuCollationKeywordPropertyType
 )
 
@@ -14706,20 +14706,20 @@ func NewCommonMappingDynamicTemplateFromCommonMappingHistogramProperty(v CommonM
 	}
 }
 
-// CommonMappingIpProperty returns the CommonMappingIpProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIpProperty() CommonMappingIpProperty {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+// CommonMappingIPProperty returns the CommonMappingIPProperty branch value.
+func (u *CommonMappingDynamicTemplate) CommonMappingIPProperty() CommonMappingIPProperty {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v
 	}
-	var zero CommonMappingIpProperty
+	var zero CommonMappingIPProperty
 	return zero
 }
 
-// NewCommonMappingDynamicTemplateFromCommonMappingIpProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIpProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingDynamicTemplate {
+// NewCommonMappingDynamicTemplateFromCommonMappingIPProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIPProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingDynamicTemplate {
 	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIpPropertyType,
+		typ:   CommonMappingDynamicTemplateCommonMappingIPPropertyType,
 		value: &v,
 	}
 }
@@ -15030,20 +15030,20 @@ func NewCommonMappingDynamicTemplateFromCommonMappingIntegerRangeProperty(v Comm
 	}
 }
 
-// CommonMappingIpRangeProperty returns the CommonMappingIpRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIpRangeProperty() CommonMappingIpRangeProperty {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+// CommonMappingIPRangeProperty returns the CommonMappingIPRangeProperty branch value.
+func (u *CommonMappingDynamicTemplate) CommonMappingIPRangeProperty() CommonMappingIPRangeProperty {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v
 	}
-	var zero CommonMappingIpRangeProperty
+	var zero CommonMappingIPRangeProperty
 	return zero
 }
 
-// NewCommonMappingDynamicTemplateFromCommonMappingIpRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingDynamicTemplate {
+// NewCommonMappingDynamicTemplateFromCommonMappingIPRangeProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingDynamicTemplate {
 	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIpRangePropertyType,
+		typ:   CommonMappingDynamicTemplateCommonMappingIPRangePropertyType,
 		value: &v,
 	}
 }
@@ -15066,20 +15066,20 @@ func NewCommonMappingDynamicTemplateFromCommonMappingLongRangeProperty(v CommonM
 	}
 }
 
-// CommonMappingKnnVectorProperty returns the CommonMappingKnnVectorProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingKnnVectorProperty() CommonMappingKnnVectorProperty {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+// CommonMappingKNNVectorProperty returns the CommonMappingKNNVectorProperty branch value.
+func (u *CommonMappingDynamicTemplate) CommonMappingKNNVectorProperty() CommonMappingKNNVectorProperty {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v
 	}
-	var zero CommonMappingKnnVectorProperty
+	var zero CommonMappingKNNVectorProperty
 	return zero
 }
 
-// NewCommonMappingDynamicTemplateFromCommonMappingKnnVectorProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingDynamicTemplate {
+// NewCommonMappingDynamicTemplateFromCommonMappingKNNVectorProperty returns a CommonMappingDynamicTemplate populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewCommonMappingDynamicTemplateFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingDynamicTemplate {
 	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingKnnVectorPropertyType,
+		typ:   CommonMappingDynamicTemplateCommonMappingKNNVectorPropertyType,
 		value: &v,
 	}
 }
@@ -15307,9 +15307,9 @@ func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIpProperty
+		var v CommonMappingIPProperty
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIpPropertyType
+			u.typ = CommonMappingDynamicTemplateCommonMappingIPPropertyType
 			u.value = &v
 			return nil
 		}
@@ -15451,9 +15451,9 @@ func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIpRangeProperty
+		var v CommonMappingIPRangeProperty
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIpRangePropertyType
+			u.typ = CommonMappingDynamicTemplateCommonMappingIPRangePropertyType
 			u.value = &v
 			return nil
 		}
@@ -15467,9 +15467,9 @@ func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "dimension", "type") {
-		var v CommonMappingKnnVectorProperty
+		var v CommonMappingKNNVectorProperty
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingKnnVectorPropertyType
+			u.typ = CommonMappingDynamicTemplateCommonMappingKNNVectorPropertyType
 			u.value = &v
 			return nil
 		}
@@ -16075,13 +16075,13 @@ func NewCommonMappingTypePropertiesValueFromCommonMappingHistogramProperty(v Com
 	}
 }
 
-// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+func (u *CommonMappingTypePropertiesValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpProperty
+	var v CommonMappingIPProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16089,9 +16089,9 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIpProperty() (CommonMa
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIpProperty returns a CommonMappingTypePropertiesValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingTypePropertiesValue {
+// NewCommonMappingTypePropertiesValueFromCommonMappingIPProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIPProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingTypePropertiesValue {
 	return CommonMappingTypePropertiesValue{
 		value: &v,
 	}
@@ -16471,13 +16471,13 @@ func NewCommonMappingTypePropertiesValueFromCommonMappingIntegerRangeProperty(v 
 	}
 }
 
-// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+func (u *CommonMappingTypePropertiesValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpRangeProperty
+	var v CommonMappingIPRangeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16485,9 +16485,9 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIpRangeProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIpRangeProperty returns a CommonMappingTypePropertiesValue populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingTypePropertiesValue {
+// NewCommonMappingTypePropertiesValueFromCommonMappingIPRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingTypePropertiesValue {
 	return CommonMappingTypePropertiesValue{
 		value: &v,
 	}
@@ -16515,13 +16515,13 @@ func NewCommonMappingTypePropertiesValueFromCommonMappingLongRangeProperty(v Com
 	}
 }
 
-// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+func (u *CommonMappingTypePropertiesValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingKnnVectorProperty
+	var v CommonMappingKNNVectorProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16529,9 +16529,9 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingKnnVectorProperty() (C
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingKnnVectorProperty returns a CommonMappingTypePropertiesValue populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingTypePropertiesValue {
+// NewCommonMappingTypePropertiesValueFromCommonMappingKNNVectorProperty returns a CommonMappingTypePropertiesValue populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewCommonMappingTypePropertiesValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingTypePropertiesValue {
 	return CommonMappingTypePropertiesValue{
 		value: &v,
 	}
@@ -18132,18 +18132,18 @@ func NewCommonAnalysisConditionTokenFilterScriptFromString(v string) CommonAnaly
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonAnalysisConditionTokenFilterScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonAnalysisConditionTokenFilterScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonAnalysisConditionTokenFilterScriptFromStored returns a CommonAnalysisConditionTokenFilterScript populated with v
 // on the Stored branch.
-func NewCommonAnalysisConditionTokenFilterScriptFromStored(v StoredScriptId) CommonAnalysisConditionTokenFilterScript {
+func NewCommonAnalysisConditionTokenFilterScriptFromStored(v StoredScriptID) CommonAnalysisConditionTokenFilterScript {
 	return CommonAnalysisConditionTokenFilterScript{
 		typ:   CommonAnalysisConditionTokenFilterScriptStoredType,
 		value: &v,
@@ -18166,7 +18166,7 @@ func (u *CommonAnalysisConditionTokenFilterScript) UnmarshalJSON(data []byte) er
 		u.typ = CommonAnalysisConditionTokenFilterScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -18245,18 +18245,18 @@ func NewCommonAnalysisPredicateTokenFilterScriptFromString(v string) CommonAnaly
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *CommonAnalysisPredicateTokenFilterScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *CommonAnalysisPredicateTokenFilterScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewCommonAnalysisPredicateTokenFilterScriptFromStored returns a CommonAnalysisPredicateTokenFilterScript populated with v
 // on the Stored branch.
-func NewCommonAnalysisPredicateTokenFilterScriptFromStored(v StoredScriptId) CommonAnalysisPredicateTokenFilterScript {
+func NewCommonAnalysisPredicateTokenFilterScriptFromStored(v StoredScriptID) CommonAnalysisPredicateTokenFilterScript {
 	return CommonAnalysisPredicateTokenFilterScript{
 		typ:   CommonAnalysisPredicateTokenFilterScriptStoredType,
 		value: &v,
@@ -18279,7 +18279,7 @@ func (u *CommonAnalysisPredicateTokenFilterScript) UnmarshalJSON(data []byte) er
 		u.typ = CommonAnalysisPredicateTokenFilterScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -19853,13 +19853,13 @@ func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisStandardToke
 	}
 }
 
-// AsCommonAnalysisUaxEmailUrlTokenizer decodes the union as CommonAnalysisUaxEmailUrlTokenizer. The caller selects the
+// AsCommonAnalysisUaxEmailURLTokenizer decodes the union as CommonAnalysisUaxEmailURLTokenizer. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisUaxEmailUrlTokenizer() (CommonAnalysisUaxEmailUrlTokenizer, error) {
-	if v, ok := u.value.(*CommonAnalysisUaxEmailUrlTokenizer); ok {
+func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisUaxEmailURLTokenizer() (CommonAnalysisUaxEmailURLTokenizer, error) {
+	if v, ok := u.value.(*CommonAnalysisUaxEmailURLTokenizer); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisUaxEmailUrlTokenizer
+	var v CommonAnalysisUaxEmailURLTokenizer
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -19867,9 +19867,9 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisUaxEmailUrl
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailUrlTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
-// on the CommonAnalysisUaxEmailUrlTokenizer branch.
-func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailUrlTokenizer(v CommonAnalysisUaxEmailUrlTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailURLTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisUaxEmailURLTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailURLTokenizer(v CommonAnalysisUaxEmailURLTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
 	return IndicesIndexSettingsAnalysisTokenizerValue{
 		value: &v,
 	}
@@ -20669,18 +20669,18 @@ func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromString(v string) In
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored returns a IndicesIndexSettingsSimilarityScriptedTfidfScript populated with v
 // on the Stored branch.
-func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored(v StoredScriptId) IndicesIndexSettingsSimilarityScriptedTfidfScript {
+func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored(v StoredScriptID) IndicesIndexSettingsSimilarityScriptedTfidfScript {
 	return IndicesIndexSettingsSimilarityScriptedTfidfScript{
 		typ:   IndicesIndexSettingsSimilarityScriptedTfidfScriptStoredType,
 		value: &v,
@@ -20703,7 +20703,7 @@ func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) UnmarshalJSON(data [
 		u.typ = IndicesIndexSettingsSimilarityScriptedTfidfScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -22254,13 +22254,13 @@ func NewCommonMappingFieldMappingValueFromCommonMappingHistogramProperty(v Commo
 	}
 }
 
-// AsCommonMappingIpProperty decodes the union as CommonMappingIpProperty. The caller selects the
+// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIpProperty() (CommonMappingIpProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpProperty); ok {
+func (u *CommonMappingFieldMappingValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpProperty
+	var v CommonMappingIPProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -22268,9 +22268,9 @@ func (u *CommonMappingFieldMappingValue) AsCommonMappingIpProperty() (CommonMapp
 	return v, err
 }
 
-// NewCommonMappingFieldMappingValueFromCommonMappingIpProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIpProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIpProperty(v CommonMappingIpProperty) CommonMappingFieldMappingValue {
+// NewCommonMappingFieldMappingValueFromCommonMappingIPProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIPProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingFieldMappingValue {
 	return CommonMappingFieldMappingValue{
 		value: &v,
 	}
@@ -22650,13 +22650,13 @@ func NewCommonMappingFieldMappingValueFromCommonMappingIntegerRangeProperty(v Co
 	}
 }
 
-// AsCommonMappingIpRangeProperty decodes the union as CommonMappingIpRangeProperty. The caller selects the
+// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIpRangeProperty() (CommonMappingIpRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIpRangeProperty); ok {
+func (u *CommonMappingFieldMappingValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIpRangeProperty
+	var v CommonMappingIPRangeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -22664,9 +22664,9 @@ func (u *CommonMappingFieldMappingValue) AsCommonMappingIpRangeProperty() (Commo
 	return v, err
 }
 
-// NewCommonMappingFieldMappingValueFromCommonMappingIpRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIpRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIpRangeProperty(v CommonMappingIpRangeProperty) CommonMappingFieldMappingValue {
+// NewCommonMappingFieldMappingValueFromCommonMappingIPRangeProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingIPRangeProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingFieldMappingValue {
 	return CommonMappingFieldMappingValue{
 		value: &v,
 	}
@@ -22694,13 +22694,13 @@ func NewCommonMappingFieldMappingValueFromCommonMappingLongRangeProperty(v Commo
 	}
 }
 
-// AsCommonMappingKnnVectorProperty decodes the union as CommonMappingKnnVectorProperty. The caller selects the
+// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingKnnVectorProperty() (CommonMappingKnnVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKnnVectorProperty); ok {
+func (u *CommonMappingFieldMappingValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingKnnVectorProperty
+	var v CommonMappingKNNVectorProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -22708,9 +22708,9 @@ func (u *CommonMappingFieldMappingValue) AsCommonMappingKnnVectorProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingFieldMappingValueFromCommonMappingKnnVectorProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingKnnVectorProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingKnnVectorProperty(v CommonMappingKnnVectorProperty) CommonMappingFieldMappingValue {
+// NewCommonMappingFieldMappingValueFromCommonMappingKNNVectorProperty returns a CommonMappingFieldMappingValue populated with v
+// on the CommonMappingKNNVectorProperty branch.
+func NewCommonMappingFieldMappingValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingFieldMappingValue {
 	return CommonMappingFieldMappingValue{
 		value: &v,
 	}
@@ -22809,18 +22809,18 @@ func NewIngestProcessorContainerScriptFromString(v string) IngestProcessorContai
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *IngestProcessorContainerScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *IngestProcessorContainerScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewIngestProcessorContainerScriptFromStored returns a IngestProcessorContainerScript populated with v
 // on the Stored branch.
-func NewIngestProcessorContainerScriptFromStored(v StoredScriptId) IngestProcessorContainerScript {
+func NewIngestProcessorContainerScriptFromStored(v StoredScriptID) IngestProcessorContainerScript {
 	return IngestProcessorContainerScript{
 		typ:   IngestProcessorContainerScriptStoredType,
 		value: &v,
@@ -22843,7 +22843,7 @@ func (u *IngestProcessorContainerScript) UnmarshalJSON(data []byte) error {
 		u.typ = IngestProcessorContainerScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -23664,7 +23664,7 @@ type ISMPolicyTemplateType int
 
 const (
 	ISMPolicyTemplateUnknownType ISMPolicyTemplateType = iota
-	ISMPolicyTemplateISMIsmTemplateType
+	ISMPolicyTemplateISMTemplateType
 	ISMPolicyTemplateArrayType
 )
 
@@ -23687,36 +23687,36 @@ func (u *ISMPolicyTemplate) SetRaw(raw json.RawMessage) {
 	u.typ = ISMPolicyTemplateUnknownType
 }
 
-// ISMIsmTemplate returns the ISMIsmTemplate branch value.
-func (u *ISMPolicyTemplate) ISMIsmTemplate() ISMIsmTemplate {
-	if v, ok := u.value.(*ISMIsmTemplate); ok {
+// ISMTemplate returns the ISMTemplate branch value.
+func (u *ISMPolicyTemplate) ISMTemplate() ISMTemplate {
+	if v, ok := u.value.(*ISMTemplate); ok {
 		return *v
 	}
-	var zero ISMIsmTemplate
+	var zero ISMTemplate
 	return zero
 }
 
-// NewISMPolicyTemplateFromISMIsmTemplate returns a ISMPolicyTemplate populated with v
-// on the ISMIsmTemplate branch.
-func NewISMPolicyTemplateFromISMIsmTemplate(v ISMIsmTemplate) ISMPolicyTemplate {
+// NewISMPolicyTemplateFromISMTemplate returns a ISMPolicyTemplate populated with v
+// on the ISMTemplate branch.
+func NewISMPolicyTemplateFromISMTemplate(v ISMTemplate) ISMPolicyTemplate {
 	return ISMPolicyTemplate{
-		typ:   ISMPolicyTemplateISMIsmTemplateType,
+		typ:   ISMPolicyTemplateISMTemplateType,
 		value: &v,
 	}
 }
 
-// Array returns the []ISMIsmTemplate branch value.
-func (u *ISMPolicyTemplate) Array() []ISMIsmTemplate {
-	if v, ok := u.value.(*[]ISMIsmTemplate); ok {
+// Array returns the []ISMTemplate branch value.
+func (u *ISMPolicyTemplate) Array() []ISMTemplate {
+	if v, ok := u.value.(*[]ISMTemplate); ok {
 		return *v
 	}
-	var zero []ISMIsmTemplate
+	var zero []ISMTemplate
 	return zero
 }
 
 // NewISMPolicyTemplateFromArray returns a ISMPolicyTemplate populated with v
 // on the Array branch.
-func NewISMPolicyTemplateFromArray(v []ISMIsmTemplate) ISMPolicyTemplate {
+func NewISMPolicyTemplateFromArray(v []ISMTemplate) ISMPolicyTemplate {
 	return ISMPolicyTemplate{
 		typ:   ISMPolicyTemplateArrayType,
 		value: &v,
@@ -23732,14 +23732,14 @@ func (u *ISMPolicyTemplate) UnmarshalJSON(data []byte) error {
 	}
 	switch {
 	case data[0] == '{':
-		var v ISMIsmTemplate
+		var v ISMTemplate
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = ISMPolicyTemplateISMIsmTemplateType
+		u.typ = ISMPolicyTemplateISMTemplateType
 		u.value = &v
 	case data[0] == '[':
-		var v []ISMIsmTemplate
+		var v []ISMTemplate
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -23761,110 +23761,110 @@ func (u ISMPolicyTemplate) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// SearchResultJsonValueSuggestValueItemObject0Options is a discriminated union type.
+// SearchResultJSONValueSuggestValueItemObject0Options is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type SearchResultJsonValueSuggestValueItemObject0Options struct {
-	typ   SearchResultJsonValueSuggestValueItemObject0OptionsType
+type SearchResultJSONValueSuggestValueItemObject0Options struct {
+	typ   SearchResultJSONValueSuggestValueItemObject0OptionsType
 	raw   json.RawMessage
 	value any
 }
 
-// SearchResultJsonValueSuggestValueItemObject0OptionsType discriminates the branches of SearchResultJsonValueSuggestValueItemObject0Options.
-type SearchResultJsonValueSuggestValueItemObject0OptionsType int
+// SearchResultJSONValueSuggestValueItemObject0OptionsType discriminates the branches of SearchResultJSONValueSuggestValueItemObject0Options.
+type SearchResultJSONValueSuggestValueItemObject0OptionsType int
 
 const (
-	SearchResultJsonValueSuggestValueItemObject0OptionsUnknownType SearchResultJsonValueSuggestValueItemObject0OptionsType = iota
-	SearchResultJsonValueSuggestValueItemObject0OptionsSearchResultJsonValueSuggestValueItemObject0OptionsObject0Type
-	SearchResultJsonValueSuggestValueItemObject0OptionsArrayType
+	SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType SearchResultJSONValueSuggestValueItemObject0OptionsType = iota
+	SearchResultJSONValueSuggestValueItemObject0OptionsSearchResultJSONValueSuggestValueItemObject0OptionsObject0Type
+	SearchResultJSONValueSuggestValueItemObject0OptionsArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns SearchResultJsonValueSuggestValueItemObject0OptionsUnknownType if the value has not been decoded.
-func (u *SearchResultJsonValueSuggestValueItemObject0Options) Type() SearchResultJsonValueSuggestValueItemObject0OptionsType {
+// Returns SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType if the value has not been decoded.
+func (u *SearchResultJSONValueSuggestValueItemObject0Options) Type() SearchResultJSONValueSuggestValueItemObject0OptionsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchResultJsonValueSuggestValueItemObject0Options) RawJSON() json.RawMessage { return u.raw }
+func (u *SearchResultJSONValueSuggestValueItemObject0Options) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchResultJsonValueSuggestValueItemObject0OptionsFrom*
+// verbatim when no typed branch is set. Use the NewSearchResultJSONValueSuggestValueItemObject0OptionsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *SearchResultJsonValueSuggestValueItemObject0Options) SetRaw(raw json.RawMessage) {
+func (u *SearchResultJSONValueSuggestValueItemObject0Options) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = SearchResultJsonValueSuggestValueItemObject0OptionsUnknownType
+	u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType
 }
 
-// SearchResultJsonValueSuggestValueItemObject0OptionsObject0 returns the SearchResultJsonValueSuggestValueItemObject0OptionsObject0 branch value.
-func (u *SearchResultJsonValueSuggestValueItemObject0Options) SearchResultJsonValueSuggestValueItemObject0OptionsObject0() SearchResultJsonValueSuggestValueItemObject0OptionsObject0 {
-	if v, ok := u.value.(*SearchResultJsonValueSuggestValueItemObject0OptionsObject0); ok {
+// SearchResultJSONValueSuggestValueItemObject0OptionsObject0 returns the SearchResultJSONValueSuggestValueItemObject0OptionsObject0 branch value.
+func (u *SearchResultJSONValueSuggestValueItemObject0Options) SearchResultJSONValueSuggestValueItemObject0OptionsObject0() SearchResultJSONValueSuggestValueItemObject0OptionsObject0 {
+	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemObject0OptionsObject0); ok {
 		return *v
 	}
-	var zero SearchResultJsonValueSuggestValueItemObject0OptionsObject0
+	var zero SearchResultJSONValueSuggestValueItemObject0OptionsObject0
 	return zero
 }
 
-// NewSearchResultJsonValueSuggestValueItemObject0OptionsFromSearchResultJsonValueSuggestValueItemObject0OptionsObject0 returns a SearchResultJsonValueSuggestValueItemObject0Options populated with v
-// on the SearchResultJsonValueSuggestValueItemObject0OptionsObject0 branch.
-func NewSearchResultJsonValueSuggestValueItemObject0OptionsFromSearchResultJsonValueSuggestValueItemObject0OptionsObject0(v SearchResultJsonValueSuggestValueItemObject0OptionsObject0) SearchResultJsonValueSuggestValueItemObject0Options {
-	return SearchResultJsonValueSuggestValueItemObject0Options{
-		typ:   SearchResultJsonValueSuggestValueItemObject0OptionsSearchResultJsonValueSuggestValueItemObject0OptionsObject0Type,
+// NewSearchResultJSONValueSuggestValueItemObject0OptionsFromSearchResultJSONValueSuggestValueItemObject0OptionsObject0 returns a SearchResultJSONValueSuggestValueItemObject0Options populated with v
+// on the SearchResultJSONValueSuggestValueItemObject0OptionsObject0 branch.
+func NewSearchResultJSONValueSuggestValueItemObject0OptionsFromSearchResultJSONValueSuggestValueItemObject0OptionsObject0(v SearchResultJSONValueSuggestValueItemObject0OptionsObject0) SearchResultJSONValueSuggestValueItemObject0Options {
+	return SearchResultJSONValueSuggestValueItemObject0Options{
+		typ:   SearchResultJSONValueSuggestValueItemObject0OptionsSearchResultJSONValueSuggestValueItemObject0OptionsObject0Type,
 		value: &v,
 	}
 }
 
-// Array returns the []SearchResultJsonValueSuggestValueItemObject0OptionsItem branch value.
-func (u *SearchResultJsonValueSuggestValueItemObject0Options) Array() []SearchResultJsonValueSuggestValueItemObject0OptionsItem {
-	if v, ok := u.value.(*[]SearchResultJsonValueSuggestValueItemObject0OptionsItem); ok {
+// Array returns the []SearchResultJSONValueSuggestValueItemObject0OptionsItem branch value.
+func (u *SearchResultJSONValueSuggestValueItemObject0Options) Array() []SearchResultJSONValueSuggestValueItemObject0OptionsItem {
+	if v, ok := u.value.(*[]SearchResultJSONValueSuggestValueItemObject0OptionsItem); ok {
 		return *v
 	}
-	var zero []SearchResultJsonValueSuggestValueItemObject0OptionsItem
+	var zero []SearchResultJSONValueSuggestValueItemObject0OptionsItem
 	return zero
 }
 
-// NewSearchResultJsonValueSuggestValueItemObject0OptionsFromArray returns a SearchResultJsonValueSuggestValueItemObject0Options populated with v
+// NewSearchResultJSONValueSuggestValueItemObject0OptionsFromArray returns a SearchResultJSONValueSuggestValueItemObject0Options populated with v
 // on the Array branch.
-func NewSearchResultJsonValueSuggestValueItemObject0OptionsFromArray(v []SearchResultJsonValueSuggestValueItemObject0OptionsItem) SearchResultJsonValueSuggestValueItemObject0Options {
-	return SearchResultJsonValueSuggestValueItemObject0Options{
-		typ:   SearchResultJsonValueSuggestValueItemObject0OptionsArrayType,
+func NewSearchResultJSONValueSuggestValueItemObject0OptionsFromArray(v []SearchResultJSONValueSuggestValueItemObject0OptionsItem) SearchResultJSONValueSuggestValueItemObject0Options {
+	return SearchResultJSONValueSuggestValueItemObject0Options{
+		typ:   SearchResultJSONValueSuggestValueItemObject0OptionsArrayType,
 		value: &v,
 	}
 }
 
-func (u *SearchResultJsonValueSuggestValueItemObject0Options) UnmarshalJSON(data []byte) error {
+func (u *SearchResultJSONValueSuggestValueItemObject0Options) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = SearchResultJsonValueSuggestValueItemObject0OptionsUnknownType
+	u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
 	switch {
 	case data[0] == '{':
-		var v SearchResultJsonValueSuggestValueItemObject0OptionsObject0
+		var v SearchResultJSONValueSuggestValueItemObject0OptionsObject0
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJsonValueSuggestValueItemObject0OptionsSearchResultJsonValueSuggestValueItemObject0OptionsObject0Type
+		u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsSearchResultJSONValueSuggestValueItemObject0OptionsObject0Type
 		u.value = &v
 	case data[0] == '[':
-		var v []SearchResultJsonValueSuggestValueItemObject0OptionsItem
+		var v []SearchResultJSONValueSuggestValueItemObject0OptionsItem
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJsonValueSuggestValueItemObject0OptionsArrayType
+		u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("SearchResultJsonValueSuggestValueItemObject0Options: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("SearchResultJSONValueSuggestValueItemObject0Options: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u SearchResultJsonValueSuggestValueItemObject0Options) MarshalJSON() ([]byte, error) {
+func (u SearchResultJSONValueSuggestValueItemObject0Options) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -23874,12 +23874,12 @@ func (u SearchResultJsonValueSuggestValueItemObject0Options) MarshalJSON() ([]by
 	return build.NullJSON, nil
 }
 
-// SearchResultJsonValueSuggestValueItem is a discriminated union with no wire discriminator.
+// SearchResultJSONValueSuggestValueItem is a discriminated union with no wire discriminator.
 // Its branches are indistinguishable from the response bytes alone (the type
 // is determined by the request), so the raw JSON is retained and decoded on
 // demand by the As<Branch>() accessors. There is deliberately no Type() method
 // or discriminant constants: the wire never identifies the branch.
-type SearchResultJsonValueSuggestValueItem struct {
+type SearchResultJSONValueSuggestValueItem struct {
 	raw   json.RawMessage
 	value any
 }
@@ -23887,21 +23887,21 @@ type SearchResultJsonValueSuggestValueItem struct {
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchResultJsonValueSuggestValueItem) RawJSON() json.RawMessage { return u.raw }
+func (u *SearchResultJSONValueSuggestValueItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling.
-func (u *SearchResultJsonValueSuggestValueItem) SetRaw(raw json.RawMessage) {
+func (u *SearchResultJSONValueSuggestValueItem) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
 }
 
-// AsSearchResultJsonValueSuggestValueItemObject0 decodes the union as SearchResultJsonValueSuggestValueItemObject0. The caller selects the
+// AsSearchResultJSONValueSuggestValueItemObject0 decodes the union as SearchResultJSONValueSuggestValueItemObject0. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultJsonValueSuggestValueItem) AsSearchResultJsonValueSuggestValueItemObject0() (SearchResultJsonValueSuggestValueItemObject0, error) {
-	if v, ok := u.value.(*SearchResultJsonValueSuggestValueItemObject0); ok {
+func (u *SearchResultJSONValueSuggestValueItem) AsSearchResultJSONValueSuggestValueItemObject0() (SearchResultJSONValueSuggestValueItemObject0, error) {
+	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemObject0); ok {
 		return *v, nil
 	}
-	var v SearchResultJsonValueSuggestValueItemObject0
+	var v SearchResultJSONValueSuggestValueItemObject0
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -23909,17 +23909,17 @@ func (u *SearchResultJsonValueSuggestValueItem) AsSearchResultJsonValueSuggestVa
 	return v, err
 }
 
-// NewSearchResultJsonValueSuggestValueItemFromSearchResultJsonValueSuggestValueItemObject0 returns a SearchResultJsonValueSuggestValueItem populated with v
-// on the SearchResultJsonValueSuggestValueItemObject0 branch.
-func NewSearchResultJsonValueSuggestValueItemFromSearchResultJsonValueSuggestValueItemObject0(v SearchResultJsonValueSuggestValueItemObject0) SearchResultJsonValueSuggestValueItem {
-	return SearchResultJsonValueSuggestValueItem{
+// NewSearchResultJSONValueSuggestValueItemFromSearchResultJSONValueSuggestValueItemObject0 returns a SearchResultJSONValueSuggestValueItem populated with v
+// on the SearchResultJSONValueSuggestValueItemObject0 branch.
+func NewSearchResultJSONValueSuggestValueItemFromSearchResultJSONValueSuggestValueItemObject0(v SearchResultJSONValueSuggestValueItemObject0) SearchResultJSONValueSuggestValueItem {
+	return SearchResultJSONValueSuggestValueItem{
 		value: &v,
 	}
 }
 
 // AsPhrase decodes the union as SearchPhraseSuggest. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultJsonValueSuggestValueItem) AsPhrase() (SearchPhraseSuggest, error) {
+func (u *SearchResultJSONValueSuggestValueItem) AsPhrase() (SearchPhraseSuggest, error) {
 	if v, ok := u.value.(*SearchPhraseSuggest); ok {
 		return *v, nil
 	}
@@ -23931,17 +23931,17 @@ func (u *SearchResultJsonValueSuggestValueItem) AsPhrase() (SearchPhraseSuggest,
 	return v, err
 }
 
-// NewSearchResultJsonValueSuggestValueItemFromPhrase returns a SearchResultJsonValueSuggestValueItem populated with v
+// NewSearchResultJSONValueSuggestValueItemFromPhrase returns a SearchResultJSONValueSuggestValueItem populated with v
 // on the Phrase branch.
-func NewSearchResultJsonValueSuggestValueItemFromPhrase(v SearchPhraseSuggest) SearchResultJsonValueSuggestValueItem {
-	return SearchResultJsonValueSuggestValueItem{
+func NewSearchResultJSONValueSuggestValueItemFromPhrase(v SearchPhraseSuggest) SearchResultJSONValueSuggestValueItem {
+	return SearchResultJSONValueSuggestValueItem{
 		value: &v,
 	}
 }
 
 // AsTerm decodes the union as SearchTermSuggest. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultJsonValueSuggestValueItem) AsTerm() (SearchTermSuggest, error) {
+func (u *SearchResultJSONValueSuggestValueItem) AsTerm() (SearchTermSuggest, error) {
 	if v, ok := u.value.(*SearchTermSuggest); ok {
 		return *v, nil
 	}
@@ -23953,21 +23953,21 @@ func (u *SearchResultJsonValueSuggestValueItem) AsTerm() (SearchTermSuggest, err
 	return v, err
 }
 
-// NewSearchResultJsonValueSuggestValueItemFromTerm returns a SearchResultJsonValueSuggestValueItem populated with v
+// NewSearchResultJSONValueSuggestValueItemFromTerm returns a SearchResultJSONValueSuggestValueItem populated with v
 // on the Term branch.
-func NewSearchResultJsonValueSuggestValueItemFromTerm(v SearchTermSuggest) SearchResultJsonValueSuggestValueItem {
-	return SearchResultJsonValueSuggestValueItem{
+func NewSearchResultJSONValueSuggestValueItemFromTerm(v SearchTermSuggest) SearchResultJSONValueSuggestValueItem {
+	return SearchResultJSONValueSuggestValueItem{
 		value: &v,
 	}
 }
 
-func (u *SearchResultJsonValueSuggestValueItem) UnmarshalJSON(data []byte) error {
+func (u *SearchResultJSONValueSuggestValueItem) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
 	return nil
 }
 
-func (u SearchResultJsonValueSuggestValueItem) MarshalJSON() ([]byte, error) {
+func (u SearchResultJSONValueSuggestValueItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -24992,45 +24992,45 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// HttpHeadersValue is a discriminated union type.
+// HTTPHeadersValue is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type HttpHeadersValue struct {
-	typ   HttpHeadersValueType
+type HTTPHeadersValue struct {
+	typ   HTTPHeadersValueType
 	raw   json.RawMessage
 	value any
 }
 
-// HttpHeadersValueType discriminates the branches of HttpHeadersValue.
-type HttpHeadersValueType int
+// HTTPHeadersValueType discriminates the branches of HTTPHeadersValue.
+type HTTPHeadersValueType int
 
 const (
-	HttpHeadersValueUnknownType HttpHeadersValueType = iota
-	HttpHeadersValueStringType
-	HttpHeadersValueArrayType
+	HTTPHeadersValueUnknownType HTTPHeadersValueType = iota
+	HTTPHeadersValueStringType
+	HTTPHeadersValueArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns HttpHeadersValueUnknownType if the value has not been decoded.
-func (u *HttpHeadersValue) Type() HttpHeadersValueType { return u.typ }
+// Returns HTTPHeadersValueUnknownType if the value has not been decoded.
+func (u *HTTPHeadersValue) Type() HTTPHeadersValueType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *HttpHeadersValue) RawJSON() json.RawMessage { return u.raw }
+func (u *HTTPHeadersValue) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewHttpHeadersValueFrom*
+// verbatim when no typed branch is set. Use the NewHTTPHeadersValueFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *HttpHeadersValue) SetRaw(raw json.RawMessage) {
+func (u *HTTPHeadersValue) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = HttpHeadersValueUnknownType
+	u.typ = HTTPHeadersValueUnknownType
 }
 
 // String returns the string branch value.
-func (u *HttpHeadersValue) String() string {
+func (u *HTTPHeadersValue) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -25038,17 +25038,17 @@ func (u *HttpHeadersValue) String() string {
 	return zero
 }
 
-// NewHttpHeadersValueFromString returns a HttpHeadersValue populated with v
+// NewHTTPHeadersValueFromString returns a HTTPHeadersValue populated with v
 // on the String branch.
-func NewHttpHeadersValueFromString(v string) HttpHeadersValue {
-	return HttpHeadersValue{
-		typ:   HttpHeadersValueStringType,
+func NewHTTPHeadersValueFromString(v string) HTTPHeadersValue {
+	return HTTPHeadersValue{
+		typ:   HTTPHeadersValueStringType,
 		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
-func (u *HttpHeadersValue) Array() []string {
+func (u *HTTPHeadersValue) Array() []string {
 	if v, ok := u.value.(*[]string); ok {
 		return *v
 	}
@@ -25056,19 +25056,19 @@ func (u *HttpHeadersValue) Array() []string {
 	return zero
 }
 
-// NewHttpHeadersValueFromArray returns a HttpHeadersValue populated with v
+// NewHTTPHeadersValueFromArray returns a HTTPHeadersValue populated with v
 // on the Array branch.
-func NewHttpHeadersValueFromArray(v []string) HttpHeadersValue {
-	return HttpHeadersValue{
-		typ:   HttpHeadersValueArrayType,
+func NewHTTPHeadersValueFromArray(v []string) HTTPHeadersValue {
+	return HTTPHeadersValue{
+		typ:   HTTPHeadersValueArrayType,
 		value: &v,
 	}
 }
 
-func (u *HttpHeadersValue) UnmarshalJSON(data []byte) error {
+func (u *HTTPHeadersValue) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = HttpHeadersValueUnknownType
+	u.typ = HTTPHeadersValueUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -25078,22 +25078,22 @@ func (u *HttpHeadersValue) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = HttpHeadersValueStringType
+		u.typ = HTTPHeadersValueStringType
 		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = HttpHeadersValueArrayType
+		u.typ = HTTPHeadersValueArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("HttpHeadersValue: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("HTTPHeadersValue: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u HttpHeadersValue) MarshalJSON() ([]byte, error) {
+func (u HTTPHeadersValue) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -28579,18 +28579,18 @@ func NewDerivedFieldScriptFromString(v string) DerivedFieldScript {
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *DerivedFieldScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *DerivedFieldScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewDerivedFieldScriptFromStored returns a DerivedFieldScript populated with v
 // on the Stored branch.
-func NewDerivedFieldScriptFromStored(v StoredScriptId) DerivedFieldScript {
+func NewDerivedFieldScriptFromStored(v StoredScriptID) DerivedFieldScript {
 	return DerivedFieldScript{
 		typ:   DerivedFieldScriptStoredType,
 		value: &v,
@@ -28613,7 +28613,7 @@ func (u *DerivedFieldScript) UnmarshalJSON(data []byte) error {
 		u.typ = DerivedFieldScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

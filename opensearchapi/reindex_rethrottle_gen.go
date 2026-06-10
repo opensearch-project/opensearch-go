@@ -131,7 +131,7 @@ type ReindexRethrottleReindexTask struct {
 	Description string `json:"description"`
 
 	// The HTTP headers.
-	Headers map[string]HttpHeadersValue `json:"headers"`
+	Headers map[string]HTTPHeadersValue `json:"headers"`
 
 	ID int64 `json:"id"`
 

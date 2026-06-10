@@ -58,7 +58,7 @@ func TestTitleSegment(t *testing.T) {
 
 // TestPathBuilderName verifies the mapping from x-operation-group to path
 // builder struct name. These struct names appear in internal/path/builders_gen.go
-// and are referenced by consumer files in opensearchapi/ and opensearchapi/plugins/ via their
+// and are referenced by consumer files in opensearchapi/ and plugins/ via their
 // GetRequest() methods. The naming must stay deterministic across regeneration.
 func TestPathBuilderName(t *testing.T) {
 	t.Parallel()
@@ -221,19 +221,19 @@ func TestOperationFilename(t *testing.T) {
 		{name: "core leaf", group: "search", want: "opensearchapi/search_gen.go"},
 		{name: "core dotted", group: "indices.create", want: "opensearchapi/indices-create_gen.go"},
 		{name: "_core stripped", group: "_core.search", want: "opensearchapi/search_gen.go"},
-		{name: "plugin leaf", group: "knn.stats", want: "opensearchapi/plugins/knn/stats_gen.go"},
-		{name: "plugin underscore", group: "ism.add_policy", want: "opensearchapi/plugins/ism/add_policy_gen.go"},
+		{name: "plugin leaf", group: "knn.stats", want: "plugins/knn/stats_gen.go"},
+		{name: "plugin underscore", group: "ism.add_policy", want: "plugins/ism/add_policy_gen.go"},
 		{
 			name:  "plugin multi word",
 			group: "security.reload_http_certificates",
-			want:  "opensearchapi/plugins/security/reload_http_certificates_gen.go",
+			want:  "plugins/security/reload_http_certificates_gen.go",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, dir := routeOperation(tt.group, ir.DefaultCoreSubpath, ir.DefaultCoreSubpath+"/plugins")
+			_, dir := routeOperation(tt.group, ir.DefaultCoreSubpath, ir.DefaultPluginsSubpath)
 			got := dir + "/" + operationFilename(tt.group) + genFileSuffix
 			require.Equal(t, tt.want, got)
 		})

@@ -89,7 +89,7 @@ Generates API consumer files into `opensearchapi/` and plugin directories.
 | `-spec`                          | required | Path to the combined OpenAPI spec YAML                                      |
 | `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)       |
 | `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)                  |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `opensearchapi/plugins/`) |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `plugins/`) |
 | `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                                  |
 | `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                         |
 | `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                         |
@@ -111,7 +111,7 @@ go run . api \
   -spec ../../opensearch-openapi.yaml \
   -out ../../opensearchapi \
   -pkg opensearchapi \
-  -plugins-out ../../opensearchapi/plugins
+  -plugins-out ../../plugins
 ```
 
 Generate a single operation:
