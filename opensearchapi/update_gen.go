@@ -441,18 +441,18 @@ func NewUpdateBodyScriptFromString(v string) UpdateBodyScript {
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *UpdateBodyScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *UpdateBodyScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewUpdateBodyScriptFromStored returns a UpdateBodyScript populated with v
 // on the Stored branch.
-func NewUpdateBodyScriptFromStored(v StoredScriptId) UpdateBodyScript {
+func NewUpdateBodyScriptFromStored(v StoredScriptID) UpdateBodyScript {
 	return UpdateBodyScript{
 		typ:   UpdateBodyScriptStoredType,
 		value: &v,
@@ -475,7 +475,7 @@ func (u *UpdateBodyScript) UnmarshalJSON(data []byte) error {
 		u.typ = UpdateBodyScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

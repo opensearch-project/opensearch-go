@@ -249,7 +249,7 @@ type CatSegmentReplicationRecord struct {
 	LastCompletedLag                  *string `json:"last_completed_lag,omitempty"`
 	RejectedRequests                  *string `json:"rejected_requests,omitempty"`
 	ReplicatingStageTimeTaken         *string `json:"replicating_stage_time_taken,omitempty"`
-	ShardId                           *string `json:"shardId,omitempty"`
+	ShardID                           *string `json:"shardId,omitempty"`
 	Stage                             *string `json:"stage,omitempty"`
 	StartTime                         *string `json:"start_time,omitempty"`
 	StopTime                          *string `json:"stop_time,omitempty"`

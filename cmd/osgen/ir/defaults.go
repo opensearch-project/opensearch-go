@@ -23,6 +23,11 @@ const (
 	// DefaultCoreImportPath is the full Go import path for the core API package.
 	DefaultCoreImportPath = ModulePath + "/" + DefaultCoreSubpath
 
+	// DefaultPluginsSubpath is the relative path (within the module) where the
+	// generated plugin packages live. Plugins are siblings of the core package
+	// at the module root, not nested under it.
+	DefaultPluginsSubpath = "plugins"
+
 	// DefaultPluginsImportBase is the import-path prefix for plugin packages.
-	DefaultPluginsImportBase = DefaultCoreImportPath + "/plugins"
+	DefaultPluginsImportBase = ModulePath + "/" + DefaultPluginsSubpath
 )

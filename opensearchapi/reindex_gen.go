@@ -470,18 +470,18 @@ func NewReindexBodyScriptFromString(v string) ReindexBodyScript {
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *ReindexBodyScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *ReindexBodyScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewReindexBodyScriptFromStored returns a ReindexBodyScript populated with v
 // on the Stored branch.
-func NewReindexBodyScriptFromStored(v StoredScriptId) ReindexBodyScript {
+func NewReindexBodyScriptFromStored(v StoredScriptID) ReindexBodyScript {
 	return ReindexBodyScript{
 		typ:   ReindexBodyScriptStoredType,
 		value: &v,
@@ -504,7 +504,7 @@ func (u *ReindexBodyScript) UnmarshalJSON(data []byte) error {
 		u.typ = ReindexBodyScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

@@ -87,7 +87,7 @@ func (r GetAllPitsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
 type GetAllPitsResp struct {
-	Pits []PITPitDetail `json:"pits,omitempty"`
+	Pits []PITDetail `json:"pits,omitempty"`
 
 	response *opensearch.Response
 }
@@ -106,8 +106,8 @@ func (r GetAllPitsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// PITPitDetail is a typed component of the get_all_pits operation.
-type PITPitDetail struct {
+// PITDetail is a typed component of the get_all_pits operation.
+type PITDetail struct {
 	CreationTime *int64  `json:"creation_time,omitempty"`
 	KeepAlive    *int64  `json:"keep_alive,omitempty"`
 	PITID        *string `json:"pit_id,omitempty"`

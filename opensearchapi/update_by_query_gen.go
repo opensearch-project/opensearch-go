@@ -614,18 +614,18 @@ func NewUpdateByQueryBodyScriptFromString(v string) UpdateByQueryBodyScript {
 	}
 }
 
-// Stored returns the StoredScriptId branch value.
-func (u *UpdateByQueryBodyScript) Stored() StoredScriptId {
-	if v, ok := u.value.(*StoredScriptId); ok {
+// Stored returns the StoredScriptID branch value.
+func (u *UpdateByQueryBodyScript) Stored() StoredScriptID {
+	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
-	var zero StoredScriptId
+	var zero StoredScriptID
 	return zero
 }
 
 // NewUpdateByQueryBodyScriptFromStored returns a UpdateByQueryBodyScript populated with v
 // on the Stored branch.
-func NewUpdateByQueryBodyScriptFromStored(v StoredScriptId) UpdateByQueryBodyScript {
+func NewUpdateByQueryBodyScriptFromStored(v StoredScriptID) UpdateByQueryBodyScript {
 	return UpdateByQueryBodyScript{
 		typ:   UpdateByQueryBodyScriptStoredType,
 		value: &v,
@@ -648,7 +648,7 @@ func (u *UpdateByQueryBodyScript) UnmarshalJSON(data []byte) error {
 		u.typ = UpdateByQueryBodyScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v StoredScriptId
+		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

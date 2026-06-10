@@ -385,7 +385,7 @@ make gh.checks.failed     # Only failed checks
 
 ## Code Generation
 
-The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`opensearchapi/`, `opensearchapi/plugins/`) from the published [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, `x-version-removed`, and `x-error-responses` extensions from the spec to produce version-aware Go source.
+The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`opensearchapi/`, `plugins/`) from the published [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, `x-version-removed`, and `x-error-responses` extensions from the spec to produce version-aware Go source.
 
 The `opensearchapi/` package is the code-generated v5 API surface, produced by `cmd/osgen` from the spec. See `opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance.
 
