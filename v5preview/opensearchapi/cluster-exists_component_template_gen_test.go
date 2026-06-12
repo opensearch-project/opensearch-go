@@ -41,7 +41,7 @@ func TestClusterExistsComponentTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterExistsComponentTemplateReq{Name: "test-name"},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/_component_template/test-name",
 			wantErr:    false,
 		},

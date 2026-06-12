@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateModelMetaReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.CreateModelMetaReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/models/meta",
 			wantErr:    false,
 		},

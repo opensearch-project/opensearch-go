@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -35,7 +34,7 @@ func TestIndexClient(t *testing.T) {
 		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, opensearch.ErrPathRequired)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 	})
 
 	t.Run("Request Index only", func(t *testing.T) {
@@ -43,10 +42,10 @@ func TestIndexClient(t *testing.T) {
 		require.Error(t, err)
 		var osError *opensearch.StructError
 		require.ErrorAs(t, err, &osError)
-		assert.Equal(t, "parse_exception", osError.Err.Type)
-		assert.Equal(t, "request body is required", osError.Err.Reason)
-		assert.NotNil(t, resp)
-		assert.NotNil(t, resp.Inspect())
+		require.Equal(t, "parse_exception", osError.Err.Type)
+		require.Equal(t, "request body is required", osError.Err.Reason)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Inspect())
 	})
 
 	t.Run("Request with DocID", func(t *testing.T) {
@@ -57,7 +56,7 @@ func TestIndexClient(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
-			assert.Equal(t, result, resp.Result)
+			require.Equal(t, result, resp.Result)
 		}
 	})
 
@@ -67,8 +66,8 @@ func TestIndexClient(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
-		assert.Equal(t, index, resp.Index)
-		assert.Equal(t, "created", resp.Result)
+		require.Equal(t, index, resp.Index)
+		require.Equal(t, "created", resp.Result)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
@@ -77,7 +76,7 @@ func TestIndexClient(t *testing.T) {
 
 		res, err := failingClient.Index(t.Context(), opensearchapi.IndexReq{Index: index})
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

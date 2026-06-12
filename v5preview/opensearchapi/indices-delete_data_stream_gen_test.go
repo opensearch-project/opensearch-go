@@ -41,7 +41,7 @@ func TestIndicesDeleteDataStreamReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"a", "b"}},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_data_stream/a,b",
 			wantErr:    false,
 		},

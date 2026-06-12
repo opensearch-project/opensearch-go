@@ -34,7 +34,7 @@ func TestIngestProcessorGrokReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IngestProcessorGrokReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_ingest/processor/grok",
 			wantErr:    false,
 		},

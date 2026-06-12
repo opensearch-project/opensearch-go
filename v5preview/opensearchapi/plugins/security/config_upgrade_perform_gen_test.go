@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestConfigUpgradePerformReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.ConfigUpgradePerformReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_security/api/_upgrade_perform",
 			wantErr:    false,
 		},

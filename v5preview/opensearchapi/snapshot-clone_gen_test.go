@@ -42,7 +42,7 @@ func TestSnapshotCloneReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotCloneReq{Repository: "test-repository", Snapshot: "test-snapshot", TargetSnapshot: "test-targetsnapshot"},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_snapshot/test-repository/test-snapshot/_clone/test-targetsnapshot",
 			wantErr:    false,
 		},

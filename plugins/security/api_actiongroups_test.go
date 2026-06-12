@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -181,12 +180,12 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
 						if value.Name != "Get" {
 							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
@@ -199,7 +198,7 @@ func TestSecurityActiongroupsClient(t *testing.T) {
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.ActionGroups.Get(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp.Groups, resp.Inspect().Response)
 		})
 	})

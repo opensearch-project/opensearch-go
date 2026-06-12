@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestUpdateAuditConfigurationReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.UpdateAuditConfigurationReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_security/api/audit/config",
 			wantErr:    false,
 		},

@@ -42,6 +42,7 @@ func TestMappingGetResp_GetIndices(t *testing.T) {
 			wantLen:  2,
 			wantKeys: []string{"test-index-1", "test-index-2"},
 			checkField: func(t *testing.T, indices map[string]opensearchapi.MappingGetRespIndex) {
+				t.Helper()
 				require.Contains(t, string(indices["test-index-1"].Mappings), "field1")
 			},
 		},
@@ -101,6 +102,7 @@ func TestSettingsGetResp_GetIndices(t *testing.T) {
 			wantLen:  2,
 			wantKeys: []string{"test-index-1", "test-index-2"},
 			checkField: func(t *testing.T, indices map[string]opensearchapi.SettingsGetRespIndex) {
+				t.Helper()
 				require.Contains(t, string(indices["test-index-1"].Settings), "number_of_shards")
 			},
 		},
@@ -160,6 +162,7 @@ func TestAliasGetResp_GetIndices(t *testing.T) {
 			wantLen:  2,
 			wantKeys: []string{"test-index-1", "test-index-2"},
 			checkField: func(t *testing.T, indices map[string]opensearchapi.AliasGetRespIndex) {
+				t.Helper()
 				require.Len(t, indices["test-index-1"].Aliases, 2)
 				require.Contains(t, indices["test-index-1"].Aliases, "alias1")
 				require.Contains(t, indices["test-index-1"].Aliases, "alias2")
@@ -171,6 +174,7 @@ func TestAliasGetResp_GetIndices(t *testing.T) {
 			wantLen:  1,
 			wantKeys: []string{"my-index"},
 			checkField: func(t *testing.T, indices map[string]opensearchapi.AliasGetRespIndex) {
+				t.Helper()
 				require.Empty(t, indices["my-index"].Aliases)
 			},
 		},
@@ -218,12 +222,37 @@ func TestIndicesRecoveryResp_GetIndices(t *testing.T) {
 		{
 			name: "two indices",
 			json: `{
-				"test-index-1": {"shards": [{"id": 0, "type": "STORE", "stage": "DONE", "primary": true, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "index": {"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"}, "files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"}, "total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0}, "translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0}, "verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}}]},
-				"test-index-2": {"shards": [{"id": 0, "type": "PEER", "stage": "DONE", "primary": false, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 60, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n2", "host": "127.0.0.2", "transport_address": "127.0.0.2:9300", "ip": "127.0.0.2", "name": "node-2"}, "index": {"size": {"total_in_bytes": 2000, "reused_in_bytes": 0, "recovered_in_bytes": 2000, "percent": "100.0%"}, "files": {"total": 15, "reused": 0, "recovered": 15, "percent": "100.0%"}, "total_time_in_millis": 50, "source_throttle_time_in_millis": 10, "target_throttle_time_in_millis": 5}, "translog": {"recovered": 100, "total": 100, "percent": "100.0%", "total_on_start": 100, "total_time_in_millis": 5}, "verify_index": {"check_index_time_in_millis": 2, "total_time_in_millis": 2}}]}
+				"test-index-1": {"shards": [{
+					"id": 0, "type": "STORE", "stage": "DONE", "primary": true,
+					"start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10,
+					"source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+					"target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+					"index": {
+						"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"},
+						"files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"},
+						"total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0
+					},
+					"translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0},
+					"verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}
+				}]},
+				"test-index-2": {"shards": [{
+					"id": 0, "type": "PEER", "stage": "DONE", "primary": false,
+					"start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 60,
+					"source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+					"target": {"id": "n2", "host": "127.0.0.2", "transport_address": "127.0.0.2:9300", "ip": "127.0.0.2", "name": "node-2"},
+					"index": {
+						"size": {"total_in_bytes": 2000, "reused_in_bytes": 0, "recovered_in_bytes": 2000, "percent": "100.0%"},
+						"files": {"total": 15, "reused": 0, "recovered": 15, "percent": "100.0%"},
+						"total_time_in_millis": 50, "source_throttle_time_in_millis": 10, "target_throttle_time_in_millis": 5
+					},
+					"translog": {"recovered": 100, "total": 100, "percent": "100.0%", "total_on_start": 100, "total_time_in_millis": 5},
+					"verify_index": {"check_index_time_in_millis": 2, "total_time_in_millis": 2}
+				}]}
 			}`,
 			wantLen:  2,
 			wantKeys: []string{"test-index-1", "test-index-2"},
 			checkField: func(t *testing.T, indices map[string]opensearchapi.IndicesRecoveryRespIndex) {
+				t.Helper()
 				require.Len(t, indices["test-index-1"].Shards, 1)
 				require.Equal(t, "STORE", indices["test-index-1"].Shards[0].Type)
 				require.True(t, indices["test-index-1"].Shards[0].Primary)
@@ -235,13 +264,38 @@ func TestIndicesRecoveryResp_GetIndices(t *testing.T) {
 			name: "single index with multiple shards",
 			json: `{
 				"my-index": {"shards": [
-					{"id": 0, "type": "STORE", "stage": "DONE", "primary": true, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "index": {"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"}, "files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"}, "total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0}, "translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0}, "verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}},
-					{"id": 1, "type": "STORE", "stage": "DONE", "primary": true, "start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10, "source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"}, "index": {"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"}, "files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"}, "total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0}, "translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0}, "verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}}
+					{
+						"id": 0, "type": "STORE", "stage": "DONE", "primary": true,
+						"start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10,
+						"source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+						"target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+						"index": {
+							"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"},
+							"files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"},
+							"total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0
+						},
+						"translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0},
+						"verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}
+					},
+					{
+						"id": 1, "type": "STORE", "stage": "DONE", "primary": true,
+						"start_time_in_millis": 0, "stop_time_in_millis": 0, "total_time_in_millis": 10,
+						"source": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+						"target": {"id": "n1", "host": "127.0.0.1", "transport_address": "127.0.0.1:9300", "ip": "127.0.0.1", "name": "node-1"},
+						"index": {
+							"size": {"total_in_bytes": 1000, "reused_in_bytes": 900, "recovered_in_bytes": 100, "percent": "100.0%"},
+							"files": {"total": 10, "reused": 9, "recovered": 1, "percent": "100.0%"},
+							"total_time_in_millis": 5, "source_throttle_time_in_millis": 0, "target_throttle_time_in_millis": 0
+						},
+						"translog": {"recovered": 0, "total": 0, "percent": "100.0%", "total_on_start": 0, "total_time_in_millis": 0},
+						"verify_index": {"check_index_time_in_millis": 0, "total_time_in_millis": 0}
+					}
 				]}
 			}`,
 			wantLen:  1,
 			wantKeys: []string{"my-index"},
 			checkField: func(t *testing.T, indices map[string]opensearchapi.IndicesRecoveryRespIndex) {
+				t.Helper()
 				require.Len(t, indices["my-index"].Shards, 2)
 				require.Equal(t, 0, indices["my-index"].Shards[0].ID)
 				require.Equal(t, 1, indices["my-index"].Shards[1].ID)
@@ -328,16 +382,16 @@ func TestMappingFieldReq_GetRequest(t *testing.T) {
 			wantPath:   "/test-index/_mapping/field/*",
 		},
 		{
-			name:    "with empty fields returns error",
-			req:     opensearchapi.MappingFieldReq{Indices: []string{"test-index"}, Fields: []string{}},
+			name:       "with empty fields returns error",
+			req:        opensearchapi.MappingFieldReq{Indices: []string{"test-index"}, Fields: []string{}},
 			wantMethod: http.MethodGet,
-			wantErr: true,
+			wantErr:    true,
 		},
 		{
-			name:    "with nil fields returns error",
-			req:     opensearchapi.MappingFieldReq{Indices: []string{"test-index"}},
+			name:       "with nil fields returns error",
+			req:        opensearchapi.MappingFieldReq{Indices: []string{"test-index"}},
 			wantMethod: http.MethodGet,
-			wantErr: true,
+			wantErr:    true,
 		},
 		{
 			name:       "without indices",

@@ -11,6 +11,7 @@
 package transforms_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestPreviewReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        transforms.PreviewReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_transform/_preview",
 			wantErr:    false,
 		},

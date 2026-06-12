@@ -34,14 +34,14 @@ func TestTasksCancelReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.TasksCancelReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_tasks/_cancel",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.TasksCancelReq{TaskID: "test-taskid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_tasks/test-taskid/_cancel",
 			wantErr:    false,
 		},

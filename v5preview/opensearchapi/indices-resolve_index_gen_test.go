@@ -41,7 +41,7 @@ func TestIndicesResolveIndexReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesResolveIndexReq{Name: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_resolve/index/a,b",
 			wantErr:    false,
 		},

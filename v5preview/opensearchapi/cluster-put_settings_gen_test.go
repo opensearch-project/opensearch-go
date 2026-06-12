@@ -35,7 +35,7 @@ func TestClusterPutSettingsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterPutSettingsReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_cluster/settings",
 			wantErr:    false,
 		},

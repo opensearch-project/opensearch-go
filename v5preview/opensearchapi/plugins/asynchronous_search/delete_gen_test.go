@@ -11,6 +11,7 @@
 package asynchronous_search_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        asynchronous_search.DeleteReq{ID: "test-id"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_asynchronous_search/test-id",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetRoleReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.GetRoleReq{Role: "test-role"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security/api/roles/test-role",
 			wantErr:    false,
 		},

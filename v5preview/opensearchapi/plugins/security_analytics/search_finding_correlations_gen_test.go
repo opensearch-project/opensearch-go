@@ -11,6 +11,7 @@
 package security_analytics_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestSearchFindingCorrelationsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security_analytics.SearchFindingCorrelationsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security_analytics/findings/correlate",
 			wantErr:    false,
 		},

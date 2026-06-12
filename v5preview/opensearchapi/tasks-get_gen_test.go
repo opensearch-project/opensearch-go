@@ -41,7 +41,7 @@ func TestTasksGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.TasksGetReq{TaskID: "test-taskid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_tasks/test-taskid",
 			wantErr:    false,
 		},

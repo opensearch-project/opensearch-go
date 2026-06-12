@@ -11,6 +11,7 @@
 package geospatial_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetIp2geoDatasourceReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        geospatial.GetIp2geoDatasourceReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        geospatial.GetIp2geoDatasourceReq{Name: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource/a,b",
 			wantErr:    false,
 		},

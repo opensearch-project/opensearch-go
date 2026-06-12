@@ -34,7 +34,7 @@ func TestCatMasterReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatMasterReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/master",
 			wantErr:    false,
 		},

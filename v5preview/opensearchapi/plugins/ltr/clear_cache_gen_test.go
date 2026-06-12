@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestClearCacheReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ltr.ClearCacheReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_ltr/_clearcache",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ltr.ClearCacheReq{Store: "test-store"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_ltr/test-store/_clearcache",
 			wantErr:    false,
 		},

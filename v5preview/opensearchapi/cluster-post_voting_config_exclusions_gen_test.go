@@ -34,7 +34,7 @@ func TestClusterPostVotingConfigExclusionsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterPostVotingConfigExclusionsReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_cluster/voting_config_exclusions",
 			wantErr:    false,
 		},

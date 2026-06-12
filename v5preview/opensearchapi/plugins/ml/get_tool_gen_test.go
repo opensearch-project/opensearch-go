@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetToolReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.GetToolReq{ToolName: "test-toolname"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/tools/test-toolname",
 			wantErr:    false,
 		},

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -198,8 +197,8 @@ func TestCollapsePerOpErrors(t *testing.T) {
 
 	t.Run("zero returns nil", func(t *testing.T) {
 		t.Parallel()
-		assert.NoError(t, collapsePerOpErrors(nil, mkWrap))
-		assert.NoError(t, collapsePerOpErrors([]error{}, mkWrap))
+		require.NoError(t, collapsePerOpErrors(nil, mkWrap))
+		require.NoError(t, collapsePerOpErrors([]error{}, mkWrap))
 	})
 
 	t.Run("one returns the bare sub-error", func(t *testing.T) {
@@ -292,11 +291,11 @@ func TestRequireSuccessRate_MSearchItemError(t *testing.T) {
 
 			got := RequireSuccessRate(tt.err, tt.threshold)
 			if tt.wantNil {
-				assert.NoError(t, got)
+				require.NoError(t, got)
 				return
 			}
 			require.Error(t, got)
-			assert.Contains(t, got.Error(), tt.wantContain)
+			require.Contains(t, got.Error(), tt.wantContain)
 
 			var target *MultiSearchItemError
 			require.ErrorAs(t, got, &target,
@@ -355,11 +354,11 @@ func TestRequireSuccessRate_MSearchErrorsBothFired(t *testing.T) {
 
 			got := RequireSuccessRate(&MSearchErrors{errs: tt.errs}, tt.threshold)
 			if tt.wantNil {
-				assert.NoError(t, got)
+				require.NoError(t, got)
 				return
 			}
 			require.Error(t, got)
-			assert.Contains(t, got.Error(), tt.wantContain)
+			require.Contains(t, got.Error(), tt.wantContain)
 		})
 	}
 }

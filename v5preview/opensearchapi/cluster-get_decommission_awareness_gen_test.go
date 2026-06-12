@@ -41,7 +41,7 @@ func TestClusterGetDecommissionAwarenessReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ClusterGetDecommissionAwarenessReq{AwarenessAttributeName: "test-awarenessattributename"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/decommission/awareness/test-awarenessattributename/_status",
 			wantErr:    false,
 		},

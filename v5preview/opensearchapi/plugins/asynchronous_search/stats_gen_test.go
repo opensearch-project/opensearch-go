@@ -11,6 +11,7 @@
 package asynchronous_search_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        asynchronous_search.StatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_asynchronous_search/stats",
 			wantErr:    false,
 		},

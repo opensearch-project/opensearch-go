@@ -226,7 +226,16 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 		return sample, false
 	}
 	if res.Body != nil {
-		defer res.Body.Close()
+		// Drain on close so http.Transport can reuse the connection. This is a
+		// raw RoundTrip path with no Perform buffering safety net, so closing a
+		// partially-read body (e.g. on the non-200 early return below) would
+		// otherwise defeat keep-alive. On the success path io.ReadAll has
+		// already reached EOF, so the drain is a cheap no-op.
+		defer func() {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
+			res.Body.Close()
+		}()
 	}
 
 	if res.StatusCode != http.StatusOK || res.Body == nil {

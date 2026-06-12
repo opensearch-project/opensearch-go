@@ -11,6 +11,7 @@
 package query_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDatasourceRetrieveReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        query.DatasourceRetrieveReq{DatasourceName: "test-datasourcename"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_query/_datasources/test-datasourcename",
 			wantErr:    false,
 		},

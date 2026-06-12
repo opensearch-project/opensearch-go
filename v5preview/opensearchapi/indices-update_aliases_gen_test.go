@@ -35,7 +35,7 @@ func TestIndicesUpdateAliasesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesUpdateAliasesReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_aliases",
 			wantErr:    false,
 		},

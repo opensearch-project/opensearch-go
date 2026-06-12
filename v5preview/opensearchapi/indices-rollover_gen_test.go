@@ -42,7 +42,7 @@ func TestIndicesRolloverReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesRolloverReq{Alias: "test-alias", NewIndex: "test-newindex"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test-alias/_rollover/test-newindex",
 			wantErr:    false,
 		},

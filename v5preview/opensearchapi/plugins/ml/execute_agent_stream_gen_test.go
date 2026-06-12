@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestExecuteAgentStreamReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.ExecuteAgentStreamReq{AgentID: "test-agentid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/agents/test-agentid/_execute/stream",
 			wantErr:    false,
 		},

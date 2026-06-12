@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestUndeployModelReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.UndeployModelReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/models/_undeploy",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ml.UndeployModelReq{ModelID: "test-modelid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/models/test-modelid/_undeploy",
 			wantErr:    false,
 		},
