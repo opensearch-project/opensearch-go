@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetPoliciesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ism.GetPoliciesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ism/policies",
 			wantErr:    false,
 		},

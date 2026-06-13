@@ -13,7 +13,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -176,12 +175,12 @@ func TestScriptClient(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
 					}
 				})
 			}
@@ -200,32 +199,32 @@ func TestScriptClient(t *testing.T) {
 				},
 			)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Get", func(t *testing.T) {
 			resp, err := client.Script.Get(t.Context(), opensearchapi.ScriptGetReq{ScriptID: scriptID})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Delete", func(t *testing.T) {
 			resp, err := client.Script.Delete(t.Context(), opensearchapi.ScriptDeleteReq{ScriptID: scriptID})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Context", func(t *testing.T) {
 			resp, err := client.Script.Context(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("Language", func(t *testing.T) {
 			testutil.SkipIfVersion(t, client, "<", "2.4", "Language")
 			resp, err := client.Script.Language(t.Context(), nil)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 		t.Run("PainlessExecute", func(t *testing.T) {
@@ -237,7 +236,7 @@ func TestScriptClient(t *testing.T) {
 				},
 			)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
 	})

@@ -11,6 +11,7 @@
 package sm_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestCreatePolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        sm.CreatePolicyReq{PolicyName: "test-policyname"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_sm/policies/test-policyname",
 			wantErr:    false,
 		},

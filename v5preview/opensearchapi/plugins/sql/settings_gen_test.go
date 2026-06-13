@@ -11,6 +11,7 @@
 package sql_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestSettingsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        sql.SettingsReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_query/settings",
 			wantErr:    false,
 		},

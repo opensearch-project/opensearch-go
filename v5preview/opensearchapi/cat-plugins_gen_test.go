@@ -34,7 +34,7 @@ func TestCatPluginsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatPluginsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/plugins",
 			wantErr:    false,
 		},

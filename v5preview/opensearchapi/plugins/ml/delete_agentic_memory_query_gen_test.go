@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteAgenticMemoryQueryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ml.DeleteAgenticMemoryQueryReq{MemoryContainerID: "test-memorycontainerid", Type: "test-type"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_delete_by_query",
 			wantErr:    false,
 		},

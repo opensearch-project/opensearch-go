@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestRefreshSearchAnalyzersReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ism.RefreshSearchAnalyzersReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_refresh_search_analyzers/a,b",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package search_relevance_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestPutJudgmentsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        search_relevance.PutJudgmentsReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_search_relevance/judgments",
 			wantErr:    false,
 		},

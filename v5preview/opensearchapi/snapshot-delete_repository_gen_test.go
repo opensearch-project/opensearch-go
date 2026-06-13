@@ -41,7 +41,7 @@ func TestSnapshotDeleteRepositoryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotDeleteRepositoryReq{Repository: []string{"a", "b"}},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_snapshot/a,b",
 			wantErr:    false,
 		},

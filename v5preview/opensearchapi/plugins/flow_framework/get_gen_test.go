@@ -11,6 +11,7 @@
 package flow_framework_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        flow_framework.GetReq{WorkflowID: "test-workflowid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_flow_framework/workflow/test-workflowid",
 			wantErr:    false,
 		},

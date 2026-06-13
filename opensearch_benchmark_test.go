@@ -39,6 +39,7 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v4"
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
 )
 
 type FakeTransport struct {
@@ -72,6 +73,12 @@ func newFakeTransport(_ *testing.B, resp http.Response) *FakeTransport {
 	}
 }
 
+// BenchmarkClient measures opensearch.NewClient overhead. Each iteration
+// constructs a new client (and therefore spawns the transport's background
+// goroutines), then closes it via the transport so the goroutines exit. We
+// don't really care about the per-NewClient cost in steady-state usage --
+// real callers build one client per process -- but this measurement is kept
+// so changes to the construction path don't go unnoticed.
 func BenchmarkClient(b *testing.B) {
 	defaultResponse := http.Response{
 		Status:        fmt.Sprintf("%d %s", http.StatusOK, http.StatusText(http.StatusOK)),
@@ -85,10 +92,15 @@ func BenchmarkClient(b *testing.B) {
 
 	b.Run("Create client with defaults", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b, defaultResponse)})
+			c, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b, defaultResponse)})
 			if err != nil {
-				b.Fatalf("Unexpected error when creating a client: %s", err)
+				b.Fatalf("Unexpected error when creating a client: %q", err)
 			}
+			// Close the underlying transport so the per-client background
+			// goroutines (cluster-health/node-stats tickers) exit. Without
+			// this the bench leaks goroutines linearly with b.N and the Go
+			// runtime eventually starves the bench loop itself.
+			_ = c.Transport.(*opensearchtransport.Client).Close()
 		}
 	})
 }
@@ -165,7 +177,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			Indices: []string{"bench-index"},
 			Body:    strings.NewReader(body),
 			Params: opensearchapi.SearchParams{
-				Size:    opensearchapi.ToPointer(25),
+				Size:    ptr(25),
 				Pretty:  true,
 				Timeout: 100,
 			},
@@ -206,3 +218,7 @@ func BenchmarkClientAPI(b *testing.B) {
 		}
 	})
 }
+
+// ptr returns a pointer to v. It replaces the deprecated
+// opensearchapi.ToPointer for the one benchmark param that needs an *int.
+func ptr[T any](v T) *T { return &v }

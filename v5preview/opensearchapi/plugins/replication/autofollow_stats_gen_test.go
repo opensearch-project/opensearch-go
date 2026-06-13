@@ -11,6 +11,7 @@
 package replication_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestAutofollowStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        replication.AutofollowStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_replication/autofollow_stats",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package knn_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestWarmupReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        knn.WarmupReq{Index: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_knn/warmup/a,b",
 			wantErr:    false,
 		},

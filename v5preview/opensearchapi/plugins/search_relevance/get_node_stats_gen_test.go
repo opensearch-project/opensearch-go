@@ -11,6 +11,7 @@
 package search_relevance_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetNodeStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        search_relevance.GetNodeStatsReq{NodeID: "test-nodeid", Stat: "test-stat"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/test-nodeid/stats/test-stat",
 			wantErr:    false,
 		},

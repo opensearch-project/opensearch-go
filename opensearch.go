@@ -83,6 +83,7 @@ var (
 	ErrPathRequired                        = path.ErrRequired
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
+	ErrTransportMissingMethodStream        = errors.New("transport is missing method Stream()")
 )
 
 // Config represents the client configuration.
@@ -120,11 +121,6 @@ type Config struct {
 	RequestTimeout time.Duration
 
 	CompressRequestBody bool // Default: false.
-
-	// DisableResponseBuffering, when true, skips buffering the entire response
-	// body in Perform(). The caller receives the raw body stream and must fully
-	// read and close it. Useful for proxy and streaming use cases.
-	DisableResponseBuffering bool // Default: false.
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
 	// as NewClient returns. nil (the default) means "auto": if Router is
@@ -225,6 +221,32 @@ type Config struct {
 
 	// Optional constructor function for a custom ConnectionPool. Default: nil.
 	ConnectionPoolFunc func([]*opensearchtransport.Connection, opensearchtransport.Selector) opensearchtransport.ConnectionPool
+
+	// AddressResolver is called during node discovery for each node discovered
+	// via /_nodes/http. If non-nil, it can rewrite a node's URL before it enters
+	// the connection pool. This is useful for redirecting traffic through sidecar
+	// proxies or rewriting hostnames for network topology.
+	// Default: nil (no address rewriting).
+	AddressResolver opensearchtransport.AddressResolverFunc
+
+	// MaxAddressResolvers sets the maximum number of concurrent AddressResolverFunc
+	// invocations during a single discovery cycle.
+	// 0 = auto-derive: min(len(nodes), runtime.GOMAXPROCS(0)) per cycle.
+	// 1 = serialized (one resolver runs at a time, via a weight-1 semaphore).
+	// >1 = explicit concurrency cap.
+	// <0 = unlimited (all nodes resolved concurrently, no semaphore).
+	// Default: 0 (auto-derive). Only meaningful when AddressResolver is non-nil.
+	MaxAddressResolvers int
+
+	// AddressResolverRunner replaces the built-in resolution handler when set.
+	// It receives all discovered nodes and the per-node AddressResolverFunc,
+	// and returns resolved addresses. This allows custom orchestration policies:
+	// stricter failure handling, retry logic, batched resolution, etc.
+	//
+	// When set, MaxAddressResolvers is ignored. AddressResolver is still passed
+	// to the runner as the per-node resolve function.
+	// Default: nil (built-in handler).
+	AddressResolverRunner opensearchtransport.AddressResolverRunnerFunc
 }
 
 // Client represents the OpenSearch client.
@@ -296,8 +318,7 @@ func NewClient(cfg Config) (*Client, error) {
 		RetryBackoff:         cfg.RetryBackoff,
 		RequestTimeout:       cfg.RequestTimeout,
 
-		CompressRequestBody:      cfg.CompressRequestBody,
-		DisableResponseBuffering: cfg.DisableResponseBuffering,
+		CompressRequestBody: cfg.CompressRequestBody,
 
 		EnableMetrics:     cfg.EnableMetrics,
 		EnableDebugLogger: cfg.EnableDebugLogger,
@@ -321,14 +342,17 @@ func NewClient(cfg Config) (*Client, error) {
 		StandbyRotationCount:    cfg.StandbyRotationCount,
 		StandbyPromotionChecks:  cfg.StandbyPromotionChecks,
 
-		Transport:          cfg.Transport,
-		Logger:             cfg.Logger,
-		Selector:           cfg.Selector,
-		Router:             cfg.Router,
-		Observer:           cfg.Observer,
-		ShardCostConfig:    cfg.ShardCostConfig,
-		ConnectionPoolFunc: cfg.ConnectionPoolFunc,
-		Context:            cfg.Context,
+		Transport:             cfg.Transport,
+		Logger:                cfg.Logger,
+		Selector:              cfg.Selector,
+		Router:                cfg.Router,
+		Observer:              cfg.Observer,
+		ShardCostConfig:       cfg.ShardCostConfig,
+		ConnectionPoolFunc:    cfg.ConnectionPoolFunc,
+		AddressResolver:       cfg.AddressResolver,
+		MaxAddressResolvers:   cfg.MaxAddressResolvers,
+		AddressResolverRunner: cfg.AddressResolverRunner,
+		Context:               cfg.Context,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCreateTransport, err)
@@ -403,6 +427,11 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 }
 
 // Perform delegates to Transport to execute a request and return a response.
+//
+// Deprecated: Perform follows the v4 buffered-response contract and will be
+// removed in v5 alongside [opensearchtransport.Client.Perform]. Use [Client.Stream]
+// when you need raw byte forwarding (the caller owns the body) or the typed
+// [Do] helpers when you want a decoded Go value.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	if req.Header == nil {
 		// Pre-allocate for the headers the transport layer sets on every
@@ -415,7 +444,48 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	return c.Transport.Perform(req)
 }
 
+// Streamer is implemented by transports that expose an unbuffered Stream
+// path: [opensearchtransport.Client] satisfies it. Custom [opensearchtransport.Interface]
+// implementations may opt in by adding a Stream method with the same
+// signature; [Client.Stream] reports [ErrTransportMissingMethodStream] when
+// the underlying transport does not.
+type Streamer interface {
+	Stream(*http.Request) (*http.Response, error)
+}
+
+// Stream delegates to Transport.Stream when available, returning the raw
+// [http.Response] from the underlying [http.RoundTripper]. The caller owns
+// the response body and must close it. Use Stream for proxy and streaming
+// use cases where bytes are forwarded incrementally; use [Do] when you want
+// a decoded Go value.
+//
+// Stream returns [ErrTransportMissingMethodStream] when the configured
+// transport does not implement [Streamer].
+func (c *Client) Stream(req *http.Request) (*http.Response, error) {
+	st, ok := c.Transport.(Streamer)
+	if !ok {
+		return nil, ErrTransportMissingMethodStream
+	}
+	if req.Header == nil {
+		// Pre-allocate for the headers the transport layer sets on every
+		// outgoing request (User-Agent, Authorization, Content-Type,
+		// Content-Encoding, etc.) so the map does not have to resize on
+		// the hot path.
+		const defaultHeaderCount = 8
+		req.Header = make(http.Header, defaultHeaderCount)
+	}
+	return st.Stream(req)
+}
+
 // Do gets and performs the request. It also tries to parse the response into the dataPointer.
+//
+// On error, Do may return a non-nil *Response alongside a non-nil error. This
+// happens when the transport received a response but a subsequent failure
+// occurred (a body-read failure during buffering, or an unrelated transport
+// error such as context cancellation during retry backoff). Callers that need
+// to distinguish a hard transport failure should check resp == nil rather than
+// err != nil, and may inspect the returned *Response in the error case. A nil
+// *Response always signals that no usable response was produced.
 //
 // Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
 // Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
@@ -433,7 +503,7 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 
 	//nolint:bodyclose // body got already closed by Perform, this is a nopcloser
 	resp, err := c.Perform(httpReq)
-	if err != nil {
+	if resp == nil {
 		return nil, err
 	}
 
@@ -441,6 +511,20 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
 		Body:       resp.Body,
+	}
+
+	if err != nil {
+		// Perform returns (resp != nil, err != nil) in two distinct cases:
+		// a genuine body-read failure during response buffering, and an
+		// unrelated transport error returned alongside a response (e.g. the
+		// context being cancelled during retry backoff after a retryable
+		// status). Only label the former as ErrReadBody; otherwise surface
+		// the underlying error so its identity (such as context.Canceled)
+		// is preserved without a misleading "failed to read body" prefix.
+		if errors.Is(err, opensearchtransport.ErrResponseBodyRead) {
+			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
+		}
+		return response, fmt.Errorf("status: %d, err: %w", resp.StatusCode, err)
 	}
 
 	if dataPointer != nil && resp.Body != nil && !response.IsError() {

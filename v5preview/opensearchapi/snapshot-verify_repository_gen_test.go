@@ -41,7 +41,7 @@ func TestSnapshotVerifyRepositoryReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotVerifyRepositoryReq{Repository: "test-repository"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_snapshot/test-repository/_verify",
 			wantErr:    false,
 		},

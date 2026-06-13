@@ -12,7 +12,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -227,12 +226,12 @@ func TestClient(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						osismtest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
 						if value.Name != "Explain" {
 							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
@@ -246,7 +245,7 @@ func TestClient(t *testing.T) {
 		t.Run("Explain", func(t *testing.T) {
 			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with validate_action", func(t *testing.T) {
@@ -259,14 +258,14 @@ func TestClient(t *testing.T) {
 				},
 			)
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 		t.Run("Explain with show_policy", func(t *testing.T) {
 			testutil.SkipIfVersion(t, osClient, "<", "1.3", "Explain with show_policy")
 			resp, err := client.Explain(t.Context(), &ism.ExplainReq{Indices: testIndex, Params: ism.ExplainParams{ShowPolicy: true}})
 			require.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NotNil(t, resp)
 			testutil.CompareRawJSONwithParsedJSON(t, &resp, resp.Inspect().Response)
 		})
 	})

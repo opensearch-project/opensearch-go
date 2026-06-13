@@ -11,7 +11,6 @@ package opensearchapi_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -156,12 +155,12 @@ func TestNodes(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
 						if value.Name != "HotThreads" {
 							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
@@ -190,7 +189,7 @@ func TestNodes(t *testing.T) {
 			res, err := client.Nodes.ReloadSecurity(t.Context(), nil)
 			require.NoError(t, err)
 			require.NotNil(t, res)
-			assert.NotNil(t, res.Inspect().Response)
+			require.NotNil(t, res.Inspect().Response)
 			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 
@@ -198,14 +197,14 @@ func TestNodes(t *testing.T) {
 			res, err := client.Nodes.ReloadSecurity(t.Context(), &opensearchapi.NodesReloadSecurityReq{NodeID: []string{"*"}})
 			require.NoError(t, err)
 			require.NotNil(t, res)
-			assert.NotNil(t, res.Inspect().Response)
+			require.NotNil(t, res.Inspect().Response)
 			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 
 		t.Run("inspect", func(t *testing.T) {
 			res, err := failingClient.Nodes.ReloadSecurity(t.Context(), nil)
 			require.Error(t, err)
-			assert.NotNil(t, res)
+			require.NotNil(t, res)
 			osapitest.VerifyInspect(t, res.Inspect())
 		})
 	})

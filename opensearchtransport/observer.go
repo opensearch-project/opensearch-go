@@ -18,7 +18,7 @@ import "sync/atomic"
 // must NOT call back into the Client, connection pool, or any method that
 // acquires transport-internal locks. Violating this contract will cause a
 // deadlock.
-type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routing observer needs all 14 event methods
+type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routing + resolver observer needs all 15 event methods
 	// OnPromote is called when a dead connection becomes ready
 	// (successful resurrection after health check).
 	OnPromote(event ConnectionEvent)
@@ -79,6 +79,11 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	// connection's shard placement as stale. The connection is excluded
 	// from routing candidates until a /_cat/shards refresh.
 	OnShardMapInvalidation(event ShardMapInvalidationEvent)
+
+	// OnAddressRewrite is called when an AddressResolverFunc rewrites a
+	// node's URL during discovery. The event contains the original and
+	// rewritten URLs.
+	OnAddressRewrite(event AddressRewriteEvent)
 }
 
 // BaseConnectionObserver is an embeddable no-op implementation of
@@ -135,6 +140,9 @@ func (BaseConnectionObserver) OnRoute(RouteEvent) {}
 
 // OnShardMapInvalidation implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnShardMapInvalidation(ShardMapInvalidationEvent) {}
+
+// OnAddressRewrite implements ConnectionObserver (no-op).
+func (BaseConnectionObserver) OnAddressRewrite(AddressRewriteEvent) {}
 
 // Compile-time check that BaseConnectionObserver implements ConnectionObserver.
 var _ ConnectionObserver = (*BaseConnectionObserver)(nil)

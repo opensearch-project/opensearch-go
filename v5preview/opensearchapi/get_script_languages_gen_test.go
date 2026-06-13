@@ -34,7 +34,7 @@ func TestGetScriptLanguagesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.GetScriptLanguagesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_script_language",
 			wantErr:    false,
 		},

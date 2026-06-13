@@ -41,7 +41,7 @@ func TestReindexRethrottleReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ReindexRethrottleReq{TaskID: "test-taskid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_reindex/test-taskid/_rethrottle",
 			wantErr:    false,
 		},

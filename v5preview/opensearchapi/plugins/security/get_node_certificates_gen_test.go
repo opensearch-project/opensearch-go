@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestGetNodeCertificatesReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.GetNodeCertificatesReq{NodeID: "test-nodeid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security/api/certificates/test-nodeid",
 			wantErr:    false,
 		},

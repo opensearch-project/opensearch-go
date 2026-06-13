@@ -11,6 +11,7 @@
 package rollups_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestStopReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        rollups.StopReq{ID: "test-id"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_rollup/jobs/test-id/_stop",
 			wantErr:    false,
 		},

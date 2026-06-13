@@ -34,7 +34,7 @@ func TestCatNodesReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.CatNodesReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/nodes",
 			wantErr:    false,
 		},

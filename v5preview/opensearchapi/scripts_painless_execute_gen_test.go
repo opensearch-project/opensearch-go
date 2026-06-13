@@ -34,14 +34,14 @@ func TestScriptsPainlessExecuteReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ScriptsPainlessExecuteReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_scripts/painless/_execute",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        opensearchapi.ScriptsPainlessExecuteReq{Body: &opensearchapi.ScriptsPainlessExecuteBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_scripts/painless/_execute",
 			wantErr:    false,
 		},

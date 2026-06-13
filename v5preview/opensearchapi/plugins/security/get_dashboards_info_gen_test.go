@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetDashboardsInfoReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.GetDashboardsInfoReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_security/dashboardsinfo",
 			wantErr:    false,
 		},

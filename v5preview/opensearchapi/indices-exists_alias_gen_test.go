@@ -41,7 +41,7 @@ func TestIndicesExistsAliasReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesExistsAliasReq{Name: []string{"a", "b"}, Index: []string{"a", "b"}},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/a,b/_alias/a,b",
 			wantErr:    false,
 		},

@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
@@ -78,10 +77,10 @@ func TestPartialBulkError(t *testing.T) {
 				SucceededCount: tt.succeeded,
 			}
 
-			assert.True(t, e.IsPartial())
-			assert.Equal(t, tt.wantMsg, e.Error())
-			assert.Len(t, e.FailedItems, tt.failed)
-			assert.Equal(t, tt.succeeded, e.SucceededCount)
+			require.True(t, e.IsPartial())
+			require.Equal(t, tt.wantMsg, e.Error())
+			require.Len(t, e.FailedItems, tt.failed)
+			require.Equal(t, tt.succeeded, e.SucceededCount)
 		})
 	}
 }
@@ -128,10 +127,10 @@ func TestPartialSearchError(t *testing.T) {
 				TotalShards:  tt.total,
 			}
 
-			assert.True(t, e.IsPartial())
-			assert.Equal(t, tt.wantMsg, e.Error())
-			assert.Equal(t, tt.failed, e.FailedShards)
-			assert.Equal(t, tt.total, e.TotalShards)
+			require.True(t, e.IsPartial())
+			require.Equal(t, tt.wantMsg, e.Error())
+			require.Equal(t, tt.failed, e.FailedShards)
+			require.Equal(t, tt.total, e.TotalShards)
 		})
 	}
 }
@@ -190,10 +189,10 @@ func TestShardFailureError(t *testing.T) {
 				TotalShards:  tt.total,
 			}
 
-			assert.True(t, e.IsPartial())
-			assert.Equal(t, tt.wantMsg, e.Error())
-			assert.Equal(t, tt.failed, e.FailedShards)
-			assert.Equal(t, tt.total, e.TotalShards)
+			require.True(t, e.IsPartial())
+			require.Equal(t, tt.wantMsg, e.Error())
+			require.Equal(t, tt.failed, e.FailedShards)
+			require.Equal(t, tt.total, e.TotalShards)
 		})
 	}
 }
@@ -223,8 +222,8 @@ func TestErrorsAs(t *testing.T) {
 			check: func(t *testing.T, target any) {
 				t.Helper()
 				e := *(target.(**opensearchapi.PartialBulkError))
-				assert.Equal(t, 5, e.SucceededCount)
-				assert.Len(t, e.FailedItems, 2)
+				require.Equal(t, 5, e.SucceededCount)
+				require.Len(t, e.FailedItems, 2)
 			},
 		},
 		{
@@ -241,7 +240,7 @@ func TestErrorsAs(t *testing.T) {
 			check: func(t *testing.T, target any) {
 				t.Helper()
 				e := *(target.(**opensearchapi.PartialBulkError))
-				assert.Equal(t, 5, e.SucceededCount)
+				require.Equal(t, 5, e.SucceededCount)
 			},
 		},
 		{
@@ -255,7 +254,7 @@ func TestErrorsAs(t *testing.T) {
 			check: func(t *testing.T, target any) {
 				t.Helper()
 				e := *(target.(**opensearchapi.PartialSearchError))
-				assert.Equal(t, 2, e.FailedShards)
+				require.Equal(t, 2, e.FailedShards)
 			},
 		},
 		{
@@ -271,7 +270,7 @@ func TestErrorsAs(t *testing.T) {
 			check: func(t *testing.T, target any) {
 				t.Helper()
 				e := *(target.(**opensearchapi.ShardFailureError))
-				assert.Equal(t, opensearchapi.OperationDelete, e.Operation)
+				require.Equal(t, opensearchapi.OperationDelete, e.Operation)
 			},
 		},
 		{
@@ -285,7 +284,7 @@ func TestErrorsAs(t *testing.T) {
 			check: func(t *testing.T, target any) {
 				t.Helper()
 				e := *(target.(*opensearchapi.PartialFailureError))
-				assert.True(t, e.IsPartial())
+				require.True(t, e.IsPartial())
 			},
 		},
 		{
@@ -305,7 +304,7 @@ func TestErrorsAs(t *testing.T) {
 
 			target := tt.targetNew()
 			matched := errors.As(tt.err, target)
-			assert.Equal(t, tt.wantMatch, matched)
+			require.Equal(t, tt.wantMatch, matched)
 			if matched && tt.check != nil {
 				tt.check(t, target)
 			}
@@ -336,7 +335,7 @@ func TestIsPartialFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			assert.Equal(t, tt.want, opensearchapi.IsPartialFailure(tt.err))
+			require.Equal(t, tt.want, opensearchapi.IsPartialFailure(tt.err))
 		})
 	}
 }
@@ -368,9 +367,9 @@ func TestToleratePartialFailures(t *testing.T) {
 
 			result := opensearchapi.ToleratePartialFailures(tt.err)
 			if tt.wantNil {
-				assert.NoError(t, result)
+				require.NoError(t, result)
 			} else {
-				assert.Equal(t, tt.wantErr, result)
+				require.Equal(t, tt.wantErr, result)
 			}
 		})
 	}
@@ -477,17 +476,17 @@ func TestRequireSuccessRate(t *testing.T) {
 
 			result := opensearchapi.RequireSuccessRate(tt.err, tt.threshold)
 			if tt.wantNil {
-				assert.NoError(t, result)
+				require.NoError(t, result)
 				return
 			}
 
 			require.Error(t, result)
 			if tt.wantContain != "" {
-				assert.Contains(t, result.Error(), tt.wantContain)
+				require.Contains(t, result.Error(), tt.wantContain)
 			}
 			if tt.wantWrapped {
 				var target *opensearchapi.PartialBulkError
-				assert.ErrorAs(t, result, &target)
+				require.ErrorAs(t, result, &target)
 			}
 		})
 	}

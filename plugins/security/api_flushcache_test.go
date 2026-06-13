@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
@@ -41,14 +40,14 @@ func TestSecurityFlushCache(t *testing.T) {
 			time.Sleep(2 * time.Second)
 		}
 		require.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("inspect", func(t *testing.T) {
 		res, err := failingClient.FlushCache(t.Context(), nil)
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		ossectest.VerifyInspect(t, res.Inspect())
 	})
 }

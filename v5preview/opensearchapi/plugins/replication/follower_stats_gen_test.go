@@ -11,6 +11,7 @@
 package replication_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestFollowerStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        replication.FollowerStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_replication/follower_stats",
 			wantErr:    false,
 		},

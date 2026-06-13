@@ -93,7 +93,6 @@ func TestPoolRouterStubs(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, n)
 	})
-
 }
 
 func TestMuxPolicyStubs(t *testing.T) {
@@ -111,7 +110,6 @@ func TestMuxPolicyStubs(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, n)
 	})
-
 }
 
 func TestIfEnabledPolicyStubs(t *testing.T) {
@@ -126,7 +124,6 @@ func TestIfEnabledPolicyStubs(t *testing.T) {
 		require.NoError(t, err)
 		require.Zero(t, n)
 	})
-
 }
 
 func TestCoordinatorPolicyStubs(t *testing.T) {

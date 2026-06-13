@@ -713,7 +713,9 @@ func TestDiscovery(t *testing.T) {
 				// New connections from first discovery go to the dead list (pool
 				// resurrection handles health-checking). Verify total connections
 				// across both ready and dead lists.
-				allConns := append(pool.mu.ready, pool.mu.dead...)
+				allConns := make([]*Connection, 0, len(pool.mu.ready)+len(pool.mu.dead))
+				allConns = append(allConns, pool.mu.ready...)
+				allConns = append(allConns, pool.mu.dead...)
 				if len(allConns) != tt.want.wantsNConn {
 					t.Errorf("Unexpected number of nodes, want=%d, got=%d (ready=%d, dead=%d)",
 						tt.want.wantsNConn, len(allConns), len(pool.mu.ready), len(pool.mu.dead))
@@ -1177,12 +1179,10 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			// nodeAddrs maps node name -> "host:port" of its listener.
 			nodeAddrs := make(map[string]string, len(tt.nodes))
 			var servers []*http.Server
-			var listeners []net.Listener
 
 			for name := range tt.nodes {
 				ln, err := net.Listen("tcp", "127.0.0.1:0")
 				require.NoError(t, err)
-				listeners = append(listeners, ln)
 
 				srv := &http.Server{
 					Handler:           testMux,
@@ -1753,9 +1753,9 @@ func TestRecalculateCapacityModel(t *testing.T) {
 		client.recalculateCapacityModel(conns)
 
 		// Min cores = 4
-		require.Equal(t, float64(4)*serverMaxNewConnsPerSecMultiplier, client.serverMaxNewConnsPerSec)
-		require.Equal(t, float64(4), client.clientsPerServer)
-		require.Equal(t, float64(4)*healthCheckRateMultiplier, client.healthCheckRate)
+		require.InDelta(t, float64(4)*serverMaxNewConnsPerSecMultiplier, client.serverMaxNewConnsPerSec, 1e-9)
+		require.InDelta(t, float64(4), client.clientsPerServer, 1e-9)
+		require.InDelta(t, float64(4)*healthCheckRateMultiplier, client.healthCheckRate, 1e-9)
 	})
 
 	t.Run("no-op when no cores known", func(t *testing.T) {
@@ -1772,9 +1772,9 @@ func TestRecalculateCapacityModel(t *testing.T) {
 		client.recalculateCapacityModel(conns)
 
 		// Should remain unchanged
-		require.Equal(t, 99.0, client.serverMaxNewConnsPerSec)
-		require.Equal(t, 99.0, client.clientsPerServer)
-		require.Equal(t, 99.0, client.healthCheckRate)
+		require.InDelta(t, 99.0, client.serverMaxNewConnsPerSec, 1e-9)
+		require.InDelta(t, 99.0, client.clientsPerServer, 1e-9)
+		require.InDelta(t, 99.0, client.healthCheckRate, 1e-9)
 	})
 }
 
@@ -2111,7 +2111,9 @@ func TestUpdateConnectionPool(t *testing.T) {
 			require.NotSame(t, existing, p.connection, "should create new Connection when ID changes")
 			require.Equal(t, "new-id", p.connection.ID)
 		case *multiServerPool:
-			allConns := append(p.mu.ready, p.mu.dead...)
+			allConns := make([]*Connection, 0, len(p.mu.ready)+len(p.mu.dead))
+			allConns = append(allConns, p.mu.ready...)
+			allConns = append(allConns, p.mu.dead...)
 			require.Len(t, allConns, 1)
 			require.Equal(t, "new-id", allConns[0].ID)
 			require.NotSame(t, existing, allConns[0], "should create new Connection when ID changes")
@@ -2155,7 +2157,8 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 		{
 			name:     "malformed raw JSON triggers marshal error",
 			failures: []json.RawMessage{json.RawMessage("\xff")},
-			want:     "[<1 failures, marshal error: json: error calling MarshalJSON for type json.RawMessage: invalid character 'ÿ' looking for beginning of value>]",
+			want: "[<1 failures, marshal error: json: error calling MarshalJSON " +
+				"for type json.RawMessage: invalid character 'ÿ' looking for beginning of value>]",
 		},
 	}
 
@@ -2225,7 +2228,6 @@ func TestGetNodesInfoNodesMeta(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
 			rt := mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 				return &http.Response{
 					StatusCode: http.StatusOK,
@@ -2313,7 +2315,7 @@ func gatedErrorNodesHandler(t *testing.T, entered chan<- struct{}, gate <-chan s
 }
 
 // newGatedDiscoverClient creates a transport Client wired to the given
-// handler routes, with discoverMu.cond properly initialised.
+// handler routes, with discoverMu.cond properly initialized.
 func newGatedDiscoverClient(t *testing.T, routes mockhttp.HandlerMap) *Client {
 	t.Helper()
 	transport := mockhttp.NewTransportFromRoutes(t, routes)
@@ -2334,11 +2336,9 @@ func TestDiscoverNodesBlocking(t *testing.T) {
 
 	// Goroutine A: start discovery (blocks in handler on gate).
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		tp.DiscoverNodes(t.Context())
-	}()
+	})
 
 	// Wait for handler to be entered — discovery is now in-flight.
 	<-entered

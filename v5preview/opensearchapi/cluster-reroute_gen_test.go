@@ -35,7 +35,7 @@ func TestClusterRerouteReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterRerouteReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_cluster/reroute",
 			wantErr:    false,
 		},

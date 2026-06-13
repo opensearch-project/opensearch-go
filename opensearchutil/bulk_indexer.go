@@ -47,6 +47,15 @@ const defaultFlushInterval = 30 * time.Second
 //nolint:mnd // Well-known power-of-two buffer cap.
 const defaultMetaBufferPoolMaxBytes = 32 << 10 // 32 KiB
 
+// Bulk action names as they appear in the action/metadata line of a bulk
+// request (e.g. `{ "index": { ... } }`).
+const (
+	actionIndex  = "index"
+	actionCreate = "create"
+	actionDelete = "delete"
+	actionUpdate = "update"
+)
+
 // BulkIndexer represents a parallel, asynchronous, efficient indexer for OpenSearch.
 type BulkIndexer interface {
 	// Add adds an item to the indexer. It returns an error when the item cannot be added.
@@ -587,13 +596,13 @@ func (w *worker) flush(ctx context.Context) error {
 			w.bi.stats.numFlushed.Add(1)
 
 			switch op {
-			case "index":
+			case actionIndex:
 				w.bi.stats.numIndexed.Add(1)
-			case "create":
+			case actionCreate:
 				w.bi.stats.numCreated.Add(1)
-			case "delete":
+			case actionDelete:
 				w.bi.stats.numDeleted.Add(1)
-			case "update":
+			case actionUpdate:
 				w.bi.stats.numUpdated.Add(1)
 			}
 

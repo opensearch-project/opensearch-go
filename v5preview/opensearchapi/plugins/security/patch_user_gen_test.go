@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestPatchUserReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.PatchUserReq{Username: "test-username"},
-			wantMethod: "PATCH",
+			wantMethod: http.MethodPatch,
 			wantPath:   "/_plugins/_security/api/internalusers/test-username",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeletePolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ism.DeletePolicyReq{PolicyID: "test-policyid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_ism/policies/test-policyid",
 			wantErr:    false,
 		},

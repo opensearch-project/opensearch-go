@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteRoleReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.DeleteRoleReq{Role: "test-role"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_security/api/roles/test-role",
 			wantErr:    false,
 		},

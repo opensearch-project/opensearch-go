@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestPatchTenantReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.PatchTenantReq{Tenant: "test-tenant"},
-			wantMethod: "PATCH",
+			wantMethod: http.MethodPatch,
 			wantPath:   "/_plugins/_security/api/tenants/test-tenant",
 			wantErr:    false,
 		},
