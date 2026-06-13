@@ -513,12 +513,6 @@ func TestParseElasticsearchVersion(t *testing.T) {
 	}
 }
 
-func TestToPointer(t *testing.T) {
-	testPointer := ToPointer(true)
-	require.NotNil(t, testPointer)
-	require.True(t, *testPointer)
-}
-
 func TestClientGetConfig(t *testing.T) {
 	t.Run("returns config", func(t *testing.T) {
 		expectedAddresses := []string{"http://localhost:9200"}

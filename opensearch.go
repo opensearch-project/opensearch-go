@@ -643,22 +643,3 @@ func extractCredentialsFromURLs(cfg *Config, urls []*url.URL) {
 	}
 }
 
-// ToPointer converts any value to a pointer, mainly used for request parameters
-//
-// Deprecated: ToPointer will be removed in v5. The helper is intentionally not
-// part of the public API going forward; consumers within this module use the
-// unexported `ptr` defined per-package. Once the module's go directive moves
-// to 1.26, callers can drop any wrapper in favor of the native new(value)
-// form (e.g. new(false)).
-func ToPointer[V any](value V) *V {
-	return ptr(value)
-}
-
-// ptr returns a pointer to a copy of value. Used for the *T query/body
-// parameter pattern. Unexported by design.
-//
-// Once the module's go directive moves to 1.26, this helper can be deleted
-// and call sites can switch to the native new(value) form: new(false).
-func ptr[V any](value V) *V {
-	return &value
-}

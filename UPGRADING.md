@@ -5,6 +5,7 @@
     - [DiscoverNodes() blocking semantics](#discovernodes-blocking-semantics)
     - [opensearchtransport.Route interface gained OpID()](#opensearchtransportroute-interface-gained-opid)
     - [Response.Body becomes a method](#responsebody-becomes-a-method)
+    - [`opensearch.ToPointer` removed](#opensearchtopointer-removed)
   - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
     - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
     - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
@@ -152,6 +153,19 @@ body, err := io.ReadAll(resp.Body())
 
 // Or, if you only need the raw bytes and the response was already read:
 raw := resp.RawBody()
+```
+
+### `opensearch.ToPointer` removed
+
+The deprecated `opensearch.ToPointer` generic helper has been removed. Replace calls with a one-line helper or, on Go 1.26+, use the native `new(value)` form:
+
+```go
+// Before
+p := opensearch.ToPointer(true)
+
+// After — define a one-line local helper:
+func ptr[V any](v V) *V { return &v }
+p := ptr(true)
 ```
 
 ## Upgrading to >= 4.7.0
