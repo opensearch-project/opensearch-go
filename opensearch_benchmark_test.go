@@ -178,11 +178,12 @@ func BenchmarkClientAPI(b *testing.B) {
 
 		body := `{"foo" : "bar"}`
 
+		benchSize := 25
 		req := &opensearchapi.SearchReq{
 			Indices:    []string{"bench-index"},
 			BodyReader: strings.NewReader(body),
 			Params: &opensearchapi.SearchParams{
-				Size: opensearch.ToPointer(25),
+				Size: &benchSize,
 				DebugParams: opensearchapi.DebugParams{
 					Pretty: true,
 				},
