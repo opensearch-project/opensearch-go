@@ -38,11 +38,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 func TestBulkIndexerIntegration(t *testing.T) {
@@ -180,22 +180,22 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		}
 
 		t.Cleanup(func() {
-			client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{
-				Indices: []string{indexName},
-				Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
+				Index:  []string{indexName},
+				Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 			})
 		})
 
-		client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
-			Indices: []string{indexName},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+		client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+			Index:  []string{indexName},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 		})
 		createResp, err := client.Indices.Create(
 			ctx,
 			opensearchapi.IndicesCreateReq{
-				Index:  indexName,
-				Body:   strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`),
-				Params: opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
+				Index:      indexName,
+				BodyReader: strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0, "refresh_interval":"5s"}}`),
+				Params:     &opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
 			},
 		)
 		if err != nil {
@@ -208,10 +208,12 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		// Wait for the index to be fully ready before bulk indexing
 		for attempt := range 10 {
 			healthResp, healthErr := client.Cluster.Health(ctx, &opensearchapi.ClusterHealthReq{
-				Indices: []string{indexName},
-				Params: opensearchapi.ClusterHealthParams{
+				Index: []string{indexName},
+				Params: &opensearchapi.ClusterHealthParams{
 					WaitForStatus: "green",
-					Timeout:       5 * time.Second,
+					TimeoutParams: opensearchapi.TimeoutParams{
+						Timeout: 5 * time.Second,
+					},
 				},
 			})
 			if healthErr == nil && healthResp.Inspect().Response.StatusCode == http.StatusOK {
@@ -333,9 +335,9 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					indexC := testutil.MustUniqueString(t, "test-index-c")
 
 					t.Cleanup(func() {
-						client.Indices.Delete(context.Background(), opensearchapi.IndicesDeleteReq{
-							Indices: []string{indexA, indexB, indexC},
-							Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+						client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
+							Index:  []string{indexA, indexB, indexC},
+							Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 						})
 					})
 
@@ -345,9 +347,9 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					// when the cluster is under concurrent test load.
 					for _, idx := range []string{indexA, indexB, indexC} {
 						createResp, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
-							Index:  idx,
-							Body:   strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
-							Params: opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
+							Index:      idx,
+							BodyReader: strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
+							Params:     &opensearchapi.IndicesCreateParams{WaitForActiveShards: "1"},
 						})
 						if err != nil {
 							t.Fatalf("Failed to create index %s: %v", idx, err)
@@ -455,8 +457,8 @@ func TestBulkIndexerIntegration(t *testing.T) {
 						t.Errorf("Unexpected NumIndexed: want=%d, got=%d", expectedIndexed, stats.NumIndexed)
 					}
 
-					res, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
-						Indices: []string{indexA, indexB, indexC},
+					res, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{
+						Index: []string{indexA, indexB, indexC},
 					})
 					if err != nil {
 						t.Fatalf("Unexpected error checking indices: %v", err)

@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // UnionFragment renders discriminated union types (both strict and lazy).

@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // Constants for mock server ports and default schemes

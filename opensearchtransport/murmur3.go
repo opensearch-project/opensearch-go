@@ -6,7 +6,7 @@
 
 package opensearchtransport
 
-import "github.com/opensearch-project/opensearch-go/v4/opensearchutil/shardhash"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 
 // opensearchShardHash computes the same hash as OpenSearch's
 // Murmur3HashFunction.hash(String). Delegates to [shardhash.Hash].

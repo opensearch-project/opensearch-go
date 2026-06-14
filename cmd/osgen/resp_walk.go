@@ -13,7 +13,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 type walker struct {

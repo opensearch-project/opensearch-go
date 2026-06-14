@@ -22,7 +22,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
+	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
 )
 
 // Common timeouts for testing

@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 // TestClassify_ZeroAlloc guards the zero-allocation claim documented in

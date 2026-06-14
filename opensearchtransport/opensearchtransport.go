@@ -50,9 +50,9 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
-	"github.com/opensearch-project/opensearch-go/v4/internal/version"
-	"github.com/opensearch-project/opensearch-go/v4/signer"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/version"
+	"github.com/opensearch-project/opensearch-go/v5/signer"
 )
 
 const (
@@ -814,7 +814,7 @@ func New(cfg Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(parent)
 
 	router := cfg.Router
-	if router == nil && envvars.Truthy(envRouter) {
+	if router == nil && !envvars.Falsy(envRouter) {
 		var opts []RouterOption
 		if cfg.ShardCostConfig != "" {
 			opts = append(opts, WithShardCosts(cfg.ShardCostConfig))
@@ -1167,7 +1167,7 @@ func (c *Client) Close() error {
 // [io.NopCloser] over a [bytes.Reader] before returning, so the underlying
 // TCP connection is drained and returned to the connection pool even if the
 // caller never reads the body. This is the right behavior for the typed
-// [github.com/opensearch-project/opensearch-go/v4.Do] helpers, which decode
+// [github.com/opensearch-project/opensearch-go/v5.Do] helpers, which decode
 // the buffered body into a Go value.
 //
 // Perform may return a non-nil *http.Response together with a non-nil error.
@@ -1184,7 +1184,7 @@ func (c *Client) Close() error {
 //
 // Deprecated: Perform will be removed in v5. Use [Client.Stream] when you
 // need raw byte forwarding (the caller owns the body), or the typed
-// [github.com/opensearch-project/opensearch-go/v4.Do] helpers when you want
+// [github.com/opensearch-project/opensearch-go/v5.Do] helpers when you want
 // a decoded Go value (the SDK owns the body).
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	res, err := c.Stream(req)
@@ -1222,7 +1222,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 // the seed URL fallback identically to [Client.Perform]; the only difference
 // is that Stream returns the raw RoundTrip body instead of buffering it.
 //
-// Pairs with [github.com/opensearch-project/opensearch-go/v4.Do]: use Do[T]
+// Pairs with [github.com/opensearch-project/opensearch-go/v5.Do]: use Do[T]
 // for typed, decoded results (the SDK owns the body), use Stream for raw
 // byte forwarding (the caller owns the body).
 func (c *Client) Stream(req *http.Request) (*http.Response, error) {

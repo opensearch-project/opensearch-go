@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 // TestOperationID_StringExhaustive locks the wire-level identifier each

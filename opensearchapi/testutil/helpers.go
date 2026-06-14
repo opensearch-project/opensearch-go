@@ -18,28 +18,26 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/wI2L/jsondiff"
 	"golang.org/x/mod/semver"
 	"golang.org/x/sync/semaphore"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // readinessSem limits how many goroutines can run WaitForClusterReady
-// concurrently. Each attempt issues Cluster.State and Nodes.Info, which are
-// heavy operations on a shared test cluster.
+// concurrently.
 //
 //nolint:gochecknoglobals // test-only process-level throttle
 var readinessSem = semaphore.NewWeighted(2)
 
 // sharedClient is a per-package singleton that avoids redundant cluster
-// readiness checks. Created once via sync.Once with a background context
-// so it outlives any individual test function.
+// readiness checks.
 //
 //nolint:gochecknoglobals // test-only process-level singleton
 var (
@@ -53,38 +51,16 @@ var (
 //
 //nolint:gochecknoglobals // re-exported test helpers
 var (
-	// MustUniqueString returns a unique string with the given prefix.
-	MustUniqueString = tptestutil.MustUniqueString
-
-	// IsDebugEnabled returns true when OPENSEARCH_GO_DEBUG is set.
-	IsDebugEnabled = tptestutil.IsDebugEnabled
-
-	// IsSecure returns true when SECURE_INTEGRATION is set.
-	IsSecure = tptestutil.IsSecure
-
-	// GetTestURL returns the OpenSearch URL for testing based on environment variables.
-	GetTestURL = tptestutil.GetTestURL
-
-	// GetPassword returns the admin password for testing.
-	GetPassword = tptestutil.GetPassword
-
-	// GetTestTransport returns an http.RoundTripper configured for the test environment.
-	GetTestTransport = tptestutil.GetTestTransport
-
-	// SkipIfNotSecure skips a test that runs against an insecure cluster.
-	SkipIfNotSecure = tptestutil.SkipIfNotSecure
-
-	// RequireMinNodes polls until the cluster has at least minNodes nodes, or skips.
-	RequireMinNodes = tptestutil.RequireMinNodes
-
-	// ShouldIgnoreField returns true if a JSON path is known to be dynamic/optional.
+	MustUniqueString  = tptestutil.MustUniqueString
+	IsDebugEnabled    = tptestutil.IsDebugEnabled
+	IsSecure          = tptestutil.IsSecure
+	GetTestURL        = tptestutil.GetTestURL
+	GetPassword       = tptestutil.GetPassword
+	GetTestTransport  = tptestutil.GetTestTransport
+	SkipIfNotSecure   = tptestutil.SkipIfNotSecure
+	RequireMinNodes   = tptestutil.RequireMinNodes
 	ShouldIgnoreField = tptestutil.ShouldIgnoreField
-
-	// PollUntil repeatedly calls checkFn until it returns true or the context times out.
-	PollUntil = tptestutil.PollUntil
-
-	// BackoffDelay returns the delay for a given attempt using exponential backoff with optional jitter.
-	BackoffDelay = tptestutil.BackoffDelay
+	PollUntil         = tptestutil.PollUntil
 )
 
 // ClientConfig returns an opensearchapi.Config for both secure and insecure opensearch
@@ -123,18 +99,7 @@ func GetVersion(t *testing.T, ctx context.Context, client *opensearchapi.Client)
 // SkipIfVersion skips a test when the cluster version satisfies the given
 // operator and version constraint.
 //
-// Examples:
-//
-//	SkipIfVersion(t, client, "<",  "2.15",   "Point_In_Time")  // skip below 2.15.0
-//	SkipIfVersion(t, client, "=",  "2.15",   "Audit API")      // skip on 2.15.x (any patch)
-//	SkipIfVersion(t, client, ">=", "3.0",    "NewFeature")      // skip on 3.0.0+
-//	SkipIfVersion(t, client, "=",  "2.15.0", "ExactMatch")      // skip on exactly 2.15.0
-//
 // Supported operators: =, !=, <, <=, >, >=
-//
-// When the version has no patch component (e.g. "2.15"), the = and !=
-// operators match on major.minor only (any patch). All other operators
-// treat the missing patch as 0.
 func SkipIfVersion(t *testing.T, client *opensearchapi.Client, operator string, version string, testName string) {
 	t.Helper()
 	sMajor, sMinor, sPatch, err := GetVersion(t, t.Context(), client)
@@ -176,8 +141,6 @@ func SkipIfVersion(t *testing.T, client *opensearchapi.Client, operator string, 
 	}
 }
 
-// parseVersion parses a version string like "2.15" or "2.4.0" into its
-// components. When the patch is absent, hasPatch is false and patch is 0.
 func parseVersion(t *testing.T, version string) (int64, int64, int64, bool) {
 	t.Helper()
 
@@ -189,18 +152,18 @@ func parseVersion(t *testing.T, version string) (int64, int64, int64, bool) {
 	case 2:
 		var err error
 		major, err = strconv.ParseInt(parts[0], 10, 64)
-		require.NoError(t, err, "SkipIfVersion: invalid major version in %q", version)
+		require.NoError(t, err)
 		minor, err = strconv.ParseInt(parts[1], 10, 64)
-		require.NoError(t, err, "SkipIfVersion: invalid minor version in %q", version)
+		require.NoError(t, err)
 	case 3:
 		hasPatch = true
 		var err error
 		major, err = strconv.ParseInt(parts[0], 10, 64)
-		require.NoError(t, err, "SkipIfVersion: invalid major version in %q", version)
+		require.NoError(t, err)
 		minor, err = strconv.ParseInt(parts[1], 10, 64)
-		require.NoError(t, err, "SkipIfVersion: invalid minor version in %q", version)
+		require.NoError(t, err)
 		patch, err = strconv.ParseInt(parts[2], 10, 64)
-		require.NoError(t, err, "SkipIfVersion: invalid patch version in %q", version)
+		require.NoError(t, err)
 	default:
 		t.Fatalf("SkipIfVersion: version %q must be major.minor or major.minor.patch", version)
 	}
@@ -213,13 +176,11 @@ func parseVersion(t *testing.T, version string) (int64, int64, int64, bool) {
 func ExtendedReadinessCheck(t *testing.T, ctx context.Context, client *opensearchapi.Client) error {
 	t.Helper()
 
-	// Try a simple cluster state request - this exercises more Java serialization paths
 	_, err := client.Cluster.State(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("cluster state check failed: %w", err)
 	}
 
-	// Try a simple nodes info request - exercises node-level serialization
 	_, err = client.Nodes.Info(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("nodes info check failed: %w", err)
@@ -229,21 +190,13 @@ func ExtendedReadinessCheck(t *testing.T, ctx context.Context, client *opensearc
 }
 
 // NewClient returns a shared opensearchapi.Client that is safe for concurrent
-// use across tests within the same package. The client is created once with
-// full cluster readiness checking; subsequent calls return immediately.
-//
-// The shared client uses a background context for its transport so that
-// background goroutines (discovery, health checks) outlive any individual
-// test. API calls should pass their own context (e.g. t.Context()).
-//
-// Use InitClient instead when a test needs a dedicated client with custom
-// configuration or needs to test client lifecycle behavior.
+// use across tests within the same package. The client is constructed
+// once; each caller re-verifies cluster readiness so partial-startup
+// failures from earlier tests don't yield a half-broken shared client.
 func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 	t.Helper()
 	sharedClientOnce.Do(func() {
 		config := ClientConfig(t)
-		// Use background context: the shared client must outlive any
-		// individual test. Each API call passes its own ctx.
 		config.Client.Context = context.Background()
 
 		var err error
@@ -252,22 +205,15 @@ func NewClient(t *testing.T) (*opensearchapi.Client, error) {
 			errSharedClient = err
 			return
 		}
-
-		errSharedClient = WaitForClusterReady(t, sharedClient)
 	})
 	if errSharedClient != nil {
-		return nil, fmt.Errorf("shared client initialization failed: %w", errSharedClient)
+		return nil, fmt.Errorf("shared client construction failed: %w", errSharedClient)
 	}
+	WaitForClusterReady(t, sharedClient)
 	return sharedClient, nil
 }
 
-// InitClient creates a new opensearchapi.Client with full cluster readiness
-// checking. Each call creates a fresh client, making this suitable for tests
-// that need custom transport configuration, test client lifecycle behavior
-// (e.g., connection management, standby rotation), or perform heavy operations
-// that benefit from a dedicated readiness check.
-//
-// Most tests should use NewClient instead for better performance.
+// InitClient creates a new opensearchapi.Client with full cluster readiness checking.
 func InitClient(t *testing.T) (*opensearchapi.Client, error) {
 	t.Helper()
 	config := ClientConfig(t)
@@ -277,129 +223,56 @@ func InitClient(t *testing.T) (*opensearchapi.Client, error) {
 		return nil, err
 	}
 
-	// Always wait for cluster readiness
-	err = WaitForClusterReady(t, client)
-	if err != nil {
-		return nil, err
-	}
-
+	WaitForClusterReady(t, client)
 	return client, nil
 }
 
-// classifyConnError inspects a connection error and returns a fatal error if
-// the caller should stop retrying, or nil if retries should continue.
-// It tracks consecutive EOF counts via eofCount and only treats EOFs as fatal
-// when everConnected is false (i.e. we have never successfully connected).
-func classifyConnError(err error, everConnected bool, eofCount *int) error {
-	errMsg := err.Error()
-
-	// Detect authentication failures and fail fast -- retrying won't help.
-	if strings.Contains(errMsg, "invalid character 'U'") ||
-		strings.Contains(errMsg, "Unauthorized") {
-		return fmt.Errorf("cluster returned Unauthorized (SECURE_INTEGRATION=%s, OPENSEARCH_VERSION=%s); "+
-			"verify credentials are correct -- the admin password changed in OpenSearch 2.12.0+: %w",
-			os.Getenv("SECURE_INTEGRATION"), os.Getenv("OPENSEARCH_VERSION"), err)
-	}
-
-	// Only count consecutive EOFs for fast-fail when we have NEVER
-	// successfully connected. Once we've connected at least once,
-	// EOFs are transient (e.g. cluster disrupted by HotThreads or
-	// other heavy operations) and should be retried normally.
-	//
-	// Use a threshold of 5 (not 3) because background pollers from
-	// other test clients can cause brief EOF windows that a brand-new
-	// client might hit during its first few connection attempts.
-	if strings.Contains(errMsg, "EOF") && !everConnected {
-		*eofCount++
-		if *eofCount >= 5 {
-			return fmt.Errorf("cluster returned EOF on %d consecutive attempts (SECURE_INTEGRATION=%s); "+
-				"verify the cluster scheme matches this setting: %w",
-				*eofCount, os.Getenv("SECURE_INTEGRATION"), err)
-		}
-	} else {
-		*eofCount = 0
-	}
-
-	return nil
-}
-
-// WaitForClusterReady waits for the OpenSearch cluster to be fully ready for API calls.
-// Retries connectivity, version detection, cluster health, and extended readiness checks.
-// If all attempts fail with EOF, suggests checking the SECURE_INTEGRATION env var since
-// this typically indicates an HTTP/HTTPS scheme mismatch.
-//
-// Concurrent calls are throttled by readinessSem so that at most 2 goroutines
-// run the heavy readiness checks (Cluster.State, Nodes.Info) at the same time.
-func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) error {
+// WaitForClusterReady blocks until the OpenSearch cluster responds to
+// GET / using the layered readiness FSM in internal/test/readiness. The
+// readinessSem caps concurrent setups across tests so a stampede of
+// goroutines doesn't overload a small CI cluster.
+func WaitForClusterReady(t *testing.T, client *opensearchapi.Client) {
 	t.Helper()
-
-	// Acquire semaphore slot; respect the test's context for cancellation.
 	if err := readinessSem.Acquire(t.Context(), 1); err != nil {
-		return fmt.Errorf("readiness semaphore acquire: %w", err)
+		require.NoError(t, err, "readiness semaphore acquire")
+		return
 	}
 	defer readinessSem.Release(1)
-
-	const (
-		maxAttempts          = 25
-		delayBetweenAttempts = 5 * time.Second
-		requestTimeout       = 2 * time.Second
-	)
-
-	var (
-		major, minor, patch int64
-		eofCount            int
-		everConnected       bool
-	)
-
-	for attempt := range maxAttempts {
-		ctx, cancel := context.WithTimeout(t.Context(), requestTimeout)
-
-		// Get version (also serves as basic connectivity check).
-		// Use the per-attempt ctx so the version fetch respects the same timeout.
-		var err error
-		major, minor, patch, err = GetVersion(t, ctx, client)
-		if err != nil {
-			cancel()
-
-			if fatalErr := classifyConnError(err, everConnected, &eofCount); fatalErr != nil {
-				return fatalErr
-			}
-
-			t.Logf("Waiting %s for cluster readiness (attempt %d/%d): %v", delayBetweenAttempts, attempt+1, maxAttempts, err)
-			time.Sleep(delayBetweenAttempts)
-			continue
-		}
-		eofCount = 0 // Reset on success
-		everConnected = true
-
-		// Basic cluster health check
-		resp, err := client.Cluster.Health(ctx, nil)
-		if err != nil || resp == nil {
-			cancel()
-			t.Logf("Waiting %s for cluster readiness (attempt %d/%d)...", delayBetweenAttempts, attempt+1, maxAttempts)
-			time.Sleep(delayBetweenAttempts)
-			continue
-		}
-
-		// Extended readiness validation
-		if err := ExtendedReadinessCheck(t, ctx, client); err == nil {
-			cancel()
-			if attempt > 0 {
-				t.Logf("Cluster ready after %d attempts (version %d.%d.%d)", attempt+1, major, minor, patch)
-			}
-			return nil
-		}
-
-		cancel()
-		t.Logf("Cluster health OK but readiness validation failed (attempt %d/%d)", attempt+1, maxAttempts)
-		time.Sleep(delayBetweenAttempts)
-	}
-
-	return fmt.Errorf("cluster not ready after %d attempts (version %d.%d.%d)", maxAttempts, major, minor, patch)
+	readiness.Wait(t, t.Context(), readiness.LayerHTTP,
+		readiness.WithFSMCheck(clusterLensFSMCheck(client, expectedNodeCount())))
 }
 
-// CompareRawJSONwithParsedJSON is a helper function to determine the difference between the parsed JSON and the raw JSON
-// this is helpful to detect missing fields in the go structs
+// WaitForAllNodesReady blocks until every node in the test cluster has
+// reached LayerStatsReady - i.e. cluster-health reports the expected
+// node count AND _cat/nodes returns non-nil cpu+heap.percent for each
+// node. It uses the layered readiness FSM in internal/test/readiness so
+// that timeouts produce a structured per-node diagnostic instead of a
+// "Condition never satisfied" stub.
+//
+// Expected node count comes from OPENSEARCH_NODE_COUNT (defaults to 1).
+// Per-layer budgets are tuned for CI pessimism (cold JVM startup is the
+// long pole); see readiness.DefaultBudgets for the exact values.
+func WaitForAllNodesReady(t *testing.T, client *opensearchapi.Client) {
+	t.Helper()
+	readiness.Wait(t, t.Context(), readiness.TargetClusterReady,
+		readiness.WithFSMCheck(clusterLensFSMCheck(client, expectedNodeCount())))
+}
+
+// expectedNodeCount returns the OPENSEARCH_NODE_COUNT env value, defaulting to 1.
+func expectedNodeCount() int {
+	v := os.Getenv("OPENSEARCH_NODE_COUNT")
+	if v == "" {
+		return 1
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return 1
+	}
+	return n
+}
+
+// CompareRawJSONwithParsedJSON is a helper function to determine the difference between the parsed JSON and the raw JSON.
+// This is helpful to detect missing fields in the go structs.
 func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Response) {
 	t.Helper()
 	if _, ok := os.LookupEnv("OPENSEARCH_GO_SKIP_JSON_COMPARE"); ok {
@@ -413,33 +286,57 @@ func CompareRawJSONwithParsedJSON(t *testing.T, resp any, rawResp *opensearch.Re
 	body, err := io.ReadAll(rawResp.Body)
 	require.NoError(t, err)
 
-	// If the parsedBody and body does not match, then we need to check if we are adding or removing fields
-	if string(parsedBody) != string(body) {
-		patch, err := jsondiff.CompareJSON(body, parsedBody)
-		require.NoError(t, err)
-		operations := make([]jsondiff.Operation, 0)
-		for _, operation := range patch {
-			// Ignore "add" operations (OpenSearch has extra fields we don't need)
-			if operation.Type == "add" && operation.Path != "" {
-				continue
-			}
-
-			// Ignore known dynamic/optional fields that shouldn't cause test failures
-			if tptestutil.ShouldIgnoreField(t, operation.Path, "") {
-				continue
-			}
-
-			operations = append(operations, operation)
-		}
-		// Print per-operation diagnostics before asserting so a failing
-		// schema comparison surfaces the diff. require.Empty halts the
-		// test, so anything after it would be unreachable.
-		if len(operations) > 0 {
-			for _, op := range operations {
-				t.Logf("%s", op)
-			}
-			t.Logf("%s", body)
-		}
-		require.Empty(t, operations)
+	if string(parsedBody) == string(body) {
+		return
 	}
+
+	patch, err := jsondiff.CompareJSON(body, parsedBody)
+	require.NoError(t, err)
+
+	operations := make([]jsondiff.Operation, 0)
+	for _, operation := range patch {
+		if ignoreDiffOperation(t, operation) {
+			continue
+		}
+		operations = append(operations, operation)
+	}
+	if len(operations) == 0 {
+		return
+	}
+	for _, op := range operations {
+		t.Logf("%s", op)
+	}
+	t.Logf("raw body: %s", body)
+	require.Empty(t, operations)
+}
+
+// ignoreDiffOperation reports whether a raw-vs-parsed JSON diff operation is
+// benign and should not be treated as a missing-field signal.
+func ignoreDiffOperation(t *testing.T, operation jsondiff.Operation) bool {
+	t.Helper()
+
+	// Extra fields present in the parsed output but absent from the raw body.
+	if operation.Type == "add" && operation.Path != "" {
+		return true
+	}
+
+	// A removed empty collection ({}/[]) or null value carries no data: a
+	// typed struct represents "absent/null/empty" as a nil pointer or zero
+	// value that omitempty drops on re-marshal, which is semantically
+	// equivalent to the server emitting it empty or null.
+	if operation.Type == "remove" && (isEmptyCollection(operation.OldValue) || operation.OldValue == nil) {
+		return true
+	}
+
+	return tptestutil.ShouldIgnoreField(t, operation.Path, "")
+}
+
+func isEmptyCollection(v any) bool {
+	switch val := v.(type) {
+	case []any:
+		return len(val) == 0
+	case map[string]any:
+		return len(val) == 0
+	}
+	return false
 }

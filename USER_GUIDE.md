@@ -23,11 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/errmask"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 const IndexName = "go-test-index1"
@@ -254,10 +254,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/aws"
+	requestsigner "github.com/opensearch-project/opensearch-go/v5/signer/aws"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 const IndexName = "go-test-index1"
@@ -327,9 +327,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	requestsigner "github.com/opensearch-project/opensearch-go/v5/signer/awsv2"
 )
 
 const endpoint = "" // e.g. https://opensearch-domain.region.com or Amazon OpenSearch Serverless endpoint
@@ -466,7 +466,7 @@ Key settings to verify on any custom transport:
 The `opensearchtransport.OperationClassifier` maps HTTP method+path pairs to structured `OperationID` values. This enables transparent metrics, tracing, or access-control middleware at the `http.RoundTripper` layer without per-operation wrapper code.
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 
 // Build once, reuse across requests. Safe for concurrent use.
 classifier := opensearchtransport.NewOperationClassifier()

@@ -28,9 +28,9 @@ type ClientsFragment struct {
 // Imports returns the imports the Clients fragment needs.
 func (f *ClientsFragment) Imports() []Import {
 	return []Import{
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4/internal/apiutil"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4/errmask"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5/internal/apiutil"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5/errmask"},
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"
+	"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"
 )
 
 // TimeoutParams holds timeout parameters shared across many operations.

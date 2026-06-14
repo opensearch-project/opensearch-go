@@ -36,9 +36,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 func ExampleNewBulkIndexer() {
@@ -97,7 +97,7 @@ func ExampleNewBulkIndexer() {
 				item opensearchutil.BulkIndexerItem,
 				res opensearchapi.BulkRespItem,
 			) {
-				fmt.Printf("[%d] %s test/%s", res.Status, res.Result, item.DocumentID)
+				fmt.Printf("[%d] %v test/%s", res.Status, res.Result, item.DocumentID)
 			},
 
 			// OnFailure is the optional callback for each failed operation
@@ -109,7 +109,7 @@ func ExampleNewBulkIndexer() {
 				if err != nil {
 					log.Printf("ERROR: %s", err)
 				} else {
-					log.Printf("ERROR: %s: %s", res.Error.Type, res.Error.Reason)
+					log.Printf("ERROR: %s: %v", res.Error.Type, res.Error.Reason)
 				}
 			},
 		},

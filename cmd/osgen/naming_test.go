@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestTitleSegment(t *testing.T) {
@@ -33,6 +33,15 @@ func TestTitleSegment(t *testing.T) {
 		{name: "ssl acronym", input: "ssl", want: "SSL"},
 		{name: "api acronym", input: "api", want: "API"},
 		{name: "json acronym", input: "json", want: "JSON"},
+		{name: "ism acronym", input: "ism", want: "ISM"},
+		{name: "knn acronym", input: "knn", want: "KNN"},
+		{name: "ltr acronym", input: "ltr", want: "LTR"},
+		{name: "ml acronym", input: "ml", want: "ML"},
+		{name: "ppl acronym", input: "ppl", want: "PPL"},
+		{name: "sm acronym", input: "sm", want: "SM"},
+		{name: "ubi acronym", input: "ubi", want: "UBI"},
+		{name: "wlm acronym", input: "wlm", want: "WLM"},
+		{name: "whole-segment only, not substring", input: "smile", want: "Smile"},
 		{name: "empty", input: "", want: ""},
 		{name: "mixed case id", input: "ID", want: "ID"},
 		{name: "mixed case uuid", input: "UUID", want: "UUID"},
@@ -49,7 +58,7 @@ func TestTitleSegment(t *testing.T) {
 
 // TestPathBuilderName verifies the mapping from x-operation-group to path
 // builder struct name. These struct names appear in internal/path/builders_gen.go
-// and are referenced by consumer files in v5preview/opensearchapi/ and v5preview/opensearchapi/plugins/ via their
+// and are referenced by consumer files in opensearchapi/ and plugins/ via their
 // GetRequest() methods. The naming must stay deterministic across regeneration.
 func TestPathBuilderName(t *testing.T) {
 	t.Parallel()
@@ -186,22 +195,22 @@ func TestOperationFilename(t *testing.T) {
 		group string
 		want  string // full relative path: dir/basename_gen.go
 	}{
-		{name: "core leaf", group: "search", want: "v5preview/opensearchapi/search_gen.go"},
-		{name: "core dotted", group: "indices.create", want: "v5preview/opensearchapi/indices-create_gen.go"},
-		{name: "_core stripped", group: "_core.search", want: "v5preview/opensearchapi/search_gen.go"},
-		{name: "plugin leaf", group: "knn.stats", want: "v5preview/opensearchapi/plugins/knn/stats_gen.go"},
-		{name: "plugin underscore", group: "ism.add_policy", want: "v5preview/opensearchapi/plugins/ism/add_policy_gen.go"},
+		{name: "core leaf", group: "search", want: "opensearchapi/search_gen.go"},
+		{name: "core dotted", group: "indices.create", want: "opensearchapi/indices-create_gen.go"},
+		{name: "_core stripped", group: "_core.search", want: "opensearchapi/search_gen.go"},
+		{name: "plugin leaf", group: "knn.stats", want: "plugins/knn/stats_gen.go"},
+		{name: "plugin underscore", group: "ism.add_policy", want: "plugins/ism/add_policy_gen.go"},
 		{
 			name:  "plugin multi word",
 			group: "security.reload_http_certificates",
-			want:  "v5preview/opensearchapi/plugins/security/reload_http_certificates_gen.go",
+			want:  "plugins/security/reload_http_certificates_gen.go",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			_, dir := routeOperation(tt.group, ir.DefaultCoreSubpath, ir.DefaultCoreSubpath+"/plugins")
+			_, dir := routeOperation(tt.group, ir.DefaultCoreSubpath, ir.DefaultPluginsSubpath)
 			got := dir + "/" + operationFilename(tt.group) + genFileSuffix
 			require.Equal(t, tt.want, got)
 		})
@@ -276,6 +285,12 @@ func TestSchemaTypeName(t *testing.T) {
 		{name: "group._common cluster", schemaKey: "cluster._common___ComponentTemplate", want: "ClusterComponentTemplate"},
 		{name: "acronyms", schemaKey: "security._common___SSLInfo", want: "SecuritySSLInfo"},
 		{name: "sql plugin", schemaKey: "sql._common___SQLQuery", want: "SQLQuery"},
+		{name: "ism plugin acronym", schemaKey: "ism._common___Policy", want: "ISMPolicy"},
+		{name: "knn plugin acronym", schemaKey: "knn._common___Stats", want: "KNNStats"},
+		// Embedded acronym in the local part must normalize and de-stutter:
+		// "IsmTemplate" -> "ISMTemplate", not "ISMIsmTemplate".
+		{name: "ism embedded acronym de-stutters", schemaKey: "ism._common___IsmTemplate", want: "ISMTemplate"},
+		{name: "knn embedded acronym de-stutters", schemaKey: "knn._common___KnnMethod", want: "KNNMethod"},
 		{name: "de-stutter empty result kept", schemaKey: "cluster.health___Health", want: "ClusterHealthHealth"},
 
 		// Idiomatic abbreviations: M-prefix initialisms, compound nouns,

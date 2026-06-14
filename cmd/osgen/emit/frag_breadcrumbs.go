@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // BreadcrumbsFragment renders comment-only output naming items dropped by

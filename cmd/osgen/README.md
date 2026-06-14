@@ -80,16 +80,16 @@ go run . paths \
 
 ### api
 
-Generates API consumer files into `v5preview/opensearchapi/` and plugin directories.
+Generates API consumer files into `opensearchapi/` and plugin directories.
 
 #### Flags
 
 | Flag                             | Default  | Description                                                                 |
 | -------------------------------- | -------- | --------------------------------------------------------------------------- |
 | `-spec`                          | required | Path to the combined OpenAPI spec YAML                                      |
-| `-out`                           | required | Output directory for core API files (e.g. `v5preview/opensearchapi/`)       |
+| `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)       |
 | `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)                  |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `v5preview/opensearchapi/plugins/`) |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `plugins/`) |
 | `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                                  |
 | `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                         |
 | `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                         |
@@ -109,9 +109,9 @@ Regenerate all API consumer files:
 cd cmd/osgen
 go run . api \
   -spec ../../opensearch-openapi.yaml \
-  -out ../../v5preview/opensearchapi \
+  -out ../../opensearchapi \
   -pkg opensearchapi \
-  -plugins-out ../../v5preview/opensearchapi/plugins
+  -plugins-out ../../plugins
 ```
 
 Generate a single operation:
@@ -120,7 +120,7 @@ Generate a single operation:
 cd cmd/osgen
 go run . api \
   -spec ../../opensearch-openapi.yaml \
-  -out ../../v5preview/opensearchapi \
+  -out ../../opensearchapi \
   -pkg opensearchapi \
   -groups cluster.health
 ```
@@ -157,7 +157,7 @@ go run . api \
 3. Routes each operation to either the core `opensearchapi` package or a plugin package based on the operation group prefix.
 4. Renders Req structs (with path builder embedding, optional body, and header support), Params structs (with typed encode methods), and Resp stubs.
 5. Annotates generated code with availability (`x-version-added`), deprecation (`x-version-deprecated`, `x-deprecation-message`), and distribution exclusion metadata.
-6. Reads each operation's `x-error-responses` extension to emit typed partial-failure errors (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, ...), the corresponding `errmask` bits and env-var tokens, per-Resp helper methods (`BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`) used internally by the dispatch, and -- for operations declaring two or more categories -- a per-op multi-error container implementing `Unwrap() []error`. The recommended call-site pattern in user code is a `for`/`switch` over `opensearchapi.Errors(err)`, not the per-Resp helpers; see [`DEVELOPER_GUIDE.md` Partial-failure error generation](../../DEVELOPER_GUIDE.md#partial-failure-error-generation) for the generated surface and [`v5preview/opensearchapi/README.md` Partial Failure Errors](../../v5preview/opensearchapi/README.md#partial-failure-errors) for the user-facing usage guide.
+6. Reads each operation's `x-error-responses` extension to emit typed partial-failure errors (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, ...), the corresponding `errmask` bits and env-var tokens, per-Resp helper methods (`BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`) used internally by the dispatch, and -- for operations declaring two or more categories -- a per-op multi-error container implementing `Unwrap() []error`. The recommended call-site pattern in user code is a `for`/`switch` over `opensearchapi.Errors(err)`, not the per-Resp helpers; see [`DEVELOPER_GUIDE.md` Partial-failure error generation](../../DEVELOPER_GUIDE.md#partial-failure-error-generation) for the generated surface and [`opensearchapi/README.md` Partial Failure Errors](../../opensearchapi/README.md#partial-failure-errors) for the user-facing usage guide.
 
 ## Separate Module
 

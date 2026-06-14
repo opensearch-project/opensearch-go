@@ -34,7 +34,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 func TestHealthCheckIntegration(t *testing.T) {

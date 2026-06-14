@@ -9,7 +9,7 @@ package build_test
 import (
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 )
 
 func TestHasJSONKeys(t *testing.T) {

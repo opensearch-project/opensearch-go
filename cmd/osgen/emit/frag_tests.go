@@ -193,7 +193,7 @@ func (f *DispatchTestFragment) Imports() []Import {
 	return []Import{
 		{Path: "context"},
 		{Path: "testing"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
 		{Path: f.ImportPath},
 	}
 }

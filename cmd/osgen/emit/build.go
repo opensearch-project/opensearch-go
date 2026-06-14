@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // Path field name constants used in test generation to identify fields that
@@ -1350,16 +1350,17 @@ func routeOp(group, outDir, pluginsDir string) (string, string) {
 
 func importPathForGroup(group, corePkg, modulePath string) string {
 	prefix := groupPrefixIR(group)
-	core := coreImportPath(corePkg, modulePath)
 	if coreGroupPrefixes[prefix] {
-		return core
+		return coreImportPath(corePkg, modulePath)
 	}
-	return core + "/plugins/" + prefix
+	// Plugin packages are siblings of the core package at the module root,
+	// not nested under it.
+	return modulePath + "/" + ir.DefaultPluginsSubpath + "/" + prefix
 }
 
 // coreImportPath returns the full import path for the core API package.
-// When corePkg matches the default name, it uses the canonical subpath
-// (currently nested under v5preview/); otherwise it places the override
+// When corePkg matches the default name, it uses the canonical subpath;
+// otherwise it places the override
 // package directly under the module root for legacy compatibility.
 func coreImportPath(corePkg, modulePath string) string {
 	if corePkg == ir.DefaultCorePkgName {

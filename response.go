@@ -96,6 +96,7 @@ func (r *Response) String() string {
 		if err != nil {
 			return fmt.Sprintf("%s <error reading response body: %v>", r.Status(), err)
 		}
+		r.Body = io.NopCloser(bytes.NewReader(body))
 		return fmt.Sprintf("%s %s", r.Status(), body)
 	}
 	return r.Status()

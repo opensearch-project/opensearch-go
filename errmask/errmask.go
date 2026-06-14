@@ -33,7 +33,7 @@
 // arguments yields a pointer to [Empty]).
 //
 // The same ErrorMask value is consumed by both the v4 opensearchapi
-// package and the generated v5preview/opensearchapi package, so callers
+// package and the generated opensearchapi package, so callers
 // can reason about error behavior uniformly across the two surfaces.
 package errmask
 

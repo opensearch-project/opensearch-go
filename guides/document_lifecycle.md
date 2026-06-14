@@ -17,7 +17,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {

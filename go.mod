@@ -1,4 +1,4 @@
-module github.com/opensearch-project/opensearch-go/v4
+module github.com/opensearch-project/opensearch-go/v5
 
 go 1.25.9
 

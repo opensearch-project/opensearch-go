@@ -40,7 +40,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 var debugLoggerPtr atomic.Pointer[DebuggingLogger]

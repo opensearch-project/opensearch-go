@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // shardCostValidKeysHint is appended to "unknown key" messages to enumerate

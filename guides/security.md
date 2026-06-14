@@ -18,7 +18,7 @@
 
 # Security
 
-This guide covers security best practices for using the OpenSearch Go client. Examples use the `v5preview/opensearchapi` package (spec-generated, typed request bodies, pointer params). The same principles apply to the `opensearchapi` package, which uses `io.Reader` bodies instead of typed structs.
+This guide covers security best practices for using the OpenSearch Go client. Examples use the `opensearchapi` package (spec-generated, typed request bodies, pointer params).
 
 ## TLS and Certificate Verification
 
@@ -98,7 +98,7 @@ This section covers how the Go client passes those values to the server, the sec
 
 ### How the Client Encodes Path Parameters
 
-Every request struct in `v5preview/opensearchapi` and `opensearchapi` builds its URL through the shared `internal/path` package. For each caller-supplied path segment (an index name, a document ID, a template name, and so on) the client:
+Every request struct in `opensearchapi` builds its URL through the shared `internal/path` package. For each caller-supplied path segment (an index name, a document ID, a template name, and so on) the client:
 
 - percent-encodes characters that would change the _structure_ of the URL (`/`, `?`, `#`, `%`, whitespace, control bytes, and the `..` sequence), so a value can never escape its segment, add query parameters, or reach a different REST endpoint; and
 - passes everything else through unchanged, including `*`, `,`, `-`, `+`, `<`, `>`, and `_`.
@@ -275,7 +275,7 @@ Until this is available, applications that accept index names from external inpu
 
 ## Request Body Construction
 
-The `v5preview/opensearchapi` package provides typed `Body` structs for most operations. Using the typed struct is the safest approach because the compiler enforces the schema and `json.Marshal` handles escaping automatically. String interpolation into JSON is a security risk because unescaped input can alter the structure of the request.
+The `opensearchapi` package provides typed `Body` structs for most operations. Using the typed struct is the safest approach because the compiler enforces the schema and `json.Marshal` handles escaping automatically. String interpolation into JSON is a security risk because unescaped input can alter the structure of the request.
 
 ```go
 // WRONG: string interpolation into a raw body reader. A search term

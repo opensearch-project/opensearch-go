@@ -10,7 +10,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // newClassifySpec builds a minimal *ir.Spec whose registry and Types slice both

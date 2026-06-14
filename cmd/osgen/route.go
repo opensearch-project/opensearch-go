@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 const (
@@ -72,7 +72,8 @@ func routeOperation(group, outDir, pluginsDir string) (string, string) {
 
 // importPathForPkg returns the full Go import path for the package that owns
 // a given operation group. When corePkg differs from opensearchAPIPkgName, it
-// uses that as the core package path segment.
+// uses that as the core package path segment. Plugin packages are siblings of
+// the core package at the module root, independent of the core package name.
 func importPathForPkg(group, corePkg string) string {
 	prefix := groupPrefix(group)
 	if coreGroups[prefix] {
@@ -80,9 +81,6 @@ func importPathForPkg(group, corePkg string) string {
 			return modulePath + "/" + corePkg
 		}
 		return opensearchAPIImport
-	}
-	if corePkg != opensearchAPIPkgName {
-		return modulePath + "/" + corePkg + "/plugins/" + prefix
 	}
 	return pluginsImportBase + "/" + prefix
 }
