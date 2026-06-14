@@ -205,6 +205,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Removed
 - Remove backport.yml and dependabot_pr.yml as we are not using backport app anymore
+- Remove the deprecated `opensearch.ToPointer` generic helper ([#871](https://github.com/opensearch-project/opensearch-go/issues/871))
 
 ### Fixed
 
