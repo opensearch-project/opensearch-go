@@ -208,6 +208,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Fix `BulkIndexer` `OnFailure` nil pointer dereference when reading `BulkRespItem.Error` on status-only failures (e.g. HTTP 404 without an `error` object) or transport-level flush errors by ensuring callbacks always receive a non-nil `Error` ([#679](https://github.com/opensearch-project/opensearch-go/issues/679))
 - Fix `BulkIndexerStats.NumAdded` overcounting items rejected by `Add()` when the caller's context is cancelled before the item could be enqueued: increment `NumAdded` only after the queue accepts the item, and add a new `BulkAddFailCount` counter for items dropped on the `<-ctx.Done()` branch. Migrate `bulkIndexerStats` fields to `sync/atomic.Uint64` typed values so future direct access is a compile-time error rather than a `-race`-only finding ([#783](https://github.com/opensearch-project/opensearch-go/issues/783))
 - Fix `opensearchtransport.Client.setReqGlobalHeader` comparing the per-request header value against the global header name, so a request-level header never suppressed the matching global default and both were sent ([#859](https://github.com/opensearch-project/opensearch-go/pull/859))
 - Fix gzip buffer-pool nil poisoning on compress error: `gzipCompressor.compress` returned `(nil, err)` while the caller's deferred `collectBuffer` still ran, putting a typed-nil `*bytes.Buffer` into the `sync.Pool` that panics on the next `Get().Reset()` ([#859](https://github.com/opensearch-project/opensearch-go/pull/859))

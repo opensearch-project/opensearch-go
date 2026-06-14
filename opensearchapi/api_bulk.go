@@ -57,6 +57,31 @@ type BulkResp struct {
 	response *opensearch.Response
 }
 
+// BulkRespItemError describes a per-item failure in a bulk response.
+type BulkRespItemError struct {
+	Type   string                 `json:"type"`
+	Reason string                 `json:"reason"`
+	Cause  BulkRespItemErrorCause `json:"caused_by,omitzero"`
+}
+
+// BulkRespItemErrorCause describes the cause of a per-item bulk failure.
+type BulkRespItemErrorCause struct {
+	Type        string    `json:"type"`
+	Reason      string    `json:"reason"`
+	ScriptStack *[]string `json:"script_stack,omitempty"`
+	Script      *string   `json:"script,omitempty"`
+	Lang        *string   `json:"lang,omitempty"`
+	Position    *struct {
+		Offset int `json:"offset"`
+		Start  int `json:"start"`
+		End    int `json:"end"`
+	} `json:"position,omitempty"`
+	Cause *struct {
+		Type   string  `json:"type"`
+		Reason *string `json:"reason"`
+	} `json:"caused_by"`
+}
+
 // BulkRespItem represents an item of the BulkResp
 type BulkRespItem struct {
 	Index   string `json:"_index"`
@@ -69,29 +94,10 @@ type BulkRespItem struct {
 		Successful int `json:"successful"`
 		Failed     int `json:"failed"`
 	} `json:"_shards"`
-	SeqNo       int `json:"_seq_no"`
-	PrimaryTerm int `json:"_primary_term"`
-	Status      int `json:"status"`
-	Error       *struct {
-		Type   string `json:"type"`
-		Reason string `json:"reason"`
-		Cause  struct {
-			Type        string    `json:"type"`
-			Reason      string    `json:"reason"`
-			ScriptStack *[]string `json:"script_stack,omitempty"`
-			Script      *string   `json:"script,omitempty"`
-			Lang        *string   `json:"lang,omitempty"`
-			Position    *struct {
-				Offset int `json:"offset"`
-				Start  int `json:"start"`
-				End    int `json:"end"`
-			} `json:"position,omitempty"`
-			Cause *struct {
-				Type   string  `json:"type"`
-				Reason *string `json:"reason"`
-			} `json:"caused_by"`
-		} `json:"caused_by,omitzero"`
-	} `json:"error,omitempty"`
+	SeqNo       int               `json:"_seq_no"`
+	PrimaryTerm int               `json:"_primary_term"`
+	Status      int               `json:"status"`
+	Error       *BulkRespItemError `json:"error,omitempty"`
 }
 
 // Inspect returns the Inspect type containing the raw *opensearch.Response
