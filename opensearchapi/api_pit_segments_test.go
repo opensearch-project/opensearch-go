@@ -34,7 +34,7 @@ func TestManual_PITSegments(t *testing.T) {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     "1",
 		Body:   strings.NewReader(`{"title":"PIT segments test"}`),
@@ -42,7 +42,7 @@ func TestManual_PITSegments(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	createResp, err := client.CreatePIT(t.Context(), &opensearchapi.CreatePITReq{
+	createResp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{
 		Index:  []string{index},
 		Params: &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 	})
@@ -52,7 +52,7 @@ func TestManual_PITSegments(t *testing.T) {
 	require.NotEmpty(t, pitID)
 
 	t.Cleanup(func() {
-		_, _ = client.DeletePIT(context.Background(), &opensearchapi.DeletePITReq{
+		_, _ = client.PIT.Delete(context.Background(), &opensearchapi.DeletePITReq{
 			Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}},
 		})
 	})

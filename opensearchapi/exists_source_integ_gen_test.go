@@ -34,7 +34,7 @@ func TestExistsSource(t *testing.T) {
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
@@ -43,7 +43,7 @@ func TestExistsSource(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.ExistsSource(t.Context(), opensearchapi.ExistsSourceReq{Index: index, ID: docID})
+		resp, err := client.Doc.ExistsSource(t.Context(), opensearchapi.ExistsSourceReq{Index: index, ID: docID})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

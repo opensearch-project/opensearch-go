@@ -76,7 +76,7 @@ func TestExists_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Exists(t.Context(), opensearchapi.ExistsReq{Index: "test", ID: "test"})
+		resp, err := client.Doc.Exists(t.Context(), opensearchapi.ExistsReq{Index: "test", ID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)
@@ -95,7 +95,7 @@ func TestExists_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Exists(t.Context(), opensearchapi.ExistsReq{Index: "test", ID: "test"})
+		resp, err := errClient.Doc.Exists(t.Context(), opensearchapi.ExistsReq{Index: "test", ID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

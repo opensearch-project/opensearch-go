@@ -47,12 +47,12 @@ func example() error {
 	}
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
-	docCreateResp, err := client.Document.Create(
+	docCreateResp, err := client.Doc.Create(
 		ctx,
-		opensearchapi.DocumentCreateReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Body:       strings.NewReader(`{"title": "Beauty and the Beast", "year": 1991 }`),
+		opensearchapi.CreateReq{
+			Index: "movies",
+			ID:    "1",
+			Body:  strings.NewReader(`{"title": "Beauty and the Beast", "year": 1991 }`),
 		},
 	)
 	if err != nil {
@@ -60,12 +60,12 @@ func example() error {
 	}
 	fmt.Printf("Document: %s\n", docCreateResp.Result)
 
-	docCreateResp, err = client.Document.Create(
+	docCreateResp, err = client.Doc.Create(
 		ctx,
-		opensearchapi.DocumentCreateReq{
-			Index:      "movies",
-			DocumentID: "2",
-			Body:       strings.NewReader(`{"title": "Beauty and the Beast - Live Action", "year": 2017 }`),
+		opensearchapi.CreateReq{
+			Index: "movies",
+			ID:    "2",
+			Body:  strings.NewReader(`{"title": "Beauty and the Beast - Live Action", "year": 2017 }`),
 		},
 	)
 	if err != nil {
@@ -73,24 +73,24 @@ func example() error {
 	}
 	fmt.Printf("Document: %s\n", docCreateResp.Result)
 
-	_, err = client.Document.Create(
+	_, err = client.Doc.Create(
 		ctx,
-		opensearchapi.DocumentCreateReq{
-			Index:      "movies",
-			DocumentID: "2",
-			Body:       strings.NewReader(`{"title": "Just Another Movie" }`),
+		opensearchapi.CreateReq{
+			Index: "movies",
+			ID:    "2",
+			Body:  strings.NewReader(`{"title": "Just Another Movie" }`),
 		},
 	)
 	if err != nil {
 		fmt.Println(err)
 	}
 
-	indexResp, err := client.Index(
+	indexResp, err := client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
-			Index:      "movies",
-			DocumentID: "2",
-			Body:       strings.NewReader(`{"title": "Updated Title" }`),
+			Index: "movies",
+			ID:    "2",
+			Body:  strings.NewReader(`{"title": "Updated Title" }`),
 		},
 	)
 	if err != nil {
@@ -100,7 +100,7 @@ func example() error {
 
 	//
 
-	indexResp, err = client.Index(
+	indexResp, err = client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
 			Index: "movies",
@@ -118,7 +118,7 @@ func example() error {
 
 	//
 
-	getResp, err := client.Document.Get(ctx, opensearchapi.DocumentGetReq{Index: "movies", DocumentID: "1"})
+	getResp, err := client.Doc.Get(ctx, opensearchapi.GetReq{Index: "movies", ID: "1"})
 	if err != nil {
 		return err
 	}
@@ -130,12 +130,12 @@ func example() error {
 
 	//
 
-	getResp, err = client.Document.Get(
+	getResp, err = client.Doc.Get(
 		ctx,
-		opensearchapi.DocumentGetReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params:     opensearchapi.DocumentGetParams{SourceIncludes: []string{"title"}},
+		opensearchapi.GetReq{
+			Index:  "movies",
+			ID:     "1",
+			Params: &opensearchapi.GetParams{SourceIncludes: []string{"title"}},
 		},
 	)
 	if err != nil {
@@ -147,12 +147,12 @@ func example() error {
 	}
 	fmt.Printf("Get Document:\n%s\n", respAsJson)
 
-	getResp, err = client.Document.Get(
+	getResp, err = client.Doc.Get(
 		ctx,
-		opensearchapi.DocumentGetReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params:     opensearchapi.DocumentGetParams{SourceExcludes: []string{"title"}},
+		opensearchapi.GetReq{
+			Index:  "movies",
+			ID:     "1",
+			Params: &opensearchapi.GetParams{SourceExcludes: []string{"title"}},
 		},
 	)
 	if err != nil {
@@ -166,11 +166,11 @@ func example() error {
 
 	//
 
-	mgetResp, err := client.MGet(
+	mgetResp, err := client.Doc.MGet(
 		ctx,
 		opensearchapi.MGetReq{
-			Index: "movies",
-			Body:  strings.NewReader(`{ "docs": [{ "_id": "1" }, { "_id": "2" }] }`),
+			Index:      "movies",
+			BodyReader: strings.NewReader(`{ "docs": [{ "_id": "1" }, { "_id": "2" }] }`),
 		},
 	)
 	if err != nil {
@@ -184,7 +184,7 @@ func example() error {
 
 	//
 
-	existsResp, err := client.Document.Exists(ctx, opensearchapi.DocumentExistsReq{Index: "movies", DocumentID: "1"})
+	existsResp, err := client.Doc.Exists(ctx, opensearchapi.ExistsReq{Index: "movies", ID: "1"})
 	if err != nil {
 		return err
 	}
@@ -192,12 +192,12 @@ func example() error {
 
 	//
 
-	updateResp, err := client.Update(
+	updateResp, err := client.Doc.Update(
 		ctx,
 		opensearchapi.UpdateReq{
 			Index:      "movies",
-			DocumentID: "1",
-			Body:       strings.NewReader(`{ "script": { "source": "ctx._source.year += 5" } }`),
+			ID:         "1",
+			BodyReader: strings.NewReader(`{ "script": { "source": "ctx._source.year += 5" } }`),
 		},
 	)
 	if err != nil {
@@ -211,17 +211,17 @@ func example() error {
 
 	//
 
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
 	if err != nil {
 		return err
 	}
 
 	upByQueryResp, err := client.UpdateByQuery(
 		ctx,
-		opensearchapi.UpdateByQueryReq{
-			Indices: []string{"movies"},
-			Params:  opensearchapi.UpdateByQueryParams{Query: "year:<1990"},
-			Body:    strings.NewReader(`{"script": { "source": "ctx._source.year -= 1" } }`),
+		&opensearchapi.UpdateByQueryReq{
+			Index:      []string{"movies"},
+			Params:     &opensearchapi.UpdateByQueryParams{Q: "year:<1990"},
+			BodyReader: strings.NewReader(`{"script": { "source": "ctx._source.year -= 1" } }`),
 		},
 	)
 	if err != nil {
@@ -235,7 +235,7 @@ func example() error {
 
 	//
 
-	docDelResp, err := client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "1"})
+	docDelResp, err := client.Doc.Delete(ctx, opensearchapi.DeleteReq{Index: "movies", ID: "1"})
 	if err != nil {
 		return err
 	}
@@ -246,16 +246,16 @@ func example() error {
 	fmt.Printf("Del Doc:\n%s\n", respAsJson)
 
 	//
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
 	if err != nil {
 		return err
 	}
 
-	delByQueryResp, err := client.Document.DeleteByQuery(
+	delByQueryResp, err := client.DeleteByQuery(
 		ctx,
-		opensearchapi.DocumentDeleteByQueryReq{
-			Indices: []string{"movies"},
-			Body:    strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
+		&opensearchapi.DeleteByQueryReq{
+			Index:      []string{"movies"},
+			BodyReader: strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
 		},
 	)
 	if err != nil {
@@ -271,9 +271,9 @@ func example() error {
 
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies", "paintings", "burner"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Index:  []string{"movies", "paintings", "burner"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

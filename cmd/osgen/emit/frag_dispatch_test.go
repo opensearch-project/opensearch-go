@@ -90,6 +90,47 @@ func TestDispatchFragment_Body(t *testing.T) {
 			notContains: []string{"PartialFailures", "collapsePerOpErrors"},
 		},
 		{
+			name: "compat forwarder renders thin forwarding body",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:       "bulk",
+					TypePrefix:  "Bulk",
+					HTTPMethods: []string{http.MethodPost},
+					PrimaryPath: "/_bulk",
+					Response:    newRespType("Bulk"),
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "documentClient", MethodName: "Bulk", FieldPath: "Doc"},
+						{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true, Forward: "Doc.Bulk"},
+					},
+				}
+			},
+			contains: []string{
+				"func (c documentClient) Bulk(",
+				"func (c Client) Bulk(",
+				"return c.Doc.Bulk(ctx, req)",
+			},
+		},
+		{
+			name: "deprecated compat forwarder carries deprecation comment",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:       "bulk",
+					TypePrefix:  "Bulk",
+					HTTPMethods: []string{http.MethodPost},
+					PrimaryPath: "/_bulk",
+					Response:    newRespType("Bulk"),
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "documentClient", MethodName: "Bulk", FieldPath: "Doc"},
+						{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true, Forward: "Doc.Bulk", Deprecated: true},
+					},
+				}
+			},
+			contains: []string{
+				"// Deprecated: use Doc.Bulk instead.",
+				"return c.Doc.Bulk(ctx, req)",
+			},
+		},
+		{
 			name: "single-wrapper op uses nil collapse closure",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{

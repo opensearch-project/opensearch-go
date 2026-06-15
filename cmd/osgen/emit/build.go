@@ -536,6 +536,14 @@ func buildDispatchTestFrag(ops []*ir.Operation, corePkg, coreImport string) *Dis
 				MethodName: route.MethodName,
 				FieldPath:  route.FieldPath,
 			}
+			// A compatibility forwarder shares the canonical op's TypePrefix, so
+			// give it a distinct test name keyed on its own receiver path and
+			// method (e.g. TestV4Aliases_Bulk, TestV4Aliases_DocSource) to avoid
+			// colliding with the canonical TestDispatch_<TypePrefix>.
+			if route.Forward != "" {
+				entry.Forwarder = true
+				entry.TestName = strings.ReplaceAll(route.FieldPath, ".", "") + route.MethodName
+			}
 
 			if op.IsPointerReq {
 				entry.ReqType = fmt.Sprintf("*%s.%sReq", corePkg, op.TypePrefix)
@@ -915,7 +923,7 @@ func buildDocFixtureIR(corePkg string, isPlugin bool) string {
 	return fmt.Sprintf(`_, err = %s.Indices.Create(t.Context(), %s.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = %s.Index(t.Context(), %s.IndexReq{
+	_, err = %s.Doc.Index(t.Context(), %s.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`+"`"+`{"title":"fixture"}`+"`"+`),

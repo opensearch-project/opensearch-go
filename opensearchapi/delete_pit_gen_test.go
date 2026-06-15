@@ -71,7 +71,7 @@ func TestDeletePIT_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.DeletePIT(t.Context(), &opensearchapi.DeletePITReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -90,7 +90,7 @@ func TestDeletePIT_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.DeletePIT(t.Context(), &opensearchapi.DeletePITReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

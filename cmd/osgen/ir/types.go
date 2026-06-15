@@ -373,4 +373,9 @@ type DispatchRoute struct {
 	FieldPath    string // dot-separated field path from Client (e.g. "Cluster", "Indices.Alias")
 	TopLevel     bool
 	Deprecated   bool
+	// Forward, when non-empty, makes this a thin compatibility forwarder whose
+	// body is `return c.<Forward>(ctx, req)` rather than a full dispatch. The
+	// expression is relative to the receiver (e.g. "Doc.Bulk" on Client, or
+	// "GetAll" on a sub-client).
+	Forward string
 }

@@ -35,7 +35,7 @@ func TestMTermVectors(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{Index: index})
+		resp, err := client.Doc.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{Index: index})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestMTermVectors(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{Index: index})
+		res, err := failingClient.Doc.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{Index: index})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

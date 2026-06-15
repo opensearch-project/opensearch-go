@@ -36,7 +36,7 @@ func TestBulk(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Bulk(t.Context(), opensearchapi.BulkReq{Index: index, Body: strings.NewReader("{}")})
+		resp, err := client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{Index: index, Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -46,7 +46,7 @@ func TestBulk(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{Index: index, Body: strings.NewReader("{}")})
+		res, err := failingClient.Doc.Bulk(t.Context(), opensearchapi.BulkReq{Index: index, Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

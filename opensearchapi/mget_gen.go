@@ -502,7 +502,7 @@ func (u MGetOperationSource) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
-func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
+func (c documentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
 	var (
 		data MGetResp
 		err  error
@@ -513,11 +513,24 @@ func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
 	}
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		method,
 		req, &data,
 	); err != nil {
 		return &data, err
 	}
 	return &data, nil
+}
+
+// MGet allows to get multiple documents in one request.
+//
+// Path: /_mget
+//
+// Methods: GET, POST
+//
+// Available: >= 1.0.0.
+//
+// See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
+func (c Client) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
+	return c.Doc.MGet(ctx, req)
 }

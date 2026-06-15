@@ -70,7 +70,7 @@ func TestDeleteAllPits_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.DeleteAllPits(t.Context(), nil)
+		resp, err := client.PIT.DeleteAll(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -89,7 +89,7 @@ func TestDeleteAllPits_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.DeleteAllPits(t.Context(), nil)
+		resp, err := errClient.PIT.DeleteAll(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

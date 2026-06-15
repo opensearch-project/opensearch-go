@@ -113,14 +113,14 @@ type PITDetail struct {
 	PITID        *string `json:"pit_id,omitempty"`
 }
 
-// GetAllPits lists all active point in time searches.
+// GetAll lists all active point in time searches.
 //
 // GET /_search/point_in_time/_all
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-func (c Client) GetAllPits(ctx context.Context, req *GetAllPitsReq) (*GetAllPitsResp, error) {
+func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPitsReq) (*GetAllPitsResp, error) {
 	if req == nil {
 		req = &GetAllPitsReq{}
 	}
@@ -131,11 +131,22 @@ func (c Client) GetAllPits(ctx context.Context, req *GetAllPitsReq) (*GetAllPits
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodGet,
 		req, &data,
 	); err != nil {
 		return &data, err
 	}
 	return &data, nil
+}
+
+// Get lists all active point in time searches.
+//
+// GET /_search/point_in_time/_all
+//
+// Available: >= 2.4.0.
+//
+// See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
+func (c pointInTimeClient) Get(ctx context.Context, req *GetAllPitsReq) (*GetAllPitsResp, error) {
+	return c.GetAll(ctx, req)
 }

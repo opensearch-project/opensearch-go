@@ -52,17 +52,17 @@ func example() error {
 
 	// Create source index with test data.
 	_, err = client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
-		Index: sourceIndex,
-		Body:  strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
+		Index:      sourceIndex,
+		BodyReader: strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
 	})
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Index(ctx, opensearchapi.IndexReq{
+	_, err = client.Doc.Index(ctx, opensearchapi.IndexReq{
 		Index: sourceIndex,
 		Body:  strings.NewReader(`{"title": "Test Document", "year": 2024}`),
-		Params: opensearchapi.IndexParams{
+		Params: &opensearchapi.IndexParams{
 			Refresh: "true",
 		},
 	})
@@ -71,19 +71,25 @@ func example() error {
 	}
 
 	// Submit an async reindex task.
-	reindexResp, err := client.Reindex(ctx, opensearchapi.ReindexReq{
-		Body: strings.NewReader(fmt.Sprintf(
+	reindexResp, err := client.Reindex(ctx, &opensearchapi.ReindexReq{
+		BodyReader: strings.NewReader(fmt.Sprintf(
 			`{"source":{"index":"%s"},"dest":{"index":"%s"}}`,
 			sourceIndex, destIndex,
 		)),
-		Params: opensearchapi.ReindexParams{
-			WaitForCompletion: opensearchapi.ToPointer(false),
+		Params: &opensearchapi.ReindexParams{
+			WaitForCompletion: opensearch.ToPointer(false),
 		},
 	})
 	if err != nil {
 		return err
 	}
-	taskID := reindexResp.Task
+	var reindexTask struct {
+		Task string `json:"task"`
+	}
+	if err := json.Unmarshal(reindexResp.Body, &reindexTask); err != nil {
+		return err
+	}
+	taskID := reindexTask.Task
 	fmt.Printf("Task submitted: %s\n", taskID)
 
 	// Poll for completion.
@@ -107,15 +113,16 @@ func example() error {
 	}
 	fmt.Printf("Task completed: action=%s\n", taskResp.Task.Action)
 
-	// Parse the BulkByScroll status.
-	status, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](taskResp.Task.Status)
-	if err != nil {
-		return err
-	}
+	// Read the BulkByScroll status.
+	status := taskResp.Task.Status.BulkByScrollTaskStatus()
 
 	fmt.Printf("Total: %d\n", status.Total)
-	fmt.Printf("Created: %d\n", status.Created)
-	fmt.Printf("Updated: %d\n", status.Updated)
+	if status.Created != nil {
+		fmt.Printf("Created: %d\n", *status.Created)
+	}
+	if status.Updated != nil {
+		fmt.Printf("Updated: %d\n", *status.Updated)
+	}
 	fmt.Printf("Deleted: %d\n", status.Deleted)
 	fmt.Printf("Batches: %d\n", status.Batches)
 	fmt.Printf("Version conflicts: %d\n", status.VersionConflicts)
@@ -123,10 +130,10 @@ func example() error {
 	fmt.Printf("Retries (bulk): %d\n", status.Retries.Bulk)
 	fmt.Printf("Retries (search): %d\n", status.Retries.Search)
 
-	// For tasks without a dedicated type, unmarshal as generic JSON.
+	// For tasks without a dedicated type, inspect the raw JSON.
 	if taskResp.Task.Status != nil {
 		var raw map[string]any
-		if err := json.Unmarshal(taskResp.Task.Status, &raw); err != nil {
+		if err := json.Unmarshal(taskResp.Task.Status.RawJSON(), &raw); err != nil {
 			return err
 		}
 		fmt.Printf("Raw status: %v\n", raw)
@@ -137,14 +144,23 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	for nodeID, node := range listResp.Nodes {
+	var taskList struct {
+		Nodes map[string]struct {
+			Name  string         `json:"name"`
+			Tasks map[string]any `json:"tasks"`
+		} `json:"nodes"`
+	}
+	if err := json.Unmarshal(listResp.Body, &taskList); err != nil {
+		return err
+	}
+	for nodeID, node := range taskList.Nodes {
 		fmt.Printf("Node %s (%s): %d tasks\n", node.Name, nodeID, len(node.Tasks))
 	}
 
 	// Cleanup.
-	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
-		Indices: []string{sourceIndex, destIndex},
-		Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+		Index:  []string{sourceIndex, destIndex},
+		Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 	})
 	if err != nil {
 		return err

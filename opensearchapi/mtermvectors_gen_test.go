@@ -84,7 +84,7 @@ func TestMTermVectors_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
+		resp, err := client.Doc.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -103,7 +103,7 @@ func TestMTermVectors_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
+		resp, err := errClient.Doc.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

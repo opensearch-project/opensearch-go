@@ -27,7 +27,7 @@ func TestDeletePIT(t *testing.T) {
 	testutil.SkipIfVersion(t, client, "<", "2.4", "DeletePIT")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.DeletePIT(t.Context(), &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{}})
+		resp, err := client.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestDeletePIT(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.DeletePIT(t.Context(), &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{}})
+		res, err := failingClient.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

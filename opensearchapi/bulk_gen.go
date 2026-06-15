@@ -267,18 +267,31 @@ func (r *BulkResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/bulk/
-func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
+func (c documentClient) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
 	var (
 		data BulkResp
 		err  error
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodPost,
 		req, &data,
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
+}
+
+// Bulk allows to perform multiple index/update/delete operations in a single request.
+//
+// Path: /_bulk
+//
+// Methods: POST, PUT
+//
+// Available: >= 1.0.0.
+//
+// See: https://opensearch.org/docs/latest/api-reference/document-apis/bulk/
+func (c Client) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
+	return c.Doc.Bulk(ctx, req)
 }

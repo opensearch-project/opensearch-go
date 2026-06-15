@@ -143,7 +143,7 @@ func TestManual_Index(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Index(t.Context(), tt.req)
+			resp, err := client.Doc.Index(t.Context(), tt.req)
 			require.NoError(t, err)
 			require.NotEmpty(t, resp.ID)
 			require.Equal(t, index, resp.Index)
@@ -157,7 +157,7 @@ func TestManual_Index(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Index(t.Context(), opensearchapi.IndexReq{
+		res, err := failingClient.Doc.Index(t.Context(), opensearchapi.IndexReq{
 			Index: index,
 			Body:  strings.NewReader(`{}`),
 		})
@@ -176,7 +176,7 @@ func TestManual_Search(t *testing.T) {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     "doc-1",
 		Body:   strings.NewReader(`{"title":"Hello World","count":1}`),

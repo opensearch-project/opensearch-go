@@ -78,7 +78,7 @@ func TestUpdate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Update(t.Context(), opensearchapi.UpdateReq{Index: "test", ID: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Doc.Update(t.Context(), opensearchapi.UpdateReq{Index: "test", ID: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestUpdate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Update(t.Context(), opensearchapi.UpdateReq{Index: "test", ID: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Doc.Update(t.Context(), opensearchapi.UpdateReq{Index: "test", ID: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

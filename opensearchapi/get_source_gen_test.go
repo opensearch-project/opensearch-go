@@ -77,7 +77,7 @@ func TestGetSource_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: "test", ID: "test"})
+		resp, err := client.Doc.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: "test", ID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestGetSource_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: "test", ID: "test"})
+		resp, err := errClient.Doc.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: "test", ID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

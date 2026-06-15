@@ -77,7 +77,7 @@ func TestCreatePIT_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.CreatePIT(t.Context(), &opensearchapi.CreatePITReq{Index: []string{"test"}})
+		resp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{Index: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestCreatePIT_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.CreatePIT(t.Context(), &opensearchapi.CreatePITReq{Index: []string{"test"}})
+		resp, err := errClient.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{Index: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

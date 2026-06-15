@@ -165,7 +165,7 @@ func BenchmarkClientAPI(b *testing.B) {
 				},
 			}
 
-			_, err := client.Index(ctx, req)
+			_, err := client.Doc.Index(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
@@ -224,7 +224,7 @@ func BenchmarkClientAPI(b *testing.B) {
 					},
 				},
 			}
-			if _, err := client.Bulk(ctx, req); err != nil {
+			if _, err := client.Doc.Bulk(ctx, req); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}

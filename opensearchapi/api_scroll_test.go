@@ -39,7 +39,7 @@ func TestManual_Scroll(t *testing.T) {
 		`{"title":"Scroll Doc 3"}`,
 		"",
 	}, "\n")
-	_, err = client.Bulk(t.Context(), opensearchapi.BulkReq{
+	_, err = client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{
 		Body:   strings.NewReader(ndjson),
 		Params: &opensearchapi.BulkParams{Refresh: "true"},
 	})

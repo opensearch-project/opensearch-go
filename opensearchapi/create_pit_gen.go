@@ -186,14 +186,14 @@ func (r *CreatePITResp) PartialFailures(mask errmask.ErrorMask) []error {
 	return errs
 }
 
-// CreatePIT creates point in time context.
+// Create creates point in time context.
 //
 // POST /{index}/_search/point_in_time
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
-func (c Client) CreatePIT(ctx context.Context, req *CreatePITReq) (*CreatePITResp, error) {
+func (c pointInTimeClient) Create(ctx context.Context, req *CreatePITReq) (*CreatePITResp, error) {
 	if req == nil {
 		req = &CreatePITReq{}
 	}
@@ -204,11 +204,11 @@ func (c Client) CreatePIT(ctx context.Context, req *CreatePITReq) (*CreatePITRes
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodPost,
 		req, &data,
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }

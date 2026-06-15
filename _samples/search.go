@@ -51,12 +51,12 @@ func example() error {
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
 	for i := 1; i < 11; i++ {
-		_, err = client.Index(
+		_, err = client.Doc.Index(
 			ctx,
 			opensearchapi.IndexReq{
-				Index:      exampleIndex,
-				DocumentID: strconv.Itoa(i),
-				Body:       strings.NewReader(fmt.Sprintf(`{"title": "The Dark Knight %d", "director": "Christopher Nolan", "year": %d}`, i, 2008+i)),
+				Index: exampleIndex,
+				ID:    strconv.Itoa(i),
+				Body:  strings.NewReader(fmt.Sprintf(`{"title": "The Dark Knight %d", "director": "Christopher Nolan", "year": %d}`, i, 2008+i)),
 			},
 		)
 		if err != nil {
@@ -64,7 +64,7 @@ func example() error {
 		}
 	}
 
-	_, err = client.Index(
+	_, err = client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
 			Index: exampleIndex,
@@ -75,7 +75,7 @@ func example() error {
 		return err
 	}
 
-	_, err = client.Index(
+	_, err = client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
 			Index: exampleIndex,
@@ -86,12 +86,12 @@ func example() error {
 		return err
 	}
 
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{exampleIndex}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
 
-	searchResp, err := client.Search(ctx, &opensearchapi.SearchReq{Indices: []string{exampleIndex}})
+	searchResp, err := client.Search(ctx, &opensearchapi.SearchReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -106,8 +106,8 @@ func example() error {
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Indices: []string{exampleIndex},
-			Params:  opensearchapi.SearchParams{Query: `title: "dark knight"`},
+			Index:  []string{exampleIndex},
+			Params: &opensearchapi.SearchParams{Q: `title: "dark knight"`},
 		},
 	)
 	if err != nil {
@@ -124,12 +124,12 @@ func example() error {
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Indices: []string{exampleIndex},
-			Params: opensearchapi.SearchParams{
-				Query: `title: "dark knight"`,
-				Size:  opensearchapi.ToPointer(2),
-				From:  opensearchapi.ToPointer(5),
-				Sort:  []string{"year:desc"},
+			Index: []string{exampleIndex},
+			Params: &opensearchapi.SearchParams{
+				Q:    `title: "dark knight"`,
+				Size: 2,
+				From: 5,
+				Sort: []string{"year:desc"},
 			},
 		},
 	)
@@ -147,10 +147,10 @@ func example() error {
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Indices: []string{exampleIndex},
-			Params: opensearchapi.SearchParams{
-				Query:  `title: "dark knight"`,
-				Size:   opensearchapi.ToPointer(2),
+			Index: []string{exampleIndex},
+			Params: &opensearchapi.SearchParams{
+				Q:      `title: "dark knight"`,
+				Size:   2,
 				Sort:   []string{"year:desc"},
 				Scroll: time.Minute,
 			},
@@ -167,23 +167,27 @@ func example() error {
 
 	//
 
-	pitCreateResp, err := client.PointInTime.Create(
+	pitCreateResp, err := client.PIT.Create(
 		ctx,
-		opensearchapi.PointInTimeCreateReq{
-			Indices: []string{exampleIndex},
-			Params:  opensearchapi.PointInTimeCreateParams{KeepAlive: time.Minute},
+		&opensearchapi.CreatePITReq{
+			Index:  []string{exampleIndex},
+			Params: &opensearchapi.CreatePITParams{KeepAlive: time.Minute},
 		},
 	)
 	if err != nil {
 		return err
 	}
+	pitID := ""
+	if pitCreateResp.PITID != nil {
+		pitID = *pitCreateResp.PITID
+	}
 
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pitCreateResp.PitID)),
-			Params: opensearchapi.SearchParams{
-				Size: opensearchapi.ToPointer(5),
+			BodyReader: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pitID)),
+			Params: &opensearchapi.SearchParams{
+				Size: 5,
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -200,9 +204,9 @@ func example() error {
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pitCreateResp.PitID)),
-			Params: opensearchapi.SearchParams{
-				Size: opensearchapi.ToPointer(5),
+			BodyReader: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pitID)),
+			Params: &opensearchapi.SearchParams{
+				Size: 5,
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -216,17 +220,17 @@ func example() error {
 	}
 	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 
-	_, err = client.PointInTime.Delete(ctx, opensearchapi.PointInTimeDeleteReq{PitID: []string{pitCreateResp.PitID}})
+	_, err = client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}}})
 	if err != nil {
 		return err
 	}
 
-	sourceResp, err := client.Document.Source(
+	sourceResp, err := client.Doc.GetSource(
 		ctx,
-		opensearchapi.DocumentSourceReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params: opensearchapi.DocumentSourceParams{
+		opensearchapi.GetSourceReq{
+			Index: "movies",
+			ID:    "1",
+			Params: &opensearchapi.GetSourceParams{
 				SourceIncludes: []string{"title"},
 			},
 		},
@@ -240,12 +244,12 @@ func example() error {
 	}
 	fmt.Printf("Source Response:\n%s\n", string(respAsJson))
 
-	sourceResp, err = client.Document.Source(
+	sourceResp, err = client.Doc.GetSource(
 		ctx,
-		opensearchapi.DocumentSourceReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params: opensearchapi.DocumentSourceParams{
+		opensearchapi.GetSourceReq{
+			Index: "movies",
+			ID:    "1",
+			Params: &opensearchapi.GetSourceParams{
 				SourceExcludes: []string{"title"},
 			},
 		},
@@ -261,9 +265,9 @@ func example() error {
 
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Index:  []string{"movies"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

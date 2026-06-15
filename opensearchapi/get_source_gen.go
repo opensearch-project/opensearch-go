@@ -211,18 +211,29 @@ func (r GetSourceResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c Client) GetSource(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
+func (c documentClient) GetSource(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
 	var (
 		data GetSourceResp
 		err  error
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodGet,
 		req, &data,
 	); err != nil {
 		return &data, err
 	}
 	return &data, nil
+}
+
+// Source returns the source of a document.
+//
+// GET /{index}/_source/{id}
+//
+// Available: >= 1.0.0.
+//
+// See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
+func (c documentClient) Source(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
+	return c.GetSource(ctx, req)
 }

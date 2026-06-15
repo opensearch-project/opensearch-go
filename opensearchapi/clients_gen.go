@@ -23,25 +23,22 @@ var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sent
 
 // Client represents the opensearchapi Client summarizing all API calls.
 type Client struct {
-	Client            *opensearch.Client
-	errors            *errMaskWidth
-	Cat               catClient
-	Cluster           clusterClient
-	Dangling          danglingClient
-	Document          documentClient
-	Indices           indicesClient
-	Nodes             nodesClient
-	Script            scriptClient
-	ComponentTemplate componentTemplateClient
-	IndexTemplate     indexTemplateClient
-	Template          templateClient
-	DataStream        dataStreamClient
-	PointInTime       pointInTimeClient
-	Ingest            ingestClient
-	Tasks             tasksClient
-	Scroll            scrollClient
-	SearchPipeline    searchPipelineClient
-	Snapshot          snapshotClient
+	Client         *opensearch.Client
+	errors         *errMaskWidth
+	Cat            catClient
+	Cluster        clusterClient
+	Dangling       danglingClient
+	Doc            documentClient
+	Document       documentClient
+	Indices        indicesClient
+	Nodes          nodesClient
+	PIT            pointInTimeClient
+	PointInTime    pointInTimeClient
+	Ingest         ingestClient
+	Tasks          tasksClient
+	Scroll         scrollClient
+	SearchPipeline searchPipelineClient
+	Snapshot       snapshotClient
 }
 
 // clientInit initializes a Client with all sub-clients.
@@ -53,15 +50,12 @@ func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	client.Cat = catClient{apiClient: client}
 	client.Cluster = clusterClient{apiClient: client}
 	client.Dangling = danglingClient{apiClient: client}
-	client.Document = documentClient{apiClient: client}
+	client.Doc = documentClient{apiClient: client}
+	client.Document = client.Doc
 	client.Indices = indicesClient{apiClient: client}
 	client.Nodes = nodesClient{apiClient: client}
-	client.Script = scriptClient{apiClient: client}
-	client.ComponentTemplate = componentTemplateClient{apiClient: client}
-	client.IndexTemplate = indexTemplateClient{apiClient: client}
-	client.Template = templateClient{apiClient: client}
-	client.DataStream = dataStreamClient{apiClient: client}
-	client.PointInTime = pointInTimeClient{apiClient: client}
+	client.PIT = pointInTimeClient{apiClient: client}
+	client.PointInTime = client.PIT
 	client.Ingest = ingestClient{apiClient: client}
 	client.Tasks = tasksClient{apiClient: client}
 	client.Scroll = scrollClient{apiClient: client}
@@ -110,26 +104,6 @@ type settingsClient struct {
 }
 
 type nodesClient struct {
-	apiClient *Client
-}
-
-type scriptClient struct {
-	apiClient *Client
-}
-
-type componentTemplateClient struct {
-	apiClient *Client
-}
-
-type indexTemplateClient struct {
-	apiClient *Client
-}
-
-type templateClient struct {
-	apiClient *Client
-}
-
-type dataStreamClient struct {
 	apiClient *Client
 }
 

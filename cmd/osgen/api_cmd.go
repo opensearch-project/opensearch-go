@@ -49,6 +49,10 @@ func runAPI() error {
 	bcFieldsFlag := fs.String("version-breadcrumb-fields", breadcrumbModeAll, "emit comments for excluded struct fields: all, older, newer")
 	bcPathsFlag := fs.String("version-breadcrumb-paths", breadcrumbModeAll, "emit comments for excluded path builders: all, older, newer")
 	bcParamsFlag := fs.String("version-breadcrumb-params", breadcrumbModeAll, "emit comments for excluded query parameters: all, older, newer")
+	emitV4Compat := fs.Bool("emit-v4-compat", true,
+		"emit backward-compatibility forwarder methods (e.g. top-level Client.Bulk forwarding to Doc.Bulk)")
+	emitV4Deprecation := fs.Bool("emit-v4-deprecation", false,
+		"mark the v4 compatibility forwarders with a Deprecated doc comment (requires -emit-v4-compat)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -75,7 +79,8 @@ func runAPI() error {
 		return err
 	}
 
-	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc)
+	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc,
+		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation})
 }
 
 // generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
@@ -92,6 +97,7 @@ func generateAPI(
 	outDir, pluginsDir, corePkg string,
 	vrange VersionRange,
 	bc BreadcrumbConfig,
+	compat CompatConfig,
 ) error {
 	if bc.Types != BreadcrumbAll {
 		return fmt.Errorf("--version-breadcrumb-types is not implemented for `osgen api`: " +
@@ -117,12 +123,20 @@ func generateAPI(
 		Params:     filterExclusions(paramExclusions, bc.Params),
 	}
 
-	subClients := make([]emit.SubClient, len(subClientHierarchy))
-	for i, sc := range subClientHierarchy {
+	// Apply the v4 compatibility-forwarder policy before sub-client filtering so
+	// dropped forwarders don't keep an otherwise-dead sub-client alive.
+	applyCompatPolicy(irSpec.Operations, compat)
+
+	// Emit only the sub-clients at least one operation routes to (with their
+	// ancestors), so dead fields never reach clients_gen.go.
+	hierarchy := filterSubClients(usedSubClientTypes(irSpec.Operations))
+	subClients := make([]emit.SubClient, len(hierarchy))
+	for i, sc := range hierarchy {
 		subClients[i] = emit.SubClient{
 			TypeName:  sc.TypeName,
 			FieldName: sc.FieldName,
 			Parent:    sc.Parent,
+			Aliases:   sc.Aliases,
 		}
 	}
 

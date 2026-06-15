@@ -51,7 +51,7 @@ func TestManual_Aggregation(t *testing.T) {
 		ndjson.WriteString(`{"index":{"_index":"` + index + `"}}` + "\n")
 		ndjson.WriteString(doc + "\n")
 	}
-	_, err = client.Bulk(t.Context(), opensearchapi.BulkReq{
+	_, err = client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{
 		Body:   strings.NewReader(ndjson.String()),
 		Params: &opensearchapi.BulkParams{Refresh: "true"},
 	})

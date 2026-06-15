@@ -7,6 +7,7 @@
 package emit_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -62,6 +63,38 @@ func TestClientsFragment_Body(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestClientsFragment_Body_Aliases verifies that a top-level sub-client with
+// Aliases emits an extra field per alias and an init statement assigning each
+// alias to the canonical field, with only one struct type declared.
+func TestClientsFragment_Body_Aliases(t *testing.T) {
+	t.Parallel()
+
+	clients := []emit.SubClient{
+		{TypeName: "documentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
+		{TypeName: "pointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
+	}
+
+	frag := &emit.ClientsFragment{SubClients: clients}
+	body, err := frag.Body()
+	require.NoError(t, err)
+
+	// Canonical + alias fields, both typed as the same sub-client.
+	require.Contains(t, body, "Doc documentClient")
+	require.Contains(t, body, "Document documentClient")
+	require.Contains(t, body, "PIT pointInTimeClient")
+	require.Contains(t, body, "PointInTime pointInTimeClient")
+
+	// Canonical init plus alias assignment to the canonical field.
+	require.Contains(t, body, "client.Doc = documentClient{apiClient: client}")
+	require.Contains(t, body, "client.Document = client.Doc")
+	require.Contains(t, body, "client.PIT = pointInTimeClient{apiClient: client}")
+	require.Contains(t, body, "client.PointInTime = client.PIT")
+
+	// The aliased type is declared exactly once (no duplicate struct decl).
+	require.Equal(t, 1, strings.Count(body, "type documentClient struct"))
+	require.Equal(t, 1, strings.Count(body, "type pointInTimeClient struct"))
 }
 
 func TestClientsFragment_Imports(t *testing.T) {

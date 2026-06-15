@@ -77,7 +77,7 @@ func TestDelete_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Delete(t.Context(), opensearchapi.DeleteReq{Index: "test", ID: "test"})
+		resp, err := client.Doc.Delete(t.Context(), opensearchapi.DeleteReq{Index: "test", ID: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestDelete_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Delete(t.Context(), opensearchapi.DeleteReq{Index: "test", ID: "test"})
+		resp, err := errClient.Doc.Delete(t.Context(), opensearchapi.DeleteReq{Index: "test", ID: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

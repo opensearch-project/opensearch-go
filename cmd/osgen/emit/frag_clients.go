@@ -17,6 +17,10 @@ type SubClient struct {
 	TypeName  string // e.g. "catClient"
 	FieldName string // exported field on parent (e.g. "Cat")
 	Parent    string // parent client type ("Client" or "indicesClient")
+	// Aliases are extra exported field names on the parent that point at the
+	// same sub-client value as FieldName, for compatibility (e.g. "Document"
+	// aliasing "Doc"). Only honored for top-level (Parent == "Client") clients.
+	Aliases []string
 }
 
 // ClientsFragment renders the Client struct, sub-client types, clientInit, Inspect
@@ -78,6 +82,9 @@ func (f *ClientsFragment) initStatements() []string {
 	for _, sc := range f.SubClients {
 		if sc.Parent == "Client" {
 			stmts = append(stmts, fmt.Sprintf("client.%s = %s{apiClient: client}", sc.FieldName, sc.TypeName))
+			for _, alias := range sc.Aliases {
+				stmts = append(stmts, fmt.Sprintf("client.%s = client.%s", alias, sc.FieldName))
+			}
 		}
 	}
 	for _, sc := range f.SubClients {
@@ -123,7 +130,11 @@ type Client struct {
 	Client *opensearch.Client
 	errors *errMaskWidth
 {{- range .TopLevel}}
+	{{- $typeName := .TypeName}}
 	{{.FieldName}} {{.TypeName}}
+{{- range .Aliases}}
+	{{.}} {{$typeName}}
+{{- end}}
 {{- end}}
 }
 

@@ -34,7 +34,10 @@ func main() {
 	ctx := context.Background()
 
 	// Create default router for role-based routing
-	router := opensearchtransport.NewDefaultRouter()
+	router, err := opensearchtransport.NewDefaultRouter()
+	if err != nil {
+		log.Fatalf("Error creating router: %s", err)
+	}
 
 	// Configure transport with fast discovery for demo
 	cfg := opensearchtransport.Config{
@@ -63,7 +66,8 @@ func main() {
 		log.Fatalf("Error creating transport: %s", err)
 	}
 
-	fmt.Println("=== OpenSearch Discovery Demo ===\n")
+	fmt.Println("=== OpenSearch Discovery Demo ===")
+	fmt.Println()
 
 	// PHASE 1: Initial request using seed URLs
 	fmt.Println("PHASE 1: Making initial request (using seed URLs as coordinator_only)")
@@ -74,9 +78,13 @@ func main() {
 
 	printMetrics(transport, "After initial request")
 
-	// PHASE 2: Wait for discovery
-	fmt.Println("\nPHASE 2: Waiting for discovery to complete...")
-	time.Sleep(6 * time.Second) // Slightly longer than discovery interval
+	// PHASE 2: Block until discovery completes. DiscoverNodes performs a
+	// synchronous discovery pass (and joins any pass already in flight), so we
+	// observe a fully-populated topology without guessing at a sleep duration.
+	fmt.Println("\nPHASE 2: Running discovery to completion...")
+	if err := transport.DiscoverNodes(ctx); err != nil {
+		log.Fatalf("Discovery failed: %s", err)
+	}
 
 	printMetrics(transport, "After discovery")
 

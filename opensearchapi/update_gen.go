@@ -533,18 +533,29 @@ func (r *UpdateResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/update-document/
-func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) {
+func (c documentClient) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) {
 	var (
 		data UpdateResp
 		err  error
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodPost,
 		req, &data,
 	); err != nil {
 		return &data, err
 	}
-	return &data, collapsePerOpErrors(data.PartialFailures(c.errorMask()), nil)
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
+}
+
+// Update updates a document with a script or partial document.
+//
+// POST /{index}/_update/{id}
+//
+// Available: >= 1.0.0.
+//
+// See: https://opensearch.org/docs/latest/api-reference/document-apis/update-document/
+func (c Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) {
+	return c.Doc.Update(ctx, req)
 }

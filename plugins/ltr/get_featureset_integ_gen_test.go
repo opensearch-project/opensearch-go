@@ -42,7 +42,7 @@ func TestGetFeatureset(t *testing.T) {
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = osClient.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = osClient.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),

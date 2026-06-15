@@ -29,7 +29,7 @@ func TestManual_DocumentGet(t *testing.T) {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     "doc-1",
 		Body:   strings.NewReader(`{"title":"Hello","count":42}`),
@@ -65,7 +65,7 @@ func TestManual_DocumentGet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Get(t.Context(), opensearchapi.GetReq{Index: index, ID: tt.id})
+			resp, err := client.Doc.Get(t.Context(), opensearchapi.GetReq{Index: index, ID: tt.id})
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -79,7 +79,7 @@ func TestManual_DocumentGet(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Get(t.Context(), opensearchapi.GetReq{Index: index, ID: "doc-1"})
+		res, err := failingClient.Doc.Get(t.Context(), opensearchapi.GetReq{Index: index, ID: "doc-1"})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
@@ -96,7 +96,7 @@ func TestManual_DocumentMget(t *testing.T) {
 	})
 
 	for _, id := range []string{"doc-1", "doc-2", "doc-3"} {
-		_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+		_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 			Index:  index,
 			ID:     id,
 			Body:   strings.NewReader(`{"title":"Doc ` + id + `"}`),
@@ -127,7 +127,7 @@ func TestManual_DocumentMget(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{
+			resp, err := client.Doc.MGet(t.Context(), opensearchapi.MGetReq{
 				BodyReader: strings.NewReader(tt.body),
 			})
 			require.NoError(t, err)
@@ -140,7 +140,7 @@ func TestManual_DocumentMget(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.MGet(t.Context(), opensearchapi.MGetReq{
+		res, err := failingClient.Doc.MGet(t.Context(), opensearchapi.MGetReq{
 			BodyReader: strings.NewReader(`{"docs":[]}`),
 		})
 		require.Error(t, err)
@@ -159,7 +159,7 @@ func TestManual_DocumentUpdate(t *testing.T) {
 	})
 
 	for _, id := range []string{"doc-1", "doc-2"} {
-		_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+		_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 			Index:  index,
 			ID:     id,
 			Body:   strings.NewReader(`{"title":"Original","count":1}`),
@@ -187,7 +187,7 @@ func TestManual_DocumentUpdate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Update(t.Context(), opensearchapi.UpdateReq{
+			resp, err := client.Doc.Update(t.Context(), opensearchapi.UpdateReq{
 				Index:      index,
 				ID:         tt.id,
 				BodyReader: strings.NewReader(tt.body),
@@ -204,7 +204,7 @@ func TestManual_DocumentUpdate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Update(t.Context(), opensearchapi.UpdateReq{
+		res, err := failingClient.Doc.Update(t.Context(), opensearchapi.UpdateReq{
 			Index:      index,
 			ID:         "doc-1",
 			BodyReader: strings.NewReader(`{"doc":{}}`),
@@ -225,7 +225,7 @@ func TestManual_DeleteByQuery(t *testing.T) {
 	})
 
 	for i := range 5 {
-		_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+		_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 			Index:  index,
 			Body:   strings.NewReader(`{"title":"deleteme","seq":` + strings.Repeat("1", i+1) + `}`),
 			Params: &opensearchapi.IndexParams{Refresh: "true"},

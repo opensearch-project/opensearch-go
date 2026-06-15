@@ -35,7 +35,7 @@ func TestGetSource(t *testing.T) {
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
@@ -44,7 +44,7 @@ func TestGetSource(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: index, ID: docID})
+		resp, err := client.Doc.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: index, ID: docID})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -54,7 +54,7 @@ func TestGetSource(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: index, ID: docID})
+		res, err := failingClient.Doc.GetSource(t.Context(), opensearchapi.GetSourceReq{Index: index, ID: docID})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

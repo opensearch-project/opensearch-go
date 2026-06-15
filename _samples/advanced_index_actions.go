@@ -7,6 +7,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -47,7 +48,7 @@ func example() error {
 	}
 	fmt.Printf("Index created: %t\n", createResp.Acknowledged)
 
-	clearCacheResp, err := client.Indices.ClearCache(ctx, &opensearchapi.IndicesClearCacheReq{Indices: []string{exampleIndex}})
+	clearCacheResp, err := client.Indices.ClearCache(ctx, &opensearchapi.IndicesClearCacheReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -56,11 +57,11 @@ func example() error {
 	clearCacheResp, err = client.Indices.ClearCache(
 		ctx,
 		&opensearchapi.IndicesClearCacheReq{
-			Indices: []string{exampleIndex},
-			Params: opensearchapi.IndicesClearCacheParams{
-				Fielddata: opensearchapi.ToPointer(true),
-				Request:   opensearchapi.ToPointer(true),
-				Query:     opensearchapi.ToPointer(true),
+			Index: []string{exampleIndex},
+			Params: &opensearchapi.IndicesClearCacheParams{
+				Fielddata: opensearch.ToPointer(true),
+				Request:   opensearch.ToPointer(true),
+				Query:     opensearch.ToPointer(true),
 			},
 		},
 	)
@@ -69,36 +70,40 @@ func example() error {
 	}
 	fmt.Printf("Cach cleared for %d shards\n", clearCacheResp.Shards.Total)
 
-	flushResp, err := client.Indices.Flush(ctx, &opensearchapi.IndicesFlushReq{Indices: []string{exampleIndex}})
+	flushResp, err := client.Indices.Flush(ctx, &opensearchapi.IndicesFlushReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Flushed shards: %d\n", flushResp.Shards.Total)
 
-	refreshResp, err := client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{exampleIndex}})
+	refreshResp, err := client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Refreshed shards: %d\n", refreshResp.Shards.Total)
 
-	closeResp, err := client.Indices.Close(ctx, opensearchapi.IndicesCloseReq{Index: exampleIndex})
+	closeResp, err := client.Indices.Close(ctx, &opensearchapi.IndicesCloseReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Index closed: %t\n", closeResp.Acknowledged)
 
-	openResp, err := client.Indices.Open(ctx, opensearchapi.IndicesOpenReq{Index: exampleIndex})
+	openResp, err := client.Indices.Open(ctx, &opensearchapi.IndicesOpenReq{Index: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Index opended: %t\n", openResp.Acknowledged)
+	openRespJSON, err := json.MarshalIndent(openResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index opened:\n%s\n", string(openRespJSON))
 
-	mergeResp, err := client.Indices.Forcemerge(
+	mergeResp, err := client.Indices.ForceMerge(
 		ctx,
-		&opensearchapi.IndicesForcemergeReq{
-			Indices: []string{exampleIndex},
-			Params: opensearchapi.IndicesForcemergeParams{
-				MaxNumSegments: opensearchapi.ToPointer(1),
+		&opensearchapi.IndicesForceMergeReq{
+			Index: []string{exampleIndex},
+			Params: &opensearchapi.IndicesForceMergeParams{
+				MaxNumSegments: 1,
 			},
 		},
 	)
@@ -107,11 +112,11 @@ func example() error {
 	}
 	fmt.Printf("Forcemerged Shards: %d\n", mergeResp.Shards.Total)
 
-	blockResp, err := client.Indices.Block(
+	blockResp, err := client.Indices.AddBlock(
 		ctx,
-		opensearchapi.IndicesBlockReq{
-			Indices: []string{exampleIndex},
-			Block:   "write",
+		opensearchapi.IndicesAddBlockReq{
+			Index: []string{exampleIndex},
+			Block: "write",
 		},
 	)
 	if err != nil {
@@ -133,9 +138,9 @@ func example() error {
 
 	settingResp, err := client.Indices.Settings.Put(
 		ctx,
-		opensearchapi.SettingsPutReq{
-			Indices: []string{exampleIndex},
-			Body:    strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
+		&opensearchapi.IndicesPutSettingsReq{
+			Index:      []string{exampleIndex},
+			BodyReader: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
 		},
 	)
 	if err != nil {
@@ -147,7 +152,7 @@ func example() error {
 		ctx,
 		opensearchapi.IndicesCreateReq{
 			Index: "books",
-			Body: strings.NewReader(`{
+			BodyReader: strings.NewReader(`{
         "settings": {
             "index": {
                 "number_of_shards": 5,
@@ -168,9 +173,9 @@ func example() error {
 	splitResp, err := client.Indices.Split(
 		ctx,
 		opensearchapi.IndicesSplitReq{
-			Index:  "books",
-			Target: "books-large",
-			Body:   strings.NewReader(`{"settings":{"index":{"number_of_shards": 10}}}`),
+			Index:      "books",
+			Target:     "books-large",
+			BodyReader: strings.NewReader(`{"settings":{"index":{"number_of_shards": 10}}}`),
 		},
 	)
 	if err != nil {
@@ -180,9 +185,9 @@ func example() error {
 
 	settingResp, err = client.Indices.Settings.Put(
 		ctx,
-		opensearchapi.SettingsPutReq{
-			Indices: []string{"books"},
-			Body:    strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
+		&opensearchapi.IndicesPutSettingsReq{
+			Index:      []string{"books"},
+			BodyReader: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
 		},
 	)
 	if err != nil {
@@ -192,9 +197,9 @@ func example() error {
 
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies*", "books*"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Index:  []string{"movies*", "books*"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

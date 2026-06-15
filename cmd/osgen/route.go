@@ -139,6 +139,12 @@ type dispatchRoute struct {
 	MethodName   string // exported method name (e.g. "Health")
 	TopLevel     bool   // true for Client, false for sub-clients
 	Deprecated   bool   // true for nested sub-client forwarding methods
+	// Forward, when non-empty, marks this route as a thin compatibility
+	// forwarder: the emitted method body is `return c.<Forward>(ctx, req)`
+	// instead of a full dispatch. The expression is relative to the receiver
+	// (e.g. "Doc.Bulk" on Client, or "GetSource" on documentClient). The
+	// canonical implementation lives on the route this one forwards to.
+	Forward string
 }
 
 // subClientInfo describes a sub-client type and its placement in the hierarchy.
@@ -146,6 +152,11 @@ type subClientInfo struct {
 	TypeName  string // e.g. "catClient"
 	FieldName string // exported field on parent (e.g. "Cat")
 	Parent    string // parent client type ("Client" or "indicesClient")
+	// Aliases are additional exported field names on the parent that point at
+	// the same sub-client value as FieldName. They exist for compatibility
+	// (e.g. "Document" aliasing "Doc", "PointInTime" aliasing "PIT") so callers
+	// can reach the sub-client under either name.
+	Aliases []string
 }
 
 // nestedSubClientOverrides maps operation group names to deprecated sub-client
@@ -181,7 +192,7 @@ var subClientHierarchy = []subClientInfo{
 	{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
 	{TypeName: "clusterClient", FieldName: "Cluster", Parent: "Client"},
 	{TypeName: "danglingClient", FieldName: "Dangling", Parent: "Client"},
-	{TypeName: "documentClient", FieldName: "Document", Parent: "Client"},
+	{TypeName: "documentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
 	{TypeName: "indicesClient", FieldName: "Indices", Parent: "Client"},
 	{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
 	{TypeName: "mappingClient", FieldName: "Mapping", Parent: "indicesClient"},
@@ -192,7 +203,7 @@ var subClientHierarchy = []subClientInfo{
 	{TypeName: "indexTemplateClient", FieldName: "IndexTemplate", Parent: "Client"},
 	{TypeName: "templateClient", FieldName: "Template", Parent: "Client"},
 	{TypeName: "dataStreamClient", FieldName: "DataStream", Parent: "Client"},
-	{TypeName: "pointInTimeClient", FieldName: "PointInTime", Parent: "Client"},
+	{TypeName: "pointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
 	{TypeName: "ingestClient", FieldName: "Ingest", Parent: "Client"},
 	{TypeName: "tasksClient", FieldName: "Tasks", Parent: "Client"},
 	{TypeName: "scrollClient", FieldName: "Scroll", Parent: "Client"},
@@ -214,6 +225,58 @@ func resolveFieldPath(receiverType string) string {
 		}
 	}
 	return receiverType
+}
+
+// parentOf returns the parent client type for a sub-client type name, or "" if
+// the type is not in the hierarchy.
+func parentOf(typeName string) string {
+	for _, sc := range subClientHierarchy {
+		if sc.TypeName == typeName {
+			return sc.Parent
+		}
+	}
+	return ""
+}
+
+// usedSubClientTypes returns the set of sub-client type names that at least one
+// operation routes to. A type is "used" when any dispatch route targets it
+// (deprecated forwarding routes count, so nested aliases like aliasClient stay).
+// The set is expanded to include every ancestor so a retained child never
+// references a dropped parent.
+func usedSubClientTypes(ops []*ir.Operation) map[string]bool {
+	used := make(map[string]bool)
+	for _, op := range ops {
+		for _, dr := range op.DispatchRoutes {
+			if dr.TopLevel || dr.ReceiverType == "" || dr.ReceiverType == "Client" {
+				continue
+			}
+			used[dr.ReceiverType] = true
+		}
+	}
+	// Snapshot the seed types before walking parents so we don't mutate the map
+	// mid-range.
+	seeds := make([]string, 0, len(used))
+	for t := range used {
+		seeds = append(seeds, t)
+	}
+	for _, t := range seeds {
+		for p := parentOf(t); p != "" && p != "Client"; p = parentOf(p) {
+			used[p] = true
+		}
+	}
+	return used
+}
+
+// filterSubClients returns the subClientHierarchy entries whose type is in used,
+// preserving the original order (so parents still precede their children).
+func filterSubClients(used map[string]bool) []subClientInfo {
+	out := make([]subClientInfo, 0, len(subClientHierarchy))
+	for _, sc := range subClientHierarchy {
+		if used[sc.TypeName] {
+			out = append(out, sc)
+		}
+	}
+	return out
 }
 
 // prefixToReceiverType maps a group prefix to its primary (flat) receiver
@@ -245,10 +308,75 @@ var unprefixedGroupOverrides = map[string]dispatchRoute{
 	"scroll":       {ReceiverType: "scrollClient", MethodName: "Get", TopLevel: false},
 }
 
+// unprefixedSubClientGroup assigns a set of prefix-less operation groups to a
+// single sub-client receiver. The OpenAPI spec leaves these groups prefix-less
+// (e.g. "create", "get", "create_pit"), so they would otherwise resolve to
+// top-level Client methods; this table routes them onto a sub-client instead,
+// mirroring how the OpenSearch server groups them by REST-action package
+// (document operations under one family, point-in-time under another).
+type unprefixedSubClientGroup struct {
+	ReceiverType string   // sub-client receiver type (e.g. "documentClient")
+	TrimSuffixes []string // tail tokens stripped before deriving the method name, longest-first
+	Groups       []string // prefix-less group names owned by this sub-client
+}
+
+// unprefixedSubClientGroups drives the prefix-less sub-client assignments folded
+// into unprefixedGroupOverrides by init(). Keep ReceiverTypes that also appear in
+// subClientHierarchy.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var unprefixedSubClientGroups = []unprefixedSubClientGroup{
+	{
+		ReceiverType: "pointInTimeClient",
+		// "create_pit" -> Create, "get_all_pits" -> GetAll: drop the redundant
+		// pit/pits tail since the sub-client name already conveys it.
+		TrimSuffixes: []string{"_pits", "_pit"},
+		Groups:       []string{"create_pit", "delete_pit", "get_all_pits", "delete_all_pits"},
+	},
+	{
+		ReceiverType: "documentClient",
+		// The 13 operations the OpenSearch server groups under its
+		// rest/action/document/ package. Group names are already verb-only, so
+		// no suffix trimming is needed ("create" -> Create, "bulk" -> Bulk).
+		Groups: []string{
+			"index", "create", "get", "get_source", "exists", "exists_source",
+			"delete", "update", "mget", "bulk", "bulk_stream",
+			"termvectors", "mtermvectors",
+		},
+	},
+}
+
+// trimSuffixes removes the first matching suffix in suffixes from s (which is
+// scanned longest-first by the caller's table ordering). It returns s unchanged
+// when nothing matches.
+func trimSuffixes(s string, suffixes []string) string {
+	for _, suf := range suffixes {
+		if trimmed, ok := strings.CutSuffix(s, suf); ok {
+			return trimmed
+		}
+	}
+	return s
+}
+
+//nolint:gochecknoinits // folds the declarative sub-client table into the override map once at startup
+func init() {
+	for _, sc := range unprefixedSubClientGroups {
+		for _, group := range sc.Groups {
+			unprefixedGroupOverrides[group] = dispatchRoute{
+				ReceiverType: sc.ReceiverType,
+				MethodName:   methodNameFromSuffix(trimSuffixes(group, sc.TrimSuffixes)),
+				TopLevel:     false,
+			}
+		}
+	}
+}
+
 // resolveDispatchRoutes returns all dispatch routes for an operation group.
 // The first route is always the canonical flat method on the prefix's client.
 // If the operation has a nested sub-client override, a second deprecated
-// forwarding route is appended.
+// forwarding route is appended. Compatibility forwarder routes (see
+// compatForwarders) are appended last so callers can keep or drop them based on
+// the --emit-v4-compat flag.
 // Returns nil for plugin operations (which have their own client types).
 func resolveDispatchRoutes(group string) []dispatchRoute {
 	prefix := groupPrefix(group)
@@ -264,7 +392,104 @@ func resolveDispatchRoutes(group string) []dispatchRoute {
 		routes = append(routes, nested)
 	}
 
+	routes = append(routes, compatForwardersFor(group, primary)...)
+
 	return routes
+}
+
+// compatForwarder describes a backward-compatibility method that forwards to a
+// canonical method elsewhere. It exists so code written against the historical
+// API surface keeps compiling once operations move onto sub-clients.
+type compatForwarder struct {
+	ReceiverType string // receiver the compat method is declared on
+	MethodName   string // the historical method name
+}
+
+// compatForwarders maps an operation group to the compatibility methods that
+// should forward to its canonical (primary) route. Two shapes appear:
+//
+//   - top-level forwarders: operations that were reachable as bare
+//     client.Bulk/MGet/Update now live on documentClient; the forwarder
+//     restores the top-level Client method. The index document op is
+//     deliberately excluded: Index is now the indices sub-client field on
+//     Client (see indicesClient.FieldName), and a field and a method of the
+//     same name cannot coexist in Go, so client.Doc.Index is the only
+//     spelling -- there is no top-level client.Index(...) forwarder.
+//   - same-receiver name aliases: an operation whose canonical method name was
+//     renamed keeps its historical name as a forwarder on the same sub-client
+//     (e.g. documentClient.Source -> GetSource, pointInTimeClient.Get -> GetAll).
+//
+// Keys are sorted alphabetically; keep them that way when adding entries.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var compatForwarders = map[string][]compatForwarder{
+	"bulk":         {{ReceiverType: "Client", MethodName: "Bulk"}},
+	"get_all_pits": {{ReceiverType: "pointInTimeClient", MethodName: "Get"}},
+	"get_source":   {{ReceiverType: "documentClient", MethodName: "Source"}},
+	"index":        {{ReceiverType: "Client", MethodName: "Index"}},
+	"mget":         {{ReceiverType: "Client", MethodName: "MGet"}},
+	"update":       {{ReceiverType: "Client", MethodName: "Update"}},
+}
+
+// compatForwardersFor builds the dispatchRoutes for a group's compatibility
+// forwarders, each pointing at the canonical primary route. The Forward
+// expression is relative to the forwarder's own receiver: a top-level forwarder
+// reaches the sub-client via its field path (e.g. "Doc.Bulk"), while a
+// same-receiver alias names the canonical method directly (e.g. "GetAll").
+func compatForwardersFor(group string, primary dispatchRoute) []dispatchRoute {
+	cfs, ok := compatForwarders[group]
+	if !ok {
+		return nil
+	}
+	out := make([]dispatchRoute, 0, len(cfs))
+	for _, cf := range cfs {
+		forward := primary.MethodName
+		if cf.ReceiverType == "Client" && !primary.TopLevel {
+			forward = resolveFieldPath(primary.ReceiverType) + "." + primary.MethodName
+		}
+		out = append(out, dispatchRoute{
+			ReceiverType: cf.ReceiverType,
+			MethodName:   cf.MethodName,
+			TopLevel:     cf.ReceiverType == "Client",
+			Forward:      forward,
+		})
+	}
+	return out
+}
+
+// CompatConfig controls which backward-compatibility forwarders the generator
+// emits. Members are version-scoped (V4*) so a future v5/v6 compatibility layer
+// can be added without restructuring callers.
+type CompatConfig struct {
+	// V4Compat emits the v4 compatibility forwarder methods (e.g. top-level
+	// Client.Bulk forwarding to Doc.Bulk, documentClient.Source forwarding to
+	// GetSource).
+	V4Compat bool
+	// V4Deprecation marks those forwarders with a Deprecated doc comment. It has
+	// no effect unless V4Compat is set.
+	V4Deprecation bool
+}
+
+// applyCompatPolicy rewrites each operation's dispatch routes in place to honor
+// the compatibility config: forwarder routes (those with a non-empty Forward)
+// are dropped when V4Compat is false, and marked Deprecated when V4Deprecation
+// is set. Non-forwarder routes are left untouched.
+func applyCompatPolicy(ops []*ir.Operation, compat CompatConfig) {
+	for _, op := range ops {
+		kept := op.DispatchRoutes[:0]
+		for _, dr := range op.DispatchRoutes {
+			if dr.Forward != "" {
+				if !compat.V4Compat {
+					continue
+				}
+				if compat.V4Deprecation {
+					dr.Deprecated = true
+				}
+			}
+			kept = append(kept, dr)
+		}
+		op.DispatchRoutes = kept
+	}
 }
 
 // resolvePrimaryDispatch returns the canonical flat dispatch route.

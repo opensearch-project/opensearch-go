@@ -57,7 +57,7 @@ func example() error {
 	}
 	fmt.Printf("Index created: %t\n", createResp.Acknowledged)
 
-	bulkResp, err := client.Bulk(
+	bulkResp, err := client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "index": { "_index": "movies", "_id": 1 } }
@@ -78,7 +78,7 @@ func example() error {
 	}
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "create": { "_index": "movies" } }
@@ -101,7 +101,7 @@ func example() error {
 	}
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "update": { "_index": "movies", "_id": 1 } }
@@ -120,7 +120,7 @@ func example() error {
 	}
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "delete": { "_index": "movies", "_id": 1 } }
@@ -137,7 +137,7 @@ func example() error {
 	}
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "create": { "_index": "movies", "_id": 3 } }
@@ -159,7 +159,7 @@ func example() error {
 	}
 	fmt.Printf("Bulk Resp:\n%s\n", string(respAsJson))
 
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader("{\"delete\":{\"_index\":\"movies\",\"_id\":1}}\n"),
@@ -169,18 +169,27 @@ func example() error {
 		return err
 	}
 	for _, item := range bulkResp.Items {
-		for operation, resp := range item {
-			if resp.Status >= http.StatusMultipleChoices {
-				fmt.Printf("Bulk %s Error: %s\n", operation, resp.Result)
+		for operation, resp := range map[string]*opensearchapi.BulkRespItem{
+			"create": item.Create,
+			"delete": item.Delete,
+			"index":  item.Index,
+			"update": item.Update,
+		} {
+			if resp != nil && resp.Status >= http.StatusMultipleChoices {
+				result := ""
+				if resp.Result != nil {
+					result = *resp.Result
+				}
+				fmt.Printf("Bulk %s Error: %s\n", operation, result)
 			}
 		}
 	}
 
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies", "books"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Index:  []string{"movies", "books"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

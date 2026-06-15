@@ -35,7 +35,7 @@ func TestIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: strings.NewReader("{}"), Params: &opensearchapi.IndexParams{Refresh: "true"}})
+		resp, err := client.Doc.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: strings.NewReader("{}"), Params: &opensearchapi.IndexParams{Refresh: "true"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestIndex(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: strings.NewReader("{}"), Params: &opensearchapi.IndexParams{Refresh: "true"}})
+		res, err := failingClient.Doc.Index(t.Context(), opensearchapi.IndexReq{Index: index, Body: strings.NewReader("{}"), Params: &opensearchapi.IndexParams{Refresh: "true"}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

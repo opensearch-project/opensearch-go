@@ -78,7 +78,7 @@ func TestCreate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Create(t.Context(), opensearchapi.CreateReq{Index: "test", ID: "test", Body: strings.NewReader("{}")})
+		resp, err := client.Doc.Create(t.Context(), opensearchapi.CreateReq{Index: "test", ID: "test", Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestCreate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Create(t.Context(), opensearchapi.CreateReq{Index: "test", ID: "test", Body: strings.NewReader("{}")})
+		resp, err := errClient.Doc.Create(t.Context(), opensearchapi.CreateReq{Index: "test", ID: "test", Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

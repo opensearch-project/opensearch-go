@@ -78,7 +78,7 @@ func TestBulk_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
+		resp, err := client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestBulk_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
+		resp, err := errClient.Doc.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

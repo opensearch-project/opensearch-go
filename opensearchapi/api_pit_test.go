@@ -32,7 +32,7 @@ func TestManual_PIT(t *testing.T) {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
 	})
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     "1",
 		Body:   strings.NewReader(`{"title":"PIT test"}`),
@@ -48,7 +48,7 @@ func TestManual_PIT(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			createResp, err := client.CreatePIT(t.Context(), &opensearchapi.CreatePITReq{
+			createResp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{
 				Index:  []string{index},
 				Params: &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 			})
@@ -59,7 +59,7 @@ func TestManual_PIT(t *testing.T) {
 
 			pitID := *createResp.PITID
 
-			getAllResp, err := client.GetAllPits(t.Context(), nil)
+			getAllResp, err := client.PIT.GetAll(t.Context(), nil)
 			require.NoError(t, err)
 			require.NotEmpty(t, getAllResp.Pits)
 
@@ -73,7 +73,7 @@ func TestManual_PIT(t *testing.T) {
 			require.True(t, found, "created PIT not found in GetAllPits response")
 			testutil.CompareRawJSONwithParsedJSON(t, getAllResp, getAllResp.Inspect().Response)
 
-			deleteResp, err := client.DeletePIT(t.Context(), &opensearchapi.DeletePITReq{
+			deleteResp, err := client.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{
 				Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}},
 			})
 			require.NoError(t, err)
@@ -85,13 +85,13 @@ func TestManual_PIT(t *testing.T) {
 	}
 
 	t.Run("delete all pits", func(t *testing.T) {
-		_, err := client.CreatePIT(t.Context(), &opensearchapi.CreatePITReq{
+		_, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{
 			Index:  []string{index},
 			Params: &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 		})
 		require.NoError(t, err)
 
-		resp, err := client.DeleteAllPits(t.Context(), nil)
+		resp, err := client.PIT.DeleteAll(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotEmpty(t, resp.Pits)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -101,7 +101,7 @@ func TestManual_PIT(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.GetAllPits(t.Context(), nil)
+		res, err := failingClient.PIT.GetAll(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

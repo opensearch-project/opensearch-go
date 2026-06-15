@@ -26,7 +26,7 @@ func TestDeleteAllPits(t *testing.T) {
 	testutil.SkipIfVersion(t, client, "<", "2.12", "DeleteAllPits")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.DeleteAllPits(t.Context(), nil)
+		resp, err := client.PIT.DeleteAll(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -36,7 +36,7 @@ func TestDeleteAllPits(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.DeleteAllPits(t.Context(), nil)
+		res, err := failingClient.PIT.DeleteAll(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

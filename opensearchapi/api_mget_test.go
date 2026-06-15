@@ -41,7 +41,7 @@ func TestManual_MGet(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     "1",
 		Body:   strings.NewReader(`{"title":"present"}`),
@@ -51,7 +51,7 @@ func TestManual_MGet(t *testing.T) {
 
 	missingIndex := testutil.MustUniqueString(t, "test-mget-missing")
 
-	resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{
+	resp, err := client.Doc.MGet(t.Context(), opensearchapi.MGetReq{
 		Body: &opensearchapi.MGetBody{
 			Docs: []opensearchapi.MGetOperation{
 				{ID: "1", Index: &index},        // success, found

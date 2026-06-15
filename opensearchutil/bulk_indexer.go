@@ -566,7 +566,7 @@ func (w *worker) flush(ctx context.Context) error {
 		Header: w.bi.config.Header,
 	}
 
-	blk, err = w.bi.config.Client.Bulk(ctx, req)
+	blk, err = w.bi.config.Client.Doc.Bulk(ctx, req)
 	// Treat opensearchapi.PartialBulkError as success-with-failed-items:
 	// the indexer's whole job is per-item dispatch, so the per-item loop
 	// below already handles `info.Error != nil`. A real flush failure

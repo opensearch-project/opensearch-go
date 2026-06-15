@@ -6,6 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Group document operations under a `client.Doc` sub-client and point-in-time operations under `client.PIT` (`Create`/`Delete`/`GetAll`/`DeleteAll`); `client.Document` and `client.PointInTime` remain as field aliases. `cmd/osgen` gains `--emit-v4-compat` (default true) to emit backward-compatibility forwarders so top-level `client.Bulk`/`Index`/`MGet`/`Update`, `client.Document.Source`, and `client.PointInTime.Get` keep working, and `--emit-v4-deprecation` (default false) to mark those forwarders deprecated
 - Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
 - `opensearchapi`: `NewClient` and `NewDefaultClient` inject `opensearchtransport.NewDefaultRouter` when `config.Client.Router` is nil, opting every client into intelligent request routing by default. The `OPENSEARCH_GO_ROUTER` env var controls the behavior: `=false`/`=0` suppresses both Router injection and auto-discovery; unset or any other value injects the Router and enables on-start discovery. ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
 - Add `envvars.Falsy(name)` helper that distinguishes "explicitly opted out" from "unset" (Truthy collapses both into false). Used by the router injection rule.
@@ -209,6 +210,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Removed
 - Remove backport.yml and dependabot_pr.yml as we are not using backport app anymore
+- Stop emitting `opensearchapi.Client` sub-client fields that have no operations routed to them. `cmd/osgen` now emits a sub-client only when at least one operation targets it, dropping the previously-empty `Script`, `ComponentTemplate`, `IndexTemplate`, `Template`, and `DataStream` fields. Index-template and data-stream operations are reached through `client.Indices.*` (e.g. `client.Indices.PutIndexTemplate`, `client.Indices.CreateDataStream`); stored-script operations remain top-level on `Client`
 
 ### Fixed
 

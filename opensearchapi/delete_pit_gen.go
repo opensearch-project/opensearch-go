@@ -133,14 +133,14 @@ type DeletePITBody struct {
 	PITID []string `json:"pit_id"`
 }
 
-// DeletePIT deletes one or more point in time searches based on the IDs passed.
+// Delete deletes one or more point in time searches based on the IDs passed.
 //
 // DELETE /_search/point_in_time
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-func (c Client) DeletePIT(ctx context.Context, req *DeletePITReq) (*DeletePITResp, error) {
+func (c pointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*DeletePITResp, error) {
 	if req == nil {
 		req = &DeletePITReq{}
 	}
@@ -151,7 +151,7 @@ func (c Client) DeletePIT(ctx context.Context, req *DeletePITReq) (*DeletePITRes
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodDelete,
 		req, &data,
 	); err != nil {

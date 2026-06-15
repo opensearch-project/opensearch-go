@@ -760,6 +760,17 @@ func writeOperationConst(group string) string {
 const dispatchTemplateText = `{{- $op := .Operation -}}
 {{- $hasPartial := .HasPartialFailures -}}
 {{- range .Routes}}
+{{- if .Forward}}
+{{- if .Deprecated}}
+// Deprecated: use {{.Forward}} instead. This compatibility forwarder will be removed in a future major version.
+{{- else}}
+{{opMethodComment .MethodName $op}}
+{{- end}}
+func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsPointerReq}}*{{end}}{{$op.TypePrefix}}Req) ({{- ""}}
+	{{- if $op.IsNoBody}}*opensearch.Response{{else}}*{{$op.TypePrefix}}Resp{{end}}, error) {
+	return c.{{.Forward}}(ctx, req)
+}
+{{- else}}
 {{- if .Deprecated}}
 // Deprecated: use {{$op.TypePrefix}} via the parent client instead.
 {{- else}}
@@ -812,4 +823,5 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 {{- end}}
 {{- end}}
 }
+{{- end}}
 {{end}}`

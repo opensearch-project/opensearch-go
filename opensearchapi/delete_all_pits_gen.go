@@ -112,14 +112,14 @@ type PITDeleted struct {
 	Successful *bool   `json:"successful,omitempty"`
 }
 
-// DeleteAllPits deletes all active point in time searches.
+// DeleteAll deletes all active point in time searches.
 //
 // DELETE /_search/point_in_time/_all
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-func (c Client) DeleteAllPits(ctx context.Context, req *DeleteAllPitsReq) (*DeleteAllPitsResp, error) {
+func (c pointInTimeClient) DeleteAll(ctx context.Context, req *DeleteAllPitsReq) (*DeleteAllPitsResp, error) {
 	if req == nil {
 		req = &DeleteAllPitsReq{}
 	}
@@ -130,7 +130,7 @@ func (c Client) DeleteAllPits(ctx context.Context, req *DeleteAllPitsReq) (*Dele
 	)
 	if data.response, err = do(
 		ctx,
-		&c,
+		c.apiClient,
 		http.MethodDelete,
 		req, &data,
 	); err != nil {

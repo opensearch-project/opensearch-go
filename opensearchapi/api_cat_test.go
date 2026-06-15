@@ -37,7 +37,7 @@ func TestManual_Cat(t *testing.T) {
 		Name:  alias,
 	})
 	require.NoError(t, err)
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     "1",
 		Body:   strings.NewReader(`{"title":"cat-test"}`),

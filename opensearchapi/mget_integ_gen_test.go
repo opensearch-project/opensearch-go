@@ -35,7 +35,7 @@ func TestMGet(t *testing.T) {
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = client.Index(t.Context(), opensearchapi.IndexReq{
+	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`{"title":"fixture"}`),
@@ -44,7 +44,7 @@ func TestMGet(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
+		resp, err := client.Doc.MGet(t.Context(), opensearchapi.MGetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -54,7 +54,7 @@ func TestMGet(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.MGet(t.Context(), opensearchapi.MGetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
+		res, err := failingClient.Doc.MGet(t.Context(), opensearchapi.MGetReq{Index: index, BodyReader: strings.NewReader("{\"docs\":[{\"_index\":\"" + index + "\",\"_id\":\"" + docID + "\"}]}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

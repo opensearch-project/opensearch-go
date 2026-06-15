@@ -84,7 +84,7 @@ func TestMGet_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.MGet(t.Context(), opensearchapi.MGetReq{})
+		resp, err := client.Doc.MGet(t.Context(), opensearchapi.MGetReq{})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -103,7 +103,7 @@ func TestMGet_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.MGet(t.Context(), opensearchapi.MGetReq{})
+		resp, err := errClient.Doc.MGet(t.Context(), opensearchapi.MGetReq{})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

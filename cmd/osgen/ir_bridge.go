@@ -98,6 +98,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 			FieldPath:    fieldPath,
 			TopLevel:     dr.TopLevel,
 			Deprecated:   dr.Deprecated,
+			Forward:      dr.Forward,
 		})
 	}
 

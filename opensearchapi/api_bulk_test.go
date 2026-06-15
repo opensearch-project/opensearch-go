@@ -76,7 +76,7 @@ func TestManual_Bulk(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Bulk(t.Context(), opensearchapi.BulkReq{
+			resp, err := client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{
 				Body:   strings.NewReader(tt.body),
 				Params: &opensearchapi.BulkParams{Refresh: "true"},
 			})
@@ -92,7 +92,7 @@ func TestManual_Bulk(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{
+		res, err := failingClient.Doc.Bulk(t.Context(), opensearchapi.BulkReq{
 			Body: strings.NewReader("{}\n"),
 		})
 		require.Error(t, err)
@@ -119,7 +119,7 @@ func TestManual_Count(t *testing.T) {
 		`{"title":"gamma"}`,
 		"",
 	}, "\n")
-	_, err = client.Bulk(t.Context(), opensearchapi.BulkReq{
+	_, err = client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{
 		Body:   strings.NewReader(body),
 		Params: &opensearchapi.BulkParams{Refresh: "true"},
 	})
