@@ -357,4 +357,4 @@ For routing semantics (role awareness, AIMD, shard-cost weighting) see [`../guid
 
 Plugin APIs (k-NN, ML, Security, ISM, etc.) live in separate top-level packages under [`plugins/`](../plugins/) (`github.com/opensearch-project/opensearch-go/v5/plugins/<name>`). They share the same `opensearch.Client` transport but have independent type hierarchies.
 
-See [plugins/README.md](plugins/README.md) for usage details and available plugins.
+See [plugins/README.md](../plugins/README.md) for usage details and available plugins.
