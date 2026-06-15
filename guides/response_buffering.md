@@ -99,4 +99,4 @@ In both cases, always call `res.Body.Close()` when done.
 
 ## Deprecation note
 
-`opensearchtransport.Client.Perform` and `opensearch.Client.Perform` are marked deprecated in v4 and will be removed in v5. They remain fully functional for v4 callers; the buffered-response contract is unchanged. New code should call `Do[T]` for typed results or `Stream` for raw byte forwarding.
+`opensearchtransport.Client.Perform` and `opensearch.Client.Perform` are deprecated and will be removed before the first stable release. They remain fully functional in the meantime; the buffered-response contract is unchanged. New code should call `Do[T]` for typed results or `Stream` for raw byte forwarding.

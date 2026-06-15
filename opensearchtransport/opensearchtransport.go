@@ -344,8 +344,9 @@ type Config struct {
 	//
 	//   - When Config.Router is set, this field is ignored (the user's router
 	//     was already constructed with its own configuration).
-	//   - When Config.Router is nil and OPENSEARCH_GO_ROUTER=true triggers
-	//     auto-construction, this field is applied via [WithShardCosts].
+	//   - When Config.Router is nil and OPENSEARCH_GO_ROUTER is not explicitly
+	//     false (so a router is auto-constructed), this field is applied via
+	//     [WithShardCosts].
 	//   - Otherwise (no router), this field has no effect.
 	//
 	// When a router is constructed, OPENSEARCH_GO_SHARD_COST takes precedence
@@ -1182,7 +1183,8 @@ func (c *Client) Close() error {
 // a hard transport failure where no response is available. The same contract
 // applies to any custom [Interface] implementation.
 //
-// Deprecated: Perform will be removed in v5. Use [Client.Stream] when you
+// Deprecated: Perform follows the legacy buffered-response contract and will
+// be removed before the first stable release. Use [Client.Stream] when you
 // need raw byte forwarding (the caller owns the body), or the typed
 // [github.com/opensearch-project/opensearch-go/v5.Do] helpers when you want
 // a decoded Go value (the SDK owns the body).

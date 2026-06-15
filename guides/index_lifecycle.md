@@ -23,11 +23,11 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
@@ -77,7 +77,7 @@ To specify settings and mappings, you can pass them as the `body` of the request
 		ctx,
 		opensearchapi.IndicesCreateReq{
 			Index: "movies",
-			Body: strings.NewReader(`{
+			BodyReader: strings.NewReader(`{
 				"settings": {
 				    "index": {
 				        "number_of_shards": 2,
@@ -107,20 +107,20 @@ When you create a new document for an index, OpenSearch will automatically creat
 
 ```go
     // return status code 404 Not Found
-	existsResp, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: []string{"burner"}})
+	existsResp, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Index: []string{"burner"}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("%s\n", existsResp)
 
-	indexResp, err := client.Index(ctx, opensearchapi.IndexReq{Index: "burner", Body: strings.NewReader(`{"foo": "bar"}`)})
+	indexResp, err := client.Doc.Index(ctx, opensearchapi.IndexReq{Index: "burner", Body: strings.NewReader(`{"foo": "bar"}`)})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Index: %s\n", indexResp.Result)
 
     // return status code 200 OK
-	existsResp, err = client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: []string{"burner"}})
+	existsResp, err = client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Index: []string{"burner"}})
 	if err != nil {
 		return err
 	}
@@ -136,9 +136,9 @@ The following example updates the `movies` index's number of replicas to `0`:
 ```go
 	settingsPutResp, err := client.Indices.Settings.Put(
 		ctx,
-		opensearchapi.SettingsPutReq{
-			Indices: []string{"burner"},
-			Body:    strings.NewReader(`{"index":{"number_of_replicas":0}}`),
+		&opensearchapi.IndicesPutSettingsReq{
+			Index:      []string{"burner"},
+			BodyReader: strings.NewReader(`{"index":{"number_of_replicas":0}}`),
 		},
 	)
 	if err != nil {
@@ -152,9 +152,9 @@ The following example updates the `movies` index's mappings to add a new field n
 ```go
 	mappingPutResp, err := client.Indices.Mapping.Put(
 		ctx,
-		opensearchapi.MappingPutReq{
-			Indices: []string{"movies"},
-			Body:    strings.NewReader(`{"properties":{ "director":{"type":"text"}}}`),
+		&opensearchapi.IndicesPutMappingReq{
+			Index:      []string{"movies"},
+			BodyReader: strings.NewReader(`{"properties":{ "director":{"type":"text"}}}`),
 		},
 	)
 	if err != nil {
@@ -170,15 +170,15 @@ Let's check if the index's settings and mappings have been updated by using the 
 ```go
 	getResp, err := client.Indices.Get(
 		ctx,
-		opensearchapi.IndicesGetReq{
-			Indices: []string{"movies"},
+		&opensearchapi.IndicesGetReq{
+			Index: []string{"movies"},
 		},
 	)
 	if err != nil {
 		return err
 	}
     // Json Marshal the struct to pretty print
-	respAsJson, err := json.MarshalIndent(getResp.Indices, "", "  ")
+	respAsJson, err := json.MarshalIndent(getResp.Entries, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ The response body contains the index's settings and mappings:
 Let's delete the `movies` index by using the `client.Indices.Delete()` action:
 
 ```go
-	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{"movies"}})
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Index: []string{"movies"}})
 	if err != nil {
 		return err
 	}
@@ -237,9 +237,9 @@ We can also delete multiple indices at once:
 ```go
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies", "paintings", "burner"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Index:  []string{"movies", "paintings", "burner"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

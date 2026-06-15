@@ -104,10 +104,7 @@ The `bulk` API action allows you to perform document operations in a single requ
 The following code creates two documents in the `movies` index and one document in the `books` index:
 
 ```go
-	bulkResp, err := client.Bulk(
-		ctx,
-		opensearchapi.BulkReq{
-			Body: strings.NewReader(`{ "index": { "_index": "movies", "_id": 1 } }
+	bulkResp, err := client.Doc.Bulk(
 { "title": "Beauty and the Beast", "year": 1991 }
 { "index": { "_index": "movies", "_id": 2 } }
 { "title": "Beauty and the Beast - Live Action", "year": 2017 }
@@ -131,7 +128,7 @@ The following code creates two documents in the `movies` index and one document 
 Similarly, instead of calling the `create` method for each document, you can use the `bulk` API to create multiple documents in a single request. The following code creates three documents in the `movies` index and one in the `books` index:
 
 ```go
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "create": { "_index": "movies" } }
@@ -160,7 +157,7 @@ We omit the `_id` for each document and let OpenSearch generate them for us in t
 ### Updating multiple documents
 
 ```go
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "update": { "_index": "movies", "_id": 1 } }
@@ -187,7 +184,7 @@ Note that the updated data is specified in the `doc` with a full or partial JSON
 If the document doesn't exist, OpenSearch doesn't return an error, but instead returns not_found under result. Delete actions don't require documents on the next line
 
 ```go
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "delete": { "_index": "movies", "_id": 1 } }
@@ -210,7 +207,7 @@ If the document doesn't exist, OpenSearch doesn't return an error, but instead r
 You can mix and match the different operations in a single request. The following code creates two documents, updates one document, and deletes another document:
 
 ```go
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader(`{ "create": { "_index": "movies", "_id": 3 } }
@@ -237,12 +234,12 @@ You can mix and match the different operations in a single request. The followin
 
 The `bulk` API returns an array of responses for each operation in the request body. Each response contains a `status` field that indicates whether the operation was successful or not. If the operation was successful, the `status` field is set to a `2xx` code. Otherwise, the response contains an error message in the `error` field.
 
-For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
+For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Doc.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
 
 The following code shows an example on how to look for errors in the response. `BulkResp.Items` is `[]BulkItem`; each `BulkItem` has named operation fields (`Index`, `Create`, `Update`, `Delete`), and `BulkRespItem.Error.Reason` is a `*string`:
 
 ```go
-	bulkResp, err = client.Bulk(
+	bulkResp, err = client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Body: strings.NewReader("{\"delete\":{\"_index\":\"movies\",\"_id\":1}}\n"),
@@ -284,7 +281,7 @@ Bulk operations can be long-running, especially when indexing large batches. Two
 ### Setting a server-side timeout
 
 ```go
-	bulkResp, err := client.Bulk(
+	bulkResp, err := client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Index: "movies",
@@ -313,7 +310,7 @@ Set the server-side timeout shorter than the client-side context deadline. This 
 	defer cancel()
 
 	// Server-side timeout: 45s (shorter than the client deadline)
-	bulkResp, err := client.Bulk(
+	bulkResp, err := client.Doc.Bulk(
 		ctx,
 		opensearchapi.BulkReq{
 			Index: "movies",

@@ -200,21 +200,22 @@ logging globally without code changes. When enabled, debug output is written to 
 
 Use the EnableMetrics option to enable metric collection and export.
 
-# Enabling the Router via Environment Variable
+# Controlling the Router via Environment Variable
 
-In v4 the DefaultRouter is off by default. Set the OPENSEARCH_GO_ROUTER environment
-variable to enable scored, role-aware request routing without code changes:
+The client uses the DefaultRouter for scored, role-aware request routing. The
+OPENSEARCH_GO_ROUTER environment variable controls it:
 
-	OPENSEARCH_GO_ROUTER=true
+	OPENSEARCH_GO_ROUTER=false
 
-The value is parsed with strconv.ParseBool (accepts "true", "1", "t", etc.). When
-set to a truthy value and no programmatic Config.Router is provided, [New]
-automatically creates a [NewDefaultRouter]. Programmatic Config.Router always
-takes precedence.
+The value is parsed with strconv.ParseBool. When OPENSEARCH_GO_ROUTER is
+explicitly false and no programmatic Config.Router is provided, [New] leaves the
+Router nil; unset or any non-falsy value makes [New] create a [NewDefaultRouter].
+(In the v4 line the router is off unless OPENSEARCH_GO_ROUTER is set to true.)
+Programmatic Config.Router always takes precedence.
 
-The opensearch package observes the same variable independently: when
-OPENSEARCH_GO_ROUTER is truthy and opensearch.Config.DiscoverNodesOnStart has
-not been explicitly set, opensearch.NewClient enables on-start topology
+The opensearch package observes the same variable independently: unless
+OPENSEARCH_GO_ROUTER is explicitly false and opensearch.Config.DiscoverNodesOnStart
+has not been explicitly set, opensearch.NewClient enables on-start topology
 discovery so the router starts with fresh node information. opensearchtransport
 itself has no DiscoverNodesOnStart field; callers constructing the transport
 directly must trigger discovery themselves if desired.

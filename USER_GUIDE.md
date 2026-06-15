@@ -98,8 +98,8 @@ func example() error {
 	createIndexResponse, err := client.Indices.Create(
 		ctx,
 		opensearchapi.IndicesCreateReq{
-			Index: IndexName,
-			Body:  mapping,
+			Index:      IndexName,
+			BodyReader: mapping,
 		},
 	)
 
@@ -129,13 +129,13 @@ func example() error {
 	}
 
 	docId := "1"
-	insertResp, err := client.Index(
+	insertResp, err := client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
-			Index:      IndexName,
-			DocumentID: docId,
-			Body:       opensearchutil.NewJSONReader(&document),
-			Params: opensearchapi.IndexParams{
+			Index: IndexName,
+			ID:    docId,
+			Body:  opensearchutil.NewJSONReader(&document),
+			Params: &opensearchapi.IndexParams{
 				Refresh: "true",
 			},
 		},
@@ -159,7 +159,7 @@ func example() error {
 	searchResp, err := client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: content,
+			BodyReader: content,
 		},
 	)
 	if err != nil {
@@ -184,19 +184,19 @@ func example() error {
 	}
 
 	// Delete the document.
-	deleteReq := opensearchapi.DocumentDeleteReq{
-		Index:      IndexName,
-		DocumentID: docId,
+	deleteReq := opensearchapi.DeleteReq{
+		Index: IndexName,
+		ID:    docId,
 	}
 
-	deleteResponse, err := client.Document.Delete(ctx, deleteReq)
+	deleteResponse, err := client.Doc.Delete(ctx, deleteReq)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Deleted document: %t\n", deleteResponse.Result == "deleted")
 
 	// Delete previously created index.
-	deleteIndex := opensearchapi.IndicesDeleteReq{Indices: []string{IndexName}}
+	deleteIndex := &opensearchapi.IndicesDeleteReq{Index: []string{IndexName}}
 
 	deleteIndexResp, err := client.Indices.Delete(ctx, deleteIndex)
 	if err != nil {
@@ -387,8 +387,8 @@ func example() error {
 	createResp, err := client.Indices.Create(
 		ctx,
 		opensearchapi.IndicesCreateReq{
-			Index: indexName,
-			Body:  mapping,
+			Index:      indexName,
+			BodyReader: mapping,
 		},
 	)
 	if err != nil {
@@ -397,7 +397,7 @@ func example() error {
 
 	fmt.Printf("created index: %s\n", createResp.Index)
 
-	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Index: []string{indexName}})
 	if err != nil {
 		return err
 	}

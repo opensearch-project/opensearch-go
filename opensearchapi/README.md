@@ -35,12 +35,12 @@ Every operation follows the same triple pattern: **Req**, **Resp**, **Params**.
 ```go
 // Create an index
 _, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
-    Index: "products",
-    Body:  strings.NewReader(`{"settings":{"number_of_shards":1}}`),
+    Index:      "products",
+    BodyReader: strings.NewReader(`{"settings":{"number_of_shards":1}}`),
 })
 
 // Index a document
-_, err = client.Index(ctx, opensearchapi.IndexReq{
+_, err = client.Doc.Index(ctx, opensearchapi.IndexReq{
     Index:  "products",
     ID:     "1",
     Body:   strings.NewReader(`{"name":"Widget","price":9.99}`),
@@ -49,8 +49,8 @@ _, err = client.Index(ctx, opensearchapi.IndexReq{
 
 // Search
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
-    Body:  strings.NewReader(`{"query":{"match":{"name":"Widget"}}}`),
+    Index:      []string{"products"},
+    BodyReader: strings.NewReader(`{"query":{"match":{"name":"Widget"}}}`),
 })
 fmt.Println(resp.Hits.Total.Value) // 1
 
@@ -65,7 +65,7 @@ _, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
 Operations that have required path parameters accept their Req by value:
 
 ```go
-client.Index(ctx, opensearchapi.IndexReq{Index: "my-index", ...})
+client.Doc.Index(ctx, opensearchapi.IndexReq{Index: "my-index", ...})
 ```
 
 Operations where the entire request is optional accept a pointer (nil-safe):
@@ -83,18 +83,13 @@ Operations are grouped into sub-clients that mirror the OpenSearch API namespace
 | `client.Cat`                 | `client.Cat.Indices(ctx, nil)`                  |
 | `client.Cluster`             | `client.Cluster.Health(ctx, nil)`               |
 | `client.Dangling`            | `client.Dangling.DeleteDanglingIndex(ctx, req)` |
-| `client.Document`            | `client.Document.Get(ctx, req)`                 |
+| `client.Doc`                 | `client.Doc.Get(ctx, req)`                      |
 | `client.Indices`             | `client.Indices.Create(ctx, req)`               |
 | `client.Indices.Alias`       | `client.Indices.Alias.Get(ctx, req)`            |
 | `client.Indices.Mapping`     | `client.Indices.Mapping.Get(ctx, req)`          |
 | `client.Indices.Settings`    | `client.Indices.Settings.Get(ctx, req)`         |
 | `client.Nodes`               | `client.Nodes.Stats(ctx, nil)`                  |
-| `client.Script`              | `client.Script.Get(ctx, req)`                   |
-| `client.ComponentTemplate`   | `client.ComponentTemplate.Get(ctx, req)`        |
-| `client.IndexTemplate`       | `client.IndexTemplate.Get(ctx, req)`            |
-| `client.Template`            | `client.Template.Get(ctx, req)`                 |
-| `client.DataStream`          | `client.DataStream.Get(ctx, nil)`               |
-| `client.PointInTime`         | `client.PointInTime.Create(ctx, req)`           |
+| `client.PIT`                 | `client.PIT.Create(ctx, req)`                   |
 | `client.Ingest`              | `client.Ingest.GetPipeline(ctx, nil)`           |
 | `client.Tasks`               | `client.Tasks.List(ctx, nil)`                   |
 | `client.Scroll`              | `client.Scroll.Get(ctx, req)`                   |
@@ -102,7 +97,9 @@ Operations are grouped into sub-clients that mirror the OpenSearch API namespace
 | `client.Snapshot`            | `client.Snapshot.Get(ctx, req)`                 |
 | `client.Snapshot.Repository` | `client.Snapshot.Repository.Get(ctx, req)`      |
 
-Top-level operations (Search, Index, Bulk, etc.) live directly on `client`.
+Component-template, index-template, legacy-template, and data-stream operations live on `client.Cluster` and `client.Indices` (e.g. `client.Cluster.GetComponentTemplate`, `client.Indices.GetIndexTemplate`, `client.Indices.GetTemplate`, `client.Indices.GetDataStream`). Script operations (`client.GetScript`, `client.PutScript`) live directly on `client`.
+
+Top-level operations (Search, Reindex, DeleteByQuery, UpdateByQuery, etc.) live directly on `client`. Document operations are canonical on `client.Doc` (with `client.Bulk`, `client.Index`, `client.MGet`, and `client.Update` retained as backward-compatible forwarders); point-in-time operations are on `client.PIT`.
 
 ## Response Handling
 
@@ -110,8 +107,8 @@ Every response struct exposes typed fields plus an `Inspect()` method for raw ac
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
-    Body:  strings.NewReader(`{"query":{"match_all":{}}}`),
+    Index:      []string{"products"},
+    BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
 })
 if err != nil {
     log.Fatal(err)
@@ -148,8 +145,8 @@ Optional query parameters go in the `Params` struct on each Req:
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
-    Body:  strings.NewReader(`{"query":{"match_all":{}}}`),
+    Index:      []string{"products"},
+    BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
     Params: &opensearchapi.SearchParams{
         Size:            20,
         From:            40,
@@ -253,7 +250,7 @@ for _, sub := range opensearchapi.Errors(err) {
 | ------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `*PartialBulkError`      | `Bulk`, `BulkStream`                                                                         | `FailedItems []BulkRespItem`, `SucceededCount int`                     |
 | `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `CreatePIT`, `Count` | `FailedShards int`, `TotalShards int`, `Failures []ShardSearchFailure` |
-| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                      | `Operation string`, `FailedShards int`, `TotalShards int`              |
+| `*ShardFailureError`     | `Index`, `Doc.Create`, `Doc.Delete`, `Update`                                                | `Operation string`, `FailedShards int`, `TotalShards int`              |
 | `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                             | `Items []MultiSearchItemFailure`, `SucceededCount int`                 |
 | `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                              | `Unwrap() []error` (multi-error contract)                              |
 | `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                      | `Unwrap() []error`                                                     |
@@ -267,7 +264,7 @@ Two patterns cover every partial-failure use case. Pick the one that matches you
 **Treat any server or API failure as a hard error** -- the simplest and most idiomatic Go path. Use this when the operation has no meaningful "partial success" -- any error is a reason to stop:
 
 ```go
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }

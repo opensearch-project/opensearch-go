@@ -55,7 +55,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 When the `BulkItems` bit is unmasked, bulk operations return a `*PartialBulkError` whenever any items fail. The response is still fully populated -- callers can inspect both the error and the response.
 
 ```go
-resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+resp, err := client.Doc.Bulk(ctx, opensearchapi.BulkReq{Body: body})
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
     case *opensearchapi.PartialBulkError:
@@ -89,8 +89,8 @@ Search operations return a `*PartialSearchError` when shards fail. The response 
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"events"},
-    Body:  body,
+    Index:      []string{"events"},
+    BodyReader: body,
 })
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
@@ -111,7 +111,7 @@ Multi-search (`MSearch`, `MSearchTemplate`) and scroll (`Scroll.Get`) operations
 Index, Create, Update, and Delete operations return a `*ShardFailureError` when the primary shard succeeds but replica shards fail. The `Operation` field identifies which write operation was performed. The document ID field is `ID`:
 
 ```go
-resp, err := client.Index(ctx, opensearchapi.IndexReq{
+resp, err := client.Doc.Index(ctx, opensearchapi.IndexReq{
     Index: "test",
     ID:    "1",
     Body:  strings.NewReader(`{"field": "value"}`),
@@ -154,7 +154,7 @@ Two patterns cover every partial-failure use case. Pick the one that matches you
 **Treat any server or API failure as a hard error** -- the simplest and most idiomatic Go path. Use this when the operation has no meaningful "partial success" -- any error is a reason to stop:
 
 ```go
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }
@@ -290,7 +290,7 @@ import (
 )
 
 func safeBulkOperation(client *opensearchapi.Client, ctx context.Context) error {
-    resp, err := client.Bulk(ctx, opensearchapi.BulkReq{
+    resp, err := client.Doc.Bulk(ctx, opensearchapi.BulkReq{
         Body: strings.NewReader(`{ "index": { "_index": "test" } }
 { "field": "value1" }
 { "index": { "_index": "test" } }
@@ -428,7 +428,7 @@ Write operations return HTTP 201 or 200 if the primary shard succeeds, even if a
 
 ```go
 func safeIndexOperation(client *opensearchapi.Client, ctx context.Context) error {
-    resp, err := client.Index(ctx, opensearchapi.IndexReq{
+    resp, err := client.Doc.Index(ctx, opensearchapi.IndexReq{
         Index: "test",
         Body:  strings.NewReader(`{"field": "value"}`),
     })
@@ -469,7 +469,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
     Errors: &mask,
 })
 
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     // Catches transport errors, HTTP errors, AND partial failures.
     return err
@@ -482,14 +482,14 @@ if err != nil {
 
 ```go
 // WRONG - Missing partial failure checks
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }
 log.Println("Success!") // Danger: resp.Errors may be true
 
 // CORRECT - Check partial failures
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }
@@ -534,7 +534,7 @@ func bulkWithRetry(client *opensearchapi.Client, ctx context.Context, items []st
     currentItems := items
 
     for attempt := 0; attempt < maxRetries; attempt++ {
-        resp, err := client.Bulk(ctx, buildBulkRequest(currentItems))
+        resp, err := client.Doc.Bulk(ctx, buildBulkRequest(currentItems))
         if err != nil {
             return err
         }
@@ -709,7 +709,7 @@ func (b *BulkIndexer) Index(ctx context.Context, docs []Document) error {
             }
         }
 
-        resp, err := b.client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+        resp, err := b.client.Doc.Bulk(ctx, opensearchapi.BulkReq{Body: body})
         if err != nil {
             log.Printf("Bulk request failed: %v", err)
             continue

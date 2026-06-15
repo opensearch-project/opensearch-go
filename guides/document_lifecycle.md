@@ -13,10 +13,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
@@ -53,12 +55,12 @@ Next, create an index named `movies` with the default settings:
 To create a new document, use the `create` or `index` API action. The following code creates two new documents with IDs of `1` and `2`:
 
 ```go
-	docCreateResp, err := client.Document.Create(
+	docCreateResp, err := client.Doc.Create(
 		ctx,
-		opensearchapi.DocumentCreateReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Body:       strings.NewReader(`{"title": "Beauty and the Beast", "year": 1991 }`),
+		opensearchapi.CreateReq{
+			Index: "movies",
+			ID:    "1",
+			Body:  strings.NewReader(`{"title": "Beauty and the Beast", "year": 1991 }`),
 		},
 	)
 	if err != nil {
@@ -66,12 +68,12 @@ To create a new document, use the `create` or `index` API action. The following 
 	}
 	fmt.Printf("Document: %s\n", docCreateResp.Result)
 
-	docCreateResp, err = client.Document.Create(
+	docCreateResp, err = client.Doc.Create(
 		ctx,
-		opensearchapi.DocumentCreateReq{
-			Index:      "movies",
-			DocumentID: "2",
-			Body:       strings.NewReader(`{"title": "Beauty and the Beast - Live Action", "year": 2017 }`),
+		opensearchapi.CreateReq{
+			Index: "movies",
+			ID:    "2",
+			Body:  strings.NewReader(`{"title": "Beauty and the Beast - Live Action", "year": 2017 }`),
 		},
 	)
 	if err != nil {
@@ -83,12 +85,12 @@ To create a new document, use the `create` or `index` API action. The following 
 Note that the `create` action is NOT idempotent. If you try to create a document with an ID that already exists, the request will fail:
 
 ```go
-	_, err = client.Document.Create(
+	_, err = client.Doc.Create(
 		ctx,
-		opensearchapi.DocumentCreateReq{
-			Index:      "movies",
-			DocumentID: "2",
-			Body:       strings.NewReader(`{"title": "Just Another Movie" }`),
+		opensearchapi.CreateReq{
+			Index: "movies",
+			ID:    "2",
+			Body:  strings.NewReader(`{"title": "Just Another Movie" }`),
 		},
 	)
 	if err != nil {
@@ -99,12 +101,12 @@ Note that the `create` action is NOT idempotent. If you try to create a document
 The `index` action, on the other hand, is idempotent. If you try to index a document with an existing ID, the request will succeed and overwrite the existing document. Note that no new document will be created in this case. You can think of the `index` action as an upsert:
 
 ```go
-	indexResp, err := client.Index(
+	indexResp, err := client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
-			Index:      "movies",
-			DocumentID: "2",
-			Body:       strings.NewReader(`{"title": "Updated Title" }`),
+			Index: "movies",
+			ID:    "2",
+			Body:  strings.NewReader(`{"title": "Updated Title" }`),
 		},
 	)
 	if err != nil {
@@ -118,7 +120,7 @@ The `index` action, on the other hand, is idempotent. If you try to index a docu
 You can also create a new document with an auto-generated ID by omitting the `id` parameter. The following code creates documents with an auto-generated IDs in the `movies` index:
 
 ```go
-	indexResp, err = client.Index(
+	indexResp, err = client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
 			Index: "movies",
@@ -158,7 +160,7 @@ In this case, the ID of the created document in the `result` field of the respon
 To get a document, use the `get` API action. The following code gets the document with ID `1` from the `movies` index:
 
 ```go
-	getResp, err := client.Document.Get(ctx, opensearchapi.DocumentGetReq{Index: "movies", DocumentID: "1"})
+	getResp, err := client.Doc.Get(ctx, opensearchapi.GetReq{Index: "movies", ID: "1"})
 	if err != nil {
 		return err
 	}
@@ -172,12 +174,12 @@ To get a document, use the `get` API action. The following code gets the documen
 You can also use `_source_include` and `_source_exclude` parameters to specify which fields to include or exclude in the response:
 
 ```go
-	getResp, err = client.Document.Get(
+	getResp, err = client.Doc.Get(
 		ctx,
-		opensearchapi.DocumentGetReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params:     opensearchapi.DocumentGetParams{SourceIncludes: []string{"title"}},
+		opensearchapi.GetReq{
+			Index:  "movies",
+			ID:     "1",
+			Params: &opensearchapi.GetParams{SourceIncludes: []string{"title"}},
 		},
 	)
 	if err != nil {
@@ -189,12 +191,12 @@ You can also use `_source_include` and `_source_exclude` parameters to specify w
 	}
 	fmt.Printf("Get Document:\n%s\n", respAsJson)
 
-	getResp, err = client.Document.Get(
+	getResp, err = client.Doc.Get(
 		ctx,
-		opensearchapi.DocumentGetReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params:     opensearchapi.DocumentGetParams{SourceExcludes: []string{"title"}},
+		opensearchapi.GetReq{
+			Index:  "movies",
+			ID:     "1",
+			Params: &opensearchapi.GetParams{SourceExcludes: []string{"title"}},
 		},
 	)
 	if err != nil {
@@ -212,11 +214,11 @@ You can also use `_source_include` and `_source_exclude` parameters to specify w
 To get multiple documents, use the `mget` API action:
 
 ```go
-	mgetResp, err := client.MGet(
+	mgetResp, err := client.Doc.MGet(
 		ctx,
 		opensearchapi.MGetReq{
-			Index: "movies",
-			Body:  strings.NewReader(`{ "docs": [{ "_id": "1" }, { "_id": "2" }] }`),
+			Index:      "movies",
+			BodyReader: strings.NewReader(`{ "docs": [{ "_id": "1" }, { "_id": "2" }] }`),
 		},
 	)
 	if err != nil {
@@ -234,7 +236,7 @@ To get multiple documents, use the `mget` API action:
 To check if a document exists, use the `exists` API action. The following code checks if the document with ID `1` exists in the `movies` index:
 
 ```go
-	existsResp, err := client.Document.Exists(ctx, opensearchapi.DocumentExistsReq{Index: "movies", DocumentID: "1"})
+	existsResp, err := client.Doc.Exists(ctx, opensearchapi.ExistsReq{Index: "movies", ID: "1"})
 	if err != nil {
 		return err
 	}
@@ -246,12 +248,12 @@ To check if a document exists, use the `exists` API action. The following code c
 To update a document, use the `update` API action. The following code updates the `year` field of the document with ID `1` in the `movies` index:
 
 ```go
-	updateResp, err := client.Update(
+	updateResp, err := client.Doc.Update(
 		ctx,
 		opensearchapi.UpdateReq{
 			Index:      "movies",
-			DocumentID: "1",
-			Body:       strings.NewReader(`{ "doc": { "year": 1995 } }`),
+			ID:         "1",
+			BodyReader: strings.NewReader(`{ "doc": { "year": 1995 } }`),
 		},
 	)
 	if err != nil {
@@ -267,12 +269,12 @@ To update a document, use the `update` API action. The following code updates th
 Alternatively, you can use the `script` parameter to update a document using a script. The following code increments the `year` field of the of document with ID `1` by 5 using painless script, the default scripting language in OpenSearch:
 
 ```go
-	updateResp, err = client.Update(
+	updateResp, err = client.Doc.Update(
 		ctx,
 		opensearchapi.UpdateReq{
 			Index:      "movies",
-			DocumentID: "1",
-			Body:       strings.NewReader(`{ "script": { "source": "ctx._source.year += 5" } }`),
+			ID:         "1",
+			BodyReader: strings.NewReader(`{ "script": { "source": "ctx._source.year += 5" } }`),
 		},
 	)
 	if err != nil {
@@ -292,17 +294,17 @@ Note that while both `update` and `index` actions perform updates, they are not 
 To update documents that match a query, use the `update_by_query` API action. The following code decreases the `year` field of all documents with `year` greater than 2023:
 
 ```go
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
 	if err != nil {
 		return err
 	}
 
 	upByQueryResp, err := client.UpdateByQuery(
 		ctx,
-		opensearchapi.UpdateByQueryReq{
-			Indices: []string{"movies"},
-			Params:  opensearchapi.UpdateByQueryParams{Query: "year:<1990"},
-			Body:    strings.NewReader(`{"script": { "source": "ctx._source.year -= 1" } }`),
+		&opensearchapi.UpdateByQueryReq{
+			Index:      []string{"movies"},
+			Params:     &opensearchapi.UpdateByQueryParams{Q: "year:<1990"},
+			BodyReader: strings.NewReader(`{"script": { "source": "ctx._source.year -= 1" } }`),
 		},
 	)
 	if err != nil {
@@ -322,7 +324,7 @@ Note that the `update_by_query` API action is needed to refresh the index before
 To delete a document, use the `delete` API action. The following code deletes the document with ID `1`:
 
 ```go
-	docDelResp, err := client.Document.Delete(ctx, opensearchapi.DocumentDeleteReq{Index: "movies", DocumentID: "1"})
+	docDelResp, err := client.Doc.Delete(ctx, opensearchapi.DeleteReq{Index: "movies", ID: "1"})
 	if err != nil {
 		return err
 	}
@@ -338,16 +340,16 @@ To delete a document, use the `delete` API action. The following code deletes th
 To delete documents that match a query, use the `delete_by_query` API action. The following code deletes all documents with `year` greater than 2023:
 
 ```go
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
 	if err != nil {
 		return err
 	}
 
-	delByQueryResp, err := client.Document.DeleteByQuery(
+	delByQueryResp, err := client.DeleteByQuery(
 		ctx,
-		opensearchapi.DocumentDeleteByQueryReq{
-			Indices: []string{"movies"},
-			Body:    strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
+		&opensearchapi.DeleteByQueryReq{
+			Index:      []string{"movies"},
+			BodyReader: strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
 		},
 	)
 	if err != nil {
@@ -369,9 +371,9 @@ To clean up the resources created in this guide, delete the `movies` index:
 ```go
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Index:  []string{"movies"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

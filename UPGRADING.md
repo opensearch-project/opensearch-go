@@ -4,7 +4,7 @@
     - [Default Router Injection in v5](#default-router-injection-in-v5)
     - [DiscoverNodes() blocking semantics](#discovernodes-blocking-semantics)
     - [opensearchtransport.Route interface gained OpID()](#opensearchtransportroute-interface-gained-opid)
-    - [Response.Body becomes a method](#responsebody-becomes-a-method)
+    - [Response.RawBody() for buffered response bytes](#responserawbody-for-buffered-response-bytes)
   - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
     - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
     - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
@@ -226,15 +226,15 @@ import (
 
 // After (v4)
 import (
-    "github.com/opensearch-project/opensearch-go/v5"
-    "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+    "github.com/opensearch-project/opensearch-go/v4"
+    "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 ```
 
 Update your `go.mod`:
 
 ```bash
-go get github.com/opensearch-project/opensearch-go/v5@latest
+go get github.com/opensearch-project/opensearch-go/v4@latest
 ```
 
 ### Error Types
@@ -333,7 +333,7 @@ With 4.0.0 (AWS SDK v2):
 import (
     "context"
     "github.com/aws/aws-sdk-go-v2/config"
-    signer "github.com/opensearch-project/opensearch-go/v5/signer/aws"
+    signer "github.com/opensearch-project/opensearch-go/v4/signer/aws"
 )
 
 cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
@@ -343,7 +343,7 @@ if err != nil {
 awsSigner, err := signer.NewSigner(cfg)
 ```
 
-The `signer/awsv2` package (which already used AWS SDK v2) remains available at `github.com/opensearch-project/opensearch-go/v5/signer/awsv2` with the same API.
+The `signer/awsv2` package (which already used AWS SDK v2) remains available at `github.com/opensearch-project/opensearch-go/v4/signer/awsv2` with the same API.
 
 ### Typed Failure Arrays in By-Query and Reindex Responses
 
